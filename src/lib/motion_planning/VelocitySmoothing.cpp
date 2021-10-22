@@ -120,16 +120,13 @@ float VelocitySmoothing::computeT1(float T123, float a0, float v3, float j_max, 
 	float T3_plus = a0 / j_max + T1_plus;
 	float T3_minus = a0 / j_max + T1_minus;
 
-	float T13_plus = T1_plus + T3_plus;
-	float T13_minus = T1_minus + T3_minus;
-
 	float T1 = 0.f;
 
-	if (T13_plus > T123) {
-		T1 = T1_minus;
-
-	} else if (T13_minus > T123) {
+	if ((T1_plus >= 0.f && T3_plus >= 0.f) && ((T1_plus + T3_plus) <= T123)) {
 		T1 = T1_plus;
+
+	} else if ((T1_minus >= 0.f && T3_minus >= 0.f) && ((T1_minus + T3_minus) <= T123)) {
+		T1 = T1_minus;
 	}
 
 	T1 = saturateT1ForAccel(a0, j_max, T1, a_max);
@@ -282,7 +279,8 @@ void VelocitySmoothing::timeSynchronization(VelocitySmoothing *traj, int n_traj)
 
 	if (desired_time > FLT_EPSILON) {
 		for (int i = 0; i < n_traj; i++) {
-			if (i != longest_traj_index) {
+			if ((i != longest_traj_index)
+			    && (traj[i].getTotalTime() < desired_time)) {
 				traj[i].updateDurationsGivenTotalTime(desired_time);
 			}
 		}
