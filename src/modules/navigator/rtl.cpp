@@ -115,8 +115,8 @@ void RTL::find_RTL_destination()
 				     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 
-	// consider the mission landing if not RTL_HOME type set
-	if (_param_rtl_type.get() != RTL_HOME && _navigator->get_mission_start_land_available()) {
+	// consider the mission landing if not RTL_TYPE_HOME_ONLY type set
+	if (_param_rtl_type.get() != RTL_TYPE_HOME_ONLY && _navigator->get_mission_start_land_available()) {
 		double mission_landing_lat;
 		double mission_landing_lon;
 		float mission_landing_alt;
@@ -137,8 +137,8 @@ void RTL::find_RTL_destination()
 		dlon = mission_landing_lon - global_position.lon;
 		double dist_squared = coord_dist_sq(dlat, dlon);
 
-		// set destination to mission landing if closest or in RTL_LAND or RTL_MISSION (so not in RTL_CLOSEST)
-		if (dist_squared < min_dist_squared || _param_rtl_type.get() != RTL_CLOSEST) {
+		// set destination to mission landing if closest or in RTL_TYPE_MISSION_LANDING or RTL_TYPE_MISSION_LANDING_REVERSED (so not in RTL_TYPE_CLOSEST)
+		if (dist_squared < min_dist_squared || _param_rtl_type.get() != RTL_TYPE_CLOSEST) {
 			min_dist_squared = dist_squared;
 			_destination.lat = mission_landing_lat;
 			_destination.lon = mission_landing_lon;
@@ -147,8 +147,8 @@ void RTL::find_RTL_destination()
 		}
 	}
 
-	// do not consider rally point if RTL type is set to RTL_MISSION, so exit function and use either home or mission landing
-	if (_param_rtl_type.get() == RTL_MISSION) {
+	// do not consider rally point if RTL type is set to RTL_TYPE_MISSION_LANDING_REVERSED, so exit function and use either home or mission landing
+	if (_param_rtl_type.get() == RTL_TYPE_MISSION_LANDING_REVERSED) {
 		return;
 	}
 
