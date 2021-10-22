@@ -128,7 +128,7 @@ int test_ppm_loopback(int argc, char *argv[])
 		pwm_out.channel_count++;
 	}
 
-	result = ioctl(servo_fd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm_out);
+	//result = ioctl(servo_fd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm_out);
 
 	/* give driver 10 ms to propagate */
 

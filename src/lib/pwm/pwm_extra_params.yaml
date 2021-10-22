@@ -121,27 +121,3 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: 0
-
-        PWM_EXTRA_REV${i}:
-            description:
-                short: PWM extra ${i} reverse value
-                long: |
-                    Enable to invert the channel.
-                    Warning: Use this parameter when connected to a servo only.
-                    For a brushless motor, invert manually two phases to reverse the direction.
-            type: boolean
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: 0
-
-        PWM_EXTRA_RATE${i}:
-            description:
-                short: PWM extra ${i} rate
-                long: |
-                    Set the default PWM output frequency for the main outputs
-            type: int32
-            unit: Hz
-            min: 0
-            max: 400
-            instance_start: 1
-            default: 50

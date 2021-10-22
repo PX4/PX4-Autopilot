@@ -104,15 +104,13 @@ _param_prefix(param_prefix)
 
 	_use_dynamic_mixing = _param_sys_ctrl_alloc.get();
 
-	if (_use_dynamic_mixing) {
-		initParamHandles();
+	initParamHandles();
 
-		for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-			_failsafe_value[i] = UINT16_MAX;
-		}
-
-		updateParams();
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		_failsafe_value[i] = UINT16_MAX;
 	}
+
+	updateParams();
 }
 
 MixingOutput::~MixingOutput()
@@ -129,8 +127,6 @@ void MixingOutput::initParamHandles()
 	char param_name[17];
 
 	for (unsigned i = 0; i < _max_num_outputs; ++i) {
-		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FUNC", i + 1);
-		_param_handles[i].function = param_find(param_name);
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "DIS", i + 1);
 		_param_handles[i].disarmed = param_find(param_name);
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "MIN", i + 1);
@@ -139,6 +135,13 @@ void MixingOutput::initParamHandles()
 		_param_handles[i].max = param_find(param_name);
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FAIL", i + 1);
 		_param_handles[i].failsafe = param_find(param_name);
+	}
+
+	if (_use_dynamic_mixing) {
+		for (unsigned i = 0; i < _max_num_outputs; ++i) {
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FUNC", i + 1);
+			_param_handles[i].function = param_find(param_name);
+		}
 	}
 }
 
@@ -190,12 +193,39 @@ void MixingOutput::updateParams()
 		_mixers->set_airmode((Mixer::Airmode)_param_mc_airmode.get());
 	}
 
+	_reverse_output_mask = 0;
+
+	for (unsigned i = 0; i < _max_num_outputs; i++) {
+		int32_t val;
+
+		if (_param_handles[i].disarmed != PARAM_INVALID && param_get(_param_handles[i].disarmed, &val) == 0) {
+			_disarmed_value[i] = val;
+		}
+
+		if (_param_handles[i].min != PARAM_INVALID && param_get(_param_handles[i].min, &val) == 0) {
+			_min_value[i] = val;
+		}
+
+		if (_param_handles[i].max != PARAM_INVALID && param_get(_param_handles[i].max, &val) == 0) {
+			_max_value[i] = val;
+		}
+
+		if (_min_value[i] > _max_value[i]) {
+			_reverse_output_mask |= 1 << i;
+			uint16_t tmp = _min_value[i];
+			_min_value[i] = _max_value[i];
+			_max_value[i] = tmp;
+		}
+
+		if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
+			_failsafe_value[i] = val;
+		}
+	}
+
 	if (_use_dynamic_mixing) {
 		_param_mot_ordering.set(0); // not used with dynamic mixing
 
 		bool function_changed = false;
-
-		_reverse_output_mask = 0;
 
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
 			int32_t val;
@@ -206,29 +236,6 @@ void MixingOutput::updateParams()
 				}
 
 				// we set _function_assignment[i] later to ensure _functions[i] is updated at the same time
-			}
-
-			if (_param_handles[i].disarmed != PARAM_INVALID && param_get(_param_handles[i].disarmed, &val) == 0) {
-				_disarmed_value[i] = val;
-			}
-
-			if (_param_handles[i].min != PARAM_INVALID && param_get(_param_handles[i].min, &val) == 0) {
-				_min_value[i] = val;
-			}
-
-			if (_param_handles[i].max != PARAM_INVALID && param_get(_param_handles[i].max, &val) == 0) {
-				_max_value[i] = val;
-			}
-
-			if (_min_value[i] > _max_value[i]) {
-				_reverse_output_mask |= 1 << i;
-				uint16_t tmp = _min_value[i];
-				_min_value[i] = _max_value[i];
-				_max_value[i] = tmp;
-			}
-
-			if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
-				_failsafe_value[i] = val;
 			}
 		}
 

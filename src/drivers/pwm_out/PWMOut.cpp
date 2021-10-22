@@ -56,10 +56,6 @@ PWMOut::PWMOut(int instance, uint8_t output_base) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": interval"))
 {
-	if (!_mixing_output.useDynamicMixing()) {
-		_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
-		_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
-	}
 }
 
 PWMOut::~PWMOut()
@@ -487,10 +483,6 @@ void PWMOut::Run()
 		}
 	}
 
-	if (_pwm_initialized && _current_update_rate == 0 && !_mixing_output.useDynamicMixing()) {
-		update_current_rate();
-	}
-
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
 	_mixing_output.updateSubscriptions(true, true);
 
@@ -505,9 +497,6 @@ void PWMOut::update_params()
 		return;
 	}
 
-	int32_t pwm_min_default = PWM_DEFAULT_MIN;
-	int32_t pwm_max_default = PWM_DEFAULT_MAX;
-	int32_t pwm_disarmed_default = 0;
 	int32_t pwm_rate_default = 50;
 	int32_t pwm_default_channels = 0;
 
@@ -516,28 +505,20 @@ void PWMOut::update_params()
 	if (_class_instance == CLASS_DEVICE_PRIMARY) {
 		prefix = "PWM_MAIN";
 
-		param_get(param_find("PWM_MAIN_MIN"), &pwm_min_default);
-		param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
-		param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
 		param_get(param_find("PWM_MAIN_RATE"), &pwm_rate_default);
 		param_get(param_find("PWM_MAIN_OUT"), &pwm_default_channels);
 
 	} else if (_class_instance == CLASS_DEVICE_SECONDARY) {
 		prefix = "PWM_AUX";
 
-		param_get(param_find("PWM_AUX_MIN"), &pwm_min_default);
-		param_get(param_find("PWM_AUX_MAX"), &pwm_max_default);
-		param_get(param_find("PWM_AUX_DISARM"), &pwm_disarmed_default);
 		param_get(param_find("PWM_AUX_RATE"), &pwm_rate_default);
 		param_get(param_find("PWM_AUX_OUT"), &pwm_default_channels);
 
 	} else if (_class_instance == CLASS_DEVICE_TERTIARY) {
 		prefix = "PWM_EXTRA";
 
-		param_get(param_find("PWM_EXTRA_MIN"), &pwm_min_default);
-		param_get(param_find("PWM_EXTRA_MAX"), &pwm_max_default);
-		param_get(param_find("PWM_EXTRA_DISARM"), &pwm_disarmed_default);
 		param_get(param_find("PWM_EXTRA_RATE"), &pwm_rate_default);
+		param_get(param_find("PWM_EXTRA_OUT"), &pwm_default_channels);
 
 	} else {
 		PX4_ERR("invalid class instance %d", _class_instance);
@@ -557,106 +538,6 @@ void PWMOut::update_params()
 	int num_disarmed_set = 0;
 
 	char str[17];
-
-	for (unsigned i = 0; i < _num_outputs; i++) {
-		// PWM_MAIN_MINx
-		{
-			sprintf(str, "%s_MIN%u", prefix, i + 1);
-			int32_t pwm_min = -1;
-
-			if (param_get(param_find(str), &pwm_min) == PX4_OK) {
-				if (pwm_min >= 0 && pwm_min != 1000) {
-					_mixing_output.minValue(i) = math::constrain(pwm_min, (int32_t) PWM_LOWEST_MIN, (int32_t) PWM_HIGHEST_MIN);
-
-					if (pwm_min != _mixing_output.minValue(i)) {
-						int32_t pwm_min_new = _mixing_output.minValue(i);
-						param_set(param_find(str), &pwm_min_new);
-					}
-
-				} else if (pwm_default_channel_mask & 1 << i) {
-					_mixing_output.minValue(i) = pwm_min_default;
-				}
-			}
-		}
-
-		// PWM_MAIN_MAXx
-		{
-			sprintf(str, "%s_MAX%u", prefix, i + 1);
-			int32_t pwm_max = -1;
-
-			if (param_get(param_find(str), &pwm_max) == PX4_OK) {
-				if (pwm_max >= 0 && pwm_max != 2000) {
-					_mixing_output.maxValue(i) = math::constrain(pwm_max, (int32_t) PWM_LOWEST_MAX, (int32_t) PWM_HIGHEST_MAX);
-
-					if (pwm_max != _mixing_output.maxValue(i)) {
-						int32_t pwm_max_new = _mixing_output.maxValue(i);
-						param_set(param_find(str), &pwm_max_new);
-					}
-
-				} else if (pwm_default_channel_mask & 1 << i) {
-					_mixing_output.maxValue(i) = pwm_max_default;
-				}
-			}
-		}
-
-		// PWM_MAIN_FAILx
-		{
-			sprintf(str, "%s_FAIL%u", prefix, i + 1);
-			int32_t pwm_failsafe = -1;
-
-			if (param_get(param_find(str), &pwm_failsafe) == PX4_OK) {
-				if (pwm_failsafe >= 0) {
-					_mixing_output.failsafeValue(i) = math::constrain(pwm_failsafe, (int32_t) 0, (int32_t) PWM_HIGHEST_MAX);
-
-					if (pwm_failsafe != _mixing_output.failsafeValue(i)) {
-						int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
-						param_set(param_find(str), &pwm_fail_new);
-					}
-				}
-			}
-		}
-
-		// PWM_MAIN_DISx
-		{
-			sprintf(str, "%s_DIS%u", prefix, i + 1);
-			int32_t pwm_dis = -1;
-
-			if (param_get(param_find(str), &pwm_dis) == PX4_OK) {
-				if (pwm_dis >= 0 && pwm_dis != 900) {
-					_mixing_output.disarmedValue(i) = math::constrain(pwm_dis, (int32_t) 0, (int32_t) PWM_HIGHEST_MAX);
-
-					if (pwm_dis != _mixing_output.disarmedValue(i)) {
-						int32_t pwm_dis_new = _mixing_output.disarmedValue(i);
-						param_set(param_find(str), &pwm_dis_new);
-					}
-
-				} else if (pwm_default_channel_mask & 1 << i) {
-					_mixing_output.disarmedValue(i) = pwm_disarmed_default;
-				}
-			}
-
-			if (_mixing_output.disarmedValue(i) > 0) {
-				num_disarmed_set++;
-			}
-		}
-
-		// PWM_MAIN_REVx
-		{
-			sprintf(str, "%s_REV%u", prefix, i + 1);
-			int32_t pwm_rev = 0;
-
-			if (param_get(param_find(str), &pwm_rev) == PX4_OK) {
-				uint16_t &reverse_pwm_mask = _mixing_output.reverseOutputMask();
-
-				if (pwm_rev >= 1) {
-					reverse_pwm_mask = reverse_pwm_mask | (1 << i);
-
-				} else {
-					reverse_pwm_mask = reverse_pwm_mask & ~(1 << i);
-				}
-			}
-		}
-	}
 
 	if (_mixing_output.mixers()) {
 		int16_t values[FMU_MAX_ACTUATORS] {};
@@ -736,40 +617,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		*(uint32_t *)arg = _pwm_alt_rate_channels;
 		break;
 
-	case PWM_SERVO_SET_FAILSAFE_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > FMU_MAX_ACTUATORS || _mixing_output.useDynamicMixing()) {
-				ret = -EINVAL;
-				break;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] == 0) {
-					/* ignore 0 */
-				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_mixing_output.failsafeValue(i) = PWM_HIGHEST_MAX;
-
-				}
-
-#if PWM_LOWEST_MIN > 0
-
-				else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_mixing_output.failsafeValue(i) = PWM_LOWEST_MIN;
-
-				}
-
-#endif
-
-				else {
-					_mixing_output.failsafeValue(i) = pwm->values[i];
-				}
-			}
-
-			break;
-		}
-
 	case PWM_SERVO_GET_FAILSAFE_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
@@ -778,50 +625,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			}
 
 			pwm->channel_count = FMU_MAX_ACTUATORS;
-			break;
-		}
-
-	case PWM_SERVO_SET_DISARMED_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > FMU_MAX_ACTUATORS || _mixing_output.useDynamicMixing()) {
-				ret = -EINVAL;
-				break;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] == 0) {
-					/* ignore 0 */
-				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_mixing_output.disarmedValue(i) = PWM_HIGHEST_MAX;
-				}
-
-#if PWM_LOWEST_MIN > 0
-
-				else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_mixing_output.disarmedValue(i) = PWM_LOWEST_MIN;
-				}
-
-#endif
-
-				else {
-					_mixing_output.disarmedValue(i) = pwm->values[i];
-				}
-			}
-
-			/*
-			 * update the counter
-			 * this is needed to decide if disarmed PWM output should be turned on or not
-			 */
-			_num_disarmed_set = 0;
-
-			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
-				if (_mixing_output.disarmedValue(i) > 0) {
-					_num_disarmed_set++;
-				}
-			}
-
 			break;
 		}
 

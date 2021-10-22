@@ -115,21 +115,10 @@ $ pwm test -c 13 -p 1200
 	PRINT_MODULE_USAGE_COMMAND_DESCR("disarm", "Disarm output");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print current configuration of all channels");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("forcefail", "Force Failsafe mode. "
-                                         "PWM outputs are set to failsafe values.");
-	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("terminatefail", "Enable Termination Failsafe mode. "
-                                         "While this is true, "
-                                         "any failsafe that occurs will be unrecoverable (even if recovery conditions are met).");
-	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("rate", "Configure PWM rates");
 	PRINT_MODULE_USAGE_PARAM_INT('r', -1, 50, 400, "PWM Rate in Hz (0 = Oneshot, otherwise 50 to 400Hz)", false);
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("oneshot", "Configure Oneshot125 (rate is set to 0)");
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("failsafe", "Set Failsafe PWM value");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("disarmed", "Set Disarmed PWM value");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("min", "Set Minimum PWM value");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("max", "Set Maximum PWM value");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Set Output to a specific value until 'q' or 'c' or 'ctrl-c' pressed");
@@ -506,113 +495,6 @@ pwm_main(int argc, char *argv[])
 
 		return 0;
 
-	} else if (!strcmp(command, "disarmed")) {
-
-		if (set_mask == 0) {
-			usage("no channels set");
-			return 1;
-		}
-
-		if (pwm_value < 0) {
-			return 0;
-		}
-
-		if (pwm_value == 0) {
-			PX4_WARN("reading disarmed value of zero, disabling disarmed PWM");
-		}
-
-		struct pwm_output_values pwm_values {};
-
-		pwm_values.channel_count = servo_count;
-
-		/* first get current state before modifying it */
-		ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&pwm_values);
-
-		if (ret != OK) {
-			PX4_ERR("failed get disarmed values");
-			return ret;
-		}
-
-		for (unsigned i = 0; i < servo_count; i++) {
-			if (set_mask & 1 << i) {
-				pwm_values.values[i] = pwm_value;
-
-				if (print_verbose) {
-					PX4_INFO("chan %d: disarmed PWM: %d", i + 1, pwm_value);
-				}
-			}
-		}
-
-		if (pwm_values.channel_count == 0) {
-			usage("disarmed: no PWM channels");
-			return 1;
-
-		} else {
-
-			ret = px4_ioctl(fd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm_values);
-
-			if (ret != OK) {
-				PX4_ERR("failed setting disarmed values (%d)", ret);
-				return error_on_warn;
-			}
-		}
-
-		return 0;
-
-	} else if (!strcmp(command, "failsafe")) {
-
-		if (set_mask == 0) {
-			usage("no channels set");
-			return 1;
-		}
-
-		if (pwm_value < 0) {
-			return 0;
-		}
-
-		if (pwm_value == 0) {
-			usage("failsafe: no PWM provided");
-			return 1;
-		}
-
-		struct pwm_output_values pwm_values {};
-
-		pwm_values.channel_count = servo_count;
-
-		/* first get current state before modifying it */
-		ret = px4_ioctl(fd, PWM_SERVO_GET_FAILSAFE_PWM, (long unsigned int)&pwm_values);
-
-		if (ret != OK) {
-			PX4_ERR("failed get failsafe values");
-			return 1;
-		}
-
-		for (unsigned i = 0; i < servo_count; i++) {
-			if (set_mask & 1 << i) {
-				pwm_values.values[i] = pwm_value;
-
-				if (print_verbose) {
-					PX4_INFO("Channel %d: failsafe PWM: %d", i + 1, pwm_value);
-				}
-			}
-		}
-
-		if (pwm_values.channel_count == 0) {
-			usage("failsafe: no PWM channels");
-			return 1;
-
-		} else {
-
-			ret = px4_ioctl(fd, PWM_SERVO_SET_FAILSAFE_PWM, (long unsigned int)&pwm_values);
-
-			if (ret != OK) {
-				PX4_ERR("BAD input VAL");
-				return 1;
-			}
-		}
-
-		return 0;
-
 	} else if (!strcmp(command, "test")) {
 
 		if (set_mask == 0) {
@@ -965,54 +847,6 @@ err_out_no_test:
 				}
 
 				printf("\n");
-			}
-		}
-
-		return 0;
-
-	} else if (!strcmp(command, "forcefail")) {
-
-		if (argc < 3) {
-			PX4_ERR("arg missing [on|off]");
-			return 1;
-
-		} else {
-
-			if (!strcmp(argv[2], "on")) {
-				/* force failsafe */
-				ret = px4_ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 1);
-
-			} else {
-				/* disable failsafe */
-				ret = px4_ioctl(fd, PWM_SERVO_SET_FORCE_FAILSAFE, 0);
-			}
-
-			if (ret != OK) {
-				PX4_ERR("FAILED setting forcefail %s", argv[2]);
-			}
-		}
-
-		return 0;
-
-	} else if (!strcmp(command, "terminatefail")) {
-
-		if (argc < 3) {
-			PX4_ERR("arg missing [on|off]");
-			return 1;
-
-		} else {
-
-			if (!strcmp(argv[2], "on")) {
-				/* force failsafe */
-				ret = px4_ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 1);
-
-			} else {
-				/* disable failsafe */
-				ret = px4_ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 0);
-			}
-
-			if (ret != OK) {
-				PX4_ERR("FAILED setting termination failsafe %s", argv[2]);
 			}
 		}
 

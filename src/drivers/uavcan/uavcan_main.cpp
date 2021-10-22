@@ -676,17 +676,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return -EINVAL;
 	}
 
-	_mixing_interface_esc.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
-
-	if (!_mixing_interface_esc.mixingOutput().useDynamicMixing()) {
-		// these are configurable with dynamic mixing
-		_mixing_interface_esc.mixingOutput().setAllMinValues(0); // Can be changed to 1 later, according to UAVCAN_ESC_IDLT
-		_mixing_interface_esc.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
-
-		param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
-		enable_idle_throttle_when_armed(true);
-	}
-
 	/*  Start the Node   */
 	return _node.start();
 }
@@ -791,10 +780,6 @@ UavcanNode::Run()
 
 	node_spin_once(); // expected to be non-blocking
 
-	// Check arming state
-	const actuator_armed_s &armed = _mixing_interface_esc.mixingOutput().armed();
-	enable_idle_throttle_when_armed(!armed.soft_stop);
-
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -835,19 +820,6 @@ UavcanNode::Run()
 		ScheduleClear();
 		teardown();
 		_instance = nullptr;
-	}
-}
-
-void
-UavcanNode::enable_idle_throttle_when_armed(bool value)
-{
-	value &= _idle_throttle_when_armed_param > 0;
-
-	if (!_mixing_interface_esc.mixingOutput().useDynamicMixing()) {
-		if (value != _idle_throttle_when_armed) {
-			_mixing_interface_esc.mixingOutput().setAllMinValues(value ? 1 : 0);
-			_idle_throttle_when_armed = value;
-		}
 	}
 }
 

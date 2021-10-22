@@ -2036,13 +2036,6 @@ Commander::run()
 					_status_flags.vtol_transition_failure = _vtol_status.vtol_transition_failsafe;
 					_status_changed = true;
 				}
-
-				const bool should_soft_stop = (_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-
-				if (_armed.soft_stop != should_soft_stop) {
-					_armed.soft_stop = should_soft_stop;
-					_status_changed = true;
-				}
 			}
 		}
 

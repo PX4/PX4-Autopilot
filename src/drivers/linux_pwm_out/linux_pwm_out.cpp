@@ -44,10 +44,6 @@ LinuxPWMOut::LinuxPWMOut() :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": interval"))
 {
-	if (!_mixing_output.useDynamicMixing()) {
-		_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
-		_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
-	}
 }
 
 LinuxPWMOut::~LinuxPWMOut()
@@ -159,128 +155,6 @@ void LinuxPWMOut::update_params()
 	// skip update when armed or dynamic mixing enabled
 	if (_mixing_output.armed().armed || _mixing_output.useDynamicMixing()) {
 		return;
-	}
-
-	int32_t pwm_min_default = PWM_DEFAULT_MIN;
-	int32_t pwm_max_default = PWM_DEFAULT_MAX;
-	int32_t pwm_disarmed_default = 0;
-
-	const char *prefix;
-
-	if (_class_instance == CLASS_DEVICE_PRIMARY) {
-		prefix = "PWM_MAIN";
-
-		param_get(param_find("PWM_MAIN_MIN"), &pwm_min_default);
-		param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
-		param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
-
-	} else if (_class_instance == CLASS_DEVICE_SECONDARY) {
-		prefix = "PWM_AUX";
-
-		param_get(param_find("PWM_AUX_MIN"), &pwm_min_default);
-		param_get(param_find("PWM_AUX_MAX"), &pwm_max_default);
-		param_get(param_find("PWM_AUX_DISARM"), &pwm_disarmed_default);
-
-	} else if (_class_instance == CLASS_DEVICE_TERTIARY) {
-		prefix = "PWM_EXTRA";
-
-		param_get(param_find("PWM_EXTRA_MIN"), &pwm_min_default);
-		param_get(param_find("PWM_EXTRA_MAX"), &pwm_max_default);
-		param_get(param_find("PWM_EXTRA_DISARM"), &pwm_disarmed_default);
-
-	} else {
-		PX4_ERR("invalid class instance %d", _class_instance);
-		return;
-	}
-
-	char str[17];
-
-	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-		// PWM_MAIN_MINx
-		{
-			sprintf(str, "%s_MIN%u", prefix, i + 1);
-			int32_t pwm_min = -1;
-
-			if (param_get(param_find(str), &pwm_min) == PX4_OK && pwm_min >= 0) {
-				_mixing_output.minValue(i) = math::constrain(pwm_min, PWM_LOWEST_MIN, PWM_HIGHEST_MIN);
-
-				if (pwm_min != _mixing_output.minValue(i)) {
-					int32_t pwm_min_new = _mixing_output.minValue(i);
-					param_set(param_find(str), &pwm_min_new);
-				}
-
-			} else {
-				_mixing_output.minValue(i) = pwm_min_default;
-			}
-		}
-
-		// PWM_MAIN_MAXx
-		{
-			sprintf(str, "%s_MAX%u", prefix, i + 1);
-			int32_t pwm_max = -1;
-
-			if (param_get(param_find(str), &pwm_max) == PX4_OK && pwm_max >= 0) {
-				_mixing_output.maxValue(i) = math::constrain(pwm_max, PWM_LOWEST_MAX, PWM_HIGHEST_MAX);
-
-				if (pwm_max != _mixing_output.maxValue(i)) {
-					int32_t pwm_max_new = _mixing_output.maxValue(i);
-					param_set(param_find(str), &pwm_max_new);
-				}
-
-			} else {
-				_mixing_output.maxValue(i) = pwm_max_default;
-			}
-		}
-
-		// PWM_MAIN_FAILx
-		{
-			sprintf(str, "%s_FAIL%u", prefix, i + 1);
-			int32_t pwm_failsafe = -1;
-
-			if (param_get(param_find(str), &pwm_failsafe) == PX4_OK && pwm_failsafe >= 0) {
-				_mixing_output.failsafeValue(i) = math::constrain(pwm_failsafe, 0, PWM_HIGHEST_MAX);
-
-				if (pwm_failsafe != _mixing_output.failsafeValue(i)) {
-					int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
-					param_set(param_find(str), &pwm_fail_new);
-				}
-			}
-		}
-
-		// PWM_MAIN_DISx
-		{
-			sprintf(str, "%s_DIS%u", prefix, i + 1);
-			int32_t pwm_dis = -1;
-
-			if (param_get(param_find(str), &pwm_dis) == PX4_OK && pwm_dis >= 0) {
-				_mixing_output.disarmedValue(i) = math::constrain(pwm_dis, 0, PWM_HIGHEST_MAX);
-
-				if (pwm_dis != _mixing_output.disarmedValue(i)) {
-					int32_t pwm_dis_new = _mixing_output.disarmedValue(i);
-					param_set(param_find(str), &pwm_dis_new);
-				}
-
-			} else {
-				_mixing_output.disarmedValue(i) = pwm_disarmed_default;
-			}
-		}
-
-		// PWM_MAIN_REVx
-		{
-			sprintf(str, "%s_REV%u", prefix, i + 1);
-			int32_t pwm_rev = 0;
-
-			if (param_get(param_find(str), &pwm_rev) == PX4_OK) {
-				uint16_t &reverse_pwm_mask = _mixing_output.reverseOutputMask();
-
-				if (pwm_rev >= 1) {
-					reverse_pwm_mask = reverse_pwm_mask | (2 << i);
-
-				} else {
-					reverse_pwm_mask = reverse_pwm_mask & ~(2 << i);
-				}
-			}
-		}
 	}
 
 	if (_mixing_output.mixers()) {

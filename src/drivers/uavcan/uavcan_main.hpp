@@ -216,8 +216,6 @@ private:
 	void		set_setget_response(uavcan::protocol::param::GetSet::Response *resp) { _setget_response = resp; }
 	void		free_setget_response(void) { _setget_response = nullptr; }
 
-	void enable_idle_throttle_when_armed(bool value);
-
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
 	px4::atomic<int>	_fw_server_action{None};
 	int			 _fw_server_status{-1};

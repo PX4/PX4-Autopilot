@@ -29,40 +29,6 @@ parameters:
             max: 2000
             default: 50
 
-        PWM_AUX_MIN:
-            description:
-                short: PWM aux minimum value
-                long: |
-                    Set to 1000 for industry default or 900 to increase servo travel.
-            type: int32
-            unit: us
-            min: 800
-            max: 1400
-            default: 1000
-
-        PWM_AUX_MAX:
-            description:
-                short: PWM aux maximum value
-                long: |
-                    Set to 2000 for industry default or 2100 to increase servo travel.
-            type: int32
-            unit: us
-            min: 1600
-            max: 2200
-            default: 2000
-
-        PWM_AUX_DISARM:
-            description:
-                short: PWM aux disarmed value
-                long: |
-                    This is the PWM pulse the autopilot is outputting if not armed.
-                    The main use of this parameter is to silence ESCs when they are disarmed.
-            type: int32
-            unit: us
-            min: 0
-            max: 2200
-            default: 1500
-
         PWM_AUX_TRIM${i}:
             description:
                 short: PWM aux ${i} trim value
@@ -75,27 +41,3 @@ parameters:
             num_instances: *max_num_config_instances
             instance_start: 1
             default: 0
-
-        PWM_AUX_REV${i}:
-            description:
-                short: PWM aux ${i} reverse value
-                long: |
-                    Enable to invert the channel.
-                    Warning: Use this parameter when connected to a servo only.
-                    For a brushless motor, invert manually two phases to reverse the direction.
-            type: boolean
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: 0
-
-        PWM_AUX_RATE${i}:
-            description:
-                short: PWM aux ${i} rate
-                long: |
-                    Set the default PWM output frequency for the aux outputs
-            type: int32
-            unit: Hz
-            min: 0
-            max: 400
-            instance_start: 1
-            default: 50

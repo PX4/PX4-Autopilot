@@ -178,7 +178,6 @@ private:
 
 	static int checkcrc(int argc, char *argv[]);
 	static int bind(int argc, char *argv[]);
-	static int lockdown(int argc, char *argv[]);
 	static int monitor();
 
 	static constexpr int PX4IO_MAX_ACTUATORS = 8;
@@ -238,12 +237,6 @@ private:
 	bool			_in_test_mode{false}; ///< true if PWM_SERVO_ENTER_TEST_MODE is active
 
 	MixingOutput _mixing_output{"PWM_MAIN", PX4IO_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
-
-	bool _pwm_min_configured{false};
-	bool _pwm_max_configured{false};
-	bool _pwm_fail_configured{false};
-	bool _pwm_dis_configured{false};
-	bool _pwm_rev_configured{false};
 
 	/**
 	 * Update IO's arming-related state
@@ -366,11 +359,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(PX4IO_SERIAL_DEVICE)),
 	_interface(interface)
 {
-	if (!_mixing_output.useDynamicMixing()) {
-		_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
-		_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
-	}
-
 	_mixing_output.setLowrateSchedulingInterval(20_ms);
 }
 
@@ -757,11 +745,14 @@ void PX4IO::updateTimerRateGroups()
 
 void PX4IO::update_params()
 {
+	if (!_mixing_output.armed().armed) {
+		updateFailsafe();
+		updateDisarmed();
+	}
+
 	if (!_mixing_output.armed().armed && _mixing_output.useDynamicMixing()) {
 		// sync params to IO
 		updateTimerRateGroups();
-		updateFailsafe();
-		updateDisarmed();
 		return;
 	}
 
@@ -770,17 +761,11 @@ void PX4IO::update_params()
 		return;
 	}
 
-	int32_t pwm_min_default = PWM_DEFAULT_MIN;
-	int32_t pwm_max_default = PWM_DEFAULT_MAX;
-	int32_t pwm_disarmed_default = 0;
 	int32_t pwm_rate_default = 50;
 	int32_t pwm_default_channels = 0;
 
 	const char *prefix = "PWM_MAIN";
 
-	param_get(param_find("PWM_MAIN_MIN"), &pwm_min_default);
-	param_get(param_find("PWM_MAIN_MAX"), &pwm_max_default);
-	param_get(param_find("PWM_MAIN_DISARM"), &pwm_disarmed_default);
 	param_get(param_find("PWM_MAIN_RATE"), &pwm_rate_default);
 	param_get(param_find("PWM_MAIN_OUT"), &pwm_default_channels);
 
@@ -793,125 +778,6 @@ void PX4IO::update_params()
 	}
 
 	char str[17];
-
-	// PWM_MAIN_MINx
-	if (!_pwm_min_configured) {
-		for (unsigned i = 0; i < _max_actuators; i++) {
-			sprintf(str, "%s_MIN%u", prefix, i + 1);
-			int32_t pwm_min = -1;
-
-			if (param_get(param_find(str), &pwm_min) == PX4_OK) {
-				if (pwm_min >= 0 && pwm_min != 1000) {
-					_mixing_output.minValue(i) = math::constrain(pwm_min, static_cast<int32_t>(PWM_LOWEST_MIN),
-								     static_cast<int32_t>(PWM_HIGHEST_MIN));
-
-					if (pwm_min != _mixing_output.minValue(i)) {
-						int32_t pwm_min_new = _mixing_output.minValue(i);
-						param_set(param_find(str), &pwm_min_new);
-					}
-
-				} else if (pwm_default_channel_mask & 1 << i) {
-					_mixing_output.minValue(i) = pwm_min_default;
-				}
-			}
-		}
-
-		_pwm_min_configured = true;
-	}
-
-	// PWM_MAIN_MAXx
-	if (!_pwm_max_configured) {
-		for (unsigned i = 0; i < _max_actuators; i++) {
-			sprintf(str, "%s_MAX%u", prefix, i + 1);
-			int32_t pwm_max = -1;
-
-			if (param_get(param_find(str), &pwm_max) == PX4_OK) {
-				if (pwm_max >= 0 && pwm_max != 2000) {
-					_mixing_output.maxValue(i) = math::constrain(pwm_max, static_cast<int32_t>(PWM_LOWEST_MAX),
-								     static_cast<int32_t>(PWM_HIGHEST_MAX));
-
-					if (pwm_max != _mixing_output.maxValue(i)) {
-						int32_t pwm_max_new = _mixing_output.maxValue(i);
-						param_set(param_find(str), &pwm_max_new);
-					}
-
-				} else if (pwm_default_channel_mask & 1 << i) {
-					_mixing_output.maxValue(i) = pwm_max_default;
-				}
-			}
-		}
-
-		_pwm_max_configured = true;
-	}
-
-	// PWM_MAIN_FAILx
-	if (!_pwm_fail_configured) {
-		for (unsigned i = 0; i < _max_actuators; i++) {
-			sprintf(str, "%s_FAIL%u", prefix, i + 1);
-			int32_t pwm_fail = -1;
-
-			if (param_get(param_find(str), &pwm_fail) == PX4_OK) {
-				if (pwm_fail >= 0) {
-					_mixing_output.failsafeValue(i) = math::constrain(pwm_fail, static_cast<int32_t>(0),
-									  static_cast<int32_t>(PWM_HIGHEST_MAX));
-
-					if (pwm_fail != _mixing_output.failsafeValue(i)) {
-						int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
-						param_set(param_find(str), &pwm_fail_new);
-					}
-				}
-			}
-		}
-
-		_pwm_fail_configured = true;
-		updateFailsafe();
-	}
-
-	// PWM_MAIN_DISx
-	if (!_pwm_dis_configured) {
-		for (unsigned i = 0; i < _max_actuators; i++) {
-			sprintf(str, "%s_DIS%u", prefix, i + 1);
-			int32_t pwm_dis = -1;
-
-			if (param_get(param_find(str), &pwm_dis) == PX4_OK) {
-				if (pwm_dis >= 0 && pwm_dis != 900) {
-					_mixing_output.disarmedValue(i) = math::constrain(pwm_dis, static_cast<int32_t>(0),
-									  static_cast<int32_t>(PWM_HIGHEST_MAX));
-
-					if (pwm_dis != _mixing_output.disarmedValue(i)) {
-						int32_t pwm_dis_new = _mixing_output.disarmedValue(i);
-						param_set(param_find(str), &pwm_dis_new);
-					}
-
-				} else if (pwm_default_channel_mask & 1 << i) {
-					_mixing_output.disarmedValue(i) = pwm_disarmed_default;
-				}
-			}
-		}
-
-		_pwm_dis_configured = true;
-		updateDisarmed();
-	}
-
-	// PWM_MAIN_REVx
-	if (!_pwm_rev_configured) {
-		uint16_t &reverse_pwm_mask = _mixing_output.reverseOutputMask();
-		reverse_pwm_mask = 0;
-
-		for (unsigned i = 0; i < _max_actuators; i++) {
-			sprintf(str, "%s_REV%u", prefix, i + 1);
-			int32_t pwm_rev = -1;
-
-			if (param_get(param_find(str), &pwm_rev) == PX4_OK) {
-				if (pwm_rev >= 1) {
-					reverse_pwm_mask |= (1 << i);
-				}
-
-			}
-		}
-
-		_pwm_rev_configured = true;
-	}
 
 	// PWM_MAIN_TRIMx
 	if (_mixing_output.mixers()) {
@@ -1648,27 +1514,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES);
 		break;
 
-	case PWM_SERVO_SET_FAILSAFE_PWM: {
-			PX4_DEBUG("PWM_SERVO_SET_FAILSAFE_PWM");
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			if (pwm->channel_count > _max_actuators)
-				/* fail with error */
-			{
-				return -E2BIG;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] != 0 && !_mixing_output.useDynamicMixing()) {
-					_mixing_output.failsafeValue(i) = math::constrain(pwm->values[i], (uint16_t)PWM_LOWEST_MIN, (uint16_t)PWM_HIGHEST_MAX);
-				}
-			}
-
-			updateFailsafe();
-
-			break;
-		}
-
 	case PWM_SERVO_GET_FAILSAFE_PWM: {
 			PX4_DEBUG("PWM_SERVO_GET_FAILSAFE_PWM");
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
@@ -1679,26 +1524,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			if (ret != OK) {
 				ret = -EIO;
 			}
-
-			break;
-		}
-
-	case PWM_SERVO_SET_DISARMED_PWM: {
-			PX4_DEBUG("PWM_SERVO_SET_DISARMED_PWM");
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			if (pwm->channel_count > _max_actuators) {
-				/* fail with error */
-				return -E2BIG;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] != 0 && !_mixing_output.useDynamicMixing()) {
-					_mixing_output.disarmedValue(i) = math::constrain(pwm->values[i], (uint16_t)PWM_LOWEST_MIN, (uint16_t)PWM_HIGHEST_MAX);
-				}
-			}
-
-			updateDisarmed();
 
 			break;
 		}
@@ -1794,16 +1619,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = _max_actuators;
 		break;
 
-	case PWM_SERVO_SET_DISABLE_LOCKDOWN:
-		PX4_DEBUG("PWM_SERVO_SET_DISABLE_LOCKDOWN");
-		_lockdown_override = arg;
-		break;
-
-	case PWM_SERVO_GET_DISABLE_LOCKDOWN:
-		PX4_DEBUG("PWM_SERVO_GET_DISABLE_LOCKDOWN");
-		*(unsigned *)arg = _lockdown_override;
-		break;
-
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		PX4_DEBUG("PWM_SERVO_SET_FORCE_SAFETY_OFF");
 		/* force safety swith off */
@@ -1814,36 +1629,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		PX4_DEBUG("PWM_SERVO_SET_FORCE_SAFETY_ON");
 		/* force safety switch on */
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
-		break;
-
-	case PWM_SERVO_SET_FORCE_FAILSAFE:
-		PX4_DEBUG("PWM_SERVO_SET_FORCE_FAILSAFE");
-
-		/* force failsafe mode instantly */
-		if (arg == 0) {
-			/* clear force failsafe flag */
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE, 0);
-
-		} else {
-			/* set force failsafe flag */
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE);
-		}
-
-		break;
-
-	case PWM_SERVO_SET_TERMINATION_FAILSAFE:
-		PX4_DEBUG("PWM_SERVO_SET_TERMINATION_FAILSAFE");
-
-		/* if failsafe occurs, do not allow the system to recover */
-		if (arg == 0) {
-			/* clear termination failsafe flag */
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE, 0);
-
-		} else {
-			/* set termination failsafe flag */
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE);
-		}
-
 		break;
 
 	case DSM_BIND_START:
@@ -2211,60 +1996,6 @@ int PX4IO::monitor()
 	return 0;
 }
 
-int PX4IO::lockdown(int argc, char *argv[])
-{
-	if (argc > 1 && !strcmp(argv[1], "disable")) {
-
-		PX4_WARN("WARNING: ACTUATORS WILL BE LIVE IN HIL! PROCEED?");
-		PX4_WARN("Press 'y' to enable, any other key to abort.");
-
-		/* check if user wants to abort */
-		char c;
-
-		struct pollfd fds;
-		int ret;
-		hrt_abstime start = hrt_absolute_time();
-		const unsigned long timeout = 5000000;
-
-		while (hrt_elapsed_time(&start) < timeout) {
-			fds.fd = 0; /* stdin */
-			fds.events = POLLIN;
-			ret = ::poll(&fds, 1, 0);
-
-			if (ret > 0) {
-
-				if (::read(0, &c, 1) > 0) {
-
-					if (c != 'y') {
-						return 0;
-
-					} else if (c == 'y') {
-						break;
-					}
-				}
-			}
-
-			px4_usleep(10000);
-		}
-
-		if (hrt_elapsed_time(&start) > timeout) {
-			PX4_ERR("TIMEOUT! ABORTED WITHOUT CHANGES.");
-			return 1;
-		}
-
-		get_instance()->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 1);
-
-		PX4_WARN("ACTUATORS ARE NOW LIVE IN HIL!");
-
-	} else {
-		get_instance()->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 0);
-		PX4_WARN("ACTUATORS ARE NOW SAFE IN HIL.");
-	}
-
-	return 0;
-}
-
-
 int PX4IO::task_spawn(int argc, char *argv[])
 {
 	device::Device *interface = get_interface();
@@ -2468,10 +2199,6 @@ int PX4IO::custom_command(int argc, char *argv[])
 		return bind(argc - 1, argv + 1);
 	}
 
-	if (!strcmp(verb, "lockdown")) {
-		return lockdown(argc, argv);
-	}
-
 	if (!strcmp(verb, "sbus1_out")) {
 		int ret = get_instance()->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
 
@@ -2534,8 +2261,6 @@ Output driver communicating with the IO co-processor.
 	PRINT_MODULE_USAGE_COMMAND_DESCR("monitor", "continuously monitor status");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "DSM bind");
 	PRINT_MODULE_USAGE_ARG("dsm2|dsmx|dsmx8", "protocol", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("lockdown", "enable (or disable) lockdown");
-	PRINT_MODULE_USAGE_ARG("disable", "disable lockdown", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus1_out", "enable sbus1 out");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus2_out", "enable sbus2 out");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_fail", "test: turn off IO updates");

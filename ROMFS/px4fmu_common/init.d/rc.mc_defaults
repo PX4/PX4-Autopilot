@@ -15,7 +15,7 @@ param set-default RTL_RETURN_ALT 30
 param set-default RTL_DESCEND_ALT 10
 
 param set-default PWM_MAIN_MAX 1950
-param set-default PWM_MAIN_MIN 1075
+param set-default PWM_MAIN_MIN1 1075
 param set-default PWM_MAIN_RATE 400
 
 param set-default GPS_UBX_DYNMODEL 6
