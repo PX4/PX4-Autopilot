@@ -693,7 +693,7 @@ FixedwingPositionControl::set_control_mode_current(bool pos_sp_curr_valid)
 			/* reset setpoints from other modes (auto) otherwise we won't
 			 * level out without new manual input */
 			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
-			_att_sp.yaw_body = 0;
+			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 		}
 
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
@@ -1681,7 +1681,7 @@ FixedwingPositionControl::control_altitude(const hrt_abstime &now, const Vector2
 				   _manual_height_rate_setpoint_m_s);
 
 	_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
-	_att_sp.yaw_body = 0;
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	/* Copy thrust and pitch values from tecs */
 	if (_landed) {
@@ -1800,7 +1800,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 		}
 
 		_att_sp.roll_body = roll_sp_new;
-		_att_sp.yaw_body = 0;
+		_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 	}
 
 	/* Copy thrust and pitch values from tecs */
