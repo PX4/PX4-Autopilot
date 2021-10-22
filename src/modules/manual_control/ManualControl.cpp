@@ -32,12 +32,6 @@
  ****************************************************************************/
 
 #include "ManualControl.hpp"
-
-#include <drivers/drv_hrt.h>
-#include <commander/px4_custom_mode.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/landing_gear.h>
-#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/commander_state.h>
 
 namespace manual_control
@@ -201,10 +195,10 @@ void ManualControl::Run()
 					    && _previous_switches.gear_switch != manual_control_switches_s::SWITCH_POS_NONE) {
 
 						if (switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							publish_landing_gear(landing_gear_s::GEAR_UP);
+							publishLandingGear(landing_gear_s::GEAR_UP);
 
 						} else if (switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							publish_landing_gear(landing_gear_s::GEAR_DOWN);
+							publishLandingGear(landing_gear_s::GEAR_DOWN);
 						}
 					}
 
@@ -335,13 +329,12 @@ void ManualControl::sendActionRequest(int8_t action, int8_t source, int8_t mode)
 	_action_request_pub.publish(action_request);
 }
 
-void ManualControl::publish_landing_gear(int8_t action)
+void ManualControl::publishLandingGear(int8_t action)
 {
 	landing_gear_s landing_gear{};
 	landing_gear.landing_gear = action;
 	landing_gear.timestamp = hrt_absolute_time();
-	uORB::Publication<landing_gear_s> landing_gear_pub{ORB_ID(landing_gear)};
-	landing_gear_pub.publish(landing_gear);
+	_landing_gear_pub.publish(landing_gear);
 }
 
 int ManualControl::task_spawn(int argc, char *argv[])
