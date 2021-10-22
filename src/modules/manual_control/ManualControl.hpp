@@ -166,9 +166,7 @@ private:
 		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,
 		(ParamInt<px4::params::COM_FLTMODE4>) _param_fltmode_4,
 		(ParamInt<px4::params::COM_FLTMODE5>) _param_fltmode_5,
-		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6,
-		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
-		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id
+		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6
 	)
 };
 } // namespace manual_control
