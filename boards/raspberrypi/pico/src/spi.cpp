@@ -36,8 +36,6 @@
 #include <nuttx/spi/spi.h>
 
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	// Added spi buses for the sake of compilation.
-	// Specify correct sensors once the decision is made on which sensors or devices should be attached.
 	initSPIBus(SPI::Bus::SPI0, {
 		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin5}),
 	}),

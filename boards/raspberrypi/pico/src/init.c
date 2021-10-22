@@ -34,7 +34,7 @@
 /**
  * @file init.c
  *
- * omnibusf4sd-specific early startup code.  This file implements the
+ * raspberrypipico-specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -73,7 +73,7 @@
 
 #include <systemlib/px4_macros.h>
 
-// #include <px4_arch/io_timer.h>
+#include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
 
@@ -128,18 +128,18 @@ __EXPORT void board_peripheral_reset(int ms)
  ************************************************************************************/
 __EXPORT void board_on_reset(int status)
 {
-	// /* configure the GPIO pins to outputs and keep them low */
-	// for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
-	// 	px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
-	// }
+	/* configure the GPIO pins to outputs and keep them low */
+	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
+	}
 
-	// /* On resets invoked from system (not boot) insure we establish a low
-	//  * output state (discharge the pins) on PWM pins before they become inputs.
-	//  */
+	/* On resets invoked from system (not boot) insure we establish a low
+	 * output state (discharge the pins) on PWM pins before they become inputs.
+	 */
 
-	// if (status >= 0) {
-	// 	up_mdelay(400);
-	// }
+	if (status >= 0) {
+		up_mdelay(400);
+	}
 }
 
 /************************************************************************************
@@ -195,10 +195,10 @@ void rp2040_boardearlyinitialize(void)
 }
 
 /************************************************************************************
- * Name: stm32_boardinitialize
+ * Name: rp2040_boardinitialize
  *
  * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
+ *   All architectures must provide the following entry point. This entry point
  *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *

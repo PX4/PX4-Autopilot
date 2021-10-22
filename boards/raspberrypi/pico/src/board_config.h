@@ -1,7 +1,7 @@
 /**
  * @file board_config.h
  *
- * myboardmyfc internal definitions
+ * raspberrypipico internal definitions
  */
 
 #pragma once

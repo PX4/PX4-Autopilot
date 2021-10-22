@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Omnibus F4SD specific board sensors init
+# RaspberrypiPico specific board sensors init
 #------------------------------------------------------------------------------
 
 board_adc start

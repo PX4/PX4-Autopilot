@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# OmnibusF4SD specific board MAVLink startup script.
+# RaspberrypiPico specific board MAVLink startup script.
 #------------------------------------------------------------------------------
 
 # Start MAVLink on the USB port

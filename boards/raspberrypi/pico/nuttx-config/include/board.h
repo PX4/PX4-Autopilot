@@ -1,5 +1,5 @@
-#ifndef __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H
-#define __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H
+#ifndef __CONFIG_RASPBERRYPIPICO_INCLUDE_BOARD_H
+#define __CONFIG_RASPBERRYPIPICO_INCLUDE_BOARD_H
 
 /************************************************************************************
  * Included Files
@@ -97,4 +97,4 @@
 #define GPIO_SPI1_MISO	( 12 | GPIO_FUN(RP2040_GPIO_FUNC_SPI) )
 #define GPIO_SPI1_MOSI	( 11 | GPIO_FUN(RP2040_GPIO_FUNC_SPI) )
 
-#endif  /* __CONFIG_MYBOARDMYFC_INCLUDE_BOARD_H */
+#endif  /* __CONFIG_RASPBERRYPIPICO_INCLUDE_BOARD_H */
