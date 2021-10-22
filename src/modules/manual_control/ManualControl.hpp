@@ -33,14 +33,16 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
+#include <lib/hysteresis/hysteresis.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/hysteresis/hysteresis.h>
-#include <lib/perf/perf_counter.h>
 #include <uORB/topics/action_request.h>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/manual_control_input.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -122,9 +124,10 @@ private:
 
 	void evaluateModeSlot(uint8_t mode_slot);
 	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);
-	void publish_landing_gear(int8_t action);
+	void publishLandingGear(int8_t action);
 
 	uORB::Publication<action_request_s> _action_request_pub{ORB_ID(action_request)};
+	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
