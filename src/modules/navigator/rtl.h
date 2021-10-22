@@ -59,6 +59,10 @@ class Navigator;
 class RTL : public MissionBlock, public ModuleParams
 {
 public:
+	RTL(Navigator *navigator);
+
+	~RTL() = default;
+
 	enum RTLType {
 		RTL_HOME = 0,
 		RTL_LAND,
@@ -72,9 +76,11 @@ public:
 		RTL_DESTINATION_SAFE_POINT,
 	};
 
-	RTL(Navigator *navigator);
-
-	~RTL() = default;
+	enum RTLHeadingMode {
+		RTL_NAVIGATION_HEADING = 0,
+		RTL_DESTINATION_HEADING,
+		RTL_CURRENT_HEADING,
+	};
 
 	void on_inactivation() override;
 	void on_inactive() override;
@@ -148,21 +154,23 @@ private:
 	hrt_abstime _destination_check_time{0};
 
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
-	bool _rtl_alt_min{false};
 	float _rtl_loiter_rad{50.0f};		// radius at which a fixed wing would loiter while descending
+
 	bool _climb_and_return_done{false};	// this flag is set to true if RTL is active and we are past the climb state and return state
 	bool _deny_mission_landing{false};
+	bool _rtl_alt_min{false};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_rtl_return_alt,
+		(ParamFloat<px4::params::RTL_RETURN_ALT>)  _param_rtl_return_alt,
 		(ParamFloat<px4::params::RTL_DESCEND_ALT>) _param_rtl_descend_alt,
-		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_rtl_land_delay,
-		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
-		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
-		(ParamInt<px4::params::RTL_CONE_ANG>) _param_rtl_cone_half_angle_deg,
-		(ParamFloat<px4::params::RTL_FLT_TIME>) _param_rtl_flt_time,
-		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md,
-		(ParamFloat<px4::params::RTL_LOITER_RAD>) _param_rtl_loiter_rad
+		(ParamFloat<px4::params::RTL_LAND_DELAY>)  _param_rtl_land_delay,
+		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
+		(ParamInt<px4::params::RTL_TYPE>)          _param_rtl_type,
+		(ParamInt<px4::params::RTL_CONE_ANG>)      _param_rtl_cone_half_angle_deg,
+		(ParamFloat<px4::params::RTL_FLT_TIME>)    _param_rtl_flt_time,
+		(ParamInt<px4::params::RTL_PLD_MD>)        _param_rtl_pld_md,
+		(ParamFloat<px4::params::RTL_LOITER_RAD>)  _param_rtl_loiter_rad,
+		(ParamInt<px4::params::RTL_HDG_MD>)        _param_rtl_hdg_md
 	)
 
 	// These need to point at different parameters depending on vehicle type.
@@ -173,7 +181,7 @@ private:
 	param_t _param_rtl_descent_speed{PARAM_INVALID};
 
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
-	uORB::Publication<rtl_flight_time_s>		_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};
+	uORB::Publication<rtl_flight_time_s>	_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};
 };
 
 float time_to_home(const matrix::Vector3f &to_home_vec,
