@@ -1480,6 +1480,14 @@ void Ekf::loadMagCovData()
 	P.slice<2, 2>(16, 16) = _saved_mag_ef_covmat;
 }
 
+void Ekf::startAirspeedFusion() {
+	_control_status.flags.fuse_aspd = true;
+}
+
+void Ekf::stopAirspeedFusion() {
+	_control_status.flags.fuse_aspd = false;
+}
+
 void Ekf::startGpsFusion()
 {
 	resetHorizontalPositionToGps();
@@ -1719,13 +1727,15 @@ bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_M
 
 void Ekf::runYawEKFGSF()
 {
-	float TAS;
+	float TAS = 0.f;
 
-	if (isTimedOut(_airspeed_sample_delayed.time_us, 1000000) && _control_status.flags.fixed_wing) {
-		TAS = _params.EKFGSF_tas_default;
+	if (_control_status.flags.fixed_wing) {
+		if (isTimedOut(_airspeed_sample_delayed.time_us, 1000000)) {
+			TAS = _params.EKFGSF_tas_default;
 
-	} else {
-		TAS = _airspeed_sample_delayed.true_airspeed;
+		} else if (_airspeed_sample_delayed.true_airspeed >= _params.arsp_thr) {
+			TAS = _airspeed_sample_delayed.true_airspeed;
+		}
 	}
 
 	const Vector3f imu_gyro_bias = getGyroBias();

@@ -954,6 +954,9 @@ private:
 		return sensor_timestamp + acceptance_interval > _time_last_imu;
 	}
 
+	void startAirspeedFusion();
+	void stopAirspeedFusion();
+
 	void startGpsFusion();
 	void stopGpsFusion();
 	void stopGpsPosFusion();
