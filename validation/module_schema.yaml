@@ -7,6 +7,7 @@ module_name:
     type: string
     required: true
 
+
 serial_config:
     # UART configuration (optional)
     # A module can register autostart command(s) that are associated with a
