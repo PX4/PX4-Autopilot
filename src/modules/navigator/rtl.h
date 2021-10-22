@@ -93,8 +93,6 @@ public:
 
 	int get_rtl_type() const { return _param_rtl_type.get(); }
 
-	int rtl_destination();
-
 	void setClimbAndReturnDone(bool done) { _climb_and_return_done = done; }
 
 	bool getClimbAndReturnDone() { return _climb_and_return_done; }
@@ -104,16 +102,10 @@ public:
 	void get_rtl_xy_z_speed(float &xy, float &z);
 	matrix::Vector2f get_wind();
 private:
-	/**
-	 * Set the RTL item
-	 */
+
 	void set_rtl_item();
 
-	/**
-	 * Move to next RTL item
-	 */
 	void advance_rtl();
-
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
 
