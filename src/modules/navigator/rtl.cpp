@@ -138,7 +138,7 @@ void RTL::find_RTL_destination()
 		double dist_squared = coord_dist_sq(dlat, dlon);
 
 		// set destination to mission landing if closest or in RTL_TYPE_MISSION_LANDING or RTL_TYPE_MISSION_LANDING_REVERSED (so not in RTL_TYPE_CLOSEST)
-		if (dist_squared < min_dist_squared || _param_rtl_type.get() != RTL_TYPE_CLOSEST) {
+		if (dist_squared < min_dist_squared || (_param_rtl_type.get() != RTL_TYPE_CLOSEST && !vtol_in_rw_mode)) {
 			min_dist_squared = dist_squared;
 			_destination.lat = mission_landing_lat;
 			_destination.lon = mission_landing_lon;
@@ -235,10 +235,6 @@ void RTL::find_RTL_destination()
 
 void RTL::on_activation()
 {
-
-	_deny_mission_landing = _navigator->get_vstatus()->is_vtol
-				&& _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:

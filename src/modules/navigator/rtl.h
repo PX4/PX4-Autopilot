@@ -97,10 +97,11 @@ public:
 
 	bool getClimbAndReturnDone() { return _climb_and_return_done; }
 
-	bool denyMissionLanding() { return _deny_mission_landing; }
-
 	void get_rtl_xy_z_speed(float &xy, float &z);
 	matrix::Vector2f get_wind();
+
+	bool getDestinationTypeMissionLanding() { return _destination.type == RTL_DESTINATION_MISSION_LANDING; }
+
 private:
 
 	void set_rtl_item();
@@ -149,7 +150,6 @@ private:
 	float _rtl_loiter_rad{50.0f};		// radius at which a fixed wing would loiter while descending
 
 	bool _climb_and_return_done{false};	// this flag is set to true if RTL is active and we are past the climb state and return state
-	bool _deny_mission_landing{false};
 	bool _rtl_alt_min{false};
 
 	DEFINE_PARAMETERS(
