@@ -91,7 +91,7 @@ public:
 
 	void set_return_alt_min(bool min) { _rtl_alt_min = min; }
 
-	int rtl_type() const { return _param_rtl_type.get(); }
+	int get_rtl_type() const { return _param_rtl_type.get(); }
 
 	int rtl_destination();
 
