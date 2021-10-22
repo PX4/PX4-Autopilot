@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -eu
 
+PATTERN="-e ."
+
+if [ $# -gt 0 ]; then
+    PATTERN="$1"
+fi
+
 exec find boards msg src platforms test \
     -path msg/templates/urtps -prune -o \
     -path platforms/nuttx/NuttX -prune -o \
@@ -21,4 +27,4 @@ exec find boards msg src platforms test \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/crypto/libtomcrypt -prune -o \
     -path src/lib/crypto/libtommath -prune -o \
-    -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \)
+    -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) | grep $PATTERN
