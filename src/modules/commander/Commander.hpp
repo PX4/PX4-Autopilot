@@ -332,6 +332,7 @@ private:
 
 		(ParamFloat<px4::params::COM_DISARM_LAND>)  _param_com_disarm_land,
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
+		(ParamBool<px4::params::COM_DISARM_MAN>)    _param_com_disarm_man,
 		(ParamInt<px4::params::COM_DL_LOSS_T>)      _param_com_dl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>)    _param_com_hldl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_REG_T>)     _param_com_hldl_reg_t,

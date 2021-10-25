@@ -631,7 +631,7 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 					     || (calling_reason == arm_disarm_reason_t::rc_switch)
 					     || (calling_reason == arm_disarm_reason_t::rc_button);
 
-		if (!landed && !(mc_manual_thrust_mode && commanded_by_rc)) {
+		if (!landed && !(mc_manual_thrust_mode && commanded_by_rc && _param_com_disarm_man.get())) {
 			if (calling_reason != arm_disarm_reason_t::rc_stick) {
 				mavlink_log_critical(&_mavlink_log_pub, "Disarming denied: not landed\t");
 				events::send(events::ID("commander_disarm_denied_not_landed"),

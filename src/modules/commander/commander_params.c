@@ -246,6 +246,19 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
 PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 
 /**
+ * Allow disarming via switch/stick/button on multicopters in manual thrust modes
+ *
+ * 0: Disallow disarming when not landed
+ * 1: Allow disarming in multicopter flight in modes where
+ * the thrust is directly controlled by thr throttle stick
+ * e.g. Stabilized, Acro
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_DISARM_MAN, 1);
+
+/**
  * Battery failsafe mode
  *
  * Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR
