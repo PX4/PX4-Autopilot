@@ -1546,11 +1546,15 @@ void Ekf::stopGpsVelFusion()
 
 void Ekf::startGpsYawFusion()
 {
-	_control_status.flags.mag_dec = false;
-	stopEvYawFusion();
-	stopMagHdgFusion();
-	stopMag3DFusion();
-	_control_status.flags.gps_yaw = true;
+	if (resetYawToGps()) {
+		_control_status.flags.yaw_align = true;
+		_control_status.flags.mag_dec = false;
+		stopEvYawFusion();
+		stopMagHdgFusion();
+		stopMag3DFusion();
+		_control_status.flags.gps_yaw = true;
+	}
+
 }
 
 void Ekf::stopGpsYawFusion()
