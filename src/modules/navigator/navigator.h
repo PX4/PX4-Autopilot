@@ -74,6 +74,7 @@
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_command_cancel.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -87,6 +88,13 @@ using namespace time_literals;
  * Number of navigation modes that need on_active/on_inactive calls
  */
 #define NAVIGATOR_MODE_ARRAY_SIZE 9
+
+struct custom_action_s {
+	int8_t id{-1};
+	uint64_t timeout;
+	bool timer_started;
+	uint64_t start_time;
+};
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -121,6 +129,7 @@ public:
 	void		load_fence_from_file(const char *filename);
 
 	void		publish_vehicle_cmd(vehicle_command_s *vcmd);
+	void		publish_vehicle_cmd_cancel(vehicle_command_cancel_s *vcmd_cancel);
 
 	/**
 	 * Generate an artificial traffic indication
@@ -165,6 +174,7 @@ public:
 	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
 	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
 	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+	struct vehicle_command_ack_s *get_cmd_ack() { return &_vehicle_cmd_ack; }
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
@@ -273,6 +283,11 @@ public:
 
 	bool 		getMissionLandingInProgress() { return _mission_landing_in_progress; }
 
+	bool			get_in_custom_action() { return _in_custom_action; }
+	void			set_in_custom_action() { _in_custom_action = true; }
+	custom_action_s		get_custom_action() { return _custom_action; }
+	void			set_custom_action(const custom_action_s &custom_action) { _custom_action = custom_action; }
+
 	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
 	bool		on_mission_landing() { return _mission.landing(); }
 	bool		start_mission_landing() { return _mission.land_start(); }
@@ -352,6 +367,7 @@ private:
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
+	uORB::Subscription _vehicle_cmd_ack_sub{ORB_ID(vehicle_command_ack)};	/**< vehicle command acks (onboard and offboard) */
 
 	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 
@@ -364,6 +380,7 @@ private:
 
 	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::Publication<vehicle_command_s>	_vehicle_cmd_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_cancel_s>	_vehicle_cmd_cancel_pub{ORB_ID(vehicle_command_cancel)};
 
 	// Subscriptions
 	home_position_s					_home_pos{};		/**< home position for RTL */
@@ -373,6 +390,7 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
+	vehicle_command_ack_s				_vehicle_cmd_ack{};	/**< vehicle command_ack */
 
 	uint8_t						_previous_nav_state{}; /**< nav_state of the previous iteration*/
 
@@ -394,6 +412,12 @@ private:
 	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
 	bool		_mission_result_updated{false};		/**< flags if mission result has seen an update */
+
+	bool		_in_custom_action{false};		/**< currently in a custom action **/
+	bool 		_custom_action_timeout{false};		/**> custom action timed out **/
+	custom_action_s _custom_action{};			/**< current custom action **/
+	uint64_t	_custom_action_ack_last_time{0};	/**< last time an ack for the custom action command was received **/
+	bool		_reset_custom_action{false};		/**< reset custom action status flag **/
 
 	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
@@ -441,6 +465,8 @@ private:
 	void		publish_mission_result();
 
 	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
+
+	void		reset_custom_action();
 
 	bool 		geofence_allows_position(const vehicle_global_position_s &pos);
 };

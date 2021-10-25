@@ -580,6 +580,31 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 		_cmd_pub.publish(vehicle_command);
 
+	} else if (cmd_mavlink.command == MAV_CMD_WAYPOINT_USER_1) {
+		// Processes MAV_CMD_WAYPOINT_USER_1 as a custom action command to be
+		// processed by a mission computer. For more context, check the MAVSDK
+		// PR in this link: https://github.com/mavlink/MAVSDK/pull/1581
+		//
+		// Note: this command will be eventually replaced by the command proposed
+		// in https://github.com/mavlink/mavlink/pull/1516 or similar
+		//
+		// Note for this case, the command is sent from an external entity
+		// to trigger a custom action on the Mission Computer, so a timeout
+		// check is not handled by the autopilot, but should rather be handled
+		// by the entity sending this command
+		vehicle_command_s custom_action_cmd = vehicle_command;
+		custom_action_cmd.target_system = 0;
+		custom_action_cmd.target_component = 0; // Broadcast the command
+		custom_action_cmd.from_external = false;
+
+		PX4_DEBUG("received MAV_CMD_WAYPOINT_USER_1 command from %d/%d",
+			  custom_action_cmd.source_system,
+			  custom_action_cmd.source_component);
+
+		_cmd_pub.publish(custom_action_cmd);
+
+		send_ack = true;
+
 	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
 		bool has_module = true;
@@ -679,29 +704,6 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 				result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 				break;
 			}
-
-		} else if (cmd_mavlink.command == MAV_CMD_WAYPOINT_USER_1) {
-			// Processes MAV_CMD_WAYPOINT_USER_1 as a custom action command to be
-			// processed by a mission computer. For more context, check the MAVSDK
-			// PR in this link: https://github.com/mavlink/MAVSDK/pull/1581
-			//
-			// Note: this command will be eventually replaced by the command proposed
-			// in https://github.com/mavlink/mavlink/pull/1516 or similar
-			//
-			// Note for this case, the command is sent from an external entity
-			// to trigger a custom action on the Mission Computer, so a timeout
-			// check is not handled by the autopilot, but should rather be handled
-			// by the entity sending this command
-			vehicle_command_s custom_action_cmd = vehicle_command;
-			custom_action_cmd.target_system = 0;
-			custom_action_cmd.target_component = 0; // Broadcast the command
-			custom_action_cmd.from_external = false;
-
-			PX4_DEBUG("received MAV_CMD_WAYPOINT_USER_1 command from %d/%d", custom_action_cmd.command,
-				  custom_action_cmd.source_system,
-				  custom_action_cmd.source_component);
-
-			_cmd_pub.publish(custom_action_cmd);
 
 		} else {
 			result = vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;

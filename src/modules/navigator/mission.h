@@ -249,6 +249,7 @@ private:
 	mission_s		_mission {};
 
 	int32_t _current_mission_index{-1};
+	int32_t _previous_custom_action_mission_index{-1};
 
 	// track location of planned mission landing
 	bool	_land_start_available{false};
