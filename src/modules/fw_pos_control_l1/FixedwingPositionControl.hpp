@@ -257,14 +257,18 @@ private:
 	float _manual_control_setpoint_altitude{0.0f};
 	float _manual_control_setpoint_airspeed{0.0f};
 
+	hrt_abstime _time_in_fixed_bank_loiter{0};
+
 	ECL_L1_Pos_Controller	_l1_control;
 	TECS			_tecs;
 
-	uint8_t _type{0};
+	uint8_t _position_sp_type{0};
 	enum FW_POSCTRL_MODE {
 		FW_POSCTRL_MODE_AUTO,
-		FW_POSCTRL_MODE_POSITION,
-		FW_POSCTRL_MODE_ALTITUDE,
+		FW_POSCTRL_MODE_AUTO_ALTITUDE,
+		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
+		FW_POSCTRL_MODE_MANUAL_POSITION,
+		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER};		///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
@@ -327,6 +331,10 @@ private:
 	void		control_auto(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				     const position_setpoint_s &pos_sp_prev,
 				     const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+
+	void		control_auto_fixed_bank_alt_hold(const hrt_abstime &now);
+	void		control_auto_descend(const hrt_abstime &now);
+
 	void		control_auto_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 	void		control_auto_loiter(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
@@ -338,8 +346,8 @@ private:
 	void		control_auto_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,
 					     const position_setpoint_s &pos_sp_curr);
-	void		control_altitude(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
-	void		control_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void		control_manual_altitude(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void		control_manual_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
 
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
@@ -350,7 +358,7 @@ private:
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
 	Vector2f 	get_nav_speed_2d(const Vector2f &ground_speed);
-	void		set_control_mode_current(bool pos_sp_curr_valid);
+	void		set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid);
 
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
 
@@ -423,6 +431,10 @@ private:
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
 
 		(ParamBool<px4::params::FW_POSCTL_INV_ST>) _param_fw_posctl_inv_st,
+
+
+		(ParamInt<px4::params::FW_GPSF_LT>) _param_nav_gpsf_lt,
+		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
 
 		// external parameters
 		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
