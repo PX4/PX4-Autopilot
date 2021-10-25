@@ -195,6 +195,20 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2021-10-21: translate NAV_GPSF_LT to FW_GPSF_LT and NAV_GPSF_R to FW_GPSF_R
+	{
+		if (strcmp("NAV_GPSF_LT", node->name) == 0) {
+			strcpy(node->name, "FW_GPSF_LT");
+			PX4_INFO("copying  %s -> %s", "NAV_GPSF_LT", "FW_GPSF_LT");
+		}
+
+		if (strcmp("NAV_GPSF_R", node->name) == 0) {
+			strcpy(node->name, "FW_GPSF_R");
+			PX4_INFO("copying and inverting sign %s -> %s", "NAV_GPSF_R", "FW_GPSF_R");
+		}
+	}
+
+
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 
 	if (node->type != BSON_INT32) {
