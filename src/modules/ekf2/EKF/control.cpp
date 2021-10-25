@@ -820,10 +820,10 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 		} else {
 			if (starting_conditions_passing) {
 				// Try to activate GPS yaw fusion
-				if (resetYawToGps()) {
-					_control_status.flags.yaw_align = true;
+				startGpsYawFusion();
+
+				if (_control_status.flags.gps_yaw) {
 					_nb_gps_yaw_reset_available = 1;
-					startGpsYawFusion();
 				}
 			}
 		}
