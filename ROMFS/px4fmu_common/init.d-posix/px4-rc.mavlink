@@ -24,6 +24,7 @@ mavlink stream -r 10 -s OPTICAL_FLOW_RAD -u $udp_gcs_port_local
 
 # API/Offboard link
 mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_offboard_port_remote
+mavlink stream -r 10 -s COMMAND_CANCEL -u $udp_offboard_port_local
 
 # Onboard link to camera
 mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
