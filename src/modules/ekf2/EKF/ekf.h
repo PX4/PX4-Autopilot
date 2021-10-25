@@ -661,6 +661,9 @@ private:
 	bool fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
 				  Vector3f &innov_var, Vector2f &test_ratio);
 
+	void fuseGpsVelPos();
+	bool isVelStateAlignedWithObs() const;
+
 	// calculate optical flow body angular rate compensation
 	// returns false if bias corrected body rate data is unavailable
 	bool calcOptFlowBodyRateComp();
@@ -803,6 +806,9 @@ private:
 	// control fusion of GPS observations
 	void controlGpsFusion();
 	void controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing);
+
+	bool hasHorizontalAidingTimedOut() const;
+	bool isRecentTakeoff() const;
 
 	// control fusion of magnetometer observations
 	void controlMagFusion();
