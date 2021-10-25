@@ -96,8 +96,7 @@ void Ekf::fuseAirspeed()
 		const char *action_string = nullptr;
 
 		if (update_wind_only) {
-			resetWindStates();
-			resetWindCovariance();
+			resetWindUsingAirspeed();
 			action_string = "wind";
 
 		} else {
@@ -173,22 +172,38 @@ float Ekf::getTrueAirspeed() const
 	return (_state.vel - Vector3f(_state.wind_vel(0), _state.wind_vel(1), 0.f)).norm();
 }
 
+void Ekf::resetWind()
+{
+	if (_control_status.flags.fuse_aspd) {
+		resetWindUsingAirspeed();
+
+	} else {
+		resetWindToZero();
+	}
+}
+
 /*
  * Reset the wind states using the current airspeed measurement, ground relative nav velocity, yaw angle and assumption of zero sideslip
 */
-void Ekf::resetWindStates()
+void Ekf::resetWindUsingAirspeed()
 {
 	const float euler_yaw = shouldUse321RotationSequence(_R_to_earth)
 				? getEuler321Yaw(_state.quat_nominal)
 				: getEuler312Yaw(_state.quat_nominal);
 
-	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < (uint64_t)5e5)) {
-		// estimate wind using zero sideslip assumption and airspeed measurement if airspeed available
-		_state.wind_vel(0) = _state.vel(0) - _airspeed_sample_delayed.true_airspeed * cosf(euler_yaw);
-		_state.wind_vel(1) = _state.vel(1) - _airspeed_sample_delayed.true_airspeed * sinf(euler_yaw);
+	// estimate wind using zero sideslip assumption and airspeed measurement if airspeed available
+	_state.wind_vel(0) = _state.vel(0) - _airspeed_sample_delayed.true_airspeed * cosf(euler_yaw);
+	_state.wind_vel(1) = _state.vel(1) - _airspeed_sample_delayed.true_airspeed * sinf(euler_yaw);
 
-	} else {
-		// If we don't have an airspeed measurement, then assume the wind is zero
-		_state.wind_vel.setZero();
-	}
+	resetWindCovarianceUsingAirspeed();
+
+	_time_last_arsp_fuse = _time_last_imu;
+}
+
+void Ekf::resetWindToZero()
+{
+	// If we don't have an airspeed measurement, then assume the wind is zero
+	_state.wind_vel.setZero();
+	// start with a small initial uncertainty to improve the initial estimate
+	P.uncorrelateCovarianceSetVariance<2>(22, _params.initial_wind_uncertainty);
 }

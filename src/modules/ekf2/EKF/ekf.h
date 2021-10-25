@@ -917,10 +917,12 @@ private:
 	void resetMagCov();
 
 	// perform a limited reset of the wind state covariances
-	void resetWindCovariance();
+	void resetWindCovarianceUsingAirspeed();
 
-	// perform a reset of the wind states
-	void resetWindStates();
+	// perform a reset of the wind states and related covariances
+	void resetWind();
+	void resetWindUsingAirspeed();
+	void resetWindToZero();
 
 	// check that the range finder data is continuous
 	void updateRangeDataContinuity();

@@ -1480,11 +1480,21 @@ void Ekf::loadMagCovData()
 	P.slice<2, 2>(16, 16) = _saved_mag_ef_covmat;
 }
 
-void Ekf::startAirspeedFusion() {
+void Ekf::startAirspeedFusion()
+{
+	// If starting wind state estimation, reset the wind states and covariances before fusing any data
+	if (!_control_status.flags.wind) {
+		// activate the wind states
+		_control_status.flags.wind = true;
+		// reset the wind speed states and corresponding covariances
+		resetWindUsingAirspeed();
+	}
+
 	_control_status.flags.fuse_aspd = true;
 }
 
-void Ekf::stopAirspeedFusion() {
+void Ekf::stopAirspeedFusion()
+{
 	_control_status.flags.fuse_aspd = false;
 }
 
