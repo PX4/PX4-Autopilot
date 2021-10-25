@@ -3304,8 +3304,8 @@ Commander::update_control_mode()
 		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		_vehicle_control_mode.flag_control_altitude_enabled = true;
 		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
-		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_position_enabled = true;
+		_vehicle_control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
@@ -3321,14 +3321,8 @@ Commander::update_control_mode()
 		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		_vehicle_control_mode.flag_control_altitude_enabled = true;
 		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
-		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
-		_vehicle_control_mode.flag_control_rates_enabled = true;
-		_vehicle_control_mode.flag_control_attitude_enabled = true;
-		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		_vehicle_control_mode.flag_control_position_enabled = true;
+		_vehicle_control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
@@ -3337,7 +3331,7 @@ Commander::update_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-		_vehicle_control_mode.flag_control_auto_enabled = false;
+		_vehicle_control_mode.flag_control_auto_enabled = true;
 		_vehicle_control_mode.flag_control_rates_enabled = true;
 		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
@@ -3390,8 +3384,8 @@ Commander::update_control_mode()
 		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		_vehicle_control_mode.flag_control_altitude_enabled = true;
 		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
-		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_position_enabled = true;
+		_vehicle_control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	default:
