@@ -69,9 +69,8 @@ bool ManualControl::wantsOverride(const vehicle_control_mode_s &vehicle_control_
 	const bool override_offboard_mode = (_param_rc_override.get() & OverrideBits::OVERRIDE_OFFBOARD_MODE_BIT)
 					    && vehicle_control_mode.flag_control_offboard_enabled;
 
-	// in Descend and LandGPSFail manual override is enbaled independently of COM_RC_OVERRIDE
-	const bool override_landing = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL
-				       || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
+	// in Descend manual override is enbaled independently of COM_RC_OVERRIDE
+	const bool override_landing = (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND);
 
 
 	if (_rc_available && (override_auto_mode || override_offboard_mode || override_landing)) {
