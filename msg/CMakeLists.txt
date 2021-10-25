@@ -171,6 +171,7 @@ set(msg_files
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
 	vehicle_command_ack.msg
+	vehicle_command_cancel.msg
 	vehicle_constraints.msg
 	vehicle_control_mode.msg
 	vehicle_global_position.msg
