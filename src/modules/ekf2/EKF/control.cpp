@@ -1333,17 +1333,7 @@ void Ekf::controlAirDataFusion()
 			}
 
 		} else if (starting_conditions_passing) {
-			// If starting wind state estimation, reset the wind states and covariances before fusing any data
-			if (!_control_status.flags.wind) {
-				// activate the wind states
-				_control_status.flags.wind = true;
-				// reset the wind speed states and corresponding covariances
-				resetWindStates();
-				resetWindCovariance();
-			}
-
 			startAirspeedFusion();
-			_time_last_arsp_fuse = _time_last_imu;
 		}
 
 	} else if (_control_status.flags.fuse_aspd && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us > (uint64_t) 1e6)) {
@@ -1370,9 +1360,7 @@ void Ekf::controlBetaFusion()
 			_control_status.flags.wind = true;
 			// reset the timeout timers to prevent repeated resets
 			_time_last_beta_fuse = _time_last_imu;
-			// reset the wind speed states and corresponding covariances
-			resetWindStates();
-			resetWindCovariance();
+			resetWind();
 		}
 
 		fuseSideslip();
@@ -1389,8 +1377,7 @@ void Ekf::controlDragFusion()
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
-			resetWindStates();
-			resetWindCovariance();
+			resetWind();
 
 		} else if (_drag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_drag_sample_delayed)) {
 			fuseDrag();
