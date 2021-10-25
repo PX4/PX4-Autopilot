@@ -168,11 +168,9 @@ void Ekf::fuseAirspeed()
 	}
 }
 
-void Ekf::get_true_airspeed(float *tas) const
+float Ekf::getTrueAirspeed() const
 {
-	const float tempvar = sqrtf(sq(_state.vel(0) - _state.wind_vel(0)) + sq(_state.vel(1) - _state.wind_vel(1)) + sq(
-					    _state.vel(2)));
-	memcpy(tas, &tempvar, sizeof(float));
+	return (_state.vel - Vector3f(_state.wind_vel(0), _state.wind_vel(1), 0.f)).norm();
 }
 
 /*
