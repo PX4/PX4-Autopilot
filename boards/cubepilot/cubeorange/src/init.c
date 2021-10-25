@@ -120,16 +120,6 @@ __EXPORT void board_on_reset(int status)
  ************************************************************************************/
 __EXPORT void stm32_boardinitialize(void)
 {
-	// clear all existing MPU configuration from bootloader
-	for (int region = 0; region < CONFIG_ARM_MPU_NREGIONS; region++) {
-		putreg32(region, MPU_RNR);
-		putreg32(0, MPU_RBAR);
-		putreg32(0, MPU_RASR);
-
-		// save
-		putreg32(0, MPU_CTRL);
-	}
-
 	/* Reset PWM first thing */
 	board_on_reset(-1);
 
