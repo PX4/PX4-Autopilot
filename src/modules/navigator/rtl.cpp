@@ -132,18 +132,29 @@ void RTL::find_RTL_destination()
 			mission_landing_alt = _navigator->get_mission_landing_start_alt();
 		}
 
-		// compare home position to landing position to decide which is closer
 		dlat = mission_landing_lat - global_position.lat;
 		dlon = mission_landing_lon - global_position.lon;
 		double dist_squared = coord_dist_sq(dlat, dlon);
 
-		// set destination to mission landing if closest or in RTL_TYPE_MISSION_LANDING or RTL_TYPE_MISSION_LANDING_REVERSED (so not in RTL_TYPE_CLOSEST)
-		if (dist_squared < min_dist_squared || (_param_rtl_type.get() != RTL_TYPE_CLOSEST && !vtol_in_rw_mode)) {
+		// always find closest destination if in hover and VTOL
+		if (_param_rtl_type.get() == RTL_TYPE_CLOSEST || (vtol_in_rw_mode && !_navigator->getMissionLandingInProgress())) {
+
+			// compare home position to landing position to decide which is closer
+			if (dist_squared < min_dist_squared) {
+				_destination.type = RTL_DESTINATION_MISSION_LANDING;
+				min_dist_squared = dist_squared;
+				_destination.lat = mission_landing_lat;
+				_destination.lon = mission_landing_lon;
+				_destination.alt = mission_landing_alt;
+			}
+
+		} else {
+			// it has to be the mission landing
+			_destination.type = RTL_DESTINATION_MISSION_LANDING;
 			min_dist_squared = dist_squared;
 			_destination.lat = mission_landing_lat;
 			_destination.lon = mission_landing_lon;
 			_destination.alt = mission_landing_alt;
-			_destination.type = RTL_DESTINATION_MISSION_LANDING;;
 		}
 	}
 
