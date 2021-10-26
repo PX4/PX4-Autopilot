@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,6 +63,7 @@
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gps_heading.h>
 
 #ifndef CONSTRAINED_FLASH
 # include "devices/src/ashtech.h"
@@ -180,7 +181,11 @@ private:
 	sensor_gps_s			_report_gps_pos{};				///< uORB topic for gps position
 	satellite_info_s		*_p_report_sat_info{nullptr};			///< pointer to uORB topic for satellite info
 
+	sensor_gps_heading_s            _sensor_gps_heading{};
+	hrt_abstime                     _sensor_gps_heading_timestamp_last{0};
+
 	uORB::PublicationMulti<sensor_gps_s>	_report_gps_pos_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
+	uORB::PublicationMulti<sensor_gps_heading_s> _sensor_gps_heading_pub{ORB_ID(sensor_gps_heading)};
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
 	float				_rate{0.0f};					///< position update rate
@@ -775,7 +780,7 @@ GPS::run()
 
 		/* FALLTHROUGH */
 		case gps_driver_mode_t::UBX:
-			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
+			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, &_sensor_gps_heading, _p_report_sat_info,
 						   gps_ubx_dynmodel, heading_offset, ubx_mode);
 			set_device_type(DRV_GPS_DEVTYPE_UBX);
 			break;
@@ -1099,6 +1104,15 @@ GPS::publish()
 		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
 		_report_gps_pos.heading = NAN;
 		_is_gps_main_advertised.store(true);
+
+		if (_sensor_gps_heading.timestamp_sample > _sensor_gps_heading_timestamp_last) {
+
+			_sensor_gps_heading.device_id = get_device_id();
+			_sensor_gps_heading.timestamp = hrt_absolute_time();
+			_sensor_gps_heading_pub.publish(_sensor_gps_heading);
+
+			_sensor_gps_heading_timestamp_last = _sensor_gps_heading.timestamp_sample;
+		}
 	}
 }
 

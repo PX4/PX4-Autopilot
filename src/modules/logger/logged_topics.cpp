@@ -154,6 +154,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("sensor_accel", 1000, 4);
 	add_topic_multi("sensor_baro", 1000, 4);
 	add_topic_multi("sensor_gps", 1000, 2);
+	add_topic_multi("sensor_gps_heading", 1000, 1);
 	add_topic_multi("sensor_gyro", 1000, 4);
 	add_topic_multi("sensor_mag", 1000, 4);
 	add_topic_multi("vehicle_imu", 500, 4);

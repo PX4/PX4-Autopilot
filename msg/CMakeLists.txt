@@ -138,6 +138,7 @@ set(msg_files
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gps.msg
+	sensor_gps_heading.msg
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
