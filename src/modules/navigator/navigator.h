@@ -441,4 +441,6 @@ private:
 	void		publish_mission_result();
 
 	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
+
+	bool 		geofence_allows_position(const vehicle_global_position_s &pos);
 };
