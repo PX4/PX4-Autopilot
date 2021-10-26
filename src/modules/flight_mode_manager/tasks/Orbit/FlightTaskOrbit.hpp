@@ -42,7 +42,7 @@
 #pragma once
 
 #include "FlightTaskManualAltitudeSmoothVel.hpp"
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/orbit_status.h>
 #include "StraightLine.hpp"
 #include <lib/slew_rate/SlewRateYaw.hpp>
@@ -114,7 +114,7 @@ private:
 	float _initial_heading = 0.f; /**< the heading of the drone when the orbit command was issued */
 	SlewRateYaw<float> _slew_rate_yaw;
 
-	uORB::Publication<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
+	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise, /**< cruise speed for circle approach */

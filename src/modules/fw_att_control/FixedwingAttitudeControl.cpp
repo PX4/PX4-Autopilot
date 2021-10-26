@@ -44,6 +44,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_actuators_0_pub(vtol ? ORB_ID(actuator_controls_virtual_fw) : ORB_ID(actuator_controls_0)),
+	_actuator_controls_status_pub(vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0)),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
@@ -518,15 +519,30 @@ void FixedwingAttitudeControl::Run()
 					control_input.pitch_rate_setpoint = _pitch_ctrl.get_desired_rate();
 					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
+					const hrt_abstime now = hrt_absolute_time();
+					autotune_attitude_control_status_s pid_autotune;
+					matrix::Vector3f bodyrate_ff;
+
+					if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
+						if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
+						    && ((now - pid_autotune.timestamp) < 1_s)) {
+
+							bodyrate_ff = matrix::Vector3f(pid_autotune.rate_sp);
+						}
+					}
+
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
-					float roll_u = _roll_ctrl.control_euler_rate(dt, control_input);
+					float roll_u = _roll_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(0));
 					_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
 
 					if (!PX4_ISFINITE(roll_u)) {
 						_roll_ctrl.reset_integrator();
 					}
 
-					float pitch_u = _pitch_ctrl.control_euler_rate(dt, control_input);
+					float pitch_u = _pitch_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(1));
 					_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
 
 					if (!PX4_ISFINITE(pitch_u)) {
@@ -539,7 +555,7 @@ void FixedwingAttitudeControl::Run()
 						yaw_u = _wheel_ctrl.control_bodyrate(dt, control_input);
 
 					} else {
-						yaw_u = _yaw_ctrl.control_euler_rate(dt, control_input);
+						yaw_u = _yaw_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(2));
 					}
 
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
@@ -642,6 +658,8 @@ void FixedwingAttitudeControl::Run()
 		    _vcontrol_mode.flag_control_manual_enabled) {
 			_actuators_0_pub.publish(_actuators);
 		}
+
+		updateActuatorControlsStatus(dt);
 	}
 
 	perf_end(_loop_perf);
@@ -709,6 +727,41 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 	} else {
 		_flaperons_applied = flaperon_control;
+	}
+}
+
+void FixedwingAttitudeControl::updateActuatorControlsStatus(float dt)
+{
+	for (int i = 0; i < 4; i++) {
+		float control_signal;
+
+		if (i <= actuator_controls_status_s::INDEX_YAW) {
+			// We assume that the attitude is actuated by control surfaces
+			// consuming power only when they move
+			control_signal = _actuators.control[i] - _control_prev[i];
+			_control_prev[i] = _actuators.control[i];
+
+		} else {
+			control_signal = _actuators.control[i];
+		}
+
+		_control_energy[i] += control_signal * control_signal * dt;
+	}
+
+	_energy_integration_time += dt;
+
+	if (_energy_integration_time > 500e-3f) {
+
+		actuator_controls_status_s status;
+		status.timestamp = _actuators.timestamp;
+
+		for (int i = 0; i < 4; i++) {
+			status.control_power[i] = _control_energy[i] / _energy_integration_time;
+			_control_energy[i] = 0.f;
+		}
+
+		_actuator_controls_status_pub.publish(status);
+		_energy_integration_time = 0.f;
 	}
 }
 

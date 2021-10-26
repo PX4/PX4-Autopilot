@@ -73,7 +73,7 @@ if DRIVERS_UAVCAN_V1
             default n
 
         config UAVCAN_V1_GNSS_SUBSCRIBER_0
-            bool "GNSS Subscriber 0 "
+            bool "GNSS Subscriber 0"
             default n
 
         config UAVCAN_V1_GNSS_SUBSCRIBER_1

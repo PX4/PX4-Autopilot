@@ -598,8 +598,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 				switch (vehicle_status.vehicle_type) {
 				case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
-					/* atune_start = param_find("FW_AT_START"); */
-					atune_start = PARAM_INVALID;
+					atune_start = param_find("FW_AT_START");
 
 					break;
 

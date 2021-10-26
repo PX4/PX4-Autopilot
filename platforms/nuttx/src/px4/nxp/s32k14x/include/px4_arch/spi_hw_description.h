@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,9 +30,42 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-#include <px4_arch/i2c_hw_description.h>
+#include "../../../s32k1xx/include/px4_arch/spi_hw_description.h"
 
-constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
-	initI2CBusExternal(PX4_BUS_NUMBER_TO_PX4(0)),
-};
+constexpr bool validateSPIConfig(const px4_spi_bus_t spi_busses_conf[SPI_BUS_MAX_BUS_ITEMS])
+{
+	const bool nuttx_enabled_spi_buses[] = {
+#ifdef CONFIG_S32K1XX_LPSPI0
+		true,
+#else
+		false,
+#endif
+#ifdef CONFIG_S32K1XX_LPSPI1
+		true,
+#else
+		false,
+#endif
+#ifdef CONFIG_S32K1XX_LPSPI2
+		true,
+#else
+		false,
+#endif
+	};
+
+	for (unsigned i = 0; i < sizeof(nuttx_enabled_spi_buses) / sizeof(nuttx_enabled_spi_buses[0]); ++i) {
+		bool found_bus = false;
+
+		for (int j = 0; j < SPI_BUS_MAX_BUS_ITEMS; ++j) {
+			if (spi_busses_conf[j].bus == (int)i + 1) {
+				found_bus = true;
+			}
+		}
+
+		// Either the bus is enabled in NuttX and configured in spi_busses_conf, or disabled and not configured
+		constexpr_assert(found_bus == nuttx_enabled_spi_buses[i], "SPI bus config mismatch (CONFIG_S32K1XX_LPSPIn)");
+	}
+
+	return false;
+}
