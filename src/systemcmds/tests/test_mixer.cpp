@@ -45,7 +45,6 @@
 #include <px4_platform_common/px4_config.h>
 #include <lib/mixer/MixerGroup.hpp>
 #include <lib/mixer/mixer_load.h>
-#include <output_limit/output_limit.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 
@@ -98,7 +97,6 @@ public:
 	MixerTest() = default;
 
 private:
-	bool mixerTest();
 	bool loadIOPass();
 	bool loadVTOL1Test();
 	bool loadVTOL2Test();
@@ -120,7 +118,6 @@ bool MixerTest::run_tests()
 	ut_run_test(loadVTOL2Test);
 	ut_run_test(loadComplexTest);
 	ut_run_test(loadAllTest);
-	ut_run_test(mixerTest);
 
 	return (_tests_failed == 0);
 }
@@ -333,238 +330,6 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 		PX4_ERR("Load of mixer failed, last chunk: %s, transmitted: %u, text length: %u, resid: %u", mixer_text, transmitted,
 			mixer_text_length, resid);
 		ut_compare("check number of mixers loaded (chunk)", mixer_group.count(), expected_count);
-	}
-
-	return true;
-}
-
-bool MixerTest::mixerTest()
-{
-	/*
-	 * Output limit structure
-	 */
-	output_limit_t output_limit;
-	bool should_arm = false;
-	uint16_t r_page_servo_disarmed[output_max];
-	uint16_t r_page_servo_control_min[output_max];
-	uint16_t r_page_servo_control_max[output_max];
-	uint16_t r_page_servos[output_max];
-	uint16_t servo_predicted[output_max];
-	int16_t reverse_pwm_mask = 0;
-
-	bool load_ok = load_mixer(MIXER_PATH(IO_pass.mix), 8);
-
-	if (!load_ok) {
-		return load_ok;
-	}
-
-	/* execute the mixer */
-
-	float	outputs[output_max];
-	unsigned mixed;
-	const int jmax = 5;
-
-	output_limit_init(&output_limit);
-
-	/* run through arming phase */
-	for (unsigned i = 0; i < output_max; i++) {
-		actuator_controls[i] = 0.1f;
-		r_page_servo_disarmed[i] = PWM_MOTOR_OFF;
-		r_page_servo_control_min[i] = PWM_DEFAULT_MIN;
-		r_page_servo_control_max[i] = PWM_DEFAULT_MAX;
-	}
-
-	//PX4_INFO("PRE-ARM TEST: DISABLING SAFETY");
-
-	/* mix */
-	should_prearm = true;
-	mixed = mixer_group.mix(&outputs[0], output_max);
-
-	output_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
-			  r_page_servo_control_max, outputs, r_page_servos, &output_limit);
-
-	//PX4_INFO("mixed %d outputs (max %d), values:", mixed, output_max);
-
-	for (unsigned i = 0; i < mixed; i++) {
-		//PX4_ERR("pre-arm:\t %d: out: %8.4f, servo: %d", i, (double)outputs[i], (int)r_page_servos[i]);
-
-		if (i != actuator_controls_s::INDEX_THROTTLE) {
-			if (r_page_servos[i] < r_page_servo_control_min[i]) {
-				PX4_ERR("active servo < min");
-				return false;
-			}
-
-		} else {
-			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
-				PX4_ERR("throttle output != 0 (this check assumed the IO pass mixer!)");
-				return false;
-			}
-		}
-	}
-
-	should_arm = true;
-	should_prearm = false;
-
-	/* simulate another orb_copy() from actuator controls */
-	for (unsigned i = 0; i < output_max; i++) {
-		actuator_controls[i] = 0.1f;
-	}
-
-	//PX4_INFO("ARMING TEST: STARTING RAMP");
-	unsigned sleep_quantum_us = 10000;
-
-	hrt_abstime starttime = hrt_absolute_time();
-	unsigned sleepcount = 0;
-
-	while (hrt_elapsed_time(&starttime) < INIT_TIME_US + RAMP_TIME_US + 2 * sleep_quantum_us) {
-
-		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
-
-		output_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
-				  r_page_servo_control_max, outputs, r_page_servos, &output_limit);
-
-		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
-		for (unsigned i = 0; i < mixed; i++) {
-
-			//fprintf(stderr, "ramp:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
-
-			/* check mixed outputs to be zero during init phase */
-			if (hrt_elapsed_time(&starttime) < INIT_TIME_US &&
-			    r_page_servos[i] != r_page_servo_disarmed[i]) {
-				PX4_ERR("disarmed servo value mismatch: %d vs %d", r_page_servos[i], r_page_servo_disarmed[i]);
-				return false;
-			}
-
-			if (hrt_elapsed_time(&starttime) >= INIT_TIME_US &&
-			    r_page_servos[i] + 1 <= r_page_servo_disarmed[i]) {
-				PX4_ERR("ramp servo value mismatch");
-				return false;
-			}
-		}
-
-		px4_usleep(sleep_quantum_us);
-		sleepcount++;
-
-		if (sleepcount % 10 == 0) {
-			fflush(stdout);
-		}
-	}
-
-	//PX4_INFO("ARMING TEST: NORMAL OPERATION");
-
-	for (int j = -jmax; j <= jmax; j++) {
-
-		for (unsigned i = 0; i < output_max; i++) {
-			actuator_controls[i] = j / 10.0f + 0.1f * i;
-			r_page_servo_disarmed[i] = PWM_LOWEST_MIN;
-			r_page_servo_control_min[i] = PWM_DEFAULT_MIN;
-			r_page_servo_control_max[i] = PWM_DEFAULT_MAX;
-		}
-
-		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
-
-		output_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
-				  r_page_servo_control_max, outputs, r_page_servos, &output_limit);
-
-		//fprintf(stderr, "mixed %d outputs (max %d)", mixed, output_max);
-
-		for (unsigned i = 0; i < mixed; i++) {
-			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
-
-			if (abs(servo_predicted[i] - r_page_servos[i]) > MIXER_DIFFERENCE_THRESHOLD) {
-				fprintf(stderr, "\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i],
-					(int)r_page_servos[i]);
-				PX4_ERR("mixer violated predicted value");
-				return false;
-			}
-		}
-	}
-
-	//PX4_INFO("ARMING TEST: DISARMING");
-
-	starttime = hrt_absolute_time();
-	sleepcount = 0;
-	should_arm = false;
-
-	while (hrt_elapsed_time(&starttime) < 600000) {
-
-		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
-
-		output_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
-				  r_page_servo_control_max, outputs, r_page_servos, &output_limit);
-
-		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
-		for (unsigned i = 0; i < mixed; i++) {
-
-			//fprintf(stderr, "disarmed:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
-
-			/* check mixed outputs to be zero during init phase */
-			if (r_page_servos[i] != r_page_servo_disarmed[i]) {
-				PX4_ERR("disarmed servo value mismatch");
-				return false;
-			}
-		}
-
-		px4_usleep(sleep_quantum_us);
-		sleepcount++;
-
-		if (sleepcount % 10 == 0) {
-			//printf(".");
-			//fflush(stdout);
-		}
-	}
-
-	//printf("\n");
-
-	//PX4_INFO("ARMING TEST: REARMING: STARTING RAMP");
-
-	starttime = hrt_absolute_time();
-	sleepcount = 0;
-	should_arm = true;
-
-	while (hrt_elapsed_time(&starttime) < 600000 + RAMP_TIME_US) {
-
-		/* mix */
-		mixed = mixer_group.mix(&outputs[0], output_max);
-
-		output_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
-				  r_page_servo_control_max, outputs, r_page_servos, &output_limit);
-
-		//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
-		for (unsigned i = 0; i < mixed; i++) {
-			/* predict value */
-			servo_predicted[i] = 1500 + outputs[i] * (r_page_servo_control_max[i] - r_page_servo_control_min[i]) / 2.0f;
-
-			/* check ramp */
-
-			//fprintf(stderr, "ramp:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
-
-			if (hrt_elapsed_time(&starttime) < RAMP_TIME_US &&
-			    (r_page_servos[i] + 1 <= r_page_servo_disarmed[i] ||
-			     r_page_servos[i] > servo_predicted[i])) {
-				PX4_ERR("ramp servo value mismatch");
-				return false;
-			}
-
-			/* check post ramp phase */
-			if (hrt_elapsed_time(&starttime) > RAMP_TIME_US &&
-			    abs(servo_predicted[i] - r_page_servos[i]) > 2) {
-				printf("\t %d: %8.4f predicted: %d, servo: %d\n", i, (double)outputs[i], servo_predicted[i], (int)r_page_servos[i]);
-				PX4_ERR("mixer violated predicted value");
-				return false;
-			}
-		}
-
-		px4_usleep(sleep_quantum_us);
-		sleepcount++;
-
-		if (sleepcount % 10 == 0) {
-			//	printf(".");
-			//	fflush(stdout);
-		}
 	}
 
 	return true;
