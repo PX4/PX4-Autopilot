@@ -1302,29 +1302,43 @@ void Ekf::controlAirDataFusion()
 	const bool airspeed_timed_out = isTimedOut(_time_last_arsp_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_time_last_beta_fuse, (uint64_t)10e6);
 
-	if (_control_status.flags.wind &&
-	    (_using_synthetic_position || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG)))) {
+	if (_using_synthetic_position || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG))) {
 		_control_status.flags.wind = false;
 	}
 
-	if (_control_status.flags.fuse_aspd && airspeed_timed_out) {
-		_control_status.flags.fuse_aspd = false;
+	if (_params.arsp_thr <= 0.f) {
+		stopAirspeedFusion();
+		return;
 	}
 
-	// Always try to fuse airspeed data if available and we are in flight
-	if (!_using_synthetic_position && _tas_data_ready && _control_status.flags.in_air) {
-		// If starting wind state estimation, reset the wind states and covariances before fusing any data
-		if (!_control_status.flags.wind) {
-			// activate the wind states
-			_control_status.flags.wind = true;
-			// reset the timout timer to prevent repeated resets
-			_time_last_arsp_fuse = _time_last_imu;
-			// reset the wind speed states and corresponding covariances
-			resetWindStates();
-			resetWindCovariance();
+	if (_tas_data_ready) {
+		const bool continuing_conditions_passing = _control_status.flags.in_air && _control_status.flags.fixed_wing && !_using_synthetic_position;
+		const bool is_airspeed_significant = _airspeed_sample_delayed.true_airspeed > _params.arsp_thr;
+		const bool starting_conditions_passing = continuing_conditions_passing && is_airspeed_significant;
+
+		if (_control_status.flags.fuse_aspd) {
+			if (continuing_conditions_passing) {
+				if (is_airspeed_significant) {
+					fuseAirspeed();
+				}
+
+				const bool is_fusion_failing = isTimedOut(_time_last_arsp_fuse, (uint64_t)10e6);
+
+				if (is_fusion_failing) {
+					stopAirspeedFusion();
+				}
+
+			} else {
+				stopAirspeedFusion();
+			}
+
+		} else if (starting_conditions_passing) {
+			startAirspeedFusion();
 		}
 
-		fuseAirspeed();
+	} else if (_control_status.flags.fuse_aspd && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us > (uint64_t) 1e6)) {
+		ECL_WARN("Airspeed data stopped");
+		stopAirspeedFusion();
 	}
 }
 
@@ -1346,9 +1360,7 @@ void Ekf::controlBetaFusion()
 			_control_status.flags.wind = true;
 			// reset the timeout timers to prevent repeated resets
 			_time_last_beta_fuse = _time_last_imu;
-			// reset the wind speed states and corresponding covariances
-			resetWindStates();
-			resetWindCovariance();
+			resetWind();
 		}
 
 		fuseSideslip();
@@ -1365,8 +1377,7 @@ void Ekf::controlDragFusion()
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
-			resetWindStates();
-			resetWindCovariance();
+			resetWind();
 
 		} else if (_drag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_drag_sample_delayed)) {
 			fuseDrag();
