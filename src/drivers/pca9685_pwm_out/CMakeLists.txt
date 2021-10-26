@@ -42,5 +42,4 @@ px4_add_module(
 	DEPENDS
 		mixer
 		mixer_module
-		output_limit
 	)
