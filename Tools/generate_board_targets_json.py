@@ -6,6 +6,14 @@ import os
 import sys
 import json
 import re
+from kconfiglib import Kconfig
+
+kconf = Kconfig()
+
+# Supress warning output
+kconf.warn_assign_undef = False
+kconf.warn_assign_override = False
+kconf.warn_assign_redun = False
 
 source_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
@@ -28,42 +36,43 @@ excluded_labels = [
     'uavcanv1' # TODO: fix and enable
     ]
 
-def process_target(cmake_file, target_name):
+def process_target(px4board_file, target_name):
     ret = None
-    is_board_def = False
     platform = None
     toolchain = None
-    for line in open(cmake_file, 'r'):
-        if 'px4_add_board' in line:
-            is_board_def = True
-        if not is_board_def:
-            continue
 
-        re_platform = re.search('PLATFORM\s+([^\s]+)', line)
-        if re_platform: platform = re_platform.group(1)
+    if px4board_file.endswith("default.px4board"):
+        kconf.load_config(px4board_file, replace=True)
+    else: # Merge config with default.px4board
+        default_kconfig = re.sub(r'[a-zA-Z\d_]+\.px4board', 'default.px4board', px4board_file)
+        kconf.load_config(default_kconfig, replace=True)
+        kconf.load_config(px4board_file, replace=False)
 
-        re_toolchain = re.search('TOOLCHAIN\s+([^\s]+)', line)
-        if re_toolchain: toolchain = re_toolchain.group(1)
+    if "BOARD_TOOLCHAIN" in kconf.syms:
+        toolchain = kconf.syms["BOARD_TOOLCHAIN"].str_value
 
-    if is_board_def:
-        assert platform, f"PLATFORM not found in {cmake_file}"
+    if "BOARD_PLATFORM" in kconf.syms:
+        platform = kconf.syms["BOARD_PLATFORM"].str_value
 
-        if platform not in excluded_platforms:
-            # get the container based on the platform and toolchain
-            container = platform
-            if platform == 'posix':
-                container = 'base-focal'
-                if toolchain:
-                    if toolchain.startswith('aarch64'):
-                        container = 'aarch64'
-                    elif toolchain == 'arm-linux-gnueabihf':
-                        container = 'armhf'
-                    else:
-                        if verbose: print(f'possibly unmatched toolchain: {toolchain}')
-            elif platform == 'nuttx':
-                container = 'nuttx-focal'
+    assert platform, f"PLATFORM not found in {px4board_file}"
 
-            ret = {'target': target_name, 'container': container}
+    if platform not in excluded_platforms:
+        # get the container based on the platform and toolchain
+        container = platform
+        if platform == 'posix':
+            container = 'base-focal'
+            if toolchain:
+                if toolchain.startswith('aarch64'):
+                    container = 'aarch64'
+                elif toolchain == 'arm-linux-gnueabihf':
+                    container = 'armhf'
+                else:
+                    if verbose: print(f'possibly unmatched toolchain: {toolchain}')
+        elif platform == 'nuttx':
+            container = 'nuttx-focal'
+
+        ret = {'target': target_name, 'container': container}
+
     return ret
 
 for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
@@ -77,8 +86,8 @@ for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
         if not board.is_dir():
             continue
         for files in os.scandir(board.path):
-            if files.is_file() and files.name.endswith('.cmake'):
-                label = files.name[:-6]
+            if files.is_file() and files.name.endswith('.px4board'):
+                label = files.name[:-9]
                 target_name = manufacturer.name + '_' + board.name + '_' + label
                 if label in excluded_labels:
                     if verbose: print(f'excluding label {label} ({target_name})')
