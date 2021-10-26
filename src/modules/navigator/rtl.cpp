@@ -115,8 +115,8 @@ void RTL::find_RTL_destination()
 				     && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 
-	// consider the mission landing if not RTL_TYPE_HOME_ONLY type set
-	if (_param_rtl_type.get() != RTL_TYPE_HOME_ONLY && _navigator->get_mission_start_land_available()) {
+	// consider the mission landing if not RTL_TYPE_HOME_OR_RALLY type set
+	if (_param_rtl_type.get() != RTL_TYPE_HOME_OR_RALLY && _navigator->get_mission_start_land_available()) {
 		double mission_landing_lat;
 		double mission_landing_lon;
 		float mission_landing_alt;
