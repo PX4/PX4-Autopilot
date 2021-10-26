@@ -31,6 +31,24 @@
 #
 ############################################################################
 
+add_custom_target(world_magnetic_model_update
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/fetch_noaa_table.py > ${CMAKE_CURRENT_SOURCE_DIR}/geo_magnetic_tables.hpp
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fetch_noaa_table.py
+	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/geo_magnetic_tables.hpp
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	USES_TERMINAL
+	COMMENT "Updating world magnetic model from NOAA (${CMAKE_CURRENT_SOURCE_DIR}/geo_magnetic_tables.hpp)"
+)
+
+add_custom_target(world_magnetic_model_tests_update
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_gtest.py > ${CMAKE_CURRENT_SOURCE_DIR}/test_geo_lookup.cpp
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/generate_gtest.py
+	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/test_geo_lookup.cpp
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	USES_TERMINAL
+	COMMENT "Updating world magnetic model unit tests from NOAA (${CMAKE_CURRENT_SOURCE_DIR}/test_geo_lookup.cpp)"
+)
+
 add_library(world_magnetic_model
 	geo_mag_declination.cpp
 	geo_mag_declination.h
