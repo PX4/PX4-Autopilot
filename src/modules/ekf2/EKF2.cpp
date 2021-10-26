@@ -140,6 +140,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_x(_params->ev_pos_body(0)),
 	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
+	_param_ekf2_arsp_thr(_params->arsp_thr),
 	_param_ekf2_tau_vel(_params->vel_Tau),
 	_param_ekf2_tau_pos(_params->pos_Tau),
 	_param_ekf2_gbias_init(_params->switch_on_gyro_bias),
@@ -1360,16 +1361,12 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 		// via the wind estimator that uses EKF velocity estimates.
 		const float true_airspeed_m_s = airspeed.true_airspeed_m_s * _airspeed_scale_factor;
 
-		// only set airspeed data if condition for airspeed fusion are met
-		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
-
-			airspeedSample airspeed_sample {
-				.time_us = airspeed.timestamp,
-				.true_airspeed = true_airspeed_m_s,
-				.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
-			};
-			_ekf.setAirspeedData(airspeed_sample);
-		}
+		airspeedSample airspeed_sample {
+			.time_us = airspeed.timestamp,
+			.true_airspeed = true_airspeed_m_s,
+			.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
+		};
+		_ekf.setAirspeedData(airspeed_sample);
 
 		ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
