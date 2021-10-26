@@ -827,6 +827,8 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
 		}
 
+		break;
+
 	default:
 		break;
 	}
