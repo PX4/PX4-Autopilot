@@ -267,7 +267,7 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 	case Timer::Timer15:
 		ret.base = STM32_TIM15_BASE;
 		ret.clock_register = STM32_RCC_APB2ENR;
-		ret.clock_bit = RCC_APB2LENR_TIM15EN;
+		ret.clock_bit = RCC_APB2ENR_TIM15EN;
 		ret.clock_freq = STM32_APB2_TIM15_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM15;
 #ifdef CONFIG_STM32_TIM15
