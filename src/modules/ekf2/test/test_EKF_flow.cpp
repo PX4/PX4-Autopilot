@@ -108,6 +108,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 
 	// WHEN: simulate being 5m above ground
 	const float simulated_distance_to_ground = 5.f;
+	_sensor_simulator._trajectory[2].setCurrentPosition(-simulated_distance_to_ground);
 	startRangeFinderFusion(simulated_distance_to_ground);
 	_ekf->set_in_air_status(true);
 
@@ -119,22 +120,23 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	reset_logging_checker.capturePreResetState();
 
 	// WHEN: start fusing flow data
-	const Vector2f simulated_horz_velocity(0.5f, -0.2f);
-	flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
-	setFlowFromHorizontalVelocityAndDistance(flow_sample, simulated_horz_velocity, estimated_distance_to_ground);
-	_sensor_simulator._flow.setData(flow_sample);
+	const Vector3f simulated_velocity(0.5f, -0.2f, 0.f);
+	_sensor_simulator._trajectory[0].setCurrentVelocity(simulated_velocity(0));
+	_sensor_simulator._trajectory[1].setCurrentVelocity(simulated_velocity(1));
+	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.startFlow();
+
 	// Let it reset but not fuse more measurements. We actually need to send 2
 	// samples to get a reset because the first one cannot be used as the gyro
 	// compensation needs to be accumulated between two samples.
-	_sensor_simulator.runSeconds(0.14);
+	_sensor_simulator.runTrajectorySeconds(0.14);
 
 	// THEN: estimated velocity should match simulated velocity
-	const Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
-	EXPECT_TRUE(isEqual(estimated_horz_velocity, simulated_horz_velocity))
-			<< "estimated vel = " << estimated_horz_velocity(0) << ", "
-			<< estimated_horz_velocity(1);
+	const Vector3f estimated_velocity = _ekf->getVelocity();
+	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity))
+			<< "estimated vel = " << estimated_velocity(0) << ", "
+			<< estimated_velocity(1);
 
 	// AND: the reset in velocity should be saved correctly
 	reset_logging_checker.capturePostResetState();
@@ -178,44 +180,42 @@ TEST_F(EkfFlowTest, inAirConvergence)
 {
 	// WHEN: simulate being 5m above ground
 	const float simulated_distance_to_ground = 5.f;
+	_sensor_simulator._trajectory[2].setCurrentPosition(-simulated_distance_to_ground);
 	startRangeFinderFusion(simulated_distance_to_ground);
 	_ekf->set_in_air_status(true);
 
 	_sensor_simulator.runSeconds(5.f);
 
-	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
-
 	// WHEN: start fusing flow data
-	Vector2f simulated_horz_velocity(0.5f, -0.2f);
-	flowSample flow_sample = _sensor_simulator._flow.dataAtRest();
-	setFlowFromHorizontalVelocityAndDistance(flow_sample, simulated_horz_velocity, estimated_distance_to_ground);
-	_sensor_simulator._flow.setData(flow_sample);
+	Vector3f simulated_velocity(0.5f, -0.2f, 0.f);
+	_sensor_simulator._trajectory[0].setCurrentVelocity(simulated_velocity(0));
+	_sensor_simulator._trajectory[1].setCurrentVelocity(simulated_velocity(1));
+	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
 	_ekf_wrapper.enableFlowFusion();
 	_sensor_simulator.startFlow();
 	// Let it reset but not fuse more measurements. We actually need to send 2
 	// samples to get a reset because the first one cannot be used as the gyro
 	// compensation needs to be accumulated between two samples.
-	_sensor_simulator.runSeconds(0.14);
+	_sensor_simulator.runTrajectorySeconds(0.14);
 
 	// THEN: estimated velocity should match simulated velocity
-	Vector2f estimated_horz_velocity = Vector2f(_ekf->getVelocity());
-	EXPECT_TRUE(isEqual(estimated_horz_velocity, simulated_horz_velocity))
-			<< "estimated vel = " << estimated_horz_velocity(0) << ", "
-			<< estimated_horz_velocity(1);
+	Vector3f estimated_velocity = _ekf->getVelocity();
+	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity))
+			<< "estimated vel = " << estimated_velocity(0) << ", "
+			<< estimated_velocity(1);
 
 	// AND: when the velocity changes
-	simulated_horz_velocity = Vector2f(0.8f, -0.5f);
-	setFlowFromHorizontalVelocityAndDistance(flow_sample, simulated_horz_velocity, estimated_distance_to_ground);
-	_sensor_simulator._flow.setData(flow_sample);
-	_sensor_simulator.runSeconds(5.0);
+	simulated_velocity = Vector3f(1.8f, -1.5f, -0.5f);
+	_sensor_simulator.setTrajectoryTargetVelocity(simulated_velocity);
+	_sensor_simulator.runTrajectorySeconds(_sensor_simulator._trajectory[0].getTotalTime());
 
 	// THEN: estimated velocity should converge to the simulated velocity
 	// This takes a bit of time because the data is inconsistent with IMU measurements
-	estimated_horz_velocity = Vector2f(_ekf->getVelocity());
-	EXPECT_NEAR(estimated_horz_velocity(0), simulated_horz_velocity(0), 0.05f)
-			<< "estimated vel = " << estimated_horz_velocity(0);
-	EXPECT_NEAR(estimated_horz_velocity(1), simulated_horz_velocity(1), 0.05f)
-			<< estimated_horz_velocity(1);
+	estimated_velocity = _ekf->getVelocity();
+	EXPECT_NEAR(estimated_velocity(0), simulated_velocity(0), 0.05f)
+			<< "estimated vel = " << estimated_velocity(0);
+	EXPECT_NEAR(estimated_velocity(1), simulated_velocity(1), 0.05f)
+			<< estimated_velocity(1);
 }
 
 TEST_F(EkfFlowTest, yawMotionCorrectionWithAutopilotGyroData)

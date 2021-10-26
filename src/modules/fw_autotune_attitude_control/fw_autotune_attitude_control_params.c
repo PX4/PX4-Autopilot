@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,51 +32,74 @@
  ****************************************************************************/
 
 /**
- * UAVCAN Node ID.
+ * @file fw_autotune_attitude_control_params.c
  *
- * Read the specs at http://uavcan.org to learn more about Node ID.
+ * Parameters used by the attitude auto-tuner
  *
- * @min 1
- * @max 125
- * @group UAVCAN
+ * @author Mathieu Bresciani <mathieu@auterion.com>
  */
-PARAM_DEFINE_INT32(CANNODE_NODE_ID, 120);
 
 /**
- * UAVCAN CAN bus bitrate.
+ * Start the autotuning sequence
  *
- * @min 20000
- * @max 1000000
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
-
-/**
- * CAN built-in bus termination
+ * WARNING: this will inject steps to the rate controller
+ * and can be dangerous. Only activate if you know what you
+ * are doing, and in a safe environment.
+ *
+ * Any motion of the remote stick will abord the signal
+ * injection and reset this parameter
+ * Best is to perform the identification in position or
+ * hold mode.
+ * Increase the amplitude of the injected signal using
+ * FW_AT_SYSID_AMP for more signal/noise ratio
  *
  * @boolean
- * @max 1
- * @group UAVCAN
+ * @group Autotune
  */
-PARAM_DEFINE_INT32(CANNODE_TERM, 0);
+PARAM_DEFINE_INT32(FW_AT_START, 0);
 
 /**
- * Cannode flow board rotation
+ * Amplitude of the injected signal
  *
- * This parameter defines the yaw rotation of the Cannode flow board relative to the vehicle body frame.
- * Zero rotation is defined as X on flow board pointing towards front of vehicle.
+ * This parameter scales the signal sent to the
+ * rate controller during system identification.
  *
- * @value 0 No rotation
- * @value 1 Yaw 45°
- * @value 2 Yaw 90°
- * @value 3 Yaw 135°
- * @value 4 Yaw 180°
- * @value 5 Yaw 225°
- * @value 6 Yaw 270°
- * @value 7 Yaw 315°
- *
- * @reboot_required true
- *
- * @group UAVCAN
+ * @min 0.1
+ * @max 6.0
+ * @decimal 1
+ * @group Autotune
  */
-PARAM_DEFINE_INT32(CANNODE_FLOW_ROT, 0);
+PARAM_DEFINE_FLOAT(FW_AT_SYSID_AMP, 1.0);
+
+/**
+ * Controls when to apply the new gains
+ *
+ * After the auto-tuning sequence is completed,
+ * a new set of gains is available and can be applied
+ * immediately or after landing.
+ *
+ * @value 0 Do not apply the new gains (logging only)
+ * @value 1 Apply the new gains after disarm
+ * @value 2 Apply the new gains in air
+ * @group Autotune
+ */
+PARAM_DEFINE_INT32(FW_AT_APPLY, 2);
+
+/**
+ * Tuning axes selection
+ *
+ * Defines which axes will be tuned during the auto-tuning sequence
+ *
+ * Set bits in the following positions to enable:
+ * 0 : Roll
+ * 1 : Pitch
+ * 2 : Yaw
+ *
+ * @bit 0 roll
+ * @bit 1 pitch
+ * @bit 2 yaw
+ * @min 1
+ * @max 7
+ * @group Autotune
+ */
+PARAM_DEFINE_INT32(FW_AT_AXES, 3);
