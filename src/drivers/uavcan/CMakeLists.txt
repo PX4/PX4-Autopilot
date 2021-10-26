@@ -176,7 +176,6 @@ px4_add_module(
 		led
 		mixer
 		mixer_module
-		output_limit
 		version
 
 		git_uavcan

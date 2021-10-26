@@ -50,7 +50,6 @@ px4_add_library(mixer_module
 	)
 
 add_dependencies(mixer_module output_functions_header)
-target_link_libraries(mixer_module PRIVATE output_limit)
 target_compile_options(mixer_module PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 
 

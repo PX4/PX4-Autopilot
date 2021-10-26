@@ -40,7 +40,6 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/mixer/MixerGroup.hpp>
 #include <lib/perf/perf_counter.h>
-#include <lib/output_limit/output_limit.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -254,6 +253,10 @@ private:
 
 	void limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates);
 
+	uint16_t output_limit_calc_single(int i, float value) const;
+
+	void output_limit_calc(const bool armed, const int num_channels, const float outputs[MAX_ACTUATORS]);
+
 	struct ParamHandles {
 		param_t function{PARAM_INVALID};
 		param_t disarmed{PARAM_INVALID};
@@ -297,7 +300,16 @@ private:
 	uint16_t _max_value[MAX_ACTUATORS] {};
 	uint16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
-	output_limit_t _output_limit;
+
+	enum class OutputLimitState {
+		OFF = 0,
+		INIT,
+		RAMP,
+		ON
+	} _output_state{OutputLimitState::INIT};
+
+	hrt_abstime _output_time_armed{0};
+	const bool _output_ramp_up; ///< if true, motors will ramp up from disarmed to min_output after arming
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::SubscriptionCallbackWorkItem _control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];

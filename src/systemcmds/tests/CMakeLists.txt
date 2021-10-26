@@ -95,7 +95,6 @@ px4_add_module(
 	SRCS
 		${srcs}
 	DEPENDS
-		output_limit
 		version
 	)
 
