@@ -328,8 +328,10 @@ private:
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 	hrt_abstime	_datalink_last_heartbeat_avoidance_system{0};
 	hrt_abstime	_datalink_last_heartbeat_onboard_controller{0};
+	hrt_abstime	_datalink_last_heartbeat_parachute_system{0};
 	bool		_onboard_controller_lost{false};
 	bool		_avoidance_system_lost{false};
+	bool		_parachute_system_lost{true};
 
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};

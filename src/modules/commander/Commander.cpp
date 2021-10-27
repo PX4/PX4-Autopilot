@@ -3424,6 +3424,19 @@ void Commander::data_link_check()
 				_datalink_last_heartbeat_onboard_controller = telemetry.timestamp;
 			}
 
+			if (telemetry.heartbeat_type_parachute) {
+				if (_parachute_system_lost) {
+					_parachute_system_lost = false;
+
+					if (_datalink_last_heartbeat_parachute_system != 0) {
+						mavlink_log_info(&_mavlink_log_pub, "Parachute system regained\t");
+						events::send(events::ID("commander_parachute_regained"), events::Log::Info, "Parachute system regained");
+					}
+				}
+
+				_datalink_last_heartbeat_parachute_system = telemetry.timestamp;
+			}
+
 			if (telemetry.heartbeat_component_obstacle_avoidance) {
 				if (_avoidance_system_lost) {
 					_avoidance_system_lost = false;
@@ -3462,6 +3475,13 @@ void Commander::data_link_check()
 		events::send(events::ID("commander_mission_comp_lost"), events::Log::Critical, "Connection to mission computer lost");
 		_onboard_controller_lost = true;
 		_status_changed = true;
+	}
+
+	// Parachute system
+	if ((hrt_elapsed_time(&_datalink_last_heartbeat_parachute_system) > 3_s)
+	    && !_parachute_system_lost) {
+		mavlink_log_critical(&_mavlink_log_pub, "Parachute system lost");
+		_parachute_system_lost = true;
 	}
 
 	// AVOIDANCE SYSTEM state check (only if it is enabled)

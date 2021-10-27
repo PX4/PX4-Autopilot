@@ -44,6 +44,7 @@ bool heartbeat_type_onboard_controller      # MAV_TYPE_ONBOARD_CONTROLLER
 bool heartbeat_type_gimbal                  # MAV_TYPE_GIMBAL
 bool heartbeat_type_adsb                    # MAV_TYPE_ADSB
 bool heartbeat_type_camera                  # MAV_TYPE_CAMERA
+bool heartbeat_type_parachute               # MAV_TYPE_PARACHUTE
 
 # Heartbeats per component
 bool heartbeat_component_telemetry_radio    # MAV_COMP_ID_TELEMETRY_RADIO
