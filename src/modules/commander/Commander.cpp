@@ -3912,7 +3912,8 @@ void Commander::estimator_check()
 
 		if (run_quality_checks && _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
-			if (_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+			if (_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY
+			    || _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 				_nav_test_failed = false;
 				_nav_test_passed = false;
 
