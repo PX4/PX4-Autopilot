@@ -375,6 +375,9 @@ MissionBlock::is_mission_item_reached()
 			struct position_setpoint_s *curr_sp_new = &_navigator->get_position_setpoint_triplet()->current;
 			const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;
 
+			const float dist_current_next = get_distance_to_next_waypoint(curr_sp_new->lat, curr_sp_new->lon, next_sp.lat,
+							next_sp.lon);
+
 			/* enforce exit heading if in FW, the next wp is valid, the vehicle is currently loitering and either having force_heading set,
 			   or if loitering to achieve altitdue at a NAV_CMD_WAYPOINT */
 			const bool enforce_exit_heading = _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -383,11 +386,10 @@ MissionBlock::is_mission_item_reached()
 							  curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER &&
 							  (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
 
-			if (enforce_exit_heading) {
+			// can only enforce exit heading if next waypoint is not within loiter radius of current waypoint
+			const bool exit_heading_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
 
-
-				const float dist_current_next = get_distance_to_next_waypoint(curr_sp_new->lat, curr_sp_new->lon, next_sp.lat,
-								next_sp.lon);
+			if (enforce_exit_heading && exit_heading_is_reachable) {
 
 				float yaw_err = 0.0f;
 
@@ -439,7 +441,9 @@ MissionBlock::is_mission_item_reached()
 					bearing += inner_angle;
 				}
 
-				// Replace current setpoint lat/lon with tangent coordinate
+				// set typ to position, will get set to loiter in the fw position controller once close
+				// and replace current setpoint lat/lon with tangent coordinate
+				curr_sp.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 				waypoint_from_heading_and_distance(curr_sp.lat, curr_sp.lon,
 								   bearing, fabsf(curr_sp.loiter_radius),
 								   &curr_sp.lat, &curr_sp.lon);
@@ -640,42 +644,40 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 }
 
 void
-MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
+MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *item)
 {
-	if (_navigator->get_land_detected()->landed) {
-		/* landed, don't takeoff, but switch to IDLE mode */
-		item->nav_cmd = NAV_CMD_IDLE;
+	setLoiterItemCommonFields(item);
 
-	} else {
-		item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	const position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	item->lat = pos_sp_triplet->current.lat;
+	item->lon = pos_sp_triplet->current.lon;
+	item->altitude = pos_sp_triplet->current.alt;
+	item->loiter_radius = pos_sp_triplet->current.loiter_radius;
+}
 
-		if (_navigator->get_can_loiter_at_sp() && pos_sp_triplet->current.valid) {
-			/* use current position setpoint */
-			item->lat = pos_sp_triplet->current.lat;
-			item->lon = pos_sp_triplet->current.lon;
-			item->altitude = pos_sp_triplet->current.alt;
+void
+MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
+{
+	setLoiterItemCommonFields(item);
 
-		} else {
-			/* use current position and use return altitude as clearance */
-			item->lat = _navigator->get_global_position()->lat;
-			item->lon = _navigator->get_global_position()->lon;
-			item->altitude = _navigator->get_global_position()->alt;
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
+	item->altitude = _navigator->get_global_position()->alt;
+	item->loiter_radius = _navigator->get_loiter_radius();
+}
 
-			if (min_clearance > 0.0f && item->altitude < _navigator->get_home_position()->alt + min_clearance) {
-				item->altitude = _navigator->get_home_position()->alt + min_clearance;
-			}
-		}
+void
+MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
+{
+	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 
-		item->altitude_is_relative = false;
-		item->yaw = NAN;
-		item->loiter_radius = _navigator->get_loiter_radius();
-		item->acceptance_radius = _navigator->get_acceptance_radius();
-		item->time_inside = 0.0f;
-		item->autocontinue = false;
-		item->origin = ORIGIN_ONBOARD;
-	}
+	item->altitude_is_relative = false;
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->yaw = NAN;
+	item->time_inside = 0.0f;
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
 }
 
 void
