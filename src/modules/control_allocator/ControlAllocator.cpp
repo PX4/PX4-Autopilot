@@ -212,6 +212,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessTiltrotorVTOL();
 			break;
 
+		case EffectivenessSource::CUSTOM:
+			tmp = new ActuatorEffectivenessCustom(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
@@ -483,6 +487,10 @@ int ControlAllocator::print_status()
 
 	case EffectivenessSource::TILTROTOR_VTOL:
 		PX4_INFO("EffectivenessSource: Tiltrotor VTOL");
+		break;
+
+	case EffectivenessSource::CUSTOM:
+		PX4_INFO("EffectivenessSource: Custom");
 		break;
 	}
 

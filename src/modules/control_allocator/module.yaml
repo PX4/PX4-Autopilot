@@ -1,0 +1,72 @@
+__max_num_config_instances: &max_num_config_instances 16
+
+module_name: control_allocator
+
+parameters:
+    - group: Control Allocator
+      definitions:
+        CA_ACT${i}_TRQ_R:
+            description:
+                short: actuator ${i} roll
+                long: Actuator ${i} roll torque
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_TRQ_P:
+            description:
+                short: actuator ${i} pitch
+                long: Actuator ${i} pitch torque
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_TRQ_Y:
+            description:
+                short: actuator ${i} yaw
+                long: Actuator ${i} yaw torque
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_THR_X:
+            description:
+                short: actuator ${i} thrust x
+                long: Actuator ${i} thrust x
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_THR_Y:
+            description:
+                short: actuator ${i} thrust y
+                long: Actuator ${i} thrust y
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_THR_Z:
+            description:
+                short: actuator ${i} thrust y
+                long: Actuator ${i} thrust y
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0

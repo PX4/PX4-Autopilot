@@ -31,22 +31,45 @@
 #
 ############################################################################
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(ActuatorEffectiveness)
-add_subdirectory(ControlAllocation)
-
 px4_add_module(
 	MODULE modules__control_allocator
 	MAIN control_allocator
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
+	INCLUDES
+		${CMAKE_CURRENT_SOURCE_DIR}
 	SRCS
+		ActuatorEffectiveness/ActuatorEffectiveness.hpp
+		ActuatorEffectiveness/ActuatorEffectivenessCustom.cpp
+		ActuatorEffectiveness/ActuatorEffectivenessCustom.hpp
+		ActuatorEffectiveness/ActuatorEffectivenessMultirotor.cpp
+		ActuatorEffectiveness/ActuatorEffectivenessMultirotor.hpp
+		ActuatorEffectiveness/ActuatorEffectivenessStandardVTOL.cpp
+		ActuatorEffectiveness/ActuatorEffectivenessStandardVTOL.hpp
+		ActuatorEffectiveness/ActuatorEffectivenessTiltrotorVTOL.cpp
+		ActuatorEffectiveness/ActuatorEffectivenessTiltrotorVTOL.hpp
+
+		ControlAllocation/ControlAllocation.cpp
+		ControlAllocation/ControlAllocation.hpp
+		ControlAllocation/ControlAllocationPseudoInverse.cpp
+		ControlAllocation/ControlAllocationPseudoInverse.hpp
+		ControlAllocation/ControlAllocationSequentialDesaturation.cpp
+		ControlAllocation/ControlAllocationSequentialDesaturation.hpp
+
 		ControlAllocator.cpp
 		ControlAllocator.hpp
 	DEPENDS
 		mathlib
-		ActuatorEffectiveness
-		ControlAllocation
-		mixer
 		px4_work_queue
+	MODULE_CONFIG
+		module.yaml
 )
+
+px4_add_library(ControlAllocation_testing
+	ControlAllocation/ControlAllocation.cpp
+	ControlAllocation/ControlAllocationPseudoInverse.cpp
+)
+target_link_libraries(ControlAllocation_testing PRIVATE mathlib)
+
+px4_add_unit_gtest(SRC ControlAllocation/ControlAllocationPseudoInverseTest.cpp LINKLIBS ControlAllocation_testing)
+# px4_add_unit_gtest(SRC ActuatorEffectivenessMultirotorTest.cpp LINKLIBS ActuatorEffectiveness)

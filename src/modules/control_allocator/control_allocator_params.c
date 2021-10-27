@@ -50,6 +50,7 @@
  * @value 0 Multirotor
  * @value 1 Standard VTOL (WIP)
  * @value 2 Tiltrotor VTOL (WIP)
+ * @value 3 Custom (CA_ACTn* torque and thrust parameters)
  * @group Control Allocation
  */
 PARAM_DEFINE_INT32(CA_AIRFRAME, 0);

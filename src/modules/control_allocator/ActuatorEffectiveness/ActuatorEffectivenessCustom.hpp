@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,37 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file ControlAllocationTest.cpp
+ * @file ActuatorEffectivenessCustom.hpp
  *
- * Tests for Control Allocation Algorithms
+ * Actuator effectiveness computed from rotors position and orientation
  *
  * @author Julien Lecoeur <julien.lecoeur@gmail.com>
  */
 
-#include <gtest/gtest.h>
+#pragma once
 
-#include "ControlAllocationPseudoInverse.hpp"
+#include "ActuatorEffectiveness.hpp"
 
-using namespace matrix;
+#include <px4_platform_common/module_params.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 
-TEST(ControlAllocationTest, AllZeroCase)
+using namespace time_literals;
+
+class ActuatorEffectivenessCustom: public ModuleParams, public ActuatorEffectiveness
 {
-	ControlAllocationPseudoInverse method;
+public:
+	ActuatorEffectivenessCustom(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessCustom() = default;
 
-	matrix::Vector<float, 6> control_sp;
-	matrix::Vector<float, 6> control_allocated;
-	matrix::Vector<float, 6> control_allocated_expected;
-	matrix::Matrix<float, 6, 16> effectiveness;
-	matrix::Vector<float, 16> actuator_sp;
-	matrix::Vector<float, 16> actuator_trim;
-	matrix::Vector<float, 16> actuator_sp_expected;
+	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) override;
 
-	method.setEffectivenessMatrix(effectiveness, actuator_trim, 16);
-	method.setControlSetpoint(control_sp);
-	method.allocate();
-	actuator_sp = method.getActuatorSetpoint();
-	control_allocated_expected = method.getAllocatedControl();
+	int numActuators() const override { return _num_actuators; }
+private:
 
-	EXPECT_EQ(actuator_sp, actuator_sp_expected);
-	EXPECT_EQ(control_allocated, control_allocated_expected);
-}
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _matrix{};
+
+	int _num_actuators{0};
+
+	bool _updated{true};
+};

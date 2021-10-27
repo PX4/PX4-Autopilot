@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,55 @@
  *
  ****************************************************************************/
 
-/**
- * @file ControlAllocationTest.cpp
- *
- * Tests for Control Allocation Algorithms
- *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
- */
+#include "ActuatorEffectivenessCustom.hpp"
 
-#include <gtest/gtest.h>
-
-#include "ControlAllocationPseudoInverse.hpp"
-
-using namespace matrix;
-
-TEST(ControlAllocationTest, AllZeroCase)
+ActuatorEffectivenessCustom::ActuatorEffectivenessCustom(ModuleParams *parent):
+	ModuleParams(parent)
 {
-	ControlAllocationPseudoInverse method;
+}
 
-	matrix::Vector<float, 6> control_sp;
-	matrix::Vector<float, 6> control_allocated;
-	matrix::Vector<float, 6> control_allocated_expected;
-	matrix::Matrix<float, 6, 16> effectiveness;
-	matrix::Vector<float, 16> actuator_sp;
-	matrix::Vector<float, 16> actuator_trim;
-	matrix::Vector<float, 16> actuator_sp_expected;
+bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix,
+		bool force)
+{
+	if (_updated || force) {
+		_updated = false;
 
-	method.setEffectivenessMatrix(effectiveness, actuator_trim, 16);
-	method.setControlSetpoint(control_sp);
-	method.allocate();
-	actuator_sp = method.getActuatorSetpoint();
-	control_allocated_expected = method.getAllocatedControl();
+		int num_actuators = 0;
 
-	EXPECT_EQ(actuator_sp, actuator_sp_expected);
-	EXPECT_EQ(control_allocated, control_allocated_expected);
+		for (int n = 0; n < NUM_ACTUATORS; n++) {
+			// CA_ACTn_TRQ_R
+			// CA_ACTn_TRQ_P
+			// CA_ACTn_TRQ_Y
+			char torque_str[3][17];
+			sprintf(torque_str[0], "CA_ACT%u_TRQ_R", n);
+			sprintf(torque_str[1], "CA_ACT%u_TRQ_P", n);
+			sprintf(torque_str[2], "CA_ACT%u_TRQ_Y", n);
+
+			// CA_ACTn_THR_X
+			// CA_ACTn_THR_Y
+			// CA_ACTn_THR_Z
+			char thrust_str[3][17];
+			sprintf(thrust_str[0], "CA_ACT%u_THR_X", n);
+			sprintf(thrust_str[1], "CA_ACT%u_THR_Y", n);
+			sprintf(thrust_str[2], "CA_ACT%u_THR_Z", n);
+
+			for (int i = 0; i < 3; i++) {
+				// CA_ACTn_TRQ_{R,P,Y}
+				param_get(param_find(torque_str[i]), &_matrix(n, i));
+
+				// CA_ACTn_THR_{X,Y,Z}
+				param_get(param_find(thrust_str[i]), &_matrix(n, i + 3));
+			}
+
+			if (_matrix.row(n).longerThan(0.f)) {
+				num_actuators++;
+			}
+		}
+
+		_num_actuators = num_actuators;
+		matrix = _matrix;
+		return true;
+	}
+
+	return false;
 }

@@ -41,14 +41,15 @@
 
 #pragma once
 
-#include <ActuatorEffectiveness.hpp>
-#include <ActuatorEffectivenessMultirotor.hpp>
-#include <ActuatorEffectivenessStandardVTOL.hpp>
-#include <ActuatorEffectivenessTiltrotorVTOL.hpp>
+#include <ActuatorEffectiveness/ActuatorEffectiveness.hpp>
+#include <ActuatorEffectiveness/ActuatorEffectivenessCustom.hpp>
+#include <ActuatorEffectiveness/ActuatorEffectivenessMultirotor.hpp>
+#include <ActuatorEffectiveness/ActuatorEffectivenessStandardVTOL.hpp>
+#include <ActuatorEffectiveness/ActuatorEffectivenessTiltrotorVTOL.hpp>
 
-#include <ControlAllocation.hpp>
-#include <ControlAllocationPseudoInverse.hpp>
-#include <ControlAllocationSequentialDesaturation.hpp>
+#include <ControlAllocation/ControlAllocation.hpp>
+#include <ControlAllocation/ControlAllocationPseudoInverse.hpp>
+#include <ControlAllocation/ControlAllocationSequentialDesaturation.hpp>
 
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
@@ -123,10 +124,11 @@ private:
 	ControlAllocation *_control_allocation{nullptr}; 	///< class for control allocation calculations
 
 	enum class EffectivenessSource {
-		NONE = -1,
-		MULTIROTOR = 0,
-		STANDARD_VTOL = 1,
+		NONE           = -1,
+		MULTIROTOR     = 0,
+		STANDARD_VTOL  = 1,
 		TILTROTOR_VTOL = 2,
+		CUSTOM         = 3,
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
