@@ -353,8 +353,6 @@ private:
 
 	void _updateTrajectoryGenerationConstraints();
 
-	void _updateFlightPhase(float altitude_sp_amsl, float height_rate_setpoint);
-
 	void _calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rate_sp, float target_climbrate,
 					  float target_sinkrate, float altitude_amsl);
 
