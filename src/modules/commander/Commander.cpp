@@ -1508,6 +1508,70 @@ Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 	return vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 }
 
+void Commander::executeActionRequest(const action_request_s &action_request)
+{
+	arm_disarm_reason_t arm_disarm_reason{};
+
+	switch (action_request.source) {
+	case action_request_s::SOURCE_RC_STICK_GESTURE: arm_disarm_reason = arm_disarm_reason_t::rc_stick; break;
+
+	case action_request_s::SOURCE_RC_SWITCH: arm_disarm_reason = arm_disarm_reason_t::rc_switch; break;
+
+	case action_request_s::SOURCE_RC_BUTTON: arm_disarm_reason = arm_disarm_reason_t::rc_button; break;
+	}
+
+	switch (action_request.action) {
+	case action_request_s::ACTION_DISARM: disarm(arm_disarm_reason); break;
+
+	case action_request_s::ACTION_ARM: arm(arm_disarm_reason); break;
+
+	case action_request_s::ACTION_TOGGLE_ARMING:
+		if (_armed.armed) {
+			disarm(arm_disarm_reason);
+
+		} else {
+			arm(arm_disarm_reason);
+		}
+
+		break;
+
+	case action_request_s::ACTION_UNKILL:
+		if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && _armed.manual_lockdown) {
+			mavlink_log_info(&_mavlink_log_pub, "Kill-switch disengaged\t");
+			events::send(events::ID("commander_kill_sw_disengaged"), events::Log::Info, "Kill-switch disengaged");
+			_status_changed = true;
+			_armed.manual_lockdown = false;
+		}
+
+		break;
+
+	case action_request_s::ACTION_KILL:
+		if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && !_armed.manual_lockdown) {
+			const char kill_switch_string[] = "Kill-switch engaged\t";
+			events::LogLevels log_levels{events::Log::Info};
+
+			if (_land_detector.landed) {
+				mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
+
+			} else {
+				mavlink_log_critical(&_mavlink_log_pub, kill_switch_string);
+				log_levels.external = events::Log::Critical;
+			}
+
+			events::send(events::ID("commander_kill_sw_engaged"), log_levels, "Kill-switch engaged");
+
+			_status_changed = true;
+			_armed.manual_lockdown = true;
+		}
+
+		break;
+
+	case action_request_s::ACTION_SWITCH_MODE:
+		main_state_transition(_status, action_request.mode, _status_flags, _internal_state);
+		break;
+	}
+}
+
 /**
 * @brief This function initializes the home position an altitude of the vehicle. This happens first time we get a good GPS fix and each
 *		 time the vehicle is armed with a good GPS fix.
@@ -2437,66 +2501,7 @@ Commander::run()
 			action_request_s action_request;
 
 			if (_action_request_sub.copy(&action_request)) {
-				arm_disarm_reason_t arm_disarm_reason{};
-
-				switch (action_request.source) {
-				case action_request_s::SOURCE_RC_STICK_GESTURE: arm_disarm_reason = arm_disarm_reason_t::rc_stick; break;
-
-				case action_request_s::SOURCE_RC_SWITCH: arm_disarm_reason = arm_disarm_reason_t::rc_switch; break;
-
-				case action_request_s::SOURCE_RC_BUTTON: arm_disarm_reason = arm_disarm_reason_t::rc_button; break;
-				}
-
-				switch (action_request.action) {
-				case action_request_s::ACTION_DISARM: disarm(arm_disarm_reason); break;
-
-				case action_request_s::ACTION_ARM: arm(arm_disarm_reason); break;
-
-				case action_request_s::ACTION_TOGGLE_ARMING:
-					if (_armed.armed) {
-						disarm(arm_disarm_reason);
-
-					} else {
-						arm(arm_disarm_reason);
-					}
-
-					break;
-
-				case action_request_s::ACTION_UNKILL:
-					if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && _armed.manual_lockdown) {
-						mavlink_log_info(&_mavlink_log_pub, "Kill-switch disengaged\t");
-						events::send(events::ID("commander_kill_sw_disengaged"), events::Log::Info, "Kill-switch disengaged");
-						_status_changed = true;
-						_armed.manual_lockdown = false;
-					}
-
-					break;
-
-				case action_request_s::ACTION_KILL:
-					if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && !_armed.manual_lockdown) {
-						const char kill_switch_string[] = "Kill-switch engaged\t";
-						events::LogLevels log_levels{events::Log::Info};
-
-						if (_land_detector.landed) {
-							mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
-
-						} else {
-							mavlink_log_critical(&_mavlink_log_pub, kill_switch_string);
-							log_levels.external = events::Log::Critical;
-						}
-
-						events::send(events::ID("commander_kill_sw_engaged"), log_levels, "Kill-switch engaged");
-
-						_status_changed = true;
-						_armed.manual_lockdown = true;
-					}
-
-					break;
-
-				case action_request_s::ACTION_SWITCH_MODE:
-					main_state_transition(_status, action_request.mode, _status_flags, _internal_state);
-					break;
-				}
+				executeActionRequest(action_request);
 			}
 		}
 

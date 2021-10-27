@@ -150,6 +150,8 @@ private:
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
 
+	void executeActionRequest(const action_request_s &action_request);
+
 	void mission_init();
 
 	void offboard_control_update();
