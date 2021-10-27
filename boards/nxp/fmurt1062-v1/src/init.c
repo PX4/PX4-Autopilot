@@ -166,7 +166,7 @@ __EXPORT void imxrt_ocram_initialize(void)
 	uint32_t regval;
 
 	/* Reallocate 128K of Flex RAM from ITCM to OCRAM
-	 * Final Confiduration is
+	 * Final Configuration is
 	 *    128 DTCM
 	 *
 	 *    128 FlexRAM OCRAM  (202C:0000-202D:ffff)
