@@ -289,8 +289,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
+	int ret = OK;
 #if defined(CONFIG_IMXRT_USDHC)
-	int ret = fmurt1062_usdhc_initialize();
+	ret = fmurt1062_usdhc_initialize();
 
 	if (ret != OK) {
 		led_on(LED_RED);
@@ -312,5 +313,5 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	px4_platform_configure();
 
-	return OK;
+	return ret;
 }
