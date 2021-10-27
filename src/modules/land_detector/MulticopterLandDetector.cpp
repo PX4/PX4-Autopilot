@@ -210,7 +210,9 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	if (_flag_control_climb_rate_enabled) {
 		vehicle_local_position_setpoint_s trajectory_setpoint;
 
-bool is_trajectory_setpoint_updated = _vehicle_control_mode.flag_control_offboard_enabled ? _offboard_trajectory_setpoint_sub.update(&trajectory_setpoint) : _trajectory_setpoint_sub.update(&trajectory_setpoint);
+		bool is_trajectory_setpoint_updated = _vehicle_control_mode.flag_control_offboard_enabled ?
+						      _offboard_trajectory_setpoint_sub.update(&trajectory_setpoint) :
+						      _trajectory_setpoint_sub.update(&trajectory_setpoint);
 
 		if (is_trajectory_setpoint_updated) {
 			// Setpoints can be NAN

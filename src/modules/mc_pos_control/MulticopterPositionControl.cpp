@@ -317,15 +317,9 @@ void MulticopterPositionControl::Run()
 
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 
-			bool is_trajectory_setpoint_updated = false;
-
-			if (_vehicle_control_mode.flag_control_offboard_enabled) {
-				is_trajectory_setpoint_updated = _offboard_trajectory_setpoint_sub.update(&_setpoint);
-
-			} else {
-
-				is_trajectory_setpoint_updated = _trajectory_setpoint_sub.update(&_setpoint);
-			}
+			bool is_trajectory_setpoint_updated = _vehicle_control_mode.flag_control_offboard_enabled ?
+							      _offboard_trajectory_setpoint_sub.update(&_setpoint) :
+							      _trajectory_setpoint_sub.update(&_setpoint);
 
 			// adjust existing (or older) setpoint with any EKF reset deltas
 			if (_setpoint.timestamp < local_pos.timestamp) {

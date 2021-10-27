@@ -413,12 +413,9 @@ RoverPositionControl::Run()
 		if (_local_pos_sub.update(&_local_pos)) {
 
 			//update trajectory_setpoint
-			if (_control_mode.flag_control_offboard_enabled) {
-				_offboard_trajectory_setpoint_sub.update(&_trajectory_setpoint);
-
-			} else {
-				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
-			}
+			_control_mode.flag_control_offboard_enabled ?
+			_offboard_trajectory_setpoint_sub.update(&_trajectory_setpoint) :
+			_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
 			/* load local copies */
 			_global_pos_sub.update(&_global_pos);
