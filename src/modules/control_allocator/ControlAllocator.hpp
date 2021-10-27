@@ -68,7 +68,6 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_actuator_setpoint.h>
-#include <uORB/topics/vehicle_status.h>
 
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::WorkItem
 {
@@ -147,7 +146,6 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};				/**< airspeed subscription */
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	matrix::Vector3f _torque_sp;
 	matrix::Vector3f _thrust_sp;

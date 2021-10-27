@@ -260,34 +260,6 @@ ControlAllocator::Run()
 		return;
 	}
 
-	vehicle_status_s vehicle_status;
-
-	if (_vehicle_status_sub.update(&vehicle_status)) {
-
-		ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
-
-		// Check if the current flight phase is HOVER or FIXED_WING
-		if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			flight_phase = ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT;
-
-		} else {
-			flight_phase = ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
-		}
-
-		// Special cases for VTOL in transition
-		if (vehicle_status.is_vtol && vehicle_status.in_transition_mode) {
-			if (vehicle_status.in_transition_to_fw) {
-				flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_HF_TO_FF;
-
-			} else {
-				flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_FF_TO_HF;
-			}
-		}
-
-		// Forward to effectiveness source
-		_actuator_effectiveness->setFlightPhase(flight_phase);
-	}
-
 	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 	const hrt_abstime now = hrt_absolute_time();
 	const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);

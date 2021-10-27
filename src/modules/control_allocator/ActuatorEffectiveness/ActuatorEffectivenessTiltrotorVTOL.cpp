@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,14 +41,40 @@
 
 #include "ActuatorEffectivenessTiltrotorVTOL.hpp"
 
-ActuatorEffectivenessTiltrotorVTOL::ActuatorEffectivenessTiltrotorVTOL()
-{
-	setFlightPhase(FlightPhase::HOVER_FLIGHT);
-}
 bool
 ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix,
 		bool force)
 {
+	vehicle_status_s vehicle_status;
+
+	if (_vehicle_status_sub.update(&vehicle_status)) {
+
+		FlightPhase flight_phase{FlightPhase::HOVER_FLIGHT};
+
+		// Check if the current flight phase is HOVER or FIXED_WING
+		if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			flight_phase = FlightPhase::HOVER_FLIGHT;
+
+		} else {
+			flight_phase = FlightPhase::FORWARD_FLIGHT;
+		}
+
+		// Special cases for VTOL in transition
+		if (vehicle_status.is_vtol && vehicle_status.in_transition_mode) {
+			if (vehicle_status.in_transition_to_fw) {
+				flight_phase = FlightPhase::TRANSITION_HF_TO_FF;
+
+			} else {
+				flight_phase = FlightPhase::TRANSITION_FF_TO_HF;
+			}
+		}
+
+		if (flight_phase != _flight_phase) {
+			_flight_phase = flight_phase;
+			_updated = true;
+		}
+	}
+
 	if (!(_updated || force)) {
 		return false;
 	}
@@ -105,12 +131,4 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(matrix::Matrix<float,
 
 	_updated = false;
 	return true;
-}
-
-void
-ActuatorEffectivenessTiltrotorVTOL::setFlightPhase(const FlightPhase &flight_phase)
-{
-	ActuatorEffectiveness::setFlightPhase(flight_phase);
-
-	_updated = true;
 }

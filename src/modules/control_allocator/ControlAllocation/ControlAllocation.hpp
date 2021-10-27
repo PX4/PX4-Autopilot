@@ -70,7 +70,6 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
-#include <uORB/topics/vehicle_actuator_setpoint.h>
 
 class ControlAllocation
 {
@@ -81,7 +80,7 @@ public:
 	static constexpr uint8_t NUM_ACTUATORS = 16;
 	static constexpr uint8_t NUM_AXES = 6;
 
-	typedef matrix::Vector<float, NUM_ACTUATORS> ActuatorVector;
+	using ActuatorVector = matrix::Vector<float, NUM_ACTUATORS>;
 
 	enum ControlAxis {
 		ROLL = 0,

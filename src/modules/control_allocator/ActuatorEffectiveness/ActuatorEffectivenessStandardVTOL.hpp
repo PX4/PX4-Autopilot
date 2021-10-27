@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,22 +43,30 @@
 
 #include "ActuatorEffectiveness.hpp"
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_status.h>
+
 class ActuatorEffectivenessStandardVTOL: public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessStandardVTOL();
+	ActuatorEffectivenessStandardVTOL() = default;
 	virtual ~ActuatorEffectivenessStandardVTOL() = default;
 
 	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) override;
 
-	/**
-	 * Set the current flight phase
-	 *
-	 * @param Flight phase
-	 */
-	void setFlightPhase(const FlightPhase &flight_phase) override;
-
 	int numActuators() const override { return 7; }
 protected:
+
+	enum class FlightPhase {
+		HOVER_FLIGHT = 0,
+		FORWARD_FLIGHT = 1,
+		TRANSITION_HF_TO_FF = 2,
+		TRANSITION_FF_TO_HF = 3
+	};
+
+	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
+
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+
 	bool _updated{true};
 };
