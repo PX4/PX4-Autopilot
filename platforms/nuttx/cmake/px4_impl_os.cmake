@@ -86,6 +86,13 @@ function(px4_os_add_flags)
 		)
 	endif()
 
+	if("${CONFIG_BOARD_FORCE_ALIGNMENT}" STREQUAL "y")
+		message(STATUS "Board forcing alignment")
+		add_compile_options(
+			-mno-unaligned-access
+		)
+	endif()
+
 endfunction()
 
 #=============================================================================
