@@ -443,7 +443,7 @@ void TECS::_updateTrajectoryGenerationConstraints()
 {
 	_alt_control_traj_generator.setMaxJerk(_jerk_max);
 	_alt_control_traj_generator.setMaxAccel(_vert_accel_limit);
-	_alt_control_traj_generator.setMaxVel(max(_max_climb_rate, _max_sink_rate));
+	_alt_control_traj_generator.setMaxVel(fmax(_max_climb_rate, _max_sink_rate));
 
 	_velocity_control_traj_generator.setMaxJerk(_jerk_max);
 	_velocity_control_traj_generator.setMaxAccelUp(_vert_accel_limit);
