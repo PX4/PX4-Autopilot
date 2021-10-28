@@ -44,6 +44,7 @@
 #include <ControlAllocation/ControlAllocation.hpp>
 
 #include <matrix/matrix/math.hpp>
+#include <mixer_module/output_functions.hpp>
 #include <uORB/topics/vehicle_actuator_setpoint.h>
 
 class ActuatorEffectiveness
@@ -103,6 +104,11 @@ public:
 	 * Get the number of actuators
 	 */
 	virtual int numActuators() const = 0;
+
+	/**
+	 * Get the function of an actuator
+	 */
+	virtual int actuatorFunction(uint8_t idx) const = 0;
 
 protected:
 	matrix::Vector<float, NUM_ACTUATORS> _trim;			///< Actuator trim

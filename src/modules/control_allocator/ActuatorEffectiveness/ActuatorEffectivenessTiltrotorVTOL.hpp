@@ -59,6 +59,8 @@ public:
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 	int numActuators() const override { return 10; }
+
+	int actuatorFunction(uint8_t idx) const { return (int)OutputFunction::Motor1 + idx; }; /// TODO: This is wrong.  Someone familiar with the tiltrotor should fix this.
 protected:
 	bool _updated{true};
 };
