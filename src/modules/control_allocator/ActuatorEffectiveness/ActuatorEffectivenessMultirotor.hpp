@@ -78,6 +78,8 @@ public:
 	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) override;
 
 	int numActuators() const override { return _num_actuators; }
+
+	int actuatorFunction(uint8_t idx) const override { return (int)OutputFunction::Motor1 + idx; }
 private:
 	bool _updated{true};
 	int _num_actuators{0};

@@ -436,21 +436,35 @@ ControlAllocator::publish_control_allocator_status()
 void
 ControlAllocator::publish_legacy_actuator_controls()
 {
-	actuator_motors_s actuator_motors;
-	actuator_motors.timestamp = hrt_absolute_time();
+	const hrt_abstime now = hrt_absolute_time();
+
+	actuator_motors_s actuator_motors {};
+	actuator_motors.timestamp = now;
 	actuator_motors.timestamp_sample = _timestamp_sample;
+
+	actuator_servos_s actuator_servos {};
+	actuator_servos.timestamp = now;
+	actuator_servos.timestamp_sample = _timestamp_sample;
 
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp_normalized = _control_allocation->normalizeActuatorSetpoint(
 				actuator_sp);
 
-	for (size_t i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
-		actuator_motors.control[i] = PX4_ISFINITE(actuator_sp_normalized(i)) ? actuator_sp_normalized(i) : NAN;
+	for (size_t i = 0; i < NUM_ACTUATORS; i++) {
+		const int func = _actuator_effectiveness->actuatorFunction(i);
+		const float control = PX4_ISFINITE(actuator_sp_normalized(i)) ? actuator_sp_normalized(i) : NAN;
+
+		if (func >= (int)OutputFunction::Motor1 && func <= (int)OutputFunction::MotorMax) {
+			actuator_motors.control[func - (int)OutputFunction::Motor1] = control;
+		}
+
+		if (func >= (int)OutputFunction::Servo1 && func <= (int)OutputFunction::ServoMax) {
+			actuator_servos.control[func - (int)OutputFunction::Servo1] = control;
+		}
 	}
 
 	_actuator_motors_pub.publish(actuator_motors);
-
-	// TODO: servos
+	_actuator_servos_pub.publish(actuator_servos);
 }
 
 int ControlAllocator::task_spawn(int argc, char *argv[])

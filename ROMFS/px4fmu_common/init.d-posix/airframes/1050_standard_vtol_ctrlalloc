@@ -6,7 +6,13 @@
 #
 
 . ${R}etc/init.d/rc.vtol_defaults
-. ${R}etc/init.d/rc.ctrlalloc
+
+param set-default SYS_CTRL_ALLOC 1
+
+param set-default VM_MASS 1.5
+param set-default VM_INERTIA_XX 0.03
+param set-default VM_INERTIA_YY 0.03
+param set-default VM_INERTIA_ZZ 0.05
 
 param set-default FW_L1_PERIOD 12
 param set-default FW_MAN_P_MAX 30
@@ -49,7 +55,9 @@ param set-default VT_B_TRANS_DUR 8
 param set-default VT_TYPE 2
 
 param set-default CA_AIRFRAME 1
+param set-default CA_METHOD 1
 
+# VTOL Motors
 param set-default CA_ACT0_MIN 0.0
 param set-default CA_ACT1_MIN 0.0
 param set-default CA_ACT2_MIN 0.0
@@ -59,9 +67,11 @@ param set-default CA_ACT1_MAX 1.0
 param set-default CA_ACT2_MAX 1.0
 param set-default CA_ACT3_MAX 1.0
 
+# Throttle
 param set-default CA_ACT4_MIN 0.0
 param set-default CA_ACT4_MAX 1.0
 
+# Ailerons/Ruddervator
 param set-default CA_ACT5_MIN -1.0
 param set-default CA_ACT5_MAX 1.0
 param set-default CA_ACT6_MIN -1.0
@@ -69,8 +79,32 @@ param set-default CA_ACT6_MAX 1.0
 param set-default CA_ACT7_MIN -1.0
 param set-default CA_ACT7_MAX 1.0
 
+param set-default CA_MC_R0_PX 0.177
+param set-default CA_MC_R0_PY 0.177
+param set-default CA_MC_R0_CT 6.5
+param set-default CA_MC_R0_KM 0.05
+param set-default CA_MC_R1_PX -0.177
+param set-default CA_MC_R1_PY -0.177
+param set-default CA_MC_R1_CT 6.5
+param set-default CA_MC_R1_KM 0.05
+param set-default CA_MC_R2_PX 0.177
+param set-default CA_MC_R2_PY -0.177
+param set-default CA_MC_R2_CT 6.5
+param set-default CA_MC_R2_KM -0.05
+param set-default CA_MC_R3_PX -0.177
+param set-default CA_MC_R3_PY 0.177
+param set-default CA_MC_R3_CT 6.5
+param set-default CA_MC_R3_KM -0.05
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+param set-default PWM_MAIN_FUNC5 105 # Setting pusher to Motor5 for now
+param set-default PWM_MAIN_FUNC6 201
+param set-default PWM_MAIN_FUNC7 202
+param set-default PWM_MAIN_FUNC8 203
+
 set MAV_TYPE 22
 
-#set MIXER_FILE etc/mixers-sitl/standard_vtol_sitl.main.mix
-#set MIXER custom
-set MIXER direct
+set MIXER skip

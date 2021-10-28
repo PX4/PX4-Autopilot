@@ -58,7 +58,15 @@ public:
 	 */
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
-	int numActuators() const override { return 7; }
+	int numActuators() const override { return 8; }
+
+	int actuatorFunction(uint8_t idx) const override { return (int)_actuator_functions[idx]; }
+
 protected:
+	OutputFunction _actuator_functions[NUM_ACTUATORS] = {
+		OutputFunction::Motor1, OutputFunction::Motor2, OutputFunction::Motor3, OutputFunction::Motor4,
+		OutputFunction::Motor5, OutputFunction::Servo1, OutputFunction::Servo2, OutputFunction::Servo3
+	};
+
 	bool _updated{true};
 };
