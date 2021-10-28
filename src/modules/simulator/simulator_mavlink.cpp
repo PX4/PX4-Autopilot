@@ -533,6 +533,9 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		// always publish ground truth attitude message
 		_gpos_ground_truth_pub.publish(hil_gpos);
 	}
+	
+	matrix::Vector3f acc(hil_state.xacc / 1000.f, hil_state.yacc / 1000.f, hil_state.zacc / 1000.f);
+	acc = matrix::Quatf(hil_state.attitude_quaternion).conjugate(acc);
 
 	/* local position */
 	vehicle_local_position_s hil_lpos{};
@@ -562,9 +565,9 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		hil_lpos.vy = hil_state.vy / 100.0f;
 		hil_lpos.vz = hil_state.vz / 100.0f;
 		matrix::Eulerf euler = matrix::Quatf(hil_attitude.q);
-		hil_lpos.ax = hil_state.xacc * CONSTANTS_ONE_G / 1000.0f;
-		hil_lpos.ay = hil_state.yacc * CONSTANTS_ONE_G / 1000.0f;
-		hil_lpos.az = hil_state.zacc * CONSTANTS_ONE_G / 1000.0f;
+		hil_lpos.ax = acc(0);
+		hil_lpos.ay = acc(1);
+		hil_lpos.az = acc(2);
 		hil_lpos.heading = euler.psi();
 		hil_lpos.xy_global = true;
 		hil_lpos.z_global = true;
