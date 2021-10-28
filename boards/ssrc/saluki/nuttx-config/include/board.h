@@ -45,6 +45,7 @@
 #define MPFS_MSS_RTC_TOGGLE_CLK      (1000000UL)
 #define MPFS_MSS_AXI_CLK           (300000000UL)
 #define MPFS_MSS_APB_AHB_CLK       (150000000UL)
+#define MPFS_FPGA_BCLK               (3000000UL)
 
 /* LED definitions **********************************************************/
 
