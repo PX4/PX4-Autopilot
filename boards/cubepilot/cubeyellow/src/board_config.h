@@ -167,6 +167,8 @@
 		GPIO_OTGFS_VBUS,                  \
 	}
 
+#define BOARD_PX4IO_FW_SEARCH_PATHS {"/etc/extras/cubepilot_io-v2_default.bin", nullptr }
+
 __BEGIN_DECLS
 #ifndef __ASSEMBLY__
 
