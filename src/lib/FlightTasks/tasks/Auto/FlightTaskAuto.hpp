@@ -138,6 +138,7 @@ private:
 	WeatherVane *_ext_yaw_handler =
 		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 
+	hrt_abstime _last_evaluate_triplet_warning{0};
 
 	void _limitYawRate(); /**< Limits the rate of change of the yaw setpoint. */
 	bool _evaluateTriplets(); /**< Checks and sets triplets. */

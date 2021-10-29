@@ -149,7 +149,22 @@ bool FlightTaskAuto::_evaluateTriplets()
 		// Best we can do is to just set all waypoints to current state and return false.
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
 		_type = WaypointType::position;
-		return false;
+		// use current state
+
+		_position_setpoint = _position;
+		_velocity_setpoint = _velocity;
+
+		_yaw_setpoint = _yaw_sp_prev = _yaw;
+		_yawspeed_setpoint = 0.0f;
+
+		_setDefaultConstraints();
+
+		if (hrt_elapsed_time(&_last_evaluate_triplet_warning) > 2000000) {
+			PX4_WARN("FlightTaskAuto: no valid position setpoint, using current position");
+			_last_evaluate_triplet_warning = hrt_absolute_time();
+		}
+
+		return true;
 	}
 
 	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;

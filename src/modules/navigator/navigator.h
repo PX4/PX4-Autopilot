@@ -73,6 +73,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/vehicle_status.h>
 
 /**
  * Number of navigation modes that need on_active/on_inactive calls

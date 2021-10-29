@@ -228,11 +228,15 @@ Navigator::run()
 	params_update();
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1] = {};
+	px4_pollfd_struct_t fds[3] = {};
 
 	/* Setup of loop */
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
+	fds[1].fd = _vstatus_sub;
+	fds[1].events = POLLIN;
+	fds[2].fd = _mission_sub;
+	fds[2].events = POLLIN;
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -252,15 +256,11 @@ Navigator::run()
 			PX4_ERR("poll error %d, %d", pret, errno);
 			px4_usleep(10000);
 			continue;
-
-		} else {
-			if (fds[0].revents & POLLIN) {
-				/* success, local pos is available */
-				local_position_update();
-			}
 		}
 
 		perf_begin(_loop_perf);
+		local_position_update();
+		vehicle_status_update();
 
 		bool updated;
 
@@ -291,13 +291,6 @@ Navigator::run()
 
 		if (updated) {
 			params_update();
-		}
-
-		/* vehicle status updated */
-		orb_check(_vstatus_sub, &updated);
-
-		if (updated) {
-			vehicle_status_update();
 		}
 
 		/* vehicle land detected updated */

@@ -1123,6 +1123,7 @@ dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	work->read_params.buf = buf;
 	work->read_params.count = count;
 
+	px4_sleep(2);
 	/* Enqueue the item on the work queue and wait for the worker thread to complete processing it */
 	return (ssize_t)enqueue_work_item_and_wait_for_result(work);
 }
