@@ -131,6 +131,7 @@ private:
 	uORB::Publication<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	int _previous_manual_control_input_instance{-1};
 	uORB::SubscriptionCallbackWorkItem _manual_control_input_subs[MAX_MANUAL_INPUT_COUNT] {
 		{this, ORB_ID(manual_control_input), 0},
 		{this, ORB_ID(manual_control_input), 1},
