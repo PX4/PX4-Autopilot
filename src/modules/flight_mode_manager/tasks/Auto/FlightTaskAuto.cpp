@@ -227,9 +227,15 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
 
 	// Slow down automatic descend close to ground
-	float land_speed = math::gradual(_dist_to_ground,
-					 _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-					 _param_mpc_land_speed.get(), _param_mpc_z_v_auto_dn.get());
+	float speed = math::gradual(_dist_to_ground,
+				    _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+				    _param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get());
+
+	bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
+
+	if (range_dist_available && _dist_to_bottom <= _param_mpc_land_alt3.get()) {
+		speed = _param_mpc_land_crawl_speed.get();
+	}
 
 	if (_type_previous != WaypointType::land) {
 		// initialize xy-position and yaw to waypoint such that home is reached exactly without user input
@@ -241,7 +247,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	// User input assisted landing
 	if (_param_mpc_land_rc_help.get() && _sticks.checkAndSetStickInputs()) {
 		// Stick full up -1 -> stop, stick full down 1 -> double the speed
-		land_speed *= (1 + _sticks.getPositionExpo()(2));
+		speed *= (1 + _sticks.getPositionExpo()(2));
 
 		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading,
 					       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
@@ -263,7 +269,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 
 	_position_setpoint = _land_position; // The last element of the land position has to stay NAN
 	_yaw_setpoint = _land_heading;
-	_velocity_setpoint(2) = land_speed;
+	_velocity_setpoint(2) = speed;
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
