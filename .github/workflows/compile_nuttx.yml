@@ -48,6 +48,7 @@ jobs:
           nxp_fmurt1062-v1,
           nxp_ucans32k146,
           omnibus_f4sd,
+          raspberrypi_pico,
           px4_fmu-v2,
           px4_fmu-v3,
           px4_fmu-v4,
