@@ -226,8 +226,18 @@ void ManualControl::Run()
 		// If it's valid, this should really be valid but better safe than sorry.
 		const int instance = _selector.instance();
 
-		if (instance >= 0 && instance < MAX_MANUAL_INPUT_COUNT) {
-			_manual_control_input_subs[instance].registerCallback();
+		// Attach scheduling to new samples of the chosen input
+		if (instance != _previous_manual_control_input_instance) {
+			if ((0 <= _previous_manual_control_input_instance)
+			    && (_previous_manual_control_input_instance < MAX_MANUAL_INPUT_COUNT)) {
+				_manual_control_input_subs[_previous_manual_control_input_instance].unregisterCallback();
+			}
+
+			if ((0 <= instance) && (instance < MAX_MANUAL_INPUT_COUNT)) {
+				_manual_control_input_subs[instance].registerCallback();
+			}
+
+			_previous_manual_control_input_instance = instance;
 		}
 
 		_manual_control_switches_sub.registerCallback();
