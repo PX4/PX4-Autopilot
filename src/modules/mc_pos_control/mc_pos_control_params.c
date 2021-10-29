@@ -415,6 +415,16 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
+ * Land crawl descend rate. Used below
+ *
+ * @unit m/s
+ * @min 0.1
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LAND_CRWL, 0.15f);
+
+/**
  * Enable user assisted descent speed for autonomous land routine.
  *
  * When enabled, descent speed will be:
@@ -714,7 +724,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
  * Altitude for 2. step of slow landing (landing)
  *
  * Below this altitude descending velocity gets
- * limited to "MPC_LAND_SPEED".
+ * limited to "MPC_LAND_SPEED"
  * Value needs to be lower than "MPC_LAND_ALT1"
  *
  * @unit m
@@ -724,6 +734,21 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
+
+/**
+ * Altitude for 3. step of slow landing
+ *
+ * Below this altitude descending velocity gets
+ * limited to "MPC_CRWL_SPEED", if LIDAR available.
+ * No effect if LIDAR not available
+ *
+ * @unit m
+ * @min 0
+ * @max 122
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT3, 1.0f);
 
 /**
  * Position control smooth takeoff ramp time constant
