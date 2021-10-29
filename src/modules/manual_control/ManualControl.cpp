@@ -93,12 +93,8 @@ void ManualControl::Run()
 		}
 	}
 
-	bool switches_updated = false;
 	manual_control_switches_s switches;
-
-	if (_manual_control_switches_sub.update(&switches)) {
-		switches_updated = true;
-	}
+	bool switches_updated = _manual_control_switches_sub.update(&switches);
 
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
