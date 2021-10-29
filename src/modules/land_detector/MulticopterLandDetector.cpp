@@ -80,6 +80,7 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_paramHandle.minThrottle = param_find("MPC_THR_MIN");
 	_paramHandle.useHoverThrustEstimate = param_find("MPC_USE_HTE");
 	_paramHandle.hoverThrottle = param_find("MPC_THR_HOVER");
+	_paramHandle.crawlSpeed = param_find("MPC_LAND_CRWL");
 }
 
 void MulticopterLandDetector::_update_topics()
@@ -157,13 +158,13 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	const bool lpos_available = ((time_now_us - _vehicle_local_position.timestamp) < 1_s);
 
 	// land speed threshold, 90% of MPC_LAND_SPEED
-	const float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
+	const float crawl_speed_threshold = 0.9f * math::max(_params.crawlSpeed, 0.1f);
 
 	if (lpos_available && _vehicle_local_position.v_z_valid) {
 		// Check if we are moving vertically - this might see a spike after arming due to
 		// throttle-up vibration. If accelerating fast the throttle thresholds will still give
 		// an accurate in-air indication.
-		float max_climb_rate = math::min(land_speed_threshold * 0.5f, _param_lndmc_z_vel_max.get());
+		float max_climb_rate = math::min(crawl_speed_threshold * 0.5f, _param_lndmc_z_vel_max.get());
 
 		if ((time_now_us - _landed_time) < LAND_DETECTOR_LAND_PHASE_TIME_US) {
 			// Widen acceptance thresholds for landed state right after arming
@@ -215,7 +216,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 			// Setpoints can be NAN
 			_in_descend = PX4_ISFINITE(trajectory_setpoint.vz)
-				      && (trajectory_setpoint.vz >= land_speed_threshold);
+				      && (trajectory_setpoint.vz >= crawl_speed_threshold);
 		}
 
 		// ground contact requires commanded descent until landed
