@@ -13,7 +13,8 @@
 // For now, a fixed value of 12 bytes "PIPICORP2040" is used.
 uint32_t myUUID[3] = {'P' << 0 | 'I' << 8 | 'P' << 16 | 'I' << 24,
 		      'C' << 0 | 'O' << 8 | 'R' << 16 | 'P' << 24,
-		      '2' << 0 | '0' << 8 | '4' << 16 | '0' << 24};
+		      '2' << 0 | '0' << 8 | '4' << 16 | '0' << 24
+		     };
 #define RP2040_SYSTEM_UID	((uint32_t)myUUID)
 
 #define CPU_UUID_BYTE_FORMAT_ORDER          {3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8}

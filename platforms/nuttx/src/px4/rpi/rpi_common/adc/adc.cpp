@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -109,7 +109,7 @@ int px4_arch_adc_init(uint32_t base_address)
 	hrt_abstime now = hrt_absolute_time();
 	rCS(base_address) |= 1 << 2;	// Start a single conversion
 
-	while (!(rCS(base_address) & (1 << 8) )) {	// Check if the sample is ready
+	while (!(rCS(base_address) & (1 << 8))) {	// Check if the sample is ready
 
 		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 500) {
@@ -141,7 +141,7 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	/* wait for the conversion to complete */
 	const hrt_abstime now = hrt_absolute_time();
 
-	while (!(rCS(base_address) & (1 << 8) )) {	// Check if the sample is ready
+	while (!(rCS(base_address) & (1 << 8))) {	// Check if the sample is ready
 
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {

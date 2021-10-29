@@ -1,8 +1,12 @@
 #!/bin/sh
 #
-# RaspberrypiPico specific board sensors init
+# board specific sensors init
 #------------------------------------------------------------------------------
 
 board_adc start
-mpu9250 -s -b 2 start
-bmp280 -s -b 2 start
+
+# try starting an mpu9250 IMU on external SPI
+mpu9250 start -S
+
+# try starting a bmp280 barometer on external SPI
+bmp280 start -S

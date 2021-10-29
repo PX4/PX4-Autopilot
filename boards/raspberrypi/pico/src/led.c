@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file led.c
  *
- * raspberrypipico LED backend.
+ * board LED backend.
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -43,7 +43,7 @@
 
 #include "board_config.h"
 
-#include <nuttx/board.h>
+#include <arch/board/board.h>
 
 /*
  * Ideally we'd be able to get these from arm_internal.h,

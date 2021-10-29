@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -415,7 +415,7 @@ static int timer_set_rate(unsigned timer, unsigned rate)
 
 static inline uint32_t freq2div(uint32_t freq)
 {
-	return (TIM_SRC_CLOCK_FREQ << 4)/freq;
+	return (TIM_SRC_CLOCK_FREQ << 4) / freq;
 }
 
 static inline void io_timer_set_oneshot_mode(unsigned timer)
@@ -710,7 +710,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			// 	regval |= (FTM_SC_CLKS_EXTCLK);
 			// }
 
-			_REG32(action_cache[actions].base,RP2040_PWM_CSR_OFFSET) |= state;
+			_REG32(action_cache[actions].base, RP2040_PWM_CSR_OFFSET) |= state;
 		}
 	}
 
@@ -735,8 +735,8 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 
 			/* configure the channel */
 			int regVal = rCCR(channels_timer(channel));
-			regVal &= ~(0xffff << (timer_io_channels[channel].timer_channel - 1)*16);
-			regVal |= value << (timer_io_channels[channel].timer_channel - 1)*16;
+			regVal &= ~(0xffff << (timer_io_channels[channel].timer_channel - 1) * 16);
+			regVal |= value << (timer_io_channels[channel].timer_channel - 1) * 16;
 			rCCR(channels_timer(channel)) = regVal;
 		}
 	}
@@ -754,7 +754,7 @@ uint16_t io_channel_get_ccr(unsigned channel)
 		if ((mode == IOTimerChanMode_PWMOut) ||
 		    (mode == IOTimerChanMode_OneShot) ||
 		    (mode == IOTimerChanMode_Trigger)) {
-			value = rCCR(channels_timer(channel)) >> (timer_io_channels[channel].timer_channel - 1)*16;
+			value = rCCR(channels_timer(channel)) >> (timer_io_channels[channel].timer_channel - 1) * 16;
 		}
 	}
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -73,31 +73,35 @@ __EXPORT void rp2040_spiinitialize()
 	}
 
 	/* Set default SPI pin */
-	#if defined(CONFIG_RP2040_SPI0) && defined(GPIO_SPI0_SCLK) && defined(GPIO_SPI0_MISO) && defined(GPIO_SPI0_MOSI)
+#if defined(CONFIG_RP2040_SPI0) && defined(GPIO_SPI0_SCLK) && defined(GPIO_SPI0_MISO) && defined(GPIO_SPI0_MOSI)
 	px4_arch_configgpio(GPIO_SPI0_SCLK);
 	px4_arch_configgpio(GPIO_SPI0_MISO);
 	px4_arch_configgpio(GPIO_SPI0_MOSI);
-	#endif
+#endif
 
-	#if defined(CONFIG_RP2040_SPI1) && defined(GPIO_SPI1_SCLK) && defined(GPIO_SPI1_MISO) && defined(GPIO_SPI1_MOSI)
+#if defined(CONFIG_RP2040_SPI1) && defined(GPIO_SPI1_SCLK) && defined(GPIO_SPI1_MISO) && defined(GPIO_SPI1_MOSI)
 	px4_arch_configgpio(GPIO_SPI1_SCLK);
 	px4_arch_configgpio(GPIO_SPI1_MISO);
 	px4_arch_configgpio(GPIO_SPI1_MOSI);
-	#endif
+#endif
 
-	#ifdef CONFIG_RP2040_SPI0
+#ifdef CONFIG_RP2040_SPI0
 	ASSERT(_spi_bus0);
+
 	if (board_has_bus(BOARD_SPI_BUS, PX4_BUS_NUMBER_TO_PX4(0))) {
 		spi_bus_configgpio_cs(_spi_bus0);
 	}
-	#endif // CONFIG_RP2040_SPI0
 
-	#ifdef CONFIG_RP2040_SPI1
+#endif // CONFIG_RP2040_SPI0
+
+#ifdef CONFIG_RP2040_SPI1
 	ASSERT(_spi_bus1);
+
 	if (board_has_bus(BOARD_SPI_BUS, PX4_BUS_NUMBER_TO_PX4(1))) {
 		spi_bus_configgpio_cs(_spi_bus1);
 	}
-	#endif // CONFIG_RP2040_SPI1
+
+#endif // CONFIG_RP2040_SPI1
 }
 
 static inline void rp2040_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s *dev, uint32_t devid, bool selected)
@@ -142,31 +146,31 @@ static inline void rp2040_spixselect(const px4_spi_bus_t *bus, struct spi_dev_s 
  ****************************************************************************/
 #ifdef CONFIG_RP2040_SPI0
 void rp2040_spi0select(FAR struct spi_dev_s *dev, uint32_t devid,
-                       bool selected)
+		       bool selected)
 {
-  spiinfo("devid: %d CS: %s\n", (int)devid,
-          selected ? "assert" : "de-assert");
-  rp2040_spixselect(_spi_bus0, dev, devid, selected);
+	spiinfo("devid: %d CS: %s\n", (int)devid,
+		selected ? "assert" : "de-assert");
+	rp2040_spixselect(_spi_bus0, dev, devid, selected);
 }
 
 uint8_t rp2040_spi0status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
-  return SPI_STATUS_PRESENT;
+	return SPI_STATUS_PRESENT;
 }
 #endif
 
 #ifdef CONFIG_RP2040_SPI1
 void rp2040_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
-                       bool selected)
+		       bool selected)
 {
-  spiinfo("devid: %d CS: %s\n", (int)devid,
-          selected ? "assert" : "de-assert");
-  rp2040_spixselect(_spi_bus1, dev, devid, selected);
+	spiinfo("devid: %d CS: %s\n", (int)devid,
+		selected ? "assert" : "de-assert");
+	rp2040_spixselect(_spi_bus1, dev, devid, selected);
 }
 
 uint8_t rp2040_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
 {
-  return SPI_STATUS_PRESENT;
+	return SPI_STATUS_PRESENT;
 }
 #endif
 

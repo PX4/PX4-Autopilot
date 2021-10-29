@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file init.c
  *
- * raspberrypipico-specific early startup code.  This file implements the
+ * board specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -62,7 +62,6 @@
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
 
-// #include <stm32.h>
 #include "board_config.h"
 #include <rp2040_uart.h>
 
@@ -85,7 +84,7 @@
  * Pre-Processor Definitions
  ****************************************************************************/
 
-/*
+/**
  * Ideally we'd be able to get these from arm_internal.h,
  * but since we want to be able to disable the NuttX use
  * of leds for system indication at will and there is no
@@ -128,12 +127,13 @@ __EXPORT void board_peripheral_reset(int ms)
  ************************************************************************************/
 __EXPORT void board_on_reset(int status)
 {
-	/* configure the GPIO pins to outputs and keep them low */
+	// Configure the GPIO pins to outputs and keep them low.
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
 	}
 
-	/* On resets invoked from system (not boot) insure we establish a low
+	/*
+	 * On resets invoked from system (not boot) insure we establish a low
 	 * output state (discharge the pins) on PWM pins before they become inputs.
 	 */
 
@@ -170,28 +170,27 @@ int board_read_VBUS_state(void)
 void rp2040_boardearlyinitialize(void)
 {
 	/* Set default UART pin */
+#if defined(CONFIG_RP2040_UART0) && CONFIG_RP2040_UART0_GPIO >= 0
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO, RP2040_GPIO_FUNC_UART);     /* TX */
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 1, RP2040_GPIO_FUNC_UART);     /* RX */
+# ifdef CONFIG_SERIAL_OFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 2, RP2040_GPIO_FUNC_UART);     /* CTS */
+# endif /* CONFIG_SERIAL_OFLOWCONTROL */
+# ifdef CONFIG_SERIAL_IFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 3, RP2040_GPIO_FUNC_UART);     /* RTS */
+# endif /* CONFIG_SERIAL_IFLOWCONTROL */
+#endif
 
-	#if defined(CONFIG_RP2040_UART0) && CONFIG_RP2040_UART0_GPIO >= 0
-	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO,RP2040_GPIO_FUNC_UART);      /* TX */
-	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 1,RP2040_GPIO_FUNC_UART);      /* RX */
-	#ifdef CONFIG_SERIAL_OFLOWCONTROL
-	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 2,RP2040_GPIO_FUNC_UART);      /* CTS */
-	#endif
-	#ifdef CONFIG_SERIAL_IFLOWCONTROL
-	rp2040_gpio_set_function(CONFIG_RP2040_UART0_GPIO + 3,RP2040_GPIO_FUNC_UART);      /* RTS */
-	#endif
-	#endif
-
-	#if defined(CONFIG_RP2040_UART1) && CONFIG_RP2040_UART1_GPIO >= 0
-	  rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO,RP2040_GPIO_FUNC_UART);      /* TX */
-	  rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 1,RP2040_GPIO_FUNC_UART);      /* RX */
-	#ifdef CONFIG_SERIAL_OFLOWCONTROL
-	  rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 2,RP2040_GPIO_FUNC_UART);      /* CTS */
-	#endif
-	#ifdef CONFIG_SERIAL_IFLOWCONTROL
-	  rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 3,RP2040_GPIO_FUNC_UART);      /* RTS */
-	#endif
-	#endif
+#if defined(CONFIG_RP2040_UART1) && CONFIG_RP2040_UART1_GPIO >= 0
+	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO, RP2040_GPIO_FUNC_UART);     /* TX */
+	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 1, RP2040_GPIO_FUNC_UART);     /* RX */
+# ifdef CONFIG_SERIAL_OFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 2, RP2040_GPIO_FUNC_UART);     /* CTS */
+# endif /* CONFIG_SERIAL_OFLOWCONTROL */
+# ifdef CONFIG_SERIAL_IFLOWCONTROL
+	rp2040_gpio_set_function(CONFIG_RP2040_UART1_GPIO + 3, RP2040_GPIO_FUNC_UART);     /* RTS */
+# endif /* CONFIG_SERIAL_IFLOWCONTROL */
+#endif
 }
 
 /************************************************************************************
@@ -223,19 +222,19 @@ rp2040_boardinitialize(void)
 	setbits_reg32(RP2040_PADS_BANK0_GPIO_OD, RP2040_PADS_BANK0_GPIO(28));	/* BATT_CURRENT_SENS */
 
 	/* Set default I2C pin */
-	#if defined(CONFIG_RP2040_I2C0) && CONFIG_RP2040_I2C0_GPIO >= 0
-	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO,RP2040_GPIO_FUNC_I2C);       /* SDA */
-	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO + 1,RP2040_GPIO_FUNC_I2C);       /* SCL */
+#if defined(CONFIG_RP2040_I2C0) && CONFIG_RP2040_I2C0_GPIO >= 0
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO, RP2040_GPIO_FUNC_I2C);      /* SDA */
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C0_GPIO + 1, RP2040_GPIO_FUNC_I2C);      /* SCL */
 	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C0_GPIO, true, false);  /* Pull up */
 	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C0_GPIO + 1, true, false);
-	#endif
+#endif
 
-	#if defined(CONFIG_RP2040_I2C1) &&  CONFIG_RP2040_I2C1_GPIO >= 0
-	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO,RP2040_GPIO_FUNC_I2C);       /* SDA */
-	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO + 1,RP2040_GPIO_FUNC_I2C);       /* SCL */
+#if defined(CONFIG_RP2040_I2C1) &&  CONFIG_RP2040_I2C1_GPIO >= 0
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO, RP2040_GPIO_FUNC_I2C);      /* SDA */
+	rp2040_gpio_set_function(CONFIG_RP2040_I2C1_GPIO + 1, RP2040_GPIO_FUNC_I2C);      /* SCL */
 	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C1_GPIO, true, false);  /* Pull up */
 	rp2040_gpio_set_pulls(CONFIG_RP2040_I2C1_GPIO + 1, true, false);
-	#endif
+#endif
 
 	// // TODO: power peripherals
 	// ///* configure power supply control/sense pins */
@@ -306,6 +305,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	px4_platform_init();
 
 	/* configure the DMA allocator */				// Needs to be figured out
+
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}

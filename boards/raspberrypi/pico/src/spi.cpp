@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,9 +39,9 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBus(SPI::Bus::SPI0, {
 		initSPIDevice(SPIDEV_MMCSD(0), SPI::CS{GPIO::Pin5}),
 	}),
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::Pin13}),
-		initSPIDevice(DRV_BARO_DEVTYPE_BMP280, SPI::CS{GPIO::Pin14}),
+	initSPIBusExternal(SPI::Bus::SPI1, {
+		initSPIConfigExternal(SPI::CS{GPIO::Pin13}),
+		initSPIConfigExternal(SPI::CS{GPIO::Pin14}),
 	}),
 };
 

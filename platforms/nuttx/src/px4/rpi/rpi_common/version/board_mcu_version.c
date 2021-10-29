@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -75,6 +75,7 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 		*revstr = "RP2040";
 		chip_errata = RP2040_ERRATA;
 		break;
+
 	default:
 		*revstr = "RPI???";
 		break;
@@ -85,6 +86,7 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 	case MCU_REV_RP2040_REV_1:
 		*rev = '1';
 		break;
+
 	default:
 		*rev = '?';
 		revid = -1;

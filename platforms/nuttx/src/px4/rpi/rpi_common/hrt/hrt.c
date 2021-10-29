@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -468,7 +468,7 @@ hrt_ppm_isr(int irq, void *context, void *arg)
 	uint16_t counter = rTIMERAWL & 0xffff;
 
 	// Switch the next interrupt type
-	px4_arch_gpiosetevent(GPIO_PPM_IN,lastEdge ? false : true,lastEdge ? true : false,true,hrt_ppm_isr,NULL);
+	px4_arch_gpiosetevent(GPIO_PPM_IN, lastEdge ? false : true, lastEdge ? true : false, true, hrt_ppm_isr, NULL);
 	lastEdge = !lastEdge;
 
 	hrt_ppm_decode(counter);
@@ -484,11 +484,13 @@ hrt_abstime hrt_absolute_time(void)
 	/* Taken from rp2040 datasheet pg. 558 */
 	uint32_t hi = rTIMERAWH;
 	uint32_t lo;
-	do
-	{
+
+	do {
 		lo = rTIMERAWL;
 		uint32_t next_hi = rTIMERAWH;
-		if (hi == next_hi) break;
+
+		if (hi == next_hi) { break; }
+
 		hi = next_hi;
 	} while (true);
 
@@ -553,7 +555,7 @@ hrt_init(void)
 
 #ifdef HRT_PPM_CHANNEL
 	// Set up edge detection interrupt on the PPM gpio.
-	px4_arch_gpiosetevent(GPIO_PPM_IN,lastEdge ? false : true,lastEdge ? true : false,true,hrt_ppm_isr,NULL);
+	px4_arch_gpiosetevent(GPIO_PPM_IN, lastEdge ? false : true, lastEdge ? true : false, true, hrt_ppm_isr, NULL);
 	lastEdge = !lastEdge;
 
 	/* configure the PPM input pin */

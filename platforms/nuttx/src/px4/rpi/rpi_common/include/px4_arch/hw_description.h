@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -98,7 +98,7 @@ static inline constexpr uint32_t timerBaseRegister(Timer::Timer timer)
 
 namespace GPIO
 {
-	// RP2040 doesn't have PORTS
+// RP2040 doesn't have PORTS
 enum Pin {
 	Pin0 = 0,
 	Pin1,
@@ -141,34 +141,63 @@ static inline constexpr uint32_t getGPIOPin(GPIO::Pin pin)
 {
 	switch (pin) {
 	case GPIO::Pin0: return 0;
+
 	case GPIO::Pin1: return 1;
+
 	case GPIO::Pin2: return 2;
+
 	case GPIO::Pin3: return 3;
+
 	case GPIO::Pin4: return 4;
+
 	case GPIO::Pin5: return 5;
+
 	case GPIO::Pin6: return 6;
+
 	case GPIO::Pin7: return 7;
+
 	case GPIO::Pin8: return 8;
+
 	case GPIO::Pin9: return 9;
+
 	case GPIO::Pin10: return 10;
+
 	case GPIO::Pin11: return 11;
+
 	case GPIO::Pin12: return 12;
+
 	case GPIO::Pin13: return 13;
+
 	case GPIO::Pin14: return 14;
+
 	case GPIO::Pin15: return 15;
+
 	case GPIO::Pin16: return 16;
+
 	case GPIO::Pin17: return 17;
+
 	case GPIO::Pin18: return 18;
+
 	case GPIO::Pin19: return 19;
+
 	case GPIO::Pin20: return 20;
+
 	case GPIO::Pin21: return 21;
+
 	case GPIO::Pin22: return 22;
+
 	case GPIO::Pin23: return 23;
+
 	case GPIO::Pin24: return 24;
+
 	case GPIO::Pin25: return 25;
+
 	case GPIO::Pin26: return 26;
+
 	case GPIO::Pin27: return 27;
+
 	case GPIO::Pin28: return 28;
+
 	case GPIO::Pin29: return 29;
 	}
 
