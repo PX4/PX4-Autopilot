@@ -67,85 +67,83 @@ private:
 
 	bool send() override
 	{
-		if (_mavlink->get_free_tx_buf() >= get_size()) {
-			// always send the heartbeat, independent of the update status of the topics
-			vehicle_status_s vehicle_status{};
-			_vehicle_status_sub.copy(&vehicle_status);
+		// always send the heartbeat, independent of the update status of the topics
+		vehicle_status_s vehicle_status{};
+		_vehicle_status_sub.copy(&vehicle_status);
 
-			vehicle_status_flags_s vehicle_status_flags{};
-			_vehicle_status_flags_sub.copy(&vehicle_status_flags);
+		vehicle_status_flags_s vehicle_status_flags{};
+		_vehicle_status_flags_sub.copy(&vehicle_status_flags);
 
-			vehicle_control_mode_s vehicle_control_mode{};
-			_vehicle_control_mode_sub.copy(&vehicle_control_mode);
+		vehicle_control_mode_s vehicle_control_mode{};
+		_vehicle_control_mode_sub.copy(&vehicle_control_mode);
 
-			actuator_armed_s actuator_armed{};
-			_acturator_armed_sub.copy(&actuator_armed);
+		actuator_armed_s actuator_armed{};
+		_acturator_armed_sub.copy(&actuator_armed);
 
-			// uint8_t base_mode (MAV_MODE_FLAG) - System mode bitmap.
-			uint8_t base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
+		// uint8_t base_mode (MAV_MODE_FLAG) - System mode bitmap.
+		uint8_t base_mode = MAV_MODE_FLAG_CUSTOM_MODE_ENABLED;
 
-			if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
-			}
-
-			if (vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON) {
-				base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
-			}
-
-			if (vehicle_control_mode.flag_control_manual_enabled) {
-				base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
-			}
-
-			if (vehicle_control_mode.flag_control_attitude_enabled) {
-				base_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
-			}
-
-			if (vehicle_control_mode.flag_control_auto_enabled) {
-				base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
-			}
-
-
-			// uint32_t custom_mode - A bitfield for use for autopilot-specific flags
-			union px4_custom_mode custom_mode {get_px4_custom_mode(vehicle_status.nav_state)};
-
-
-			// uint8_t system_status (MAV_STATE) - System status flag.
-			uint8_t system_status = MAV_STATE_UNINIT;
-
-			switch (vehicle_status.arming_state) {
-			case vehicle_status_s::ARMING_STATE_ARMED:
-				system_status = vehicle_status.failsafe ? MAV_STATE_CRITICAL : MAV_STATE_ACTIVE;
-				break;
-
-			case vehicle_status_s::ARMING_STATE_STANDBY:
-				system_status = MAV_STATE_STANDBY;
-				break;
-
-			case vehicle_status_s::ARMING_STATE_SHUTDOWN:
-				system_status = MAV_STATE_POWEROFF;
-				break;
-			}
-
-			// system_status overrides
-			if (actuator_armed.force_failsafe || actuator_armed.lockdown || actuator_armed.manual_lockdown
-			    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
-				system_status = MAV_STATE_FLIGHT_TERMINATION;
-
-			} else if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL) {
-				system_status = MAV_STATE_EMERGENCY;
-
-			} else if (vehicle_status_flags.condition_calibration_enabled) {
-				system_status = MAV_STATE_CALIBRATING;
-			}
-
-
-			mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(), MAV_AUTOPILOT_PX4,
-						   base_mode, custom_mode.data, system_status);
-
-			return true;
+		if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			base_mode |= MAV_MODE_FLAG_SAFETY_ARMED;
 		}
 
-		return false;
+		if (vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON) {
+			base_mode |= MAV_MODE_FLAG_HIL_ENABLED;
+		}
+
+		if (vehicle_control_mode.flag_control_manual_enabled) {
+			base_mode |= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED;
+		}
+
+		if (vehicle_control_mode.flag_control_attitude_enabled) {
+			base_mode |= MAV_MODE_FLAG_STABILIZE_ENABLED;
+		}
+
+		if (vehicle_control_mode.flag_control_auto_enabled) {
+			base_mode |= MAV_MODE_FLAG_AUTO_ENABLED | MAV_MODE_FLAG_STABILIZE_ENABLED | MAV_MODE_FLAG_GUIDED_ENABLED;
+		}
+
+
+		// uint32_t custom_mode - A bitfield for use for autopilot-specific flags
+		union px4_custom_mode custom_mode {get_px4_custom_mode(vehicle_status.nav_state)};
+
+
+		// uint8_t system_status (MAV_STATE) - System status flag.
+		uint8_t system_status = MAV_STATE_UNINIT;
+
+		switch (vehicle_status.arming_state) {
+		case vehicle_status_s::ARMING_STATE_ARMED:
+			system_status = vehicle_status.failsafe ? MAV_STATE_CRITICAL : MAV_STATE_ACTIVE;
+			break;
+
+		case vehicle_status_s::ARMING_STATE_STANDBY:
+			system_status = MAV_STATE_STANDBY;
+			break;
+
+		case vehicle_status_s::ARMING_STATE_SHUTDOWN:
+			system_status = MAV_STATE_POWEROFF;
+			break;
+		}
+
+		// system_status overrides
+		if (actuator_armed.force_failsafe || actuator_armed.lockdown || actuator_armed.manual_lockdown
+		    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_TERMINATION) {
+			system_status = MAV_STATE_FLIGHT_TERMINATION;
+
+		} else if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL) {
+			system_status = MAV_STATE_EMERGENCY;
+
+		} else if (vehicle_status_flags.condition_calibration_enabled) {
+			system_status = MAV_STATE_CALIBRATING;
+		}
+
+
+		mavlink_msg_heartbeat_send(_mavlink->get_channel(), _mavlink->get_system_type(), MAV_AUTOPILOT_PX4,
+					   base_mode, custom_mode.data, system_status);
+
+		_mavlink->set_first_heartbeat_sent();
+
+		return true;
 	}
 };
 

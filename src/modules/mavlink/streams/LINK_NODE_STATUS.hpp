@@ -55,29 +55,25 @@ private:
 
 	bool send() override
 	{
-		if (_mavlink->get_free_tx_buf() >= get_size()) {
-			mavlink_link_node_status_t link_node_status{};
+		mavlink_link_node_status_t link_node_status{};
 
-			const telemetry_status_s &tstatus = _mavlink->telemetry_status();
-			link_node_status.tx_buf = 0; // % TODO
-			link_node_status.rx_buf = 0; // % TODO
-			link_node_status.tx_rate = tstatus.tx_rate_avg;
-			link_node_status.rx_rate = tstatus.rx_rate_avg;
-			link_node_status.rx_parse_err = tstatus.rx_parse_errors;
-			link_node_status.tx_overflows = tstatus.tx_buffer_overruns;
-			link_node_status.rx_overflows = tstatus.rx_buffer_overruns;
-			link_node_status.messages_sent = tstatus.tx_message_count;
-			link_node_status.messages_received = tstatus.rx_message_count;
-			link_node_status.messages_lost = tstatus.rx_message_lost_count;
+		const telemetry_status_s &tstatus = _mavlink->telemetry_status();
+		link_node_status.tx_buf = 0; // % TODO
+		link_node_status.rx_buf = 0; // % TODO
+		link_node_status.tx_rate = tstatus.tx_rate_avg;
+		link_node_status.rx_rate = tstatus.rx_rate_avg;
+		link_node_status.rx_parse_err = tstatus.rx_parse_errors;
+		link_node_status.tx_overflows = tstatus.tx_buffer_overruns;
+		link_node_status.rx_overflows = tstatus.rx_buffer_overruns;
+		link_node_status.messages_sent = tstatus.tx_message_count;
+		link_node_status.messages_received = tstatus.rx_message_count;
+		link_node_status.messages_lost = tstatus.rx_message_lost_count;
 
-			link_node_status.timestamp = hrt_absolute_time();
+		link_node_status.timestamp = hrt_absolute_time();
 
-			mavlink_msg_link_node_status_send_struct(_mavlink->get_channel(), &link_node_status);
+		mavlink_msg_link_node_status_send_struct(_mavlink->get_channel(), &link_node_status);
 
-			return true;
-		}
-
-		return false;
+		return true;
 	}
 };
 

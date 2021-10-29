@@ -61,14 +61,12 @@ private:
 
 	bool send() override
 	{
-		bool sent = false;
-
 		transponder_report_s pos;
 
-		while ((_mavlink->get_free_tx_buf() >= get_size()) && _transponder_report_sub.update(&pos)) {
+		if (_transponder_report_sub.update(&pos)) {
 
 			if (!(pos.flags & transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE)) {
-				continue;
+				return false;
 			}
 
 			mavlink_adsb_vehicle_t msg{};
@@ -100,10 +98,10 @@ private:
 			if (pos.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK) { msg.flags |= ADSB_FLAGS_VALID_SQUAWK; }
 
 			mavlink_msg_adsb_vehicle_send_struct(_mavlink->get_channel(), &msg);
-			sent = true;
+			return true;
 		}
 
-		return sent;
+		return false;
 	}
 };
 

@@ -466,12 +466,7 @@ MavlinkMissionManager::send_mission_item_reached(uint16_t seq)
 void
 MavlinkMissionManager::send()
 {
-	// do not send anything over high latency communication
-	if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_IRIDIUM) {
-		return;
-	}
-
-	mission_result_s mission_result{};
+	mission_result_s mission_result;
 
 	if (_mission_result_sub.update(&mission_result)) {
 
@@ -1744,11 +1739,6 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 void MavlinkMissionManager::check_active_mission()
 {
-	// do not send anything over high latency communication
-	if (_mavlink->get_mode() == Mavlink::MAVLINK_MODE_IRIDIUM) {
-		return;
-	}
-
 	if (!(_my_dataman_id == _dataman_id)) {
 		PX4_DEBUG("WPM: New mission detected (possibly over different Mavlink instance) Updating");
 

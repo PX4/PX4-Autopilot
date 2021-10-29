@@ -66,6 +66,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			mavlink_param_request_list_t req_list;
 			mavlink_msg_param_request_list_decode(msg, &req_list);
 
+			PX4_DEBUG("PARAM_REQUEST_LIST target_system: %d, target_component: %d", req_list.target_system,
+				  req_list.target_component);
+
 			if (req_list.target_system == mavlink_system.sysid &&
 			    (req_list.target_component == mavlink_system.compid || req_list.target_component == MAV_COMP_ID_ALL)) {
 				if (_send_all_index < 0) {
@@ -95,6 +98,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 			/* set parameter */
 			mavlink_param_set_t set;
 			mavlink_msg_param_set_decode(msg, &set);
+
+			PX4_DEBUG("PARAM_SET param_id:%s", set.param_id);
 
 			if (set.target_system == mavlink_system.sysid &&
 			    (set.target_component == mavlink_system.compid || set.target_component == MAV_COMP_ID_ALL)) {
@@ -162,6 +167,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 		}
 
 	case MAVLINK_MSG_ID_PARAM_REQUEST_READ: {
+			PX4_DEBUG("PARAM_REQUEST_READ");
 			/* request one parameter */
 			mavlink_param_request_read_t req_read;
 			mavlink_msg_param_request_read_decode(msg, &req_read);
@@ -183,6 +189,8 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 						strncpy(param_value.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 						param_value.param_type = MAV_PARAM_TYPE_UINT32;
 						memcpy(&param_value.param_value, &hash, sizeof(hash));
+
+						PX4_DEBUG("sending PARAM_REQUEST_READ param_id:'%s', param_index:%d", param_value.param_id, param_value.param_index);
 						mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &param_value);
 
 					} else {
@@ -228,6 +236,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 		}
 
 	case MAVLINK_MSG_ID_PARAM_MAP_RC: {
+			PX4_DEBUG("PARAM_MAP_RC");
 			/* map a rc channel to a parameter */
 			mavlink_param_map_rc_t map_rc;
 			mavlink_msg_param_map_rc_decode(msg, &map_rc);
@@ -278,6 +287,10 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 void
 MavlinkParametersManager::send()
 {
+	if (_mavlink->over_data_rate() || _mavlink->radio_status_critical()) {
+		return;
+	}
+
 	if (!_first_send) {
 		// parameters QGC can't tolerate not finding (2020-11-11)
 		param_find("BAT_CRIT_THR");
@@ -308,21 +321,32 @@ MavlinkParametersManager::send()
 		_first_send = true;
 	}
 
-	int max_num_to_send;
+	int max_num_to_send = 3;
 
-	if (_mavlink->get_protocol() == Protocol::SERIAL && !_mavlink->is_usb_uart()) {
-		max_num_to_send = 3;
-
-	} else {
-		// speed up parameter loading via UDP or USB: try to send 20 at once
-		max_num_to_send = 20;
+	if ((_mavlink->get_protocol() != Protocol::SERIAL)
+	    || _mavlink->is_usb_uart()
+	    || ((_mavlink->get_protocol() == Protocol::SERIAL) && _mavlink->get_flow_control_enabled())
+	   ) {
+		// speed up parameter loading via UDP, USB, or serial with working flow control: try to send up to 30 at once (respecting max data rate)
+		max_num_to_send = 30;
 	}
 
-	int i = 0;
+	for (int i = 0; i < max_num_to_send; i++) {
+		// Send while burst is not exceeded, we still have buffer space and still something to send
+		bool transmit = _mavlink->get_free_tx_buf() >= get_size() && !_mavlink->radio_status_critical()
+				&& !_mavlink->over_data_rate();
 
-	// Send while burst is not exceeded, we still have buffer space and still something to send
-	while ((i++ < max_num_to_send) && (_mavlink->get_free_tx_buf() >= get_size()) && !_mavlink->radio_status_critical()
-	       && send_params()) {}
+		if (transmit) {
+			if (!send_params()) {
+				return;
+			}
+
+		} else {
+			PX4_DEBUG("MavlinkParametersManager::send() can't transmit, free TX buf: %d, over data rate: %d",
+				  _mavlink->get_free_tx_buf(), _mavlink->over_data_rate());
+			return;
+		}
+	}
 }
 
 bool
@@ -382,6 +406,7 @@ MavlinkParametersManager::send_untransmitted()
 				}
 			}
 		} while ((_mavlink->get_free_tx_buf() >= get_size()) && !_mavlink->radio_status_critical()
+			 && !_mavlink->over_data_rate()
 			 && (_param_update_index < (int) param_count()));
 
 		// Flag work as done once all params have been sent
@@ -397,7 +422,7 @@ bool
 MavlinkParametersManager::send_uavcan()
 {
 	/* Send parameter values received from the UAVCAN topic */
-	uavcan_parameter_value_s value{};
+	uavcan_parameter_value_s value;
 
 	if (_uavcan_parameter_value_sub.update(&value)) {
 
@@ -470,6 +495,8 @@ MavlinkParametersManager::send_one()
 			strncpy(msg.param_id, HASH_PARAM, MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN);
 			msg.param_type = MAV_PARAM_TYPE_UINT32;
 			memcpy(&msg.param_value, &hash, sizeof(hash));
+
+			PX4_DEBUG("sending PARAM_VALUE param_id:'%s', param_index:%d", msg.param_id, msg.param_index);
 			mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
 
 			/* after this we should start sending all params */
@@ -511,12 +538,7 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		return 1;
 	}
 
-	/* no free TX buf to send this param */
-	if (_mavlink->get_free_tx_buf() < MAVLINK_MSG_ID_PARAM_VALUE_LEN) {
-		return 1;
-	}
-
-	mavlink_param_value_t msg;
+	mavlink_param_value_t msg{};
 
 	/*
 	 * get param value, since MAVLink encodes float and int params in the same
@@ -579,6 +601,8 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 
 	/* default component ID */
 	if (component_id < 0) {
+		PX4_DEBUG("sending PARAM_VALUE param_id:'%s', param_index:%d, param_count:%d", msg.param_id, msg.param_index,
+			  msg.param_count);
 		mavlink_msg_param_value_send_struct(_mavlink->get_channel(), &msg);
 
 	} else {

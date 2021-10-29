@@ -87,7 +87,6 @@ private:
 		_throttle(SimpleAnalyzer::AVERAGE),
 		_windspeed(SimpleAnalyzer::AVERAGE)
 	{
-		reset_last_sent();
 	}
 
 	struct PerBatteryData {
@@ -201,6 +200,10 @@ private:
 				reset_analysers(t);
 
 				mavlink_msg_high_latency2_send_struct(_mavlink->get_channel(), &msg);
+			}
+
+			if (updated) {
+				_mavlink->set_first_heartbeat_sent();
 			}
 
 			return updated;

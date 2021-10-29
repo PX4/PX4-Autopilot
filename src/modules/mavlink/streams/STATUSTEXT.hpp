@@ -69,56 +69,53 @@ private:
 	bool send() override
 	{
 		if (_mavlink->is_connected()) {
-			while (_mavlink_log_sub.updated() && (_mavlink->get_free_tx_buf() >= get_size())) {
+			const unsigned last_generation = _mavlink_log_sub.get_last_generation();
 
-				const unsigned last_generation = _mavlink_log_sub.get_last_generation();
+			mavlink_log_s mavlink_log;
 
-				mavlink_log_s mavlink_log;
+			if (_mavlink_log_sub.update(&mavlink_log)) {
+				// don't send stale messages
+				if (hrt_elapsed_time(&mavlink_log.timestamp) < 2_s) {
 
-				if (_mavlink_log_sub.update(&mavlink_log)) {
-					// don't send stale messages
-					if (hrt_elapsed_time(&mavlink_log.timestamp) < 2_s) {
-
-						if (_mavlink_log_sub.get_last_generation() != (last_generation + 1)) {
-							perf_count(_missed_msg_count_perf);
-							PX4_DEBUG("channel %d has missed %d mavlink log messages", _mavlink->get_channel(),
-								  perf_event_count(_missed_msg_count_perf));
-						}
-
-						mavlink_statustext_t msg{};
-						const char *text = mavlink_log.text;
-						constexpr unsigned max_chunk_size = sizeof(msg.text);
-						msg.severity = mavlink_log.severity;
-						msg.chunk_seq = 0;
-						msg.id = _id++;
-						unsigned text_size;
-
-						while ((text_size = strlen(text)) > 0) {
-							unsigned chunk_size = math::min(text_size, max_chunk_size);
-
-							if (chunk_size < max_chunk_size) {
-								memcpy(&msg.text[0], &text[0], chunk_size);
-								// pad with zeros
-								memset(&msg.text[0] + chunk_size, 0, max_chunk_size - chunk_size);
-
-							} else {
-								memcpy(&msg.text[0], &text[0], chunk_size);
-							}
-
-							mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
-
-							if (text_size <= max_chunk_size) {
-								break;
-
-							} else {
-								text += max_chunk_size;
-							}
-
-							msg.chunk_seq += 1;
-						}
-
-						return true;
+					if (_mavlink_log_sub.get_last_generation() != (last_generation + 1)) {
+						perf_count(_missed_msg_count_perf);
+						PX4_DEBUG("channel %d has missed %d mavlink log messages", _mavlink->get_channel(),
+							  perf_event_count(_missed_msg_count_perf));
 					}
+
+					mavlink_statustext_t msg{};
+					const char *text = mavlink_log.text;
+					constexpr unsigned max_chunk_size = sizeof(msg.text);
+					msg.severity = mavlink_log.severity;
+					msg.chunk_seq = 0;
+					msg.id = _id++;
+					unsigned text_size;
+
+					while ((text_size = strlen(text)) > 0) {
+						unsigned chunk_size = math::min(text_size, max_chunk_size);
+
+						if (chunk_size < max_chunk_size) {
+							memcpy(&msg.text[0], &text[0], chunk_size);
+							// pad with zeros
+							memset(&msg.text[0] + chunk_size, 0, max_chunk_size - chunk_size);
+
+						} else {
+							memcpy(&msg.text[0], &text[0], chunk_size);
+						}
+
+						mavlink_msg_statustext_send_struct(_mavlink->get_channel(), &msg);
+
+						if (text_size <= max_chunk_size) {
+							break;
+
+						} else {
+							text += max_chunk_size;
+						}
+
+						msg.chunk_seq += 1;
+					}
+
+					return true;
 				}
 			}
 		}

@@ -63,7 +63,7 @@ private:
 	{
 		camera_capture_s capture;
 
-		if ((_mavlink->get_free_tx_buf() >= get_size()) && _capture_sub.update(&capture)) {
+		if (_capture_sub.update(&capture)) {
 			mavlink_camera_image_captured_t msg{};
 
 			msg.time_boot_ms = capture.timestamp / 1000;
