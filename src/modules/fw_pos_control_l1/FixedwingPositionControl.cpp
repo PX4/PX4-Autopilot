@@ -686,14 +686,14 @@ FixedwingPositionControl::set_control_mode_current(bool pos_sp_curr_valid)
 		if (_control_mode_current != FW_POSCTRL_MODE_POSITION) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hold_alt = _current_altitude;
-			_hdg_hold_yaw = _yaw;
+			_hdg_hold_yaw = _yaw; // yaw is not controlled, so set setpoint to current yaw
 			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
 			_yaw_lock_engaged = false;
 
 			/* reset setpoints from other modes (auto) otherwise we won't
 			 * level out without new manual input */
 			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
-			_att_sp.yaw_body = 0;
+			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 		}
 
 		_control_mode_current = FW_POSCTRL_MODE_POSITION;
@@ -762,6 +762,10 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	_att_sp.roll_reset_integral = false;
 	_att_sp.pitch_reset_integral = false;
 	_att_sp.yaw_reset_integral = false;
+
+	if (pos_sp_curr.valid && pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		publishOrbitStatus(pos_sp_curr);
+	}
 
 	const uint8_t position_sp_type = handle_setpoint_type(pos_sp_curr.type, pos_sp_curr);
 
@@ -916,7 +920,6 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 			// LOITER: use SETPOINT_TYPE_POSITION to get to SETPOINT_TYPE_LOITER
 			if ((dist >= 0.f)
-			    && (dist_z > 2.f * _param_fw_clmbout_diff.get())
 			    && (dist_xy > 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)))) {
 				// SETPOINT_TYPE_LOITER -> SETPOINT_TYPE_POSITION
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
@@ -1044,7 +1047,7 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const Ve
 
 	_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed));
 	_att_sp.roll_body = _l1_control.get_roll_setpoint();
-	_att_sp.yaw_body = _l1_control.nav_bearing();
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	tecs_update_pitch_throttle(now, position_sp_alt,
 				   calculate_target_airspeed(mission_airspeed, ground_speed),
@@ -1148,7 +1151,7 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const Vect
 	_l1_control.navigate_loiter(curr_wp, curr_pos, loiter_radius, loiter_direction, get_nav_speed_2d(ground_speed));
 
 	_att_sp.roll_body = _l1_control.get_roll_setpoint();
-	_att_sp.yaw_body = _l1_control.nav_bearing();
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	float alt_sp = pos_sp_curr.alt;
 
@@ -1263,7 +1266,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		// assign values
 		_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.get_roll_setpoint());
-		_att_sp.yaw_body = _runway_takeoff.getYaw(_l1_control.nav_bearing());
+		_att_sp.yaw_body = _runway_takeoff.getYaw(_yaw);
 		_att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
 		_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
 
@@ -1304,7 +1307,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
-			_att_sp.yaw_body = _l1_control.nav_bearing();
+			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 			/* Select throttle: only in LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS we want to use
 			 * full throttle, otherwise we use idle throttle */
@@ -1461,7 +1464,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const Vec
 	}
 
 	_att_sp.roll_body = _l1_control.get_roll_setpoint();
-	_att_sp.yaw_body = _l1_control.nav_bearing();
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	if (_land_noreturn_horizontal) {
 		/* limit roll motion to prevent wings from touching the ground first */
@@ -1678,7 +1681,7 @@ FixedwingPositionControl::control_altitude(const hrt_abstime &now, const Vector2
 				   _manual_height_rate_setpoint_m_s);
 
 	_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
-	_att_sp.yaw_body = 0;
+	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	/* Copy thrust and pitch values from tecs */
 	if (_landed) {
@@ -1772,7 +1775,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 			_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
 
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
-			_att_sp.yaw_body = _l1_control.nav_bearing();
+			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 			if (in_takeoff_situation()) {
 				/* limit roll motion to ensure enough lift */
@@ -1797,7 +1800,7 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 		}
 
 		_att_sp.roll_body = roll_sp_new;
-		_att_sp.yaw_body = 0;
+		_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 	}
 
 	/* Copy thrust and pitch values from tecs */
@@ -2198,6 +2201,19 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    _param_climbrate_target.get(), _param_sinkrate_target.get(), hgt_rate_sp);
 
 	tecs_status_publish();
+}
+
+void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_sp)
+{
+	orbit_status_s orbit_status{};
+	orbit_status.timestamp = hrt_absolute_time();
+	orbit_status.radius = static_cast<float>(pos_sp.loiter_direction) * pos_sp.loiter_radius;
+	orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
+	orbit_status.x = static_cast<double>(pos_sp.lat);
+	orbit_status.y = static_cast<double>(pos_sp.lon);
+	orbit_status.z = pos_sp.alt;
+	orbit_status.yaw_behaviour = orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE;
+	_orbit_status_pub.publish(orbit_status);
 }
 
 int FixedwingPositionControl::task_spawn(int argc, char *argv[])

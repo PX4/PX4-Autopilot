@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -276,7 +276,9 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2d &vector_A, const Vector2d 
 	float tangent_vel = xtrack_vel_center * loiter_direction;
 
 	/* prevent PD output from turning the wrong way when in circle mode */
-	if (tangent_vel < 0.0f && _circle_mode) {
+	const float l1_op_tan_vel = 2.f; // hard coded max tangential velocity in the opposite direction
+
+	if (tangent_vel < -l1_op_tan_vel && _circle_mode) {
 		lateral_accel_sp_circle_pd = math::max(lateral_accel_sp_circle_pd, 0.0f);
 	}
 
