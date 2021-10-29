@@ -37,6 +37,7 @@ px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 		-Wno-cast-align # TODO: fix and enable
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 		-Wno-enum-compare # ROTATION <-> MAV_SENSOR_ROTATION
