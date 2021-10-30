@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# KakuteF7 specific board extras init
+#------------------------------------------------------------------------------
+
+# if ! param compare OSD_ATXXXX_CFG 0
+# then
+# 	atxxxx start -s
+# fi
+
+atxxxx start -s
+
+
+# DShot telemetry is always on UART7
+# dshot telemetry /dev/ttyS5
+

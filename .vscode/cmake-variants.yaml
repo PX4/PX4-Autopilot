@@ -186,6 +186,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: holybro_durandal-v1_default
+    matek_h743-slim_default:
+      short: matek_h743-slim
+      buildType: MinSizeRel
+      settings:
+        CONFIG: matek_h743-slim_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel
