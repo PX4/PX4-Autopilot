@@ -77,7 +77,8 @@ protected:
 
 	bool isTargetModified() const;
 
-	bool _is_emergency_braking_active{false};
+	bool _is_vert_emergency_braking_active{false};
+	bool _is_hor_emergency_braking_active{false};
 
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();
