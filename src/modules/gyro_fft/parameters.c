@@ -74,3 +74,12 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_FFT_MAX, 150.f);
 * @group Sensors
 */
 PARAM_DEFINE_INT32(IMU_GYRO_FFT_LEN, 512);
+
+/**
+* IMU gyro FFT SNR.
+*
+* @min 1
+* @max 30
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_GYRO_FFT_SNR, 10.f);
