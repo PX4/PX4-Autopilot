@@ -150,7 +150,7 @@ void ManualControl::Run()
 
 					if (switches.return_switch != _previous_switches.return_switch) {
 						if (switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
 									  commander_state_s::MAIN_STATE_AUTO_RTL);
 
 						} else if (switches.return_switch == manual_control_switches_s::SWITCH_POS_OFF) {
@@ -160,7 +160,7 @@ void ManualControl::Run()
 
 					if (switches.loiter_switch != _previous_switches.loiter_switch) {
 						if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
 									  commander_state_s::MAIN_STATE_AUTO_LOITER);
 
 						} else if (switches.loiter_switch == manual_control_switches_s::SWITCH_POS_OFF) {
@@ -170,7 +170,7 @@ void ManualControl::Run()
 
 					if (switches.offboard_switch != _previous_switches.offboard_switch) {
 						if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_MODE_SLOT,
+							sendActionRequest(action_request_s::ACTION_SWITCH_MODE, action_request_s::SOURCE_RC_SWITCH,
 									  commander_state_s::MAIN_STATE_OFFBOARD);
 
 						} else if (switches.offboard_switch == manual_control_switches_s::SWITCH_POS_OFF) {
