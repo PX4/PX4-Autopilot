@@ -78,12 +78,12 @@
 
 /* Define GPIO pins used as ADC N.B. Channel numbers must match below  */
 #define PX4_ADC_GPIO  \
-        /* PC0  */  GPIO_ADC123_INP10, \
-        /* PC1  */  GPIO_ADC123_INP11, \
-        /* PA4  */  GPIO_ADC12_INP18, \
-        /* PA7  */  GPIO_ADC12_INP7, \
-        /* PC4  */  GPIO_ADC12_INP4, \
-        /* PC5  */  GPIO_ADC12_INP8
+	/* PC0  */  GPIO_ADC123_INP10, \
+	/* PC1  */  GPIO_ADC123_INP11, \
+	/* PA4  */  GPIO_ADC12_INP18, \
+	/* PA7  */  GPIO_ADC12_INP7, \
+	/* PC4  */  GPIO_ADC12_INP4, \
+	/* PC5  */  GPIO_ADC12_INP8
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 #define ADC_BATTERY_VOLTAGE_CHANNEL     /* PC0  */  ADC1_CH(10)
@@ -179,7 +179,7 @@
 		PX4_ADC_GPIO, \
 		GPIO_CAN1_TX, \
 		GPIO_CAN1_RX, \
-                GPIO_CAN1_SILENT_S0, \
+		GPIO_CAN1_SILENT_S0, \
 		GPIO_nLED_BLUE, \
 		GPIO_nLED_GREEN, \
 		GPIO_TONE_ALARM_IDLE, \
