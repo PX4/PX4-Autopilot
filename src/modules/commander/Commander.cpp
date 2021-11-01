@@ -706,8 +706,6 @@ Commander::Commander() :
 	// default for vtol is rotary wing
 	_vtol_status.vtol_in_rw_mode = true;
 
-	_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
-
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
 }
@@ -850,21 +848,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			}
 
 			if (desired_main_state != commander_state_s::MAIN_STATE_MAX) {
-
 				reset_posvel_validity();
-
 				main_ret = main_state_transition(_status, desired_main_state, _status_flags, _internal_state);
-
-				// If the command is internal (e.g. sent by RC), and we were not (yet) able to switch
-				// to it, we will try again later. However, we only do that for ALTCTL and POSCTL.
-				if (!cmd.from_external && main_ret == TRANSITION_DENIED &&
-				    (desired_main_state == commander_state_s::MAIN_STATE_ALTCTL ||
-				     desired_main_state == commander_state_s::MAIN_STATE_POSCTL)) {
-					_internal_state.desired_main_state = desired_main_state;
-
-				} else {
-					_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
-				}
 			}
 
 			if (main_ret != TRANSITION_DENIED) {
@@ -1567,6 +1552,16 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 		break;
 
 	case action_request_s::ACTION_SWITCH_MODE:
+
+		// if there's never been a mode change force RC switch as initial state
+		if (action_request.source == action_request_s::SOURCE_RC_MODE_SLOT
+		    && !_armed.armed && (_internal_state.main_state_changes == 0)
+		    && (action_request.mode == commander_state_s::MAIN_STATE_ALTCTL
+			|| action_request.mode == commander_state_s::MAIN_STATE_POSCTL)) {
+			_internal_state.main_state = action_request.mode;
+			_internal_state.main_state_changes++;
+		}
+
 		main_state_transition(_status, action_request.mode, _status_flags, _internal_state);
 		break;
 	}
@@ -2359,6 +2354,15 @@ Commander::run()
 					}
 				}
 
+				const bool mode_switch_mapped = (_param_rc_map_fltmode.get() > 0) || (_param_rc_map_mode_sw.get() > 0);
+				const bool is_mavlink = manual_control_setpoint.chosen_input.data_source > manual_control_input_s::SOURCE_RC;
+
+				if (!_armed.armed && (is_mavlink || !mode_switch_mapped) && (_internal_state.main_state_changes == 0)) {
+					// if there's never been a mode change force position control as initial state
+					_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
+					_internal_state.main_state_changes++;
+				}
+
 				_status.rc_signal_lost = false;
 				_is_throttle_above_center = manual_control_setpoint.chosen_input.z > 0.6f;
 				_is_throttle_low = manual_control_setpoint.chosen_input.z < 0.1f;
@@ -2638,25 +2642,6 @@ Commander::run()
 			/* Reset the flag if disarmed. */
 			_have_taken_off_since_arming = false;
 			_imbalanced_propeller_check_triggered = false;
-		}
-
-		// If we have an desired state, we should try to reach it but only when still disarmed.
-		if (_internal_state.desired_main_state != commander_state_s::commander_state_s::MAIN_STATE_MAX &&
-		    !_armed.armed) {
-			const transition_result_t desired_ret = main_state_transition(_status, _internal_state.desired_main_state,
-								_status_flags, _internal_state);
-
-			if (desired_ret != TRANSITION_DENIED) {
-				// Reset it for next time.
-				_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
-
-				tune_positive(_armed.armed);
-				_status_changed = true;
-			}
-
-		} else if (_armed.armed) {
-			// Once armed we reset it.
-			_internal_state.desired_main_state = commander_state_s::MAIN_STATE_MAX;
 		}
 
 		/* now set navigation state according to failsafe and main state */
