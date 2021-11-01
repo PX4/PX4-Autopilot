@@ -151,20 +151,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_type = WaypointType::position;
 		// use current state
 
-		_position_setpoint = _position;
-		_velocity_setpoint = _velocity;
-
-		_yaw_setpoint = _yaw_sp_prev = _yaw;
-		_yawspeed_setpoint = 0.0f;
-
-		_setDefaultConstraints();
-
-		if (hrt_elapsed_time(&_last_evaluate_triplet_warning) > 2000000) {
-			PX4_WARN("FlightTaskAuto: no valid position setpoint, using current position");
-			_last_evaluate_triplet_warning = hrt_absolute_time();
-		}
-
-		return true;
+		PX4_WARN("FlightTaskAuto: invalid current position setpoint");
+		return false;
 	}
 
 	_type = (WaypointType)_sub_triplet_setpoint->get().current.type;
