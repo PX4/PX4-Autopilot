@@ -62,6 +62,10 @@
 #include <px4_platform/board_ctrl.h>
 #endif
 
+#ifndef I2C_RESET_SPEED
+#define I2C_RESET_SPEED I2C_SPEED_STANDARD
+#endif
+
 #if !defined(CONFIG_BUILD_FLAT)
 typedef CODE void (*initializer_t)(void);
 extern initializer_t _sinit;
@@ -109,7 +113,7 @@ void px4_platform_i2c_init()
 		buf[0] = 0x06; // software reset
 
 		i2c_msg_s msg{};
-		msg.frequency = I2C_SPEED_STANDARD;
+		msg.frequency = I2C_RESET_SPEED;
 		msg.addr = 0x00; // general call address
 		msg.buffer = &buf[0];
 		msg.length = 1;
@@ -162,7 +166,6 @@ int px4_platform_init()
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 	cpuload_initialize_once();
 #endif
-
 
 #if defined(CONFIG_I2C) && !defined(BOARD_I2C_LATEINIT)
 	px4_platform_i2c_init();
