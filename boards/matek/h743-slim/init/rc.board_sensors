@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# PX4 FMUv6U specific board sensors init
+# board specific sensors init
 #------------------------------------------------------------------------------
 
 board_adc start
@@ -11,7 +11,8 @@ icm20602 -R 12 -s start
 # Internal SPI bus MPU-6000
 mpu6000 -R 12 -s start
 
-# internal baro
+# Internal baro
 dps310 -I start -a 118
 
-
+# External mag
+qmc5883l -X start -a 13
