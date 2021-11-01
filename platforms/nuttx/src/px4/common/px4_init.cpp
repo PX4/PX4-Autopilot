@@ -56,6 +56,10 @@
 #include <px4_platform_common/crypto.h>
 #endif
 
+#ifndef I2C_RESET_SPEED
+#define I2C_RESET_SPEED I2C_SPEED_STANDARD
+#endif
+
 extern void cdcacm_init(void);
 
 #if !defined(CONFIG_BUILD_FLAT)
@@ -142,7 +146,7 @@ int px4_platform_init()
 		buf[0] = 0x06; // software reset
 
 		i2c_msg_s msg{};
-		msg.frequency = I2C_SPEED_STANDARD;
+		msg.frequency = I2C_RESET_SPEED;
 		msg.addr = 0x00; // general call address
 		msg.buffer = &buf[0];
 		msg.length = 1;
