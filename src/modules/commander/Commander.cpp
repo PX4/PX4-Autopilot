@@ -1562,7 +1562,12 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 			_internal_state.main_state_changes++;
 		}
 
-		main_state_transition(_status, action_request.mode, _status_flags, _internal_state);
+		int ret = main_state_transition(_status, action_request.mode, _status_flags, _internal_state);
+
+		if (ret == transition_result_t::TRANSITION_DENIED) {
+			print_reject_mode(action_request.mode);
+		}
+
 		break;
 	}
 }
