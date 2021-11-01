@@ -19,6 +19,5 @@ uint8 MAIN_STATE_ORBIT              = 14
 uint8 MAIN_STATE_MAX                = 15
 
 uint8 main_state
-uint8 desired_main_state
 
 uint16 main_state_changes
