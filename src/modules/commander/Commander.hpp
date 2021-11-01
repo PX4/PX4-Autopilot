@@ -223,6 +223,9 @@ private:
 
 		(ParamFloat<px4::params::COM_WIND_WARN>) _param_com_wind_warn,
 
+		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
+		(ParamInt<px4::params::RC_MAP_MODE_SW>) _param_rc_map_mode_sw,
+
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
