@@ -3,14 +3,16 @@ module_name: UAVCAN
 actuator_output:
   output_groups:
     - param_prefix: UAVCAN_EC
-      channel_label: 'UAVCAN ESC'
+      group_label: 'ESCs'
+      channel_label: 'ESC'
       standard_params:
         min: { min: 0, max: 8191, default: 1 }
         max: { min: 0, max: 8191, default: 8191 }
         failsafe: { min: 0, max: 8191 }
       num_channels: 8
     - param_prefix: UAVCAN_SV
-      channel_label: 'UAVCAN Servo'
+      group_label: 'Servos'
+      channel_label: 'Servo'
       standard_params:
         disarmed: { min: 0, max: 1000, default: 500 }
         min: { min: 0, max: 1000, default: 0 }

@@ -248,6 +248,11 @@ actuator_output:
                     channel_label:
                         # Human-readable per-channel label (index will be added), e.g. 'PWM Main'
                         type: string
+                    channel_label_module_name_prefix:
+                        # by default, the module_name is prefixed to the
+                        # channel_label as part of the param description. Set
+                        # this to false to turn it off
+                        type: boolean
                     num_channels:
                         # (maximum) number of channels
                         type: integer
