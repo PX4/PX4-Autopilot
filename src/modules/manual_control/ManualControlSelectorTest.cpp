@@ -36,7 +36,6 @@
 #include <drivers/drv_hrt.h>
 
 using namespace time_literals;
-using namespace manual_control;
 
 static constexpr uint64_t some_time = 12345678;
 
