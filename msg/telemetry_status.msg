@@ -58,3 +58,4 @@ bool heartbeat_component_uart_bridge        # MAV_COMP_ID_UART_BRIDGE
 
 # Misc component health
 bool avoidance_system_healthy
+bool parachute_system_healthy
