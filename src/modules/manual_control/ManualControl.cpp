@@ -34,9 +34,6 @@
 #include "ManualControl.hpp"
 #include <uORB/topics/commander_state.h>
 
-namespace manual_control
-{
-
 ManualControl::ManualControl() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -103,19 +100,15 @@ void ManualControl::Run()
 
 		// User override by stick
 		const float dt_s = (now - _last_time) / 1e6f;
-		_x_diff.update(_selector.setpoint().chosen_input.x, dt_s);
-		_y_diff.update(_selector.setpoint().chosen_input.y, dt_s);
-		_z_diff.update(_selector.setpoint().chosen_input.z, dt_s);
-		_r_diff.update(_selector.setpoint().chosen_input.r, dt_s);
-
 		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
 
-		const bool rpy_moved = (fabsf(_x_diff.diff()) > minimum_stick_change)
-				       || (fabsf(_y_diff.diff()) > minimum_stick_change)
-				       || (fabsf(_r_diff.diff()) > minimum_stick_change);
+		const bool rpy_moved = (fabsf(_x_diff.update(_selector.setpoint().chosen_input.x, dt_s)) > minimum_stick_change)
+				       || (fabsf(_y_diff.update(_selector.setpoint().chosen_input.y, dt_s)) > minimum_stick_change)
+				       || (fabsf(_r_diff.update(_selector.setpoint().chosen_input.r, dt_s)) > minimum_stick_change);
 
 		// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
-		const bool throttle_moved = (fabsf(_z_diff.diff()) * 2.f) > minimum_stick_change;
+		const bool throttle_moved =
+			(fabsf(_z_diff.update(_selector.setpoint().chosen_input.z, dt_s)) * 2.f) > minimum_stick_change;
 
 		_selector.setpoint().user_override = rpy_moved || throttle_moved;
 
@@ -398,9 +391,7 @@ Module consuming manual_control_inputs publishing one manual_control_setpoint.
 	return 0;
 }
 
-}; // namespace manual_control
-
 extern "C" __EXPORT int manual_control_main(int argc, char *argv[])
 {
-	return manual_control::ManualControl::main(argc, argv);
+	return ManualControl::main(argc, argv);
 }

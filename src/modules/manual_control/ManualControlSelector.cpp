@@ -33,10 +33,6 @@
 
 #include "ManualControlSelector.hpp"
 
-
-namespace manual_control
-{
-
 void ManualControlSelector::updateValidityOfChosenInput(uint64_t now)
 {
 	if (!isInputValid(_setpoint.chosen_input, now)) {
@@ -86,5 +82,3 @@ manual_control_setpoint_s &ManualControlSelector::setpoint()
 {
 	return _setpoint;
 }
-
-} // namespace manual_control

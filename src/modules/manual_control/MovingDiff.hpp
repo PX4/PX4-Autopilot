@@ -33,25 +33,37 @@
 
 #pragma once
 
-#include <stdint.h>
-#include <uORB/topics/manual_control_input.h>
-#include <uORB/topics/manual_control_setpoint.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
-class ManualControlSelector
+class MovingDiff
 {
 public:
-	void setRcInMode(int32_t rc_in_mode) { _rc_in_mode = rc_in_mode; }
-	void setTimeout(uint64_t timeout) { _timeout = timeout; }
-	void updateValidityOfChosenInput(uint64_t now);
-	void updateWithNewInputSample(uint64_t now, const manual_control_input_s &input, int instance);
-	manual_control_setpoint_s &setpoint();
-	int instance() const { return _instance; };
+	float update(float value, float dt_s)
+	{
+		if (!PX4_ISFINITE(value) || (dt_s < FLT_EPSILON)) {
+			// Ignore NAN
+			return NAN;
+		}
+
+		_difference_filter.setParameters(dt_s, .1f);
+
+		// Leave _diff at 0.0f if we don't have a _last_value yet.
+		if (PX4_ISFINITE(_last_value)) {
+			const float new_diff = (value - _last_value) / dt_s;
+			_difference_filter.update(new_diff);
+		}
+
+		_last_value = value;
+		return _difference_filter.getState();
+	}
+
+	void reset()
+	{
+		_difference_filter.reset(0.f);
+		_last_value = NAN;
+	}
 
 private:
-	bool isInputValid(const manual_control_input_s &input, uint64_t now) const;
-
-	manual_control_setpoint_s _setpoint{};
-	uint64_t _timeout{0};
-	int32_t _rc_in_mode{0};
-	int _instance{-1};
+	AlphaFilter<float> _difference_filter;
+	float _last_value{NAN};
 };
