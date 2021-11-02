@@ -96,12 +96,6 @@ _param_prefix(param_prefix)
 
 	px4_sem_init(&_lock, 0, 1);
 
-	// Enforce the existence of the test_motor topic, so we won't miss initial publications
-	test_motor_s test{};
-	uORB::Publication<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
-	test_motor_pub.publish(test);
-	_motor_test.test_motor_sub.subscribe();
-
 	_use_dynamic_mixing = _param_sys_ctrl_alloc.get();
 
 	if (_use_dynamic_mixing) {
