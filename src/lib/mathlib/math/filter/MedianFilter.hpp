@@ -48,7 +48,7 @@
 namespace math
 {
 
-template<typename T, int WINDOW = 3>
+template<typename T, uint32_t WINDOW = 3>
 class MedianFilter
 {
 public:
@@ -59,8 +59,8 @@ public:
 
 	void insert(const T &sample)
 	{
-		_head = (_head + 1) % WINDOW;
 		_buffer[_head] = sample;
+		_head = (_head + 1) % WINDOW;
 	}
 
 	T median()
@@ -78,6 +78,13 @@ public:
 		return median();
 	}
 
+	void reset(const T &sample)
+	{
+		for (uint32_t i = 0; i < WINDOW; i++) {
+			_buffer[i] = sample;
+		}
+	}
+
 private:
 
 	static int cmp(const void *a, const void *b)
@@ -86,7 +93,7 @@ private:
 	}
 
 	T _buffer[WINDOW] {};
-	uint8_t _head{0};
+	uint32_t _head{0};
 };
 
 } // namespace math
