@@ -34,8 +34,8 @@
 #include <px4_arch/io_timer_hw_description.h>
 
 constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
-	initIOTimer(Timer::Timer2, DMA{DMA::Index1, DMA::Stream1, DMA::Channel3}),
 	initIOTimer(Timer::Timer3, DMA{DMA::Index1, DMA::Stream2, DMA::Channel5}),
+	initIOTimer(Timer::Timer2, DMA{DMA::Index1, DMA::Stream1, DMA::Channel3}),
 };
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {

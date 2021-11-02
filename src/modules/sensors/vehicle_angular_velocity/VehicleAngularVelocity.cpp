@@ -434,15 +434,15 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 
 		if (_esc_status_sub.copy(&esc_status) && (hrt_elapsed_time(&esc_status.timestamp) < DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 
-			static constexpr int32_t ESC_RPM_MIN = 20 * 60; // TODO: configurable
-			const int32_t ESC_RPM_MAX = roundf(_filter_sample_rate_hz / 3.f * 60.f); // upper bound safety (well below Nyquist)
+			static constexpr float ESC_RPM_MIN = 10.f * 60.f; // TODO: configurable
+			const float ESC_RPM_MAX = roundf(_filter_sample_rate_hz / 3.f * 60.f); // upper bound safety (well below Nyquist)
 
 			for (size_t esc = 0; esc < math::min(esc_status.esc_count, (uint8_t)MAX_NUM_ESC_RPM); esc++) {
-
 				const esc_report_s &esc_report = esc_status.esc[esc];
+				const float esc_rpm = abs(esc_report.esc_rpm);
 
 				// only update if ESC RPM range seems valid
-				if ((esc_report.esc_rpm > ESC_RPM_MIN) && (esc_report.esc_rpm < ESC_RPM_MAX)
+				if ((esc_report.esc_rpm != 0) && (esc_rpm > ESC_RPM_MIN) && (esc_rpm < ESC_RPM_MAX)
 				    && (hrt_elapsed_time(&esc_report.timestamp) < DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
 
 					// for each ESC check determine if enabled/disabled from first notch (x axis, harmonic 0)
@@ -450,7 +450,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 
 					bool reset = (nfx0.getNotchFreq() <= FLT_EPSILON); // notch was previously disabled
 
-					const float esc_hz = static_cast<float>(esc_report.esc_rpm) / 60.f;
+					const float esc_hz = esc_rpm / 60.f;
 
 					// update filter parameters if frequency changed or forced
 					if (force || reset || (fabsf(nfx0.getNotchFreq() - esc_hz) > FLT_EPSILON)) {
@@ -486,8 +486,9 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 					_esc_available.set(esc, true);
 					_last_esc_rpm_notch_update[esc] = esc_report.timestamp;
 
-				} else if (force || (hrt_elapsed_time(&_last_esc_rpm_notch_update[esc]) >= DYNAMIC_NOTCH_FITLER_TIMEOUT)) {
-					// disable all notch filters for this ESC after timeout
+				} else if (_esc_available[esc]
+					   && (force || (hrt_elapsed_time(&_last_esc_rpm_notch_update[esc]) >= DYNAMIC_NOTCH_FITLER_TIMEOUT))) {
+					// if this ESC was previously available disable all notch filters if forced or timeout
 					_esc_available.set(esc, false);
 
 					for (int axis = 0; axis < 3; axis++) {

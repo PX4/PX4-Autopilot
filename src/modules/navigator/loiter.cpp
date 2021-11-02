@@ -100,11 +100,22 @@ Loiter::set_loiter_position()
 
 	_loiter_pos_set = true;
 
-	// set current mission item to loiter
-	set_loiter_item(&_mission_item, _navigator->get_loiter_min_alt());
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	if (_navigator->get_land_detected()->landed) {
+		_mission_item.nav_cmd = NAV_CMD_IDLE;
+
+	} else {
+		if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+
+		} else {
+			setLoiterItemFromCurrentPosition(&_mission_item);
+		}
+
+	}
 
 	// convert mission item to current setpoint
-	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current.velocity_valid = false;
 	pos_sp_triplet->previous.valid = false;
 	mission_apply_limitation(_mission_item);

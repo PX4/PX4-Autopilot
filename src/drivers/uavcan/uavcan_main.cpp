@@ -1205,7 +1205,7 @@ int uavcan_main(int argc, char *argv[])
 	}
 
 	if (!std::strcmp(argv[1], "hardpoint")) {
-		if (!std::strcmp(argv[2], "set") && argc > 4) {
+		if (argc > 4 && !std::strcmp(argv[2], "set")) {
 			const int hardpoint_id = atoi(argv[3]);
 			const int command = atoi(argv[4]);
 
