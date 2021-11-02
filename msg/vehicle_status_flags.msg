@@ -38,3 +38,6 @@ bool sd_card_detected_once                        # set to true if the SD card w
 
 bool avoidance_system_required					  # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
 bool avoidance_system_valid                       # Status of the obstacle avoidance system
+
+bool parachute_system_present
+bool parachute_system_healthy

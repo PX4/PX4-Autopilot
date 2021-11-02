@@ -3435,6 +3435,8 @@ void Commander::data_link_check()
 				}
 
 				_datalink_last_heartbeat_parachute_system = telemetry.timestamp;
+				_status_flags.parachute_system_present = true;
+				_status_flags.parachute_system_healthy = telemetry.parachute_system_healthy;
 			}
 
 			if (telemetry.heartbeat_component_obstacle_avoidance) {
@@ -3481,7 +3483,10 @@ void Commander::data_link_check()
 	if ((hrt_elapsed_time(&_datalink_last_heartbeat_parachute_system) > 3_s)
 	    && !_parachute_system_lost) {
 		mavlink_log_critical(&_mavlink_log_pub, "Parachute system lost");
+		_status_flags.parachute_system_present = false;
+		_status_flags.parachute_system_healthy = false;
 		_parachute_system_lost = true;
+		_status_changed = true;
 	}
 
 	// AVOIDANCE SYSTEM state check (only if it is enabled)
