@@ -41,29 +41,15 @@
 
 
 /**
- * Airframe ID
- *
- * This is used to retrieve pre-computed control effectiveness matrix
- *
- * @min 0
- * @max 2
- * @value 0 Multirotor
- * @value 1 Standard VTOL (WIP)
- * @value 2 Tiltrotor VTOL (WIP)
- * @group Control Allocation
- */
-PARAM_DEFINE_INT32(CA_AIRFRAME, 0);
-
-/**
  * Control allocation method
  *
- * @value 0 Pseudo-inverse with output clipping (default)
+ * @value 0 Pseudo-inverse with output clipping
  * @value 1 Pseudo-inverse with sequential desaturation technique
  * @min 0
  * @max 1
  * @group Control Allocation
  */
-PARAM_DEFINE_INT32(CA_METHOD, 0);
+PARAM_DEFINE_INT32(CA_METHOD, 1);
 
 /**
  * Battery power level scaler

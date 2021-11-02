@@ -127,6 +127,8 @@ ActuatorEffectivenessMultirotor::getEffectivenessMatrix(matrix::Matrix<float, NU
 		geometry.rotors[7].thrust_coef = _param_ca_mc_r7_ct.get();
 		geometry.rotors[7].moment_ratio = _param_ca_mc_r7_km.get();
 
+		geometry.num_rotors = _param_ca_mc_r_count.get();
+
 		_num_actuators = computeEffectivenessMatrix(geometry, matrix);
 		return true;
 	}
@@ -142,7 +144,7 @@ ActuatorEffectivenessMultirotor::computeEffectivenessMatrix(const MultirotorGeom
 
 	effectiveness.setZero();
 
-	for (size_t i = 0; i < NUM_ROTORS_MAX; i++) {
+	for (int i = 0; i < math::min(NUM_ROTORS_MAX, geometry.num_rotors); i++) {
 
 		// Get rotor axis
 		matrix::Vector3f axis(
@@ -188,9 +190,9 @@ ActuatorEffectivenessMultirotor::computeEffectivenessMatrix(const MultirotorGeom
 			effectiveness(j, i) = moment(j);
 			effectiveness(j + 3, i) = thrust(j);
 		}
-
-		num_actuators = i + 1;
 	}
+
+	num_actuators = geometry.num_rotors;
 
 	return num_actuators;
 }
