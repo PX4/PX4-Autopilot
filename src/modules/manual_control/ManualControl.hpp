@@ -51,51 +51,9 @@
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include "ManualControlSelector.hpp"
+#include "MovingDiff.hpp"
 
 using namespace time_literals;
-
-namespace manual_control
-{
-
-class MovingDiff
-{
-public:
-	void update(float value, float dt_s)
-	{
-		if (!PX4_ISFINITE(value)) {
-			// Ignore NAN
-			return;
-		}
-
-		math::constrain(dt_s, 0.f, _time_period_s);
-
-		// Leave _diff at 0.0f if we don't have a _last_value yet.
-		if (PX4_ISFINITE(_last_value)) {
-			const float new_diff = value - _last_value;
-			_diff = new_diff * dt_s + _diff * (_time_period_s - dt_s);
-		}
-
-		_last_value = value;
-	}
-
-	float diff() const
-	{
-		return _diff;
-	}
-
-	void reset()
-	{
-		_diff = 0.0f;
-		_last_value = NAN;
-	}
-
-private:
-	static constexpr float _time_period_s{1.0f};
-
-	float _diff{0.0f};
-	float _last_value{NAN};
-};
-
 
 class ManualControl : public ModuleBase<ManualControl>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -173,4 +131,3 @@ private:
 		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6
 	)
 };
-} // namespace manual_control
