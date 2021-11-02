@@ -172,6 +172,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_BLUE);
 		return ret;
 	}
+
 #endif
 
 	/* Configure the HW based on the manifest */
