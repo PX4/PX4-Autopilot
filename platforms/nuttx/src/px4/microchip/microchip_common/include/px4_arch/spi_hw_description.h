@@ -49,7 +49,8 @@ static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::
 	}
 
 	if (PX4_SPIDEVID_TYPE(devid) == 0) { // it's a PX4 device (internal or external)
-		ret.devid = PX4_SPIDEV_ID(PX4_SPI_DEVICE_ID, devid);
+		// Construct device id including cs_gpio pin information into address field
+		ret.devid = PX4_SPIDEV_ID(PX4_SPI_DEVICE_ID, devid) | (cs_gpio.pin << 8);
 
 	} else { // it's a NuttX device (e.g. SPIDEV_FLASH(0))
 		ret.devid = devid;
