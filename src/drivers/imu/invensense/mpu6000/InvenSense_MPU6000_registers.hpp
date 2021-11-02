@@ -147,6 +147,7 @@ enum SIGNAL_PATH_RESET_BIT : uint8_t {
 // USER_CTRL
 enum USER_CTRL_BIT : uint8_t {
 	FIFO_EN        = Bit6,
+	I2C_MST_EN     = Bit5,
 	I2C_IF_DIS     = Bit4,
 	FIFO_RESET     = Bit2,
 	SIG_COND_RESET = Bit0,
