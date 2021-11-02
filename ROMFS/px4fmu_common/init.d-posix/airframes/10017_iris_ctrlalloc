@@ -19,7 +19,6 @@ param set-default VM_INERTIA_YY 0.03
 param set-default VM_INERTIA_ZZ 0.05
 
 param set-default CA_AIRFRAME 0
-param set-default CA_METHOD 1
 param set-default CA_ACT0_MIN 0.0
 param set-default CA_ACT1_MIN 0.0
 param set-default CA_ACT2_MIN 0.0

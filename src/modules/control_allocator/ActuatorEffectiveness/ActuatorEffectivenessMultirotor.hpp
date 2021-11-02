@@ -57,7 +57,7 @@ public:
 
 	static constexpr int NUM_ROTORS_MAX = 8;
 
-	typedef struct {
+	struct RotorGeometry {
 		float position_x;
 		float position_y;
 		float position_z;
@@ -66,11 +66,12 @@ public:
 		float axis_z;
 		float thrust_coef;
 		float moment_ratio;
-	} RotorGeometry;
+	};
 
-	typedef struct {
+	struct MultirotorGeometry {
 		RotorGeometry rotors[NUM_ROTORS_MAX];
-	} MultirotorGeometry;
+		int num_rotors{0};
+	};
 
 	static int computeEffectivenessMatrix(const MultirotorGeometry &geometry,
 					      matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness);
@@ -153,6 +154,8 @@ private:
 		(ParamFloat<px4::params::CA_MC_R7_AY>) _param_ca_mc_r7_ay,
 		(ParamFloat<px4::params::CA_MC_R7_AZ>) _param_ca_mc_r7_az,
 		(ParamFloat<px4::params::CA_MC_R7_CT>) _param_ca_mc_r7_ct,
-		(ParamFloat<px4::params::CA_MC_R7_KM>) _param_ca_mc_r7_km
+		(ParamFloat<px4::params::CA_MC_R7_KM>) _param_ca_mc_r7_km,
+
+		(ParamInt<px4::params::CA_MC_R_COUNT>) _param_ca_mc_r_count
 	)
 };
