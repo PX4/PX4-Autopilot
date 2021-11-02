@@ -94,6 +94,10 @@ enum CONFIG_BIT : uint8_t {
 
 // GYRO_CONFIG
 enum GYRO_CONFIG_BIT : uint8_t {
+	XG_ST           = Bit7,
+	YG_ST           = Bit6,
+	ZG_ST           = Bit5,
+
 	// FS_SEL [4:3]
 	FS_SEL_250_DPS	= 0,           // 0b00000
 	FS_SEL_500_DPS	= Bit3,        // 0b01000
@@ -103,6 +107,10 @@ enum GYRO_CONFIG_BIT : uint8_t {
 
 // ACCEL_CONFIG
 enum ACCEL_CONFIG_BIT : uint8_t {
+	XA_ST       = Bit7,
+	YA_ST       = Bit6,
+	ZA_ST       = Bit5,
+
 	// AFS_SEL [4:3]
 	AFS_SEL_2G  = 0,           // 0b00000
 	AFS_SEL_4G  = Bit3,        // 0b01000
