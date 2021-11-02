@@ -228,12 +228,38 @@ parameters:
 actuator_output:
     type: dict
     schema:
+        show_subgroups_if:
+            # condition: ui only shows the groups if this condition is true
+            # (e.g. 'UAVCAN_ENABLE>=3')
+            type: string
+            regex: &condition_regex "^(true|false|[\\.\\-a-zA-Z0-9_]{1,16}(>|>=|==|!=|<|<=)\\-?\\d+)$"
+
+        config_parameters:
+            # list of configuration parameters that apply to the whole module
+            type: list
+            minlength: 1
+            schema:
+                type: dict
+                schema:
+                  param:
+                      # parameter name
+                      type: string
+                      required: true
+                  label:
+                      # human-readable label
+                      type: string
+                  function:
+                      type: string
+                      allowed: [ enable ]
         output_groups:
             type: list
             minlength: 1
             schema:
                 type: dict
                 schema:
+                    group_label:
+                        # Human-readable group label, e.g. 'ESCs'
+                        type: string
                     generator:
                         # Optional generator that uses additional information for
                         # param generation (e.g. board-specific config)
@@ -277,6 +303,10 @@ actuator_output:
                                         type: integer
                                         min: 0
                                         max: 65536
+                                    show_if:
+                                        # ui only shows the param if this condition is true
+                                        type: string
+                                        regex: *condition_regex
                             min:
                                 type: dict
                                 schema:
@@ -295,6 +325,10 @@ actuator_output:
                                         type: integer
                                         min: 0
                                         max: 65536
+                                    show_if:
+                                        # ui only shows the param if this condition is true
+                                        type: string
+                                        regex: *condition_regex
                             max:
                                 type: dict
                                 schema:
@@ -313,6 +347,10 @@ actuator_output:
                                         type: integer
                                         min: 0
                                         max: 65536
+                                    show_if:
+                                        # ui only shows the param if this condition is true
+                                        type: string
+                                        regex: *condition_regex
                             failsafe:
                                 type: dict
                                 schema:
@@ -326,6 +364,10 @@ actuator_output:
                                         type: integer
                                         min: 0
                                         max: 65536
+                                    show_if:
+                                        # ui only shows the param if this condition is true
+                                        type: string
+                                        regex: *condition_regex
                     extra_function_groups:
                         # Additional function groups to add, defined in output_functions.yaml
                         type: list
@@ -346,4 +388,184 @@ actuator_output:
                         # Only used for 'pwm' generator, per-timer config param
                         type: dict
                         schema: *parameter_definition
+                    config_parameters:
+                        # list of configuration parameters that apply to the
+                        # group
+                        type: list
+                        minlength: 1
+                        schema:
+                            type: dict
+                            schema:
+                              param:
+                                  # parameter name
+                                  type: string
+                                  required: true
+                              label:
+                                  # human-readable label
+                                  type: string
+                              function:
+                                  type: string
+                                  allowed: [ primary ]
+                    instance_start:
+                        # The value of the first channel instance for multiple
+                        # instances, used in '${i}'. If 0, ${i} expands to
+                        # [0, N-1]
+                        # Default: 1
+                        type: integer
+                    instance_start_label:
+                        # Allows to use a different instance start for
+                        # labels vs parameter name.
+                        # Default: equal to 'instance_start'
+                        type: integer
+
+                    supported_actions:
+                        # set of actuator actions supported by the driver
+                        type: dict
+                        keyschema:
+                            # action name
+                            type: string
+                            regex: "^(beep|3d_mode_on|3d_mode_off|set_spin_direction1|set_spin_direction2)$"
+                        valueschema:
+                            type: dict
+                            schema:
+                              supported_if:
+                                  type: string
+                                  regex: *condition_regex
+                              actuator_types:
+                                  type: list
+                                  minlength: 1
+                                  schema:
+                                      type: string
+
+# Mixer (only set in control_allocator)
+mixer:
+    type: dict
+    schema:
+        actuator_types:
+            type: dict
+            keyschema:
+                # actuator type name
+                type: string
+            valueschema:
+                type: dict
+                schema:
+                    functions:
+                        # Which output functions this maps to. Must be a name from
+                        # output_functions.yaml
+                        type: string
+                    actuator_testing_values:
+                        type: dict
+                        schema:
+                            min:
+                                type: number
+                                min: -1
+                                max: 1
+                                required: true
+                            max:
+                                type: number
+                                min: -1
+                                max: 1
+                                required: true
+                            default:
+                                type: number
+                                min: -1
+                                max: 1
+                            default_is_nan:
+                                type: boolean
+                        required: true
+                    per_item_parameters:
+                        type: list
+                        minlength: 1
+                        schema: &mixer_parameter
+                            type: dict
+                            schema:
+                                label:
+                                    type: string
+                                name:
+                                    # param name
+                                    type: string
+                                    required: true
+                                show_as:
+                                    type: string
+                                    allowed: [ 'bitset', 'true-if-positive' ]
+                                show_if:
+                                    # condition
+                                    type: string
+                                    regex: *condition_regex
+                                index_offset:
+                                    type: integer
+                                advanced:
+                                    type: integer
+                                function:
+                                    type: string
+        config:
+            # Airframe types
+            type: dict
+            schema:
+                param:
+                    # param name to configure the airframe type
+                    type: string
+                types:
+                    type: dict
+                    keyschema:
+                        # parameter value to select the airframe
+                        type: integer
+                    valueschema:
+                        type: dict
+                        schema:
+                            type:
+                                # geometry type (used for rendering a geometry, and
+                                # show type-specific functionality)
+                                type: string
+                                allowed: [ multirotor ]
+                            actuators:
+                                type: list
+                                minlength: 1
+                                schema:
+                                    type: dict
+                                    schema:
+                                        actuator_type:
+                                            type: string
+                                        count:
+                                            # param name or fixed count
+                                            oneof:
+                                              - type: string
+                                              - type: integer
+                                        parameters:
+                                            type: list
+                                            minlength: 1
+                                            schema: *mixer_parameter
+                                        per_item_parameters:
+                                            type: dict
+                                            schema:
+                                                standard:
+                                                    type: dict
+                                                    schema:
+                                                        position:
+                                                            type: list
+                                                            minlength: 3
+                                                            maxlength: 3
+                                                            schema:
+                                                                # position param names
+                                                                type: string
+                                                extra:
+                                                    type: list
+                                                    schema: *mixer_parameter
+                                        instances:
+                                            # non-configurable actuators (fixed positions)
+                                            type: list
+                                            schema:
+                                                type: dict
+                                                schema:
+                                                    name:
+                                                        type: string
+                                                        required: true
+                                                    position:
+                                                        type: list
+                                                        required: true
+                                                        schema:
+                                                            minlength: 3
+                                                            maxlength: 3
+                                                            type: number
+
 
