@@ -234,6 +234,8 @@ def get_actuator_output_params(yaml_config, output_functions,
                 function_name_label = function_name.replace('_', ' ')
                 if isinstance(group[function_name], int):
                     output_function_values[group[function_name]] = function_name_label
+                elif not 'count' in group[function_name]:
+                    output_function_values[group[function_name]['start']] = function_name_label
                 else:
                     start = group[function_name]['start']
                     count = group[function_name]['count']
