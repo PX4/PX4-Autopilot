@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * omnibusf4sd internal definitions
+ * boards internal definitions
  */
 
 #pragma once
