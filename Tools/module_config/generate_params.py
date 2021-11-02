@@ -145,7 +145,7 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
  */
 PARAM_DEFINE_{param_type}({name}, {default_value});
 '''.format(short_descr=param['description']['short'].replace("\n", "\n * "),
-           long_descr=param['description']['long'].replace("\n", "\n * "),
+           long_descr=param['description'].get('long', "").replace("\n", "\n * "),
            tags=tags,
            param_type=param_type,
            name=param_name.replace('${i}', str(i+instance_start)),
