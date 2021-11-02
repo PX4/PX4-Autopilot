@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,12 +37,7 @@
 #define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1:37 */
 #define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1:38 */
 
-// #define DMAMAP_SPI2_RX    DMAMAP_DMA12_SPI2RX_0 /* DMA1:39 */
-// #define DMAMAP_SPI2_TX    DMAMAP_DMA12_SPI2TX_0 /* DMA1:40 */
 
 // DMAMUX2
-// #define DMAMAP_SPI3_RX    DMAMAP_DMA12_SPI3RX_1 /* DMA2:61 */
-// #define DMAMAP_SPI3_TX    DMAMAP_DMA12_SPI3TX_1 /* DMA2:62 */
-
 #define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_1 /* DMA2:83 */
 #define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_1 /* DMA2:84 */
