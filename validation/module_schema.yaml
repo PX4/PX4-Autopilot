@@ -118,7 +118,7 @@ parameters:
                                 long:
                                     # Long description (can be multiple lines)
                                     type: string
-                                    required: true
+                                    required: false
 
                         type:
                             # Define the parameter type
