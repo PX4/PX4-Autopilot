@@ -43,6 +43,8 @@ px4_add_module(
 	SRCS
 		ControlAllocator.cpp
 		ControlAllocator.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		mathlib
 		ActuatorEffectiveness

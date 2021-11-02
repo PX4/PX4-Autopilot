@@ -1,0 +1,135 @@
+__max_num_mc_motors: &max_num_mc_motors 8
+
+module_name: Control Allocation
+
+parameters:
+    - group: Control Allocation
+      definitions:
+        CA_AIRFRAME:
+            description:
+                short: Airframe selection
+                long: |
+                  Defines which mixer implementation to use.
+                  Some are generic, while others are specifically fit to a certain vehicle with a fixed set of actuators.
+            type: enum
+            values:
+                0: Multirotor
+                1: Standard VTOL (WIP)
+                2: Tiltrotor VTOL (WIP)
+            default: 0
+
+        # MC rotors
+        CA_MC_R_COUNT:
+            description:
+                short: Total number of rotors
+            type: enum
+            values:
+                0: 0 Motors
+                1: 1 Motor
+                2: 2 Motors
+                3: 3 Motors
+                4: 4 Motors
+                5: 5 Motors
+                6: 6 Motors
+                7: 7 Motors
+                8: 8 Motors
+            default: 0
+        CA_MC_R${i}_PX:
+            description:
+                short: Position of rotor ${i} along X body axis
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: 0.0
+        CA_MC_R${i}_PY:
+            description:
+                short: Position of rotor ${i} along Y body axis
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: 0.0
+        CA_MC_R${i}_PZ:
+            description:
+                short: Position of rotor ${i} along Z body axis
+            type: float
+            decimal: 2
+            increment: 0.1
+            unit: m
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: 0.0
+
+        CA_MC_R${i}_AX:
+            description:
+                short: Axis of rotor ${i} thrust vector, X body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: 0.0
+        CA_MC_R${i}_AY:
+            description:
+                short: Axis of rotor ${i} thrust vector, Y body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: 0.0
+        CA_MC_R${i}_AZ:
+            description:
+                short: Axis of rotor ${i} thrust vector, Z body axis component
+                long: Only the direction is considered (the vector is normalized).
+            type: float
+            decimal: 2
+            increment: 0.1
+            num_instances: *max_num_mc_motors
+            min: -100
+            max: 100
+            default: -1.0
+
+        CA_MC_R${i}_CT:
+            description:
+                short: Thrust coefficient of rotor ${i}
+                long: |
+                  The thrust coefficient if defined as Thrust = CT * u^2,
+                  where u (with value between actuator minimum and maximum)
+                  is the output signal sent to the motor controller.
+            type: float
+            decimal: 1
+            increment: 1
+            num_instances: *max_num_mc_motors
+            min: 0
+            max: 100
+            default: 6.5
+
+        CA_MC_R${i}_KM:
+            description:
+                short: Moment coefficient of rotor ${i}
+                long: |
+                  The moment coefficient if defined as Torque = KM * Thrust.
+
+                  Use a positive value for a rotor with CCW rotation.
+                  Use a negative value for a rotor with CW rotation.
+            type: float
+            decimal: 3
+            increment: 0.01
+            num_instances: *max_num_mc_motors
+            min: -1
+            max: 1
+            default: 0.05
+
