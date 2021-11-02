@@ -173,6 +173,7 @@ Mission::on_inactivation()
 	cmd.param3 = 1.0f;
 	_navigator->publish_vehicle_cmd(&cmd);
 
+	_navigator->stop_capturing_images();
 	_navigator->release_gimbal_control();
 
 	if (_navigator->get_precland()->is_activated()) {

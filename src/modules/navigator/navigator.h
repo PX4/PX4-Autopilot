@@ -329,6 +329,7 @@ public:
 	void release_gimbal_control();
 
 	void 		calculate_breaking_stop(double &lat, double &lon, float &yaw);
+	void        	stop_capturing_images();
 
 private:
 
@@ -421,6 +422,9 @@ private:
 							 * if mission mode is inactive, this flag will be cleared after 2 seconds */
 
 	traffic_buffer_s _traffic_buffer{};
+
+	bool _is_capturing_images{false}; // keep track if we need to stop capturing images
+
 
 	// update subscriptions
 	void params_update();
