@@ -1932,6 +1932,12 @@ void Mission::publish_navigator_mission_item()
 
 void Mission::calculate_mission_checksums()
 {
+	union {
+		uint8_t uint8_part;
+		uint8_t uint16_part;
+		float float_part;
+	} crc_part;
+
 	mission_s mission_state = {};
 	mission_stats_entry_s stats;
 	mission_checksum_s csum{};
@@ -1969,24 +1975,24 @@ void Mission::calculate_mission_checksums()
 			fail = true;
 
 		} else {
-			uint8_t frame = mission_item.frame;
-			csum.mission_checksum = crc32part(&frame, sizeof(frame), csum.mission_checksum);
-			csum.mission_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_item.nav_cmd), sizeof(mission_item.nav_cmd),
-							  csum.mission_checksum);
-			uint8_t autocontinue = mission_item.autocontinue;
-			csum.mission_checksum = crc32part(&autocontinue, sizeof(autocontinue), csum.mission_checksum);
+			crc_part.uint8_part = mission_item.frame;
+			csum.mission_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.uint8_part), csum.mission_checksum);
+			crc_part.uint16_part = mission_item.nav_cmd;
+			csum.mission_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.uint16_part), csum.mission_checksum);
+			crc_part.uint8_part = mission_item.autocontinue;
+			csum.mission_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.uint8_part), csum.mission_checksum);
 
 			for (int j = 0; j < 4; j++) {
-				csum.mission_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_item.params[j]), sizeof(mission_item.params[j]),
-								  csum.mission_checksum);
+				crc_part.float_part = mission_item.params[j];
+				csum.mission_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.mission_checksum);
 			}
 
-			float lat = static_cast<float>(mission_item.lat);
-			csum.mission_checksum = crc32part(reinterpret_cast<uint8_t *>(&lat), sizeof(lat), csum.mission_checksum);
-			float lon = static_cast<float>(mission_item.lon);
-			csum.mission_checksum = crc32part(reinterpret_cast<uint8_t *>(&lon), sizeof(lon), csum.mission_checksum);
-			float alt = mission_item.params[6];
-			csum.mission_checksum = crc32part(reinterpret_cast<uint8_t *>(&alt), sizeof(alt), csum.mission_checksum);
+			crc_part.float_part = mission_item.lat;
+			csum.mission_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.mission_checksum);
+			crc_part.float_part = mission_item.lon;
+			csum.mission_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.mission_checksum);
+			crc_part.float_part = mission_item.params[6];
+			csum.mission_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.mission_checksum);
 		}
 	}
 
@@ -2014,27 +2020,29 @@ void Mission::calculate_mission_checksums()
 			fail = true;
 
 		} else {
-			uint8_t frame = mission_fence_point.frame;
-			csum.fence_checksum = crc32part(&frame, sizeof(frame), csum.fence_checksum);
-			csum.all_checksum = crc32part(&frame, sizeof(frame), csum.all_checksum);
-			csum.fence_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_fence_point.nav_cmd),
-							sizeof(mission_fence_point.nav_cmd), csum.fence_checksum);
-			csum.all_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_fence_point.nav_cmd),
-						      sizeof(mission_fence_point.nav_cmd), csum.all_checksum);
-			float lat = static_cast<float>(mission_fence_point.lat);
-			csum.fence_checksum = crc32part(reinterpret_cast<uint8_t *>(&lat), sizeof(lat), csum.fence_checksum);
-			csum.all_checksum = crc32part(reinterpret_cast<uint8_t *>(&lat), sizeof(lat), csum.all_checksum);
-			float lon = static_cast<float>(mission_fence_point.lon);
-			csum.fence_checksum = crc32part(reinterpret_cast<uint8_t *>(&lon), sizeof(lon), csum.fence_checksum);
-			csum.all_checksum = crc32part(reinterpret_cast<uint8_t *>(&lon), sizeof(lon), csum.all_checksum);
-			csum.fence_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_fence_point.alt), sizeof(mission_fence_point.alt),
-							csum.fence_checksum);
-			csum.all_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_fence_point.alt), sizeof(mission_fence_point.alt),
-						      csum.all_checksum);
-			csum.fence_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_fence_point.circle_radius),
-							sizeof(mission_fence_point.circle_radius), csum.fence_checksum);
-			csum.all_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_fence_point.circle_radius),
-						      sizeof(mission_fence_point.circle_radius), csum.all_checksum);
+			crc_part.uint8_part = mission_fence_point.frame;
+			csum.fence_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.uint8_part), csum.fence_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.uint8_part), csum.all_checksum);
+
+			crc_part.uint16_part = mission_fence_point.nav_cmd;
+			csum.fence_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.uint16_part), csum.fence_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.uint16_part), csum.all_checksum);
+
+			crc_part.float_part = mission_fence_point.lat;
+			csum.fence_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.fence_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.all_checksum);
+
+			crc_part.float_part = mission_fence_point.lon;
+			csum.fence_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.fence_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.all_checksum);
+
+			crc_part.float_part = mission_fence_point.alt;
+			csum.fence_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.fence_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.all_checksum);
+
+			crc_part.float_part = mission_fence_point.circle_radius;
+			csum.fence_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.fence_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.all_checksum);
 		}
 	}
 
@@ -2060,19 +2068,21 @@ void Mission::calculate_mission_checksums()
 			fail = true;
 
 		} else {
-			uint8_t frame = mission_safe_point.frame;
-			csum.rally_checksum = crc32part(&frame, sizeof(frame), csum.rally_checksum);
-			csum.all_checksum = crc32part(&frame, sizeof(frame), csum.all_checksum);
-			float lat = static_cast<float>(mission_safe_point.lat);
-			csum.rally_checksum = crc32part(reinterpret_cast<uint8_t *>(&lat), sizeof(lat), csum.rally_checksum);
-			csum.all_checksum = crc32part(reinterpret_cast<uint8_t *>(&lat), sizeof(lat), csum.all_checksum);
-			float lon = static_cast<float>(mission_safe_point.lon);
-			csum.rally_checksum = crc32part(reinterpret_cast<uint8_t *>(&lon), sizeof(lon), csum.rally_checksum);
-			csum.all_checksum = crc32part(reinterpret_cast<uint8_t *>(&lon), sizeof(lon), csum.all_checksum);
-			csum.rally_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_safe_point.alt), sizeof(mission_safe_point.alt),
-							csum.rally_checksum);
-			csum.all_checksum = crc32part(reinterpret_cast<uint8_t *>(&mission_safe_point.alt), sizeof(mission_safe_point.alt),
-						      csum.all_checksum);
+			crc_part.uint8_part = mission_safe_point.frame;
+			csum.rally_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.uint8_part), csum.rally_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.uint8_part), csum.all_checksum);
+
+			crc_part.float_part = mission_safe_point.lat;
+			csum.rally_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.rally_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.all_checksum);
+
+			crc_part.float_part = mission_safe_point.lon;
+			csum.rally_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.rally_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.all_checksum);
+
+			crc_part.float_part = mission_safe_point.alt;
+			csum.rally_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.rally_checksum);
+			csum.all_checksum = crc32part(&crc_part.uint8_part, sizeof(crc_part.float_part), csum.all_checksum);
 		}
 	}
 
