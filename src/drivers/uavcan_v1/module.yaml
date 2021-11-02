@@ -2,7 +2,7 @@ module_name: UAVCANv1
 actuator_output:
   output_groups:
     - param_prefix: UCAN1_ESC
-      channel_label: 'UAVCAN ESC'
+      channel_label: 'ESC'
       standard_params:
         min: { min: 0, max: 8191, default: 1 }
         max: { min: 0, max: 8191, default: 8191 }
