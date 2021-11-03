@@ -35,43 +35,43 @@
 
 void ManualControlSelector::updateValidityOfChosenInput(uint64_t now)
 {
-	if (!isInputValid(_setpoint.chosen_input, now)) {
+	if (!isInputValid(_setpoint, now)) {
 		_setpoint.valid = false;
 		_instance = -1;
 	}
 }
 
-void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_control_input_s &input, int instance)
+void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance)
 {
 	// First check if the chosen input got invalid, so it can get replaced
 	updateValidityOfChosenInput(now);
 
-	const bool update_existing_input = _setpoint.valid && input.data_source == _setpoint.chosen_input.data_source;
+	const bool update_existing_input = _setpoint.valid && input.data_source == _setpoint.data_source;
 	const bool start_using_new_input = !_setpoint.valid;
 
 	// Switch to new input if it's valid and we don't already have a valid one
 	if (isInputValid(input, now) && (update_existing_input || start_using_new_input)) {
-		_setpoint.chosen_input = input;
+		_setpoint = input;
 		_setpoint.valid = true;
 		_instance = instance;
 	}
 }
 
-bool ManualControlSelector::isInputValid(const manual_control_input_s &input, uint64_t now) const
+bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input, uint64_t now) const
 {
 	// Check for timeout
 	const bool sample_from_the_past = now >= input.timestamp_sample;
 	const bool sample_newer_than_timeout = now - input.timestamp_sample < _timeout;
 
 	// Check if source matches the configuration
-	const bool source_rc_matched = (_rc_in_mode == 0) && (input.data_source == manual_control_input_s::SOURCE_RC);
+	const bool source_rc_matched = (_rc_in_mode == 0) && (input.data_source == manual_control_setpoint_s::SOURCE_RC);
 	const bool source_mavlink_matched = (_rc_in_mode == 1) &&
-					    (input.data_source == manual_control_input_s::SOURCE_MAVLINK_0
-					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_1
-					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_2
-					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_3
-					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_4
-					     || input.data_source == manual_control_input_s::SOURCE_MAVLINK_5);
+					    (input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_0
+					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_1
+					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_2
+					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_3
+					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_4
+					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_5);
 	const bool source_any_matched = (_rc_in_mode == 3);
 
 	return sample_from_the_past && sample_newer_than_timeout

@@ -31,26 +31,19 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "MovingDiff.hpp"
+#include <gtest/gtest.h>
 
-#include <stdint.h>
-#include <uORB/topics/manual_control_setpoint.h>
-
-class ManualControlSelector
+TEST(MovingDiffTest, RcInputContinuous)
 {
-public:
-	void setRcInMode(int32_t rc_in_mode) { _rc_in_mode = rc_in_mode; }
-	void setTimeout(uint64_t timeout) { _timeout = timeout; }
-	void updateValidityOfChosenInput(uint64_t now);
-	void updateWithNewInputSample(uint64_t now, const manual_control_setpoint_s &input, int instance);
-	manual_control_setpoint_s &setpoint();
-	int instance() const { return _instance; };
-
-private:
-	bool isInputValid(const manual_control_setpoint_s &input, uint64_t now) const;
-
-	manual_control_setpoint_s _setpoint{};
-	uint64_t _timeout{0};
-	int32_t _rc_in_mode{0};
-	int _instance{-1};
-};
+	MovingDiff _diff;
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 0.0f), 0.f); // 0,0,0
+	EXPECT_FLOAT_EQ(_diff.update(1.0f, 1.0f), 0.f); // 1*,0,0
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 1,-1*,0
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 0,-1,0*
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 0*,-1,0
+	EXPECT_FLOAT_EQ(_diff.update(1.0f, 1.0f), 0.f); // 0,1*,0
+	EXPECT_FLOAT_EQ(_diff.update(0.0f, 1.0f), 0.f); // 0,1,-1*
+	EXPECT_FLOAT_EQ(_diff.update(2.0f, 1.0f), 1.f); // 2*,1,-1
+	EXPECT_FLOAT_EQ(_diff.update(4.0f, 1.0f), 2.f); // 2,2*,-1
+}

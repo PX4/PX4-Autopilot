@@ -2094,12 +2094,12 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		return;
 	}
 
-	manual_control_input_s manual{};
+	manual_control_setpoint_s manual{};
 	manual.x = man.x / 1000.0f;
 	manual.y = man.y / 1000.0f;
 	manual.r = man.r / 1000.0f;
 	manual.z = man.z / 1000.0f;
-	manual.data_source = manual_control_input_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
+	manual.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 	manual.timestamp = manual.timestamp_sample = hrt_absolute_time();
 	_manual_control_input_pub.publish(manual);
 }

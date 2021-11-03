@@ -53,7 +53,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/manual_control_input.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/rc_channels.h>
@@ -166,7 +166,7 @@ private:
 	uORB::Subscription _actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
 
 	uORB::Publication<rc_channels_s> _rc_channels_pub{ORB_ID(rc_channels)};
-	uORB::PublicationMulti<manual_control_input_s> _manual_control_input_pub{ORB_ID(manual_control_input)};
+	uORB::PublicationMulti<manual_control_setpoint_s> _manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::Publication<manual_control_switches_s> _manual_control_switches_pub{ORB_ID(manual_control_switches)};
 	uORB::Publication<actuator_controls_s> _actuator_group_3_pub{ORB_ID(actuator_controls_3)};
 

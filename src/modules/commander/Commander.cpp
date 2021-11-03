@@ -2360,7 +2360,7 @@ Commander::run()
 				}
 
 				const bool mode_switch_mapped = (_param_rc_map_fltmode.get() > 0) || (_param_rc_map_mode_sw.get() > 0);
-				const bool is_mavlink = manual_control_setpoint.chosen_input.data_source > manual_control_input_s::SOURCE_RC;
+				const bool is_mavlink = manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC;
 
 				if (!_armed.armed && (is_mavlink || !mode_switch_mapped) && (_internal_state.main_state_changes == 0)) {
 					// if there's never been a mode change force position control as initial state
@@ -2369,8 +2369,8 @@ Commander::run()
 				}
 
 				_status.rc_signal_lost = false;
-				_is_throttle_above_center = manual_control_setpoint.chosen_input.z > 0.6f;
-				_is_throttle_low = manual_control_setpoint.chosen_input.z < 0.1f;
+				_is_throttle_above_center = manual_control_setpoint.z > 0.6f;
+				_is_throttle_low = manual_control_setpoint.z < 0.1f;
 				_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
 
 			} else {
@@ -2400,7 +2400,7 @@ Commander::run()
 			    && _armed.armed
 			    && !_status_flags.rc_input_blocked
 			    && manual_control_setpoint.valid
-			    && manual_control_setpoint.user_override
+			    && manual_control_setpoint.sticks_moving
 			    && override_enabled) {
 				const transition_result_t posctl_result =
 					main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
