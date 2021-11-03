@@ -136,4 +136,16 @@ PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 30.0f);
 * @bit 0 ESC RPM
 * @bit 1 FFT
 */
-PARAM_DEFINE_INT32(IMU_GYRO_DYN_NF, 0);
+PARAM_DEFINE_INT32(IMU_GYRO_DNF_EN, 0);
+
+/**
+* IMU gyro ESC notch filter bandwidth
+*
+* Bandwidth per notch filter when using dynamic notch filtering with ESC RPM.
+*
+* @group Sensors
+* @category Developer
+* @min 5
+* @max 30
+*/
+PARAM_DEFINE_FLOAT(IMU_GYRO_DNF_BW, 8.f);
