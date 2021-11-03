@@ -66,26 +66,28 @@ ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
 	// Same scale on roll and pitch
 	const float roll_norm_sq = _mix.col(0).norm_squared();
 	const float pitch_norm_sq = _mix.col(1).norm_squared();
-	const float roll_pitch_scale = sqrtf(fmaxf(roll_norm_sq, pitch_norm_sq) / (_num_actuators / 2.f));
+	_control_allocation_scale(0) = sqrtf(fmaxf(roll_norm_sq, pitch_norm_sq) / (_num_actuators / 2.f));
+	_control_allocation_scale(1) = _control_allocation_scale(0);
 
-	if (roll_pitch_scale > FLT_EPSILON) {
-		_mix.col(0) /= roll_pitch_scale;
-		_mix.col(1) /= roll_pitch_scale;
+	if (_control_allocation_scale(0) > FLT_EPSILON) {
+		_mix.col(0) /= _control_allocation_scale(0);
+		_mix.col(1) /= _control_allocation_scale(1);
 	}
 
 	// Scale yaw separately
-	const float yaw_scale = _mix.col(2).max();
+	_control_allocation_scale(2) = _mix.col(2).max();
 
-	if (yaw_scale > FLT_EPSILON) {
-		_mix.col(2) /= yaw_scale;
+	if (_control_allocation_scale(2) > FLT_EPSILON) {
+		_mix.col(2) /= _control_allocation_scale(2);
 	}
 
 	// Same scale on X and Y
-	const float xy_scale = fmaxf(_mix.col(3).max(), _mix.col(4).max());
+	_control_allocation_scale(3) = fmaxf(_mix.col(3).max(), _mix.col(4).max());
+	_control_allocation_scale(4) = _control_allocation_scale(3);
 
-	if (xy_scale > FLT_EPSILON) {
-		_mix.col(3) /= xy_scale;
-		_mix.col(4) /= xy_scale;
+	if (_control_allocation_scale(3) > FLT_EPSILON) {
+		_mix.col(3) /= _control_allocation_scale(3);
+		_mix.col(4) /= _control_allocation_scale(4);
 	}
 
 	// Scale Z thrust separately
@@ -97,7 +99,8 @@ ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
 	}
 
 	if ((-z_sum > FLT_EPSILON) && (_num_actuators > 0)) {
-		_mix.col(5) /= -z_sum / _num_actuators;
+		_control_allocation_scale(5) = -z_sum / _num_actuators;
+		_mix.col(5) /= _control_allocation_scale(5);
 	}
 
 	// Set all the small elements to 0 to avoid issues
@@ -123,6 +126,5 @@ ControlAllocationPseudoInverse::allocate()
 	// Clip
 	clipActuatorSetpoint(_actuator_sp);
 
-	// Compute achieved control
-	_control_allocated = _effectiveness * _actuator_sp;
+	ControlAllocation::updateControlAllocated();
 }
