@@ -52,8 +52,7 @@ public:
 		return _mission_checksum_sub.advertised() ? (MAVLINK_MSG_ID_MISSION_CHECKSUM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
-	bool request_message(float param2 = 0.0, float param3 = 0.0, float param4 = 0.0,
-			     float param5 = 0.0, float param6 = 0.0, float param7 = 0.0) override
+	bool request_message(float param2, float param3, float param4, float param5, float param6, float param7) override
 	{
 		return send(static_cast<uint8_t>(param2));
 	}
