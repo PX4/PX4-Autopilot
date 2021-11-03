@@ -1,0 +1,198 @@
+__max_num_config_instances: &max_num_config_instances 16
+
+module_name: control_allocator
+
+parameters:
+    - group: Control Allocator
+      definitions:
+        CA_ACT${i}_FUNC:
+            description:
+                short: actuator ${i} function
+                long: actuator ${i} function
+            type: enum
+            values:
+                0: disabled
+                1: custom thrust (parameters)
+                2: custom torque (parameters)
+                100: Aileron
+                101: Elevator
+                102: Rudder
+                103: Throttle
+                104: Elevon (+)
+                105: Elevon (-)
+                106: V-Tail (+)
+                107: V-Tail (-)
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0
+
+        CA_ACT${i}_PX:
+            description:
+                short: actuator ${i} position X
+                long: Actuator ${i} position along X body axis
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_PY:
+            description:
+                short: actuator ${i} position Y
+                long: Actuator ${i} position along Y body axis
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_PZ:
+            description:
+                short: actuator ${i} position Z
+                long: Actuator ${i} position along Z body axis
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_THR_X:
+            description:
+                short: actuator ${i} thrust x
+                long: Actuator ${i} thrust x
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_THR_Y:
+            description:
+                short: actuator ${i} thrust y
+                long: Actuator ${i} thrust y
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_THR_Z:
+            description:
+                short: actuator ${i} thrust z
+                long: Actuator ${i} thrust z
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_AX:
+            description:
+                short: actuator ${i} axis of thrust vector, X body axis component
+                long: Actuator ${i} axis of thrust vector, X body axis component
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_AY:
+            description:
+                short: actuator ${i} axis of thrust vector, Y body axis component
+                long: Actuator ${i} axis of thrust vector, Y body axis component
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_AZ:
+            description:
+                short: actuator ${i} axis of thrust vector, Z body axis component
+                long: Actuator ${i} axis of thrust vector, Z body axis component
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_CT:
+            description:
+                short: actuator ${i} thrust coefficient
+                long:  The thrust coefficient if defined as Thrust = CT * u^2,
+                       where u (with value between CA_ACT0_MIN and CA_ACT0_MAX)
+                       is the output signal sent to the motor controller.
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_KM:
+            description:
+                short: actuator ${i} moment coefficient
+                long:  The moment coefficient if defined as Torque = KM * Thrust
+                       Use a positive value for a rotor with CCW rotation.
+                       Use a negative value for a rotor with CW rotation.
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_TRQ_R:
+            description:
+                short: actuator ${i} roll torque
+                long: Actuator ${i} roll torque
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_TRQ_P:
+            description:
+                short: actuator ${i} pitch torque
+                long: Actuator ${i} pitch torque
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_TRQ_Y:
+            description:
+                short: actuator ${i} yaw torque
+                long: Actuator ${i} yaw torque
+            type: float
+            decimal: 2
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 0.0
+
+        CA_ACT${i}_SC:
+            description:
+                short: actuator ${i} scale
+                long: Actuator ${i} scale
+            type: float
+            decimal: 2
+            minimum: -1.0
+            maximum: 1.0
+            reboot_required: false
+            num_instances: *max_num_config_instances
+            instance_start: 0
+            default: 1.0
