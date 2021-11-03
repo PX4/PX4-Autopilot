@@ -661,9 +661,9 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 
 void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 {
-	manual_control_input_s manual_control_input{};
+	manual_control_setpoint_s manual_control_input{};
 	manual_control_input.timestamp_sample = timestamp_sample;
-	manual_control_input.data_source = manual_control_input_s::SOURCE_RC;
+	manual_control_input.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 	// limit controls
 	manual_control_input.y     = get_rc_value(rc_channels_s::FUNCTION_ROLL,    -1.f, 1.f);

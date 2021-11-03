@@ -43,7 +43,6 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/action_request.h>
 #include <uORB/topics/landing_gear.h>
-#include <uORB/topics/manual_control_input.h>
 #include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -78,7 +77,7 @@ private:
 	static constexpr int MAX_MANUAL_INPUT_COUNT = 3;
 
 	void Run() override;
-	void processStickArming(const manual_control_input_s &input);
+	void processStickArming(const manual_control_setpoint_s &input);
 
 	void evaluateModeSlot(uint8_t mode_slot);
 	void sendActionRequest(int8_t action, int8_t source, int8_t mode = 0);
@@ -90,7 +89,7 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	int _previous_manual_control_input_instance{-1};
-	uORB::SubscriptionCallbackWorkItem _manual_control_input_subs[MAX_MANUAL_INPUT_COUNT] {
+	uORB::SubscriptionCallbackWorkItem _manual_control_setpoint_subs[MAX_MANUAL_INPUT_COUNT] {
 		{this, ORB_ID(manual_control_input), 0},
 		{this, ORB_ID(manual_control_input), 1},
 		{this, ORB_ID(manual_control_input), 2},
