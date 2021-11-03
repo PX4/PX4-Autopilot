@@ -861,11 +861,51 @@ MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
 	saturation_status.value = _mixers->get_saturation_status();
 
 	if (saturation_status.flags.valid) {
-		multirotor_motor_limits_s motor_limits;
-		motor_limits.timestamp = actuator_outputs.timestamp;
-		motor_limits.saturation_status = saturation_status.value;
+		control_allocator_status_s sat{};
+		sat.timestamp = hrt_absolute_time();
+		sat.torque_setpoint_achieved = true;
+		sat.thrust_setpoint_achieved = true;
 
-		_to_mixer_status.publish(motor_limits);
+		// Note: the values '-1', '1' and '0' are just to indicate a negative,
+		// positive or no saturation to the rate controller. The actual magnitude
+		// is not used.
+		if (saturation_status.flags.roll_pos) {
+			sat.unallocated_torque[0] = 1.f;
+			sat.torque_setpoint_achieved = false;
+
+		} else if (saturation_status.flags.roll_neg) {
+			sat.unallocated_torque[0] = -1.f;
+			sat.torque_setpoint_achieved = false;
+		}
+
+		if (saturation_status.flags.pitch_pos) {
+			sat.unallocated_torque[1] = 1.f;
+			sat.torque_setpoint_achieved = false;
+
+		} else if (saturation_status.flags.pitch_neg) {
+			sat.unallocated_torque[1] = -1.f;
+			sat.torque_setpoint_achieved = false;
+		}
+
+		if (saturation_status.flags.yaw_pos) {
+			sat.unallocated_torque[2] = 1.f;
+			sat.torque_setpoint_achieved = false;
+
+		} else if (saturation_status.flags.yaw_neg) {
+			sat.unallocated_torque[2] = -1.f;
+			sat.torque_setpoint_achieved = false;
+		}
+
+		if (saturation_status.flags.thrust_pos) {
+			sat.unallocated_thrust[2] = 1.f;
+			sat.thrust_setpoint_achieved = false;
+
+		} else if (saturation_status.flags.thrust_neg) {
+			sat.unallocated_thrust[2] = -1.f;
+			sat.thrust_setpoint_achieved = false;
+		}
+
+		_control_allocator_status_pub.publish(sat);
 	}
 }
 
