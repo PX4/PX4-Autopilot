@@ -466,7 +466,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 							reset = true;
 						}
 
-						for (int harmonic = MAX_NUM_ESC_RPM_HARMONICS; harmonic >= 0; harmonic--) {
+						for (int harmonic = 0; harmonic < MAX_NUM_ESC_RPM_HARMONICS; harmonic++) {
 							const float frequency_hz = esc_hz * (harmonic + 1);
 
 							for (int axis = 0; axis < 3; axis++) {
@@ -599,6 +599,7 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 
 		for (int esc = 0; esc < MAX_NUM_ESC_RPM; esc++) {
 			if (_esc_available[esc]) {
+				// apply notch filters higher -> lowest frequency
 				for (int harmonic = MAX_NUM_ESC_RPM_HARMONICS - 1; harmonic >= 0; harmonic--) {
 					_dynamic_notch_filter_esc_rpm[axis][esc][harmonic].applyArray(data, N);
 				}
