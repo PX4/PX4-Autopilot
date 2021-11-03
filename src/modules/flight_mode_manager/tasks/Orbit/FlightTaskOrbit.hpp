@@ -74,7 +74,7 @@ private:
 	static constexpr float _radius_max = 100.f;
 	static constexpr float _velocity_max = 10.f;
 	static constexpr float _acceleration_max = 2.f;
-	static constexpr float _horizontal_acceptance_radius = 1.f;
+	static constexpr float _horizontal_acceptance_radius = 2.f;
 
 	/**
 	 * Check the feasibility of orbit parameters with respect to
