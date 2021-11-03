@@ -131,7 +131,7 @@ TEST(ManualControlSelector, MavlinkInputOnly)
 TEST(ManualControlSelector, AutoInput)
 {
 	ManualControlSelector selector;
-	selector.setRcInMode(3);
+	selector.setRcInMode(2);
 	selector.setTimeout(500_ms);
 
 	uint64_t timestamp = some_time;
