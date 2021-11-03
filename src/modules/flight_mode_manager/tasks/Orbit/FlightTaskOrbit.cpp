@@ -151,7 +151,6 @@ void FlightTaskOrbit::_sanitizeParams(float &radius, float &velocity) const
 	}
 }
 
-
 bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
@@ -176,8 +175,6 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 
 	return ret;
 }
-
-
 
 bool FlightTaskOrbit::update()
 {
@@ -236,7 +233,6 @@ bool FlightTaskOrbit::update()
 	return ret;
 }
 
-
 void FlightTaskOrbit::_updateTrajectoryBoundaries()
 {
 	// update params of the position smoothing
@@ -271,14 +267,12 @@ void FlightTaskOrbit::_updateTrajectoryBoundaries()
 
 }
 
-
 bool FlightTaskOrbit::_is_position_on_circle() const
 {
 	return (fabsf(Vector2f(_position - _center).length() - _orbit_radius) < _horizontal_acceptance_radius)
 	       && fabsf(_position(2) - _center(2)) < _param_nav_mc_alt_rad.get();
 
 }
-
 
 void FlightTaskOrbit::_generate_circle_approach_setpoints()
 {
