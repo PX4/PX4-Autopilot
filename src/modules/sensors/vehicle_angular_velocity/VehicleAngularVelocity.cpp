@@ -454,15 +454,16 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 					// for each ESC check determine if enabled/disabled from first notch (x axis, harmonic 0)
 					auto &nfx0 = _dynamic_notch_filter_esc_rpm[0][esc][0];
 
-					bool reset = (nfx0.getNotchFreq() <= FLT_EPSILON); // notch was previously disabled
+					bool reset = force || (nfx0.getNotchFreq() <= FLT_EPSILON); // notch was previously disabled
 
 					const float esc_hz = esc_rpm / 60.f;
+					const float notch_freq_diff = fabsf(nfx0.getNotchFreq() - esc_hz);
 
 					// update filter parameters if frequency changed or forced
-					if (force || reset || (fabsf(nfx0.getNotchFreq() - esc_hz) > FLT_EPSILON)) {
+					if (reset || (notch_freq_diff > 0.1f)) {
 
 						// force reset if the notch frequency jumps significantly
-						if (!reset || (fabsf(nfx0.getNotchFreq() - esc_hz) > _param_imu_gyro_dnf_bw.get())) {
+						if (notch_freq_diff > _param_imu_gyro_dnf_bw.get()) {
 							reset = true;
 						}
 
@@ -478,7 +479,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 						perf_count(_dynamic_notch_filter_esc_rpm_update_perf);
 					}
 
-					if (force || reset) {
+					if (reset) {
 						const Vector3f reset_angular_velocity{GetResetAngularVelocity()};
 
 						for (int axis = 0; axis < 3; axis++) {
