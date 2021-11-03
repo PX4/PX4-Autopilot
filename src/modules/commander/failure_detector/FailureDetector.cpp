@@ -49,7 +49,7 @@ FailureDetector::FailureDetector(ModuleParams *parent) :
 
 bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode)
 {
-	uint8_t previous_status = _status;
+	failure_detector_status_u status_prev = _status;
 
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
 		updateAttitudeStatus();
@@ -59,7 +59,10 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		}
 
 	} else {
-		_status &= ~(FAILURE_ROLL | FAILURE_PITCH | FAILURE_ALT | FAILURE_EXT);
+		_status.flags.roll = false;
+		_status.flags.pitch = false;
+		_status.flags.alt = false;
+		_status.flags.ext = false;
 	}
 
 	if (_param_escs_en.get()) {
@@ -70,7 +73,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		updateImbalancedPropStatus();
 	}
 
-	return _status != previous_status;
+	return _status.value != status_prev.value;
 }
 
 void FailureDetector::updateAttitudeStatus()
@@ -99,16 +102,9 @@ void FailureDetector::updateAttitudeStatus()
 		_roll_failure_hysteresis.set_state_and_update(roll_status, time_now);
 		_pitch_failure_hysteresis.set_state_and_update(pitch_status, time_now);
 
-		// Update bitmask
-		_status &= ~(FAILURE_ROLL | FAILURE_PITCH);
-
-		if (_roll_failure_hysteresis.get_state()) {
-			_status |= FAILURE_ROLL;
-		}
-
-		if (_pitch_failure_hysteresis.get_state()) {
-			_status |= FAILURE_PITCH;
-		}
+		// Update status
+		_status.flags.roll = _roll_failure_hysteresis.get_state();
+		_status.flags.pitch = _pitch_failure_hysteresis.get_state();
 	}
 }
 
@@ -127,11 +123,7 @@ void FailureDetector::updateExternalAtsStatus()
 		_ext_ats_failure_hysteresis.set_hysteresis_time_from(false, 100_ms); // 5 consecutive pulses at 50hz
 		_ext_ats_failure_hysteresis.set_state_and_update(ats_trigger_status, time_now);
 
-		_status &= ~FAILURE_EXT;
-
-		if (_ext_ats_failure_hysteresis.get_state()) {
-			_status |= FAILURE_EXT;
-		}
+		_status.flags.ext = _ext_ats_failure_hysteresis.get_state();
 	}
 }
 
@@ -149,14 +141,14 @@ void FailureDetector::updateEscsStatus(const vehicle_status_s &vehicle_status)
 			_esc_failure_hysteresis.set_state_and_update(all_escs_armed != esc_status.esc_armed_flags, time_now);
 
 			if (_esc_failure_hysteresis.get_state()) {
-				_status |= FAILURE_ARM_ESCS;
+				_status.flags.arm_escs = true;
 			}
 		}
 
 	} else {
 		// reset ESC bitfield
 		_esc_failure_hysteresis.set_state_and_update(false, time_now);
-		_status &= ~FAILURE_ARM_ESCS;
+		_status.flags.arm_escs = false;
 	}
 }
 
@@ -209,7 +201,7 @@ void FailureDetector::updateImbalancedPropStatus()
 				const float metric_lpf = _imbalanced_prop_lpf.update(metric);
 
 				const bool is_imbalanced = metric_lpf > _param_fd_imb_prop_thr.get();
-				_status = (_status & ~FAILURE_IMBALANCED_PROP) | (is_imbalanced * FAILURE_IMBALANCED_PROP);
+				_status.flags.imbalanced_prop = is_imbalanced;
 			}
 		}
 	}

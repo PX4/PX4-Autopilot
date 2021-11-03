@@ -60,17 +60,19 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/pwm_input.h>
 
-typedef enum {
-	FAILURE_NONE = vehicle_status_s::FAILURE_NONE,
-	FAILURE_ROLL = vehicle_status_s::FAILURE_ROLL,
-	FAILURE_PITCH = vehicle_status_s::FAILURE_PITCH,
-	FAILURE_ALT = vehicle_status_s::FAILURE_ALT,
-	FAILURE_EXT = vehicle_status_s::FAILURE_EXT,
-	FAILURE_ARM_ESCS = vehicle_status_s::FAILURE_ARM_ESC,
-	FAILURE_HIGH_WIND = vehicle_status_s::FAILURE_HIGH_WIND,
-	FAILURE_BATTERY = vehicle_status_s::FAILURE_BATTERY,
-	FAILURE_IMBALANCED_PROP = vehicle_status_s::FAILURE_IMBALANCED_PROP
-} failure_detector_bitmak;
+union failure_detector_status_u {
+	struct {
+		uint16_t roll : 1;
+		uint16_t pitch : 1;
+		uint16_t alt : 1;
+		uint16_t ext : 1;
+		uint16_t arm_escs : 1;
+		uint16_t high_wind : 1;
+		uint16_t battery : 1;
+		uint16_t imbalanced_prop : 1;
+	} flags;
+	uint16_t value;
+};
 
 using uORB::SubscriptionData;
 
@@ -80,7 +82,8 @@ public:
 	FailureDetector(ModuleParams *parent);
 
 	bool update(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
-	uint8_t getStatus() const { return _status; }
+	const failure_detector_status_u &getStatus() const { return _status; }
+	const decltype(failure_detector_status_u::flags) &getStatusFlags() const { return _status.flags; }
 	float getImbalancedPropMetric() const { return _imbalanced_prop_lpf.getState(); }
 
 private:
@@ -89,7 +92,7 @@ private:
 	void updateEscsStatus(const vehicle_status_s &vehicle_status);
 	void updateImbalancedPropStatus();
 
-	uint8_t _status{FAILURE_NONE};
+	failure_detector_status_u _status{};
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
