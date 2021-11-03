@@ -59,7 +59,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	// commanded radius
 	if (PX4_ISFINITE(command.param1)) {
 		// Note: Radius sign is defined as orbit direction in MAVLINK
-		float radius = fabsf(command.param1);
+		float radius = command.param1;
 		is_clockwise = radius > 0;
 		new_radius = fabsf(radius);
 	}
