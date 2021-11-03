@@ -197,9 +197,39 @@ void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float ba
 		return;
 	}
 
-	_notch_freq = math::constrain(notch_freq, 5.f, sample_freq / 2); // TODO: min based on actual numerical limit
-	_bandwidth = math::constrain(bandwidth, 5.f, sample_freq / 2);
+	const float freq_min = sample_freq * 0.001f;
+
+	const float notch_freq_new = math::max(notch_freq, freq_min);
+	const float bandwidth_new = math::max(bandwidth, freq_min);
+
+	bool sample_freq_change = (fabsf(sample_freq - _sample_freq) > FLT_EPSILON);
+	bool bandwidth_change = (fabsf(bandwidth_new - _bandwidth) > FLT_EPSILON);
+
+	if (!sample_freq_change && !bandwidth_change) {
+		if (fabsf(notch_freq_new - _notch_freq) > FLT_EPSILON) {
+			// only notch frequency has changed
+			_notch_freq = notch_freq_new;
+
+			const float beta = -cosf(2.f * M_PI_F * _notch_freq / _sample_freq);
+
+			_b1 = 2.f * beta * _b0;
+			_a1 = _b1;
+
+			if (!isFinite(_b1)) {
+				disable();
+			}
+
+			return;
+
+		} else {
+			// no change, do nothing
+			return;
+		}
+	}
+
 	_sample_freq = sample_freq;
+	_notch_freq = notch_freq_new;
+	_bandwidth = bandwidth_new;
 
 	const float alpha = tanf(M_PI_F * _bandwidth / _sample_freq);
 	const float beta = -cosf(2.f * M_PI_F * _notch_freq / _sample_freq);
