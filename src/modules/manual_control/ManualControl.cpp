@@ -83,9 +83,9 @@ void ManualControl::Run()
 	_selector.updateValidityOfChosenInput(now);
 
 	for (int i = 0; i < MAX_MANUAL_INPUT_COUNT; i++) {
-		manual_control_input_s manual_control_input;
+		manual_control_setpoint_s manual_control_input;
 
-		if (_manual_control_input_subs[i].update(&manual_control_input)) {
+		if (_manual_control_setpoint_subs[i].update(&manual_control_input)) {
 			_selector.updateWithNewInputSample(now, manual_control_input, i);
 		}
 	}
@@ -96,25 +96,25 @@ void ManualControl::Run()
 	if (_selector.setpoint().valid) {
 		_published_invalid_once = false;
 
-		processStickArming(_selector.setpoint().chosen_input);
+		processStickArming(_selector.setpoint());
 
 		// User override by stick
 		const float dt_s = (now - _last_time) / 1e6f;
 		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
 
-		const bool rpy_moved = (fabsf(_x_diff.update(_selector.setpoint().chosen_input.x, dt_s)) > minimum_stick_change)
-				       || (fabsf(_y_diff.update(_selector.setpoint().chosen_input.y, dt_s)) > minimum_stick_change)
-				       || (fabsf(_r_diff.update(_selector.setpoint().chosen_input.r, dt_s)) > minimum_stick_change);
+		const bool rpy_moving = (fabsf(_x_diff.update(_selector.setpoint().x, dt_s)) > minimum_stick_change)
+					|| (fabsf(_y_diff.update(_selector.setpoint().y, dt_s)) > minimum_stick_change)
+					|| (fabsf(_r_diff.update(_selector.setpoint().r, dt_s)) > minimum_stick_change);
 
 		// Throttle change value doubled to achieve the same scaling even though the range is [0,1] instead of [-1,1]
-		const bool throttle_moved =
-			(fabsf(_z_diff.update(_selector.setpoint().chosen_input.z, dt_s)) * 2.f) > minimum_stick_change;
+		const bool throttle_moving =
+			(fabsf(_z_diff.update(_selector.setpoint().z, dt_s)) * 2.f) > minimum_stick_change;
 
-		_selector.setpoint().user_override = rpy_moved || throttle_moved;
+		_selector.setpoint().sticks_moving = rpy_moving || throttle_moving;
 
 		if (switches_updated) {
 			// Only use switches if current source is RC as well.
-			if (_selector.setpoint().chosen_input.data_source == manual_control_input_s::SOURCE_RC) {
+			if (_selector.setpoint().data_source == manual_control_setpoint_s::SOURCE_RC) {
 				if (_previous_switches_initialized) {
 					if (switches.mode_slot != _previous_switches.mode_slot) {
 						evaluateModeSlot(switches.mode_slot);
@@ -223,11 +223,11 @@ void ManualControl::Run()
 		if (instance != _previous_manual_control_input_instance) {
 			if ((0 <= _previous_manual_control_input_instance)
 			    && (_previous_manual_control_input_instance < MAX_MANUAL_INPUT_COUNT)) {
-				_manual_control_input_subs[_previous_manual_control_input_instance].unregisterCallback();
+				_manual_control_setpoint_subs[_previous_manual_control_input_instance].unregisterCallback();
 			}
 
 			if ((0 <= instance) && (instance < MAX_MANUAL_INPUT_COUNT)) {
-				_manual_control_input_subs[instance].registerCallback();
+				_manual_control_setpoint_subs[instance].registerCallback();
 			}
 
 			_previous_manual_control_input_instance = instance;
@@ -258,7 +258,7 @@ void ManualControl::Run()
 	perf_end(_loop_perf);
 }
 
-void ManualControl::processStickArming(const manual_control_input_s &input)
+void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 {
 	// Arm gesture
 	const bool right_stick_centered = (fabsf(input.x) < 0.1f) && (fabsf(input.y) < 0.1f);
