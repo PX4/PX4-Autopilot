@@ -73,9 +73,10 @@ public:
 
 	/**
 	 * Set saturation status
-	 * @param status message from mixer reporting about saturation
+	 * @param control saturation vector from control allocator
 	 */
-	void setSaturationStatus(const MultirotorMixer::saturation_status &status);
+	void setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive,
+				 const matrix::Vector<bool, 3> &saturation_negative);
 
 	/**
 	 * Run one control loop cycle calculation
@@ -112,6 +113,7 @@ private:
 	// States
 	matrix::Vector3f _rate_int; ///< integral term of the rate controller
 
-	bool _mixer_saturation_positive[3] {};
-	bool _mixer_saturation_negative[3] {};
+	// Feedback from control allocation
+	matrix::Vector<bool, 3> _control_allocator_saturation_negative;
+	matrix::Vector<bool, 3> _control_allocator_saturation_positive;
 };

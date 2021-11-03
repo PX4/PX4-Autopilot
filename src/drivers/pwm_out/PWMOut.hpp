@@ -59,7 +59,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
