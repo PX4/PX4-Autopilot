@@ -325,7 +325,7 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 				_dynamic_notch_filter_esc_rpm_reset_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter ESC RPM reset");
 				_dynamic_notch_filter_esc_rpm_update_perf = perf_alloc(PC_COUNT,
 						MODULE_NAME": gyro dynamic notch filter ESC RPM update");
-				_dynamic_notch_filter_esc_rpm_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch ESC RPM filter");
+				_dynamic_notch_filter_esc_rpm_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch filter ESC RPM elapsed");
 			}
 
 		} else {
@@ -337,7 +337,7 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 				_dynamic_notch_filter_fft_disable_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT disable");
 				_dynamic_notch_filter_fft_reset_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT reset");
 				_dynamic_notch_filter_fft_update_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT update");
-				_dynamic_notch_filter_fft_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch FFT filter");
+				_dynamic_notch_filter_fft_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch filter FFT elapsed");
 			}
 
 		} else {
