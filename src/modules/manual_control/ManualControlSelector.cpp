@@ -72,7 +72,7 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_3
 					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_4
 					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_5);
-	const bool source_any_matched = (_rc_in_mode == 3);
+	const bool source_any_matched = (_rc_in_mode == 2);
 
 	return sample_from_the_past && sample_newer_than_timeout
 	       && (source_rc_matched || source_mavlink_matched || source_any_matched);
