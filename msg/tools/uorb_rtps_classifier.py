@@ -67,7 +67,7 @@ class Classifier():
         for topic in self.msg_map['rtps']:
             if 'send' in list(topic.keys()):
                 poll = topic.get('poll', False)
-                poll_interval = topic['poll_interval'] if 'poll_interval' in list(topic.keys()) else 0.0
+                poll_interval = topic.get('poll_interval', 0.0)
                 if 'base' in list(topic.keys()):
                     self.alias_msgs_to_send.append(
                         (topic['msg'], topic['base'], poll, poll_interval))
