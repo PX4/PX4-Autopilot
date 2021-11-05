@@ -38,5 +38,15 @@ functions:
     #MyCustomFunction: 10000
 
   pwm_fmu: # These only exist on FMU PWM pins
-    Camera_Trigger: 2000
-    Camera_Capture: 2032
+    Camera_Trigger:
+      start: 2000
+      note:
+        condition: "TRIG_MODE==0"
+        text: "Camera triggering needs to be enabled and configured via TRIG_* parameters."
+      exclude_from_actuator_testing: true
+    Camera_Capture:
+      start: 2032
+      note:
+        condition: "CAM_CAP_FBACK==0"
+        text: "Camera feedback needs to be enabled and configured via CAM_CAP_* parameters."
+      exclude_from_actuator_testing: true
