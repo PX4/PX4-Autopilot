@@ -110,7 +110,7 @@ private:
 	struct _trig_s {
 		uint32_t chan_index;
 		hrt_abstime hrt_edge_time;
-		timespec rtc_edge_time;
+		uint64_t rtc_edge_time;
 		uint32_t edge_state;
 		uint32_t overflow;
 	} _trigger{};
