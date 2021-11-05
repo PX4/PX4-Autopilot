@@ -133,3 +133,63 @@ parameters:
             max: 1
             default: 0.05
 
+# Mixer
+mixer:
+    actuator_types:
+        motor:
+            functions: 'Motor'
+            actuator_testing_values:
+                min: 0
+                max: 1
+                default_is_nan: true
+        servo:
+            functions: 'Servo'
+            actuator_testing_values:
+                min: -1
+                max: 1
+                default: 0
+        DEFAULT:
+            actuator_testing_values:
+                min: -1
+                max: 1
+                default: -1
+
+    config:
+        param: CA_AIRFRAME
+        types:
+            0: # Multirotor
+                type: "multirotor"
+                actuators:
+                  - actuator_type: 'motor'
+                    count: 'CA_MC_R_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_MC_R${i}_PX', 'CA_MC_R${i}_PY', 'CA_MC_R${i}_PZ' ]
+                        extra:
+                          - name: 'CA_MC_R${i}_KM'
+                            label: 'Direction CCW'
+                            function: 'spin-dir'
+                            show_as: 'true-if-positive'
+
+            2: # Tiltrotor VTOL example
+                actuators:
+                  - actuator_type: 'motor'
+                    instances:
+                      - name: 'Front Left Motor'
+                        position: [ 0.3, -0.3, 0 ]
+                      - name: 'Front Right Motor'
+                        position: [ 0.3, 0.3, 0 ]
+                      - name: 'Rear Motor'
+                        position: [ -0.75, 0.3, 0 ]
+                  - actuator_type: 'servo'
+                    instances:
+                      - name: 'Front Left Tilt'
+                        position: [ 0.3, -0.3, 0 ]
+                      - name: 'Front Right Tilt'
+                        position: [ 0.3, 0.3, 0 ]
+                      - name: 'Left Elevon'
+                        position: [ 0, -0.3, 0 ]
+                      - name: 'Right Elevon'
+                        position: [ 0, 0.3, 0 ]
+
+
