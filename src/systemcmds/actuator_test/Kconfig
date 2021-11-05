@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_ACTUATOR_TEST
+	bool "actuator_test"
+	default n
+	---help---
+		Enable support for actuator_test
