@@ -66,7 +66,7 @@ class Classifier():
         """Setup dictionary with an ID map for the messages."""
         for topic in self.msg_map['rtps']:
             if 'send' in list(topic.keys()):
-                poll = topic['poll'] if 'poll' in list(topic.keys()) else False
+                poll = topic.get('poll', False)
                 poll_interval = topic['poll_interval'] if 'poll_interval' in list(topic.keys()) else 0.0
                 if 'base' in list(topic.keys()):
                     self.alias_msgs_to_send.append(

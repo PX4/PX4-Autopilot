@@ -208,6 +208,7 @@ void *send(void *args)
 
 			if (pret < 0) {
 				PX4_ERR("poll failed (%i)", pret);
+				px4_usleep(tx_interval);
 			} else if (pret != 0) {
 @[        for idx, topic in enumerate(send_topics_poll)]@
 				if (fds[@(idx)].revents & POLLIN) {
@@ -222,23 +223,9 @@ void *send(void *args)
 					}
 				}
 @[        end for]@
-			} else {
-				if (hrt_absolute_time() - last_stats_update >= 1_s) {
-					data->sent_last_sec = tx_last_sec_read;
-					if (data->datarate > 0) {
-						bandwidth_mult = static_cast<float>(data->datarate) / static_cast<float>(tx_last_sec_read);
-						// Apply a low-pass filter to determine the new TX interval
-						tx_interval += 0.5f * (tx_interval / bandwidth_mult - tx_interval);
-						// Clamp the interval between 1 and 1000 ms
-						tx_interval = math::constrain(tx_interval, MIN_TX_INTERVAL_US, MAX_TX_INTERVAL_US);
-					}
-					tx_last_sec_read = 0;
-					last_stats_update = hrt_absolute_time();
-				}
-				px4_usleep(tx_interval);
 			}
 		}
-@[    else]@
+@[    end if]@
 		if (hrt_absolute_time() - last_stats_update >= 1_s) {
 			data->sent_last_sec = tx_last_sec_read;
 			if (data->datarate > 0) {
@@ -251,10 +238,9 @@ void *send(void *args)
 			tx_last_sec_read = 0;
 			last_stats_update = hrt_absolute_time();
 		}
-
+@[	if not send_topics_poll]@
 		px4_usleep(tx_interval);
-@[    end if]@
-
+@[	end if]@
 		++data->sent_loop;
 	}
 
