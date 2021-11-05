@@ -279,4 +279,4 @@ def print_field_def(field):
         comment = ' // required for logger'
 
     print(('\t%s%s%s %s%s;%s' % (type_prefix, type_px4, type_appendix, field.name,
-                                array_size, comment)))
+                                 array_size, comment)))
