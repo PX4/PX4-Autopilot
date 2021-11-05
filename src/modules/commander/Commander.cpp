@@ -1163,6 +1163,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		cmd_result = handle_command_motor_test(cmd);
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_TEST:
+		cmd_result = handle_command_actuator_test(cmd);
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
 
 			const int param1 = cmd.param1;
@@ -1429,6 +1433,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN:
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+	case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1492,6 +1497,58 @@ Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 	test_motor.driver_instance = 0; // the mavlink command does not allow to specify the instance, so set to 0 for now
 	_test_motor_pub.publish(test_motor);
 
+	return vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+}
+
+unsigned
+Commander::handle_command_actuator_test(const vehicle_command_s &cmd)
+{
+	if (_armed.armed || (_safety.safety_switch_available && !_safety.safety_off)) {
+		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+	}
+
+	actuator_test_s actuator_test{};
+	actuator_test.timestamp = hrt_absolute_time();
+	actuator_test.function = (int)(cmd.param5 + 0.5);
+
+	if (actuator_test.function < 1000) {
+		const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
+		const int first_servo_function = 33;
+
+		if (actuator_test.function >= first_motor_function
+		    && actuator_test.function < first_motor_function + actuator_test_s::MAX_NUM_MOTORS) {
+			actuator_test.function = actuator_test.function - first_motor_function + actuator_test_s::FUNCTION_MOTOR1;
+
+		} else if (actuator_test.function >= first_servo_function
+			   && actuator_test.function < first_servo_function + actuator_test_s::MAX_NUM_SERVOS) {
+			actuator_test.function = actuator_test.function - first_servo_function + actuator_test_s::FUNCTION_SERVO1;
+
+		} else {
+			return vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+		}
+
+	} else {
+		actuator_test.function -= 1000;
+	}
+
+	actuator_test.value = cmd.param1;
+
+	actuator_test.action = actuator_test_s::ACTION_DO_CONTROL;
+	int timeout_ms = (int)(cmd.param2 * 1000.f + 0.5f);
+
+	if (timeout_ms <= 0) {
+		actuator_test.action = actuator_test_s::ACTION_RELEASE_CONTROL;
+
+	} else {
+		actuator_test.timeout_ms = timeout_ms;
+	}
+
+	// enforce a timeout and a maximum limit
+	if (actuator_test.timeout_ms == 0 || actuator_test.timeout_ms > 3000) {
+		actuator_test.timeout_ms = 3000;
+	}
+
+	_actuator_test_pub.publish(actuator_test);
 	return vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 }
 
