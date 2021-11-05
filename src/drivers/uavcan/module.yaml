@@ -1,6 +1,12 @@
-
 module_name: UAVCAN
 actuator_output:
+  show_subgroups_if: 'UAVCAN_ENABLE>=3'
+  config_parameters:
+    - param: 'UAVCAN_ENABLE'
+      label: 'Configure'
+      function: 'enable'
+    - param: 'UAVCAN_BITRATE'
+      label: 'Bitrate'
   output_groups:
     - param_prefix: UAVCAN_EC
       group_label: 'ESCs'
