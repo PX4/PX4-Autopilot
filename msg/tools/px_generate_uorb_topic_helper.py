@@ -279,4 +279,63 @@ def print_field_def(field):
         comment = ' // required for logger'
 
     print(('\t%s%s%s %s%s;%s' % (type_prefix, type_px4, type_appendix, field.name,
-                                 array_size, comment)))
+                                array_size, comment)))
+
+
+def check_available_ids(used_msg_ids_list):
+    """
+    Checks the available RTPS ID's
+    """
+    return set(list(range(0, 255))) - set(used_msg_ids_list)
+
+
+def rtps_message_id(msg_id_map, message):
+    """
+    Get RTPS ID of uORB message
+    """
+    error_msg = ""
+
+    # check if the message has an ID set
+    for dict in msg_id_map[0]['rtps']:
+        if message in dict['msg']:
+            if dict['id'] is not None:
+                return dict['id']
+            else:
+                error_msg = "ID is None!"
+                break
+
+    # create list of the available IDs if it fails to get an ID
+    used_ids = list()
+    for dict in msg_id_map[0]['rtps']:
+        if dict['id'] is not None:
+            used_ids.append(dict['id'])
+
+    raise AssertionError(
+        "%s %s Please add an ID from the available pool:\n" % (message, error_msg) +
+        ", ".join('%d' % id for id in check_available_ids(used_ids)))
+
+
+def rtps_message_poll(msg_id_map, message):
+    """
+    Get poll option of uORB message
+    """
+
+    for dict in msg_id_map[0]['rtps']:
+        if message in dict['msg']:
+            if dict.get('poll') is not None:
+                return dict['poll']
+            else:
+                return False
+
+
+def rtps_message_poll_interval(msg_id_map, message):
+    """
+    Get poll interval of uORB message
+    """
+
+    for dict in msg_id_map[0]['rtps']:
+        if message in dict['msg']:
+            if dict.get('poll_interval') is not None:
+                return dict['poll_interval']
+            else:
+                return False
