@@ -33,6 +33,7 @@
 
 #pragma once
 
+#include "actuator_test.hpp"
 #include "functions.hpp"
 
 #include <board_config.h>
@@ -130,7 +131,9 @@ public:
 	/**
 	 * Check if a function is configured, i.e. not set to Disabled and initialized
 	 */
-	bool isFunctionSet(int index) const { return !_use_dynamic_mixing || _functions[index] != nullptr; };
+	bool isFunctionSet(int index) const { return !_use_dynamic_mixing || _functions[index] != nullptr; }
+
+	OutputFunction outputFunction(int index) const { return _function_assignment[index]; }
 
 	/**
 	 * Call this regularly from Run(). It will call interface.updateOutputs().
@@ -340,6 +343,7 @@ private:
 	const char *const _param_prefix;
 	ParamHandles _param_handles[MAX_ACTUATORS];
 	hrt_abstime _lowrate_schedule_interval{300_ms};
+	ActuatorTest _actuator_test{_function_assignment};
 
 	uORB::SubscriptionCallbackWorkItem *_subscription_callback{nullptr}; ///< current scheduling callback
 

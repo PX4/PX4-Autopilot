@@ -471,6 +471,8 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 	setMaxTopicUpdateRate(_max_topic_update_interval_us);
 	_need_function_update = false;
 
+	_actuator_test.reset();
+
 	unlock();
 
 	_interface.mixerChanged();
@@ -773,10 +775,8 @@ bool MixingOutput::updateDynamicMixer()
 		_interface.ScheduleDelayed(50_ms);
 	}
 
-	// check for motor test (after topic updates)
-	if (!_armed.armed && !_armed.manual_lockdown) {
-		// TODO
-	}
+	// check for actuator test
+	_actuator_test.update(_max_num_outputs, _reversible_motors);
 
 	// get output values
 	float outputs[MAX_ACTUATORS];
@@ -799,6 +799,10 @@ bool MixingOutput::updateDynamicMixer()
 	}
 
 	if (!all_disabled) {
+		if (!_armed.armed && !_armed.manual_lockdown) {
+			_actuator_test.overrideValues(outputs, _max_num_outputs);
+		}
+
 		limitAndUpdateOutputs(outputs, has_updates);
 	}
 
@@ -809,8 +813,8 @@ void
 MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates)
 {
 	/* the output limit call takes care of out of band errors, NaN and constrains */
-	output_limit_calc(_throttle_armed, armNoThrottle(), _max_num_outputs, _reverse_output_mask,
-			  _disarmed_value, _min_value, _max_value, outputs, _current_output_value, &_output_limit);
+	output_limit_calc(_throttle_armed || _actuator_test.inTestMode(), armNoThrottle(), _max_num_outputs,
+			  _reverse_output_mask, _disarmed_value, _min_value, _max_value, outputs, _current_output_value, &_output_limit);
 
 	/* overwrite outputs in case of force_failsafe with _failsafe_value values */
 	if (_armed.force_failsafe) {
@@ -819,7 +823,7 @@ MixingOutput::limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updat
 		}
 	}
 
-	bool stop_motors = !_throttle_armed;
+	bool stop_motors = !_throttle_armed && !_actuator_test.inTestMode();
 
 	/* overwrite outputs in case of lockdown with disarmed values */
 	if (_armed.lockdown || _armed.manual_lockdown) {
