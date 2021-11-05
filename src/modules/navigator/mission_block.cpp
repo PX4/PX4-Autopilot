@@ -181,6 +181,13 @@ MissionBlock::is_mission_item_reached()
 				_waypoint_position_reached = true;
 			}
 
+		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+
+			if (dist >= 0.0f && dist_z <= _navigator->get_altitude_acceptance_radius()) {
+				_waypoint_position_reached = true;
+			}
+
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF) {
 			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
 			if (dist >= 0.0f && dist <= _navigator->get_acceptance_radius()
