@@ -383,6 +383,7 @@ int DShot::request_esc_info()
 	_current_command.motor_mask = 1 << motor_index;
 	_current_command.num_repetitions = 1;
 	_current_command.command = DShot_cmd_esc_info;
+	_current_command.save = false;
 
 	PX4_DEBUG("Requesting ESC info for motor %i", motor_index);
 	return motor_index;
@@ -432,6 +433,12 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 		if (_current_command.valid()) {
 			--_current_command.num_repetitions;
+
+			if (_current_command.num_repetitions == 0 && _current_command.save) {
+				_current_command.save = false;
+				_current_command.num_repetitions = 10;
+				_current_command.command = dshot_command_t::DShot_cmd_save_settings;
+			}
 		}
 
 	} else {
@@ -532,10 +539,88 @@ void DShot::Run()
 		}
 	}
 
+	handle_vehicle_commands();
+
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
 	_mixing_output.updateSubscriptions(true);
 
 	perf_end(_cycle_perf);
+}
+
+void DShot::handle_vehicle_commands()
+{
+	vehicle_command_s vehicle_command;
+
+	while (!_current_command.valid() && _vehicle_command_sub.update(&vehicle_command)) {
+
+		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR) {
+			int function = (int)(vehicle_command.param5 + 0.5);
+
+			if (function < 1000) {
+				const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
+				const int first_servo_function = 33;
+
+				if (function >= first_motor_function && function < first_motor_function + actuator_test_s::MAX_NUM_MOTORS) {
+					function = function - first_motor_function + actuator_test_s::FUNCTION_MOTOR1;
+
+				} else if (function >= first_servo_function && function < first_servo_function + actuator_test_s::MAX_NUM_SERVOS) {
+					function = function - first_servo_function + actuator_test_s::FUNCTION_SERVO1;
+
+				} else {
+					function = INT32_MAX;
+				}
+
+			} else {
+				function -= 1000;
+			}
+
+			int type = (int)(vehicle_command.param1 + 0.5f);
+			int index = -1;
+
+			for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+				if ((int)_mixing_output.outputFunction(i) == function) {
+					index = i;
+				}
+			}
+
+			vehicle_command_ack_s command_ack{};
+			command_ack.command = vehicle_command.command;
+			command_ack.target_system = vehicle_command.source_system;
+			command_ack.target_component = vehicle_command.source_component;
+			command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+
+			if (index != -1) {
+				PX4_DEBUG("setting command: index: %i type: %i", index, type);
+				_current_command.command = dshot_command_t::DShot_cmd_motor_stop;
+
+				switch (type) {
+				case 1: _current_command.command = dshot_command_t::DShot_cmd_beacon1; break;
+
+				case 2: _current_command.command = dshot_command_t::DShot_cmd_3d_mode_on; break;
+
+				case 3: _current_command.command = dshot_command_t::DShot_cmd_3d_mode_off; break;
+
+				case 4: _current_command.command = dshot_command_t::DShot_cmd_spin_direction_1; break;
+
+				case 5: _current_command.command = dshot_command_t::DShot_cmd_spin_direction_2; break;
+				}
+
+				if (_current_command.command == dshot_command_t::DShot_cmd_motor_stop) {
+					PX4_WARN("unknown command: %i", type);
+
+				} else {
+					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					_current_command.motor_mask = 1 << index;
+					_current_command.num_repetitions = 10;
+					_current_command.save = true;
+				}
+
+			}
+
+			command_ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(command_ack);
+		}
+	}
 }
 
 void DShot::update_params()
