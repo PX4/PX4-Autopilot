@@ -273,14 +273,14 @@ def generate_agent(out_dir):
         for msg_file in classifier.msgs_to_send:
             if gen_idl:
                 if out_dir != agent_out_dir:
-                    px_generate_uorb_topic_files.generate_idl_file(msg_file, msg_dir, "", os.path.join(out_dir, "/idl"), urtps_templates_dir,
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file[0], msg_dir, "", os.path.join(out_dir, "/idl"), urtps_templates_dir,
                                                                    package, px_generate_uorb_topic_files.INCL_DEFAULT, fastrtps_version, ros2_distro, classifier.msg_list)
                 else:
-                    px_generate_uorb_topic_files.generate_idl_file(msg_file, msg_dir, "", idl_dir, urtps_templates_dir,
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file[0], msg_dir, "", idl_dir, urtps_templates_dir,
                                                                    package, px_generate_uorb_topic_files.INCL_DEFAULT, fastrtps_version, ros2_distro, classifier.msg_list)
-            px_generate_uorb_topic_files.generate_topic_file(msg_file, msg_dir, "", out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.generate_topic_file(msg_file[0], msg_dir, "", out_dir, urtps_templates_dir,
                                                              package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_list, fastrtps_version, ros2_distro, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
-            px_generate_uorb_topic_files.generate_topic_file(msg_file, msg_dir, "", out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.generate_topic_file(msg_file[0], msg_dir, "", out_dir, urtps_templates_dir,
                                                              package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_list, fastrtps_version, ros2_distro, uRTPS_PUBLISHER_H_TEMPL_FILE)
 
     if classifier.alias_msgs_to_send:

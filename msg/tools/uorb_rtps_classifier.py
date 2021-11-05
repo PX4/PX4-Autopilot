@@ -50,9 +50,9 @@ class Classifier():
         self.check_base_type()
 
         # Get messages to send and to receive
-        self.msgs_to_send: Dict[str, int] = dict()
+        self.msgs_to_send: List[Tuple[str, bool, float]] = []
         self.msgs_to_receive: Dict[str, int] = dict()
-        self.alias_msgs_to_send: List[Tuple[str, str]] = []
+        self.alias_msgs_to_send: List[Tuple[str, str, bool, float]] = []
         self.alias_msgs_to_receive: List[Tuple[str, str]] = []
         self.msg_list: List[str] = []
 
@@ -66,11 +66,13 @@ class Classifier():
         """Setup dictionary with an ID map for the messages."""
         for topic in self.msg_map['rtps']:
             if 'send' in list(topic.keys()):
+                poll = topic['poll'] if 'poll' in list(topic.keys()) else False
+                poll_interval = topic['poll_interval'] if 'poll_interval' in list(topic.keys()) else 0.0
                 if 'base' in list(topic.keys()):
                     self.alias_msgs_to_send.append(
-                        (topic['msg'], topic['base']))
+                        (topic['msg'], topic['base'], poll, poll_interval))
                 else:
-                    self.msgs_to_send.update({topic['msg']: 0})
+                    self.msgs_to_send.append((topic['msg'], poll, poll_interval))
             if 'receive' in list(topic.keys()):
                 if 'base' in list(topic.keys()):
                     self.alias_msgs_to_receive.append(
@@ -84,8 +86,8 @@ class Classifier():
         Append the path to the files which messages are marked to
         be sent.
         """
-        return [os.path.join(self.msg_folder, msg + ".msg")
-                for msg in list(self.msgs_to_send.keys())]
+        return [os.path.join(self.msg_folder, msg[0] + ".msg")
+                for msg in self.msgs_to_send]
 
     def set_msg_files_receive(self) -> list:
         """
@@ -166,11 +168,11 @@ if __name__ == "__main__":
                                               for msg_file in classifier.msg_files_send) + '\n'))
         else:
             if args.alias:
-                print((', '.join(str(msg)
+                print((', '.join(str(msg[0])
                                  for msg in sorted(classifier.msgs_to_send)) + (' alias ' + ', '.join(msg[0]
                                                                                                       for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n'))
             else:
-                print((', '.join(str(msg)
+                print((', '.join(str(msg[0])
                                  for msg in sorted(classifier.msgs_to_send))))
     if args.receive:
         if args.path:

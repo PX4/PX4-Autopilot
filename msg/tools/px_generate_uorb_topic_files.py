@@ -212,13 +212,13 @@ def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filenam
     """
     Generates source file by msg content
     """
-    send_msgs = list(os.path.join(msg_dir, msg + ".msg")
+    send_msgs = list([os.path.join(msg_dir, msg[0] + ".msg"), msg[1], msg[2]]
                      for msg in filename_send_msgs)
     receive_msgs = list(os.path.join(msg_dir, msg + ".msg")
                         for msg in filename_receive_msgs)
 
     alias_send_msgs = list([os.path.join(
-        msg_dir, msg[1] + ".msg"), msg[0]] for msg in filename_alias_send_msgs)
+        msg_dir, msg[1] + ".msg"), msg[0], msg[2], msg[3]] for msg in filename_alias_send_msgs)
 
     alias_receive_msgs = list([os.path.join(
         msg_dir, msg[1] + ".msg"), msg[0]] for msg in filename_alias_receive_msgs)
@@ -226,11 +226,11 @@ def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filenam
     em_globals_list = []
     if send_msgs:
         em_globals_list.extend([get_em_globals(
-            f, "", package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.SEND) for f in send_msgs])
+            f[0], "", package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.SEND, f[1], f[2]) for f in send_msgs])
 
     if alias_send_msgs:
         em_globals_list.extend([get_em_globals(
-            f[0], f[1], package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.SEND) for f in alias_send_msgs])
+            f[0], f[1], package, includepath, msgs, fastrtps_version, ros2_distro, MsgScope.SEND, f[2], f[3]) for f in alias_send_msgs])
 
     if receive_msgs:
         em_globals_list.extend([get_em_globals(
@@ -279,7 +279,7 @@ def generate_topic_file(filename_msg, msg_dir, alias, outputdir, templatedir, pa
     return generate_by_template(output_file, template_file, em_globals)
 
 
-def get_em_globals(filename_msg, alias, package, includepath, msgs, fastrtps_version, ros2_distro, scope):
+def get_em_globals(filename_msg, alias, package, includepath, msgs, fastrtps_version, ros2_distro, scope, poll=False, poll_interval=0.0):
     """
     Generates em globals dictionary
     """
@@ -309,7 +309,9 @@ def get_em_globals(filename_msg, alias, package, includepath, msgs, fastrtps_ver
         "package": package,
         "alias": alias,
         "fastrtps_version": fastrtps_version,
-        "ros2_distro": ros2_distro
+        "ros2_distro": ros2_distro,
+        "poll": poll,
+        "poll_interval": poll_interval
     }
 
     return em_globals

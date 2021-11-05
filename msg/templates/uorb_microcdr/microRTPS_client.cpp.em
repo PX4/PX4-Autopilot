@@ -18,10 +18,11 @@ import genmsg.msgs
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
 topic_names = [s.short_name for s in spec]
-send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND if not rtps_message_poll(ids, alias[idx] if alias[idx] else s.short_name)]
-send_topics_poll = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND if rtps_message_poll(ids, alias[idx] if alias[idx] else s.short_name)]
-send_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND if not rtps_message_poll(ids, alias[idx] if alias[idx] else s.short_name)]
-send_base_types_poll = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND if rtps_message_poll(ids, alias[idx] if alias[idx] else s.short_name)]
+send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND and not poll[idx]]
+send_topics_poll = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND and poll[idx]]
+send_topics_poll_interval = [poll_interval[idx] for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND and poll[idx]]
+send_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND and not poll[idx]]
+send_base_types_poll = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND and poll[idx]]
 
 recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
@@ -144,8 +145,8 @@ void *send(void *args)
 	if (subs_poll->@(topic)_sub < 0) {
 		PX4_ERR("Failed to subscribe (%i)", errno);
 	}
-@[	        if rtps_message_poll_interval(ids, topic)]@
-	orb_set_interval(subs_poll->@(topic)_sub, @(rtps_message_poll_interval(ids, topic)));
+@[	        if send_topics_poll_interval[idx] > 0.0 ]@
+	orb_set_interval(subs_poll->@(topic)_sub, @(send_topics_poll_interval[idx]));
 @[	        end if ]@
 @[         end for]@
 @[    end if]@
@@ -214,7 +215,7 @@ void *send(void *args)
 					orb_copy(ORB_ID(@(topic)), subs_poll->@(topic)_sub, &@(topic)_data);
 					serialize_@(send_base_types_poll[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
 
-					if (0 < (read = transport_node->write(static_cast<char>(@(rtps_message_id(ids, topic))), data_buffer, length))) {
+					if (0 < (read = transport_node->write(static_cast<char>(@(msgs[0].index(topic) + 1)), data_buffer, length))) {
 						data->total_sent += read;
 						tx_last_sec_read += read;
 						++data->sent;
