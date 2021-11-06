@@ -119,7 +119,6 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"6: unallocated",
 	"7: unallocated",
 	"AUTO_LANDENGFAIL",
-	"AUTO_LANDGPSFAIL",
 	"ACRO",
 	"11: UNUSED",
 	"DESCEND",
@@ -827,6 +826,8 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_OFFBOARD;
 		}
 
+		break;
+
 	default:
 		break;
 	}
@@ -868,13 +869,8 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 			} else if (status_flags.condition_local_altitude_valid) {
-				if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
-				} else {
-					// TODO: FW position controller doesn't run without condition_global_position_valid
-					status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
-				}
+				status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 			} else {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
@@ -932,21 +928,14 @@ void set_link_loss_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 			return;
 
 		} else {
-			if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				if (status_flags.condition_local_position_valid) {
-					status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-					return;
+			if (status_flags.condition_local_position_valid) {
+				status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
-				} else if (status_flags.condition_local_altitude_valid) {
-					status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-					return;
-				}
-
-			} else {
-				// TODO: FW position controller doesn't run without condition_global_position_valid
-				status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
-				return;
+			} else if (status_flags.condition_local_altitude_valid) {
+				status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 			}
+
+			return;
 		}
 
 	// FALLTHROUGH
@@ -1014,13 +1003,7 @@ void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &arm
 
 	// If none of the above worked, try to mitigate
 	if (status_flags.condition_local_altitude_valid) {
-		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-		} else {
-			// TODO: FW position controller doesn't run without condition_global_position_valid
-			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
-		}
+		status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 	} else {
 		status.nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
@@ -1093,13 +1076,7 @@ void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &
 	// If none of the above worked, try to mitigate
 	if (status_flags.condition_local_altitude_valid) {
 		//TODO: Add case for rover
-		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-		} else {
-			// TODO: FW position controller doesn't run without condition_global_position_valid
-			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
-		}
+		status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 	} else {
 		status.nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
@@ -1251,6 +1228,55 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 	case battery_status_s::BATTERY_WARNING_FAILED:
 		mavlink_log_emergency(mavlink_log_pub, "Battery failure detected\t");
 		events::send(events::ID("commander_bat_failure"), events::Log::Emergency, "Battery failure detected");
+		break;
+	}
+}
+
+void imbalanced_prop_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+			      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state,
+			      const imbalanced_propeller_action_t failsafe_action)
+{
+	static constexpr char failure_msg[] = "Imbalanced propeller detected";
+
+	switch (failsafe_action) {
+	case imbalanced_propeller_action_t::DISABLED:
+		break;
+
+	case imbalanced_propeller_action_t::WARNING:
+		mavlink_log_warning(mavlink_log_pub, "%s, landing advised", failure_msg);
+		break;
+
+	case imbalanced_propeller_action_t::RETURN:
+
+		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+			if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
+			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+
+				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
+				internal_state->timestamp = hrt_absolute_time();
+				mavlink_log_warning(mavlink_log_pub, "%s, executing RTL", failure_msg);
+			}
+
+		} else {
+			if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+				internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+				internal_state->timestamp = hrt_absolute_time();
+				mavlink_log_warning(mavlink_log_pub, "%s, can't execute RTL, landing instead", failure_msg);
+			}
+		}
+
+		break;
+
+	case imbalanced_propeller_action_t::LAND:
+		if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+		      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+			internal_state->main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+			internal_state->timestamp = hrt_absolute_time();
+			mavlink_log_warning(mavlink_log_pub, "%s, landing", failure_msg);
+		}
+
 		break;
 	}
 }

@@ -134,7 +134,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_manual_poll()
+FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 {
 	const bool is_tailsitter_transition = _is_tailsitter && _vehicle_status.in_transition_mode;
 	const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
@@ -156,7 +156,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_att_sp.pitch_body = constrain(_att_sp.pitch_body,
 								       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-					_att_sp.yaw_body = 0.0f;
+					_att_sp.yaw_body = yaw_body; // yaw is not controlled, so set setpoint to current yaw
 					_att_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
@@ -357,7 +357,7 @@ void FixedwingAttitudeControl::Run()
 		_vehicle_status_sub.update(&_vehicle_status);
 
 		vehicle_control_mode_poll();
-		vehicle_manual_poll();
+		vehicle_manual_poll(euler_angles.psi());
 		vehicle_land_detected_poll();
 
 		// the position controller will not emit attitude setpoints in some modes

@@ -64,10 +64,10 @@ public:
 	~RTL() = default;
 
 	enum RTLType {
-		RTL_HOME = 0,
-		RTL_LAND,
-		RTL_MISSION,
-		RTL_CLOSEST,
+		RTL_TYPE_HOME_OR_RALLY = 0,
+		RTL_TYPE_MISSION_LANDING,
+		RTL_TYPE_MISSION_LANDING_REVERSED,
+		RTL_TYPE_CLOSEST,
 	};
 
 	enum RTLDestinationType {
@@ -91,29 +91,22 @@ public:
 
 	void set_return_alt_min(bool min) { _rtl_alt_min = min; }
 
-	int rtl_type() const { return _param_rtl_type.get(); }
-
-	int rtl_destination();
+	int get_rtl_type() const { return _param_rtl_type.get(); }
 
 	void setClimbAndReturnDone(bool done) { _climb_and_return_done = done; }
 
 	bool getClimbAndReturnDone() { return _climb_and_return_done; }
 
-	bool denyMissionLanding() { return _deny_mission_landing; }
-
 	void get_rtl_xy_z_speed(float &xy, float &z);
 	matrix::Vector2f get_wind();
+
+	bool getDestinationTypeMissionLanding() { return _destination.type == RTL_DESTINATION_MISSION_LANDING; }
+
 private:
-	/**
-	 * Set the RTL item
-	 */
+
 	void set_rtl_item();
 
-	/**
-	 * Move to next RTL item
-	 */
 	void advance_rtl();
-
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
 
@@ -157,7 +150,6 @@ private:
 	float _rtl_loiter_rad{50.0f};		// radius at which a fixed wing would loiter while descending
 
 	bool _climb_and_return_done{false};	// this flag is set to true if RTL is active and we are past the climb state and return state
-	bool _deny_mission_landing{false};
 	bool _rtl_alt_min{false};
 
 	DEFINE_PARAMETERS(

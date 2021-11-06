@@ -40,7 +40,7 @@
 #pragma once
 
 #include "FlightTaskManualAltitude.hpp"
-#include "ManualVelocitySmoothingZ.hpp"
+#include <motion_planning/ManualVelocitySmoothingZ.hpp>
 
 class FlightTaskManualAltitudeSmoothVel : public FlightTaskManualAltitude
 {
