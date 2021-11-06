@@ -135,9 +135,9 @@ if (os.path.exists('src/lib/ecl/.git')):
 
 
 # Mavlink
-if (os.path.exists('mavlink/include/mavlink/v2.0/.git')):
+if (os.path.exists('src/modules/mavlink/mavlink/.git')):
     mavlink_git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
-                                      cwd='mavlink/include/mavlink/v2.0', stderr=subprocess.STDOUT).decode('utf-8').strip()
+                                      cwd='src/modules/mavlink/mavlink', stderr=subprocess.STDOUT).decode('utf-8').strip()
     mavlink_git_version_short = mavlink_git_version[0:16]
 
     header += f"""

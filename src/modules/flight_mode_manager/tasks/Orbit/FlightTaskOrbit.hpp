@@ -46,26 +46,20 @@
 #include <uORB/topics/orbit_status.h>
 #include "StraightLine.hpp"
 #include <lib/slew_rate/SlewRateYaw.hpp>
+#include <lib/motion_planning/PositionSmoothing.hpp>
+#include <lib/motion_planning/VelocitySmoothing.hpp>
 
-class FlightTaskOrbit : public FlightTaskManualAltitudeSmoothVel
+
+class FlightTaskOrbit : public FlightTaskManualAltitude
 {
 public:
+
 	FlightTaskOrbit();
 	virtual ~FlightTaskOrbit() = default;
 
 	bool applyCommandParameters(const vehicle_command_s &command) override;
 	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	bool update() override;
-
-	/**
-	 * Check the feasibility of orbit parameters with respect to
-	 * centripetal acceleration a = v^2 / r
-	 * @param r desired radius
-	 * @param v desired velocity
-	 * @param a maximal allowed acceleration
-	 * @return true on success, false if value not accepted
-	 */
-	bool checkAcceleration(float r, float v, float a);
 
 protected:
 	/**
@@ -74,40 +68,61 @@ protected:
 	 */
 	bool sendTelemetry();
 
-	/**
-	 * Change the radius of the circle.
-	 * @param r desired new radius
-	 * @return true on success, false if value not accepted
-	 */
-	bool setRadius(const float r);
-
-	/**
-	 * Change the velocity of the vehicle on the circle.
-	 * @param v desired new velocity
-	 * @return true on success, false if value not accepted
-	 */
-	bool setVelocity(const float v);
-
 private:
-	/** generates setpoints to smoothly reach the closest point on the circle when starting from far away */
-	void generate_circle_approach_setpoints(const matrix::Vector2f &center_to_position);
-	/** generates xy setpoints to make the vehicle orbit */
-	void generate_circle_setpoints(const matrix::Vector2f &center_to_position);
-	/** generates yaw setpoints to control the vehicle's heading */
-	void generate_circle_yaw_setpoints(const matrix::Vector2f &center_to_position);
+	/* TODO: Should be controlled by params */
+	static constexpr float _radius_min = 1.f;
+	static constexpr float _radius_max = 100.f;
+	static constexpr float _velocity_max = 10.f;
+	static constexpr float _acceleration_max = 2.f;
+	static constexpr float _horizontal_acceptance_radius = 2.f;
 
-	float _r = 0.f; /**< radius with which to orbit the target */
-	float _v = 0.f; /**< clockwise tangential velocity for orbiting in m/s */
-	matrix::Vector2f _center; /**< local frame coordinates of the center point */
+	/**
+	 * Check the feasibility of orbit parameters with respect to
+	 * centripetal acceleration a = v^2 / r
+	 * @param radius desired radius
+	 * @param velocity desired velocity
+	 * @param acceleration maximal allowed acceleration
+	 * @return true on success, false if value not accepted
+	 */
+	bool _accelerationValid(float radius, float velocity, float acceleration) const;
+
+	/**
+	 * Checks if desired orbit params are feasible. If not,
+	 * params are modified such that it is possible
+	 * returns a feasible radius.
+	 * @param radius The radius of the orbit. May get modified
+	 * @param velocity The velocity of the orbit. May get modified
+	 * @return Feasible orbit params
+	 */
+	void _sanitizeParams(float &radius, float &velocity) const;
+
+	/**
+	 * @brief updates the trajectory boundaries from props
+	 */
+	void _updateTrajectoryBoundaries();
+
+	/**
+	 * @brief Checks if the current position is on the circle or not
+	 * Uses the params
+	 */
+	bool _is_position_on_circle() const;
+
+	/** generates setpoints to smoothly reach the closest point on the circle when starting from far away */
+	void _generate_circle_approach_setpoints();
+	/** generates xy setpoints to make the vehicle orbit */
+	void _generate_circle_setpoints();
+	/** generates yaw setpoints to control the vehicle's heading */
+	void _generate_circle_yaw_setpoints();
+
+	float _orbit_velocity{};
+	float _orbit_radius{};
+	matrix::Vector3f _center; /**< local frame coordinates of the center point */
 
 	bool _in_circle_approach = false;
-	StraightLine _circle_approach_line;
-
-	// TODO: create/use parameters for limits
-	const float _radius_min = 1.f;
-	const float _radius_max = 100.f;
-	const float _velocity_max = 10.f;
-	const float _acceleration_max = 2.f;
+	Vector3f _circle_approach_start_position;
+	PositionSmoothing _position_smoothing;
+	VelocitySmoothing _altitude_velocity_smoothing;
+	Vector3f _unsmoothed_velocity_setpoint;
 
 	/** yaw behaviour during the orbit flight according to MAVLink's ORBIT_YAW_BEHAVIOUR enum */
 	int _yaw_behaviour = orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER;
@@ -118,6 +133,14 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise, /**< cruise speed for circle approach */
-		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max
+		(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
+		(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
+		_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
+		(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
+		(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
+		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
 	)
 };

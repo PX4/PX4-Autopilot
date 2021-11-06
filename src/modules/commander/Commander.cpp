@@ -2607,11 +2607,12 @@ Commander::run()
 
 		/* Check for failure detector status */
 		if (_failure_detector.update(_status, _vehicle_control_mode)) {
-			_status.failure_detector_status = _failure_detector.getStatus();
+			_status.failure_detector_status = _failure_detector.getStatus().value;
+			auto fd_status_flags = _failure_detector.getStatusFlags();
 			_status_changed = true;
 
 			if (_armed.armed) {
-				if (_status.failure_detector_status & vehicle_status_s::FAILURE_ARM_ESC) {
+				if (fd_status_flags.arm_escs) {
 					// 500ms is the PWM spoolup time. Within this timeframe controllers are not affecting actuator_outputs
 					if (hrt_elapsed_time(&_status.armed_time) < 500_ms) {
 						disarm(arm_disarm_reason_t::failure_detector);
@@ -2620,8 +2621,7 @@ Commander::run()
 					}
 				}
 
-				if (_status.failure_detector_status & (vehicle_status_s::FAILURE_ROLL | vehicle_status_s::FAILURE_PITCH |
-								       vehicle_status_s::FAILURE_ALT | vehicle_status_s::FAILURE_EXT)) {
+				if (fd_status_flags.roll || fd_status_flags.pitch || fd_status_flags.alt || fd_status_flags.ext) {
 					const bool is_right_after_takeoff = hrt_elapsed_time(&_status.takeoff_time) < (1_s * _param_com_lkdown_tko.get());
 
 					if (is_right_after_takeoff && !_lockdown_triggered) {
@@ -2659,6 +2659,14 @@ Commander::run()
 							     "Critical failure detected: terminate flight");
 						send_parachute_command();
 					}
+				}
+
+				if (fd_status_flags.imbalanced_prop
+				    && !_imbalanced_propeller_check_triggered) {
+					_status_changed = true;
+					_imbalanced_propeller_check_triggered = true;
+					imbalanced_prop_failsafe(&_mavlink_log_pub, _status, _status_flags, &_internal_state,
+								 (imbalanced_propeller_action_t)_param_com_imb_prop_act.get());
 				}
 			}
 		}
@@ -2729,6 +2737,7 @@ Commander::run()
 		if (!_armed.armed) {
 			/* Reset the flag if disarmed. */
 			_have_taken_off_since_arming = false;
+			_imbalanced_propeller_check_triggered = false;
 		}
 
 		/* now set navigation state according to failsafe and main state */
@@ -2767,7 +2776,7 @@ Commander::run()
 			_failsafe_old = _status.failsafe;
 		}
 
-		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags) at 2 Hz or immediately when changed */
+		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed */
 		if (hrt_elapsed_time(&_status.timestamp) >= 500_ms || _status_changed || nav_state_changed) {
 
 			update_control_mode();
@@ -2830,6 +2839,20 @@ Commander::run()
 			/* publish vehicle_status_flags */
 			_status_flags.timestamp = hrt_absolute_time();
 			_vehicle_status_flags_pub.publish(_status_flags);
+
+			/* publish failure_detector data */
+			failure_detector_status_s fd_status{};
+			fd_status.timestamp = hrt_absolute_time();
+			fd_status.fd_roll = _failure_detector.getStatusFlags().roll;
+			fd_status.fd_pitch = _failure_detector.getStatusFlags().pitch;
+			fd_status.fd_alt = _failure_detector.getStatusFlags().alt;
+			fd_status.fd_ext = _failure_detector.getStatusFlags().ext;
+			fd_status.fd_arm_escs = _failure_detector.getStatusFlags().arm_escs;
+			fd_status.fd_high_wind = _failure_detector.getStatusFlags().high_wind;
+			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
+			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
+			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
+			_failure_detector_status_pub.publish(fd_status);
 		}
 
 		/* play arming and battery warning tunes */
@@ -3304,8 +3327,8 @@ Commander::update_control_mode()
 		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		_vehicle_control_mode.flag_control_altitude_enabled = true;
 		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
-		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_position_enabled = true;
+		_vehicle_control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
@@ -3321,14 +3344,8 @@ Commander::update_control_mode()
 		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		_vehicle_control_mode.flag_control_altitude_enabled = true;
 		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
-		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
-		_vehicle_control_mode.flag_control_rates_enabled = true;
-		_vehicle_control_mode.flag_control_attitude_enabled = true;
-		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
+		_vehicle_control_mode.flag_control_position_enabled = true;
+		_vehicle_control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
@@ -3337,7 +3354,7 @@ Commander::update_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-		_vehicle_control_mode.flag_control_auto_enabled = false;
+		_vehicle_control_mode.flag_control_auto_enabled = true;
 		_vehicle_control_mode.flag_control_rates_enabled = true;
 		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
@@ -3390,8 +3407,8 @@ Commander::update_control_mode()
 		_vehicle_control_mode.flag_control_attitude_enabled = true;
 		_vehicle_control_mode.flag_control_altitude_enabled = true;
 		_vehicle_control_mode.flag_control_climb_rate_enabled = true;
-		_vehicle_control_mode.flag_control_position_enabled = !_status.in_transition_mode;
-		_vehicle_control_mode.flag_control_velocity_enabled = !_status.in_transition_mode;
+		_vehicle_control_mode.flag_control_position_enabled = true;
+		_vehicle_control_mode.flag_control_velocity_enabled = true;
 		break;
 
 	default:

@@ -409,7 +409,6 @@ OSDatxxxx::get_flight_mode(uint8_t nav_state)
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 		flight_mode = "FAILURE";
 		break;
 

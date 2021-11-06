@@ -40,8 +40,8 @@
 #pragma once
 
 #include "FlightTaskManualPosition.hpp"
-#include "ManualVelocitySmoothingXY.hpp"
-#include "ManualVelocitySmoothingZ.hpp"
+#include <motion_planning/ManualVelocitySmoothingXY.hpp>
+#include <motion_planning/ManualVelocitySmoothingZ.hpp>
 
 using matrix::Vector2f;
 using matrix::Vector3f;

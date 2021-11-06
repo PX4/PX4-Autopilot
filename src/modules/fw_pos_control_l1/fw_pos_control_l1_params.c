@@ -825,3 +825,32 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_R_SP, 3.0f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SINK_R_SP, 2.0f);
+
+/**
+ * GPS failure loiter time
+ *
+ * The time in seconds the system should do open loop loiter and wait for GPS recovery
+ * before it starts descending. Set to 0 to disable. Roll angle is set to FW_GPSF_R.
+ * Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
+ *
+ * @unit s
+ * @min 0
+ * @max 3600
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
+
+/**
+ * GPS failure fixed roll angle
+ *
+ * Roll in degrees during the loiter after the vehicle has lost GPS in an auto mode (e.g. mission or loiter).
+ * Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 30.0
+ * @decimal 1
+ * @increment 0.5
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);

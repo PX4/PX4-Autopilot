@@ -221,3 +221,8 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_fmuk66-v3_default
+    raspberrypi_pico_default:
+      short: raspberrypi_pico
+      buildType: MinSizeRel
+      settings:
+        CONFIG: raspberrypi_pico_default

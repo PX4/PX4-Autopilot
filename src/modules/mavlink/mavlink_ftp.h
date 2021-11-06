@@ -46,7 +46,7 @@
 #ifndef MAVLINK_FTP_UNIT_TEST
 #include "mavlink_bridge_header.h"
 #else
-#include <v2.0/standard/mavlink.h>
+#include <mavlink.h>
 #endif
 
 class MavlinkFtpTest;

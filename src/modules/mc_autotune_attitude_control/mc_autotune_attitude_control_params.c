@@ -40,6 +40,14 @@
  */
 
 /**
+ * Multicopter autotune module enable
+ *
+ * @boolean
+ * @group Autotune
+ */
+PARAM_DEFINE_INT32(MC_AT_EN, 0);
+
+/**
  * Start the autotuning sequence
  *
  * WARNING: this will inject steps to the rate controller
