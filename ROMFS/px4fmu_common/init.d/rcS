@@ -369,34 +369,32 @@ else
 	#
 	if param greater SYS_HITL 0
 	then
-		if param compare SYS_HITL 3
-		then
-			. ${R}etc/init.d/rc.sensors
-			commander start
-		else
-			set OUTPUT_MODE hil
-			sensors start -h
-			commander start -h
-			# disable GPS
-			param set GPS_1_CONFIG 0
+		set OUTPUT_MODE hil
+		sensors start -h
+		commander start -h
+		# disable GPS
+		param set GPS_1_CONFIG 0
 
-			# start the simulator in hardware if needed
-			if param compare SYS_HITL 2
-			then
-				sih start
-			fi
+		# start the simulator in hardware if needed
+		if param compare SYS_HITL 2
+		then
+			sih start
 		fi
+
 	else
 		#
 		# board sensors: rc.sensors
 		#
-		set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
-		if [ -f $BOARD_RC_SENSORS ]
+		if param compare -s SYS_BOARD_SENS 1
 		then
-			echo "Board sensors: ${BOARD_RC_SENSORS}"
-			. $BOARD_RC_SENSORS
+			set BOARD_RC_SENSORS ${R}etc/init.d/rc.board_sensors
+			if [ -f $BOARD_RC_SENSORS ]
+			then
+				echo "Board sensors: ${BOARD_RC_SENSORS}"
+				. $BOARD_RC_SENSORS
+			fi
+			unset BOARD_RC_SENSORS
 		fi
-		unset BOARD_RC_SENSORS
 
 		. ${R}etc/init.d/rc.sensors
 
