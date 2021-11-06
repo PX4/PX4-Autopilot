@@ -21,6 +21,7 @@ exec find boards msg src platforms test \
     -path src/lib/parameters/uthash -prune -o \
     -path src/modules/ekf2/EKF -prune -o \
     -path src/modules/gyro_fft/CMSIS_5 -prune -o \
+    -path src/modules/mavlink/mavlink -prune -o \
     -path src/modules/micrortps_bridge/micro-CDR -prune -o \
     -path src/modules/micrortps_bridge/microRTPS_client -prune -o \
     -path test/mavsdk_tests/catch2 -prune -o \
