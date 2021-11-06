@@ -105,7 +105,9 @@ int detect(int bus)
 
 				// if we have already retried once, or we are going to give up, then reset the bus
 				if ((retry_count >= 1) || (retry_count >= retries)) {
+#if defined(CONFIG_I2C_RESET)
 					I2C_RESET(i2c_dev);
+#endif // CONFIG_I2C_RESET
 				}
 
 			} while (retry_count++ < retries);

@@ -49,6 +49,7 @@
 // publications
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/test_motor.h>
@@ -211,6 +212,7 @@ private:
 		(ParamInt<px4::params::COM_POS_FS_GAIN>) _param_com_pos_fs_gain,
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
+		(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _param_com_disarm_land,
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
 
@@ -322,6 +324,7 @@ private:
 	FailureDetector	_failure_detector;
 	bool		_flight_termination_triggered{false};
 	bool		_lockdown_triggered{false};
+	bool            _imbalanced_propeller_check_triggered{false};
 
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
@@ -431,6 +434,7 @@ private:
 	// Publications
 	uORB::Publication<actuator_armed_s>			_armed_pub{ORB_ID(actuator_armed)};
 	uORB::Publication<commander_state_s>			_commander_state_pub{ORB_ID(commander_state)};
+	uORB::Publication<failure_detector_status_s>		_failure_detector_status_pub{ORB_ID(failure_detector_status)};
 	uORB::Publication<test_motor_s>				_test_motor_pub{ORB_ID(test_motor)};
 	uORB::Publication<vehicle_control_mode_s>		_control_mode_pub{ORB_ID(vehicle_control_mode)};
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};

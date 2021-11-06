@@ -20,6 +20,7 @@ float32 gyro_coning_vibration   # Level of coning vibration in the IMU delta ang
 
 float32[3] mean_accel           # average accelerometer readings since last publication
 float32[3] mean_gyro            # average gyroscope readings since last publication
+float32[3] var_accel            # average accelerometer variance since last publication
 
 float32 temperature_accel
 float32 temperature_gyro

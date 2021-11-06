@@ -73,7 +73,11 @@ mc_rate_control start
 # Start Multicopter Attitude Controller.
 #
 mc_att_control start
-mc_autotune_attitude_control start
+
+if param greater -s MC_AT_EN 0
+then
+	mc_autotune_attitude_control start
+fi
 
 #
 # Start Multicopter Position Controller.

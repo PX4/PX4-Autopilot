@@ -43,6 +43,12 @@
 #include <matrix/math.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
+#include <uORB/Publication.hpp>
+#include <uORB/topics/tecs_status.h>
+#include <uORB/uORB.h>
+#include <motion_planning/VelocitySmoothing.hpp>
+#include <motion_planning/ManualVelocitySmoothingZ.hpp>
+
 class TECS
 {
 public:
@@ -197,6 +203,11 @@ public:
 
 private:
 
+	static constexpr float _jerk_max =
+		1000.0f;	// maximum jerk for creating height rate trajectories, we want infinite jerk so set a high value
+
+	uORB::Publication<tecs_status_s>	_tecs_status_pub{ORB_ID(tecs_status)};	///< TECS status publication
+
 	enum ECL_TECS_MODE _tecs_mode {ECL_TECS_MODE_NORMAL};
 
 	// timestamps
@@ -312,14 +323,8 @@ private:
 	/**
 	 * Calculate desired height rate from altitude demand
 	 */
-	void updateHeightRateSetpoint(float alt_sp_amsl_m, float target_climbrate_m_s, float target_sinkrate_m_s,
-				      float alt_amsl);
-
-
-	/**
-	 * Update the desired height rate setpoint
-	 */
-	void _update_height_rate_setpoint(float hgt_rate_sp);
+	void runAltitudeControllerSmoothVelocity(float alt_sp_amsl_m, float target_climbrate_m_s, float target_sinkrate_m_s,
+			float alt_amsl);
 
 	/**
 	 * Detect if the system is not capable of maintaining airspeed
@@ -346,6 +351,11 @@ private:
 	 */
 	void _update_pitch_setpoint();
 
+	void _updateTrajectoryGenerationConstraints();
+
+	void _calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rate_sp, float target_climbrate,
+					  float target_sinkrate, float altitude_amsl);
+
 	/**
 	 * Initialize the controller
 	 */
@@ -362,5 +372,10 @@ private:
 	AlphaFilter<float> _STE_rate_error_filter;
 
 	AlphaFilter<float> _TAS_rate_filter;
+
+	VelocitySmoothing
+	_alt_control_traj_generator;	// generates height rate and altitude setpoint trajectory when altitude is commanded
+	ManualVelocitySmoothingZ
+	_velocity_control_traj_generator;	// generates height rate and altitude setpoint trajectory when height rate is commanded
 
 };

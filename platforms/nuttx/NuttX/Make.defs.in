@@ -116,6 +116,11 @@ FLAGS = $(MAXOPTIMIZATION) -g2 \
 
 FLAGS += $(EXTRAFLAGS)
 
+# force alignment
+ifeq ($(CONFIG_BOARD_FORCE_ALIGNMENT),y)
+	FLAGS += -mno-unaligned-access
+endif
+
 # enable precise stack overflow tracking
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 	FLAGS += -finstrument-functions -ffixed-r10

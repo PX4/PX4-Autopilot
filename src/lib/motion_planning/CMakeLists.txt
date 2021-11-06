@@ -34,6 +34,8 @@
 px4_add_library(motion_planning
 	VelocitySmoothing.cpp
 	PositionSmoothing.cpp
+	ManualVelocitySmoothingXY.cpp
+	ManualVelocitySmoothingZ.cpp
 )
 
 target_include_directories(motion_planning PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
