@@ -290,6 +290,11 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 		_manual_control_setpoint_altitude = -(math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) * 2.f - 1.f);
 		_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.x, -1.0f, 1.0f) / 2.f + 0.5f;
 	}
+
+	// in airspeed mode the airspeed setpoint is taken from the pitch stick
+	if (!_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_airspeed_enabled) {
+		_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.x, -1.0f, 1.0f) / 2.f + 0.5f;
+	}
 }
 
 
@@ -1123,6 +1128,33 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const Vect
 
 
 		curr_wp = prev_wp = _transition_waypoint;
+
+	} else if (_control_mode.flag_control_airspeed_enabled) {
+		/* AIRSPEED CONTROL: pitch stick moves airspeed setpoint, throttle stick sets throttle */
+
+		_control_mode_current = FW_POSCTRL_MODE_AIRSPEED;
+
+		// if we assume that user is taking off then help by demanding altitude setpoint well above ground
+		// and set limit to pitch angle to prevent steering into ground
+		// this will only affect planes and not VTOL
+		float pitch_limit_min = _param_fw_p_lim_min.get();
+		// do_takeoff_help(&_hold_alt, &pitch_limit_min);
+
+		_tecs.set_speed_weight(2.0f);
+
+		tecs_update_pitch_throttle(now, _current_altitude,
+					   get_demanded_airspeed(),
+					   radians(_param_fw_p_lim_min.get()),
+					   radians(_param_fw_p_lim_max.get()),
+					   0.0f,
+					   1.0f,
+					   _param_fw_thr_cruise.get(),
+					   false,
+					   pitch_limit_min,
+					   tecs_status_s::TECS_MODE_NORMAL);
+
+		_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+		_att_sp.yaw_body = 0;
 
 	} else {
 		/* current waypoint (the one currently heading for) */
@@ -2066,7 +2098,8 @@ FixedwingPositionControl::Run()
 			    _control_mode.flag_control_velocity_enabled ||
 			    _control_mode.flag_control_acceleration_enabled ||
 			    _control_mode.flag_control_altitude_enabled ||
-			    _control_mode.flag_control_climb_rate_enabled) {
+			    _control_mode.flag_control_climb_rate_enabled ||
+			    _control_mode.flag_control_airspeed_enabled) {
 
 				const Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
 				q.copyTo(_att_sp.q_d);
@@ -2228,10 +2261,11 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				   (_control_mode.flag_control_auto_enabled ||
 				    _control_mode.flag_control_velocity_enabled ||
 				    _control_mode.flag_control_altitude_enabled ||
-				    _control_mode.flag_control_climb_rate_enabled));
+				    _control_mode.flag_control_climb_rate_enabled ||
+				    _control_mode.flag_control_airspeed_enabled));
 
 	/* update TECS vehicle state estimates */
-	_tecs.update_vehicle_state_estimates(_airspeed, _body_acceleration(0), (_local_pos.timestamp > 0), in_air_alt_control,
+	_tecs.update_vehicle_state_estimates(_airspeed, _body_acceleration(0), (_local_pos.timestamp > 0), in_air_use_tecs,
 					     _current_altitude, _local_pos.vz);
 
 	/* scale throttle cruise by baro pressure */
