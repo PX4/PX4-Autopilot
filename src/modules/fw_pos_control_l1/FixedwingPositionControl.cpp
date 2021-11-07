@@ -787,6 +787,10 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		control_auto_position(now, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
 
+	case position_setpoint_s::SETPOINT_TYPE_VELOCITY:
+		control_auto_velocity(now, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
+		break;
+
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
 		control_auto_loiter(now, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
 		break;
@@ -926,6 +930,10 @@ FixedwingPositionControl::control_auto_descend(const hrt_abstime &now)
 uint8_t
 FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr)
 {
+	if (!_control_mode.flag_control_position_enabled && _control_mode.flag_control_velocity_enabled) {
+		return position_setpoint_s::SETPOINT_TYPE_VELOCITY;
+	}
+
 	Vector2d curr_wp{0, 0};
 
 	/* current waypoint (the one currently heading for) */
@@ -1094,6 +1102,67 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const Ve
 				   tecs_fw_mission_throttle,
 				   false,
 				   radians(_param_fw_p_lim_min.get()));
+}
+
+void
+FixedwingPositionControl::control_auto_velocity(const hrt_abstime &now, const Vector2d &curr_pos,
+		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
+{
+	float mission_airspeed = _param_fw_airspd_trim.get();
+
+	if (PX4_ISFINITE(pos_sp_curr.cruising_speed) &&
+	    pos_sp_curr.cruising_speed > 0.1f) {
+
+		mission_airspeed = pos_sp_curr.cruising_speed;
+	}
+
+	float tecs_fw_thr_min;
+	float tecs_fw_thr_max;
+	float tecs_fw_mission_throttle;
+
+	float mission_throttle = _param_fw_thr_cruise.get();
+
+	if (PX4_ISFINITE(pos_sp_curr.cruising_throttle) &&
+	    pos_sp_curr.cruising_throttle >= 0.0f) {
+		mission_throttle = pos_sp_curr.cruising_throttle;
+	}
+
+	if (mission_throttle < _param_fw_thr_min.get()) {
+		/* enable gliding with this waypoint */
+		_tecs.set_speed_weight(2.0f);
+		tecs_fw_thr_min = 0.0;
+		tecs_fw_thr_max = 0.0;
+		tecs_fw_mission_throttle = 0.0;
+
+	} else {
+		tecs_fw_thr_min = _param_fw_thr_min.get();
+		tecs_fw_thr_max = _param_fw_thr_max.get();
+		tecs_fw_mission_throttle = mission_throttle;
+	}
+
+	// waypoint is a plain navigation waypoint
+	float position_sp_alt = pos_sp_curr.alt;
+
+
+	//Offboard velocity control
+	Vector2f target_velocity{pos_sp_curr.vx, pos_sp_curr.vy};
+	_target_bearing = wrap_pi(atan2f(target_velocity(1), target_velocity(0)));
+	_l1_control.navigate_heading(_target_bearing, _yaw, get_nav_speed_2d(target_velocity));
+
+	_att_sp.roll_body = _l1_control.get_roll_setpoint();
+	_att_sp.yaw_body = _yaw;
+
+	tecs_update_pitch_throttle(now, position_sp_alt,
+				   calculate_target_airspeed(mission_airspeed, ground_speed),
+				   radians(_param_fw_p_lim_min.get()),
+				   radians(_param_fw_p_lim_max.get()),
+				   tecs_fw_thr_min,
+				   tecs_fw_thr_max,
+				   tecs_fw_mission_throttle,
+				   false,
+				   radians(_param_fw_p_lim_min.get()),
+				   tecs_status_s::TECS_MODE_NORMAL,
+				   pos_sp_curr.vz);
 }
 
 void
@@ -1950,6 +2019,21 @@ FixedwingPositionControl::Run()
 						_pos_sp_triplet.current.cruising_speed = NAN; // ignored
 						_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
 					}
+
+				} else if (PX4_ISFINITE(trajectory_setpoint.vx) && PX4_ISFINITE(trajectory_setpoint.vx)
+					   && PX4_ISFINITE(trajectory_setpoint.vz)) {
+					_pos_sp_triplet = {}; // clear any existing
+
+					_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
+					_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
+					_pos_sp_triplet.current.valid = true;
+					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+					_pos_sp_triplet.current.vx = trajectory_setpoint.vx;
+					_pos_sp_triplet.current.vy = trajectory_setpoint.vy;
+					_pos_sp_triplet.current.vz = trajectory_setpoint.vz;
+					_pos_sp_triplet.current.alt = NAN;
+					_pos_sp_triplet.current.cruising_speed = NAN; // ignored
+					_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
 
 				} else {
 					mavlink_log_critical(&_mavlink_log_pub, "Invalid offboard setpoint\t");
