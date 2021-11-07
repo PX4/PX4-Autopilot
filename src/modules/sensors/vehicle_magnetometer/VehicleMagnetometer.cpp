@@ -160,8 +160,10 @@ void VehicleMagnetometer::MagCalibrationUpdate()
 				const Vector3f bias_variance{estimator_sensor_bias.mag_bias_variance};
 
 				const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s)
-						   && (estimator_sensor_bias.mag_device_id != 0) && estimator_sensor_bias.mag_bias_valid
-						   && (bias_variance.min() > min_var_allowed) && (bias_variance.max() < max_var_allowed);
+						   && (estimator_sensor_bias.mag_device_id != 0) &&
+						   estimator_sensor_bias.mag_bias_valid &&
+						   estimator_sensor_bias.mag_bias_stable &&
+						   (bias_variance.min() > min_var_allowed) && (bias_variance.max() < max_var_allowed);
 
 				if (valid) {
 					// find corresponding mag calibration

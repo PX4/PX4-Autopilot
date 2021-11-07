@@ -88,6 +88,12 @@ public:
 		return (_rotation.I() * corrected_data) + _thermal_offset + _offset;
 	}
 
+	// Compute sensor offset from bias (board frame)
+	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
+	{
+		return (_rotation.I() * bias) + _thermal_offset + _offset;
+	}
+
 	bool ParametersSave();
 	void ParametersUpdate();
 
