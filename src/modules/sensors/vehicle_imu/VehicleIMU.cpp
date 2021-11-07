@@ -765,11 +765,11 @@ void VehicleIMU::SensorCalibrationUpdate()
 
 			if (_accel_calibration.set_offset(accel_cal_offset)) {
 
-				PX4_INFO("(%" PRIu32 ") bias=[%.2f %.2f %.2f] offset:[%.2f %.2f %.2f]->[%.2f %.2f %.2f]",
-					 _accel_calibration.device_id(),
-					 (double)bias_estimate(0), (double)bias_estimate(1), (double)bias_estimate(2),
+				PX4_INFO("accel %d (%" PRIu32 ") offset committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f] (full [%.2f %.2f %.2f])",
+					 _instance, _accel_calibration.device_id(),
 					 (double)accel_cal_orig(0), (double)accel_cal_orig(1), (double)accel_cal_orig(2),
-					 (double)accel_cal_offset(0), (double)accel_cal_offset(1), (double)accel_cal_offset(2));
+					 (double)accel_cal_offset(0), (double)accel_cal_offset(1), (double)accel_cal_offset(2),
+					 (double)bias_estimate(0), (double)bias_estimate(1), (double)bias_estimate(2));
 
 				_accel_calibration.ParametersSave();
 			}
@@ -820,11 +820,11 @@ void VehicleIMU::SensorCalibrationUpdate()
 
 			if (_gyro_calibration.set_offset(gyro_cal_offset)) {
 
-				PX4_INFO("(%" PRIu32 ") bias=[%.2f %.2f %.2f] offset:[%.2f %.2f %.2f]->[%.2f %.2f %.2f]",
-					 _gyro_calibration.device_id(),
-					 (double)bias_estimate(0), (double)bias_estimate(1), (double)bias_estimate(2),
+				PX4_INFO("gyro %d (%" PRIu32 ") offset committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f] (full [%.2f %.2f %.2f])",
+					 _instance, _gyro_calibration.device_id(),
 					 (double)gyro_cal_orig(0), (double)gyro_cal_orig(1), (double)gyro_cal_orig(2),
-					 (double)gyro_cal_offset(0), (double)gyro_cal_offset(1), (double)gyro_cal_offset(2));
+					 (double)gyro_cal_offset(0), (double)gyro_cal_offset(1), (double)gyro_cal_offset(2),
+					 (double)bias_estimate(0), (double)bias_estimate(1), (double)bias_estimate(2));
 
 				_gyro_calibration.ParametersSave();
 			}

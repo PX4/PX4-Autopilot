@@ -347,7 +347,7 @@ void EKF2::Run()
 		} else {
 			bool reset_actioned = false;
 
-			if ((imu.accel_calibration_count > _accel_calibration_count)
+			if ((imu.accel_calibration_count != _accel_calibration_count)
 			    || (imu.accel_device_id != _device_id_accel)) {
 
 				PX4_DEBUG("%d - resetting accelerometer bias", _instance);
@@ -362,7 +362,7 @@ void EKF2::Run()
 				reset_actioned = true;
 			}
 
-			if ((imu.gyro_calibration_count > _gyro_calibration_count)
+			if ((imu.gyro_calibration_count != _gyro_calibration_count)
 			    || (imu.gyro_device_id != _device_id_gyro)) {
 
 				PX4_DEBUG("%d - resetting rate gyro bias", _instance);
@@ -410,14 +410,26 @@ void EKF2::Run()
 
 			if (_sensor_selection_sub.copy(&sensor_selection)) {
 				if (_device_id_accel != sensor_selection.accel_device_id) {
-					_ekf.resetAccelBias();
+
 					_device_id_accel = sensor_selection.accel_device_id;
+
+					_ekf.resetAccelBias();
+
+					// reset bias learning
+					_accel_cal = {};
+
 					SelectImuStatus();
 				}
 
 				if (_device_id_gyro != sensor_selection.gyro_device_id) {
-					_ekf.resetGyroBias();
+
 					_device_id_gyro = sensor_selection.gyro_device_id;
+
+					_ekf.resetGyroBias();
+
+					// reset bias learning
+					_gyro_cal = {};
+
 					SelectImuStatus();
 				}
 			}
