@@ -1271,8 +1271,8 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		//bool ignore_setpoints = bool(actuator_target.group_mlx != 2);
 
 		offboard_control_mode_s offboard_control_mode{};
-		offboard_control_mode.timestamp = hrt_absolute_time();
 		offboard_control_mode.actuator = true;
+		offboard_control_mode.timestamp = hrt_absolute_time();
 		_offboard_control_mode_pub.publish(offboard_control_mode);
 
 		vehicle_status_s vehicle_status{};
