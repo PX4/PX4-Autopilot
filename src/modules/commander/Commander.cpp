@@ -3903,12 +3903,13 @@ Commander::offboard_control_update()
 			    old.velocity != ocm.velocity ||
 			    old.acceleration != ocm.acceleration ||
 			    old.attitude != ocm.attitude ||
-			    old.body_rate != ocm.body_rate) {
+			    old.body_rate != ocm.body_rate ||
+			    old.actuator != ocm.actuator) {
 
 				_status_changed = true;
 			}
 
-			if (ocm.position || ocm.velocity || ocm.acceleration || ocm.attitude || ocm.body_rate) {
+			if (ocm.position || ocm.velocity || ocm.acceleration || ocm.attitude || ocm.body_rate || ocm.actuator) {
 				offboard_available = true;
 			}
 		}
