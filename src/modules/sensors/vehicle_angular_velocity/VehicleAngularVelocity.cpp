@@ -543,18 +543,17 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(bool force)
 					const float peak_freq = peak_frequencies[axis][peak];
 
 					if (PX4_ISFINITE(peak_freq) && (peak_freq > peak_freq_min) && (peak_freq < peak_freq_max)) {
-						// force reset if the notch frequency jumps significantly
-						if (fabsf(nf.getNotchFreq() - peak_freq) > bandwidth) {
-							reset = true;
-						}
+
+						const float notch_freq_diff = fabsf(nf.getNotchFreq() - peak_freq);
 
 						// update filter parameters if frequency changed or forced
-						if (force || (fabsf(nf.getNotchFreq() - peak_freq) > FLT_EPSILON)) {
+						if (force || reset || (notch_freq_diff > 0.1f)) {
 							nf.setParameters(_filter_sample_rate_hz, peak_freq, bandwidth);
 							perf_count(_dynamic_notch_filter_fft_update_perf);
 						}
 
-						if (force || reset) {
+						// force reset if the notch frequency jumps significantly
+						if (force || reset || (notch_freq_diff > bandwidth)) {
 							const Vector3f reset_angular_velocity{GetResetAngularVelocity()};
 							nf.reset(reset_angular_velocity(axis));
 						}
