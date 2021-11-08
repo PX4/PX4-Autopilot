@@ -256,7 +256,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I_ACC, 0.4f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D_ACC, 0.2f);
 
 /**
- * Maximum horizontal velocity in mission
+ * Default horizontal velocity in mission
  *
  * Horizontal velocity used when flying autonomously in e.g. Missions, RTL, Goto.
  *
