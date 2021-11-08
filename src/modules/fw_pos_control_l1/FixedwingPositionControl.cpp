@@ -772,8 +772,6 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 
 	const uint8_t position_sp_type = handle_setpoint_type(current_sp.type, current_sp);
 
-	_type = position_sp_type; // for publication
-
 	switch (position_sp_type) {
 	case position_setpoint_s::SETPOINT_TYPE_IDLE:
 		_att_sp.thrust_body[0] = 0.0f;
