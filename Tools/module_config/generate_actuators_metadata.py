@@ -105,9 +105,6 @@ def process_module_name(module_name):
     return module_name
 
 def process_param_prefix(param_prefix):
-    if param_prefix == '${PWM_MAIN_OR_HIL}':
-        if board == 'px4_sitl': return 'PWM_MAIN'
-        return 'HIL_ACT'
     if param_prefix == '${PWM_MAIN_OR_AUX}':
         if board_with_io: return 'PWM_AUX'
         return 'PWM_MAIN'
@@ -116,8 +113,6 @@ def process_param_prefix(param_prefix):
     return param_prefix
 
 def process_channel_label(module_name, channel_label, no_prefix):
-    if channel_label == '${PWM_MAIN_OR_HIL}':
-        return 'Channel'
     if channel_label == '${PWM_MAIN_OR_AUX_CAP}':
         return 'CAP'
     if channel_label == '${PWM_MAIN_OR_AUX}':
