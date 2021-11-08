@@ -155,6 +155,7 @@ public:
 	float get_SEB_setpoint() { return _SPE_setpoint * _SPE_weighting - _SKE_setpoint * _SKE_weighting; }
 	float get_SEB_rate() { return _SPE_rate * _SPE_weighting - _SKE_rate * _SKE_weighting; }
 	float get_SEB_rate_setpoint() { return _SPE_rate_setpoint * _SPE_weighting - _SKE_rate_setpoint * _SKE_weighting; }
+	int get_flight_phase() { return _flight_phase; }
 
 	void tecs_status_publish(const hrt_abstime &now);
 
@@ -280,6 +281,9 @@ private:
 	bool _states_initialized{false};					///< true when TECS states have been iniitalized
 	bool _in_air{false};						///< true when the vehicle is flying
 
+	// flight phase
+	int _flight_phase{tecs_status_s::TECS_FLIGHT_PHASE_LEVEL};
+
 	/**
 	 * Update the airspeed internal state using a second order complementary filter
 	 */
@@ -322,6 +326,8 @@ private:
 	void _update_pitch_setpoint();
 
 	void _updateTrajectoryGenerationConstraints();
+
+	void _updateFlightPhase(float altitude_sp_amsl, float height_rate_setpoint);
 
 	void _calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rate_sp, float target_climbrate,
 					  float target_sinkrate, float altitude_amsl);

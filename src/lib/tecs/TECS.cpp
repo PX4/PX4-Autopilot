@@ -452,6 +452,38 @@ void TECS::_updateTrajectoryGenerationConstraints()
 	_velocity_control_traj_generator.setMaxVelDown(_max_climb_rate); // different convention for FW than for MC
 }
 
+void TECS::_updateFlightPhase(float altitude_sp_amsl, float height_rate_setpoint)
+{
+	const bool input_is_height_rate = PX4_ISFINITE(height_rate_setpoint);
+
+	// update flight phase state (are we flying level, climbing or descending)
+	if (input_is_height_rate) {
+
+		if (PX4_ISFINITE(_velocity_control_traj_generator.getCurrentPosition())) {
+			// we have a valid altitude setpoint which means that we are flying level
+			_flight_phase = tecs_status_s::TECS_FLIGHT_PHASE_LEVEL;
+
+		} else if (_velocity_control_traj_generator.getCurrentVelocity() > FLT_EPSILON) {
+			_flight_phase = tecs_status_s::TECS_FLIGHT_PHASE_CLIMB;
+
+		} else {
+			_flight_phase = tecs_status_s::TECS_FLIGHT_PHASE_DESCEND;
+		}
+
+	} else {
+		// stay in flight phase level if only small altitude changes are demanded (<10m)
+		if (altitude_sp_amsl - _alt_control_traj_generator.getCurrentPosition() > 10.0f) {
+			_flight_phase = tecs_status_s::TECS_FLIGHT_PHASE_CLIMB;
+
+		} else if (altitude_sp_amsl - _alt_control_traj_generator.getCurrentPosition() < -10.0f) {
+			_flight_phase = tecs_status_s::TECS_FLIGHT_PHASE_DESCEND;
+
+		} else {
+			_flight_phase = tecs_status_s::TECS_FLIGHT_PHASE_LEVEL;
+		}
+	}
+}
+
 void TECS::_calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rate_sp, float target_climbrate,
 					float target_sinkrate, float altitude_amsl)
 {
@@ -594,6 +626,8 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 	// Calculate the demanded true airspeed
 	_update_speed_setpoint();
 
+	_updateFlightPhase(hgt_setpoint, hgt_rate_sp);
+
 	_calculateHeightRateSetpoint(hgt_setpoint, hgt_rate_sp, target_climbrate, target_sinkrate, baro_altitude);
 
 	// Calculate the specific energy values required by the control loop
@@ -672,6 +706,7 @@ TECS::tecs_status_publish(const hrt_abstime &now)
 	tecs_status.energy_distribution_error = _SEB_error;
 	tecs_status.energy_distribution_rate_error = _SEB_rate_error;
 	tecs_status.equivalent_airspeed_sp = _EAS_setpoint;
+	tecs_status.flight_phase = _flight_phase;
 	tecs_status.height_rate_setpoint = _hgt_rate_setpoint;
 	tecs_status.height_rate = _vert_vel_state;
 	tecs_status.pitch_integ = _pitch_integ_state;

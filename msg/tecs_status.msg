@@ -42,3 +42,9 @@ float32 throttle_sp
 float32 pitch_sp_rad
 
 uint8 mode
+
+uint8 flight_phase
+
+uint8 TECS_FLIGHT_PHASE_LEVEL 	= 0		# In level flight (no altitude setpoint change)
+uint8 TECS_FLIGHT_PHASE_CLIMB 	= 1		# Climb is triggered (altitude setpoint is increasing)
+uint8 TECS_FLIGHT_PHASE_DESCEND = 2		# Descend is triggered (altitude setpoint is descreasing)
