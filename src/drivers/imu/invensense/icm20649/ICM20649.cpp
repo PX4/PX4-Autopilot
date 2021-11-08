@@ -226,18 +226,27 @@ void ICM20649::RunImpl()
 				// FIFO count (size in bytes) should be a multiple of the FIFO::DATA structure
 				uint8_t samples = fifo_count / sizeof(FIFO::DATA);
 
-				// tolerate minor jitter, leave sample to next iteration if behind by only 1
-				if (samples == _fifo_gyro_samples + 1) {
-					timestamp_sample -= FIFO_SAMPLE_DT;
-					samples--;
+				if (samples > _fifo_gyro_samples) {
+					// grab desired number of samples, but reschedule next cycle sooner
+					int extra_samples = samples - _fifo_gyro_samples;
+					samples = _fifo_gyro_samples;
+
+					if (_fifo_gyro_samples > extra_samples) {
+						// reschedule to run when a total of _fifo_gyro_samples should be available in the FIFO
+						const uint32_t reschedule_delay_us = (_fifo_gyro_samples - extra_samples) * static_cast<int>(FIFO_SAMPLE_DT);
+						ScheduleOnInterval(_fifo_empty_interval_us, reschedule_delay_us);
+
+					} else {
+						// otherwise reschedule to run immediately
+						ScheduleOnInterval(_fifo_empty_interval_us);
+					}
+
+				} else if (samples < _fifo_gyro_samples) {
+					// reschedule next cycle to catch the desired number of samples
+					ScheduleOnInterval(_fifo_empty_interval_us, (_fifo_gyro_samples - samples) * static_cast<int>(FIFO_SAMPLE_DT));
 				}
 
-				if (samples > FIFO_MAX_SAMPLES) {
-					// not technically an overflow, but more samples than we expected or can publish
-					FIFOReset();
-					perf_count(_fifo_overflow_perf);
-
-				} else if (samples >= SAMPLES_PER_TRANSFER) {
+				if (samples == _fifo_gyro_samples) {
 					if (FIFORead(timestamp_sample, samples)) {
 						success = true;
 

@@ -42,7 +42,6 @@ px4_add_romfs_files(
 	rc.fw_apps
 	rc.fw_defaults
 	rc.interface
-	rc.io
 	rc.logging
 	rc.mc_apps
 	rc.mc_defaults
@@ -56,5 +55,4 @@ px4_add_romfs_files(
 	rc.vehicle_setup
 	rc.vtol_apps
 	rc.vtol_defaults
-	rc.ctrlalloc
 )

@@ -62,6 +62,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/camera_status.h>
 #include <uORB/topics/cellular_status.h>
@@ -128,13 +129,16 @@ public:
 	void stop();
 
 	bool component_was_seen(int system_id, int component_id);
+	void enable_message_statistics() { _message_statistics_enabled = true; }
 	void print_detailed_rx_stats() const;
+
+	void request_stop() { _should_exit.store(true); }
 
 private:
 	static void *start_trampoline(void *context);
 	void run();
 
-	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result);
+	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
 
 	/**
 	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
@@ -144,8 +148,7 @@ private:
 					 const vehicle_command_s &vehicle_command);
 
 	uint8_t handle_request_message_command(uint16_t message_id, float param2 = 0.0f, float param3 = 0.0f,
-					       float param4 = 0.0f,
-					       float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
+					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
 
 	void handle_message(mavlink_message_t *msg);
 
@@ -230,10 +233,15 @@ private:
 
 	void schedule_tune(const char *tune);
 
+	void update_message_statistics(const mavlink_message_t &message);
 	void update_rx_stats(const mavlink_message_t &message);
 
 	px4::atomic_bool 	_should_exit{false};
 	pthread_t		_thread {};
+	/**
+	 * @brief Updates optical flow parameters.
+	 */
+	void updateParams() override;
 
 	Mavlink				*_mavlink;
 
@@ -247,9 +255,8 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	static constexpr unsigned MAX_REMOTE_COMPONENTS{8};
+	static constexpr unsigned MAX_REMOTE_COMPONENTS{16};
 	struct ComponentState {
-		uint32_t last_time_received_ms{0};
 		uint32_t received_messages{0};
 		uint32_t missed_messages{0};
 		uint8_t system_id{0};
@@ -259,6 +266,19 @@ private:
 	ComponentState _component_states[MAX_REMOTE_COMPONENTS] {};
 	unsigned _component_states_count{0};
 	bool _warned_component_states_full_once{false};
+
+	bool _message_statistics_enabled {false};
+#if !defined(CONSTRAINED_FLASH)
+	static constexpr int MAX_MSG_STAT_SLOTS {16};
+	struct ReceivedMessageStats {
+		float avg_rate_hz{0.f}; // average rate
+		uint32_t last_time_received_ms{0};
+		uint16_t msg_id{0};
+		uint8_t system_id{0};
+		uint8_t component_id{0};
+	};
+	ReceivedMessageStats *_received_msg_stats{nullptr};
+#endif // !CONSTRAINED_FLASH
 
 	uint64_t _total_received_counter{0};                            ///< The total number of successfully received messages
 	uint64_t _total_lost_counter{0};                                ///< Total messages lost during transmission.
@@ -332,6 +352,7 @@ private:
 	uORB::Subscription	_vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription 	_actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
+	uORB::Subscription	_autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -378,14 +399,20 @@ private:
 	hrt_abstime _heartbeat_component_udp_bridge{0};
 	hrt_abstime _heartbeat_component_uart_bridge{0};
 
+	param_t _handle_sens_flow_maxhgt{PARAM_INVALID};
+	param_t _handle_sens_flow_maxr{PARAM_INVALID};
+	param_t _handle_sens_flow_minhgt{PARAM_INVALID};
+	param_t _handle_sens_flow_rot{PARAM_INVALID};
+
+	float _param_sens_flow_maxhgt{-1.0f};
+	float _param_sens_flow_maxr{-1.0f};
+	float _param_sens_flow_minhgt{-1.0f};
+	float _param_sens_flow_rot{-1.0f};
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
-		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
-		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _param_sens_flow_maxhgt,
-		(ParamFloat<px4::params::SENS_FLOW_MAXR>)   _param_sens_flow_maxr,
-		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _param_sens_flow_minhgt,
-		(ParamInt<px4::params::SENS_FLOW_ROT>)      _param_sens_flow_rot
+		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr
 	);
 
 	// Disallow copy construction and move assignment.

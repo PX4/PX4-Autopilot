@@ -211,22 +211,6 @@
 #define GPIO_HEATER_OUTPUT   /* PA7  T14CH1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN7)
 #define HEATER_OUTPUT_EN(on_true)              px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
-/* PWM Capture
- *
- * 3  PWM Capture inputs are configured.
- *
- * Pins:
- *
- * FMU_CAP1 : PA5  : TIM2_CH1
- * FMU_CAP2 : PB3  : TIM2_CH2
- * FMU_CAP3 : PB11 : TIM2_CH4
- */
-#define GPIO_TIM2_CH1_IN     /* PA5   T22C1  FMU_CAP1 */ GPIO_TIM2_CH1IN_3
-#define GPIO_TIM2_CH2_IN     /* PB3   T22C2  FMU_CAP2 */ GPIO_TIM2_CH2IN_2
-#define GPIO_TIM2_CH4_IN     /* PB11  T22C4  FMU_CAP3 */ GPIO_TIM2_CH4IN_2
-
-#define DIRECT_PWM_CAPTURE_CHANNELS  3
-
 /* PI0 is nARMED
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
  *  While armed it shall be configured at a GPIO OUT set LOW
@@ -238,8 +222,7 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  8
-#define DIRECT_INPUT_TIMER_CHANNELS  8
+#define DIRECT_PWM_OUTPUT_CHANNELS  11
 
 #define BOARD_HAS_LED_PWM              1
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
@@ -307,19 +290,6 @@
 
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
 #define RC_SERIAL_SINGLEWIRE
-
-/* Input Capture Channels. */
-#define INPUT_CAP1_TIMER                  2
-#define INPUT_CAP1_CHANNEL     /* T4C1 */ 1
-#define GPIO_INPUT_CAP1        /*  PA5 */ GPIO_TIM2_CH1_IN
-
-#define INPUT_CAP2_TIMER                  2
-#define INPUT_CAP2_CHANNEL     /* T4C2 */ 2
-#define GPIO_INPUT_CAP2        /*  PB3 */ GPIO_TIM2_CH2_IN
-
-#define INPUT_CAP3_TIMER                  2
-#define INPUT_CAP3_CHANNEL     /* T4C4 */ 4
-#define GPIO_INPUT_CAP3        /* PB11 */ GPIO_TIM2_CH4_IN
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
@@ -422,7 +392,6 @@
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_nVDD_5V_HIPOWER_OC))
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -467,7 +436,7 @@
 
 #define BOARD_NUM_IO_TIMERS 5
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7, 8, 9, 10};
 
 __BEGIN_DECLS
 

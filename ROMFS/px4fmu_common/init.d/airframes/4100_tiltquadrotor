@@ -31,5 +31,3 @@
 # Set mixer
 set MIXER tilt_quad
 set MIXER_AUX tilt_quad
-
-set PWM_OUT 1234

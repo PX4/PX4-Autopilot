@@ -236,6 +236,9 @@ MulticopterRateControl::Run()
 			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _landing_gear;
 			actuators.timestamp_sample = angular_velocity.timestamp_sample;
 
+			publishTorqueSetpoint(att_control, angular_velocity.timestamp_sample);
+			publishThrustSetpoint(angular_velocity.timestamp_sample);
+
 			// scale effort by battery status if enabled
 			if (_param_mc_bat_scale_en.get()) {
 				if (_battery_status_sub.updated()) {
@@ -256,6 +259,8 @@ MulticopterRateControl::Run()
 			actuators.timestamp = hrt_absolute_time();
 			_actuators_0_pub.publish(actuators);
 
+			updateActuatorControlsStatus(actuators, dt);
+
 		} else if (_v_control_mode.flag_control_termination_enabled) {
 			if (!_vehicle_status.is_vtol) {
 				// publish actuator controls
@@ -267,6 +272,53 @@ MulticopterRateControl::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void MulticopterRateControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
+{
+	vehicle_torque_setpoint_s v_torque_sp = {};
+	v_torque_sp.timestamp = hrt_absolute_time();
+	v_torque_sp.timestamp_sample = timestamp_sample;
+	v_torque_sp.xyz[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
+	v_torque_sp.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
+	v_torque_sp.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
+
+	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+}
+
+void MulticopterRateControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
+{
+	vehicle_thrust_setpoint_s v_thrust_sp = {};
+	v_thrust_sp.timestamp = hrt_absolute_time();
+	v_thrust_sp.timestamp_sample = timestamp_sample;
+	v_thrust_sp.xyz[0] = 0.0f;
+	v_thrust_sp.xyz[1] = 0.0f;
+	v_thrust_sp.xyz[2] = PX4_ISFINITE(_thrust_sp) ? -_thrust_sp : 0.0f; // Z is Down
+
+	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
+}
+
+void MulticopterRateControl::updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt)
+{
+	for (int i = 0; i < 4; i++) {
+		_control_energy[i] += actuators.control[i] * actuators.control[i] * dt;
+	}
+
+	_energy_integration_time += dt;
+
+	if (_energy_integration_time > 500e-3f) {
+
+		actuator_controls_status_s status;
+		status.timestamp = actuators.timestamp;
+
+		for (int i = 0; i < 4; i++) {
+			status.control_power[i] = _control_energy[i] / _energy_integration_time;
+			_control_energy[i] = 0.f;
+		}
+
+		_actuator_controls_status_0_pub.publish(status);
+		_energy_integration_time = 0.f;
+	}
 }
 
 int MulticopterRateControl::task_spawn(int argc, char *argv[])

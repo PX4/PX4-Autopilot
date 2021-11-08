@@ -43,6 +43,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <px4_platform_common/defines.h>
 
 __BEGIN_DECLS
 
@@ -75,5 +76,30 @@ __EXPORT void output_limit_calc(const bool armed, const bool pre_armed, const un
 				const uint16_t reverse_mask, const uint16_t *disarmed_output,
 				const uint16_t *min_output, const uint16_t *max_output,
 				const float *output, uint16_t *effective_output, output_limit_t *limit);
+
+static inline uint16_t output_limit_calc_single(bool reversed, uint16_t disarmed_output,
+		uint16_t min_output, uint16_t max_output, float output)
+{
+	/* check for invalid / disabled channels */
+	if (!PX4_ISFINITE(output)) {
+		return disarmed_output;
+	}
+
+	if (reversed) {
+		output = -1.0f * output;
+	}
+
+	uint16_t effective_output = output * (max_output - min_output) / 2 + (max_output + min_output) / 2;
+
+	/* last line of defense against invalid inputs */
+	if (effective_output < min_output) {
+		effective_output = min_output;
+
+	} else if (effective_output > max_output) {
+		effective_output = max_output;
+	}
+
+	return effective_output;
+}
 
 __END_DECLS

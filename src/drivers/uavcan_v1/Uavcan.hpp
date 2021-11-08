@@ -61,7 +61,13 @@
 #include "Publishers/Publisher.hpp"
 #include "Publishers/uORB/uorb_publisher.hpp"
 
+#ifdef CONFIG_UAVCAN_V1_NODE_MANAGER
 #include "NodeManager.hpp"
+#endif
+
+#ifdef CONFIG_UAVCAN_V1_NODE_CLIENT
+#include "NodeClient.hpp"
+#endif
 
 #include "PublicationManager.hpp"
 #include "SubscriptionManager.hpp"
@@ -104,7 +110,7 @@ private:
 	pthread_mutex_t &_node_mutex;
 	UavcanEscController &_esc_controller;
 	// UavcanServoController &_servo_controller;
-	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{"UCAN1_ESC", MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 };
 
 class UavcanNode : public ModuleParams, public px4::ScheduledWorkItem
@@ -179,7 +185,13 @@ private:
 
 	UavcanParamManager _param_manager;
 
+#ifdef CONFIG_UAVCAN_V1_NODE_MANAGER
 	NodeManager _node_manager {_canard_instance, _param_manager};
+#endif
+
+#ifdef CONFIG_UAVCAN_V1_NODE_CLIENT
+	NodeClient *_node_client {nullptr};
+#endif
 
 	PublicationManager _pub_manager {_canard_instance, _param_manager};
 	SubscriptionManager _sub_manager {_canard_instance, _param_manager};

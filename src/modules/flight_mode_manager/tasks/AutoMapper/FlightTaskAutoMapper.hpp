@@ -42,6 +42,8 @@
 
 #include "FlightTaskAuto.hpp"
 #include "Sticks.hpp"
+#include "StickAccelerationXY.hpp"
+#include "StickYaw.hpp"
 
 class FlightTaskAutoMapper : public FlightTaskAuto
 {
@@ -72,13 +74,17 @@ protected:
 					_param_mpc_land_alt2, // altitude at which speed limit downwards reached minimum speed
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 					(ParamFloat<px4::params::MPC_TKO_RAMP_T>)
-					_param_mpc_tko_ramp_t // time constant for smooth takeoff ramp
+					_param_mpc_tko_ramp_t, // time constant for smooth takeoff ramp
+					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max
 				       );
 
 private:
 	Sticks _sticks;
+	StickAccelerationXY _stick_acceleration_xy;
+	StickYaw _stick_yaw;
+	matrix::Vector3f _land_position;
+	float _land_heading;
 	void _reset(); /**< Resets member variables to current vehicle state */
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
-	float _getLandSpeed(); /**< Returns landing descent speed. */
 };

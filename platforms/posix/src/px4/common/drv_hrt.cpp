@@ -158,20 +158,6 @@ hrt_abstime ts_to_abstime(const struct timespec *ts)
 }
 
 /*
- * Compute the delta between a timestamp taken in the past
- * and now.
- *
- * This function is safe to use even if the timestamp is updated
- * by an interrupt during execution.
- */
-hrt_abstime hrt_elapsed_time_atomic(const volatile hrt_abstime *then)
-{
-	// This is not atomic as the value on the application layer of POSIX is limited.
-	hrt_abstime delta = hrt_absolute_time() - *then;
-	return delta;
-}
-
-/*
  * Store the absolute time in an interrupt-safe fashion.
  *
  * This function ensures that the timestamp cannot be seen half-written by an interrupt handler.

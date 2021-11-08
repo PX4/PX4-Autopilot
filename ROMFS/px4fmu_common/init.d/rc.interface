@@ -17,6 +17,10 @@ set OUTPUT_DEV none
 set OUTPUT_AUX_DEV /dev/pwm_output1
 set OUTPUT_EXTRA_DEV /dev/pwm_output0
 
+# set these before starting the modules
+param set PWM_AUX_OUT ${PWM_AUX_OUT}
+param set PWM_MAIN_OUT ${PWM_OUT}
+
 #
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
 # mixer to mount (override the airframe-specific MIXER_AUX setting).
@@ -27,12 +31,6 @@ then
         then
                 set MIXER_AUX mount
         fi
-fi
-
-# USE_IO is set to 'no' for all boards w/o px4io driver or SYS_USE_IO disabled
-if [ $USE_IO = no -a $AUX_BANK2 = none ]
-then
-	set AUX_MODE none
 fi
 
 #
@@ -76,15 +74,6 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE = $OUTPUT_CMD ]
-	then
-		if ! $OUTPUT_CMD mode_$FMU_MODE
-		then
-			echo "$OUTPUT_CMD start failed"
-			tune_control play error
-		fi
-	fi
-
 	if [ $OUTPUT_MODE = uavcan_esc ]
 	then
 		if param compare UAVCAN_ENABLE 0
@@ -93,19 +82,30 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE = io ]
-	then
-		. ${R}etc/init.d/rc.io
-	fi
-
 	#
-	# Start IO for RC input if needed.
+	# Start IO for PWM output or RC input if needed.
 	#
 	if [ $IO_PRESENT = yes ]
 	then
-		if [ $OUTPUT_MODE != io ]
+		if ! px4io start
 		then
-			. ${R}etc/init.d/rc.io
+			echo "PX4IO start failed"
+			tune_control play -t 18 # PROG_PX4IO_ERR
+		fi
+	fi
+
+	if [ $OUTPUT_MODE = $OUTPUT_CMD -o $OUTPUT_MODE = io ]
+	then
+		if param compare SYS_CTRL_ALLOC 1
+		then
+			pwm_out start
+			dshot start
+		else
+			if ! $OUTPUT_CMD start
+			then
+				echo "$OUTPUT_CMD start failed"
+				tune_control play error
+			fi
 		fi
 	fi
 fi
@@ -161,7 +161,7 @@ else
 	fi
 fi
 
-if [ $MIXER_AUX != none -a $AUX_MODE != none ]
+if [ $MIXER_AUX != none ]
 then
 	#
 	# Load aux mixer.
@@ -179,34 +179,26 @@ then
 
 	if [ $MIXER_AUX_FILE != none ]
 	then
-		# Start the output module
-		if $OUTPUT_CMD mode_${AUX_MODE}
+		# Append aux mixer to main device.
+		if param greater SYS_HITL 0
 		then
-			# Append aux mixer to main device.
-			if param greater SYS_HITL 0
+			if mixer append ${OUTPUT_DEV} ${MIXER_AUX_FILE}
 			then
-				if mixer append ${OUTPUT_DEV} ${MIXER_AUX_FILE}
-				then
-					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} appended to ${OUTPUT_DEV}"
-				else
-					echo "ERROR  [init] Failed appending mixer: ${MIXER_AUX_FILE}"
-				fi
-			fi
-			if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
-			then
-				if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
-				then
-					echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
-				else
-					echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
-				fi
+				echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} appended to ${OUTPUT_DEV}"
 			else
-				echo "INFO  [init] setting PWM_AUX_OUT none"
-				set PWM_AUX_OUT none
+				echo "ERROR  [init] Failed appending mixer: ${MIXER_AUX_FILE}"
+			fi
+		fi
+		if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
+		then
+			if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
+			then
+				echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
+			else
+				echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
 			fi
 		else
-			echo "ERROR: Could not start: pwm_out mode_pwm"
-			tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
+			echo "INFO  [init] setting PWM_AUX_OUT none"
 			set PWM_AUX_OUT none
 		fi
 
@@ -226,51 +218,17 @@ then
 	fi
 fi
 
-param set PWM_AUX_OUT ${PWM_AUX_OUT}
-
-if [ $MIXER_AUX != none -a $AUX_MODE = none -a -e $OUTPUT_AUX_DEV ]
-then
-	#
-	# Load aux mixer.
-	#
-	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
-	then
-		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
-	else
-
-		if [ -f /etc/mixers/${MIXER_AUX}.aux.mix ]
-		then
-			set MIXER_AUX_FILE /etc/mixers/${MIXER_AUX}.aux.mix
-		fi
-	fi
-
-	if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
-	then
-		echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
-
-		# Set PWM_AUX output frequency.
-		if [ $PWM_AUX_RATE != none ]
-		then
-			pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
-		fi
-	else
-		echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
-	fi
-fi
-
 if [ $OUTPUT_MODE = pwm_out -o $OUTPUT_MODE = io ]
 then
-	if [ $PWM_OUT != none ]
+	if [ $PWM_OUT != none -a $PWM_MAIN_RATE != none ]
 	then
 		# Set PWM output frequency.
-		if [ $PWM_MAIN_RATE != none ]
+		if ! param compare SYS_CTRL_ALLOC 1
 		then
 			pwm rate -c ${PWM_OUT} -r ${PWM_MAIN_RATE}
 		fi
 	fi
 fi
-
-param set PWM_MAIN_OUT ${PWM_OUT}
 
 if [ $EXTRA_MIXER_MODE != none ]
 then

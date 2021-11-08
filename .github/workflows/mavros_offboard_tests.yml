@@ -20,7 +20,7 @@ jobs:
           #- {test_file: "mavros_posix_tests_offboard_rpyrt_ctl.test", vehicle: "iris", build_type: "RelWithDebInfo"}
 
     container:
-      image: px4io/px4-dev-ros-melodic:2021-05-04
+      image: px4io/px4-dev-ros-melodic:2021-09-08
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
     steps:
     - uses: actions/checkout@v1
@@ -44,8 +44,9 @@ jobs:
           mkdir -p ~/.ccache
           echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
           echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 5" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
           echo "max_size = 100M" >> ~/.ccache/ccache.conf
+          echo "hash_dir = false" >> ~/.ccache/ccache.conf
           ccache -s
           ccache -z
 
@@ -73,6 +74,7 @@ jobs:
       run: |
         export
         ./test/rostest_px4_run.sh ${{matrix.config.test_file}} vehicle:=${{matrix.config.vehicle}}
+      timeout-minutes: 45
 
     - name: Look at core files
       if: failure()

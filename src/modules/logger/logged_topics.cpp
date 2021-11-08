@@ -50,17 +50,17 @@ void LoggedTopics::add_default_topics()
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_controls_2", 100);
 	add_topic("actuator_controls_3", 100);
-	add_topic("actuator_controls_4", 100);
-	add_topic("actuator_controls_5", 100);
+	add_topic("actuator_controls_status_0", 300);
 	add_topic("airspeed", 1000);
 	add_topic("airspeed_validated", 200);
+	add_topic("autotune_attitude_control_status", 100);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
-	add_topic("camera_trigger_secondary");
 	add_topic("cellular_status", 200);
 	add_topic("commander_state");
 	add_topic("cpuload");
 	add_topic("esc_status", 250);
+	add_topic("failure_detector_status", 100);
 	add_topic("follow_target", 500);
 	add_topic("generator_status");
 	add_topic("heater_status");
@@ -68,6 +68,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
 	add_topic("internal_combustion_engine_status", 10);
+	add_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
 	add_topic("mission_result");
@@ -112,13 +113,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind", 1000);
-
-	// Control allocation topics
-	add_topic("vehicle_actuator_setpoint", 20);
-	add_topic("vehicle_angular_acceleration", 20);
-	add_topic("vehicle_angular_acceleration_setpoint", 20);
-	add_topic("vehicle_thrust_setpoint", 20);
-	add_topic("vehicle_torque_setpoint", 20);
 
 	// multi topics
 	add_topic_multi("actuator_outputs", 100, 3);
@@ -185,6 +179,19 @@ void LoggedTopics::add_default_topics()
 
 	if (gps_dump_comm >= 1) {
 		add_topic("gps_dump");
+	}
+
+	int32_t sys_ctrl_alloc = 0;
+	param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
+
+	if (sys_ctrl_alloc >= 1) {
+		add_topic("actuator_motors", 100);
+		add_topic("actuator_servos", 100);
+		add_topic("vehicle_actuator_setpoint", 20);
+		add_topic("vehicle_angular_acceleration", 20);
+		add_topic("vehicle_angular_acceleration_setpoint", 20);
+		add_topic("vehicle_thrust_setpoint", 20);
+		add_topic("vehicle_torque_setpoint", 20);
 	}
 }
 
@@ -361,15 +368,6 @@ void LoggedTopics::add_mission_topic(const char *name, uint16_t interval_ms)
 
 bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, uint8_t instance)
 {
-	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
-
-	if (fields_len > sizeof(ulog_message_format_s::format)) {
-		PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
-			 sizeof(ulog_message_format_s::format));
-
-		return false;
-	}
-
 	if (_subscriptions.count >= MAX_TOPICS_NUM) {
 		PX4_WARN("Too many subscriptions, failed to add: %s %" PRIu8, topic->o_name, instance);
 		return false;

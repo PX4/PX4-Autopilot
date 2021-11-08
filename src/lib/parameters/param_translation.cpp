@@ -38,6 +38,7 @@
 #include <lib/drivers/device/Device.hpp>
 #include <drivers/drv_sensor.h>
 #include <lib/parameters/param.h>
+#include <lib/mathlib/mathlib.h>
 
 bool param_modify_on_import(bson_node_t node)
 {
@@ -87,6 +88,18 @@ bool param_modify_on_import(bson_node_t node)
 		if (strcmp("MC_DTERM_CUTOFF", node->name) == 0) {
 			strcpy(node->name, "IMU_DGYRO_CUTOFF");
 			PX4_INFO("param migrating MC_DTERM_CUTOFF (removed) -> IMU_DGYRO_CUTOFF: value=%.3f", node->d);
+			return true;
+		}
+	}
+
+	// 2021-08-27: translate LED_RGB_MAXBRT (0-15) to SYS_RGB_MAXBRT(0.f-1.f)
+	if (node->type == BSON_INT32) {
+		if (strcmp("LED_RGB_MAXBRT", node->name) == 0) {
+			// convert integer (0-15) to float percentage
+			node->d = math::constrain(static_cast<double>(node->i) / 15., 0., 1.);
+			node->type = BSON_DOUBLE;
+			strcpy(node->name, "SYS_RGB_MAXBRT");
+			PX4_INFO("param migrating LED_RGB_MAXBRT (removed) -> SYS_RGB_MAXBRT: value=%.3f", node->d);
 			return true;
 		}
 	}
@@ -173,6 +186,29 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2021-07-12: translate VT_DWN_PITCH_MAX to VT_PITCH_MIN
+	{
+		if (strcmp("VT_DWN_PITCH_MAX", node->name) == 0) {
+			strcpy(node->name, "VT_PITCH_MIN");
+			node->d *= -1;
+			PX4_INFO("copying and inverting sign %s -> %s", "VT_DWN_PITCH_MAX", "VT_PITCH_MIN");
+		}
+	}
+
+	// 2021-10-21: translate NAV_GPSF_LT to FW_GPSF_LT and NAV_GPSF_R to FW_GPSF_R
+	{
+		if (strcmp("NAV_GPSF_LT", node->name) == 0) {
+			strcpy(node->name, "FW_GPSF_LT");
+			PX4_INFO("copying  %s -> %s", "NAV_GPSF_LT", "FW_GPSF_LT");
+		}
+
+		if (strcmp("NAV_GPSF_R", node->name) == 0) {
+			strcpy(node->name, "FW_GPSF_R");
+			PX4_INFO("copying and inverting sign %s -> %s", "NAV_GPSF_R", "FW_GPSF_R");
+		}
+	}
+
+
 	// translate (SPI) calibration ID parameters. This can be removed after the next release (current release=1.10)
 
 	if (node->type != BSON_INT32) {
@@ -180,7 +216,6 @@ bool param_modify_on_import(bson_node_t node)
 	}
 
 	int64_t *ivalue = &node->i;
-
 	const char *cal_id_params[] = {
 		"CAL_ACC0_ID",
 		"CAL_GYRO0_ID",

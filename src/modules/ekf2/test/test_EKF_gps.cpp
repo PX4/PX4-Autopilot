@@ -139,3 +139,25 @@ TEST_F(EkfGpsTest, resetToGpsPosition)
 	EXPECT_TRUE(isEqual(estimated_position,
 			    previous_position + simulated_position_change, 1e-2f));
 }
+
+TEST_F(EkfGpsTest, gpsHgtToBaroFallback)
+{
+	// GIVEN: EKF that fuses GPS and flow, and in GPS height mode
+	_sensor_simulator._flow.setData(_sensor_simulator._flow.dataAtRest());
+	_ekf_wrapper.enableFlowFusion();
+	_sensor_simulator.startFlow();
+
+	_ekf_wrapper.setGpsHeight();
+
+	_sensor_simulator.runSeconds(1);
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
+
+	// WHEN: stopping GPS fusion
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(11);
+
+	// THEN: the height source should automatically change to baro
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsHeightFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
+}

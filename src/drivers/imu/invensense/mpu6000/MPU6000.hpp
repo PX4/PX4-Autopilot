@@ -158,12 +158,12 @@ private:
 	static constexpr uint8_t size_register_cfg{7};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
-		{ Register::GYRO_CONFIG,   GYRO_CONFIG_BIT::FS_SEL_2000_DPS, 0 },
-		{ Register::ACCEL_CONFIG,  ACCEL_CONFIG_BIT::AFS_SEL_16G, 0 },
+		{ Register::GYRO_CONFIG,   GYRO_CONFIG_BIT::FS_SEL_2000_DPS, GYRO_CONFIG_BIT::XG_ST | GYRO_CONFIG_BIT::YG_ST | GYRO_CONFIG_BIT::ZG_ST },
+		{ Register::ACCEL_CONFIG,  ACCEL_CONFIG_BIT::AFS_SEL_16G, ACCEL_CONFIG_BIT::XA_ST | ACCEL_CONFIG_BIT::YA_ST | ACCEL_CONFIG_BIT::ZA_ST },
 		{ Register::FIFO_EN,       FIFO_EN_BIT::XG_FIFO_EN | FIFO_EN_BIT::YG_FIFO_EN | FIFO_EN_BIT::ZG_FIFO_EN | FIFO_EN_BIT::ACCEL_FIFO_EN, FIFO_EN_BIT::TEMP_FIFO_EN },
 		{ Register::INT_PIN_CFG,   INT_PIN_CFG_BIT::INT_LEVEL, 0 },
 		{ Register::INT_ENABLE,    INT_ENABLE_BIT::DATA_RDY_INT_EN, 0 },
-		{ Register::USER_CTRL,     USER_CTRL_BIT::FIFO_EN | USER_CTRL_BIT::I2C_IF_DIS, 0 },
+		{ Register::USER_CTRL,     USER_CTRL_BIT::FIFO_EN | USER_CTRL_BIT::I2C_IF_DIS, USER_CTRL_BIT::I2C_MST_EN },
 		{ Register::PWR_MGMT_1,    PWR_MGMT_1_BIT::CLKSEL_0, PWR_MGMT_1_BIT::SLEEP },
 	};
 };

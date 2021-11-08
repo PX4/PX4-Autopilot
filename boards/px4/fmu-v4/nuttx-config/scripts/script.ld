@@ -79,6 +79,7 @@ SECTIONS
 		_bootdelay_signature = ABSOLUTE(.);
 		FILL(0xffecc2925d7d05c5)
 		. += 8;
+		KEEP(*(.app_descriptor))
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)

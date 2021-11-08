@@ -7,6 +7,5 @@
 
 . ${R}etc/init.d-posix/airframes/10016_iris
 
-param set-default EKF2_RNG_AID 1
 param set-default EKF2_RNG_A_HMAX 10
 

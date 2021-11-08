@@ -140,8 +140,7 @@ void Ekf::fuseSideslip()
 			const char *action_string = nullptr;
 
 			if (update_wind_only) {
-				resetWindStates();
-				resetWindCovariance();
+				resetWind();
 				action_string = "wind";
 
 			} else {

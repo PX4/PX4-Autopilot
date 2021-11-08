@@ -23,10 +23,10 @@
 # @maintainer William Peale <develop707@gmail.com>
 #
 # @board bitcraze_crazyflie exclude
+# @board px4_fmu-v2 exclude
 #
 
 set VEHICLE_TYPE mc
-
 
 param set-default NAV_ACC_RAD 2
 
@@ -35,8 +35,6 @@ param set-default PWM_AUX_DISARM 900
 param set-default PWM_AUX_MIN 1075
 param set-default PWM_AUX_MAX 1950
 
-param set-default PWM_MAIN_MIN 1075
-param set-default PWM_MAIN_MAX 1950
 param set-default PWM_MAIN_RATE 400
 
 param set-default RTL_DESCEND_ALT 10

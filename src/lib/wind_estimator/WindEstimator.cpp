@@ -56,7 +56,7 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &
 	// initilaise wind states assuming zero side slip and horizontal flight
 	_state(INDEX_W_N) = velI(INDEX_W_N) - tas_meas * cosf(heading_est);
 	_state(INDEX_W_E) = velI(INDEX_W_E) - tas_meas * sinf(heading_est);
-	_state(INDEX_TAS_SCALE) = 1.0f;
+	_state(INDEX_TAS_SCALE) = _scale_init;
 
 	// compute jacobian of states wrt north/each earth velocity states and true airspeed measurement
 	float L0 = v_e * v_e;
@@ -104,7 +104,7 @@ WindEstimator::update(uint64_t time_now)
 	_wind_estimator_reset = false;
 
 	// run covariance prediction at 1Hz
-	if (time_now - _time_last_update < 1000 * 1000 || _time_last_update == 0) {
+	if (time_now - _time_last_update < 1_s || _time_last_update == 0) {
 		if (_time_last_update == 0) {
 			_time_last_update = time_now;
 		}
@@ -149,7 +149,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	}
 
 	// don't fuse faster than 10Hz
-	if (time_now - _time_last_airspeed_fuse < 100 * 1000) {
+	if (time_now - _time_last_airspeed_fuse < 100_ms) {
 		return;
 	}
 
@@ -160,28 +160,28 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	const float v_e = velI(1);
 	const float v_d = velI(2);
 
-	const float k_tas = _state(INDEX_TAS_SCALE);
+	// calculate airspeed from ground speed and wind states (without scale)
+	const float airspeed_predicted_raw = sqrtf((v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)) +
+					     (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + v_d * v_d);
 
-	// compute kalman gain K
-	const float HH0 = sqrtf(v_d * v_d + (v_e - _state(INDEX_W_E)) * (v_e - _state(INDEX_W_E)) + (v_n - _state(
-					INDEX_W_N)) * (v_n - _state(INDEX_W_N)));
-	const float HH1 = k_tas / HH0;
+	// compute state observation matrix H
+	const float HH0 = airspeed_predicted_raw;
+	const float HH1 = _state(INDEX_TAS_SCALE) / math::max(HH0, 0.1f);
 
 	matrix::Matrix<float, 1, 3> H_tas;
 	H_tas(0, 0) = HH1 * (-v_n + _state(INDEX_W_N));
 	H_tas(0, 1) = HH1 * (-v_e + _state(INDEX_W_E));
 	H_tas(0, 2) = HH0;
 
-	matrix::Matrix<float, 3, 1> K = _P * H_tas.transpose();
-
+	// compute innovation covariance S
 	const matrix::Matrix<float, 1, 1> S = H_tas * _P * H_tas.transpose() + _tas_var;
 
+	// compute Kalman gain
+	matrix::Matrix<float, 3, 1> K = _P * H_tas.transpose();
 	K /= S(0, 0);
-	// compute innovation
-	const float airspeed_pred = k_tas * sqrtf((v_n - _state(INDEX_W_N)) * (v_n - _state(INDEX_W_N)) + (v_e - _state(
-					    INDEX_W_E)) *
-				    (v_e - _state(INDEX_W_E)) + v_d * v_d);
 
+	// compute innovation
+	const float airspeed_pred = _state(INDEX_TAS_SCALE) * airspeed_predicted_raw;
 	_tas_innov = true_airspeed - airspeed_pred;
 
 	// innovation variance
@@ -190,13 +190,13 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	bool reinit_filter = false;
 	bool meas_is_rejected = false;
 
+	// note: _time_rejected_tas and reinit_filter are not used anymore as filter can't get reset due to tas rejection
 	meas_is_rejected = check_if_meas_is_rejected(time_now, _tas_innov, _tas_innov_var, _tas_gate, _time_rejected_tas,
 			   reinit_filter);
 
-	reinit_filter |= _tas_innov_var < 0.0f;
-
-	if (meas_is_rejected || reinit_filter) {
-		if (reinit_filter) {
+	if (meas_is_rejected || _tas_innov_var < 0.f) {
+		// only reset filter if _tas_innov_var gets unfeasible, but not never if tas measurement is rejected
+		if (_tas_innov_var < 0.0f) {
 			_initialised =	initialise(velI, matrix::Vector2f(0.1f, 0.1f), true_airspeed);
 		}
 
@@ -224,7 +224,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	}
 
 	// don't fuse faster than 10Hz
-	if (time_now - _time_last_beta_fuse < 100 * 1000) {
+	if (time_now - _time_last_beta_fuse < 100_ms) {
 		return;
 	}
 
@@ -259,11 +259,11 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	H_beta(0, 1) = HB15 * (HB12 - HB7 + HB8) + HB16 * HB5;
 	H_beta(0, 2) = 0;
 
-	// compute kalman gain
-	matrix::Matrix<float, 3, 1> K = _P * H_beta.transpose();
-
+	// compute innovation covariance S
 	const matrix::Matrix<float, 1, 1> S = H_beta * _P * H_beta.transpose() + _beta_var;
 
+	// compute Kalman gain
+	matrix::Matrix<float, 3, 1> K = _P * H_beta.transpose();
 	K /= S(0, 0);
 
 	// compute predicted side slip angle
@@ -333,16 +333,6 @@ WindEstimator::run_sanity_checks()
 		return;
 	}
 
-	// check if we should inhibit learning of airspeed scale factor and rather use a pre-set value.
-	// airspeed scale factor errors arise from sensor installation which does not change and only needs
-	// to be computed once for a perticular installation.
-	if (_enforced_airspeed_scale < 0) {
-		_state(INDEX_TAS_SCALE) = math::max(0.0f, _state(INDEX_TAS_SCALE));
-
-	} else {
-		_state(INDEX_TAS_SCALE) = _enforced_airspeed_scale;
-	}
-
 	// attain symmetry
 	for (unsigned row = 0; row < 3; row++) {
 		for (unsigned column = 0; column < row; column++) {
@@ -364,7 +354,7 @@ WindEstimator::check_if_meas_is_rejected(uint64_t time_now, float innov, float i
 		time_meas_rejected = 0;
 	}
 
-	reinit_filter = time_now - time_meas_rejected > 5 * 1000 * 1000 && time_meas_rejected != 0;
+	reinit_filter = time_now - time_meas_rejected > 5_s && time_meas_rejected != 0;
 
 	return time_meas_rejected != 0;
 }

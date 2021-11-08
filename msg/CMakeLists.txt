@@ -39,11 +39,15 @@ include(px4_list_make_absolute)
 set(msg_files
 	actuator_armed.msg
 	actuator_controls.msg
+	actuator_controls_status.msg
+	actuator_motors.msg
 	actuator_outputs.msg
+	actuator_servos.msg
 	adc_report.msg
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
+	autotune_attitude_control_status.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_status.msg
@@ -71,6 +75,7 @@ set(msg_files
 	estimator_status_flags.msg
 	event.msg
 	follow_target.msg
+	failure_detector_status.msg
 	generator_status.msg
 	geofence_result.msg
 	gimbal_device_attitude_status.msg
@@ -96,6 +101,7 @@ set(msg_files
 	log_message.msg
 	logger_status.msg
 	mag_worker_data.msg
+	magnetometer_bias_estimate.msg
 	manual_control_setpoint.msg
 	manual_control_switches.msg
 	mavlink_log.msg
@@ -313,5 +319,4 @@ add_custom_command(OUTPUT ${uorb_sources}
 	)
 
 add_library(uorb_msgs ${uorb_sources})
-target_link_libraries(uorb_msgs PRIVATE m)
 add_dependencies(uorb_msgs prebuild_targets uorb_headers)

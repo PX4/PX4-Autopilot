@@ -37,7 +37,7 @@ if(NOT PX4_CONFIG_FILE)
 
 	file(GLOB_RECURSE board_configs
 		RELATIVE "${PX4_SOURCE_DIR}/boards"
-		"boards/*.cmake"
+		"boards/*.px4board"
 		)
 
 	set(PX4_CONFIGS ${board_configs} CACHE STRING "PX4 board configs" FORCE)
@@ -45,7 +45,7 @@ if(NOT PX4_CONFIG_FILE)
 	foreach(filename ${board_configs})
 		# parse input CONFIG into components to match with existing in tree configs
 		#  the platform prefix (eg nuttx_) is historical, and removed if present
-		string(REPLACE ".cmake" "" filename_stripped ${filename})
+		string(REPLACE ".px4board" "" filename_stripped ${filename})
 		string(REPLACE "/" ";" config ${filename_stripped})
 		list(LENGTH config config_len)
 
@@ -62,6 +62,10 @@ if(NOT PX4_CONFIG_FILE)
 			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${vendor}_${model}")) # default label can be omitted
 			)
 				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
+				set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model}" CACHE STRING "PX4 board directory" FORCE)
+                set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
+                set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
+                set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
 				break()
 			endif()
 
@@ -71,6 +75,10 @@ if(NOT PX4_CONFIG_FILE)
 			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${board}")) # default label can be omitted
 			)
 				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
+				set(PX4_BOARD_DIR "${PX4_SOURCE_DIR}/boards/${vendor}/${model}" CACHE STRING "PX4 board directory" FORCE)
+                set(MODEL "${model}" CACHE STRING "PX4 board model" FORCE)
+                set(VENDOR "${vendor}" CACHE STRING "PX4 board vendor" FORCE)
+                set(LABEL "${label}" CACHE STRING "PX4 board vendor" FORCE)
 				break()
 			endif()
 		endif()
@@ -82,3 +90,27 @@ if(NOT PX4_CONFIG_FILE)
 endif()
 
 message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
+
+include_directories(${PX4_BOARD_DIR}/src)
+
+set(PX4_BOARD ${VENDOR}_${MODEL} CACHE STRING "PX4 board" FORCE)
+
+# board name is uppercase with no underscores when used as a define
+string(TOUPPER ${PX4_BOARD} PX4_BOARD_NAME)
+string(REPLACE "-" "_" PX4_BOARD_NAME ${PX4_BOARD_NAME})
+set(PX4_BOARD_NAME ${PX4_BOARD_NAME} CACHE STRING "PX4 board define" FORCE)
+
+set(PX4_BOARD_VENDOR ${VENDOR} CACHE STRING "PX4 board vendor" FORCE)
+set(PX4_BOARD_MODEL ${MODEL} CACHE STRING "PX4 board model" FORCE)
+
+set(PX4_BOARD_LABEL ${LABEL} CACHE STRING "PX4 board label" FORCE)
+
+set(PX4_CONFIG "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}" CACHE STRING "PX4 config" FORCE)
+
+if(EXISTS "${PX4_BOARD_DIR}/uavcan_board_identity")
+include ("${PX4_BOARD_DIR}/uavcan_board_identity")
+endif()
+
+if(EXISTS "${PX4_BOARD_DIR}/sitl.cmake")
+include ("${PX4_BOARD_DIR}/sitl.cmake")
+endif()

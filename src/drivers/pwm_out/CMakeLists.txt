@@ -37,6 +37,8 @@ px4_add_module(
 	SRCS
 		PWMOut.cpp
 		PWMOut.hpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		arch_io_pins
 		mixer

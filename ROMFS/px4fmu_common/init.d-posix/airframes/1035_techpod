@@ -5,8 +5,6 @@
 
 . ${R}etc/init.d/rc.fw_defaults
 
-param set-default EKF2_ARSP_THR 8
-param set-default EKF2_FUSE_BETA 1
 param set-default EKF2_MAG_ACCLIM 0
 param set-default EKF2_MAG_YAWLIM 0
 
@@ -35,7 +33,6 @@ param set-default MIS_TAKEOFF_ALT 30
 
 param set-default NAV_ACC_RAD 15
 param set-default NAV_DLL_ACT 2
-param set-default NAV_LOITER_RAD 50
 
 param set-default RWTO_TKOFF 1
 

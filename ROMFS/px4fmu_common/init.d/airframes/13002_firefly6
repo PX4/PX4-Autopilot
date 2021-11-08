@@ -28,19 +28,13 @@ param set-default MC_ROLL_P 7
 param set-default MC_ROLLRATE_P 0.19
 param set-default MC_ROLLRATE_I 0.002
 param set-default MC_ROLLRATE_D 0.005
-param set-default MC_ROLLRATE_FF 0
 param set-default MC_PITCH_P 7
 param set-default MC_PITCHRATE_P 0.14
 param set-default MC_PITCHRATE_I 0.002
 param set-default MC_PITCHRATE_D 0.004
-param set-default MC_PITCHRATE_FF 0
 param set-default MC_YAW_P 4
 param set-default MC_YAWRATE_P 0.22
 param set-default MC_YAWRATE_I 0.02
-param set-default MC_YAWRATE_D 0
-param set-default MC_YAWRATE_FF 0
-
-param set-default PWM_MAIN_RATE 400
 
 param set-default VT_FW_MOT_OFFID 34
 param set-default VT_IDLE_PWM_MC 1080

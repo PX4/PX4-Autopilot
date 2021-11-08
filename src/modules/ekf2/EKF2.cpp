@@ -140,6 +140,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_ev_pos_x(_params->ev_pos_body(0)),
 	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
 	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
+	_param_ekf2_arsp_thr(_params->arsp_thr),
 	_param_ekf2_tau_vel(_params->vel_Tau),
 	_param_ekf2_tau_pos(_params->pos_Tau),
 	_param_ekf2_gbias_init(_params->switch_on_gyro_bias),
@@ -340,20 +341,45 @@ void EKF2::Run()
 		if ((_device_id_accel == 0) || (_device_id_gyro == 0)) {
 			_device_id_accel = imu.accel_device_id;
 			_device_id_gyro = imu.gyro_device_id;
-			_imu_calibration_count = imu.calibration_count;
+			_accel_calibration_count = imu.accel_calibration_count;
+			_gyro_calibration_count = imu.gyro_calibration_count;
 
-		} else if ((imu.calibration_count > _imu_calibration_count)
-			   || (imu.accel_device_id != _device_id_accel)
-			   || (imu.gyro_device_id != _device_id_gyro)) {
+		} else {
+			bool reset_actioned = false;
 
-			PX4_DEBUG("%d - resetting IMU bias", _instance);
-			_device_id_accel = imu.accel_device_id;
-			_device_id_gyro = imu.gyro_device_id;
+			if ((imu.accel_calibration_count != _accel_calibration_count)
+			    || (imu.accel_device_id != _device_id_accel)) {
 
-			_ekf.resetImuBias();
-			_imu_calibration_count = imu.calibration_count;
+				PX4_DEBUG("%d - resetting accelerometer bias", _instance);
+				_device_id_accel = imu.accel_device_id;
 
-			SelectImuStatus();
+				_ekf.resetAccelBias();
+				_accel_calibration_count = imu.accel_calibration_count;
+
+				// reset bias learning
+				_accel_cal = {};
+
+				reset_actioned = true;
+			}
+
+			if ((imu.gyro_calibration_count != _gyro_calibration_count)
+			    || (imu.gyro_device_id != _device_id_gyro)) {
+
+				PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+				_device_id_gyro = imu.gyro_device_id;
+
+				_ekf.resetGyroBias();
+				_gyro_calibration_count = imu.gyro_calibration_count;
+
+				// reset bias learning
+				_gyro_cal = {};
+
+				reset_actioned = true;
+			}
+
+			if (reset_actioned) {
+				SelectImuStatus();
+			}
 		}
 
 	} else {
@@ -384,14 +410,26 @@ void EKF2::Run()
 
 			if (_sensor_selection_sub.copy(&sensor_selection)) {
 				if (_device_id_accel != sensor_selection.accel_device_id) {
-					_ekf.resetAccelBias();
+
 					_device_id_accel = sensor_selection.accel_device_id;
+
+					_ekf.resetAccelBias();
+
+					// reset bias learning
+					_accel_cal = {};
+
 					SelectImuStatus();
 				}
 
 				if (_device_id_gyro != sensor_selection.gyro_device_id) {
-					_ekf.resetGyroBias();
+
 					_device_id_gyro = sensor_selection.gyro_device_id;
+
+					_ekf.resetGyroBias();
+
+					// reset bias learning
+					_gyro_cal = {};
+
 					SelectImuStatus();
 				}
 			}
@@ -451,6 +489,7 @@ void EKF2::Run()
 			vehicle_land_detected_s vehicle_land_detected;
 
 			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+				const bool was_in_air = _ekf.control_status_flags().in_air;
 				_ekf.set_in_air_status(!vehicle_land_detected.landed);
 
 				if (_armed && (_param_ekf2_gnd_eff_dz.get() > 0.f)) {
@@ -461,6 +500,13 @@ void EKF2::Run()
 
 				} else {
 					_ekf.set_gnd_effect_flag(false);
+				}
+
+				// reset learned sensor calibrations on takeoff
+				if (_ekf.control_status_flags().in_air && !was_in_air) {
+					_accel_cal = {};
+					_gyro_cal = {};
+					_mag_cal = {};
 				}
 			}
 		}
@@ -499,7 +545,6 @@ void EKF2::Run()
 			PublishLocalPosition(now);
 			PublishOdometry(now, imu_sample_new);
 			PublishGlobalPosition(now);
-			PublishSensorBias(now);
 			PublishWindEstimate(now);
 
 			// publish status/logging messages
@@ -514,7 +559,10 @@ void EKF2::Run()
 			PublishInnovationVariances(now);
 			PublishYawEstimatorStatus(now);
 
+			UpdateAccelCalibration(now);
+			UpdateGyroCalibration(now);
 			UpdateMagCalibration(now);
+			PublishSensorBias(now);
 
 		} else {
 			// ekf no update
@@ -1012,7 +1060,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 
 	const Vector3f gyro_bias{_ekf.getGyroBias()};
 	const Vector3f accel_bias{_ekf.getAccelBias()};
-	const Vector3f mag_bias{_mag_cal_last_bias};
+	const Vector3f mag_bias{_ekf.getMagBias()};
 
 	// only publish on change
 	if ((gyro_bias - _last_gyro_bias_published).longerThan(0.001f)
@@ -1025,8 +1073,8 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			gyro_bias.copyTo(bias.gyro_bias);
 			bias.gyro_bias_limit = math::radians(20.f); // 20 degrees/s see Ekf::constrainStates()
 			_ekf.getGyroBiasVariance().copyTo(bias.gyro_bias_variance);
-			bias.gyro_bias_valid = true;
-
+			bias.gyro_bias_valid = true;  // TODO
+			bias.gyro_bias_stable = _gyro_cal.cal_available;
 			_last_gyro_bias_published = gyro_bias;
 		}
 
@@ -1035,8 +1083,8 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			accel_bias.copyTo(bias.accel_bias);
 			bias.accel_bias_limit = _params->acc_bias_lim;
 			_ekf.getAccelBiasVariance().copyTo(bias.accel_bias_variance);
-			bias.accel_bias_valid = !_ekf.fault_status_flags().bad_acc_bias;
-
+			bias.accel_bias_valid = true;  // TODO
+			bias.accel_bias_stable = _accel_cal.cal_available;
 			_last_accel_bias_published = accel_bias;
 		}
 
@@ -1044,9 +1092,9 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			bias.mag_device_id = _device_id_mag;
 			mag_bias.copyTo(bias.mag_bias);
 			bias.mag_bias_limit = 0.5f; // 0.5 Gauss see Ekf::constrainStates()
-			_mag_cal_last_bias_variance.copyTo(bias.mag_bias_variance);
-			bias.mag_bias_valid = _mag_cal_available;
-
+			_ekf.getMagBiasVariance().copyTo(bias.mag_bias_variance);
+			bias.mag_bias_valid = true; // TODO
+			bias.mag_bias_stable = _mag_cal.cal_available;
 			_last_mag_bias_published = mag_bias;
 		}
 
@@ -1360,16 +1408,12 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 		// via the wind estimator that uses EKF velocity estimates.
 		const float true_airspeed_m_s = airspeed.true_airspeed_m_s * _airspeed_scale_factor;
 
-		// only set airspeed data if condition for airspeed fusion are met
-		if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
-
-			airspeedSample airspeed_sample {
-				.time_us = airspeed.timestamp,
-				.true_airspeed = true_airspeed_m_s,
-				.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
-			};
-			_ekf.setAirspeedData(airspeed_sample);
-		}
+		airspeedSample airspeed_sample {
+			.time_us = airspeed.timestamp,
+			.true_airspeed = true_airspeed_m_s,
+			.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
+		};
+		_ekf.setAirspeedData(airspeed_sample);
 
 		ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
@@ -1649,9 +1693,7 @@ void EKF2::UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps)
 			_mag_calibration_count = magnetometer.calibration_count;
 
 			// reset magnetometer bias learning
-			_mag_cal_total_time_us = 0;
-			_mag_cal_last_us = 0;
-			_mag_cal_available = false;
+			_mag_cal = {};
 		}
 
 		_ekf.setMagData(magSample{magnetometer.timestamp_sample, Vector3f{magnetometer.magnetometer_ga}});
@@ -1728,34 +1770,99 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 
+void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
+{
+	// Check if conditions are OK for learning of accelerometer bias values
+	// the EKF is operating in the correct mode and there are no filter faults
+	if (_ekf.control_status_flags().in_air && (_ekf.fault_status().value == 0)
+	    && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
+
+		if (_accel_cal.last_us != 0) {
+			_accel_cal.total_time_us += timestamp - _accel_cal.last_us;
+
+			// Start checking accel bias estimates when we have accumulated sufficient calibration time
+			if (_accel_cal.total_time_us > 30_s) {
+				_accel_cal.last_bias = _ekf.getAccelBias();
+				_accel_cal.last_bias_variance = _ekf.getAccelBiasVariance();
+				_accel_cal.cal_available = true;
+			}
+		}
+
+		_accel_cal.last_us = timestamp;
+
+	} else {
+		// conditions are NOT OK for learning accelerometer bias, reset timestamp
+		// but keep the accumulated calibration time
+		_accel_cal.last_us = 0;
+
+		if (_ekf.fault_status().value != 0) {
+			// if a filter fault has occurred, assume previous learning was invalid and do not
+			// count it towards total learning time.
+			_accel_cal.total_time_us = 0;
+		}
+	}
+}
+
+void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
+{
+	// Check if conditions are OK for learning of gyro bias values
+	// the EKF is operating in the correct mode and there are no filter faults
+	if (_ekf.control_status_flags().in_air && (_ekf.fault_status().value == 0)) {
+
+		if (_gyro_cal.last_us != 0) {
+			_gyro_cal.total_time_us += timestamp - _gyro_cal.last_us;
+
+			// Start checking gyro bias estimates when we have accumulated sufficient calibration time
+			if (_gyro_cal.total_time_us > 30_s) {
+				_gyro_cal.last_bias = _ekf.getGyroBias();
+				_gyro_cal.last_bias_variance = _ekf.getGyroBiasVariance();
+				_gyro_cal.cal_available = true;
+			}
+		}
+
+		_gyro_cal.last_us = timestamp;
+
+	} else {
+		// conditions are NOT OK for learning gyro bias, reset timestamp
+		// but keep the accumulated calibration time
+		_gyro_cal.last_us = 0;
+
+		if (_ekf.fault_status().value != 0) {
+			// if a filter fault has occurred, assume previous learning was invalid and do not
+			// count it towards total learning time.
+			_gyro_cal.total_time_us = 0;
+		}
+	}
+}
+
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
 	// Check if conditions are OK for learning of magnetometer bias values
 	// the EKF is operating in the correct mode and there are no filter faults
 	if (_ekf.control_status_flags().in_air && _ekf.control_status_flags().mag_3D && (_ekf.fault_status().value == 0)) {
 
-		if (_mag_cal_last_us != 0) {
-			_mag_cal_total_time_us += timestamp - _mag_cal_last_us;
+		if (_mag_cal.last_us != 0) {
+			_mag_cal.total_time_us += timestamp - _mag_cal.last_us;
 
 			// Start checking mag bias estimates when we have accumulated sufficient calibration time
-			if (_mag_cal_total_time_us > 30_s) {
-				_mag_cal_last_bias = _ekf.getMagBias();
-				_mag_cal_last_bias_variance = _ekf.getMagBiasVariance();
-				_mag_cal_available = true;
+			if (_mag_cal.total_time_us > 30_s) {
+				_mag_cal.last_bias = _ekf.getMagBias();
+				_mag_cal.last_bias_variance = _ekf.getMagBiasVariance();
+				_mag_cal.cal_available = true;
 			}
 		}
 
-		_mag_cal_last_us = timestamp;
+		_mag_cal.last_us = timestamp;
 
 	} else {
 		// conditions are NOT OK for learning magnetometer bias, reset timestamp
 		// but keep the accumulated calibration time
-		_mag_cal_last_us = 0;
+		_mag_cal.last_us = 0;
 
 		if (_ekf.fault_status().value != 0) {
 			// if a filter fault has occurred, assume previous learning was invalid and do not
 			// count it towards total learning time.
-			_mag_cal_total_time_us = 0;
+			_mag_cal.total_time_us = 0;
 		}
 	}
 
@@ -1955,7 +2062,7 @@ Attitude and position estimator using an Extended Kalman Filter. It is used for 
 
 The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/master/en/advanced_config/tuning_the_ecl_ekf.html) page.
 
-ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
+ekf2 can be started in replay mode (`-r`): in this mode, it does not access the system time, but only uses the
 timestamps from the sensor topics.
 
 )DESCR_STR");

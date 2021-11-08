@@ -36,6 +36,28 @@
 #include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
+
+#ifdef CONFIG_UAVCAN_V1_APP_DESCRIPTOR
+#include "boot_app_shared.h"
+/*
+ * This is the AppImageDescriptor used
+ * by the make_can_boot_descriptor.py tool to set
+ * the application image's descriptor so that the
+ * uavcan bootloader has the ability to validate the
+ * image crc, size etc of this application
+*/
+boot_app_shared_section app_descriptor_t AppDescriptor = {
+	.signature = APP_DESCRIPTOR_SIGNATURE,
+	.image_crc = 0,
+	.image_size = 0,
+	.git_hash  = 0,
+	.major_version = APP_VERSION_MAJOR,
+	.minor_version = APP_VERSION_MINOR,
+	.board_id = HW_VERSION_MAJOR << 8 | HW_VERSION_MINOR,
+	.reserved = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff }
+};
+#endif
+
 using namespace time_literals;
 
 UavcanNode *UavcanNode::_instance;
@@ -80,13 +102,19 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 		_canard_instance.mtu_bytes = CANARD_MTU_CAN_CLASSIC;
 	}
 
+#ifdef CONFIG_UAVCAN_V1_NODE_MANAGER
 	_node_manager.subscribe();
+#endif
+
+#ifdef CONFIG_UAVCAN_V1_NODE_CLIENT
+	_node_client = new NodeClient(_canard_instance, _param_manager);
+
+	_node_client->subscribe();
+#endif
 
 	_pub_manager.updateParams();
 
 	_sub_manager.subscribe();
-
-	_mixing_output.mixingOutput().updateSubscriptions(false, false);
 }
 
 UavcanNode::~UavcanNode()
@@ -188,20 +216,35 @@ void UavcanNode::Run()
 		_sub_manager.updateParams();
 
 		_mixing_output.updateParams();
-
-		_mixing_output.mixingOutput().updateSubscriptions(false, false);
 	}
 
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
-	// send uavcan::node::Heartbeat_1_0 @ 1 Hz
-	sendHeartbeat();
+	if (_canard_instance.node_id != CANARD_NODE_ID_UNSET) {
+		// send uavcan::node::Heartbeat_1_0 @ 1 Hz
+		sendHeartbeat();
 
-	// Check all publishers
-	_pub_manager.update();
+		// Check all publishers
+		_pub_manager.update();
 
-	_node_manager.update();
+#ifdef CONFIG_UAVCAN_V1_NODE_MANAGER
+		_node_manager.update();
+#endif
+	}
+
+#ifdef CONFIG_UAVCAN_V1_NODE_CLIENT
+
+	else if (_node_client != nullptr) {
+		if (_canard_instance.node_id == CANARD_NODE_ID_UNSET) {
+			_node_client->update();
+
+		} else {
+			delete _node_client;
+		}
+	}
+
+#endif
 
 	transmit();
 
@@ -390,6 +433,10 @@ extern "C" __EXPORT int uavcan_v1_main(int argc, char *argv[])
 		int32_t node_id = 0;
 		param_get(param_find("UAVCAN_V1_ID"), &node_id);
 
+		if (node_id == -1) {
+			node_id = CANARD_NODE_ID_UNSET;
+		}
+
 		// Start
 		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
 		return UavcanNode::start(node_id, bitrate);
@@ -470,6 +517,6 @@ void UavcanMixingInterface::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
 	_mixing_output.update();
-	_mixing_output.updateSubscriptions(false, false);
+	_mixing_output.updateSubscriptions();
 	pthread_mutex_unlock(&_node_mutex);
 }

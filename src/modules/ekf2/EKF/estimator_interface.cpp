@@ -87,9 +87,8 @@ bool EstimatorInterface::checkIfVehicleAtRest(float dt, const imuSample &imu)
 {
 	// detect if the vehicle is not moving when on ground
 	if (!_control_status.flags.in_air) {
-		if ((_vibe_metrics(1) * 4.0E4f > _params.is_moving_scaler)
-		    || (_vibe_metrics(2) * 2.1E2f > _params.is_moving_scaler)
-		    || ((imu.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
+		if (((_vibe_metrics(1) * 4.0e4f > _params.is_moving_scaler) || (_vibe_metrics(2) * 2.1e2f > _params.is_moving_scaler))
+		    && ((imu.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
 
 			_time_last_move_detect_us = imu.time_us;
 		}
@@ -134,7 +133,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 
 		// Use the time in the middle of the downsampling interval for the sample
 		mag_sample_new.time_us = 1000 * (_mag_timestamp_sum / _mag_sample_count);
-		mag_sample_new.time_us -= _params.mag_delay_ms * 1000;
+		mag_sample_new.time_us -= static_cast<uint64_t>(_params.mag_delay_ms * 1000);
 		mag_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		mag_sample_new.mag = _mag_data_sum / _mag_sample_count;
@@ -173,7 +172,7 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 
 		gpsSample gps_sample_new;
 
-		gps_sample_new.time_us = gps.time_usec - _params.gps_delay_ms * 1000;
+		gps_sample_new.time_us = gps.time_usec - static_cast<uint64_t>(_params.gps_delay_ms * 1000);
 		gps_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		gps_sample_new.vel = gps.vel_ned;
@@ -245,7 +244,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 
 		// Use the time in the middle of the downsampling interval for the sample
 		baro_sample_new.time_us = 1000 * (_baro_timestamp_sum / _baro_sample_count);
-		baro_sample_new.time_us -= _params.baro_delay_ms * 1000;
+		baro_sample_new.time_us -= static_cast<uint64_t>(_params.baro_delay_ms * 1000);
 		baro_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		_baro_buffer.push(baro_sample_new);
@@ -279,7 +278,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 
 		airspeedSample airspeed_sample_new = airspeed_sample;
 
-		airspeed_sample_new.time_us -= _params.airspeed_delay_ms * 1000;
+		airspeed_sample_new.time_us -= static_cast<uint64_t>(_params.airspeed_delay_ms * 1000);
 		airspeed_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		_airspeed_buffer.push(airspeed_sample_new);
@@ -308,7 +307,7 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 		_time_last_range = range_sample.time_us;
 
 		rangeSample range_sample_new = range_sample;
-		range_sample_new.time_us -= _params.range_delay_ms * 1000;
+		range_sample_new.time_us -= static_cast<uint64_t>(_params.range_delay_ms * 1000);
 		range_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		_range_buffer.push(range_sample_new);
@@ -338,7 +337,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 
 		flowSample optflow_sample_new = flow;
 
-		optflow_sample_new.time_us -= _params.flow_delay_ms * 1000;
+		optflow_sample_new.time_us -= static_cast<uint64_t>(_params.flow_delay_ms * 1000);
 		optflow_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		_flow_buffer.push(optflow_sample_new);
@@ -369,7 +368,7 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 
 		extVisionSample ev_sample_new = evdata;
 		// calculate the system time-stamp for the mid point of the integration period
-		ev_sample_new.time_us -= _params.ev_delay_ms * 1000;
+		ev_sample_new.time_us -= static_cast<uint64_t>(_params.ev_delay_ms * 1000);
 		ev_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		_ext_vision_buffer.push(ev_sample_new);
@@ -399,7 +398,7 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 
 		auxVelSample auxvel_sample_new = auxvel_sample;
 
-		auxvel_sample_new.time_us -= _params.auxvel_delay_ms * 1000;
+		auxvel_sample_new.time_us -= static_cast<uint64_t>(_params.auxvel_delay_ms * 1000);
 		auxvel_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
 		_auxvel_buffer.push(auxvel_sample_new);

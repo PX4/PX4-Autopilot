@@ -36,7 +36,7 @@
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	CDev(TAP_ESC_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
-	_mixing_output{channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
+	_mixing_output{"TAP_ESC", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
 	_channels_count(channels_count)
 {
 	strncpy(_device, device, sizeof(_device) - 1);
@@ -297,7 +297,7 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 					_esc_feedback.esc[feed_back_data.channelID].esc_current = feed_back_data.current;
 #endif // ESC_HAVE_CURRENT_SENSOR
 #if defined(ESC_HAVE_TEMPERATURE_SENSOR)
-					_esc_feedback.esc[feed_back_data.channelID].esc_temperature = feed_back_data.temperature;
+					_esc_feedback.esc[feed_back_data.channelID].esc_temperature = static_cast<float>(feed_back_data.temperature);
 #endif // ESC_HAVE_TEMPERATURE_SENSOR
 					_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
 					_esc_feedback.esc[feed_back_data.channelID].failures = 0;

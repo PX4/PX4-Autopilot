@@ -21,8 +21,6 @@ then
 fi
 
 # initialize script variables
-set AUX_MODE                    none
-set AUX_BANK2			none
 set IO_PRESENT                  no
 set MAV_TYPE                    none
 set MIXER                       none
@@ -122,8 +120,6 @@ then
 
 	param set SENS_BOARD_X_OFF 0.000001
 	param set SENS_DPRES_OFF 0.001
-
-	param set SYS_RESTART_TYPE 2
 fi
 
 param set-default BAT1_N_CELLS 4
@@ -147,6 +143,8 @@ param set-default EKF2_MULTI_MAG 2
 param set-default SENS_MAG_MODE 0
 
 param set-default IMU_GYRO_FFT_EN 1
+
+param set-default -s MC_AT_EN 1
 
 # By default log from boot until first disarm.
 param set-default SDLOG_MODE 1

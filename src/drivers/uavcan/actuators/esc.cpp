@@ -79,14 +79,6 @@ UavcanEscController::init()
 void
 UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
-	if (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) {
-		num_outputs = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize;
-	}
-
-	if (num_outputs > esc_status_s::CONNECTED_ESC_MAX) {
-		num_outputs = esc_status_s::CONNECTED_ESC_MAX;
-	}
-
 	/*
 	 * Rate limiting - we don't want to congest the bus
 	 */

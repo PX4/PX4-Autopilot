@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file VTOL_att_control_main.cpp
  * Implementation of an attitude controller for VTOL airframes. This module receives data
  * from both the fixed wing- and the multicopter attitude controllers and processes it.
- * It computes the correct actuator controls depending on which mode the vehicle is in (hover,forward-
+ * It computes the correct actuator controls depending on which mode the vehicle is in (hover, forward-
  * flight or transition). It also publishes the resulting controls on the actuator controls topics.
  *
  * @author Roman Bapst 		<bapstr@ethz.ch>
@@ -47,6 +47,7 @@
  *
  */
 #include "vtol_att_control_main.h"
+#include <px4_platform_common/events.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 
@@ -90,8 +91,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.dec_to_pitch_i = param_find("VT_B_DEC_I");
 	_params_handles.back_trans_dec_sp = param_find("VT_B_DEC_MSS");
 
-
-	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
+	_params_handles.pitch_min_rad = param_find("VT_PTCH_MIN");
 	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
 	_params_handles.vt_mc_on_fmu = param_find("VT_MC_ON_FMU");
 
@@ -99,8 +99,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.mpc_land_alt1 = param_find("MPC_LAND_ALT1");
 	_params_handles.mpc_land_alt2 = param_find("MPC_LAND_ALT2");
 
-	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
-	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
+	_params_handles.land_pitch_min_rad = param_find("VT_LND_PTCH_MIN");
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -150,16 +150,19 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
-			// deny any transition in auto takeoff mode, plus transition from RW to FW in land or RTL mode
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
-			    || (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-				&& (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
-				    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))) {
+			const int transition_command_param1 = int(vehicle_command.param1 + 0.5f);
+
+			// deny transition from MC to FW in Takeoff, Land, RTL and Orbit
+			if (transition_command_param1 == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
+			    (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+			     ||  vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
 
 				result = vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED;
 
 			} else {
-				_transition_command = int(vehicle_command.param1 + 0.5f);
+				_transition_command = transition_command_param1;
 				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? int(vehicle_command.param2 + 0.5f) : false;
 			}
 
@@ -200,10 +203,53 @@ VtolAttitudeControl::is_fixed_wing_requested()
 }
 
 void
-VtolAttitudeControl::quadchute(const char *reason)
+VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
 	if (!_vtol_vehicle_status.vtol_transition_failsafe) {
-		mavlink_log_critical(&_mavlink_log_pub, "Quadchute: %s", reason);
+		switch (reason) {
+		case QuadchuteReason::TransitionTimeout:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: transition timeout\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical,
+				     "Quadchute triggered, due to transition timeout");
+			break;
+
+		case QuadchuteReason::ExternalCommand:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: external command\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_ext_cmd"), events::Log::Critical,
+				     "Quadchute triggered, due to external command");
+			break;
+
+		case QuadchuteReason::MinimumAltBreached:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: minimum altitude breached\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_min_alt"), events::Log::Critical,
+				     "Quadchute triggered, due to minimum altitude breach");
+			break;
+
+		case QuadchuteReason::LossOfAlt:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: loss of altitude\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_alt_loss"), events::Log::Critical,
+				     "Quadchute triggered, due to loss of altitude");
+			break;
+
+		case QuadchuteReason::LargeAltError:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: large altitude error\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_alt_err"), events::Log::Critical,
+				     "Quadchute triggered, due to large altitude error");
+			break;
+
+		case QuadchuteReason::MaximumPitchExceeded:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum pitch exceeded\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_pitch"), events::Log::Critical,
+				     "Quadchute triggered, due to maximum pitch angle exceeded");
+			break;
+
+		case QuadchuteReason::MaximumRollExceeded:
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum roll exceeded\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll"), events::Log::Critical,
+				     "Quadchute triggered, due to maximum roll angle exceeded");
+			break;
+		}
+
 		_vtol_vehicle_status.vtol_transition_failsafe = true;
 	}
 }
@@ -258,7 +304,12 @@ VtolAttitudeControl::parameters_update()
 	if (_params.front_trans_time_openloop < _params.front_trans_time_min * 1.1f) {
 		_params.front_trans_time_openloop = _params.front_trans_time_min * 1.1f;
 		param_set_no_notification(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
-		mavlink_log_critical(&_mavlink_log_pub, "OL transition time set larger than min transition time");
+		mavlink_log_critical(&_mavlink_log_pub, "OL transition time set larger than min transition time\t");
+		/* EVENT
+		 * @description <param>VT_F_TR_OL_TM</param> set to {1:.1}.
+		 */
+		events::send<float>(events::ID("vtol_att_ctrl_ol_trans_too_large"), events::Log::Warning,
+				    "Open loop transition time set larger than minimum transition time", _params.front_trans_time_openloop);
 	}
 
 	param_get(_params_handles.front_trans_duration, &_params.front_trans_duration);
@@ -277,8 +328,12 @@ VtolAttitudeControl::parameters_update()
 	_params.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
 
 	/* maximum down pitch allowed */
-	param_get(_params_handles.down_pitch_max, &v);
-	_params.down_pitch_max = math::radians(v);
+	param_get(_params_handles.pitch_min_rad, &v);
+	_params.pitch_min_rad = math::radians(v);
+
+	/* maximum down pitch allowed during landing*/
+	param_get(_params_handles.land_pitch_min_rad, &v);
+	_params.land_pitch_min_rad = math::radians(v);
 
 	/* scale for fixed wing thrust used for forward acceleration in multirotor mode */
 	param_get(_params_handles.forward_thrust_scale, &_params.forward_thrust_scale);

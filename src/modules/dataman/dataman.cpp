@@ -1090,11 +1090,6 @@ task_main(int argc, char *argv[])
 	_dm_read_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": read");
 	_dm_write_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": write");
 
-	/* see if we need to erase any items based on restart type */
-	int32_t sys_restart_val;
-
-	const char *restart_type_str = "Unknown restart";
-
 	int ret = g_dm_ops->initialize(max_offset);
 
 	if (ret) {
@@ -1102,29 +1097,14 @@ task_main(int argc, char *argv[])
 		goto end;
 	}
 
-	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
-		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
-			restart_type_str = "Power on restart";
-			g_dm_ops->restart(DM_INIT_REASON_POWER_ON);
-
-		} else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
-			restart_type_str = "In flight restart";
-			g_dm_ops->restart(DM_INIT_REASON_IN_FLIGHT);
-		}
-	}
-
 	switch (backend) {
 	case BACKEND_FILE:
-		if (sys_restart_val != DM_INIT_REASON_POWER_ON) {
-			PX4_INFO("%s, data manager file '%s' size is %u bytes",
-				 restart_type_str, k_data_manager_device_path, max_offset);
-		}
+		PX4_INFO("data manager file '%s' size is %u bytes", k_data_manager_device_path, max_offset);
 
 		break;
 
 	case BACKEND_RAM:
-		PX4_INFO("%s, data manager RAM size is %u bytes",
-			 restart_type_str, max_offset);
+		PX4_INFO("data manager RAM size is %u bytes", max_offset);
 		break;
 
 	default:

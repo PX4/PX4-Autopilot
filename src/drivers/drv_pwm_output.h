@@ -215,28 +215,7 @@ typedef uint16_t	servo_position_t;
 /** force safety switch on (to enable use of safety switch) */
 #define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 28)
 
-/** setup OVERRIDE_IMMEDIATE behaviour on FMU fail */
-#define PWM_SERVO_SET_OVERRIDE_IMMEDIATE	_PX4_IOC(_PWM_SERVO_BASE, 32)
-
-/** set auxillary output mode. These correspond to enum Mode in px4fmu/fmu.cpp */
-#define PWM_SERVO_MODE_NONE         0
-#define PWM_SERVO_MODE_1PWM         1
-#define PWM_SERVO_MODE_2PWM         2
-#define PWM_SERVO_MODE_2PWM2CAP     3
-#define PWM_SERVO_MODE_3PWM         4
-#define PWM_SERVO_MODE_3PWM1CAP     5
-#define PWM_SERVO_MODE_4PWM         6
-#define PWM_SERVO_MODE_4PWM1CAP     7
-#define PWM_SERVO_MODE_4PWM2CAP     8
-#define PWM_SERVO_MODE_5PWM         9
-#define PWM_SERVO_MODE_5PWM1CAP    10
-#define PWM_SERVO_MODE_6PWM        11
-#define PWM_SERVO_MODE_8PWM        12
-#define PWM_SERVO_MODE_12PWM       13
-#define PWM_SERVO_MODE_14PWM       14
-#define PWM_SERVO_MODE_4CAP        15
-#define PWM_SERVO_MODE_5CAP        16
-#define PWM_SERVO_MODE_6CAP        17
+/** set auxillary output mode */
 #define PWM_SERVO_ENTER_TEST_MODE  18
 #define PWM_SERVO_EXIT_TEST_MODE   19
 #define PWM_SERVO_SET_MODE         _PX4_IOC(_PWM_SERVO_BASE, 34)
@@ -310,8 +289,9 @@ typedef enum {
  *
  * @param channel_mask	Bitmask of channels (LSB = channel 0) to enable.
  *			This allows some of the channels to remain configured
- *			as GPIOs or as another function.
- * @return		OK on success.
+ *			as GPIOs or as another function. Already used channels/timers
+ *			will not be configured as PWM.
+ * @return <0 on error, the initialized channels mask.
  */
 __EXPORT extern int	up_pwm_servo_init(uint32_t channel_mask);
 
@@ -378,7 +358,7 @@ __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned 
  * Nothing is done if not in oneshot mode.
  *
  */
-__EXPORT extern void up_pwm_update(void);
+__EXPORT extern void up_pwm_update(unsigned channel_mask);
 
 /**
  * Set the current output value for a channel.
@@ -402,9 +382,9 @@ __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
  *
  * @param channel_mask		Bitmask of channels (LSB = channel 0) to enable.
  *				This allows some of the channels to remain configured
- *				as GPIOs or as another function.
+ *				as GPIOs or as another function. Already used channels/timers will not be configured as DShot
  * @param dshot_pwm_freq	Frequency of DSHOT signal. Usually DSHOT150, DSHOT300, DSHOT600 or DSHOT1200
- * @return OK on success.
+ * @return <0 on error, the initialized channels mask.
  */
 __EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq);
 

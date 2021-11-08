@@ -44,8 +44,10 @@ LinuxPWMOut::LinuxPWMOut() :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": interval"))
 {
-	_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
-	_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
+	if (!_mixing_output.useDynamicMixing()) {
+		_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
+		_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
+	}
 }
 
 LinuxPWMOut::~LinuxPWMOut()
@@ -154,8 +156,8 @@ void LinuxPWMOut::update_params()
 {
 	updateParams();
 
-	// skip update when armed
-	if (_mixing_output.armed().armed) {
+	// skip update when armed or dynamic mixing enabled
+	if (_mixing_output.armed().armed || _mixing_output.useDynamicMixing()) {
 		return;
 	}
 

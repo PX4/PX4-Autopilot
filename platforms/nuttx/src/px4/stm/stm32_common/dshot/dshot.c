@@ -90,12 +90,17 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 {
 	unsigned buffer_offset = 0;
 
+	for (int timer_index = 0; timer_index < DSHOT_TIMERS; timer_index++) {
+		dshot_handler[timer_index].init = false;
+	}
+
 	for (unsigned timer = 0; timer < DSHOT_TIMERS; ++timer) {
 		if (io_timers[timer].base == 0) { // no more timers configured
 			break;
 		}
 
 		// we know the uint8_t* cast to uint32_t* is fine, since we're aligned to cache line size
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 		dshot_burst_buffer[timer] = (uint32_t *)&dshot_burst_buffer_array[buffer_offset];
 #pragma GCC diagnostic pop
@@ -108,6 +113,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 
 	/* Init channels */
 	int ret_val = OK;
+	int channels_init_mask = 0;
 
 	for (unsigned channel = 0; (channel_mask != 0) && (channel < MAX_TIMER_IO_CHANNELS) && (OK == ret_val); channel++) {
 		if (channel_mask & (1 << channel)) {
@@ -117,16 +123,16 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 				continue;
 			}
 
-			// First free any that were not DShot mode before
-			if (-EBUSY == io_timer_is_channel_free(channel)) {
-				io_timer_free_channel(channel);
-			}
-
 			ret_val = io_timer_channel_init(channel, IOTimerChanMode_Dshot, NULL, NULL);
+			channel_mask &= ~(1 << channel);
 
 			if (OK == ret_val) {
-				channel_mask &= ~(1 << channel);
 				dshot_handler[timer].init = true;
+				channels_init_mask |= 1 << channel;
+
+			} else if (ret_val == -EBUSY) {
+				/* either timer or channel already used - this is not fatal */
+				ret_val = 0;
 			}
 		}
 	}
@@ -146,7 +152,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 		}
 	}
 
-	return ret_val;
+	return ret_val == OK ? channels_init_mask : ret_val;
 }
 
 void up_dshot_trigger(void)

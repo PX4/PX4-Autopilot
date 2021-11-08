@@ -50,10 +50,7 @@
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
 
-#include <uORB/topics/actuator_armed.h>
-
 __EXPORT int nshterm_main(int argc, char *argv[]);
-
 
 static void print_usage(void)
 {
@@ -67,63 +64,15 @@ static void print_usage(void)
 	PRINT_MODULE_USAGE_ARG("<file:dev>", "Device on which to start the shell (eg. /dev/ttyACM0)", false);
 }
 
-int
-nshterm_main(int argc, char *argv[])
+int nshterm_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		print_usage();
 		return 1;
 	}
 
-	unsigned retries = 0;
-	int fd = -1;
-	int armed_fd = orb_subscribe(ORB_ID(actuator_armed));
-	struct actuator_armed_s armed;
-
-	/* back off 1800 ms to avoid running into the USB setup timing */
-	while (hrt_absolute_time() < 1800U * 1000U) {
-		usleep(50000);
-	}
-
-	/* try to bring up the console - stop doing so if the system gets armed */
-	while (true) {
-
-		/* abort if an arming topic is published and system is armed */
-		bool updated = false;
-		orb_check(armed_fd, &updated);
-
-		if (updated) {
-			/* the system is now providing arming status feedback.
-			 * instead of timing out, we resort to abort bringing
-			 * up the terminal.
-			 */
-			orb_copy(ORB_ID(actuator_armed), armed_fd, &armed);
-
-			if (armed.armed) {
-				/* this is not an error, but we are done */
-				return 0;
-			}
-		}
-
-		/* the retries are to cope with the behaviour of /dev/ttyACM0 */
-		/* which may not be ready immediately. */
-		fd = open(argv[1], O_RDWR);
-
-		if (fd != -1) {
-			close(armed_fd);
-			break;
-		}
-
-		usleep(100000);
-		retries++;
-	}
-
-	if (fd == -1) {
-		perror(argv[1]);
-		return 1;
-	}
-
 	/* set up the serial port with output processing */
+	int fd = open(argv[1], O_RDWR);
 
 	/* Try to set baud rate */
 	struct termios uart_config;
@@ -131,7 +80,7 @@ nshterm_main(int argc, char *argv[])
 
 	/* Back up the original uart configuration to restore it after exit */
 	if ((termios_state = tcgetattr(fd, &uart_config)) < 0) {
-		warnx("ERR get config %s: %d\n", argv[1], termios_state);
+		PX4_ERR("get config %s: %d\n", argv[1], termios_state);
 		close(fd);
 		return -1;
 	}
@@ -140,7 +89,7 @@ nshterm_main(int argc, char *argv[])
 	uart_config.c_oflag |= (ONLCR | OPOST);
 
 	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
-		warnx("ERR set config %s\n", argv[1]);
+		PX4_ERR("set config %s\n", argv[1]);
 		close(fd);
 		return -1;
 	}
@@ -156,6 +105,8 @@ nshterm_main(int argc, char *argv[])
 	nsh_consolemain(0, NULL);
 
 	close(fd);
+
+	PX4_INFO("exiting");
 
 	return 0;
 }

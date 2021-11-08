@@ -52,6 +52,7 @@
 
 #include "Subscribers/BeepCommand.hpp"
 #include "Subscribers/LightsCommand.hpp"
+#include "Subscribers/RTCMStream.hpp"
 
 using namespace time_literals;
 
@@ -308,6 +309,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	_subscriber_list.add(new BeepCommand(_node));
 	_subscriber_list.add(new LightsCommand(_node));
+	_subscriber_list.add(new RTCMStream(_node));
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();
@@ -510,6 +512,19 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 
 	// Sarted byt the bootloader, we must pet it
 	watchdog_pet();
+
+#if defined(GPIO_CAN_TERM)
+	int32_t can_term = 0;
+	param_get(param_find("CANNODE_TERM"), &can_term);
+
+	if (can_term != 0) {
+		px4_arch_gpiowrite(GPIO_CAN_TERM, true);
+
+	} else {
+		px4_arch_gpiowrite(GPIO_CAN_TERM, false);
+	}
+
+#endif
 
 	// CAN bitrate
 	int32_t bitrate = 0;

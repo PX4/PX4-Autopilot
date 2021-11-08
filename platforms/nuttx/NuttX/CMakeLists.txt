@@ -188,16 +188,16 @@ add_custom_target(nuttx_config_target DEPENDS ${NUTTX_DIR}/.config ${PX4_BINARY_
 # verbose build settings (V=1 or VERBOSE=1)
 option(PX4_NUTTX_VERBOSE "PX4 NuttX verbose build" off)
 
-if(($ENV{V} MATCHES "1") OR ($ENV{VERBOSE} MATCHES "1"))
+if(($ENV{V} MATCHES "1") OR ($ENV{VERBOSE} MATCHES "1") OR ($ENV{VERBOSE} MATCHES "True"))
 	message(STATUS "NuttX verbose build enabled")
 	set(PX4_NUTTX_VERBOSE on)
 endif()
 
 if(PX4_NUTTX_VERBOSE)
-	set(nuttx_build_options)
+	set(nuttx_build_options "V=1")
 	set(nuttx_build_uses_terminal "USES_TERMINAL")
 else()
-	set(nuttx_build_options "--quiet")
+	set(nuttx_build_options "--quiet" "--no-print-directory")
 	set(nuttx_build_uses_terminal)
 endif()
 
@@ -295,7 +295,7 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 
 	add_custom_command(OUTPUT ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		COMMAND find ${nuttx_lib_dir} -type f -name *.o -delete
-		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} --no-print-directory all TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRAFLAGS=${extra}
+		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} all TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRAFLAGS=${extra} >> nuttx_build.log
 		DEPENDS
 			${nuttx_lib_files}
 			nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
@@ -319,6 +319,7 @@ add_nuttx_dir(sched sched y -D__KERNEL__)
 add_nuttx_dir(c libs/libc n "")
 add_nuttx_dir(xx libs/libxx n "")
 add_nuttx_dir(mm mm n "")
+add_nuttx_dir(crypto crypto y -D__KERNEL__)
 
 if(CONFIG_NET)
 	add_nuttx_dir(net net y -D__KERNEL__)
