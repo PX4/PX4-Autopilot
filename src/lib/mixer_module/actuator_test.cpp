@@ -41,7 +41,7 @@ ActuatorTest::ActuatorTest(const OutputFunction function_assignments[MAX_ACTUATO
 	reset();
 }
 
-void ActuatorTest::update(int num_outputs, bool reversible_motors)
+void ActuatorTest::update(int num_outputs, bool reversible_motors, float thrust_curve)
 {
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -73,15 +73,8 @@ void ActuatorTest::update(int num_outputs, bool reversible_motors)
 					float value = actuator_test.value;
 
 					// handle motors
-					if (actuator_test.function >= (int)OutputFunction::Motor1 && actuator_test.function <= (int)OutputFunction::MotorMax
-					    && !reversible_motors) {
-						if (value < -FLT_EPSILON) {
-							value = NAN;
-
-						} else {
-							// remap from [0, 1] to [-1, 1]
-							value = value * 2.f - 1.f;
-						}
+					if (actuator_test.function >= (int)OutputFunction::Motor1 && actuator_test.function <= (int)OutputFunction::MotorMax) {
+						FunctionMotors::updateValues(reversible_motors, thrust_curve, &value, 1);
 					}
 
 					_current_outputs[i] = value;
