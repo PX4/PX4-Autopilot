@@ -401,6 +401,47 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand, const
 
 
 void
+FixedwingPositionControl::update_wind_mode()
+{
+	/* If the corresponding wind threshold values are set, the wind state will change if these values are
+	 * passed for a certain amount of time. The wind state is then used to increase airspeed (high wind),
+	 * resp. decrease (low wind). It takes longer to move to a lower wind state than to a higher,
+	 * as in general higher airspeed is safer. */
+
+	wind_s wind_estimate;
+
+	if (_wind_sub.update(&wind_estimate)) {
+		const matrix::Vector2f wind(wind_estimate.windspeed_north, wind_estimate.windspeed_east);
+		FW_WIND_MODE fw_wind_mode_detected(FW_WIND_MODE_NORMAL);
+
+		if (_param_fw_wind_thld_h.get() > FLT_EPSILON && wind.length() > _param_fw_wind_thld_h.get()) {
+			fw_wind_mode_detected = FW_WIND_MODE_HIGH;
+
+		} else if (_param_fw_wind_thld_l.get() > FLT_EPSILON && wind.length() < _param_fw_wind_thld_l.get()) {
+			fw_wind_mode_detected = FW_WIND_MODE_LOW;
+		}
+
+		if (fw_wind_mode_detected != _fw_wind_mode_detected_prev) {
+			_first_time_current_mode_detected = hrt_absolute_time();
+		}
+
+		const float min_time_detection_mode_down = 60.0f; // min time to switch to lower wind state
+		const float time_since_new_mode_detected = hrt_elapsed_time(&_first_time_current_mode_detected) * 1e-6f;
+
+		// immediately switch to higher wind mode after detection, but require minimum time within lower wind to switch to lower mode
+		if (fw_wind_mode_detected > _fw_wind_mode_current) {
+			_fw_wind_mode_current = fw_wind_mode_detected;
+
+		} else if (fw_wind_mode_detected < _fw_wind_mode_current
+			   && time_since_new_mode_detected > min_time_detection_mode_down) {
+			_fw_wind_mode_current = fw_wind_mode_detected;
+		}
+
+		_fw_wind_mode_detected_prev = fw_wind_mode_detected;
+	}
+}
+
+void
 FixedwingPositionControl::status_publish()
 {
 	position_controller_status_s pos_ctrl_status = {};
@@ -668,6 +709,8 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 
 	/* get circle mode */
 	const bool was_circle_mode = _l1_control.circle_mode();
+
+	update_wind_mode();
 
 	/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());

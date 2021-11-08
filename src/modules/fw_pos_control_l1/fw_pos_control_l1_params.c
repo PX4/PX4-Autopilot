@@ -854,3 +854,53 @@ PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);
+
+/**
+ * High wind threshold
+ *
+ * If the current wind estimate is above this threshold,the value of FW_WIND_ARSP_OF
+ * is added to the cruise airspeed setpoint.
+ * Set to zero number to disable wind-based airspeed setpoint up-scaling.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 30
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_WIND_THLD_H, 0.0f);
+
+/**
+ * Low wind threshold
+ *
+ * If the current wind estimate is below this threshold for 60 seconds,the value of
+ * FW_WIND_ARSP_OF is subtracted from the cruise airspeed setpoint.
+ * Set to zero to disable wind-based airspeed setpoint down-scaling.
+ *
+ * @unit m/s
+ * @min 0
+ * @max 30
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_WIND_THLD_L, 0.0f);
+
+/**
+ * Wind-based airspeed setpoint offset
+ *
+ * Airspeed setpoint offset that is added/subtracted to the cruise airspeed setpoint if wind-based setpoint
+ * adaption is enabled for either or both high and low winds (FW_WIND_THLD_H and FW_WIND_THLD_L).
+ * If in high wind condition, this offset is added to the cruise airspeed setpoint.
+ * If in low wind condition, this offset is subtracted from the cruise airspeed setpoint.
+ * Note: manual airspeed setpoints via sticks must be disabled for wind-based adaption to work (see FW_POS_STK_CONF).
+ *
+ * @unit m/s
+ * @min 0
+ * @max 10
+ * @decimal 1
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_WIND_ARSP_OF, 1.0f);

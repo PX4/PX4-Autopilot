@@ -88,6 +88,7 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/orbit_status.h>
+#include <uORB/topics/wind.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
 
@@ -151,6 +152,7 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _wind_sub{ORB_ID(wind)};
 
 	uORB::Publication<vehicle_attitude_setpoint_s>		_attitude_sp_pub;
 	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication
@@ -266,6 +268,17 @@ private:
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER};		///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
+	// wind state
+	hrt_abstime _first_time_current_mode_detected{0};		///< last time in normal wind mode
+
+	enum FW_WIND_MODE {
+		FW_WIND_MODE_LOW,
+		FW_WIND_MODE_NORMAL,
+		FW_WIND_MODE_HIGH,
+	} _fw_wind_mode_current{FW_WIND_MODE_NORMAL};		///< used to make wind-based airspeed setpoint adaptions
+
+	FW_WIND_MODE _fw_wind_mode_detected_prev{FW_WIND_MODE_NORMAL};
+
 	param_t _param_handle_airspeed_trans{PARAM_INVALID};
 	float _param_airspeed_trans{NAN};
 
@@ -348,7 +361,10 @@ private:
 	Vector2f 	get_nav_speed_2d(const Vector2f &ground_speed);
 	void		set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid);
 
-	void publishOrbitStatus(const position_setpoint_s pos_sp);
+	void 		publishOrbitStatus(const position_setpoint_s pos_sp);
+
+
+	void		update_wind_mode();
 
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation
@@ -433,7 +449,12 @@ private:
 
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
 
-		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min
+		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
+
+		//Speed mode params
+		(ParamFloat<px4::params::FW_WIND_THLD_H>) _param_fw_wind_thld_h,
+		(ParamFloat<px4::params::FW_WIND_THLD_L>) _param_fw_wind_thld_l,
+		(ParamFloat<px4::params::FW_WIND_ARSP_OF>) _param_fw_wind_arsp_of,
 
 	)
 
