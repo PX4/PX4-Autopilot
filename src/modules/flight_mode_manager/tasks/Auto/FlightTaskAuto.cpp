@@ -157,7 +157,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
 		// If no speed is planned use the default cruise speed as limit
-		_mc_cruise_speed = _constraints.speed_xy;
+		_mc_cruise_speed = _param_mpc_xy_cruise.get();
 	}
 
 	// Ensure planned cruise speed is below the maximum such that the smooth trajectory doesn't get capped
@@ -407,16 +407,6 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 
 	// check if everything is still finite
 	return PX4_ISFINITE(_reference_altitude) && PX4_ISFINITE(ref_lat) && PX4_ISFINITE(ref_lon);
-}
-
-void FlightTaskAuto::_setDefaultConstraints()
-{
-	FlightTask::_setDefaultConstraints();
-
-	// only adjust limits if the new limit is lower
-	if (_constraints.speed_xy >= _param_mpc_xy_cruise.get()) {
-		_constraints.speed_xy = _param_mpc_xy_cruise.get();
-	}
 }
 
 Vector2f FlightTaskAuto::_getTargetVelocityXY()
