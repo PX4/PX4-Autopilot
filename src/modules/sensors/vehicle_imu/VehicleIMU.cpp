@@ -319,15 +319,25 @@ bool VehicleIMU::UpdateAccel()
 			_status.accel_error_count = accel.error_count;
 		}
 
-		const Vector3f accel_raw{accel.x, accel.y, accel.z};
-		_accel_sum += accel_raw;
-		_accel_temperature += accel.temperature;
-		_accel_sum_count++;
+
+		// temperature average
+		if (_accel_temperature_sum_count == 0) {
+			_accel_temperature_sum = accel.temperature;
+
+		} else {
+			_accel_temperature_sum += accel.temperature;
+		}
+
+		_accel_temperature_sum_count++;
+
 
 		const float dt = (accel.timestamp_sample - _accel_timestamp_sample_last) * 1e-6f;
 		_accel_timestamp_sample_last = accel.timestamp_sample;
 
+		const Vector3f accel_raw{accel.x, accel.y, accel.z};
+		_raw_accel_mean.update(accel_raw);
 		_accel_integrator.put(accel_raw, dt);
+
 		updated = true;
 
 		if (accel.clip_counter[0] > 0 || accel.clip_counter[1] > 0 || accel.clip_counter[2] > 0) {
@@ -465,15 +475,25 @@ bool VehicleIMU::UpdateGyro()
 			_status.gyro_error_count = gyro.error_count;
 		}
 
-		const Vector3f gyro_raw{gyro.x, gyro.y, gyro.z};
-		_gyro_sum += gyro_raw;
-		_gyro_temperature += gyro.temperature;
-		_gyro_sum_count++;
+
+		// temperature average
+		if (_gyro_temperature_sum_count == 0) {
+			_gyro_temperature_sum = gyro.temperature;
+
+		} else {
+			_gyro_temperature_sum += gyro.temperature;
+		}
+
+		_gyro_temperature_sum_count++;
+
 
 		const float dt = (gyro.timestamp_sample - _gyro_timestamp_sample_last) * 1e-6f;
 		_gyro_timestamp_sample_last = gyro.timestamp_sample;
 
+		const Vector3f gyro_raw{gyro.x, gyro.y, gyro.z};
+		_raw_gyro_mean.update(gyro_raw);
 		_gyro_integrator.put(gyro_raw, dt);
+
 		updated = true;
 	}
 
@@ -505,38 +525,38 @@ bool VehicleIMU::Publish()
 			const float accel_dt_inv = 1.e6f / imu.delta_velocity_dt;
 			const Vector3f acceleration{_accel_calibration.Correct(delta_velocity * accel_dt_inv)};
 			UpdateAccelVibrationMetrics(acceleration);
-			UpdateAccelSquaredErrorSum(acceleration);
 			const Vector3f delta_velocity_corrected{acceleration / accel_dt_inv};
 
 			// vehicle_imu_status
 			//  publish before vehicle_imu so that error counts are available synchronously if needed
-			if ((_accel_sum_count > 0) && (_gyro_sum_count > 0)
+			if (_raw_accel_mean.valid() && _raw_gyro_mean.valid()
 			    && (_publish_status || (hrt_elapsed_time(&_status.timestamp) >= 100_ms))) {
 
 				_status.accel_device_id = _accel_calibration.device_id();
+
+				// accel mean and variance
+				Vector3f(_accel_calibration.rotation() * _raw_accel_mean.mean()).copyTo(_status.mean_accel);
+				Vector3f(_accel_calibration.rotation() * _raw_accel_mean.variance()).copyTo(_status.var_accel);
+				_raw_accel_mean.reset();
+
+				// accel temperature
+				_status.temperature_accel = _accel_temperature_sum / _accel_temperature_sum_count;
+				_accel_temperature_sum = NAN;
+				_accel_temperature_sum_count = 0;
+
+
 				_status.gyro_device_id = _gyro_calibration.device_id();
 
-				// mean accel
-				const Vector3f accel_mean{_accel_calibration.Correct(_accel_sum / _accel_sum_count)};
-				accel_mean.copyTo(_status.mean_accel);
-				_status.temperature_accel = _accel_temperature / _accel_sum_count;
-				_accel_sum.zero();
-				_accel_temperature = 0;
+				// gyro mean and variance
+				Vector3f(_gyro_calibration.rotation() * _raw_gyro_mean.mean()).copyTo(_status.mean_gyro);
+				Vector3f(_gyro_calibration.rotation() * _raw_gyro_mean.variance()).copyTo(_status.var_gyro);
+				_raw_gyro_mean.reset();
 
-				// variance accel
-				const Vector3f variance_accel{_accel_squared_error_sum / _accel_sum_count};
-				variance_accel.copyTo(_status.var_accel);
-				_accel_squared_error_sum.zero();
+				// gyro temperature
+				_status.temperature_gyro = _gyro_temperature_sum / _gyro_temperature_sum_count;
+				_gyro_temperature_sum = NAN;
+				_gyro_temperature_sum_count = 0;
 
-				_accel_sum_count = 0;
-
-				// mean gyro
-				const Vector3f gyro_mean{_gyro_calibration.Correct(_gyro_sum / _gyro_sum_count)};
-				gyro_mean.copyTo(_status.mean_gyro);
-				_status.temperature_gyro = _gyro_temperature / _gyro_sum_count;
-				_gyro_sum.zero();
-				_gyro_temperature = 0;
-				_gyro_sum_count = 0;
 
 				_status.timestamp = hrt_absolute_time();
 				_vehicle_imu_status_pub.publish(_status);
@@ -615,13 +635,6 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 			}
 		}
 	}
-}
-
-void VehicleIMU::UpdateAccelSquaredErrorSum(const Vector3f &acceleration)
-{
-	// Compute the squared error using the average from last publication for efficiency purposes
-	const Vector3f error{acceleration - Vector3f(_status.mean_accel)};
-	_accel_squared_error_sum += error.emult(error);
 }
 
 void VehicleIMU::UpdateAccelVibrationMetrics(const Vector3f &acceleration)
