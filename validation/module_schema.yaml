@@ -269,7 +269,7 @@ actuator_output:
                         # parameter prefix for the min/max/disarmed/func params, e.g. PWM_MAIN.
                         # This also needs to be specified in the source code.
                         type: string
-                        regex: '([0-9A-Z_]+|\$\{PWM_MAIN_OR_AUX\}|\$\{PWM_MAIN_OR_HIL\})'
+                        regex: '([0-9A-Z_]+|\$\{PWM_MAIN_OR_AUX\})'
                         required: true
                     channel_label:
                         # Human-readable per-channel label (index will be added), e.g. 'PWM Main'
