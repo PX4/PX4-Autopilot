@@ -55,7 +55,7 @@ public:
 
 	void reset();
 
-	void update(int num_outputs, bool reversible_motors);
+	void update(int num_outputs, bool reversible_motors, float thrust_curve);
 
 	void overrideValues(float outputs[MAX_ACTUATORS], int num_outputs);
 
