@@ -47,10 +47,13 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu.h>
 #include <uORB/topics/vehicle_imu_status.h>
 
@@ -85,13 +88,20 @@ private:
 	void UpdateGyroVibrationMetrics(const matrix::Vector3f &angular_velocity);
 	void UpdateAccelSquaredErrorSum(const matrix::Vector3f &acceleration);
 
+	void SensorCalibrationUpdate();
+
 	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
 	uORB::PublicationMulti<vehicle_imu_status_s> _vehicle_imu_status_pub{ORB_ID(vehicle_imu_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	// Used to check, save and use learned magnetometer biases
+	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
+
 	uORB::Subscription _sensor_accel_sub;
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
+
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
 	calibration::Accelerometer _accel_calibration{};
 	calibration::Gyroscope _gyro_calibration{};
@@ -104,6 +114,8 @@ private:
 	hrt_abstime _accel_timestamp_sample_last{0};
 	hrt_abstime _gyro_timestamp_sample_last{0};
 	hrt_abstime _gyro_timestamp_last{0};
+
+	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
 
 	math::WelfordMean<matrix::Vector2f> _accel_interval_mean{};
 	math::WelfordMean<matrix::Vector2f> _gyro_interval_mean{};
@@ -146,6 +158,21 @@ private:
 	bool _publish_status{false};
 
 	const uint8_t _instance;
+
+	bool _armed{false};
+
+	bool _accel_cal_available{false};
+	bool _gyro_cal_available{false};
+
+	struct InFlightCalibration {
+		matrix::Vector3f offset{};
+		matrix::Vector3f bias_variance{};
+		bool valid{false};
+	};
+
+	InFlightCalibration _accel_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
+	InFlightCalibration _gyro_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
+
 
 	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};
 	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};

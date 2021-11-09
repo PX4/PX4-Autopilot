@@ -119,6 +119,7 @@ const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"6: unallocated",
 	"7: unallocated",
 	"AUTO_LANDENGFAIL",
+	"9: unallocated",
 	"ACRO",
 	"11: UNUSED",
 	"DESCEND",
