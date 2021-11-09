@@ -112,7 +112,6 @@ private:
 	void publish_control_allocator_status();
 
 	void publish_legacy_actuator_controls();
-	void publish_legacy_multirotor_motor_limits();
 
 	enum class AllocationMethod {
 		NONE = -1,

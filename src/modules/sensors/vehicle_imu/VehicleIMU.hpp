@@ -86,7 +86,6 @@ private:
 	void UpdateIntegratorConfiguration();
 	void UpdateAccelVibrationMetrics(const matrix::Vector3f &acceleration);
 	void UpdateGyroVibrationMetrics(const matrix::Vector3f &angular_velocity);
-	void UpdateAccelSquaredErrorSum(const matrix::Vector3f &acceleration);
 
 	void SensorCalibrationUpdate();
 
@@ -117,6 +116,9 @@ private:
 
 	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
 
+	math::WelfordMean<matrix::Vector3f> _raw_accel_mean{};
+	math::WelfordMean<matrix::Vector3f> _raw_gyro_mean{};
+
 	math::WelfordMean<matrix::Vector2f> _accel_interval_mean{};
 	math::WelfordMean<matrix::Vector2f> _gyro_interval_mean{};
 
@@ -131,13 +133,11 @@ private:
 	unsigned _accel_last_generation{0};
 	unsigned _gyro_last_generation{0};
 
-	matrix::Vector3f _accel_squared_error_sum{};
-	matrix::Vector3f _accel_sum{};
-	matrix::Vector3f _gyro_sum{};
-	int _accel_sum_count{0};
-	int _gyro_sum_count{0};
-	float _accel_temperature{0};
-	float _gyro_temperature{0};
+	float _accel_temperature_sum{NAN};
+	float _gyro_temperature_sum{NAN};
+
+	int _accel_temperature_sum_count{0};
+	int _gyro_temperature_sum_count{0};
 
 	matrix::Vector3f _acceleration_prev{};     // acceleration from the previous IMU measurement for vibration metrics
 	matrix::Vector3f _angular_velocity_prev{}; // angular velocity from the previous IMU measurement for vibration metrics

@@ -37,6 +37,7 @@ cmake_policy(SET CMP0057 NEW)
 include(px4_list_make_absolute)
 
 set(msg_files
+	action_request.msg
 	actuator_armed.msg
 	actuator_controls.msg
 	actuator_controls_status.msg
@@ -108,7 +109,6 @@ set(msg_files
 	mission.msg
 	mission_result.msg
 	mount_orientation.msg
-	multirotor_motor_limits.msg
 	navigator_mission_item.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg

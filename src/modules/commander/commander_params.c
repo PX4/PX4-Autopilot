@@ -34,7 +34,7 @@
 /**
  * @file commander_params.c
  *
- * Parameters defined by the sensors task.
+ * Parameters definition for Commander.
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
@@ -253,9 +253,9 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  * @group Commander
  * @min 0
  * @max 2
- * @value 0 RC Transmitter
- * @value 1 Joystick/No RC Checks
- * @value 2 Virtual RC by Joystick
+ * @value 0 RC Transmitter only
+ * @value 1 Joystick only/No RC Checks
+ * @value 2 RC and Joystick are accepted
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
 
@@ -661,18 +661,18 @@ PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
 /**
  * Enable RC stick override of auto and/or offboard modes
  *
- * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV from
- * their center position immediately gives control back to the pilot by switching to Position mode.
+ * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV
+ * immediately gives control back to the pilot by switching to Position mode and
+ * if position is unavailable Altitude mode.
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
  * This parameter is not considered in case of a GPS failure (Descend flight mode), where stick
  * override is always enabled.
  *
  * @min 0
- * @max 7
+ * @max 3
  * @bit 0 Enable override during auto modes (except for in critical battery reaction)
  * @bit 1 Enable override during offboard mode
- * @bit 2 Ignore throttle stick
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
