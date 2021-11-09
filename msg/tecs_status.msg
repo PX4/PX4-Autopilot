@@ -6,6 +6,7 @@ uint8 TECS_MODE_LAND = 3
 uint8 TECS_MODE_LAND_THROTTLELIM = 4
 uint8 TECS_MODE_BAD_DESCENT = 5
 uint8 TECS_MODE_CLIMBOUT = 6
+uint8 TECS_MODE_ECO = 7
 
 
 float32 altitude_sp

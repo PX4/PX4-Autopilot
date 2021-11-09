@@ -94,7 +94,8 @@ public:
 	void update_pitch_throttle(float pitch, float baro_altitude, float hgt_setpoint,
 				   float EAS_setpoint, float equivalent_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
 				   float throttle_min, float throttle_setpoint_max, float throttle_cruise,
-				   float pitch_limit_min, float pitch_limit_max, float target_climbrate, float target_sinkrate, float hgt_rate_sp = NAN);
+				   float pitch_limit_min, float pitch_limit_max, float target_climbrate, float target_sinkrate, float hgt_rate_sp = NAN,
+				   bool eco_mode_enabled = false);
 
 	void reset_state() { _states_initialized = false; }
 
@@ -102,7 +103,8 @@ public:
 		ECL_TECS_MODE_NORMAL = 0,
 		ECL_TECS_MODE_UNDERSPEED,
 		ECL_TECS_MODE_BAD_DESCENT,
-		ECL_TECS_MODE_CLIMBOUT
+		ECL_TECS_MODE_CLIMBOUT,
+		ECL_TECS_MODE_ECO
 	};
 
 	void set_detect_underspeed_enabled(bool enabled) { _detect_underspeed_enabled = enabled; }
@@ -140,6 +142,9 @@ public:
 
 	void set_seb_rate_ff_gain(float ff_gain) { _SEB_rate_ff = ff_gain; }
 
+	// eco mode settings
+	void set_speed_weight_eco(float weight_eco) { _pitch_speed_weight_eco = weight_eco; }
+	void set_height_error_time_constant_eco(float time_const_eco) { _height_error_gain_eco = 1.0f / math::max(time_const_eco, 0.1f); }
 
 	// getters
 	float get_throttle_setpoint() { return _last_throttle_setpoint; }
@@ -209,6 +214,9 @@ private:
 	float _STE_rate_time_const{0.1f};				///< filter time constant for specific total energy rate (damping path) (s)
 	float _speed_derivative_time_const{0.01f};			///< speed derivative filter time constant (s)
 	float _SEB_rate_ff{1.0f};
+
+	float _height_error_gain_eco{0.2f};				///< in eco mode: height error inverse time constant [1/s]
+	float _pitch_speed_weight_eco{1.0f};				///< in eco mode: speed control weighting used by pitch demand calculation
 
 	// complimentary filter states
 	float _vert_vel_state{0.0f};					///< complimentary filter state - height rate (m/sec)
@@ -280,6 +288,7 @@ private:
 	bool _airspeed_enabled{false};					///< true when airspeed use has been enabled
 	bool _states_initialized{false};					///< true when TECS states have been iniitalized
 	bool _in_air{false};						///< true when the vehicle is flying
+	bool _eco_mode_enabled{false};
 
 	// flight phase
 	int _flight_phase{tecs_status_s::TECS_FLIGHT_PHASE_LEVEL};

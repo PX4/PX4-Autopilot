@@ -471,7 +471,10 @@ private:
 		(ParamInt<px4::params::FW_SPD_MODE_SET>) _fw_spd_mode_set,
 		(ParamFloat<px4::params::FW_ALT_MIN>) fw_alt_min,
 		(ParamFloat<px4::params::FW_ALT_ERR_U>) fw_alt_err_u,
-		(ParamFloat<px4::params::FW_ALT_ERR_O>) fw_alt_err_o
+		(ParamFloat<px4::params::FW_ALT_ERR_O>) fw_alt_err_o,
+		(ParamFloat<px4::params::FW_T_ALT_TC_E>) _param_fw_t_h_error_tc_eco,
+		(ParamFloat<px4::params::FW_T_SPDWEIGHT_E>) _param_fw_t_spdweight_eco,
+		(ParamFloat<px4::params::FW_T_CLMB_R_SP_E>) _param_fw_t_clmb_r_sp_eco
 	)
 };
 

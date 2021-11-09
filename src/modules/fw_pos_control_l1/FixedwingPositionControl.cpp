@@ -131,6 +131,9 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 
+	_tecs.set_speed_weight_eco(_param_fw_t_spdweight_eco.get());
+	_tecs.set_height_error_time_constant_eco(_param_fw_t_h_error_tc_eco.get());
+
 
 	// Landing slope
 	/* check if negative value for 2/3 of flare altitude is set for throttle cut */
@@ -662,7 +665,8 @@ FixedwingPositionControl::getManualHeightRateSetpoint()
 	} else if (_manual_control_setpoint_altitude < - deadBand) {
 		/* pitching up */
 		float pitch = -(_manual_control_setpoint_altitude + deadBand) / factor;
-		const float climb_rate_target = _param_climbrate_target.get();
+		const float climb_rate_target = _speed_mode_current == FW_SPEED_MODE::FW_SPEED_MODE_ECO ?
+						_param_fw_t_clmb_r_sp_eco.get() : _param_climbrate_target.get();
 
 		height_rate_setpoint = pitch * climb_rate_target;
 	}
@@ -2261,6 +2265,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		}
 	}
 
+	const float climb_rate_target = _speed_mode_current == FW_SPEED_MODE::FW_SPEED_MODE_ECO ?
+					_param_fw_t_clmb_r_sp_eco.get() : _param_climbrate_target.get();
+
 	_tecs.update_pitch_throttle(_pitch - radians(_param_fw_psp_off.get()),
 				    _current_altitude, alt_sp,
 				    airspeed_sp, _airspeed, _eas2tas,
@@ -2269,7 +2276,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad - radians(_param_fw_psp_off.get()),
 				    pitch_max_rad - radians(_param_fw_psp_off.get()),
-				    _param_climbrate_target.get(), _param_sinkrate_target.get(), hgt_rate_sp);
+				    climb_rate_target, _param_sinkrate_target.get(), hgt_rate_sp,
+				    _speed_mode_current == FW_SPEED_MODE::FW_SPEED_MODE_ECO);
 }
 
 void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_sp)

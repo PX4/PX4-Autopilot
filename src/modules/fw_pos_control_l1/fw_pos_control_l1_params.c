@@ -928,3 +928,40 @@ PARAM_DEFINE_FLOAT(FW_ALT_ERR_O, 20.f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_ALT_MIN, 50.f);
+
+/**
+ * Eco Mode: Speed <--> Altitude priority
+ *
+ * @min 0.0
+ * @max 2.0
+ * @decimal 1
+ * @increment 1.0
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT_E, 1.8f);
+
+/**
+ * Eco Mode: Altitude error time constant.
+ *
+ * Normally larger than FW_T_ALT_TC to have looser altitude control and in turn less throttle changes.
+ *
+ * @min 2.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_ALT_TC_E, 10.0f);
+
+/**
+ * Eco target climbrate.
+ *
+ * The rate at which the vehicle will climb in autonomous modes to achieve altitude setpoints in Eco mode.
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 15
+ * @decimal 2
+ * @increment 0.01
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_T_CLMB_R_SP_E, 2.0f);
