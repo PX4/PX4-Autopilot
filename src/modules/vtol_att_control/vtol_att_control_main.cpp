@@ -139,6 +139,27 @@ VtolAttitudeControl::init()
 	return true;
 }
 
+void VtolAttitudeControl::action_request_poll()
+{
+	while (_action_request_sub.updated()) {
+		action_request_s action_request;
+
+		if (_action_request_sub.copy(&action_request)) {
+			switch (action_request.action) {
+			case action_request_s::ACTION_VTOL_TRANSITION_TO_MULTICOPTER:
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				_immediate_transition = false;
+				break;
+
+			case action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING:
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				_immediate_transition = false;
+				break;
+			}
+		}
+	}
+}
+
 void VtolAttitudeControl::vehicle_cmd_poll()
 {
 	vehicle_command_s vehicle_command;
@@ -179,27 +200,6 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			}
 		}
 	}
-}
-
-/*
- * Returns true if fixed-wing mode is requested.
- * Changed either via switch or via command.
- */
-bool
-VtolAttitudeControl::is_fixed_wing_requested()
-{
-	bool to_fw = false;
-
-	if (_manual_control_switches.transition_switch != manual_control_switches_s::SWITCH_POS_NONE &&
-	    _v_control_mode.flag_control_manual_enabled) {
-		to_fw = (_manual_control_switches.transition_switch == manual_control_switches_s::SWITCH_POS_ON);
-
-	} else {
-		// listen to transition commands if not in manual or mode switch is not mapped
-		to_fw = (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	}
-
-	return to_fw;
 }
 
 void
@@ -434,7 +434,6 @@ VtolAttitudeControl::Run()
 		}
 
 		_v_control_mode_sub.update(&_v_control_mode);
-		_manual_control_switches_sub.update(&_manual_control_switches);
 		_v_att_sub.update(&_v_att);
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
@@ -442,6 +441,7 @@ VtolAttitudeControl::Run()
 		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		action_request_poll();
 		vehicle_cmd_poll();
 
 		// check if mc and fw sp were updated
@@ -450,24 +450,6 @@ VtolAttitudeControl::Run()
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
-
-		// reset transition command if not auto control
-		if (_v_control_mode.flag_control_manual_enabled) {
-			if (_vtol_type->get_mode() == mode::ROTARY_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-
-			} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-
-			} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
-				/* We want to make sure that a mode change (manual>auto) during the back transition
-				 * doesn't result in an unsafe state. This prevents the instant fall back to
-				 * fixed-wing on the switch from manual to auto */
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-			}
-		}
-
-
 
 		// check in which mode we are in and call mode specific functions
 		switch (_vtol_type->get_mode()) {

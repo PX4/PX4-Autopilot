@@ -36,7 +36,6 @@
 /*   Helper classes  */
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
-#include "ManualControl.hpp"
 #include "state_machine_helper.h"
 #include "worker_thread.hpp"
 
@@ -51,7 +50,6 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/test_motor.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -61,6 +59,7 @@
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/topics/action_request.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
@@ -71,7 +70,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
-#include <uORB/topics/manual_control_switches.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
@@ -126,8 +125,7 @@ private:
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
 	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
-	transition_result_t disarm(arm_disarm_reason_t calling_reason);
-	transition_result_t try_mode_change(main_state_t desired_mode);
+	transition_result_t disarm(arm_disarm_reason_t calling_reason, bool forced = false);
 
 	void battery_status_check();
 
@@ -152,6 +150,8 @@ private:
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
 
+	void executeActionRequest(const action_request_s &action_request);
+
 	void mission_init();
 
 	void offboard_control_update();
@@ -175,9 +175,6 @@ private:
 
 	void UpdateEstimateValidity();
 
-	// Set the system main state based on the current RC inputs
-	transition_result_t set_main_state();
-
 	bool shutdown_if_allowed();
 
 	bool stabilization_required();
@@ -190,6 +187,8 @@ private:
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
 		(ParamInt<px4::params::COM_DL_LOSS_T>) _param_com_dl_loss_t,
+
+		(ParamInt<px4::params::COM_RC_OVERRIDE>) _param_com_rc_override,
 
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>) _param_com_hldl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_REG_T>) _param_com_hldl_reg_t,
@@ -224,6 +223,9 @@ private:
 
 		(ParamFloat<px4::params::COM_WIND_WARN>) _param_com_wind_warn,
 
+		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
+		(ParamInt<px4::params::RC_MAP_MODE_SW>) _param_rc_map_mode_sw,
+
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
@@ -249,15 +251,6 @@ private:
 		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
 
-		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_rc_in_off,
-
-		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
-		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
-		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,
-		(ParamInt<px4::params::COM_FLTMODE4>) _param_fltmode_4,
-		(ParamInt<px4::params::COM_FLTMODE5>) _param_fltmode_5,
-		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6,
-
 		// Circuit breakers
 		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
@@ -267,7 +260,7 @@ private:
 		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
 		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
 
-		// Geofrence
+		// Geofence
 		(ParamInt<px4::params::GF_ACTION>) _param_geofence_action,
 
 		// Mavlink
@@ -285,6 +278,11 @@ private:
 		DISABLED = 0,
 		SAFETY_BUTTON = 1,
 		ALWAYS = 2
+	};
+
+	enum class RcOverrideBits : int32_t {
+		AUTO_MODE_BIT = (1 << 0),
+		OFFBOARD_MODE_BIT = (1 << 1),
 	};
 
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
@@ -357,11 +355,10 @@ private:
 
 	unsigned int	_leds_counter{0};
 
-	manual_control_switches_s _manual_control_switches{};
-	manual_control_switches_s _last_manual_control_switches{};
-	ManualControl _manual_control{this};
-	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
-	int32_t		_flight_mode_slots[manual_control_switches_s::MODE_SLOT_NUM] {};
+	hrt_abstime	_last_valid_manual_control_setpoint{0};
+
+	bool		_is_throttle_above_center{false};
+	bool		_is_throttle_low{false};
 
 	hrt_abstime	_boot_timestamp{0};
 	hrt_abstime	_last_disarmed_timestamp{0};
@@ -397,16 +394,17 @@ private:
 	WorkerThread _worker_thread;
 
 	// Subscriptions
+	uORB::Subscription					_action_request_sub {ORB_ID(action_request)};
 	uORB::Subscription					_actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
 	uORB::Subscription					_cmd_sub {ORB_ID(vehicle_command)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
-	uORB::Subscription                                      _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription					_estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
-	uORB::Subscription					_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription					_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
@@ -440,7 +438,6 @@ private:
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
 	uORB::Publication<mission_s>				_mission_pub{ORB_ID(mission)};
-	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 
