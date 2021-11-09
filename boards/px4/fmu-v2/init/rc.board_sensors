@@ -8,9 +8,6 @@ rgbled_ncp5623c start -I
 
 board_adc start
 
-# Internal I2C bus
-hmc5883 -T -I -R 4 start
-
 # Internal SPI (auto detect ms5611 or ms5607)
 if ! ms5611 -T 5607 -s -b 1 start
 then
@@ -80,7 +77,7 @@ then
 		mpu6000 -s -b 1 start
 
 		# v2.0 Has internal hmc5883 on SPI1
-		hmc5883 -T -s -b 1 -R 8 start
+		hmc5883 -T -s -b 1 start
 	fi
 
 	if [ $BOARD_FMUV3 = 21 ]

@@ -16,10 +16,10 @@ pwm_out sensor_reset 50
 # Internal SPI
 ms5611 -s start
 
-# hmc5883 internal SPI bus is rotated 90 deg yaw
-if ! hmc5883 -T -s -R 2 start
+# hmc5883 internal SPI bus
+if ! hmc5883 -T -s -R 12 start
 then
-	# lis3mdl internal SPI bus is rotated 90 deg yaw
+	# lis3mdl internal SPI bus
 	lis3mdl -s start
 fi
 

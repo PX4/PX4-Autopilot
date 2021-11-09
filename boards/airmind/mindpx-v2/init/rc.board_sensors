@@ -6,7 +6,7 @@
 board_adc start
 
 # Internal I2C bus
-hmc5883 -T -I -R 12 start
+hmc5883 -T -I -R 2 start
 qmc5883l -I -R 6 start
 
 mpu6000 -s -R 2 start
