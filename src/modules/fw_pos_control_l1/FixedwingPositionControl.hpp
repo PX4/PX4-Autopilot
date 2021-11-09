@@ -285,17 +285,6 @@ private:
 	bool _conditions_for_eco_dash_met{false};
 	hrt_abstime _time_conditions_not_met{0};
 
-	// wind state
-	hrt_abstime _first_time_current_mode_detected{0};		///< last time in normal wind mode
-
-	enum FW_WIND_MODE {
-		FW_WIND_MODE_LOW,
-		FW_WIND_MODE_NORMAL,
-		FW_WIND_MODE_HIGH,
-	} _fw_wind_mode_current{FW_WIND_MODE_NORMAL};		///< used to make wind-based airspeed setpoint adaptions
-
-	FW_WIND_MODE _fw_wind_mode_detected_prev{FW_WIND_MODE_NORMAL};
-
 	float _last_airspeed_setpoint{NAN};
 
 	param_t _param_handle_airspeed_trans{PARAM_INVALID};
@@ -477,9 +466,7 @@ private:
 		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
 
 		//Speed mode params
-		(ParamFloat<px4::params::FW_WIND_THLD_H>) _param_fw_wind_thld_h,
-		(ParamFloat<px4::params::FW_WIND_THLD_L>) _param_fw_wind_thld_l,
-		(ParamFloat<px4::params::FW_WIND_ARSP_OF>) _param_fw_wind_arsp_of,
+		(ParamFloat<px4::params::FW_WIND_ARSP_SC>) _param_fw_wind_arsp_sc,
 
 		(ParamInt<px4::params::FW_SPD_MODE_SET>) _fw_spd_mode_set,
 		(ParamFloat<px4::params::FW_ALT_MIN>) fw_alt_min,
