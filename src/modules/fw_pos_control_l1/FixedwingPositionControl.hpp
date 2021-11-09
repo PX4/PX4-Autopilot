@@ -388,8 +388,8 @@ private:
 
 	void		check_eco_dash_allowed();
 	void		updateSpeedMode();
-
 	void		update_wind_mode();
+	void		resetAutoSpeedAdaptions();
 
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation

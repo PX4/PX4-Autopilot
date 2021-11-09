@@ -497,6 +497,14 @@ FixedwingPositionControl::check_eco_dash_allowed()
 }
 
 void
+FixedwingPositionControl::resetAutoSpeedAdaptions()
+{
+	_conditions_for_eco_dash_met = false;
+	_time_conditions_not_met = _local_pos.timestamp;
+	_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
+}
+
+void
 FixedwingPositionControl::update_wind_mode()
 {
 	/* If the corresponding wind threshold values are set, the wind state will change if these values are
@@ -2048,21 +2056,25 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_AUTO_ALTITUDE: {
 				control_auto_fixed_bank_alt_hold(_local_pos.timestamp);
+				resetAutoSpeedAdaptions();
 				break;
 			}
 
 		case FW_POSCTRL_MODE_AUTO_CLIMBRATE: {
 				control_auto_descend(_local_pos.timestamp);
+				resetAutoSpeedAdaptions();
 				break;
 			}
 
 		case FW_POSCTRL_MODE_MANUAL_POSITION: {
 				control_manual_position(_local_pos.timestamp, curr_pos, ground_speed);
+				resetAutoSpeedAdaptions();
 				break;
 			}
 
 		case FW_POSCTRL_MODE_MANUAL_ALTITUDE: {
 				control_manual_altitude(_local_pos.timestamp, curr_pos, ground_speed);
+				resetAutoSpeedAdaptions();
 				break;
 			}
 
@@ -2072,6 +2084,8 @@ FixedwingPositionControl::Run()
 					reset_landing_state();
 					reset_takeoff_state();
 				}
+
+				resetAutoSpeedAdaptions();
 
 				_att_sp.thrust_body[0] = min(_att_sp.thrust_body[0], _param_fw_thr_max.get());
 
