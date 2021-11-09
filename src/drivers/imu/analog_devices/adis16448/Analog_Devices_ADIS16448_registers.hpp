@@ -65,7 +65,7 @@ namespace Analog_Devices_ADIS16448
 static constexpr uint32_t SPI_SPEED = 2 * 1000 * 1000;       // 2 MHz SPI serial interface
 static constexpr uint32_t SPI_SPEED_BURST = 1 * 1000 * 1000; // 1 MHz SPI serial interface for burst read
 
-static constexpr uint32_t SPI_STALL_PERIOD = 10; // 9 us Stall period between data
+static constexpr uint32_t SPI_STALL_PERIOD = 11; // 9 us Stall period between data
 
 static constexpr uint16_t DIR_WRITE = 0x80;
 

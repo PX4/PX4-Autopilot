@@ -43,6 +43,8 @@
 
 #include "board_config.h"
 
+#include <syslog.h>
+
 #include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/sdio.h>
@@ -57,6 +59,8 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
+
+#include <mpu.h>
 
 __BEGIN_DECLS
 extern void led_init(void);

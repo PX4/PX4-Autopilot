@@ -5,7 +5,6 @@
 
 param load
 param set CBRK_SUPPLY_CHK 894281
-param set SYS_RESTART_TYPE 0
 
 dataman start
 
@@ -18,12 +17,12 @@ param set IMU_GYRO_RATEMAX 1000
 param set IMU_GYRO_FFT_EN 1
 param set IMU_GYRO_FFT_MIN 10
 param set IMU_GYRO_FFT_MAX 1000
-param set IMU_GYRO_FFT_LEN 1024
+param set IMU_GYRO_FFT_LEN 512
 
 # dynamic notches ESC/FFT/both
 #param set IMU_GYRO_DYN_NF 1
 #param set IMU_GYRO_DYN_NF 2
-#param set IMU_GYRO_DYN_NF 3
+param set IMU_GYRO_DYN_NF 3
 
 # test values
 param set IMU_GYRO_CUTOFF 60
@@ -50,6 +49,7 @@ logger off
 sensors status
 listener sensor_gyro
 listener sensor_gyro_fifo
+listener sensor_gyro_fft
 perf
 
 echo "ALL TESTS PASSED"

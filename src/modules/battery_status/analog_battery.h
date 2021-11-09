@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,22 +78,14 @@ protected:
 		param_t a_per_v;
 		param_t v_channel;
 		param_t i_channel;
-
-		param_t v_div_old;
-		param_t a_per_v_old;
-		param_t adc_channel_old;
 	} _analog_param_handles;
 
 	struct {
 		float v_offs_cur;
 		float v_div;
 		float a_per_v;
-		int v_channel;
-		int i_channel;
-
-		float v_div_old;
-		float a_per_v_old;
-		int adc_channel_old;
+		int32_t v_channel;
+		int32_t i_channel;
 	} _analog_params;
 
 	virtual void updateParams() override;

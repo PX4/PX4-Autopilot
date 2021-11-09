@@ -86,6 +86,13 @@ function(px4_os_add_flags)
 		)
 	endif()
 
+	if("${CONFIG_BOARD_FORCE_ALIGNMENT}" STREQUAL "y")
+		message(STATUS "Board forcing alignment")
+		add_compile_options(
+			-mno-unaligned-access
+		)
+	endif()
+
 endfunction()
 
 #=============================================================================
@@ -124,6 +131,9 @@ function(px4_os_determine_build_chip)
 	elseif(CONFIG_ARCH_CHIP_S32K146)
 		set(CHIP_MANUFACTURER "nxp")
 		set(CHIP "s32k14x")
+	elseif(CONFIG_ARCH_CHIP_RP2040)
+		set(CHIP_MANUFACTURER "rpi")
+		set(CHIP "rp2040")
 	else()
 		message(FATAL_ERROR "Could not determine chip architecture from NuttX config. You may have to add it.")
 	endif()

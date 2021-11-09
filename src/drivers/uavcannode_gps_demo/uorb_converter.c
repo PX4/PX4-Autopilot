@@ -5,6 +5,7 @@
  *      Author: hovergames
  */
 
+#include <inttypes.h>
 #include <string.h>
 
 #include "uorb_converter.h"
@@ -95,7 +96,7 @@ void uorbProcessSub(int timeout_msec)
 					// An error has occurred: either an argument is invalid or we've ran out of memory.
 					// It is possible to statically prove that an out-of-memory will never occur for a given application if the
 					// heap is sized correctly; for background, refer to the Robson's Proof and the documentation for O1Heap.
-					PX4_ERR("canardTxPush error %d", result);
+					PX4_ERR("canardTxPush error %" PRId32, result);
 				}
 			}
 

@@ -41,7 +41,8 @@
 using namespace matrix;
 
 FlightTaskAutoMapper::FlightTaskAutoMapper() :
-	_sticks(this)
+	_sticks(this),
+	_stick_acceleration_xy(this)
 {}
 
 bool FlightTaskAutoMapper::activate(const vehicle_local_position_setpoint_s &last_setpoint)
@@ -132,10 +133,46 @@ void FlightTaskAutoMapper::_prepareIdleSetpoints()
 
 void FlightTaskAutoMapper::_prepareLandSetpoints()
 {
-	// Keep xy-position and go down with landspeed
-	float land_speed = _getLandSpeed();
-	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
-	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, land_speed));
+	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
+
+	// Slow down automatic descend close to ground
+	float land_speed = math::gradual(_dist_to_ground,
+					 _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+					 _param_mpc_land_speed.get(), _constraints.speed_down);
+
+	if (_type_previous != WaypointType::land) {
+		// initialize xy-position and yaw to waypoint such that home is reached exactly without user input
+		_land_position = Vector3f(_target(0), _target(1), NAN);
+		_land_heading = _yaw_setpoint;
+		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
+	}
+
+	// User input assisted landing
+	if (_param_mpc_land_rc_help.get() && _sticks.checkAndSetStickInputs()) {
+		// Stick full up -1 -> stop, stick full down 1 -> double the speed
+		land_speed *= (1 + _sticks.getPositionExpo()(2));
+
+		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading,
+					       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _deltatime);
+		_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _land_heading, _position,
+				_velocity_setpoint_feedback.xy(), _deltatime);
+		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
+
+		// Hack to make sure the MPC_YAW_MODE 4 alignment doesn't stop the vehicle from descending when there's yaw input
+		if (fabsf(_yawspeed_setpoint) > FLT_EPSILON) {
+			_yaw_sp_aligned = true;
+		}
+
+	} else {
+		// Make sure we have a valid land position even in the case we loose RC while amending it
+		if (!PX4_ISFINITE(_land_position(0))) {
+			_land_position.xy() = Vector2f(_position);
+		}
+	}
+
+	_position_setpoint = _land_position; // The last element of the land position has to stay NAN
+	_yaw_setpoint = _land_heading;
+	_velocity_setpoint(2) = land_speed;
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
@@ -176,21 +213,4 @@ bool FlightTaskAutoMapper::_highEnoughForLandingGear()
 {
 	// return true if altitude is above two meters
 	return _dist_to_ground > 2.0f;
-}
-
-float FlightTaskAutoMapper::_getLandSpeed()
-{
-	float land_speed = math::gradual(_dist_to_ground,
-					 _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-					 _param_mpc_land_speed.get(), _constraints.speed_down);
-
-	// user input assisted land speed
-	if (_param_mpc_land_rc_help.get()
-	    && (_dist_to_ground < _param_mpc_land_alt1.get())
-	    && _sticks.checkAndSetStickInputs()) {
-		// stick full up -1 -> stop, stick full down 1 -> double the speed
-		land_speed *= (1 + _sticks.getPositionExpo()(2));
-	}
-
-	return land_speed;
 }

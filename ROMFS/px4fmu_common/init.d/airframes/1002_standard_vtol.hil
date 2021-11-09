@@ -9,19 +9,18 @@
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
+# @board holybro_kakutef7 exclude
 #
 
 . ${R}etc/init.d/rc.vtol_defaults
 
 
-param set-default BAT_N_CELLS 3
+param set-default BAT1_N_CELLS 3
 
 param set-default COM_RC_IN_MODE 1
 
-param set-default EKF2_AID_MASK 1
 param set-default EKF2_ANGERR_INIT 0.01
 param set-default EKF2_GBIAS_INIT 0.01
-param set-default EKF2_HGT_MODE 0
 param set-default EKF2_MAG_TYPE 1
 
 param set-default FW_AIRSPD_MAX 25
@@ -56,7 +55,6 @@ param set-default RTL_DESCEND_ALT 10
 param set-default RTL_RETURN_ALT 30
 
 param set-default SDLOG_DIRS_MAX 7
-param set-default SYS_RESTART_TYPE 2
 
 param set-default VT_F_TRANS_THR 0.75
 param set-default VT_MOT_ID 1234

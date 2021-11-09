@@ -53,11 +53,9 @@ using namespace VTT_VCM1193L;
 class VCM1193L : public device::I2C, public I2CSPIDriver<VCM1193L>
 {
 public:
-	VCM1193L(I2CSPIBusOption bus_option, int bus, int bus_frequency, enum Rotation rotation = ROTATION_NONE);
+	VCM1193L(const I2CSPIDriverConfig &config);
 	~VCM1193L() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

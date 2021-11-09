@@ -100,7 +100,6 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS  6
-#define DIRECT_INPUT_TIMER_CHANNELS  6
 
 /* Tone alarm output */
 #define GPIO_TONE_ALARM_IDLE    /* PD15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTD|GPIO_PIN15)
@@ -122,7 +121,6 @@
 
 #define GPIO_RSSI_IN                       /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
@@ -135,8 +133,6 @@
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_RSSI_IN,                \
 	}
-
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 4
 

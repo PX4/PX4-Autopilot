@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-aarch64:2021-04-29
+    container: px4io/px4-dev-aarch64:2021-09-08
     strategy:
       matrix:
         config: [
@@ -39,8 +39,9 @@ jobs:
           mkdir -p ~/.ccache
           echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
           echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 5" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
           echo "max_size = 100M" >> ~/.ccache/ccache.conf
+          echo "hash_dir = false" >> ~/.ccache/ccache.conf
           ccache -s
           ccache -z
 

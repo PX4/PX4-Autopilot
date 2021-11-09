@@ -54,12 +54,9 @@ if [ $? -ne 0 ]; then
 fi
 
 # Check for code style, only in changed files
-for i in `git diff --cached --name-only --diff-filter=ACM`
-do
-	./Tools/astyle/files_to_check_code_style.sh $i | xargs -n 1 -P 8 -I % ./Tools/astyle/check_code_style.sh %
-	if [ $? -ne 0 ]
-	then
-		echo "Pre-commit style error: Bad formatting according to astyle rules"
-		exit 1
-	fi
-done
+bash -c "comm -12 <(./Tools/astyle/files_to_check_code_style.sh | sort) <(git diff --cached --name-only --diff-filter=ACM) | xargs -P 8 -I % ./Tools/astyle/check_code_style.sh %"
+if [ $? -ne 0 ]
+then
+	echo "Pre-commit style error: Bad formatting according to astyle rules"
+	exit 1
+fi

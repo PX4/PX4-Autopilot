@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2017, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
 
+#include <inttypes.h>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
@@ -81,6 +82,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	ModuleParams(nullptr),
 	_node(can_driver, system_clock, _pool_allocator),
 	_esc_controller(_node),
+	_servo_controller(_node),
 	_hardpoint_controller(_node),
 	_beep_controller(_node),
 	_safety_state_controller(_node),
@@ -106,6 +108,10 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 
 	/* _server_command_sem use case is a signal */
 	px4_sem_setprotocol(&_server_command_sem, SEM_PRIO_NONE);
+
+	_mixing_interface_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
+	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanServoController::MAX_RATE_HZ);
+
 }
 
 UavcanNode::~UavcanNode()
@@ -167,7 +173,7 @@ int
 UavcanNode::print_params(uavcan::protocol::param::GetSet::Response &resp)
 {
 	if (resp.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
-		return std::printf("name: %s %lld\n", resp.name.c_str(),
+		return std::printf("name: %s %" PRId64 "\n", resp.name.c_str(),
 				   resp.value.to<uavcan::protocol::param::Value::Tag::integer_value>());
 
 	} else if (resp.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
@@ -342,7 +348,7 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 				req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = i;
 
 			} else {
-				std::printf("Invalid value for: %s must be between %lld and %lld\n", name, min, max);
+				std::printf("Invalid value for: %s must be between %" PRId64 " and %" PRId64 "\n", name, min, max);
 				rv = -1;
 			}
 
@@ -371,7 +377,11 @@ UavcanNode::set_param(int remote_node_id, const char *name, char *value)
 		if (rv == 0) {
 			rv = get_set_param(remote_node_id, name, req);
 
-			if (rv < 0 || resp.name.empty()) {
+			if (rv == 0) {
+				// commit parameter change
+				save_params(remote_node_id);
+
+			} else if (rv < 0 || resp.name.empty()) {
 				std::printf("Failed to set param: %s\n", name);
 				return -1;
 			}
@@ -408,7 +418,8 @@ UavcanNode::get_param(int remote_node_id, const char *name)
 void
 UavcanNode::update_params()
 {
-	_mixing_interface.updateParams();
+	_mixing_interface_esc.updateParams();
+	_mixing_interface_servo.updateParams();
 }
 
 int
@@ -556,6 +567,8 @@ UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
+	_instance->_mixing_interface_esc.ScheduleNow();
+	_instance->_mixing_interface_servo.ScheduleNow();
 
 	return OK;
 }
@@ -656,9 +669,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		PX4_DEBUG("sensor bridge '%s' init ok", br->get_name());
 	}
 
-	_mixing_interface.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
-	_mixing_interface.mixingOutput().setAllMinValues(0); // Can be changed to 1 later, according to UAVCAN_ESC_IDLT
-
 	// Ensure we don't exceed maximum limits and assumptions. FIXME: these should be static assertions
 	if (UavcanEscController::max_output_value() >= UavcanEscController::DISARMED_OUTPUT_VALUE
 	    || UavcanEscController::max_output_value() > (int)UINT16_MAX) {
@@ -666,11 +676,16 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return -EINVAL;
 	}
 
-	_mixing_interface.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
-	_mixing_interface.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
+	_mixing_interface_esc.mixingOutput().setAllDisarmedValues(UavcanEscController::DISARMED_OUTPUT_VALUE);
 
-	param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
-	enable_idle_throttle_when_armed(true);
+	if (!_mixing_interface_esc.mixingOutput().useDynamicMixing()) {
+		// these are configurable with dynamic mixing
+		_mixing_interface_esc.mixingOutput().setAllMinValues(0); // Can be changed to 1 later, according to UAVCAN_ESC_IDLT
+		_mixing_interface_esc.mixingOutput().setAllMaxValues(UavcanEscController::max_output_value());
+
+		param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed_param);
+		enable_idle_throttle_when_armed(true);
+	}
 
 	/*  Start the Node   */
 	return _node.start();
@@ -777,7 +792,7 @@ UavcanNode::Run()
 	node_spin_once(); // expected to be non-blocking
 
 	// Check arming state
-	const actuator_armed_s &armed = _mixing_interface.mixingOutput().armed();
+	const actuator_armed_s &armed = _mixing_interface_esc.mixingOutput().armed();
 	enable_idle_throttle_when_armed(!armed.soft_stop);
 
 	// check for parameter updates
@@ -813,8 +828,10 @@ UavcanNode::Run()
 	pthread_mutex_unlock(&_node_mutex);
 
 	if (_task_should_exit.load()) {
-		_mixing_interface.mixingOutput().unregister();
-		_mixing_interface.ScheduleClear();
+		_mixing_interface_esc.mixingOutput().unregister();
+		_mixing_interface_esc.ScheduleClear();
+		_mixing_interface_servo.mixingOutput().unregister();
+		_mixing_interface_servo.ScheduleClear();
 		ScheduleClear();
 		teardown();
 		_instance = nullptr;
@@ -826,9 +843,11 @@ UavcanNode::enable_idle_throttle_when_armed(bool value)
 {
 	value &= _idle_throttle_when_armed_param > 0;
 
-	if (value != _idle_throttle_when_armed) {
-		_mixing_interface.mixingOutput().setAllMinValues(value ? 1 : 0);
-		_idle_throttle_when_armed = value;
+	if (!_mixing_interface_esc.mixingOutput().useDynamicMixing()) {
+		if (value != _idle_throttle_when_armed) {
+			_mixing_interface_esc.mixingOutput().setAllMinValues(value ? 1 : 0);
+			_idle_throttle_when_armed = value;
+		}
 	}
 }
 
@@ -854,14 +873,14 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case MIXERIOCRESET:
-		_mixing_interface.mixingOutput().resetMixerThreadSafe();
+		_mixing_interface_esc.mixingOutput().resetMixerThreadSafe();
 
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-			ret = _mixing_interface.mixingOutput().loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_interface_esc.mixingOutput().loadMixerThreadSafe(buf, buflen);
 		}
 		break;
 
@@ -907,14 +926,14 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 }
 
 
-bool UavcanMixingInterface::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+bool UavcanMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
 {
 	_esc_controller.update_outputs(stop_motors, outputs, num_outputs);
 	return true;
 }
 
-void UavcanMixingInterface::Run()
+void UavcanMixingInterfaceESC::Run()
 {
 	pthread_mutex_lock(&_node_mutex);
 	_mixing_output.update();
@@ -922,15 +941,37 @@ void UavcanMixingInterface::Run()
 	pthread_mutex_unlock(&_node_mutex);
 }
 
-void UavcanMixingInterface::mixerChanged()
+void UavcanMixingInterfaceESC::mixerChanged()
 {
 	int rotor_count = 0;
 
-	if (_mixing_output.mixers()) {
-		rotor_count = _mixing_output.mixers()->get_multirotor_count();
+	if (_mixing_output.useDynamicMixing()) {
+		for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
+			rotor_count += _mixing_output.isFunctionSet(i);
+		}
+
+	} else {
+		if (_mixing_output.mixers()) {
+			rotor_count = _mixing_output.mixers()->get_multirotor_count();
+		}
 	}
 
 	_esc_controller.set_rotor_count(rotor_count);
+}
+
+bool UavcanMixingInterfaceServo::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+		unsigned num_control_groups_updated)
+{
+	_servo_controller.update_outputs(stop_motors, outputs, num_outputs);
+	return true;
+}
+
+void UavcanMixingInterfaceServo::Run()
+{
+	pthread_mutex_lock(&_node_mutex);
+	_mixing_output.update();
+	_mixing_output.updateSubscriptions(false);
+	pthread_mutex_unlock(&_node_mutex);
 }
 
 void
@@ -940,19 +981,19 @@ UavcanNode::print_info()
 
 	// Memory status
 	printf("Pool allocator status:\n");
-	printf("\tCapacity hard/soft: %u/%u blocks\n",
+	printf("\tCapacity hard/soft: %" PRIu16 "/%" PRIu16 " blocks\n",
 	       _pool_allocator.getBlockCapacityHardLimit(), _pool_allocator.getBlockCapacity());
-	printf("\tReserved:  %u blocks\n", _pool_allocator.getNumReservedBlocks());
-	printf("\tAllocated: %u blocks\n", _pool_allocator.getNumAllocatedBlocks());
+	printf("\tReserved:  %" PRIu16 " blocks\n", _pool_allocator.getNumReservedBlocks());
+	printf("\tAllocated: %" PRIu16 " blocks\n", _pool_allocator.getNumAllocatedBlocks());
 
 	printf("\n");
 
 	// UAVCAN node perfcounters
 	printf("UAVCAN node status:\n");
-	printf("\tInternal failures: %llu\n", _node.getInternalFailureCount());
-	printf("\tTransfer errors:   %llu\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
-	printf("\tRX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
-	printf("\tTX transfers:      %llu\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
+	printf("\tInternal failures: %" PRIu64 "\n", _node.getInternalFailureCount());
+	printf("\tTransfer errors:   %" PRIu64 "\n", _node.getDispatcher().getTransferPerfCounter().getErrorCount());
+	printf("\tRX transfers:      %" PRIu64 "\n", _node.getDispatcher().getTransferPerfCounter().getRxTransferCount());
+	printf("\tTX transfers:      %" PRIu64 "\n", _node.getDispatcher().getTransferPerfCounter().getTxTransferCount());
 
 	printf("\n");
 
@@ -963,19 +1004,21 @@ UavcanNode::print_info()
 		auto iface = _node.getDispatcher().getCanIOManager().getCanDriver().getIface(i);
 
 		if (iface) {
-			printf("\tHW errors: %llu\n", iface->getErrorCount());
+			printf("\tHW errors: %" PRIu64 "\n", iface->getErrorCount());
 
 			auto iface_perf_cnt = _node.getDispatcher().getCanIOManager().getIfacePerfCounters(i);
-			printf("\tIO errors: %llu\n", iface_perf_cnt.errors);
-			printf("\tRX frames: %llu\n", iface_perf_cnt.frames_rx);
-			printf("\tTX frames: %llu\n", iface_perf_cnt.frames_tx);
+			printf("\tIO errors: %" PRIu64 "\n", iface_perf_cnt.errors);
+			printf("\tRX frames: %" PRIu64 "\n", iface_perf_cnt.frames_rx);
+			printf("\tTX frames: %" PRIu64 "\n", iface_perf_cnt.frames_tx);
 		}
 	}
 
 	printf("\n");
 
-	// ESC mixer status
-	_mixing_interface.mixingOutput().printStatus();
+	printf("ESC outputs:\n");
+	_mixing_interface_esc.mixingOutput().printStatus();
+	printf("Servo outputs:\n");
+	_mixing_interface_servo.mixingOutput().printStatus();
 
 	printf("\n");
 
@@ -1063,7 +1106,7 @@ int uavcan_main(int argc, char *argv[])
 		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
 
 		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
-			PX4_ERR("Invalid Node ID %i", node_id);
+			PX4_ERR("Invalid Node ID %" PRId32, node_id);
 			::exit(1);
 		}
 
@@ -1072,7 +1115,7 @@ int uavcan_main(int argc, char *argv[])
 		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
 
 		// Start
-		PX4_INFO("Node ID %u, bitrate %u", node_id, bitrate);
+		PX4_INFO("Node ID %" PRIu32 ", bitrate %" PRIu32, node_id, bitrate);
 		return UavcanNode::start(node_id, bitrate);
 	}
 
@@ -1162,7 +1205,7 @@ int uavcan_main(int argc, char *argv[])
 	}
 
 	if (!std::strcmp(argv[1], "hardpoint")) {
-		if (!std::strcmp(argv[2], "set") && argc > 4) {
+		if (argc > 4 && !std::strcmp(argv[2], "set")) {
 			const int hardpoint_id = atoi(argv[3]);
 			const int command = atoi(argv[4]);
 

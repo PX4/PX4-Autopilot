@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2021  PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,13 +39,14 @@
  */
 
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/time.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <matrix/math.hpp>
@@ -345,7 +346,9 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &ca
 
 				} else {
 					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-					mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %u", cmd.command);
+					mavlink_log_critical(mavlink_log_pub, "command denied during calibration: %" PRIu32 "\t", cmd.command);
+					events::send<uint32_t>(events::ID("commander_cal_cmd_denied"), {events::Log::Error, events::LogInternal::Info},
+							       "Command denied during calibration: {1}", cmd.command);
 					tune_negative(true);
 					ret = false;
 				}

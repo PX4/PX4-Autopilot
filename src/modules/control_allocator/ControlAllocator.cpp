@@ -132,6 +132,9 @@ ControlAllocator::parameters_updated()
 	actuator_max(14) = _param_ca_act14_max.get();
 	actuator_max(15) = _param_ca_act15_max.get();
 	_control_allocation->setActuatorMax(actuator_max);
+
+	_control_allocation->updateParameters();
+	update_effectiveness_matrix_if_needed(true);
 }
 
 void
@@ -198,7 +201,7 @@ ControlAllocator::update_effectiveness_source()
 		switch (source) {
 		case EffectivenessSource::NONE:
 		case EffectivenessSource::MULTIROTOR:
-			tmp = new ActuatorEffectivenessMultirotor();
+			tmp = new ActuatorEffectivenessMultirotor(this);
 			break;
 
 		case EffectivenessSource::STANDARD_VTOL:
@@ -248,10 +251,6 @@ ControlAllocator::Run()
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
-
-		if (_control_allocation) {
-			_control_allocation->updateParameters();
-		}
 
 		updateParams();
 		parameters_updated();
@@ -349,11 +348,12 @@ ControlAllocator::Run()
 }
 
 void
-ControlAllocator::update_effectiveness_matrix_if_needed()
+ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 {
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> effectiveness;
 
-	if (_actuator_effectiveness->getEffectivenessMatrix(effectiveness)) {
+	if (_actuator_effectiveness->getEffectivenessMatrix(effectiveness, force)) {
+
 		const matrix::Vector<float, NUM_ACTUATORS> &trim = _actuator_effectiveness->getActuatorTrim();
 
 		// Set 0 effectiveness for actuators that are disabled (act_min >= act_max)
@@ -436,26 +436,21 @@ ControlAllocator::publish_control_allocator_status()
 void
 ControlAllocator::publish_legacy_actuator_controls()
 {
-	// For compatibility with the current mixer system,
-	// publish normalized version on actuator_controls_4/5
-	actuator_controls_s actuator_controls_4{};
-	actuator_controls_s actuator_controls_5{};
-	actuator_controls_4.timestamp = hrt_absolute_time();
-	actuator_controls_5.timestamp = hrt_absolute_time();
-	actuator_controls_4.timestamp_sample = _timestamp_sample;
-	actuator_controls_5.timestamp_sample = _timestamp_sample;
+	actuator_motors_s actuator_motors;
+	actuator_motors.timestamp = hrt_absolute_time();
+	actuator_motors.timestamp_sample = _timestamp_sample;
 
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp_normalized = _control_allocation->normalizeActuatorSetpoint(
 				actuator_sp);
 
-	for (size_t i = 0; i < 8; i++) {
-		actuator_controls_4.control[i] = (PX4_ISFINITE(actuator_sp_normalized(i))) ? actuator_sp_normalized(i) : 0.0f;
-		actuator_controls_5.control[i] = (PX4_ISFINITE(actuator_sp_normalized(i + 8))) ? actuator_sp_normalized(i + 8) : 0.0f;
+	for (size_t i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
+		actuator_motors.control[i] = PX4_ISFINITE(actuator_sp_normalized(i)) ? actuator_sp_normalized(i) : NAN;
 	}
 
-	_actuator_controls_4_pub.publish(actuator_controls_4);
-	_actuator_controls_5_pub.publish(actuator_controls_5);
+	_actuator_motors_pub.publish(actuator_motors);
+
+	// TODO: servos
 }
 
 int ControlAllocator::task_spawn(int argc, char *argv[])

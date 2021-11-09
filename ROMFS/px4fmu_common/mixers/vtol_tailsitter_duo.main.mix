@@ -1,5 +1,6 @@
 Tailsitter duo mixer
 ============================
+# @board px4_fmu-v2 exclude
 
 This file defines a mixer for a generic duo tailsitter VTOL (eg TBS Caipirinha tailsitter edition). This vehicle
 has two motors in total, one attached to each wing. It also has two elevons which

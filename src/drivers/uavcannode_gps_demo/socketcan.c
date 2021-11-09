@@ -1,5 +1,6 @@
 #include "socketcan.h"
 
+#include <stdio.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <string.h>

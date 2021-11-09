@@ -41,6 +41,8 @@
 #include "board_config.h"
 #include "qspi.h"
 #include "arm_internal.h"
+#include <assert.h>
+#include <debug.h>
 
 
 /************************************************************************************
@@ -212,7 +214,7 @@ __ramfunc__ int n25qxxx_command(FAR struct qspi_dev_s *qspi, uint8_t cmd)
 {
 	struct qspi_cmdinfo_s cmdinfo;
 
-	finfo("CMD: %02x\n", cmd);
+	finfo("CMD: %02" PRIx8 "\n", cmd);
 
 	cmdinfo.flags   = 0;
 	cmdinfo.addrlen = 0;
@@ -246,7 +248,7 @@ __ramfunc__ int n25qxxx_command_read(FAR struct qspi_dev_s *qspi, uint8_t cmd,
 {
 	struct qspi_cmdinfo_s cmdinfo;
 
-	finfo("CMD: %02x buflen: %lu\n", cmd, (unsigned long)buflen);
+	finfo("CMD: %02" PRIx8 " buflen: %zu\n", cmd, buflen);
 
 	cmdinfo.flags   = QSPICMD_READDATA;
 	cmdinfo.addrlen = 0;
@@ -303,7 +305,7 @@ __ramfunc__ int n25qxxx_write_page(struct n25qxxx_dev_s *priv, FAR const uint8_t
 	int ret = OK;
 	unsigned int i;
 
-	finfo("address: %08lx buflen: %u\n", (unsigned long)address, (unsigned)buflen);
+	finfo("address: %08jx buflen: %zu\n", (intmax_t)address, buflen);
 
 	pagesize = (1 << priv->pageshift);
 
@@ -378,7 +380,7 @@ __ramfunc__ int n25qxxx_write_one_page(struct n25qxxx_dev_s *priv, struct qspi_m
 	n25qxxx_write_disable(priv);
 
 	if (ret < 0) {
-		ferr("ERROR: QSPI_MEMORY failed writing address=%06x\n",
+		ferr("ERROR: QSPI_MEMORY failed writing address=%06" PRIx32 "\n",
 		     meminfo->addr);
 	}
 
@@ -394,14 +396,14 @@ __ramfunc__ int n25qxxx_erase_sector(struct n25qxxx_dev_s *priv, off_t sector)
 	off_t address;
 	uint8_t status;
 
-	finfo("sector: %08lx\n", (unsigned long)sector);
+	finfo("sector: %08jx\n", (intmax_t) sector);
 
 	/* Check that the flash is ready and unprotected */
 
 	status = n25qxxx_read_status(priv);
 
 	if ((status & STATUS_BUSY_MASK) != STATUS_READY) {
-		ferr("ERROR: Flash busy: %02x", status);
+		ferr("ERROR: Flash busy: %02" PRIx8, status);
 		return -EBUSY;
 	}
 
@@ -411,7 +413,7 @@ __ramfunc__ int n25qxxx_erase_sector(struct n25qxxx_dev_s *priv, off_t sector)
 
 	if ((status & (STATUS_BP3_MASK | STATUS_BP_MASK)) != 0 &&
 	    n25qxxx_isprotected(priv, status, address)) {
-		ferr("ERROR: Flash protected: %02x", status);
+		ferr("ERROR: Flash protected: %02" PRIx8, status);
 		return -EACCES;
 	}
 
@@ -488,7 +490,7 @@ __ramfunc__  int n25qxxx_command_address(FAR struct qspi_dev_s *qspi, uint8_t cm
 {
 	struct qspi_cmdinfo_s cmdinfo;
 
-	finfo("CMD: %02x Address: %04lx addrlen=%d\n", cmd, (unsigned long)addr, addrlen);
+	finfo("CMD: %02" PRIx8 " Address: %04jx addrlen=%" PRIx8 "\n", cmd, (intmax_t) addr, addrlen);
 
 	cmdinfo.flags   = QSPICMD_ADDRESS;
 	cmdinfo.addrlen = addrlen;

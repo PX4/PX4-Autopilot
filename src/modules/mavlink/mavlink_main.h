@@ -79,6 +79,7 @@
 #include <uORB/topics/vehicle_status.h>
 
 #include "mavlink_command_sender.h"
+#include "mavlink_events.h"
 #include "mavlink_messages.h"
 #include "mavlink_receiver.h"
 #include "mavlink_shell.h"
@@ -124,6 +125,14 @@ public:
 	 */
 	static int		start(int argc, char *argv[]);
 
+	bool running() const { return _task_running.load(); }
+	bool should_exit() const { return _task_should_exit.load(); }
+	void request_stop()
+	{
+		_task_should_exit.store(true);
+		_receiver.request_stop();
+	}
+
 	/**
 	 * Display the mavlink status.
 	 */
@@ -134,6 +143,7 @@ public:
 	 */
 	void			display_status_streams();
 
+	static int		stop_command(int argc, char *argv[]);
 	static int		stream_command(int argc, char *argv[]);
 
 	static int		instance_count();
@@ -161,7 +171,13 @@ public:
 
 	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
 
+	static bool		component_was_seen(int system_id, int component_id, Mavlink *self = nullptr);
+
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
+
+	bool			check_events() const { return _should_check_events.load(); }
+	void			check_events_enable() { _should_check_events.store(true); }
+	void			check_events_disable() { _should_check_events.store(false); }
 
 	int			get_uart_fd() const { return _uart_fd; }
 
@@ -303,26 +319,9 @@ public:
 	int			set_hil_enabled(bool hil_enabled);
 
 	/**
-	 * Set manual input generation mode
-	 *
-	 * Set to true to generate RC_INPUT messages on the system bus from
-	 * MAVLink messages.
-	 *
-	 * @param generation_enabled If set to true, generate RC_INPUT messages
-	 */
-	void			set_generate_virtual_rc_input(bool generation_enabled) { _generate_rc = generation_enabled; }
-
-	/**
 	 * Set communication protocol for this mavlink instance
 	 */
 	void 			set_protocol(Protocol p) { _protocol = p; }
-
-	/**
-	 * Get the manual input generation mode
-	 *
-	 * @return true if manual inputs should generate RC data
-	 */
-	bool			should_generate_virtual_rc_input() { return _generate_rc; }
 
 	/**
 	 * This is the beginning of a MAVLINK_START_UART_SEND/MAVLINK_END_UART_SEND transaction
@@ -414,7 +413,7 @@ public:
 	bool			get_has_received_messages() { return _received_messages; }
 	void			set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
 	bool			get_wait_to_transmit() { return _wait_to_transmit; }
-	bool			should_transmit() { return (_transmitting_enabled && _boot_complete && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
+	bool			should_transmit() { return (_transmitting_enabled && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
 
 	bool			message_buffer_write(const void *ptr, int size);
 
@@ -451,8 +450,6 @@ public:
 	Protocol 		get_protocol() const { return _protocol; }
 
 	int 			get_socket_fd() { return _socket_fd; };
-
-	bool			_task_should_exit{false};	/**< Mavlink task should exit iff true. */
 
 #if defined(MAVLINK_UDP)
 	unsigned short		get_network_port() { return _network_port; }
@@ -495,11 +492,8 @@ public:
 
 		_mavlink_ulog = MavlinkULog::try_start(_datarate, 0.7f, target_system, target_component);
 	}
-	void			request_stop_ulog_streaming()
-	{
-		if (_mavlink_ulog) { _mavlink_ulog_stop_requested.store(true); }
-	}
 
+	const events::SendProtocol &get_events_protocol() const { return _events; };
 	bool ftp_enabled() const { return _ftp_on; }
 
 	bool hash_check_enabled() const { return _param_mav_hash_chk_en.get(); }
@@ -529,7 +523,12 @@ public:
 
 private:
 	MavlinkReceiver 	_receiver;
-	int			_instance_id{0};
+
+	int			_instance_id{-1};
+	int			_task_id{-1};
+
+	px4::atomic_bool	_task_should_exit{false};
+	px4::atomic_bool	_task_running{false};
 
 	bool			_transmitting_enabled{true};
 	bool			_transmitting_enabled_commanded{false};
@@ -540,12 +539,12 @@ private:
 	uORB::Publication<vehicle_command_ack_s> _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::PublicationMulti<telemetry_status_s> _telemetry_status_pub{ORB_ID(telemetry_status)};
 
+	uORB::Subscription _event_sub{ORB_ID(event)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_command_ack_sub{ORB_ID(vehicle_command_ack)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	bool			_task_running{true};
 	static bool		_boot_complete;
 
 	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
@@ -557,10 +556,11 @@ private:
 
 	/* states */
 	bool			_hil_enabled{false};		/**< Hardware In the Loop mode */
-	bool			_generate_rc{false};		/**< Generate RC messages from manual input MAVLink messages */
 	bool			_is_usb_uart{false};		/**< Port is USB */
 	bool			_wait_to_transmit{false};  	/**< Wait to transmit until received messages. */
 	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */
+
+	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
 
 	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
 
@@ -568,8 +568,8 @@ private:
 
 	MavlinkShell		*_mavlink_shell{nullptr};
 	MavlinkULog		*_mavlink_ulog{nullptr};
-
-	px4::atomic_bool	_mavlink_ulog_stop_requested{false};
+	static events::EventBuffer	*_event_buffer;
+	events::SendProtocol		_events{*_event_buffer, *this};
 
 	MAVLINK_MODE 		_mode{MAVLINK_MODE_NORMAL};
 
@@ -658,6 +658,7 @@ private:
 
 	pthread_mutex_t		_message_buffer_mutex {};
 	pthread_mutex_t		_send_mutex {};
+	pthread_mutex_t         _radio_status_mutex {};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,

@@ -79,7 +79,7 @@ public:
 		bat_status.timestamp = hrt_absolute_time();
 		bat_status.voltage_filtered_v = bat_info.voltage;
 		bat_status.current_filtered_a = bat_info.current;
-		bat_status.average_current_a = bat_info.average_power_10sec;
+		bat_status.current_average_a = bat_info.average_power_10sec;
 		bat_status.remaining = bat_info.state_of_charge_pct / 100.0f;
 		bat_status.scale = -1;
 
@@ -120,7 +120,7 @@ public:
 
 
 		_battery_status_pub.publish(bat_status);
-		print_message(bat_status);
+		print_message(ORB_ID(battery_status), bat_status);
 	};
 
 private:

@@ -37,7 +37,6 @@ px4_add_module(
 	MODULE drivers__gps
 	MAIN gps
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 		-Wno-stringop-overflow # due to https://gcc.gnu.org/bugzilla/show_bug.cgi?id=91707
 	SRCS
 		gps.cpp
@@ -48,9 +47,9 @@ px4_add_module(
 		devices/src/rtcm.cpp
 		devices/src/emlid_reach.cpp
 		devices/src/femtomes.cpp
+		devices/src/nmea.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
 		git_gps_devices
 	)
-target_link_libraries(drivers__gps PRIVATE m)

@@ -49,11 +49,9 @@ px4_add_module(
 		mission_feasibility_checker.cpp
 		geofence.cpp
 		enginefailure.cpp
-		gpsfailure.cpp
 		follow_target.cpp
 	DEPENDS
-		git_ecl
-		ecl_geo
+		geo
 		landing_slope
 		geofence_breach_avoidance
 		motion_planning

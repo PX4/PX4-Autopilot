@@ -48,9 +48,6 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
@@ -68,11 +65,9 @@ using namespace time_literals;
 class RGBLED : public device::I2C, public I2CSPIDriver<RGBLED>
 {
 public:
-	RGBLED(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address);
+	RGBLED(const I2CSPIDriverConfig &config);
 	virtual ~RGBLED() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	int		init() override;
@@ -80,31 +75,25 @@ public:
 
 	void			RunImpl();
 
-protected:
-	void			print_status() override;
 private:
+	void			print_status() override;
+	int			send_led_enable(bool enable);
+	int			send_led_rgb();
+	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
 
 	float			_brightness{1.0f};
-	float			_max_brightness{1.0f};
 
 	uint8_t			_r{0};
 	uint8_t			_g{0};
 	uint8_t			_b{0};
 	bool			_leds_enabled{true};
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
 	LedController		_led_controller;
-
-	int			send_led_enable(bool enable);
-	int			send_led_rgb();
-	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
-	void			update_params();
 };
 
-RGBLED::RGBLED(I2CSPIBusOption bus_option, const int bus, int bus_frequency, const int address) :
-	I2C(DRV_LED_DEVTYPE_RGBLED, MODULE_NAME, bus, address, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+RGBLED::RGBLED(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config)
 {
 }
 
@@ -121,8 +110,6 @@ RGBLED::init()
 	send_led_enable(false);
 	send_led_rgb();
 
-	update_params();
-
 	// kick off work queue
 	ScheduleNow();
 
@@ -136,25 +123,13 @@ RGBLED::probe()
 	bool on, powersave;
 	uint8_t r, g, b;
 
-	/**
-	   this may look strange, but is needed. There is a serial
-	   EEPROM (Microchip-24aa01) that responds to a bunch of I2C
-	   addresses, including the 0x55 used by this LED device. So
-	   we need to do enough operations to be sure we are talking
-	   to the right device. These 3 operations seem to be enough,
-	   as the 3rd one consistently fails if no RGBLED is on the bus.
-	 */
-
-	unsigned prevretries = _retries;
-	_retries = 4;
-
 	if ((ret = get(on, powersave, r, g, b)) != OK ||
 	    (ret = send_led_enable(false) != OK) ||
 	    (ret = send_led_enable(false) != OK)) {
 		return ret;
 	}
 
-	_retries = prevretries;
+	_retries = 1;
 
 	return ret;
 }
@@ -180,19 +155,6 @@ RGBLED::print_status()
 void
 RGBLED::RunImpl()
 {
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		update_params();
-
-		// Immediately update to change brightness
-		send_led_rgb();
-	}
-
 	LedControlData led_control_data;
 
 	if (_led_controller.update(led_control_data) == 1) {
@@ -281,9 +243,9 @@ RGBLED::send_led_rgb()
 {
 	/* To scale from 0..255 -> 0..15 shift right by 4 bits */
 	const uint8_t msg[6] = {
-		SUB_ADDR_PWM0, static_cast<uint8_t>((_b >> 4) * _brightness * _max_brightness + 0.5f),
-		SUB_ADDR_PWM1, static_cast<uint8_t>((_g >> 4) * _brightness * _max_brightness + 0.5f),
-		SUB_ADDR_PWM2, static_cast<uint8_t>((_r >> 4) * _brightness * _max_brightness + 0.5f)
+		SUB_ADDR_PWM0, static_cast<uint8_t>((_b >> 4) * _brightness + 0.5f),
+		SUB_ADDR_PWM1, static_cast<uint8_t>((_g >> 4) * _brightness + 0.5f),
+		SUB_ADDR_PWM2, static_cast<uint8_t>((_r >> 4) * _brightness + 0.5f)
 	};
 	return transfer(msg, sizeof(msg), nullptr, 0);
 }
@@ -309,22 +271,6 @@ RGBLED::get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b)
 }
 
 void
-RGBLED::update_params()
-{
-	int32_t maxbrt = 15;
-	param_get(param_find("LED_RGB_MAXBRT"), &maxbrt);
-	maxbrt = maxbrt > 15 ? 15 : maxbrt;
-	maxbrt = maxbrt <  0 ?  0 : maxbrt;
-
-	// A minimum of 2 "on" steps is required for breathe effect
-	if (maxbrt == 1) {
-		maxbrt = 2;
-	}
-
-	_max_brightness = maxbrt / 15.0f;
-}
-
-void
 RGBLED::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("rgbled", "driver");
@@ -332,24 +278,6 @@ RGBLED::print_usage()
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x55);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *RGBLED::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
-{
-	RGBLED *instance = new RGBLED(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
 }
 
 extern "C" __EXPORT int rgbled_main(int argc, char *argv[])

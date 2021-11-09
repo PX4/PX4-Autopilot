@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,7 @@
 
 #include "I2C.hpp"
 
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <nuttx/i2c/i2c_master.h>
 
 namespace device
@@ -62,6 +63,11 @@ I2C::I2C(uint8_t device_type, const char *name, const int bus, const uint16_t ad
 	_device_id.devid_s.bus_type = DeviceBusType_I2C;
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = address;
+}
+
+I2C::I2C(const I2CSPIDriverConfig &config)
+	: I2C(config.devid_driver_index, config.module_name, config.bus, config.i2c_address, config.bus_frequency)
+{
 }
 
 I2C::~I2C()
@@ -114,7 +120,7 @@ I2C::init()
 	if (_bus_clocks[bus_index] > _frequency) {
 		(void)px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
-		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
+		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %" PRIu32 " KHz)",
 			   get_device_bus(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 		ret = -EINVAL;
 		goto out;
@@ -153,7 +159,7 @@ I2C::init()
 	}
 
 	// tell the world where we are
-	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %u KHz)",
+	DEVICE_DEBUG("on I2C bus %d at 0x%02x (bus: %u KHz, max: %" PRIu32 " KHz)",
 		     get_device_bus(), get_device_address(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 
 out:
@@ -219,7 +225,9 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 
 		/* if we have already retried once, or we are going to give up, then reset the bus */
 		if ((retry_count >= 1) || (retry_count >= _retries)) {
+#if defined(CONFIG_I2C_RESET)
 			I2C_RESET(_dev);
+#endif // CONFIG_I2C_RESET
 		}
 
 	} while (retry_count++ < _retries);

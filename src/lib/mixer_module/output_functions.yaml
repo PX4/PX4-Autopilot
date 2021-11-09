@@ -1,0 +1,42 @@
+functions:
+  # Note: do not change the index of existing functions, as it will break
+  # existing setups using it
+  common:
+    Disabled: 0
+
+    Constant_Min: 1
+    Constant_Max: 2
+
+    Motor:
+      start: 101
+      count: 8
+    Servo:
+      start: 201
+      count: 8
+    Offboard_Actuator_Set:
+      start: 301
+      count: 6
+
+    Landing_Gear: 400
+    Parachute: 401
+
+    # Manual RC input (passthrough)
+    RC_Roll: 402
+    RC_Pitch: 403
+    RC_Throttle: 404
+    RC_Yaw: 405
+    RC_Flaps: 406
+    RC_AUX:
+      start: 407
+      count: 6
+
+    Gimbal_Roll: 420
+    Gimbal_Pitch: 421
+    Gimbal_Yaw: 422
+
+    # Add your own here:
+    #MyCustomFunction: 10000
+
+  pwm_fmu: # These only exist on FMU PWM pins
+    Camera_Trigger: 2000
+    Camera_Capture: 2032

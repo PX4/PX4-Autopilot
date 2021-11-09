@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+include(px4_list_make_absolute)
 
 #=============================================================================
 #
@@ -44,12 +45,9 @@ function(px4_add_library target)
 
 	# all PX4 libraries have access to parameters and uORB
 	add_dependencies(${target} uorb_headers)
-	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface px4_platform uorb_msgs)
-
-	# TODO: move to platform layer
-	if ("${PX4_PLATFORM}" MATCHES "nuttx")
-		target_link_libraries(${target} PRIVATE m nuttx_c)
-	endif()
+	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface px4_platform)
 
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+	px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${ARGN})
+	set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
 endfunction()

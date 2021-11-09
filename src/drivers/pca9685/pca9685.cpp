@@ -116,11 +116,9 @@ using namespace time_literals;
 class PCA9685 : public device::I2C, public I2CSPIDriver<PCA9685>
 {
 public:
-	PCA9685(I2CSPIBusOption bus_option, int bus, int bus_frequency);
+	PCA9685(const I2CSPIDriverConfig &config);
 	~PCA9685() override = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void print_status();
@@ -177,9 +175,9 @@ private:
 
 };
 
-PCA9685::PCA9685(I2CSPIBusOption bus_option, int bus, int bus_frequency) :
-	I2C(DRV_PWM_DEVTYPE_PCA9685, MODULE_NAME, bus, ADDR, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+PCA9685::PCA9685(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
 	_mode(IOX_MODE_ON),
 	_i2cpwm_interval(1_s / 60.0f),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err")),
@@ -436,27 +434,10 @@ PCA9685::print_usage()
 	PRINT_MODULE_USAGE_NAME("pca9685", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x40);
 	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "enter test mode");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-I2CSPIDriverBase *PCA9685::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				       int runtime_instance)
-{
-	PCA9685 *instance = new PCA9685(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
-
-	return instance;
 }
 
 void PCA9685::custom_method(const BusCLIArguments &cli)
@@ -473,6 +454,7 @@ extern "C" int pca9685_main(int argc, char *argv[])
 	using ThisDriver = PCA9685;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = ADDR;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

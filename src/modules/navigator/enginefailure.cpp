@@ -43,8 +43,9 @@
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <navigator/navigation.h>
+#include <px4_platform_common/events.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/mission.h>
@@ -128,7 +129,8 @@ EngineFailure::advance_ef()
 {
 	switch (_ef_state) {
 	case EF_STATE_NONE:
-		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "Engine failure. Loitering down");
+		mavlink_log_emergency(_navigator->get_mavlink_log_pub(), "Engine failure. Loitering down\t");
+		events::send(events::ID("enginefailure_loitering"), events::Log::Emergency, "Engine failure. Loitering down");
 		_ef_state = EF_STATE_LOITERDOWN;
 		break;
 

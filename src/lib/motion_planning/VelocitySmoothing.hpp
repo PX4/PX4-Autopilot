@@ -141,43 +141,43 @@ private:
 	 * Compute the direction of the jerk to be applied in order to drive the current state
 	 * to the desired one
 	 */
-	int computeDirection();
+	int computeDirection() const;
 
 	/**
 	 * Compute the velocity at which the trajectory will be if the maximum jerk is applied
 	 * during the time required to cancel the current acceleration
 	 */
-	float computeVelAtZeroAcc();
+	float computeVelAtZeroAcc() const;
 
 	/**
 	 * Compute increasing acceleration time
 	 */
-	inline float computeT1(float a0, float v3, float j_max, float a_max);
+	inline float computeT1(float a0, float v3, float j_max, float a_max) const;
 
 	/**
 	 * Compute increasing acceleration time using total time constraint
 	 */
-	inline float computeT1(float T123, float a0, float v3, float j_max, float a_max);
+	inline float computeT1(float T123, float a0, float v3, float j_max, float a_max) const;
 
 	/**
 	 * Saturate T1 in order to respect the maximum acceleration constraint
 	 */
-	inline float saturateT1ForAccel(float a0, float j_max, float T1, float a_max);
+	inline float saturateT1ForAccel(float a0, float j_max, float T1, float a_max) const;
 
 	/**
 	 * Compute constant acceleration time
 	 */
-	inline float computeT2(float T1, float T3, float a0, float v3, float j_max);
+	inline float computeT2(float T1, float T3, float a0, float v3, float j_max) const;
 
 	/**
 	 * Compute constant acceleration time using total time constraint
 	 */
-	inline float computeT2(float T123, float T1, float T3);
+	inline float computeT2(float T123, float T1, float T3) const;
 
 	/**
 	 * Compute decreasing acceleration time
 	 */
-	inline float computeT3(float T1, float a0, float j_max);
+	inline float computeT3(float T1, float a0, float j_max) const;
 
 	/**
 	 * Compute the jerk, acceleration, velocity and position
@@ -189,7 +189,7 @@ private:
 	 * @param t current time
 	 * @param d direction
 	 */
-	inline Trajectory evaluatePoly(float j, float a0, float v0, float x0, float t, int d);
+	inline Trajectory evaluatePoly(float j, float a0, float v0, float x0, float t, int d) const;
 
 	/* Input */
 	float _vel_sp{0.0f};

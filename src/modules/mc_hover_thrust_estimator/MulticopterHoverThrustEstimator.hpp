@@ -121,6 +121,8 @@ private:
 		(ParamFloat<px4::params::HTE_HT_NOISE>) _param_hte_ht_noise,
 		(ParamFloat<px4::params::HTE_ACC_GATE>) _param_hte_acc_gate,
 		(ParamFloat<px4::params::HTE_HT_ERR_INIT>) _param_hte_ht_err_init,
+		(ParamFloat<px4::params::HTE_VXY_THR>) _param_hte_vxy_thr,
+		(ParamFloat<px4::params::HTE_VZ_THR>) _param_hte_vz_thr,
 		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover
 	)
 };

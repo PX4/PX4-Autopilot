@@ -31,8 +31,10 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef GYRO_FFT_HPP
+#define GYRO_FFT_HPP
 
+#include <lib/mathlib/math/filter/MedianFilter.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
@@ -77,10 +79,19 @@ public:
 	bool init();
 
 private:
-	float EstimatePeakFrequency(q15_t fft[], int peak_index);
+	static constexpr int MAX_SENSOR_COUNT = 4;
+
+	static constexpr int MAX_NUM_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
+			sensor_gyro_fft_s::peak_frequencies_x[0]);
+
 	void Run() override;
+	inline void FindPeaks(const hrt_abstime &timestamp_sample, int axis, q15_t *fft_outupt_buffer);
+	inline float EstimatePeakFrequencyBin(q15_t fft[], int peak_index);
+	inline void Publish();
 	bool SensorSelectionUpdate(bool force = false);
 	void Update(const hrt_abstime &timestamp_sample, int16_t *input[], uint8_t N);
+	inline void UpdateOutput(const hrt_abstime &timestamp_sample, int axis, float peak_frequencies[MAX_NUM_PEAKS],
+				 float peak_snr[MAX_NUM_PEAKS], int num_peaks_found);
 	void VehicleIMUStatusUpdate(bool force = false);
 
 	template<size_t N>
@@ -99,11 +110,6 @@ private:
 			&& _fft_outupt_buffer);
 	}
 
-	static constexpr int MAX_SENSOR_COUNT = 4;
-
-	static constexpr int MAX_NUM_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
-			sensor_gyro_fft_s::peak_frequencies_x[0]);
-
 	uORB::Publication<sensor_gyro_fft_s> _sensor_gyro_fft_pub{ORB_ID(sensor_gyro_fft)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -117,8 +123,8 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 	perf_counter_t _fft_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": FFT")};
-	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};
-	perf_counter_t _gyro_fifo_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro FIFO data gap")};
+	perf_counter_t _gyro_generation_gap_perf{nullptr};
+	perf_counter_t _gyro_fifo_generation_gap_perf{nullptr};
 
 	uint32_t _selected_sensor_device_id{0};
 
@@ -141,13 +147,23 @@ private:
 
 	unsigned _gyro_last_generation{0};
 
+	math::MedianFilter<float, 5> _median_filter[3][MAX_NUM_PEAKS] {};
+
 	sensor_gyro_fft_s _sensor_gyro_fft{};
 
+	hrt_abstime _last_update[3][MAX_NUM_PEAKS] {};
+
 	int32_t _imu_gyro_fft_len{256};
+
+	bool _fft_updated{false};
+	bool _publish{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_FFT_LEN>) _param_imu_gyro_fft_len,
 		(ParamFloat<px4::params::IMU_GYRO_FFT_MIN>) _param_imu_gyro_fft_min,
-		(ParamFloat<px4::params::IMU_GYRO_FFT_MAX>) _param_imu_gyro_fft_max
+		(ParamFloat<px4::params::IMU_GYRO_FFT_MAX>) _param_imu_gyro_fft_max,
+		(ParamFloat<px4::params::IMU_GYRO_FFT_SNR>) _param_imu_gyro_fft_snr
 	)
 };
+
+#endif // !GYRO_FFT_HPP

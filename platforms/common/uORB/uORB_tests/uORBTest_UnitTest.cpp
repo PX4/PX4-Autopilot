@@ -83,7 +83,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(orb_test_medium), test_multi_sub, &t);
 
-			unsigned elt = (unsigned)hrt_elapsed_time_atomic(&t.timestamp);
+			unsigned elt = (unsigned)hrt_elapsed_time(&t.timestamp);
 			latency_integral += elt;
 			timings[i] = elt;
 
@@ -796,7 +796,7 @@ int uORBTest::UnitTest::test_SubscriptionMulti()
 
 						if (sub.get_last_generation() != last_gen + 1) {
 							//return test_fail("sub %d generation should be %d + 1, but it's %d", sub_instance, last_gen, sub.get_last_generation());
-							PX4_ERR("sub %d generation should be %d + 1, but it's %d", sub_instance, last_gen, sub.get_last_generation());
+							PX4_WARN("sub %d generation should be %d + 1, but it's %d", sub_instance, last_gen, sub.get_last_generation());
 						}
 					}
 				}

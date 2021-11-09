@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -52,6 +52,9 @@ if(CONFIG_ARCH_CHIP)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32")
 		set(UAVCAN_DRIVER "stm32")
 		set(UAVCAN_TIMER 5) # The default timer is TIM5
+		if (DEFINED config_uavcan_timer_override)
+			set (UAVCAN_TIMER  ${config_uavcan_timer_override})
+		endif()
 	endif()
 endif()
 
@@ -96,10 +99,10 @@ target_include_directories(uavcan_${UAVCAN_DRIVER}_driver PUBLIC
 # generated DSDL
 set(DSDLC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dsdl")
 set(DSDLC_INPUTS
-	"${DSDLC_DIR}/com"
-	"${DSDLC_DIR}/ardupilot"
+	"${LIBUAVCAN_DIR}/dsdl/ardupilot"
+	"${LIBUAVCAN_DIR}/dsdl/com"
+	"${LIBUAVCAN_DIR}/dsdl/cuav"
 	"${LIBUAVCAN_DIR}/dsdl/uavcan"
-	"${DSDLC_DIR}/cuav"
 )
 set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
 
@@ -109,7 +112,10 @@ foreach(DSDLC_INPUT ${DSDLC_INPUTS})
 	list(APPEND DSDLC_INPUT_FILES ${DSDLC_NEW_INPUT_FILES})
 endforeach(DSDLC_INPUT)
 add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
-	COMMAND ${PYTHON_EXECUTABLE} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+	COMMAND
+		${PYTHON_EXECUTABLE} ${LIBUAVCAN_DIR}/libuavcan/dsdl_compiler/libuavcan_dsdlc
+			--outdir ${DSDLC_OUTPUT} ${DSDLC_INPUTS}
+			#--verbose
 	COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp
 	DEPENDS ${DSDLC_INPUT_FILES}
 	COMMENT "PX4 UAVCAN dsdl compiler"
@@ -141,6 +147,7 @@ px4_add_module(
 		# Actuators
 		actuators/esc.cpp
 		actuators/hardpoint.cpp
+		actuators/servo.cpp
 
 		# Sensors
 		sensors/sensor_bridge.cpp
@@ -155,10 +162,15 @@ px4_add_module(
 		sensors/accel.cpp
 		sensors/gyro.cpp
 		sensors/cbat.cpp
+		sensors/ice_status.cpp
+
+	MODULE_CONFIG
+		module.yaml
 
 	DEPENDS
 		px4_uavcan_dsdlc
 
+		drivers_rangefinder
 		led
 		mixer
 		mixer_module
@@ -167,6 +179,8 @@ px4_add_module(
 
 		git_uavcan
 		uavcan_${UAVCAN_DRIVER}_driver
+
+		drivers_rangefinder # Fix undefined reference when no distance sensors are selected
 
 		# within libuavcan
 		uavcan

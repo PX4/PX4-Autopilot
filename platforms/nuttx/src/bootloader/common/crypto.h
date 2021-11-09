@@ -40,9 +40,9 @@
 
 #pragma once
 
-#ifdef BOOTLOADER_USE_TOC
-
-#ifdef BOOTLOADER_USE_SECURITY
+/* Using security always needs TOC (but TOC could be used without security) */
+#if defined(BOOTLOADER_USE_SECURITY)
+# define BOOTLOADER_USE_TOC
 
 #include <stdlib.h>
 
@@ -55,6 +55,8 @@ bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries);
 
 #else
 
+# if defined(BOOTLOADER_USE_TOC)
+
 /* No security, application verification passes always */
 
 static inline bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries) {return true;}
@@ -63,6 +65,6 @@ static inline bool verify_app(uint16_t idx, const image_toc_entry_t *toc_entries
 
 static inline bool decrypt_app(uint16_t idx, const image_toc_entry_t *toc_entries) {return false;}
 
-#endif
+# endif
 
-#endif
+#endif // BOOTLOADER_USE_SECURITY

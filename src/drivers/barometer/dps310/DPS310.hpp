@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,11 +56,10 @@ using Infineon_DPS310::Register;
 class DPS310 : public I2CSPIDriver<DPS310>
 {
 public:
-	DPS310(I2CSPIBusOption bus_option, int bus, device::Device *interface);
+	DPS310(const I2CSPIDriverConfig &config, device::Device *interface);
 	virtual ~DPS310();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
 
 	int			init();

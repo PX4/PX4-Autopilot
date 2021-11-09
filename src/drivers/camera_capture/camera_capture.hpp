@@ -54,9 +54,6 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-#define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
-
-
 class CameraCapture : public px4::ScheduledWorkItem
 {
 public:
@@ -98,6 +95,7 @@ public:
 	static struct work_s	_work_publisher;
 
 private:
+	int _capture_channel = 5; ///< by default, use FMU output 6
 
 	// Publishers
 	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};

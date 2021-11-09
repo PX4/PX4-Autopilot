@@ -39,6 +39,7 @@
 #include <px4_platform_common/defines.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <unistd.h>
@@ -70,8 +71,8 @@ static uint8_t get_value(uint32_t ofs)
 
 static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t write_size, uint16_t flags)
 {
-	printf("Testing on %s with write_chunk=%u write_size=%u\n",
-	       filename, (unsigned)write_chunk, (unsigned)write_size);
+	printf("Testing on %s with write_chunk=%" PRIu32 " write_size=%" PRIu32 "\n",
+	       filename, write_chunk, write_size);
 
 	uint32_t ofs = 0;
 	int fd = open(filename, O_CREAT | O_RDWR | O_TRUNC, PX4_O_MODE_666);
@@ -93,7 +94,7 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 		}
 
 		if (write(fd, buffer, sizeof(buffer)) != (int)sizeof(buffer)) {
-			printf("write failed at offset %u\n", ofs);
+			printf("write failed at offset %" PRIu32 "\n", ofs);
 			return 1;
 		}
 
@@ -102,7 +103,7 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 		}
 
 		if (counter % 100 == 0) {
-			printf("write ofs=%u\r", ofs);
+			printf("write ofs=%" PRIu32 "\r", ofs);
 		}
 
 		counter++;
@@ -110,7 +111,7 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 
 	close(fd);
 
-	printf("write ofs=%u\n", ofs);
+	printf("write ofs=%" PRIu32 "\n", ofs);
 
 	// read and check
 	fd = open(filename, O_RDONLY);
@@ -127,20 +128,20 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 		uint8_t buffer[write_chunk];
 
 		if (counter % 100 == 0) {
-			printf("read ofs=%u\r", ofs);
+			printf("read ofs=%" PRIu32 "\r", ofs);
 		}
 
 		counter++;
 
 		if (read(fd, buffer, sizeof(buffer)) != (int)sizeof(buffer)) {
-			printf("read failed at offset %u\n", ofs);
+			printf("read failed at offset %" PRIu32 "\n", ofs);
 			close(fd);
 			return 1;
 		}
 
 		for (uint16_t j = 0; j < write_chunk; j++) {
 			if (buffer[j] != get_value(ofs)) {
-				printf("corruption at ofs=%u got %u\n", ofs, buffer[j]);
+				printf("corruption at ofs=%" PRIu32 " got %" PRIu8 "\n", ofs, buffer[j]);
 				close(fd);
 				return 1;
 			}
@@ -153,7 +154,7 @@ static int test_corruption(const char *filename, uint32_t write_chunk, uint32_t 
 		}
 	}
 
-	printf("read ofs=%u\n", ofs);
+	printf("read ofs=%" PRIu32 "\n", ofs);
 	close(fd);
 	unlink(filename);
 	printf("All OK\n");

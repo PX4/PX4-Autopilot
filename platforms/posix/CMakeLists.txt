@@ -25,72 +25,49 @@ px4_posix_generate_alias(
 	PREFIX ${PX4_SHELL_COMMAND_PREFIX}
 )
 
-if (("${PX4_BOARD}" MATCHES "atlflight_eagle") OR ("${PX4_BOARD}" MATCHES "atlflight_excelsior"))
-	include(fastrpc)
-	include(linux_app)
-
-	FASTRPC_STUB_GEN(../qurt/px4muorb.idl)
-
-	LINUX_APP(
-		APP_NAME px4
-		IDL_NAME px4muorb
-		APPS_DEST "/home/linaro"
-		SOURCES
-			px4muorb_stub.c
-			src/px4/common/main.cpp
-			apps.cpp
-		LINK_LIBS
-			-Wl,--start-group
-				px4_layer
-				parameters
-				${module_libraries}
-				${FASTRPC_ARM_LIBS}
-				pthread m rt
-			-Wl,--end-group
-		)
-
-else()
-	add_executable(px4
-		src/px4/common/main.cpp
-		apps.cpp
-		)
-
-	target_link_libraries(px4
-		PRIVATE
-			${module_libraries}
-			pthread m
-
-			# horrible circular dependencies that need to be teased apart
-			px4_layer px4_platform
-			work_queue
-			parameters
+add_executable(px4
+	src/px4/common/main.cpp
+	apps.cpp
 	)
 
-	if(NOT APPLE)
-		target_link_libraries(px4 PRIVATE rt)
-	endif()
+target_link_libraries(px4
+	PRIVATE
+		${module_libraries}
+		m
 
-	target_link_libraries(px4 PRIVATE uORB)
+		# horrible circular dependencies that need to be teased apart
+		px4_layer px4_platform
+		work_queue
+		parameters
+)
 
-	#=============================================================================
-	# install
-	#
-
-	# TODO: extend to snapdragon
-
-	# px4 dirs
-	install(
-		DIRECTORY
-			${PROJECT_SOURCE_DIR}/posix-configs
-			${PROJECT_SOURCE_DIR}/test
-			${CMAKE_BINARY_DIR}/etc
-			${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-		DESTINATION
-			${PROJECT_NAME}
-		USE_SOURCE_PERMISSIONS
-		)
-
+if((NOT APPLE) AND (NOT ANDROID))
+	target_link_libraries(px4 PRIVATE rt)
 endif()
+
+if(NOT ANDROID)
+	target_link_libraries(px4 PRIVATE pthread)
+endif()
+
+target_link_libraries(px4 PRIVATE uORB)
+
+#=============================================================================
+# install
+#
+
+# TODO: extend to snapdragon
+
+# px4 dirs
+install(
+	DIRECTORY
+		${PROJECT_SOURCE_DIR}/posix-configs
+		${PROJECT_SOURCE_DIR}/test
+		${CMAKE_BINARY_DIR}/etc
+		${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+	DESTINATION
+		${PROJECT_NAME}
+	USE_SOURCE_PERMISSIONS
+)
 
 # Module Symlinks
 px4_posix_generate_symlinks(

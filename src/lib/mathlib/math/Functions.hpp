@@ -54,6 +54,12 @@ int signNoZero(T val)
 	return (T(0) <= val) - (val < T(0));
 }
 
+template<typename T>
+T sq(T val)
+{
+	return val * val;
+}
+
 /*
  * So called exponential curve function implementation.
  * It is essentially a linear combination between a linear and a cubic function.
@@ -134,7 +140,7 @@ const T expo_deadzone(const T &value, const T &e, const T &dz)
 template<typename T>
 const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
 {
-	if (value < x_low) {
+	if (value <= x_low) {
 		return y_low;
 
 	} else if (value > x_high) {

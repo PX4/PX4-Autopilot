@@ -81,19 +81,11 @@ static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 
 static char *param_user_file = nullptr;
 
-#ifdef __PX4_QURT
-#define PARAM_OPEN	px4_open
-#define PARAM_CLOSE	px4_close
-#else
-#define PARAM_OPEN	open
-#define PARAM_CLOSE	close
-#endif
-
 #include <px4_platform_common/workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
 static struct work_s autosave_work {};
-static px4::atomic<bool> autosave_scheduled{false};
+static px4::atomic_bool autosave_scheduled{false};
 static bool autosave_disabled = false;
 
 static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
@@ -497,12 +489,12 @@ param_get(param_t param, void *val)
 	perf_count(param_get_perf);
 
 	if (!handle_in_range(param)) {
-		PX4_ERR("get: param %d invalid", param);
+		PX4_ERR("get: param %" PRId16 " invalid", param);
 		return PX4_ERROR;
 	}
 
 	if (!params_active[param]) {
-		PX4_DEBUG("get: param %d (%s) not active", param, param_name(param));
+		PX4_DEBUG("get: param %" PRId16 " (%s) not active", param, param_name(param));
 	}
 
 	int result = PX4_ERROR;
@@ -1133,11 +1125,11 @@ int param_save_default()
 
 	while (res != OK && attempts > 0) {
 		// write parameters to file
-		int fd = PARAM_OPEN(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+		int fd = ::open(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 		if (fd > -1) {
 			res = param_export(fd, false, nullptr);
-			PARAM_CLOSE(fd);
+			::close(fd);
 
 			if (res != PX4_OK) {
 				PX4_ERR("param_export failed, retrying %d", attempts);
@@ -1170,7 +1162,7 @@ param_load_default()
 		return flash_param_load();
 	}
 
-	int fd_load = PARAM_OPEN(filename, O_RDONLY);
+	int fd_load = ::open(filename, O_RDONLY);
 
 	if (fd_load < 0) {
 		/* no parameter file is OK, otherwise this is an error */
@@ -1183,7 +1175,7 @@ param_load_default()
 	}
 
 	int result = param_load(fd_load);
-	PARAM_CLOSE(fd_load);
+	::close(fd_load);
 
 	if (result != 0) {
 		PX4_ERR("error reading parameters from '%s'", filename);
@@ -1358,7 +1350,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 	param_t param = param_find_no_notification(node->name);
 
 	if (param == PARAM_INVALID) {
-		PX4_ERR("ignoring unrecognised parameter '%s'", node->name);
+		PX4_WARN("ignoring unrecognised parameter '%s'", node->name);
 		return 1;
 	}
 
@@ -1430,7 +1422,12 @@ param_import_internal(int fd, bool mark_saved)
 			} while (result > 0);
 
 			if (result == 0) {
-				PX4_INFO("BSON document size %d bytes, decoded %d bytes", decoder.total_document_size, decoder.total_decoded_size);
+				PX4_INFO("BSON document size %" PRId32 " bytes, decoded %" PRId32 " bytes", decoder.total_document_size,
+					 decoder.total_decoded_size);
+				return 0;
+
+			} else if (result == -ENODATA) {
+				PX4_DEBUG("BSON: no data");
 				return 0;
 
 			} else {

@@ -27,7 +27,6 @@ bool circuit_breaker_engaged_usb_check
 bool circuit_breaker_engaged_posfailure_check	# set to true when the position valid checks have been disabled
 bool circuit_breaker_vtol_fw_arming_check 	# set to true if for VTOLs arming in fixed-wing mode should be allowed
 
-bool offboard_control_signal_found_once
 bool offboard_control_signal_lost
 
 bool rc_signal_found_once

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -55,30 +55,29 @@ DPS310::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *DPS310::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *DPS310::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
 	device::Device *interface = nullptr;
 
-	if (iterator.busType() == BOARD_I2C_BUS) {
-		interface = DPS310_I2C_interface(iterator.bus(), cli.i2c_address, cli.bus_frequency);
+	if (config.bus_type == BOARD_I2C_BUS) {
+		interface = DPS310_I2C_interface(config.bus, config.i2c_address, config.bus_frequency);
 
-	} else if (iterator.busType() == BOARD_SPI_BUS) {
-		interface = DPS310_SPI_interface(iterator.bus(), iterator.devid(), cli.bus_frequency, cli.spi_mode);
+	} else if (config.bus_type == BOARD_SPI_BUS) {
+		interface = DPS310_SPI_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
 	if (interface == nullptr) {
-		PX4_ERR("failed creating interface for bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		PX4_ERR("failed creating interface for bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
 	if (interface->init() != OK) {
 		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
+		PX4_DEBUG("no device on bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
 		return nullptr;
 	}
 
-	DPS310 *dev = new DPS310(iterator.configuredBusOption(), iterator.bus(), interface);
+	DPS310 *dev = new DPS310(config, interface);
 
 	if (dev == nullptr) {
 		delete interface;

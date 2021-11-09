@@ -68,7 +68,7 @@ public:
 
 		_parameters_sub._subject_name = _parameters_name;
 		_parameters_sub._canard_sub.user_reference = this;
-		_parameters_sub.next = NULL;
+		_parameters_sub.next = nullptr;
 	}
 
 	void subscribe() override
@@ -100,8 +100,6 @@ public:
 
 	void callback(const CanardTransfer &receive) override
 	{
-		PX4_INFO("BmsCallback");
-
 		if (receive.port_id == _subj_sub._canard_sub.port_id) {
 			reg_drone_physics_electricity_SourceTs_0_1 source_ts {};
 			size_t source_ts_size_in_bytes = receive.payload_size;
@@ -124,8 +122,6 @@ public:
 
 			// TODO uORB publication rate limiting
 			_battery_status_pub.publish(bat_status);
-			print_message(bat_status);
-
 
 		} else if (receive.port_id == _status_sub._canard_sub.port_id) {
 			reg_drone_service_battery_Status_0_2 bat {};

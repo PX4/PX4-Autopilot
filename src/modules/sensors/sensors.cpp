@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +48,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/sensor_calibration/Utilities.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
@@ -64,6 +65,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensors_status_imu.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -179,6 +181,12 @@ private:
 
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
 
+	uint8_t _n_accel{0};
+	uint8_t _n_baro{0};
+	uint8_t _n_gps{0};
+	uint8_t _n_gyro{0};
+	uint8_t _n_mag{0};
+
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -212,6 +220,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
+		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
@@ -307,6 +316,54 @@ int Sensors::parameters_update()
 	param_get(_parameter_handles.air_tube_diameter_mm, &_parameters.air_tube_diameter_mm);
 
 	_voted_sensors_update.parametersUpdate();
+
+	// mark all existing sensor calibrations active even if sensor is missing
+	// this preserves the calibration in the event of a parameter export while the sensor is missing
+	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+		uint32_t device_id_accel = calibration::GetCalibrationParamInt32("ACC",  "ID", i);
+		uint32_t device_id_gyro  = calibration::GetCalibrationParamInt32("GYRO", "ID", i);
+		uint32_t device_id_mag   = calibration::GetCalibrationParamInt32("MAG",  "ID", i);
+
+		if (device_id_accel != 0) {
+			bool external_accel = (calibration::GetCalibrationParamInt32("ACC", "ROT", i) >= 0);
+			calibration::Accelerometer accel_cal(device_id_accel, external_accel);
+		}
+
+		if (device_id_gyro != 0) {
+			bool external_gyro = (calibration::GetCalibrationParamInt32("GYRO", "ROT", i) >= 0);
+			calibration::Gyroscope gyro_cal(device_id_gyro, external_gyro);
+		}
+
+		if (device_id_mag != 0) {
+			bool external_mag = (calibration::GetCalibrationParamInt32("MAG", "ROT", i) >= 0);
+			calibration::Magnetometer mag_cal(device_id_mag, external_mag);
+		}
+	}
+
+	// ensure calibration slots are active for the number of sensors currently available
+	// this to done to eliminate differences in the active set of parameters before and after sensor calibration
+	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+		if (orb_exists(ORB_ID(sensor_accel), i) == PX4_OK) {
+			bool external = (calibration::GetCalibrationParamInt32("ACC", "ROT", i) >= 0);
+			calibration::Accelerometer cal{0, external};
+			cal.set_calibration_index(i);
+			cal.ParametersUpdate();
+		}
+
+		if (orb_exists(ORB_ID(sensor_gyro), i) == PX4_OK) {
+			bool external = (calibration::GetCalibrationParamInt32("GYRO", "ROT", i) >= 0);
+			calibration::Gyroscope cal{0, external};
+			cal.set_calibration_index(i);
+			cal.ParametersUpdate();
+		}
+
+		if (orb_exists(ORB_ID(sensor_mag), i) == PX4_OK) {
+			bool external = (calibration::GetCalibrationParamInt32("MAG", "ROT", i) >= 0);
+			calibration::Magnetometer cal{0, external};
+			cal.set_calibration_index(i);
+			cal.ParametersUpdate();
+		}
+	}
 
 	return PX4_OK;
 }
@@ -479,12 +536,10 @@ void Sensors::InitializeVehicleAirData()
 {
 	if (_param_sys_has_baro.get()) {
 		if (_vehicle_air_data == nullptr) {
-			if (orb_exists(ORB_ID(sensor_baro), 0) == PX4_OK) {
-				_vehicle_air_data = new VehicleAirData();
+			_vehicle_air_data = new VehicleAirData();
 
-				if (_vehicle_air_data) {
-					_vehicle_air_data->Start();
-				}
+			if (_vehicle_air_data) {
+				_vehicle_air_data->Start();
 			}
 		}
 	}
@@ -492,8 +547,8 @@ void Sensors::InitializeVehicleAirData()
 
 void Sensors::InitializeVehicleGPSPosition()
 {
-	if (_vehicle_gps_position == nullptr) {
-		if (orb_exists(ORB_ID(sensor_gps), 0) == PX4_OK) {
+	if (_param_sys_has_gps.get()) {
+		if (_vehicle_gps_position == nullptr) {
 			_vehicle_gps_position = new VehicleGPSPosition();
 
 			if (_vehicle_gps_position) {
@@ -547,12 +602,10 @@ void Sensors::InitializeVehicleMagnetometer()
 {
 	if (_param_sys_has_mag.get()) {
 		if (_vehicle_magnetometer == nullptr) {
-			if (orb_exists(ORB_ID(sensor_mag), 0) == PX4_OK) {
-				_vehicle_magnetometer = new VehicleMagnetometer();
+			_vehicle_magnetometer = new VehicleMagnetometer();
 
-				if (_vehicle_magnetometer) {
-					_vehicle_magnetometer->Start();
-				}
+			if (_vehicle_magnetometer) {
+				_vehicle_magnetometer->Start();
 			}
 		}
 	}
@@ -610,12 +663,32 @@ void Sensors::Run()
 
 	// keep adding sensors as long as we are not armed,
 	// when not adding sensors poll for param updates
-	if (!_armed && hrt_elapsed_time(&_last_config_update) > 500_ms) {
+	if (!_armed && hrt_elapsed_time(&_last_config_update) > 1000_ms) {
+
+		const int n_accel = orb_group_count(ORB_ID(sensor_accel));
+		const int n_baro  = orb_group_count(ORB_ID(sensor_baro));
+		const int n_gps   = orb_group_count(ORB_ID(sensor_gps));
+		const int n_gyro  = orb_group_count(ORB_ID(sensor_gyro));
+		const int n_mag   = orb_group_count(ORB_ID(sensor_mag));
+
+		if ((n_accel != _n_accel) || (n_baro != _n_baro) || (n_gps != _n_gps) || (n_gyro != _n_gyro) || (n_mag != _n_mag)) {
+			_n_accel = n_accel;
+			_n_baro = n_baro;
+			_n_gps = n_gps;
+			_n_gyro = n_gyro;
+			_n_mag = n_mag;
+
+			parameters_update();
+
+			InitializeVehicleAirData();
+			InitializeVehicleGPSPosition();
+			InitializeVehicleMagnetometer();
+		}
+
+		// sensor device id (not just orb_group_count) must be populated before IMU init can succeed
 		_voted_sensors_update.initializeSensors();
-		InitializeVehicleAirData();
 		InitializeVehicleIMU();
-		InitializeVehicleGPSPosition();
-		InitializeVehicleMagnetometer();
+
 		_last_config_update = hrt_absolute_time();
 
 	} else {

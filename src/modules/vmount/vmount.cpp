@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -289,7 +289,7 @@ static int vmount_thread_main(int argc, char *argv[])
 					break;
 
 				default:
-					PX4_ERR("invalid input mode %i", params.mnt_mode_in);
+					PX4_ERR("invalid input mode %" PRId32, params.mnt_mode_in);
 					break;
 				}
 			}
@@ -323,7 +323,7 @@ static int vmount_thread_main(int argc, char *argv[])
 				break;
 
 			default:
-				PX4_ERR("invalid output mode %i", params.mnt_mode_out);
+				PX4_ERR("invalid output mode %" PRId32, params.mnt_mode_out);
 				thread_should_exit = true;
 				break;
 			}

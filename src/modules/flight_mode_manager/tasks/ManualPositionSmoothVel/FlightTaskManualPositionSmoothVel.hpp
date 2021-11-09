@@ -40,8 +40,8 @@
 #pragma once
 
 #include "FlightTaskManualPosition.hpp"
-#include "ManualVelocitySmoothingXY.hpp"
-#include "ManualVelocitySmoothingZ.hpp"
+#include <motion_planning/ManualVelocitySmoothingXY.hpp>
+#include <motion_planning/ManualVelocitySmoothingZ.hpp>
 
 using matrix::Vector2f;
 using matrix::Vector3f;
@@ -61,10 +61,10 @@ protected:
 	virtual void _updateSetpoints() override;
 
 	/** Reset position or velocity setpoints in case of EKF reset event */
-	void _ekfResetHandlerPositionXY() override;
-	void _ekfResetHandlerVelocityXY() override;
-	void _ekfResetHandlerPositionZ() override;
-	void _ekfResetHandlerVelocityZ() override;
+	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
+	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
+	void _ekfResetHandlerPositionZ(float delta_z) override;
+	void _ekfResetHandlerVelocityZ(float delta_vz) override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
 					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,

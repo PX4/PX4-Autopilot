@@ -82,10 +82,6 @@ __BEGIN_DECLS
 #define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
 #define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
-#define imxrt_bbsram_savepanic(fileno, context, length) (0) // todo:Not implemented yet
-
-#define px4_savepanic(fileno, context, length)   imxrt_bbsram_savepanic(fileno, context, length)
-
 /* bus_num is 1 based on imx and must be translated from the legacy one based */
 
 #define PX4_BUS_OFFSET       0                  /* imxrt buses are 1 based no adjustment needed */
@@ -105,6 +101,7 @@ int imxrt_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, bool 
 #define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  imxrt_gpiosetevent(pinset,r,f,e,fp,a)
 
 #define PX4_MAKE_GPIO_INPUT(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_INPUT | IOMUX_SCHMITT_TRIGGER | IOMUX_PULL_UP_47K | IOMUX_DRIVE_HIZ))
-#define PX4_MAKE_GPIO_OUTPUT(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP | IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST))
+#define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP | IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST))
+#define PX4_MAKE_GPIO_OUTPUT_SET(gpio) (((gpio) & (GPIO_PORT_MASK | GPIO_PIN_MASK)) | (GPIO_OUTPUT | GPIO_OUTPUT_ONE | IOMUX_CMOS_OUTPUT | IOMUX_PULL_KEEP | IOMUX_DRIVE_33OHM  | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST))
 
 __END_DECLS

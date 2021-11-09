@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,31 +36,13 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-I2CSPIDriverBase *
-QMC5883L::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator, int runtime_instance)
-{
-	QMC5883L *instance = new QMC5883L(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
-		return nullptr;
-	}
-
-	return instance;
-}
-
 void QMC5883L::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("qmc5883l", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x0d);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -71,16 +53,17 @@ extern "C" int qmc5883l_main(int argc, char *argv[])
 	using ThisDriver = QMC5883L;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();

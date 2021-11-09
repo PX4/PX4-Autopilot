@@ -51,7 +51,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -64,9 +64,9 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/action_request.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/tecs_status.h>
@@ -92,6 +92,16 @@ class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::
 {
 public:
 
+	enum class QuadchuteReason {
+		TransitionTimeout = 0,
+		ExternalCommand,
+		MinimumAltBreached,
+		LossOfAlt,
+		LargeAltError,
+		MaximumPitchExceeded,
+		MaximumRollExceeded,
+	};
+
 	VtolAttitudeControl();
 	~VtolAttitudeControl() override;
 
@@ -106,8 +116,8 @@ public:
 
 	bool init();
 
-	bool is_fixed_wing_requested();
-	void quadchute(const char *reason);
+	bool is_fixed_wing_requested() { return _transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW; };
+	void quadchute(QuadchuteReason reason);
 	int get_transition_command() {return _transition_command;}
 	bool get_immediate_transition() {return _immediate_transition;}
 	void reset_immediate_transition() {_immediate_transition = false;}
@@ -140,12 +150,12 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	uORB::Subscription _action_request_sub{ORB_ID(action_request)};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};			// airspeed subscription
 	uORB::Subscription _fw_virtual_att_sp_sub{ORB_ID(fw_virtual_attitude_setpoint)};
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _local_pos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};			// setpoint subscription
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			// sensor subscription
-	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};	//manual control setpoint subscription
 	uORB::Subscription _mc_virtual_att_sp_sub{ORB_ID(mc_virtual_attitude_setpoint)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};			// local position setpoint subscription
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
@@ -171,7 +181,6 @@ private:
 	actuator_controls_s			_actuators_out_1{};	//actuator controls going to the fw mixer (used for elevons)
 
 	airspeed_validated_s 				_airspeed_validated{};			// airspeed
-	manual_control_switches_s		_manual_control_switches{}; //manual control setpoint
 	position_setpoint_triplet_s		_pos_sp_triplet{};
 	tecs_status_s				_tecs_status{};
 	vehicle_attitude_s			_v_att{};				//vehicle attitude
@@ -207,7 +216,8 @@ private:
 		param_t fw_motors_off;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
-		param_t down_pitch_max;
+		param_t pitch_min_rad;
+		param_t land_pitch_min_rad;
 		param_t forward_thrust_scale;
 		param_t dec_to_pitch_ff;
 		param_t dec_to_pitch_i;
@@ -232,6 +242,7 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
+	void		action_request_poll();
 	void		vehicle_cmd_poll();
 
 	int 		parameters_update();			//Update local parameter cache

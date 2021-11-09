@@ -34,7 +34,7 @@
 /**
  * @file commander_params.c
  *
- * Parameters defined by the sensors task.
+ * Parameters definition for Commander.
  *
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Thomas Gubler <thomas@px4.io>
@@ -253,9 +253,9 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  * @group Commander
  * @min 0
  * @max 2
- * @value 0 RC Transmitter
- * @value 1 Joystick/No RC Checks
- * @value 2 Virtual RC by Joystick
+ * @value 0 RC Transmitter only
+ * @value 1 Joystick only/No RC Checks
+ * @value 2 RC and Joystick are accepted
  */
 PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
 
@@ -338,6 +338,23 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
+
+/**
+ * Imbalanced propeller failsafe mode
+ *
+ * Action the system takes when an imbalanced propeller is detected by the failure detector.
+ * See also FD_IMB_PROP_THR to set the failure threshold.
+ *
+ * @group Commander
+ *
+ * @value -1 Disabled
+ * @value 0 Warning
+ * @value 1 Return
+ * @value 2 Land
+ * @decimal 0
+ * @increment 1
+ */
+PARAM_DEFINE_INT32(COM_IMB_PROP_ACT, 0);
 
 /**
  * Time-out to wait when offboard connection is lost before triggering offboard lost action.
@@ -620,10 +637,13 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 45);
 /**
  * Enable mag strength preflight check
  *
- * Deny arming if the estimator detects a strong magnetic
+ * Check if the estimator detects a strong magnetic
  * disturbance (check enabled by EKF2_MAG_CHECK)
  *
- * @boolean
+ * @value 0 Disabled
+ * @value 1 Deny arming
+ * @value 2 Warning only
+ *
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
@@ -641,15 +661,18 @@ PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
 /**
  * Enable RC stick override of auto and/or offboard modes
  *
- * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV from
- * their center position immediately gives control back to the pilot by switching to Position mode.
+ * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV
+ * immediately gives control back to the pilot by switching to Position mode and
+ * if position is unavailable Altitude mode.
  * Note: Only has an effect on multicopters, and VTOLs in multicopter mode.
  *
+ * This parameter is not considered in case of a GPS failure (Descend flight mode), where stick
+ * override is always enabled.
+ *
  * @min 0
- * @max 7
+ * @max 3
  * @bit 0 Enable override during auto modes (except for in critical battery reaction)
  * @bit 1 Enable override during offboard mode
- * @bit 2 Ignore throttle stick
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
@@ -747,7 +770,6 @@ PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
  * The default value has been optimised for rotary wing applications. For fixed wing applications, a larger value between 5 and 10 should be used.
  *
  * @unit s
- * @reboot_required true
  * @group Commander
  * @min 1
  * @max 100
@@ -764,7 +786,6 @@ PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
  * The default value has been optimised for rotary wing applications. For fixed wing applications, a value of 1 should be used.
  *
  * @unit s
- * @reboot_required true
  * @group Commander
  * @min 1
  * @max 100
@@ -833,7 +854,7 @@ PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
  *
  * @value 0 Hold
  * @value 1 Mission (if valid)
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
 
@@ -850,8 +871,10 @@ PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
  * @value 3 Land mode
  * @value 5 Terminate
  * @value 6 Lockdown
+ * @min 0
+ * @max 6
  *
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
 
@@ -862,22 +885,37 @@ PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
  * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
  * by setting the COM_RC_IN_MODE param it will not be triggered.
  *
- * @value 0 Disabled
  * @value 1 Hold mode
  * @value 2 Return mode
  * @value 3 Land mode
  * @value 5 Terminate
  * @value 6 Lockdown
+ * @min 1
+ * @max 6
  *
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
+
+/**
+ * RC loss exceptions
+ *
+ * Specify modes in which RC loss is ignored and the failsafe action not triggered.
+ *
+ * @min 0
+ * @max 31
+ * @bit 0 Mission
+ * @bit 1 Hold
+ * @bit 2 Offboard
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
 
 /**
  * Flag to enable obstacle avoidance.
  *
  * @boolean
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
 
@@ -1010,3 +1048,20 @@ PARAM_DEFINE_INT32(COM_ARM_ARSP_EN, 1);
  * @value 2 Enforce SD card presence
  */
 PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
+
+/**
+ * Wind speed warning threshold
+ *
+ * A warning is triggered if the currently estimated wind speed is above this value.
+ * Warning is sent periodically (every 1min).
+ *
+ * A negative value disables the feature.
+ *
+ * @min -1
+ * @max 30
+ * @decimal 1
+ * @increment 0.1
+ * @group Commander
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);

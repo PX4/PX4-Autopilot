@@ -238,7 +238,7 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 
 		case vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED:
 			mavlink_log_info(mavlink_log_pub,
-					 "Arm auth: Authorized for the next %u seconds",
+					 "Arm auth: Authorized for the next %" PRId32 " seconds",
 					 command_ack.result_param2);
 			state = ARM_AUTH_MISSION_APPROVED;
 			auth_timeout = command_ack.timestamp + (command_ack.result_param2 * 1000000);
@@ -257,7 +257,8 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 				break;
 
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_INVALID_WAYPOINT:
-				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied, waypoint %i have a invalid value", command_ack.result_param2);
+				mavlink_log_critical(mavlink_log_pub, "Arm auth: Denied, waypoint %" PRId32 " have a invalid value",
+						     command_ack.result_param2);
 				break;
 
 			case vehicle_command_ack_s::ARM_AUTH_DENIED_REASON_TIMEOUT:

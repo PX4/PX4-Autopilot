@@ -6,15 +6,13 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
-@#  - multi_topics (List) list of all multi-topic names
-@#  - ids (List) list of all RTPS msg ids
+@#  - ros2_distro (str) ROS2 distro name
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
-from packaging import version
 import genmsg.msgs
-
-from px_generate_uorb_topic_helper import * # this is in Tools/
+from packaging import version
+import re
 
 topic = alias if alias else spec.short_name
 try:
@@ -25,7 +23,7 @@ except AttributeError:
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -59,7 +57,7 @@ except AttributeError:
  * @@file @(topic)_Publisher.h
  * This header file contains the declaration of the publisher functions.
  *
- * This file was adapted from the fastcdrgen tool.
+ * This file was adapted from the fastrtpsgen tool.
  */
 
 
@@ -99,24 +97,24 @@ using @(topic)_msg_datatype = @(topic)PubSubType;
 class @(topic)_Publisher
 {
 public:
-    @(topic)_Publisher();
-    virtual ~@(topic)_Publisher();
-    bool init(const std::string& ns);
-    void run();
-    void publish(@(topic)_msg_t* st);
+	@(topic)_Publisher();
+	virtual ~@(topic)_Publisher();
+	bool init(const std::string &ns, std::string topic_name = "");
+	void run();
+	void publish(@(topic)_msg_t *st);
 private:
-    Participant *mp_participant;
-    Publisher *mp_publisher;
+	Participant *mp_participant;
+	Publisher *mp_publisher;
 
-    class PubListener : public PublisherListener
-    {
-    public:
-        PubListener() : n_matched(0){};
-        ~PubListener(){};
-        void onPublicationMatched(Publisher* pub, MatchingInfo& info);
-        int n_matched;
-    } m_listener;
-    @(topic)_msg_datatype @(topic)DataType;
+	class PubListener : public PublisherListener
+	{
+	public:
+		PubListener() : n_matched(0) {};
+		~PubListener() {};
+		void onPublicationMatched(Publisher *pub, MatchingInfo &info);
+		int n_matched;
+	} m_listener;
+	@(topic)_msg_datatype @(topic)DataType;
 };
 
 #endif // _@(topic)__PUBLISHER_H_

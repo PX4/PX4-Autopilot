@@ -35,7 +35,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/conversion/rotation.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_accel_fifo.h>
@@ -48,7 +48,7 @@ public:
 
 	uint32_t get_device_id() const { return _device_id; }
 
-	int32_t get_max_rate_hz() const { return math::constrain(_imu_gyro_rate_max, 100, 4000); }
+	int32_t get_max_rate_hz() const { return math::constrain(_imu_gyro_rate_max, static_cast<int32_t>(100), static_cast<int32_t>(4000)); }
 
 	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);

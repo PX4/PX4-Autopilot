@@ -72,7 +72,7 @@ int rpm_simulator_main(int argc, char *argv[])
 
 	// Publish data and let the user know what was published
 	rpm_pub.publish(rpm);
-	print_message(rpm);
+	print_message(ORB_ID(rpm), rpm);
 
 	return 0;
 }

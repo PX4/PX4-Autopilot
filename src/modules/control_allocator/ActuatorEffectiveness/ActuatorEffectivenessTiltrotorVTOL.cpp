@@ -46,9 +46,10 @@ ActuatorEffectivenessTiltrotorVTOL::ActuatorEffectivenessTiltrotorVTOL()
 	setFlightPhase(FlightPhase::HOVER_FLIGHT);
 }
 bool
-ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix)
+ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix,
+		bool force)
 {
-	if (!_updated) {
+	if (!(_updated || force)) {
 		return false;
 	}
 

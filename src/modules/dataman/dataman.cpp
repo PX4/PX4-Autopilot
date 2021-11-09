@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2016, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -834,7 +834,7 @@ _ram_initialize(unsigned max_offset)
 	dm_operations_data.ram.data = (uint8_t *)malloc(max_offset);
 
 	if (dm_operations_data.ram.data == nullptr) {
-		PX4_WARN("Could not allocate %d bytes of memory", max_offset);
+		PX4_WARN("Could not allocate %u bytes of memory", max_offset);
 		px4_sem_post(&g_init_sema); /* Don't want to hang startup */
 		return -1;
 	}
@@ -1090,11 +1090,6 @@ task_main(int argc, char *argv[])
 	_dm_read_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": read");
 	_dm_write_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": write");
 
-	/* see if we need to erase any items based on restart type */
-	int sys_restart_val;
-
-	const char *restart_type_str = "Unknown restart";
-
 	int ret = g_dm_ops->initialize(max_offset);
 
 	if (ret) {
@@ -1102,29 +1097,14 @@ task_main(int argc, char *argv[])
 		goto end;
 	}
 
-	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
-		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
-			restart_type_str = "Power on restart";
-			g_dm_ops->restart(DM_INIT_REASON_POWER_ON);
-
-		} else if (sys_restart_val == DM_INIT_REASON_IN_FLIGHT) {
-			restart_type_str = "In flight restart";
-			g_dm_ops->restart(DM_INIT_REASON_IN_FLIGHT);
-		}
-	}
-
 	switch (backend) {
 	case BACKEND_FILE:
-		if (sys_restart_val != DM_INIT_REASON_POWER_ON) {
-			PX4_INFO("%s, data manager file '%s' size is %d bytes",
-				 restart_type_str, k_data_manager_device_path, max_offset);
-		}
+		PX4_INFO("data manager file '%s' size is %u bytes", k_data_manager_device_path, max_offset);
 
 		break;
 
 	case BACKEND_RAM:
-		PX4_INFO("%s, data manager RAM size is %d bytes",
-			 restart_type_str, max_offset);
+		PX4_INFO("data manager RAM size is %u bytes", max_offset);
 		break;
 
 	default:
@@ -1229,7 +1209,8 @@ start()
 	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
-	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10, TASK_STACK_SIZE, task_main,
+	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10,
+				       PX4_STACK_ADJUSTED(TASK_STACK_SIZE), task_main,
 				       nullptr)) < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");
@@ -1247,11 +1228,11 @@ static void
 status()
 {
 	/* display usage statistics */
-	PX4_INFO("Writes   %d", g_func_counts[dm_write_func]);
-	PX4_INFO("Reads    %d", g_func_counts[dm_read_func]);
-	PX4_INFO("Clears   %d", g_func_counts[dm_clear_func]);
-	PX4_INFO("Restarts %d", g_func_counts[dm_restart_func]);
-	PX4_INFO("Max Q lengths work %d, free %d", g_work_q.max_size, g_free_q.max_size);
+	PX4_INFO("Writes   %u", g_func_counts[dm_write_func]);
+	PX4_INFO("Reads    %u", g_func_counts[dm_read_func]);
+	PX4_INFO("Clears   %u", g_func_counts[dm_clear_func]);
+	PX4_INFO("Restarts %u", g_func_counts[dm_restart_func]);
+	PX4_INFO("Max Q lengths work %u, free %u", g_work_q.max_size, g_free_q.max_size);
 	perf_print_counter(_dm_read_perf);
 	perf_print_counter(_dm_write_perf);
 }

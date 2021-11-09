@@ -38,7 +38,6 @@
 #include <lib/parameters/param.h>
 
 using namespace time_literals;
-using matrix::Vector3f;
 
 static constexpr int32_t sum(const int16_t samples[], uint8_t len)
 {
@@ -51,12 +50,12 @@ static constexpr int32_t sum(const int16_t samples[], uint8_t len)
 	return sum;
 }
 
-static constexpr uint8_t clipping(const int16_t samples[], int16_t clip_limit, uint8_t len)
+static constexpr uint8_t clipping(const int16_t samples[], uint8_t len)
 {
 	unsigned clip_count = 0;
 
 	for (int n = 0; n < len; n++) {
-		if (abs(samples[n]) >= clip_limit) {
+		if ((samples[n] == INT16_MIN) || (samples[n] == INT16_MAX)) {
 			clip_count++;
 		}
 	}
@@ -148,32 +147,26 @@ void PX4Accelerometer::updateFIFO(sensor_accel_fifo_s &sample)
 	_sensor_fifo_pub.publish(sample);
 
 
-	// trapezoidal integration (equally spaced, scaled by dt later)
-	const Vector3f integral{
-		(0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)),
-		(0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)),
-		(0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1)),
-	};
-
-	_last_sample[0] = sample.x[N - 1];
-	_last_sample[1] = sample.y[N - 1];
-	_last_sample[2] = sample.z[N - 1];
-
-
-	const float scale = _scale / (float)N;
-
 	// publish
 	sensor_accel_s report;
 	report.timestamp_sample = sample.timestamp_sample;
 	report.device_id = _device_id;
 	report.temperature = _temperature;
 	report.error_count = _error_count;
-	report.x = integral(0) * scale;
-	report.y = integral(1) * scale;
-	report.z = integral(2) * scale;
-	report.clip_counter[0] = clipping(sample.x, _clip_limit, N);
-	report.clip_counter[1] = clipping(sample.y, _clip_limit, N);
-	report.clip_counter[2] = clipping(sample.z, _clip_limit, N);
+
+	// trapezoidal integration (equally spaced)
+	const float scale = _scale / (float)N;
+	report.x = (0.5f * (_last_sample[0] + sample.x[N - 1]) + sum(sample.x, N - 1)) * scale;
+	report.y = (0.5f * (_last_sample[1] + sample.y[N - 1]) + sum(sample.y, N - 1)) * scale;
+	report.z = (0.5f * (_last_sample[2] + sample.z[N - 1]) + sum(sample.z, N - 1)) * scale;
+
+	_last_sample[0] = sample.x[N - 1];
+	_last_sample[1] = sample.y[N - 1];
+	_last_sample[2] = sample.z[N - 1];
+
+	report.clip_counter[0] = clipping(sample.x, N);
+	report.clip_counter[1] = clipping(sample.y, N);
+	report.clip_counter[2] = clipping(sample.z, N);
 	report.samples = N;
 	report.timestamp = hrt_absolute_time();
 

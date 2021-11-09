@@ -47,12 +47,28 @@
 #include <uavcan/_register/Name_1_0.h>
 #include <uavcan/_register/Value_1_0.h>
 
+static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
+static constexpr uint16_t CANARD_PORT_ID_MAX   = 32767U;
+
 static bool px4_param_to_uavcan_port_id(param_t &in, uavcan_register_Value_1_0 &out)
 {
 	if (param_type(in) == PARAM_TYPE_INT32) {
 		int32_t out_val {};
-		param_get(in, &out_val);
-		out.natural16.value.elements[0] = (uint16_t)out_val;
+		const int res = param_get(in, &out_val);
+
+		if (res != PX4_OK) {
+			// Parameter not found / internal error
+			return false;
+		}
+
+		if (out_val >= 0 && out_val <= CANARD_PORT_ID_MAX) {
+			out.natural16.value.elements[0] = (uint16_t)out_val;
+
+		} else {
+			// "Invalid" value -- set to "UNSET"
+			out.natural16.value.elements[0] = CANARD_PORT_ID_UNSET;
+		}
+
 		out.natural16.value.count = 1;
 		uavcan_register_Value_1_0_select_natural16_(&out);
 		return true;
@@ -99,19 +115,20 @@ public:
 private:
 
 
-	const UavcanParamBinder _uavcan_params[11] {
+	const UavcanParamBinder _uavcan_params[12] {
 		{"uavcan.pub.esc.0.id",                "UCAN1_ESC_PUB",		    px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.servo.0.id",              "UCAN1_SERVO_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.gps.0.id",                "UCAN1_GPS_PUB",		    px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.esc.0.id",                "UCAN1_ESC0_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.gps.0.id",                "UCAN1_GPS0_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.gps.1.id",                "UCAN1_GPS1_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.energy_source.0.id",      "UCAN1_BMS_ES_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.battery_status.0.id",     "UCAN1_BMS_BS_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.battery_parameters.0.id", "UCAN1_BMS_BP_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.legacy_bms.0.id",         "UCAN1_LG_BMS_PID",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.pub.actuator_outputs.0.id",   "UCAN1_ACTR_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.esc.0.id",                "UCAN1_ESC0_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.gps.0.id",                "UCAN1_GPS0_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.gps.1.id",                "UCAN1_GPS1_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.energy_source.0.id",      "UCAN1_BMS_ES_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.battery_status.0.id",     "UCAN1_BMS_BS_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.battery_parameters.0.id", "UCAN1_BMS_BP_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.legacy_bms.0.id",         "UCAN1_LG_BMS_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.sub.uorb.sensor_gps.0.id",    "UCAN1_UORB_GPS",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_PID"}, //FIXME instancing
-		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_PID"},
+		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_SUB"}, //FIXME instancing
+		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_SUB"},
 	};
 };

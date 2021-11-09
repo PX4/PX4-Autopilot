@@ -43,12 +43,11 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_rc_input.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/bitmask.h>
@@ -60,6 +59,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/input_rc.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -76,8 +76,8 @@
 
 #include <random>
 
-#include <v2.0/common/mavlink.h>
-#include <v2.0/mavlink_types.h>
+#include <mavlink.h>
+#include <mavlink_types.h>
 
 using namespace time_literals;
 

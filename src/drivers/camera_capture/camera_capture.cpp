@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,6 +41,14 @@
 
 #include "camera_capture.hpp"
 
+#include <board_config.h>
+
+#ifdef BOARD_WITH_IO
+# define PARAM_PREFIX "PWM_AUX"
+#else
+# define PARAM_PREFIX "PWM_MAIN"
+#endif
+
 #define commandParamToInt(n) static_cast<int>(n >= 0 ? n + 0.5f : n - 0.5f)
 
 namespace camera_capture
@@ -64,6 +72,33 @@ CameraCapture::CameraCapture() :
 
 	_p_camera_capture_edge = param_find("CAM_CAP_EDGE");
 	param_get(_p_camera_capture_edge, &_camera_capture_edge);
+
+
+	// get the capture channel from function configuration params
+	param_t p_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
+	int32_t ctrl_alloc = 0;
+
+	if (p_ctrl_alloc != PARAM_INVALID) {
+		param_get(p_ctrl_alloc, &ctrl_alloc);
+	}
+
+	if (ctrl_alloc == 1) {
+		_capture_channel = -1;
+
+		for (unsigned i = 0; i < 16 && _capture_channel == -1; ++i) {
+			char param_name[17];
+			snprintf(param_name, sizeof(param_name), "%s_%s%d", PARAM_PREFIX, "FUNC", i + 1);
+			param_t function_handle = param_find(param_name);
+			int32_t function;
+
+			if (function_handle != PARAM_INVALID && param_get(function_handle, &function) == 0) {
+				if (function == 2032) { // Camera_Capture
+					_capture_channel = i;
+				}
+			}
+		}
+	}
+
 }
 
 CameraCapture::~CameraCapture()
@@ -206,74 +241,47 @@ CameraCapture::Run()
 void
 CameraCapture::set_capture_control(bool enabled)
 {
-// a board can define BOARD_CAPTURE_GPIO to use a separate capture pin
+// a board can define BOARD_CAPTURE_GPIO to use a separate capture pin. It's used if no channel is configured
 #if defined(BOARD_CAPTURE_GPIO)
 
-	px4_arch_gpiosetevent(BOARD_CAPTURE_GPIO, true, false, true, &CameraCapture::gpio_interrupt_routine, this);
-	_capture_enabled = enabled;
-	_gpio_capture = true;
-	reset_statistics(false);
-
-#else
-
-	int fd = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
-
-	if (fd < 0) {
-		PX4_ERR("open fail");
-		return;
+	if (_capture_channel == -1) {
+		px4_arch_gpiosetevent(BOARD_CAPTURE_GPIO, true, false, true, &CameraCapture::gpio_interrupt_routine, this);
+		_capture_enabled = enabled;
+		_gpio_capture = true;
+		reset_statistics(false);
 	}
 
-	input_capture_config_t conf;
-	conf.channel = 5; // FMU chan 6
-	conf.filter = 0;
+#endif
 
-	if (_camera_capture_mode == 0) {
-		conf.edge = _camera_capture_edge ? Rising : Falling;
+	if (!_gpio_capture) {
+		if (_capture_channel == -1) {
+			PX4_WARN("No capture channel configured");
+			_capture_enabled = false;
 
-	} else {
-		conf.edge = Both;
-	}
+		} else {
+			capture_callback_t callback = nullptr;
+			void *context = nullptr;
 
-	conf.callback = nullptr;
-	conf.context = nullptr;
+			if (enabled) {
+				callback = &CameraCapture::capture_trampoline;
+				context = this;
+			}
 
-	if (enabled) {
+			int ret = up_input_capture_set_callback(_capture_channel, callback, context);
 
-		conf.callback = &CameraCapture::capture_trampoline;
-		conf.context = this;
-
-		unsigned int capture_count = 0;
-
-		if (::ioctl(fd, INPUT_CAP_GET_COUNT, (unsigned long)&capture_count) != 0) {
-			PX4_INFO("Not in a capture mode");
-
-			unsigned long mode = PWM_SERVO_MODE_4PWM2CAP;
-
-			if (::ioctl(fd, PWM_SERVO_SET_MODE, mode) == 0) {
-				PX4_INFO("Mode changed to 4PWM2CAP");
+			if (ret == 0) {
+				_capture_enabled = enabled;
+				_gpio_capture = false;
 
 			} else {
-				PX4_ERR("Mode NOT changed to 4PWM2CAP!");
-				goto err_out;
+				PX4_ERR("Unable to set capture callback for chan %" PRIu8 " (%i)", _capture_channel, ret);
+				_capture_enabled = false;
 			}
+
+			reset_statistics(false);
 		}
 	}
 
-	if (::ioctl(fd, INPUT_CAP_SET_CALLBACK, (unsigned long)&conf) == 0) {
-		_capture_enabled = enabled;
-		_gpio_capture = false;
-
-	} else {
-		PX4_ERR("Unable to set capture callback for chan %u\n", conf.channel);
-		_capture_enabled = false;
-		goto err_out;
-	}
-
-	reset_statistics(false);
-
-err_out:
-	::close(fd);
-#endif
 }
 
 void
@@ -292,6 +300,21 @@ CameraCapture::reset_statistics(bool reset_seq)
 int
 CameraCapture::start()
 {
+	if (!_gpio_capture && _capture_channel != -1) {
+		input_capture_edge edge = Both;
+
+		if (_camera_capture_mode == 0) {
+			edge = _camera_capture_edge ? Rising : Falling;
+		}
+
+		int ret = up_input_capture_set(_capture_channel, edge, 0, nullptr, nullptr);
+
+		if (ret != 0) {
+			PX4_ERR("up_input_capture_set failed (%i)", ret);
+			return ret;
+		}
+	}
+
 	// run every 100 ms (10 Hz)
 	ScheduleOnInterval(100000, 10000);
 
@@ -314,7 +337,7 @@ void
 CameraCapture::status()
 {
 	PX4_INFO("Capture enabled : %s", _capture_enabled ? "YES" : "NO");
-	PX4_INFO("Frame sequence : %u", _capture_seq);
+	PX4_INFO("Frame sequence : %" PRIu32, _capture_seq);
 
 	if (_last_trig_time != 0) {
 		PX4_INFO("Last trigger timestamp : %" PRIu64 " (%i ms ago)", _last_trig_time,
@@ -328,7 +351,32 @@ CameraCapture::status()
 		PX4_INFO("Last exposure time : %0.2f ms", double(_last_exposure_time) / 1000.0);
 	}
 
-	PX4_INFO("Number of overflows : %u", _capture_overflows);
+	PX4_INFO("Number of overflows : %" PRIu32, _capture_overflows);
+
+	if (_gpio_capture) {
+		PX4_INFO("Using board GPIO pin");
+
+	} else if (_capture_channel == -1) {
+		PX4_INFO("No Capture channel configured");
+
+	} else {
+		input_capture_stats_t stats;
+		int ret =  up_input_capture_get_stats(_capture_channel, &stats, false);
+
+		if (ret != 0) {
+			PX4_ERR("Unable to get stats for chan %" PRIu8 " (%i)", _capture_channel, ret);
+
+		} else {
+			PX4_INFO("Status chan: %" PRIu8 " edges: %" PRIu32 " last time: %" PRIu64 " last state: %" PRIu32
+				 " overflows: %" PRIu32 " latency: %" PRIu16,
+				 _capture_channel,
+				 stats.edges,
+				 stats.last_time,
+				 stats.last_edge,
+				 stats.overflows,
+				 stats.latency);
+		}
+	}
 }
 
 static int usage()

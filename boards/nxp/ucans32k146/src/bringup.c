@@ -124,12 +124,13 @@ int s32k1xx_bringup(void)
 	s32k1xx_eeeprom_register(0, 4096);
 #endif
 
-#ifdef CONFIG_S32K1XX_LPSPI
+#ifdef CONFIG_S32K1XX_LPSPI0
 	/* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak
 	 * function s32k1xx_spidev_initialize() has been brought into the link.
 	 */
 
 	s32k1xx_spidev_initialize();
+	s32k1xx_spi_bus_initialize();
 #endif
 
 #if defined(CONFIG_S32K1XX_LPI2C0)
@@ -138,13 +139,13 @@ int s32k1xx_bringup(void)
 	i2c = s32k1xx_i2cbus_initialize(0);
 
 	if (i2c == NULL) {
-		serr("ERROR: Failed to get I2C%d interface\n", bus);
+		serr("ERROR: Failed to get I2C0 interface\n");
 
 	} else {
 		ret = i2c_register(i2c, 0);
 
 		if (ret < 0) {
-			serr("ERROR: Failed to register I2C%d driver: %d\n", bus, ret);
+			serr("ERROR: Failed to register I2C0 driver: %d\n", ret);
 			s32k1xx_i2cbus_uninitialize(i2c);
 		}
 	}

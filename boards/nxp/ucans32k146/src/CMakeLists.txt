@@ -58,11 +58,11 @@ else()
 		bringup.c
 		buttons.c
 		clockconfig.c
-		# i2c.cpp # TODO
+		i2c.cpp
 		init.c
 		mtd.cpp
 		periphclocks.c
-		spi.c
+		spi.cpp
 		timer_config.cpp
 		userleds.c
 	)

@@ -21,14 +21,36 @@ px4_add_git_submodule(TARGET git_jmavsim PATH "${PX4_SOURCE_DIR}/Tools/jMAVSim")
 
 # Add support for external project building
 include(ExternalProject)
-include(ProcessorCount)
 
-set(build_cores 1)
+# Estimate an appropriate number of parallel jobs
+cmake_host_system_information(RESULT AVAILABLE_PHYSICAL_MEMORY QUERY AVAILABLE_PHYSICAL_MEMORY)
+cmake_host_system_information(RESULT NUMBER_OF_LOGICAL_CORES QUERY NUMBER_OF_LOGICAL_CORES)
 
-ProcessorCount(N)
-if(N GREATER_EQUAL 4)
-	math(EXPR build_cores "${N} - 2")
+set(parallel_jobs 1)
+
+if(NOT NUMBER_OF_LOGICAL_CORES)
+	include(ProcessorCount)
+	ProcessorCount(NUMBER_OF_LOGICAL_CORES)
 endif()
+
+if(NOT AVAILABLE_PHYSICAL_MEMORY AND NUMBER_OF_LOGICAL_CORES GREATER_EQUAL 4)
+	# Memory estimate unavailable, use N-2 jobs
+	math(EXPR parallel_jobs "${NUMBER_OF_LOGICAL_CORES} - 2")
+endif()
+
+if (AVAILABLE_PHYSICAL_MEMORY)
+	# Allow an additional job for every 1.5GB of available physical memory
+	math(EXPR parallel_jobs "${AVAILABLE_PHYSICAL_MEMORY}/(3*1024/2)")
+else()
+	set(AVAILABLE_PHYSICAL_MEMORY "?")
+endif()
+
+if(parallel_jobs GREATER NUMBER_OF_LOGICAL_CORES)
+	set(parallel_jobs ${NUMBER_OF_LOGICAL_CORES})
+endif()
+
+message(DEBUG  "${NUMBER_OF_LOGICAL_CORES} logical cores detected and ${AVAILABLE_PHYSICAL_MEMORY} megabytes of memory available.
+		Limiting sitl_gazebo and simulation-ignition concurrent jobs to ${parallel_jobs}")
 
 # project to build sitl_gazebo if necessary
 px4_add_git_submodule(TARGET git_gazebo PATH "${PX4_SOURCE_DIR}/Tools/sitl_gazebo")
@@ -45,7 +67,21 @@ ExternalProject_Add(sitl_gazebo
 	USES_TERMINAL_BUILD true
 	EXCLUDE_FROM_ALL true
 	BUILD_ALWAYS 1
-	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> -- -j ${build_cores}
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> -- -j ${parallel_jobs}
+)
+
+px4_add_git_submodule(TARGET git_ign_gazebo PATH "${PX4_SOURCE_DIR}/Tools/simulation-ignition")
+ExternalProject_Add(simulation-ignition
+	SOURCE_DIR ${PX4_SOURCE_DIR}/Tools/simulation-ignition
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+	BINARY_DIR ${PX4_BINARY_DIR}/build_ign_gazebo
+	INSTALL_COMMAND ""
+	DEPENDS git_ign_gazebo
+	USES_TERMINAL_CONFIGURE true
+	USES_TERMINAL_BUILD true
+	EXCLUDE_FROM_ALL true
+	BUILD_ALWAYS 1
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> -- -j ${parallel_jobs}
 )
 
 ExternalProject_Add(mavsdk_tests
@@ -90,6 +126,7 @@ set(viewers
 	none
 	jmavsim
 	gazebo
+	ignition
 )
 
 set(debuggers
@@ -102,8 +139,10 @@ set(debuggers
 
 set(models
 	none
+	believer
 	boat
 	cloudship
+	glider
 	if750a
 	iris
 	iris_ctrlalloc
@@ -114,13 +153,13 @@ set(models
 	iris_opt_flow
 	iris_opt_flow_mockup
 	iris_rplidar
-	iris_rtps px4vision
 	iris_vision
 	nxp_cupcar
 	plane
 	plane_cam
 	plane_catapult
 	plane_lidar
+	px4vision
 	r1_rover
 	rover
 	shell
@@ -131,6 +170,7 @@ set(models
 	techpod
 	tiltrotor
 	typhoon_h480
+	typhoon_h480_ctrlalloc
 	uuv_bluerov2_heavy
 	uuv_hippocampus
 )
@@ -178,6 +218,8 @@ foreach(viewer ${viewers})
 						add_dependencies(${_targ_name} px4 sitl_gazebo)
 					elseif(viewer STREQUAL "jmavsim")
 						add_dependencies(${_targ_name} px4 git_jmavsim)
+					elseif(viewer STREQUAL "ignition")
+						add_dependencies(${_targ_name} px4 simulation-ignition)
 					endif()
 				else()
 					if(viewer STREQUAL "gazebo")

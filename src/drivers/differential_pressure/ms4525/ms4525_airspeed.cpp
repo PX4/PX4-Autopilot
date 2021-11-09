@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013, 2014, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -77,15 +77,15 @@ enum MS_DEVICE_TYPE {
 class MEASAirspeed : public Airspeed, public I2CSPIDriver<MEASAirspeed>
 {
 public:
-	MEASAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address = I2C_ADDRESS_MS4525DO);
+	MEASAirspeed(const I2CSPIDriverConfig &config);
 
 	virtual ~MEASAirspeed() = default;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void	RunImpl();
+
+	int	init() override;
 
 protected:
 
@@ -100,11 +100,22 @@ protected:
  */
 extern "C" __EXPORT int ms4525_airspeed_main(int argc, char *argv[]);
 
-MEASAirspeed::MEASAirspeed(I2CSPIBusOption bus_option, const int bus, int bus_frequency, int address)
-	: Airspeed(bus, bus_frequency, address, CONVERSION_INTERVAL),
-	  I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus, address)
+MEASAirspeed::MEASAirspeed(const I2CSPIDriverConfig &config)
+	: Airspeed(config.bus, config.bus_frequency, config.i2c_address, CONVERSION_INTERVAL),
+	  I2CSPIDriver(config)
 {
 	_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS4525;
+}
+
+int	MEASAirspeed::init()
+{
+	int ret = Airspeed::init();
+
+	if (ret == PX4_OK) {
+		ScheduleNow();
+	}
+
+	return ret;
 }
 
 int
@@ -266,27 +277,6 @@ MEASAirspeed::RunImpl()
 	ScheduleDelayed(CONVERSION_INTERVAL);
 }
 
-I2CSPIDriverBase *MEASAirspeed::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-		int runtime_instance)
-{
-	MEASAirspeed *instance = new MEASAirspeed(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency,
-			cli.i2c_address);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		return nullptr;
-	}
-
-	instance->ScheduleNow();
-	return instance;
-}
-
-
 void
 MEASAirspeed::print_usage()
 {
@@ -307,15 +297,15 @@ ms4525_airspeed_main(int argc, char *argv[])
 	cli.default_i2c_frequency = 100000;
 	int device_type = DEVICE_TYPE_MS4525;
 
-	while ((ch = cli.getopt(argc, argv, "T:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
 		switch (ch) {
 		case 'T':
-			device_type = atoi(cli.optarg());
+			device_type = atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
@@ -329,8 +319,7 @@ ms4525_airspeed_main(int argc, char *argv[])
 		cli.i2c_address = I2C_ADDRESS_MS4515DO;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli,
-				     DRV_DIFF_PRESS_DEVTYPE_MS4525);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIFF_PRESS_DEVTYPE_MS4525);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);

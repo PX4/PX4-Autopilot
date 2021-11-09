@@ -43,7 +43,6 @@
 
 #include <hardware/stm32_tim.h>
 #include <drivers/device/i2c.h>
-#include <lib/led/led.h>
 
 __BEGIN_DECLS
 #include "cxx_init.h"
@@ -65,11 +64,11 @@ using namespace time_literals;
 #define NCP5623_LED_OFF     0x00  /**< off */
 
 
-class RGBLED_NPC5623C : public device::I2C
+class RGBLED_NCP5623C : public device::I2C
 {
 public:
-	RGBLED_NPC5623C(const int bus, int bus_frequency, const int address);
-	virtual ~RGBLED_NPC5623C() = default;
+	RGBLED_NCP5623C(const int bus, int bus_frequency, const int address);
+	virtual ~RGBLED_NCP5623C() = default;
 
 	int   init() override;
 	int   probe() override;
@@ -84,13 +83,13 @@ private:
 	int     write(uint8_t reg, uint8_t data);
 };
 
-RGBLED_NPC5623C::RGBLED_NPC5623C(const int bus, int bus_frequency, const int address) :
+RGBLED_NCP5623C::RGBLED_NCP5623C(const int bus, int bus_frequency, const int address) :
 	I2C(DRV_LED_DEVTYPE_RGBLED_NCP5623C, MODULE_NAME, bus, address, bus_frequency)
 {
 }
 
 int
-RGBLED_NPC5623C::write(uint8_t reg, uint8_t data)
+RGBLED_NCP5623C::write(uint8_t reg, uint8_t data)
 {
 	uint8_t msg[1] = { 0x00 };
 	msg[0] = ((reg & 0xe0) | (data & 0x1f));
@@ -101,7 +100,7 @@ RGBLED_NPC5623C::write(uint8_t reg, uint8_t data)
 }
 
 int
-RGBLED_NPC5623C::init()
+RGBLED_NCP5623C::init()
 {
 	int ret = I2C::init();
 
@@ -113,10 +112,8 @@ RGBLED_NPC5623C::init()
 }
 
 int
-RGBLED_NPC5623C::probe()
+RGBLED_NCP5623C::probe()
 {
-	_retries = 4;
-
 	return write(NCP5623_LED_CURRENT, 0x00);
 }
 
@@ -125,7 +122,7 @@ RGBLED_NPC5623C::probe()
  * Send RGB PWM settings to LED driver according to current color and brightness
  */
 int
-RGBLED_NPC5623C::send_led_rgb(uint8_t red, uint8_t green, uint8_t blue)
+RGBLED_NCP5623C::send_led_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
 
 	uint8_t msg[7] = {0x20, 0x70, 0x40, 0x70, 0x60, 0x70, 0x80};
@@ -139,7 +136,7 @@ RGBLED_NPC5623C::send_led_rgb(uint8_t red, uint8_t green, uint8_t blue)
 	return transfer(&msg[0], 7, nullptr, 0);
 }
 
-static RGBLED_NPC5623C instance(1, 100000, ADDR);
+static RGBLED_NCP5623C instance(1, 100000, ADDR);
 
 #define TMR_BASE        STM32_TIM1_BASE
 #define TMR_FREQUENCY   STM32_APB2_TIM1_CLKIN

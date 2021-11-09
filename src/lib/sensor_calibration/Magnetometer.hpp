@@ -67,8 +67,11 @@ public:
 	bool set_scale(const matrix::Vector3f &scale);
 	bool set_offdiagonal(const matrix::Vector3f &offdiagonal);
 	void set_rotation(Rotation rotation);
+	void set_temperature(float temperature) { _temperature = temperature; };
 
+	bool calibrated() const { return (_device_id != 0) && (_calibration_index >= 0); }
 	uint8_t calibration_count() const { return _calibration_count; }
+	int8_t calibration_index() const { return _calibration_index; }
 	uint32_t device_id() const { return _device_id; }
 	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
@@ -99,6 +102,8 @@ public:
 	void UpdatePower(float power) { _power = power; }
 
 private:
+	static constexpr float TEMPERATURE_INVALID = -1000.f;
+
 	Rotation _rotation_enum{ROTATION_NONE};
 
 	matrix::Dcmf _rotation;
@@ -106,6 +111,7 @@ private:
 	matrix::Matrix3f _scale;
 	matrix::Vector3f _power_compensation;
 	float _power{0.f};
+	float _temperature{NAN};
 
 	int8_t _calibration_index{-1};
 	uint32_t _device_id{0};

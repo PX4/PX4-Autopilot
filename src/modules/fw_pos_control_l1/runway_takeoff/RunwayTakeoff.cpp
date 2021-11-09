@@ -45,6 +45,7 @@
 #include "RunwayTakeoff.h"
 #include <systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
+#include <px4_platform_common/events.h>
 
 using namespace time_literals;
 
@@ -88,7 +89,9 @@ void RunwayTakeoff::update(const hrt_abstime &now, float airspeed, float alt_agl
 	case RunwayTakeoffState::CLAMPED_TO_RUNWAY:
 		if (airspeed > _param_fw_airspd_min.get() * _param_rwto_airspd_scl.get()) {
 			_state = RunwayTakeoffState::TAKEOFF;
-			mavlink_log_info(mavlink_log_pub, "#Takeoff airspeed reached");
+			mavlink_log_info(mavlink_log_pub, "#Takeoff airspeed reached\t");
+			events::send(events::ID("runway_takeoff_reached_airspeed"), events::Log::Info,
+				     "Takeoff airspeed reached");
 		}
 
 		break;
@@ -106,7 +109,8 @@ void RunwayTakeoff::update(const hrt_abstime &now, float airspeed, float alt_agl
 				_start_wp(1) = current_lon;
 			}
 
-			mavlink_log_info(mavlink_log_pub, "#Climbout");
+			mavlink_log_info(mavlink_log_pub, "#Climbout\t");
+			events::send(events::ID("runway_takeoff_climbout"), events::Log::Info, "Climbout");
 		}
 
 		break;
@@ -115,7 +119,8 @@ void RunwayTakeoff::update(const hrt_abstime &now, float airspeed, float alt_agl
 		if (alt_agl > _param_fw_clmbout_diff.get()) {
 			_climbout = false;
 			_state = RunwayTakeoffState::FLY;
-			mavlink_log_info(mavlink_log_pub, "#Navigating to waypoint");
+			mavlink_log_info(mavlink_log_pub, "#Navigating to waypoint\t");
+			events::send(events::ID("runway_takeoff_nav_to_wp"), events::Log::Info, "Navigating to waypoint");
 		}
 
 		break;

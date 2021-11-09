@@ -40,7 +40,7 @@
 
 #include "ecl_pitch_controller.h"
 #include <float.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
 
 float ECL_PitchController::control_attitude(const float dt, const ECL_ControlData &ctl_data)
@@ -111,11 +111,11 @@ float ECL_PitchController::control_bodyrate(const float dt, const ECL_ControlDat
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
 
-float ECL_PitchController::control_euler_rate(const float dt, const ECL_ControlData &ctl_data)
+float ECL_PitchController::control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff)
 {
 	/* Transform setpoint to body angular rates (jacobian) */
 	_bodyrate_setpoint = cosf(ctl_data.roll) * _rate_setpoint +
-			     cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.yaw_rate_setpoint;
+			     cosf(ctl_data.pitch) * sinf(ctl_data.roll) * ctl_data.yaw_rate_setpoint + bodyrate_ff;
 
 	set_bodyrate_setpoint(_bodyrate_setpoint);
 

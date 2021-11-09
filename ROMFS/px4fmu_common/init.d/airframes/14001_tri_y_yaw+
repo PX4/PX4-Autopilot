@@ -13,10 +13,9 @@
 # @maintainer Trent Lukaczyk <aerialhedgehog@gmail.com>
 #
 # @board bitcraze_crazyflie exclude
+# @board px4_fmu-v2 exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults
 
 set MIXER tri_y_yaw+
-
-set PWM_OUT 1234

@@ -41,7 +41,7 @@
 #pragma once
 
 #include "FlightTaskAutoMapper.hpp"
-#include <motion_planning/VelocitySmoothing.hpp>
+#include <motion_planning/PositionSmoothing.hpp>
 
 class FlightTaskAutoLineSmoothVel : public FlightTaskAutoMapper
 {
@@ -52,43 +52,35 @@ public:
 	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	void reActivate() override;
 
+private:
+	PositionSmoothing _position_smoothing;
+	Vector3f _unsmoothed_velocity_setpoint;
+
 protected:
 
 	/** Reset position or velocity setpoints in case of EKF reset event */
-	void _ekfResetHandlerPositionXY() override;
-	void _ekfResetHandlerVelocityXY() override;
-	void _ekfResetHandlerPositionZ() override;
-	void _ekfResetHandlerVelocityZ() override;
+	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
+	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
+	void _ekfResetHandlerPositionZ(float delta_z) override;
+	void _ekfResetHandlerVelocityZ(float delta_vz) override;
 	void _ekfResetHandlerHeading(float delta_psi) override;
 
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
 	void _generateHeading();
-	void _updateTurningCheck();
+	void _checkEmergencyBraking();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 
-	static float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
 
-	static float _constrainAbs(float val, float max); /** Constrain the value -max <= val <= max */
-
-	float _getMaxXYSpeed() const;
-	float _getMaxZSpeed() const;
-
-	matrix::Vector3f getCrossingPoint() const;
 	bool isTargetModified() const;
-	matrix::Vector2f getL1Point() const;
 
-	float _max_speed_prev{};
-	bool _is_turning{false};
+	bool _is_emergency_braking_active{false};
 
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();
-	void _generateTrajectory();
 
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
 	bool _want_takeoff{false};
-
-	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold

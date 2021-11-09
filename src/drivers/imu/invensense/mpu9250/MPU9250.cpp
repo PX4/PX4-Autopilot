@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,22 +42,23 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 	return (msb << 8u) | lsb;
 }
 
-MPU9250::MPU9250(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		 spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio, bool enable_magnetometer) :
-	SPI(DRV_IMU_DEVTYPE_MPU9250, MODULE_NAME, bus, device, spi_mode, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
-	_drdy_gpio(drdy_gpio),
-	_px4_accel(get_device_id(), rotation),
-	_px4_gyro(get_device_id(), rotation)
+MPU9250::MPU9250(const I2CSPIDriverConfig &config) :
+	SPI(config),
+	I2CSPIDriver(config),
+	_drdy_gpio(config.drdy_gpio),
+	_px4_accel(get_device_id(), config.rotation),
+	_px4_gyro(get_device_id(), config.rotation)
 {
-	if (drdy_gpio != 0) {
+	if (_drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME": DRDY missed");
 	}
 
 	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
 
+	bool enable_magnetometer = config.custom1 == 1;
+
 	if (enable_magnetometer) {
-		_slave_ak8963_magnetometer = new AKM_AK8963::MPU9250_AK8963(*this, rotation);
+		_slave_ak8963_magnetometer = new AKM_AK8963::MPU9250_AK8963(*this, config.rotation);
 
 		if (_slave_ak8963_magnetometer) {
 			for (auto &r : _register_cfg) {
@@ -133,6 +134,30 @@ void MPU9250::print_status()
 	}
 }
 
+bool MPU9250::StoreCheckedRegisterValue(Register reg)
+{
+	// 3 retries
+	for (int i = 0; i < 3; i++) {
+		uint8_t read1 = RegisterRead(reg);
+		uint8_t read2 = RegisterRead(reg);
+
+		if (read1 == read2) {
+			for (auto &r : _register_cfg) {
+				if (r.reg == reg) {
+					r.set_bits = read1;
+					r.clear_bits = ~read1;
+					return true;
+				}
+			}
+
+		} else {
+			PX4_ERR("0x%02hhX read 1 != read 2 (0x%02hhX != 0x%02hhX)", static_cast<uint8_t>(reg), read1, read2);
+		}
+	}
+
+	return false;
+}
+
 int MPU9250::probe()
 {
 	const uint8_t whoami = RegisterRead(Register::WHO_AM_I);
@@ -165,6 +190,14 @@ void MPU9250::RunImpl()
 		//  Document Number: RM-MPU-9250A-00 Page 9 of 55
 		if ((RegisterRead(Register::WHO_AM_I) == WHOAMI)
 		    && (RegisterRead(Register::PWR_MGMT_1) == 0x01)) {
+
+			// offset registers (factory calibration) should not change during normal operation
+			StoreCheckedRegisterValue(Register::XA_OFFSET_H);
+			StoreCheckedRegisterValue(Register::XA_OFFSET_L);
+			StoreCheckedRegisterValue(Register::YA_OFFSET_H);
+			StoreCheckedRegisterValue(Register::YA_OFFSET_L);
+			StoreCheckedRegisterValue(Register::ZA_OFFSET_H);
+			StoreCheckedRegisterValue(Register::ZA_OFFSET_L);
 
 			// Wakeup and reset digital signal path
 			RegisterWrite(Register::PWR_MGMT_1, PWR_MGMT_1_BIT::CLKSEL_0);
@@ -231,9 +264,16 @@ void MPU9250::RunImpl()
 		break;
 
 	case STATE::FIFO_READ: {
+			hrt_abstime timestamp_sample = now;
+
 			if (_data_ready_interrupt_enabled) {
-				// scheduled from interrupt if _drdy_fifo_read_samples was set
-				if (_drdy_fifo_read_samples.fetch_and(0) != _fifo_gyro_samples) {
+				// scheduled from interrupt if _drdy_timestamp_sample was set as expected
+				const hrt_abstime drdy_timestamp_sample = _drdy_timestamp_sample.fetch_and(0);
+
+				if ((now - drdy_timestamp_sample) < _fifo_empty_interval_us) {
+					timestamp_sample = drdy_timestamp_sample;
+
+				} else {
 					perf_count(_drdy_missed_perf);
 				}
 
@@ -254,16 +294,21 @@ void MPU9250::RunImpl()
 
 			} else {
 				// FIFO count (size in bytes) should be a multiple of the FIFO::DATA structure
-				const uint8_t samples = (fifo_count / sizeof(FIFO::DATA) / SAMPLES_PER_TRANSFER) *
-							SAMPLES_PER_TRANSFER; // round down to nearest
+				uint8_t samples = fifo_count / sizeof(FIFO::DATA);
+
+				// tolerate minor jitter, leave sample to next iteration if behind by only 1
+				if (samples == _fifo_gyro_samples + 1) {
+					timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
+					samples--;
+				}
 
 				if (samples > FIFO_MAX_SAMPLES) {
 					// not technically an overflow, but more samples than we expected or can publish
 					FIFOReset();
 					perf_count(_fifo_overflow_perf);
 
-				} else if (samples >= 1) {
-					if (FIFORead(now, samples)) {
+				} else if (samples >= SAMPLES_PER_TRANSFER) {
+					if (FIFORead(timestamp_sample, samples)) {
 						success = true;
 
 						if (_failure_count > 0) {
@@ -405,13 +450,10 @@ int MPU9250::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void MPU9250::DataReady()
 {
-	uint32_t expected = 0;
-
 	// at least the required number of samples in the FIFO
-	if (((_drdy_count.fetch_add(1) + 1) >= _fifo_gyro_samples)
-	    && _drdy_fifo_read_samples.compare_exchange(&expected, _fifo_gyro_samples)) {
-
-		_drdy_count.store(0);
+	if (++_drdy_count >= _fifo_gyro_samples) {
+		_drdy_timestamp_sample.store(hrt_absolute_time());
+		_drdy_count -= _fifo_gyro_samples;
 		ScheduleNow();
 	}
 }
@@ -561,8 +603,8 @@ void MPU9250::FIFOReset()
 	RegisterSetAndClearBits(Register::USER_CTRL, USER_CTRL_BIT::FIFO_RST, USER_CTRL_BIT::FIFO_EN);
 
 	// reset while FIFO is disabled
-	_drdy_count.store(0);
-	_drdy_fifo_read_samples.store(0);
+	_drdy_count = 0;
+	_drdy_timestamp_sample.store(0);
 
 	// FIFO_EN: enable both gyro and accel
 	// USER_CTRL: re-enable FIFO

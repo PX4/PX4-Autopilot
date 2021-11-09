@@ -46,7 +46,7 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <lib/conversion/rotation.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_platform_common/time.h>
@@ -70,6 +70,7 @@
 #include "streams/COMMAND_LONG.hpp"
 #include "streams/COMPONENT_INFORMATION.hpp"
 #include "streams/DISTANCE_SENSOR.hpp"
+#include "streams/EFI_STATUS.hpp"
 #include "streams/ESC_INFO.hpp"
 #include "streams/ESC_STATUS.hpp"
 #include "streams/ESTIMATOR_STATUS.hpp"
@@ -84,7 +85,9 @@
 #include "streams/HIL_ACTUATOR_CONTROLS.hpp"
 #include "streams/HIL_STATE_QUATERNION.hpp"
 #include "streams/HOME_POSITION.hpp"
+#include "streams/LANDING_TARGET.hpp"
 #include "streams/LOCAL_POSITION_NED.hpp"
+#include "streams/MAG_CAL_REPORT.hpp"
 #include "streams/MANUAL_CONTROL.hpp"
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
@@ -259,11 +262,6 @@ union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-		break;
-
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
 		break;
@@ -382,9 +380,15 @@ static const StreamListItem streams_list[] = {
 #if defined(GLOBAL_POSITION_INT_HPP)
 	create_stream_list_item<MavlinkStreamGlobalPositionInt>(),
 #endif // GLOBAL_POSITION_INT_HPP
+#if defined(LANDING_TARGET_HPP)
+	create_stream_list_item<MavlinkStreamLandingTarget>(),
+#endif
 #if defined(LOCAL_POSITION_NED_HPP)
 	create_stream_list_item<MavlinkStreamLocalPositionNED>(),
 #endif // LOCAL_POSITION_NED_HPP
+#if defined(MAG_CAL_REPORT_HPP)
+	create_stream_list_item<MavlinkStreamMagCalReport>(),
+#endif // MAG_CAL_REPORT_HPP
 #if defined(ODOMETRY_HPP)
 	create_stream_list_item<MavlinkStreamOdometry>(),
 #endif // ODOMETRY_HPP
@@ -535,8 +539,11 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamComponentInformation>(),
 #endif // COMPONENT_INFORMATION_HPP
 #if defined(RAW_RPM_HPP)
-	create_stream_list_item<MavlinkStreamRawRpm>()
+	create_stream_list_item<MavlinkStreamRawRpm>(),
 #endif // RAW_RPM_HPP
+#if defined(EFI_STATUS_HPP)
+	create_stream_list_item<MavlinkStreamEfiStatus>()
+#endif // EFI_STATUS_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)

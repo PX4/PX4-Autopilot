@@ -108,7 +108,6 @@ __BEGIN_DECLS
 
 #define DIRECT_PWM_OUTPUT_CHANNELS  1
 
-#define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
 #define BOARD_HAS_LED_PWM              1
 #define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
@@ -161,8 +160,9 @@ int s32k1xx_bringup(void);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_S32K1XX_LPSPI
+#ifdef CONFIG_S32K1XX_LPSPI0
 void s32k1xx_spidev_initialize(void);
+int s32k1xx_spi_bus_initialize(void);
 #endif
 
 /****************************************************************************************************

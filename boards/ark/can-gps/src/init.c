@@ -49,11 +49,13 @@
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
+#include <syslog.h>
 
 #include <nuttx/board.h>
 
 #include <stm32.h>
 #include "board_config.h"
+#include "led.h"
 #include <stm32_uart.h>
 
 #include <arch/board/board.h>
@@ -91,6 +93,21 @@ __EXPORT void stm32_boardinitialize(void)
 
 	// Configure SPI all interfaces GPIO & enable power.
 	stm32_spiinitialize();
+
+	// Check if button is held. If so go into gps passthrough mode
+	if (stm32_gpioread(GPIO_BTN_SAFETY)) {
+		rgb_led(128, 128, 128, 10);
+		stm32_configgpio(GPIO_USART1_TX_GPIO);
+		stm32_configgpio(GPIO_USART1_RX_GPIO);
+		stm32_configgpio(GPIO_USART2_TX_GPIO);
+		stm32_configgpio(GPIO_USART2_RX_GPIO);
+
+		while (1) {
+			watchdog_pet();
+			stm32_gpiowrite(GPIO_USART2_TX_GPIO, stm32_gpioread(GPIO_USART1_RX_GPIO));
+			stm32_gpiowrite(GPIO_USART1_TX_GPIO, stm32_gpioread(GPIO_USART2_RX_GPIO));
+		}
+	}
 }
 
 /****************************************************************************

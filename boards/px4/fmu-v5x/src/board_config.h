@@ -202,20 +202,7 @@
  * PWM in future
  */
 #define GPIO_HEATER_OUTPUT   /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
-
-/* PWM Capture
- *
- * 1  PWM Capture inputs are configured.
- *
- * Pins:
- *
- * FMU_CAP1 : PI0  : TIM5_CH4
- */
-
-#define GPIO_TIM5_CH4IN      /* PI0  T5C4   FMU_CAP1 */ GPIO_TIM5_CH4IN_2
-#define GPIO_TIM5_CH4OUT     /* PI0  T5C4   FMU_CAP1 */ GPIO_TIM5_CH4OUT_2
-
-#define DIRECT_PWM_CAPTURE_CHANNELS  1
+#define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
 /* PC12 is nARMED
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
@@ -229,10 +216,9 @@
 #endif
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS  8
-#define DIRECT_INPUT_TIMER_CHANNELS  8
+#define DIRECT_PWM_OUTPUT_CHANNELS  9
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7, 8};
 
 /* Power supply control and monitoring GPIOs */
 
@@ -314,7 +300,6 @@
 #define INPUT_CAP1_TIMER                  5
 #define INPUT_CAP1_CHANNEL     /* T5C4 */ 4
 #define GPIO_INPUT_CAP1        /*  PI0 */ GPIO_TIM5_CH4IN
-#define BOARD_CAPTURE_GPIO /* PI0 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTI|GPIO_PIN0)
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
@@ -403,7 +388,6 @@
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_VDD_5V_PERIPH_nOC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_nOC))
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

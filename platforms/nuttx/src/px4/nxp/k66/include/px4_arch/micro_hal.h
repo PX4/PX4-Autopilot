@@ -87,10 +87,6 @@ __BEGIN_DECLS
 #define PX4_CPU_UUID_WORD32_FORMAT_SIZE         (PX4_CPU_UUID_WORD32_LENGTH-1+(2*PX4_CPU_UUID_BYTE_LENGTH)+1)
 #define PX4_CPU_MFGUID_FORMAT_SIZE              ((2*PX4_CPU_MFGUID_BYTE_LENGTH)+1)
 
-#define kinetis_bbsram_savepanic(fileno, context, length) (0) // todo:Not implemented yet
-
-#define px4_savepanic(fileno, context, length)   kinetis_bbsram_savepanic(fileno, context, length)
-
 /* bus_num is zero based on kinetis and must be translated from the legacy one based */
 
 #define PX4_BUS_OFFSET       1                  /* Kinetis buses are 0 based and adjustment is needed */
@@ -113,6 +109,7 @@ int kinetis_gpiosetevent(uint32_t pinset, bool risingedge, bool fallingedge, boo
 
 #define _PX4_MAKE_GPIO(pin_ftmx, io)    ((((uint32_t)(pin_ftmx)) & ~(_PIN_MODE_MASK | _PIN_OPTIONS_MASK)) |(io))
 #define PX4_MAKE_GPIO_INPUT(gpio) _PX4_MAKE_GPIO(gpio, GPIO_PULLUP)
-#define PX4_MAKE_GPIO_OUTPUT(gpio) _PX4_MAKE_GPIO(gpio, GPIO_HIGHDRIVE)
+#define PX4_MAKE_GPIO_OUTPUT_SET(gpio) _PX4_MAKE_GPIO(gpio, GPIO_HIGHDRIVE)
+#define PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio) _PX4_MAKE_GPIO(gpio, GPIO_LOWDRIVE)
 
 __END_DECLS

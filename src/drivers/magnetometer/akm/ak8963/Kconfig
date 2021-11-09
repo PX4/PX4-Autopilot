@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MAGNETOMETER_AKM_AK8963
+	bool "ak8963"
+	default n
+	---help---
+		Enable support for ak8963

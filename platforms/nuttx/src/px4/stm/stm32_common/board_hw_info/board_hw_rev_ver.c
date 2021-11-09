@@ -170,7 +170,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	/*  Turn the sense lines to digital outputs LOW */
 
-	stm32_configgpio(PX4_MAKE_GPIO_OUTPUT(gpio_sense));
+	stm32_configgpio(PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio_sense));
 
 
 	up_udelay(100); /* About 10 TC assuming 485 K */
@@ -182,7 +182,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	/*  Write the sense lines HIGH */
 
-	stm32_gpiowrite(PX4_MAKE_GPIO_OUTPUT(gpio_sense), 1);
+	stm32_gpiowrite(PX4_MAKE_GPIO_OUTPUT_CLEAR(gpio_sense), 1);
 
 	up_udelay(100); /* About 10 TC assuming 485 K */
 

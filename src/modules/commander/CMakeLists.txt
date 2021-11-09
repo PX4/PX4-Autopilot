@@ -50,20 +50,19 @@ px4_add_module(
 		level_calibration.cpp
 		lm_fit.cpp
 		mag_calibration.cpp
-		ManualControl.cpp
 		rc_calibration.cpp
 		state_machine_helper.cpp
 		worker_thread.cpp
 	DEPENDS
 		circuit_breaker
 		failure_detector
-		git_ecl
-		ecl_geo
+		geo
 		hysteresis
 		PreFlightCheck
 		ArmAuthorization
 		HealthFlags
 		sensor_calibration
+		world_magnetic_model
 	)
 
 if(PX4_TESTING)

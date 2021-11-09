@@ -15,7 +15,7 @@ pipeline {
         // stage('Catkin build on ROS workspace') {
         //   agent {
         //     docker {
-        //       image 'px4io/px4-dev-ros-melodic:2021-04-29'
+        //       image 'px4io/px4-dev-ros-melodic:2021-08-18'
         //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
         //     }
         //   }
@@ -56,7 +56,7 @@ pipeline {
         stage('Colcon build on ROS2 workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros2-foxy:2021-04-29'
+              image 'px4io/px4-dev-ros2-foxy:2021-08-18'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -85,7 +85,7 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
             sh 'make distclean'
@@ -105,7 +105,7 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
             sh 'make distclean'
@@ -125,7 +125,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
             sh 'make distclean'
@@ -143,10 +143,28 @@ pipeline {
           }
         }
 
+        stage('msg file docs') {
+          agent {
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
+          }
+          steps {
+            sh 'mkdir -p build/msg_docs; ./msg/tools/generate_msg_docs.py -d build/msg_docs'
+            dir('build') {
+              archiveArtifacts(artifacts: 'msg_docs/*.md')
+              stash includes: 'msg_docs/*.md', name: 'msg_documentation'
+            }
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx-focal:2021-04-29'
+              image 'px4io/px4-dev-nuttx-focal:2021-08-18'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -156,8 +174,8 @@ pipeline {
             sh 'git fetch --all --tags'
             sh 'make uorb_graphs'
             dir('Tools/uorb_graph') {
-              archiveArtifacts(artifacts: 'graph_px4_sitl.json')
-              stash includes: 'graph_px4_sitl.json', name: 'uorb_graph'
+              archiveArtifacts(artifacts: 'graph_*.json')
+              stash includes: 'graph_*.json', name: 'uorb_graph'
             }
           }
           post {
@@ -176,18 +194,22 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
             sh('export')
             unstash 'metadata_airframes'
             unstash 'metadata_parameters'
             unstash 'metadata_module_documentation'
+            unstash 'msg_documentation'
+            unstash 'uorb_graph'
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh('git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_user_guide.git')
               sh('cp airframes.md px4_user_guide/en/airframes/airframe_reference.md')
               sh('cp parameters.md px4_user_guide/en/advanced_config/parameter_reference.md')
               sh('cp -R modules/*.md px4_user_guide/en/modules/')
+              sh('cp -R graph_*.json px4_user_guide/.vuepress/public/en/middleware/')
+              sh('cp -R msg_docs/*.md px4_user_guide/en/msg_docs/')
               sh('cd px4_user_guide; git status; git add .; git commit -a -m "Update PX4 Firmware metadata `date`" || true')
               sh('cd px4_user_guide; git push origin master || true')
               sh('rm -rf px4_user_guide')
@@ -206,7 +228,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
             sh('export')
@@ -234,7 +256,7 @@ pipeline {
 
         stage('microRTPS agent') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
             sh('export')
@@ -264,7 +286,7 @@ pipeline {
 
         stage('PX4 ROS msgs') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
             sh('export')
@@ -293,7 +315,7 @@ pipeline {
 
         stage('PX4 ROS2 bridge') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
             sh('export')
@@ -301,7 +323,7 @@ pipeline {
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_ros_com.git -b ${BRANCH_NAME}")
               // deploy uORB RTPS ID map
-              sh('./msg/tools/uorb_to_ros_rtps_ids.py -i msg/tools/uorb_rtps_message_ids.yaml -o px4_ros_com/templates/uorb_rtps_message_ids.yaml')
+              sh('./msg/tools/uorb_to_ros_urtps_topics.py -i msg/tools/urtps_bridge_topics.yaml -o px4_ros_com/templates/urtps_bridge_topics.yaml')
               sh('cd px4_ros_com; git status; git add .; git commit -a -m "Update uORB RTPS ID map `date`" || true')
               sh('cd px4_ros_com; git push origin ${BRANCH_NAME} || true')
               // deploy uORB RTPS required tools
@@ -336,7 +358,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base-focal:2021-04-29' }
+            docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
             sh('export')

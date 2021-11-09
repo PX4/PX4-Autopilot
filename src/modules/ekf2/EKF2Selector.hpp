@@ -31,7 +31,8 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef EKF2SELECTOR_HPP
+#define EKF2SELECTOR_HPP
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
@@ -73,17 +74,23 @@ public:
 
 	void PrintStatus();
 
+	void RequestInstance(uint8_t instance) { _request_instance.store(instance); }
+
 private:
 	static constexpr uint8_t INVALID_INSTANCE{UINT8_MAX};
 	static constexpr uint64_t FILTER_UPDATE_PERIOD{10_ms};
 
 	void Run() override;
+
+	void PrintInstanceChange(const uint8_t old_instance, uint8_t new_instance);
+
 	void PublishEstimatorSelectorStatus();
 	void PublishVehicleAttitude();
 	void PublishVehicleLocalPosition();
 	void PublishVehicleGlobalPosition();
 	void PublishVehicleOdometry();
 	void PublishWindEstimate();
+
 	bool SelectInstance(uint8_t instance);
 
 	// Update the error scores for all available instances
@@ -125,6 +132,8 @@ private:
 		bool healthy{false};
 		bool filter_fault{false};
 		bool timeout{false};
+
+		uint8_t healthy_count{0};
 
 		const uint8_t instance;
 	};
@@ -168,6 +177,7 @@ private:
 
 	uint8_t _available_instances{0};
 	uint8_t _selected_instance{INVALID_INSTANCE};
+	px4::atomic<uint8_t> _request_instance{INVALID_INSTANCE};
 
 	uint32_t _instance_changed_count{0};
 	hrt_abstime _last_instance_change{0};
@@ -231,3 +241,4 @@ private:
 		(ParamFloat<px4::params::EKF2_SEL_IMU_VEL>) _param_ekf2_sel_imu_velocity
 	)
 };
+#endif // !EKF2SELECTOR_HPP

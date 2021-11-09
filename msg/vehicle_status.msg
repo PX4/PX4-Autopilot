@@ -17,6 +17,9 @@ uint8 FAILURE_PITCH = 2	        # (1 << 1)
 uint8 FAILURE_ALT = 4 	        # (1 << 2)
 uint8 FAILURE_EXT = 8 	        # (1 << 3)
 uint8 FAILURE_ARM_ESC = 16      # (1 << 4)
+uint8 FAILURE_HIGH_WIND = 32        # (1 << 5)
+uint8 FAILURE_BATTERY = 64          # (1 << 6)
+uint8 FAILURE_IMBALANCED_PROP = 128 # (1 << 7)
 
 # HIL
 uint8 HIL_STATE_OFF = 0
@@ -30,9 +33,9 @@ uint8 NAVIGATION_STATE_AUTO_MISSION = 3		# Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4		# Auto loiter mode
 uint8 NAVIGATION_STATE_AUTO_RTL = 5		# Auto return to launch mode
 uint8 NAVIGATION_STATE_AUTO_LANDENGFAIL = 8 	# Auto land on engine failure
-uint8 NAVIGATION_STATE_AUTO_LANDGPSFAIL = 9	# Auto land on gps failure (e.g. open loop loiter down)
+uint8 NAVIGATION_STATE_UNUSED = 9	        # Free slot
 uint8 NAVIGATION_STATE_ACRO = 10		# Acro mode
-uint8 NAVIGATION_STATE_UNUSED = 11		# Free slot
+uint8 NAVIGATION_STATE_UNUSED1 = 11		# Free slot
 uint8 NAVIGATION_STATE_DESCEND = 12		# Descend mode (no position control)
 uint8 NAVIGATION_STATE_TERMINATION = 13		# Termination mode
 uint8 NAVIGATION_STATE_OFFBOARD = 14
@@ -44,10 +47,6 @@ uint8 NAVIGATION_STATE_AUTO_FOLLOW_TARGET = 19	# Auto Follow
 uint8 NAVIGATION_STATE_AUTO_PRECLAND = 20	# Precision land with landing target
 uint8 NAVIGATION_STATE_ORBIT = 21       # Orbit in a circle
 uint8 NAVIGATION_STATE_MAX = 22
-
-uint8 RC_IN_MODE_DEFAULT = 0
-uint8 RC_IN_MODE_OFF = 1
-uint8 RC_IN_MODE_GENERATED = 2
 
 uint8 VEHICLE_TYPE_UNKNOWN = 0
 uint8 VEHICLE_TYPE_ROTARY_WING = 1
@@ -80,7 +79,6 @@ bool in_transition_mode			# True if VTOL is doing a transition
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
 
 bool rc_signal_lost				# true if RC reception lost
-uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual control to RC in mapping.
 
 bool data_link_lost				# datalink to GCS lost
 uint8 data_link_lost_counter			# counts unique data link lost events

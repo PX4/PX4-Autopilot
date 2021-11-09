@@ -97,8 +97,6 @@ protected:
 	 */
 	void get_pins();
 
-	param_t _p_pin{PARAM_INVALID};
-
-	int _pins[6] {};
+	int _pins[32] {};
 
 };

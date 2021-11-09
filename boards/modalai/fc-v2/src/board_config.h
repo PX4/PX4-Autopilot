@@ -192,11 +192,6 @@
 #define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
 #define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
 
-/* PWM Capture - not routed
- */
-#define DIRECT_PWM_CAPTURE_CHANNELS  0
-
-
 /* PE6 is nARMED --> FCv2 this goes to TP13
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
  *  While armed it shall be configured at a GPIO OUT set LOW
@@ -209,7 +204,6 @@
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
-#define DIRECT_INPUT_TIMER_CHANNELS  8
 
 #define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
 
@@ -328,7 +322,6 @@
 #  error Unsupported BOARD_HAS_LTC44XX_VALIDS value
 #endif
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120

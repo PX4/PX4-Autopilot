@@ -42,6 +42,7 @@
 #include "data_validator/DataValidator.hpp"
 #include "data_validator/DataValidatorGroup.hpp"
 
+#include <px4_platform_common/events.h>
 #include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
@@ -139,7 +140,7 @@ private:
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
-	bool checkFailover(SensorData &sensor, const char *sensor_name);
+	bool checkFailover(SensorData &sensor, const char *sensor_name, events::px4::enums::sensor_type_t sensor_type);
 
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between each accelerometer vector and the mean of all vectors

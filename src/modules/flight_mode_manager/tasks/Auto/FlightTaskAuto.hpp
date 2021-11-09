@@ -45,7 +45,8 @@
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 // TODO: make this switchable in the board config, like a module
 #if CONSTRAINED_FLASH
@@ -114,6 +115,7 @@ protected:
 	int _mission_gear{landing_gear_s::GEAR_KEEP};
 
 	float _yaw_sp_prev{NAN};
+	AlphaFilter<float> _yawspeed_filter;
 	bool _yaw_sp_aligned{false};
 
 	ObstacleAvoidance _obstacle_avoidance; /**< class adjusting setpoints according to external avoidance module's input */

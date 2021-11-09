@@ -369,7 +369,9 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 		if (!quit) {
 
-			//update the stats
+			// update the stats
+			int total_size = 0;
+			int total_msgs = 0;
 			hrt_abstime current_time = hrt_absolute_time();
 			float dt = (current_time - start_time) / 1.e6f;
 			cur_node = first_node;
@@ -378,6 +380,10 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 				unsigned int num_msgs = cur_node->node->updates_available(cur_node->last_pub_msg_count);
 				cur_node->pub_msg_delta = roundf(num_msgs / dt);
 				cur_node->last_pub_msg_count += num_msgs;
+
+				total_size += cur_node->pub_msg_delta * cur_node->node->get_meta()->o_size;
+				total_msgs += cur_node->pub_msg_delta;
+
 				cur_node = cur_node->next;
 			}
 
@@ -388,7 +394,8 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 				PX4_INFO_RAW("\033[H"); // move cursor to top left corner
 			}
 
-			PX4_INFO_RAW(CLEAR_LINE "update: 1s, num topics: %i\n", num_topics);
+			PX4_INFO_RAW(CLEAR_LINE "update: 1s, topics: %i, total publications: %i, %.1f kB/s\n",
+				     num_topics, total_msgs, (double)(total_size / 1000.f));
 			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB RATE #Q SIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 			cur_node = first_node;
 
@@ -403,6 +410,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 				cur_node = cur_node->next;
 			}
+
 
 			if (!only_once) {
 				PX4_INFO_RAW("\033[0J"); // clear the rest of the screen

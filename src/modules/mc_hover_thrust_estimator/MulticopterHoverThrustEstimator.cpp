@@ -168,12 +168,21 @@ void MulticopterHoverThrustEstimator::Run()
 				// Inform the hover thrust estimator about the measured vertical
 				// acceleration (positive acceleration is up) and the current thrust (positive thrust is up)
 				// Guard against fast up and down motions biasing the estimator due to large drag and prop wash effects
-				if (fabsf(local_pos.vz) < 2.f) {
-					_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2]);
+				const float meas_noise_coeff_z = fmaxf((fabsf(local_pos.vz) - _param_hte_vz_thr.get()) + 1.f, 1.f);
+				const float meas_noise_coeff_xy = fmaxf((matrix::Vector2f(local_pos.vx,
+									local_pos.vy).norm() - _param_hte_vxy_thr.get()) + 1.f,
+									1.f);
+
+				_hover_thrust_ekf.setMeasurementNoiseScale(fmaxf(meas_noise_coeff_xy, meas_noise_coeff_z));
+				_hover_thrust_ekf.fuseAccZ(-local_pos.az, -local_pos_sp.thrust[2]);
+
+				bool valid = (_hover_thrust_ekf.getHoverThrustEstimateVar() < 0.001f);
+
+				// The test ratio does not need to pass all the time to have a valid estimate
+				if (!_valid) {
+					valid = valid && (_hover_thrust_ekf.getInnovationTestRatio() < 1.f);
 				}
 
-				const bool valid = (_hover_thrust_ekf.getHoverThrustEstimateVar() < 0.001f)
-						   && (_hover_thrust_ekf.getInnovationTestRatio() < 1.f);
 				_valid_hysteresis.set_state_and_update(valid, local_pos.timestamp);
 				_valid = _valid_hysteresis.get_state();
 

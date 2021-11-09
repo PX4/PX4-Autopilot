@@ -6,15 +6,13 @@
 @# Start of Template
 @#
 @# Context:
-@#  - msgs (List) list of all msg files
-@#  - multi_topics (List) list of all multi-topic names
-@#  - ids (List) list of all RTPS msg ids
+@#  - ros2_distro (str) ROS2 distro name
+@#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
-from packaging import version
 import genmsg.msgs
-
-from px_generate_uorb_topic_helper import * # this is in Tools/
+from packaging import version
+import re
 
 topic = alias if alias else spec.short_name
 try:
@@ -25,7 +23,7 @@ except AttributeError:
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -59,7 +57,7 @@ except AttributeError:
  * @@file @(topic)_Subscriber.h
  * This header file contains the declaration of the subscriber functions.
  *
- * This file was adapted from the fastcdrgen tool.
+ * This file was adapted from the fastrtpsgen tool.
  */
 
 
@@ -103,39 +101,40 @@ using @(topic)_msg_datatype = @(topic)PubSubType;
 class @(topic)_Subscriber
 {
 public:
-    @(topic)_Subscriber();
-    virtual ~@(topic)_Subscriber();
-    bool init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue, const std::string& ns);
-    void run();
-    bool hasMsg();
-    @(topic)_msg_t getMsg();
-    void unlockMsg();
+	@(topic)_Subscriber();
+	virtual ~@(topic)_Subscriber();
+	bool init(uint8_t topic_ID, std::condition_variable *t_send_queue_cv, std::mutex *t_send_queue_mutex,
+		  std::queue<uint8_t> *t_send_queue, const std::string &ns, std::string topic_name = "");
+	void run();
+	bool hasMsg();
+	@(topic)_msg_t getMsg();
+	void unlockMsg();
 
 private:
-    Participant *mp_participant;
-    Subscriber *mp_subscriber;
+	Participant *mp_participant;
+	Subscriber *mp_subscriber;
 
-    class SubListener : public SubscriberListener
-    {
-    public:
-        SubListener() : n_matched(0), n_msg(0), has_msg(false){};
-        ~SubListener(){};
-        void onSubscriptionMatched(Subscriber* sub, MatchingInfo& info);
-        void onNewDataMessage(Subscriber* sub);
-        SampleInfo_t m_info;
-        int n_matched;
-        int n_msg;
-        @(topic)_msg_t msg;
-        std::atomic_bool has_msg;
-        uint8_t topic_ID;
-        std::condition_variable* t_send_queue_cv;
-        std::mutex* t_send_queue_mutex;
-        std::queue<uint8_t>* t_send_queue;
-        std::condition_variable has_msg_cv;
-        std::mutex has_msg_mutex;
+	class SubListener : public SubscriberListener
+	{
+	public:
+		SubListener() : n_matched(0), n_msg(0), has_msg(false) {};
+		~SubListener() {};
+		void onSubscriptionMatched(Subscriber *sub, MatchingInfo &info);
+		void onNewDataMessage(Subscriber *sub);
+		SampleInfo_t m_info;
+		int n_matched;
+		int n_msg;
+		@(topic)_msg_t msg;
+		std::atomic_bool has_msg;
+		uint8_t topic_ID;
+		std::condition_variable *t_send_queue_cv;
+		std::mutex *t_send_queue_mutex;
+		std::queue<uint8_t> *t_send_queue;
+		std::condition_variable has_msg_cv;
+		std::mutex has_msg_mutex;
 
-    } m_listener;
-    @(topic)_msg_datatype @(topic)DataType;
+	} m_listener;
+	@(topic)_msg_datatype @(topic)DataType;
 };
 
 #endif // _@(topic)__SUBSCRIBER_H_

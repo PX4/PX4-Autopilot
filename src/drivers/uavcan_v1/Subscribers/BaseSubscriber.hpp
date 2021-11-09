@@ -46,30 +46,32 @@
 #include <lib/parameters/param.h>
 
 #include "../CanardInterface.hpp"
+#include "../ParamManager.hpp"
 
 class UavcanBaseSubscriber
 {
 public:
-	static constexpr uint16_t CANARD_PORT_ID_UNSET = 65535U;
-
 	UavcanBaseSubscriber(CanardInstance &ins, const char *subject_name, uint8_t instance = 0) :
 		_canard_instance(ins), _instance(instance)
 	{
 		_subj_sub._subject_name = subject_name;
 		_subj_sub._canard_sub.user_reference = this;
+		_subj_sub._canard_sub.port_id = CANARD_PORT_ID_UNSET;
 	}
 
-	~UavcanBaseSubscriber()
+	virtual ~UavcanBaseSubscriber()
 	{
 		unsubscribe();
 	}
+
+	bool isValidPortId(int32_t id) const { return id >= 0 && id <= CANARD_PORT_ID_MAX; }
 
 	virtual void subscribe() = 0;
 	virtual void unsubscribe()
 	{
 		SubjectSubscription *curSubj = &_subj_sub;
 
-		while (curSubj != NULL) {
+		while (curSubj != nullptr) {
 			canardRxUnsubscribe(&_canard_instance, CanardTransferKindMessage, curSubj->_canard_sub.port_id);
 			curSubj = curSubj->next;
 		}
@@ -82,7 +84,7 @@ public:
 		uint32_t i = 0;
 		SubjectSubscription *curSubj = &_subj_sub;
 
-		while (curSubj != NULL) {
+		while (curSubj != nullptr) {
 			if (instance == i) {
 				return curSubj->_canard_sub.port_id;
 			}
@@ -96,9 +98,13 @@ public:
 
 	bool hasPortID(CanardPortID port_id)
 	{
+		if (!isValidPortId((int32_t)port_id)) {
+			return false;
+		}
+
 		SubjectSubscription *curSubj = &_subj_sub;
 
-		while (curSubj != NULL) {
+		while (curSubj != nullptr) {
 			if (port_id == curSubj->_canard_sub.port_id) {
 				return true;
 			}
@@ -109,11 +115,21 @@ public:
 		return false;
 	}
 
+	const char *getSubjectName()
+	{
+		return _subj_sub._subject_name;
+	}
+
+	uint8_t getInstance()
+	{
+		return _instance;
+	}
+
 	void printInfo()
 	{
 		SubjectSubscription *curSubj = &_subj_sub;
 
-		while (curSubj != NULL) {
+		while (curSubj != nullptr) {
 			if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) {
 				PX4_INFO("Subscribed %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub.port_id);
 			}
@@ -126,7 +142,7 @@ protected:
 	struct SubjectSubscription {
 		CanardRxSubscription _canard_sub;
 		const char *_subject_name;
-		struct SubjectSubscription *next {NULL};
+		struct SubjectSubscription *next {nullptr};
 	};
 
 	CanardInstance &_canard_instance;

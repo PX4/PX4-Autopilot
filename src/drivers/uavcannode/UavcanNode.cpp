@@ -37,7 +37,7 @@
 #include "boot_alt_app_shared.h"
 
 #include <drivers/drv_watchdog.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/version/version.h>
 
 #include "Publishers/BatteryInfo.hpp"
@@ -52,6 +52,7 @@
 
 #include "Subscribers/BeepCommand.hpp"
 #include "Subscribers/LightsCommand.hpp"
+#include "Subscribers/RTCMStream.hpp"
 
 using namespace time_literals;
 
@@ -308,6 +309,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	_subscriber_list.add(new BeepCommand(_node));
 	_subscriber_list.add(new LightsCommand(_node));
+	_subscriber_list.add(new RTCMStream(_node));
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();
@@ -511,6 +513,19 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 	// Sarted byt the bootloader, we must pet it
 	watchdog_pet();
 
+#if defined(GPIO_CAN_TERM)
+	int32_t can_term = 0;
+	param_get(param_find("CANNODE_TERM"), &can_term);
+
+	if (can_term != 0) {
+		px4_arch_gpiowrite(GPIO_CAN_TERM, true);
+
+	} else {
+		px4_arch_gpiowrite(GPIO_CAN_TERM, false);
+	}
+
+#endif
+
 	// CAN bitrate
 	int32_t bitrate = 0;
 
@@ -549,12 +564,12 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 		board_booted_by_px4() &&
 #endif
 		(node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast())) {
-		PX4_ERR("Invalid Node ID %i", node_id);
+		PX4_ERR("Invalid Node ID %" PRId32, node_id);
 		return 1;
 	}
 
 	// Start
-	PX4_INFO("Node ID %u, bitrate %u", node_id, bitrate);
+	PX4_INFO("Node ID %" PRId32 ", bitrate %" PRId32, node_id, bitrate);
 	int rv = uavcannode::UavcanNode::start(node_id, bitrate);
 
 	return rv;

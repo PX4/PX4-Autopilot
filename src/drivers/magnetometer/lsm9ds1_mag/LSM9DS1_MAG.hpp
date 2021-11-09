@@ -53,12 +53,9 @@ using namespace ST_LSM9DS1_MAG;
 class LSM9DS1_MAG : public device::SPI, public I2CSPIDriver<LSM9DS1_MAG>
 {
 public:
-	LSM9DS1_MAG(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		    spi_mode_e spi_mode);
+	LSM9DS1_MAG(const I2CSPIDriverConfig &config);
 	~LSM9DS1_MAG() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();

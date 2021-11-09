@@ -266,7 +266,7 @@ WorkQueueManagerRun(int, char **)
 #if defined(__PX4_QURT)
 			const size_t stacksize = math::max(8 * 1024, PX4_STACK_ADJUSTED(wq->stacksize));
 #elif defined(__PX4_NUTTX)
-			const size_t stacksize = math::max((uint16_t)PTHREAD_STACK_MIN, wq->stacksize);
+			const size_t stacksize = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
 #elif defined(__PX4_POSIX)
 			// On posix system , the desired stacksize round to the nearest multiplier of the system pagesize
 			// It is a requirement of the  pthread_attr_setstacksize* function
@@ -332,7 +332,7 @@ WorkQueueManagerStart()
 		int task_id = px4_task_spawn_cmd("wq:manager",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX,
-						 1280,
+						 PX4_STACK_ADJUSTED(1280),
 						 (px4_main_t)&WorkQueueManagerRun,
 						 nullptr);
 
@@ -407,7 +407,7 @@ WorkQueueManagerStatus()
 	if (!_wq_manager_should_exit.load() && (_wq_manager_wqs_list != nullptr)) {
 
 		const size_t num_wqs = _wq_manager_wqs_list->size();
-		PX4_INFO_RAW("\nWork Queue: %-1zu threads                        RATE        INTERVAL\n", num_wqs);
+		PX4_INFO_RAW("\nWork Queue: %-2zu threads                          RATE        INTERVAL\n", num_wqs);
 
 		LockGuard lg{_wq_manager_wqs_list->mutex()};
 		size_t i = 0;

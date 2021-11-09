@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,6 +67,7 @@ static constexpr float TEMPERATURE_SENSITIVITY = 333.87f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 21.f; // C
 
 enum class Register : uint8_t {
+
 	CONFIG             = 0x1A,
 	GYRO_CONFIG        = 0x1B,
 	ACCEL_CONFIG       = 0x1C,
@@ -102,6 +103,15 @@ enum class Register : uint8_t {
 	FIFO_COUNTL        = 0x73,
 	FIFO_R_W           = 0x74,
 	WHO_AM_I           = 0x75,
+
+	XA_OFFSET_H        = 0x77,
+	XA_OFFSET_L        = 0x78,
+
+	YA_OFFSET_H        = 0x7A,
+	YA_OFFSET_L        = 0x7B,
+
+	ZA_OFFSET_H        = 0x7D,
+	ZA_OFFSET_L        = 0x7E,
 };
 
 // CONFIG
@@ -122,7 +132,7 @@ enum GYRO_CONFIG_BIT : uint8_t {
 	GYRO_FS_SEL_2000_DPS	= Bit4 | Bit3, // 0b11000
 
 	// FCHOICE_B [1:0]
-	FCHOICE_B_BYPASS_DLPF   = Bit1 | Bit0, // 0b00 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
+	FCHOICE_B_BYPASS_DLPF  = Bit1 | Bit0, // 0b00 - 3-dB BW: 3281 Noise BW (Hz): 3451.0   8 kHz
 };
 
 // ACCEL_CONFIG

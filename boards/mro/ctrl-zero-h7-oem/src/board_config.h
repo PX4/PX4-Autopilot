@@ -81,7 +81,6 @@
 
 /* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
-#define DIRECT_INPUT_TIMER_CHANNELS  8
 
 /* Power supply control and monitoring GPIOs */
 #define GPIO_nPOWER_IN_A                /* PB5 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
@@ -156,7 +155,6 @@
 
 #define BOARD_HAS_STATIC_MANIFEST 1
 
-#define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 #define BOARD_NUM_IO_TIMERS 3
 

@@ -62,7 +62,7 @@ public:
 	{
 		SubjectSubscription *curSubj = &_subj_sub;
 
-		while (curSubj != NULL) {
+		while (curSubj != nullptr) {
 			char uavcan_param[90];
 			snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s.%d.id", curSubj->_subject_name, _instance);
 
@@ -70,7 +70,7 @@ public:
 			uavcan_register_Value_1_0 value;
 
 			if (_param_manager.GetParamByName(uavcan_param, value)) {
-				int32_t new_id = value.integer32.value.elements[0];
+				uint16_t new_id = value.natural16.value.elements[0];
 
 				/* FIXME how about partial subscribing */
 				if (curSubj->_canard_sub.port_id != new_id) {
@@ -90,6 +90,10 @@ public:
 						subscribe();
 					}
 				}
+
+			} else if (curSubj->_canard_sub.port_id != CANARD_PORT_ID_UNSET) { // No valid sub id unsubscribe when neccesary
+				// Already active; unsubscribe first
+				unsubscribe();
 			}
 
 			curSubj = curSubj->next;
@@ -108,5 +112,5 @@ public:
 
 protected:
 	UavcanParamManager &_param_manager;
-	UavcanDynamicPortSubscriber *_next_sub {NULL};
+	UavcanDynamicPortSubscriber *_next_sub {nullptr};
 };

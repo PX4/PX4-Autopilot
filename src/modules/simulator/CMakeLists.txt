@@ -47,12 +47,6 @@ endif()
 configure_file(simulator_config.h.in simulator_config.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(SIMULATOR_SRCS simulator.cpp)
-if (NOT ${PX4_PLATFORM} STREQUAL "qurt")
-	list(APPEND SIMULATOR_SRCS
-		simulator_mavlink.cpp)
-endif()
-
 px4_add_module(
 	MODULE modules__simulator
 	MAIN simulator
@@ -61,19 +55,20 @@ px4_add_module(
 		-Wno-cast-align
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 	INCLUDES
-		${PX4_SOURCE_DIR}/mavlink/include/mavlink
+		${CMAKE_BINARY_DIR}/mavlink
+		${CMAKE_BINARY_DIR}/mavlink/development
 	SRCS
-		${SIMULATOR_SRCS}
+		simulator.cpp
+		simulator_mavlink.cpp
 	DEPENDS
-		git_mavlink_v2
+		mavlink_c_generate
 		conversion
-		git_ecl
-		ecl_geo
+		geo
 		drivers_accelerometer
 		drivers_barometer
 		drivers_gyroscope
 		drivers_magnetometer
 	)
-target_include_directories(modules__simulator INTERFACE ${PX4_SOURCE_DIR}/mavlink/include/mavlink)
+target_include_directories(modules__simulator INTERFACE ${CMAKE_BINARY_DIR}/mavlink)
 
 add_subdirectory(battery_simulator)

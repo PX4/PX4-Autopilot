@@ -39,9 +39,10 @@
  */
 
 /**
- * Minimum thrust in auto thrust control
+ * Minimum collective thrust in auto thrust control
  *
  * It's recommended to set it > 0 to avoid free fall with zero thrust.
+ * Note: Without airmode zero thrust leads to zero roll/pitch control authority. (see MC_AIRMODE)
  *
  * @unit norm
  * @min 0.05
@@ -105,6 +106,21 @@ PARAM_DEFINE_INT32(MPC_USE_HTE, 1);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_THR_CURVE, 0);
+
+/**
+ * Horizontal thrust margin
+ *
+ * Margin that is kept for horizontal control when prioritizing vertical thrust.
+ * To avoid completely starving horizontal control with high vertical error.
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_THR_XY_MARG, 0.3f);
 
 /**
  * Maximum thrust in auto thrust control
@@ -362,18 +378,6 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
-
-/**
- * Maximum horizontal position mode velocity when close to ground/home altitude
- *
- * Set the value higher than the otherwise expected maximum to disable any slowdown.
- *
- * @unit m/s
- * @min 0
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_LAND_VEL_XY, 10.0f);
 
 /**
  * Enable user assisted descent speed for autonomous land routine.
@@ -659,12 +663,8 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
 /**
  * Altitude for 1. step of slow landing (descend)
  *
- * Below this altitude:
- * - descending velocity gets limited to a value
+ * Below this altitude descending velocity gets limited to a value
  * between "MPC_Z_VEL_MAX_DN" and "MPC_LAND_SPEED"
- * - horizontal velocity gets limited to a value
- * between "MPC_VEL_MANUAL" and "MPC_LAND_VEL_XY"
- * for a smooth descent and landing experience.
  * Value needs to be higher than "MPC_LAND_ALT2"
  *
  * @unit m
@@ -678,8 +678,8 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
 /**
  * Altitude for 2. step of slow landing (landing)
  *
- * Below this altitude descending and horizontal velocities get
- * limited to "MPC_LAND_SPEED" and "MPC_LAND_VEL_XY", respectively.
+ * Below this altitude descending velocity gets
+ * limited to "MPC_LAND_SPEED".
  * Value needs to be lower than "MPC_LAND_ALT1"
  *
  * @unit m

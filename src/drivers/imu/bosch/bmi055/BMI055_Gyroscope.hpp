@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,8 +45,7 @@ namespace Bosch::BMI055::Gyroscope
 class BMI055_Gyroscope : public BMI055
 {
 public:
-	BMI055_Gyroscope(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-			 spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	BMI055_Gyroscope(const I2CSPIDriverConfig &config);
 	~BMI055_Gyroscope() override;
 
 	void RunImpl() override;
@@ -59,7 +58,7 @@ private:
 	static constexpr uint32_t RATE{2000}; // 2000 Hz
 	static constexpr float FIFO_SAMPLE_DT{1e6f / RATE};
 
-	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0]))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0]))};
 
 	// Transfer data
 	struct FIFOTransferBuffer {

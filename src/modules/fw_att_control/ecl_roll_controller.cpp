@@ -40,7 +40,7 @@
 
 #include "ecl_roll_controller.h"
 #include <float.h>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <mathlib/mathlib.h>
 
 float ECL_RollController::control_attitude(const float dt, const ECL_ControlData &ctl_data)
@@ -108,10 +108,10 @@ float ECL_RollController::control_bodyrate(const float dt, const ECL_ControlData
 	return math::constrain(_last_output, -1.0f, 1.0f);
 }
 
-float ECL_RollController::control_euler_rate(const float dt, const ECL_ControlData &ctl_data)
+float ECL_RollController::control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff)
 {
 	/* Transform setpoint to body angular rates (jacobian) */
-	_bodyrate_setpoint = ctl_data.roll_rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint;
+	_bodyrate_setpoint = ctl_data.roll_rate_setpoint - sinf(ctl_data.pitch) * ctl_data.yaw_rate_setpoint + bodyrate_ff;
 
 	set_bodyrate_setpoint(_bodyrate_setpoint);
 

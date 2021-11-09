@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,7 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/device/spi.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <lib/ecl/geo/geo.h>
+#include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -56,12 +56,9 @@ using namespace InvenSense_MPU6000;
 class MPU6000 : public device::SPI, public I2CSPIDriver<MPU6000>
 {
 public:
-	MPU6000(I2CSPIBusOption bus_option, int bus, uint32_t device, enum Rotation rotation, int bus_frequency,
-		spi_mode_e spi_mode, spi_drdy_gpio_t drdy_gpio);
+	MPU6000(const I2CSPIDriverConfig &config);
 	~MPU6000() override;
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-					     int runtime_instance);
 	static void print_usage();
 
 	void RunImpl();
@@ -74,12 +71,12 @@ private:
 
 	// Sensor Configuration
 	static constexpr float FIFO_SAMPLE_DT{1e6f / 8000.f};
-	static constexpr uint32_t SAMPLES_PER_TRANSFER{8};                   // ensure at least 1 new accel sample per transfer
+	static constexpr int32_t SAMPLES_PER_TRANSFER{8};                    // ensure at least 1 new accel sample per transfer
 	static constexpr float GYRO_RATE{1e6f / FIFO_SAMPLE_DT};             // 8000 Hz gyro
 	static constexpr float ACCEL_RATE{GYRO_RATE / SAMPLES_PER_TRANSFER}; // 1000 Hz accel
 
 	// maximum FIFO samples per transfer is limited to the size of sensor_accel_fifo/sensor_gyro_fifo
-	static constexpr uint32_t FIFO_MAX_SAMPLES{math::min(math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0])), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]) * (int)(GYRO_RATE / ACCEL_RATE))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0])), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]) * (int)(GYRO_RATE / ACCEL_RATE))};
 
 	// Transfer data
 	struct FIFOTransferBuffer {
@@ -143,8 +140,8 @@ private:
 	FIFO::DATA _fifo_sample_last_new_accel{};
 	uint32_t _fifo_accel_samples_count{0};
 
-	px4::atomic<uint32_t> _drdy_fifo_read_samples{0};
-	px4::atomic<uint32_t> _drdy_count{0};
+	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
+	int32_t _drdy_count{0};
 	bool _data_ready_interrupt_enabled{false};
 
 	enum class STATE : uint8_t {
@@ -152,23 +149,21 @@ private:
 		WAIT_FOR_RESET,
 		CONFIGURE,
 		FIFO_READ,
-	};
-
-	STATE _state{STATE::RESET};
+	} _state{STATE::RESET};
 
 	uint16_t _fifo_empty_interval_us{1250}; // default 1250 us / 800 Hz transfer interval
-	uint32_t _fifo_gyro_samples{static_cast<uint32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
+	int32_t _fifo_gyro_samples{static_cast<int32_t>(_fifo_empty_interval_us / (1000000 / GYRO_RATE))};
 
 	uint8_t _checked_register{0};
 	static constexpr uint8_t size_register_cfg{7};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
-		{ Register::GYRO_CONFIG,   GYRO_CONFIG_BIT::FS_SEL_2000_DPS, 0 },
-		{ Register::ACCEL_CONFIG,  ACCEL_CONFIG_BIT::AFS_SEL_16G, 0 },
+		{ Register::GYRO_CONFIG,   GYRO_CONFIG_BIT::FS_SEL_2000_DPS, GYRO_CONFIG_BIT::XG_ST | GYRO_CONFIG_BIT::YG_ST | GYRO_CONFIG_BIT::ZG_ST },
+		{ Register::ACCEL_CONFIG,  ACCEL_CONFIG_BIT::AFS_SEL_16G, ACCEL_CONFIG_BIT::XA_ST | ACCEL_CONFIG_BIT::YA_ST | ACCEL_CONFIG_BIT::ZA_ST },
 		{ Register::FIFO_EN,       FIFO_EN_BIT::XG_FIFO_EN | FIFO_EN_BIT::YG_FIFO_EN | FIFO_EN_BIT::ZG_FIFO_EN | FIFO_EN_BIT::ACCEL_FIFO_EN, FIFO_EN_BIT::TEMP_FIFO_EN },
 		{ Register::INT_PIN_CFG,   INT_PIN_CFG_BIT::INT_LEVEL, 0 },
 		{ Register::INT_ENABLE,    INT_ENABLE_BIT::DATA_RDY_INT_EN, 0 },
-		{ Register::USER_CTRL,     USER_CTRL_BIT::FIFO_EN | USER_CTRL_BIT::I2C_IF_DIS, 0 },
+		{ Register::USER_CTRL,     USER_CTRL_BIT::FIFO_EN | USER_CTRL_BIT::I2C_IF_DIS, USER_CTRL_BIT::I2C_MST_EN },
 		{ Register::PWR_MGMT_1,    PWR_MGMT_1_BIT::CLKSEL_0, PWR_MGMT_1_BIT::SLEEP },
 	};
 };

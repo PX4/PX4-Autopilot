@@ -31,7 +31,6 @@
                 "esc"
         ],
         "debug.toolBarLocation": "docked",
-        "editor.acceptSuggestionOnEnter": "off",
         "editor.defaultFormatter": "chiehyu.vscode-astyle",
         "editor.dragAndDrop": false,
         "editor.insertSpaces": false,
@@ -137,5 +136,6 @@
         "workbench.settings.enableNaturalLanguageSearch": false,
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
-        }
+        },
+        "cortex-debug.openocdPath": "${env:PICO_SDK_PATH}/../openocd/src/openocd"       // Added for rp2040
 }

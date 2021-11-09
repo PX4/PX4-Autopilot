@@ -64,23 +64,31 @@ int up_pwm_trigger_set(unsigned channel, uint16_t value)
 int up_pwm_trigger_init(uint32_t channel_mask)
 {
 	/* Init channels */
-	for (unsigned channel = 0; channel_mask != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
+	int ret_val = OK;
+	int channels_init_mask = 0;
+
+	for (unsigned channel = 0; channel_mask != 0 && channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (channel_mask & (1 << channel)) {
 
-			// First free any that were not trigger mode before
-			if (-EBUSY == io_timer_is_channel_free(channel)) {
-				io_timer_free_channel(channel);
-			}
-
-			io_timer_channel_init(channel, IOTimerChanMode_Trigger, NULL, NULL);
+			ret_val = io_timer_channel_init(channel, IOTimerChanMode_Trigger, NULL, NULL);
 			channel_mask &= ~(1 << channel);
+
+			if (OK == ret_val) {
+				channels_init_mask |= 1 << channel;
+
+			} else if (ret_val == -EBUSY) {
+				/* either timer or channel already used - this is not fatal */
+				ret_val = 0;
+			}
 		}
 	}
 
 	/* Enable the timers */
-	up_pwm_trigger_arm(true);
+	if (ret_val == OK) {
+		up_pwm_trigger_arm(true);
+	}
 
-	return OK;
+	return ret_val == OK ? channels_init_mask : ret_val;
 }
 
 void up_pwm_trigger_deinit()

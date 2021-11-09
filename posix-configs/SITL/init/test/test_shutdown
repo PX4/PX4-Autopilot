@@ -5,11 +5,10 @@
 
 param load
 
-param set BAT_N_CELLS 3
+param set BAT1_N_CELLS 3
 param set CBRK_SUPPLY_CHK 894281
 param set MAV_TYPE 22
 param set VT_TYPE 2
-param set SYS_RESTART_TYPE 0
 
 dataman start
 

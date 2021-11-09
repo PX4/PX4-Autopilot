@@ -68,12 +68,27 @@ void CameraInterfacePWM::setup()
 	}
 
 	// Initialize and arm channels
-	up_pwm_trigger_init(pin_bitmask);
+	int ret = up_pwm_trigger_init(pin_bitmask);
+
+	if (ret < 0) {
+		PX4_ERR("up_pwm_trigger_init failed (%i)", ret);
+		pin_bitmask = 0;
+
+	} else {
+		pin_bitmask = ret;
+	}
+
+	// Clear pins that could not be initialized
+	for (unsigned i = 0; i < arraySize(_pins); i++) {
+		if (_pins[i] >= 0 && ((1 << _pins[i]) & pin_bitmask) == 0) {
+			_pins[i] = -1;
+		}
+	}
 
 	// Set neutral pulsewidths
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
-			up_pwm_trigger_set(_pins[i], math::constrain(_pwm_camera_neutral, 0, 2000));
+			up_pwm_trigger_set(_pins[i], math::constrain(_pwm_camera_neutral, (int32_t) 0, (int32_t) 2000));
 		}
 	}
 
@@ -84,15 +99,25 @@ void CameraInterfacePWM::trigger(bool trigger_on_true)
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
 			// Set all valid pins to shoot or neutral levels
-			up_pwm_trigger_set(_pins[i], math::constrain(trigger_on_true ? _pwm_camera_shoot : _pwm_camera_neutral, 0, 2000));
+			up_pwm_trigger_set(_pins[i], math::constrain(trigger_on_true ? _pwm_camera_shoot : _pwm_camera_neutral, (int32_t) 0,
+					   (int32_t) 2000));
 		}
 	}
 }
 
 void CameraInterfacePWM::info()
 {
-	PX4_INFO("PWM trigger mode (generic), pins enabled : [%d][%d][%d][%d][%d][%d]",
-		 _pins[5], _pins[4], _pins[3], _pins[2], _pins[1], _pins[0]);
+	PX4_INFO_RAW("PWM trigger mode, pins enabled: ");
+
+	for (unsigned i = 0; i < arraySize(_pins); ++i) {
+		if (_pins[i] < 0) {
+			continue;
+		}
+
+		PX4_INFO_RAW("[%d]", _pins[i] + 1);
+	}
+
+	PX4_INFO_RAW("\n");
 }
 
 #endif /* ifdef __PX4_NUTTX */

@@ -203,6 +203,10 @@ public:
 	 */
 	void set_dt(float dt) { _dt = dt;}
 
+	void reset_has_guidance_updated() { _has_guidance_updated = false; }
+
+	bool has_guidance_updated() { return _has_guidance_updated; }
+
 private:
 
 	float _lateral_accel{0.0f};		///< Lateral acceleration setpoint in m/s^2
@@ -223,6 +227,9 @@ private:
 	float _roll_setpoint{0.0f};	///< current roll angle setpoint in radians
 	float _roll_slew_rate{0.0f};	///< roll angle setpoint slew rate limit in rad/s
 	float _dt{0};				///< control loop time in seconds
+
+	bool _has_guidance_updated =
+		false;	///< this flag is set to true by any of the guidance methods. This flag has to be manually reset using has_guidance_updated_reset()
 
 	/**
 	 * Convert a 2D vector from WGS84 to planar coordinates.

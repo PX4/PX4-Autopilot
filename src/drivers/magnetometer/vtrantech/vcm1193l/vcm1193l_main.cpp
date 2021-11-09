@@ -35,25 +35,6 @@
 #include <px4_platform_common/module.h>
 #include "VCM1193L.hpp"
 
-I2CSPIDriverBase *
-VCM1193L::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator, int runtime_instance)
-{
-	VCM1193L *instance = new VCM1193L(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.rotation);
-
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
-
-	if (instance->init() != PX4_OK) {
-		delete instance;
-		PX4_DEBUG("no device on bus %i (devid 0x%x)", iterator.bus(), iterator.devid());
-		return nullptr;
-	}
-
-	return instance;
-}
-
 void VCM1193L::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("vcm1193l", "driver");
@@ -70,16 +51,18 @@ extern "C" int vcm1193l_main(int argc, char *argv[])
 	using ThisDriver = VCM1193L;
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = I2C_SPEED;
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
 
-	while ((ch = cli.getopt(argc, argv, "R:")) != EOF) {
+
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
 		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optarg());
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
 			break;
 		}
 	}
 
-	const char *verb = cli.optarg();
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
