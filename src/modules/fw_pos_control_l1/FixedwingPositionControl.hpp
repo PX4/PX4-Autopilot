@@ -296,6 +296,8 @@ private:
 
 	FW_WIND_MODE _fw_wind_mode_detected_prev{FW_WIND_MODE_NORMAL};
 
+	float _last_airspeed_setpoint{NAN};
+
 	param_t _param_handle_airspeed_trans{PARAM_INVALID};
 	float _param_airspeed_trans{NAN};
 
@@ -353,15 +355,18 @@ private:
 	void		control_auto_fixed_bank_alt_hold(const hrt_abstime &now);
 	void		control_auto_descend(const hrt_abstime &now);
 
-	void		control_auto_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+	void		control_auto_position(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
+					      const Vector2f &ground_speed,
 					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-	void		control_auto_loiter(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+	void		control_auto_loiter(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
+					    const Vector2f &ground_speed,
 					    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 	void		control_auto_takeoff(const hrt_abstime &now, const float dt,  const Vector2d &curr_pos,
 					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,
 					     const position_setpoint_s &pos_sp_curr);
-	void		control_auto_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+	void		control_auto_landing(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
+					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,
 					     const position_setpoint_s &pos_sp_curr);
 	void		control_manual_altitude(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
@@ -371,7 +376,8 @@ private:
 	float		get_tecs_thrust();
 
 	float		get_demanded_airspeed();
-	float		calculate_target_airspeed(float airspeed_demand, const Vector2f &ground_speed);
+	float		get_cruise_airspeed_setpoint(const hrt_abstime &now, const float pos_sp_cru_airspeed,
+			const Vector2f &ground_speed, float dt);
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
