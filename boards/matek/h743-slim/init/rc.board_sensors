@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+# Internal SPI bus ICM-20602
+icm20602 -R 12 -s start
+
+# Internal SPI bus MPU-6000
+mpu6000 -R 12 -s start
+
+# Internal baro
+dps310 -I start -a 118
+
+# External mag
+qmc5883l -X start -a 13

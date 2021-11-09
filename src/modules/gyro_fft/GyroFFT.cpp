@@ -439,18 +439,18 @@ void GyroFFT::FindPeaks(const hrt_abstime &timestamp_sample, int axis, q15_t *ff
 
 	// FFT output buffer is ordered [real[0], imag[0], real[1], imag[1], real[2], imag[2] ... real[(N/2)-1], imag[(N/2)-1]
 	for (uint16_t bucket_index = 0; bucket_index < (2 * _imu_gyro_fft_len - 1); bucket_index = bucket_index + 2) {
-		const float real = fft_outupt_buffer[bucket_index];
-		const float imag = fft_outupt_buffer[bucket_index + 1];
-
-		const float fft_magnitude_squared = real * real + imag * imag;
-		bin_mag_sum += fft_magnitude_squared;
-
 
 		const float freq_hz = (bucket_index / 2) * resolution_hz;
 
 		if ((bucket_index > 0) && (bucket_index < (_imu_gyro_fft_len - 1))
 		    && (freq_hz >= _param_imu_gyro_fft_min.get())
 		    && (freq_hz <= _param_imu_gyro_fft_max.get())) {
+
+			const float real = fft_outupt_buffer[bucket_index];
+			const float imag = fft_outupt_buffer[bucket_index + 1];
+
+			const float fft_magnitude_squared = real * real + imag * imag;
+			bin_mag_sum += fft_magnitude_squared;
 
 			for (int i = 0; i < MAX_NUM_PEAKS; i++) {
 				if (fft_magnitude_squared > peak_magnitude[i]) {
@@ -465,7 +465,6 @@ void GyroFFT::FindPeaks(const hrt_abstime &timestamp_sample, int axis, q15_t *ff
 	// keep if peak has been previously seen and SNR > MIN_SNR
 	//   or
 	// peak has SNR > MIN_SNR_INITIAL
-	static constexpr float MIN_SNR_INITIAL = 15.f; // TODO: configurable?
 	static constexpr float MIN_SNR = 1.f; // TODO: configurable?
 
 	int num_peaks_found = 0;
@@ -491,7 +490,7 @@ void GyroFFT::FindPeaks(const hrt_abstime &timestamp_sample, int axis, q15_t *ff
 
 					// only keep if we're already tracking this frequency or if the SNR is significant
 					for (int peak_prev = 0; peak_prev < MAX_NUM_PEAKS; peak_prev++) {
-						if ((snr > MIN_SNR_INITIAL)
+						if ((snr > _param_imu_gyro_fft_snr.get())
 						    || (fabsf(freq_adjusted - peak_frequencies_publish[axis][peak_prev]) < (resolution_hz * 0.5f))) {
 							// keep
 							peak_frequencies[num_peaks_found] = freq_adjusted;
