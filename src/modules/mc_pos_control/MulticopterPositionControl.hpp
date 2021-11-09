@@ -113,7 +113,6 @@ private:
 
 	vehicle_constraints_s _vehicle_constraints {
 		.timestamp = 0,
-		.speed_xy = NAN,
 		.speed_up = NAN,
 		.speed_down = NAN,
 		.want_takeoff = false,
