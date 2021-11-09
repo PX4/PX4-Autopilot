@@ -904,3 +904,59 @@ PARAM_DEFINE_FLOAT(FW_WIND_THLD_L, 0.0f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_WIND_ARSP_OF, 1.0f);
+
+/**
+ * FW Speed mode setting
+ *
+ * Setting
+ *
+ * @min 0
+ * @max 4
+ * @value 0 Normal
+ * @value 1 Eco cruise
+ * @value 2 Eco full
+ * @value 3 Dash cruise
+ * @value 4 Dash full
+ * @group FW TECS
+ */
+PARAM_DEFINE_INT32(FW_SPD_MODE_SET, 0);
+
+
+/**
+ * Max altitude undershoot for Eco/Dash
+ *
+ * Eco/Dash mode is disabled if the current altitude is more than this value below the setpoint.
+ *
+ * @min 1.0
+ * @max 50.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_ALT_ERR_U, 10.f);
+
+/**
+ * Max altitude overshoot for Eco/Dash
+ *
+ * Eco/Dash mode is disabled if the current altitude is more than this value above the setpoint.
+ *
+ * @min 1.0
+ * @max 50.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_ALT_ERR_O, 20.f);
+
+/**
+ * Min altitude for Eco/Dash
+ *
+ * Eco/Dash mode can be enabled if above this relative altitude to home.
+ *
+ * @min -200.0
+ * @max 200.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_ALT_MIN, 50.f);

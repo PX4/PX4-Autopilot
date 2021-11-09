@@ -268,6 +268,23 @@ private:
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER};		///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
+	enum FW_SPEED_MODE {
+		FW_SPEED_MODE_NORMAL,
+		FW_SPEED_MODE_ECO,
+		FW_SPEED_MODE_DASH,
+	} _speed_mode_current{FW_SPEED_MODE_NORMAL};
+
+	enum FW_SPEED_MODE_COMMANDED {
+		NORMAL,
+		ECO_CRUISE,
+		ECO_FULL,
+		DASH_CRUISE,
+		DASH_FULL
+	} _speed_mode_setting{NORMAL};
+
+	bool _conditions_for_eco_dash_met{false};
+	hrt_abstime _time_conditions_not_met{0};
+
 	// wind state
 	hrt_abstime _first_time_current_mode_detected{0};		///< last time in normal wind mode
 
@@ -363,6 +380,8 @@ private:
 
 	void 		publishOrbitStatus(const position_setpoint_s pos_sp);
 
+	void		check_eco_dash_allowed();
+	void		updateSpeedMode();
 
 	void		update_wind_mode();
 
@@ -456,8 +475,11 @@ private:
 		(ParamFloat<px4::params::FW_WIND_THLD_L>) _param_fw_wind_thld_l,
 		(ParamFloat<px4::params::FW_WIND_ARSP_OF>) _param_fw_wind_arsp_of,
 
+		(ParamInt<px4::params::FW_SPD_MODE_SET>) _fw_spd_mode_set,
+		(ParamFloat<px4::params::FW_ALT_MIN>) fw_alt_min,
+		(ParamFloat<px4::params::FW_ALT_ERR_U>) fw_alt_err_u,
+		(ParamFloat<px4::params::FW_ALT_ERR_O>) fw_alt_err_o
 	)
-
 };
 
 #endif // FIXEDWINGPOSITIONCONTROL_HPP_

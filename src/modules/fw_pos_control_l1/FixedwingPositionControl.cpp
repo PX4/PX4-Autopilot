@@ -399,6 +399,77 @@ FixedwingPositionControl::calculate_target_airspeed(float airspeed_demand, const
 	return constrain(airspeed_demand, adjusted_min_airspeed, _param_fw_airspd_max.get());
 }
 
+void
+FixedwingPositionControl::updateSpeedMode()
+{
+	FW_SPEED_MODE_COMMANDED new_mode = static_cast<FW_SPEED_MODE_COMMANDED>(_fw_spd_mode_set.get());
+
+	switch (new_mode) {
+	case NORMAL:
+		_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL; //default
+		break;
+
+	case ECO_CRUISE:
+		if (_conditions_for_eco_dash_met && _tecs.get_flight_phase() == tecs_status_s::TECS_FLIGHT_PHASE_LEVEL) {
+			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_ECO;
+
+		} else {
+			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
+		}
+
+		break;
+
+	case ECO_FULL:
+		if (_conditions_for_eco_dash_met) {
+			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_ECO;
+
+		} else {
+			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
+		}
+
+		break;
+
+	case DASH_CRUISE:
+		if (_conditions_for_eco_dash_met && _tecs.get_flight_phase() == tecs_status_s::TECS_FLIGHT_PHASE_LEVEL) {
+			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_DASH;
+
+		} else {
+			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
+		}
+
+		break;
+
+	case DASH_FULL:
+		if (_conditions_for_eco_dash_met) {
+			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_DASH;
+
+		} else {
+			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
+		}
+
+		break;
+	}
+}
+
+void
+FixedwingPositionControl::check_eco_dash_allowed()
+{
+	const float altitude_amsl_min = max(_tecs.get_hgt_setpoint() - fw_alt_err_u.get(),
+					    _local_pos.ref_alt + fw_alt_min.get());
+	const float altitude_amsl_max = _tecs.get_hgt_setpoint() + fw_alt_err_o.get();
+
+	const bool altitdue_conditions_met = _current_altitude <= altitude_amsl_max
+					     && _current_altitude >= altitude_amsl_min;
+
+	// add a 10s timeout after conditions where not met
+	_conditions_for_eco_dash_met = altitdue_conditions_met && hrt_elapsed_time(&_time_conditions_not_met) > 10_s;
+
+
+	if (!altitdue_conditions_met) {
+		// reset timer
+		_time_conditions_not_met = _local_pos.timestamp;
+	}
+}
 
 void
 FixedwingPositionControl::update_wind_mode()
@@ -710,6 +781,8 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	/* get circle mode */
 	const bool was_circle_mode = _l1_control.circle_mode();
 
+	check_eco_dash_allowed();
+	updateSpeedMode();
 	update_wind_mode();
 
 	/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
