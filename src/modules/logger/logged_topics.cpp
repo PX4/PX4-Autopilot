@@ -45,6 +45,7 @@ using namespace px4::logger;
 
 void LoggedTopics::add_default_topics()
 {
+	add_topic("action_request");
 	add_topic("actuator_armed");
 	add_topic("actuator_controls_0", 50);
 	add_topic("actuator_controls_1", 100);
@@ -117,7 +118,7 @@ void LoggedTopics::add_default_topics()
 	// multi topics
 	add_topic_multi("actuator_outputs", 100, 3);
 	add_topic_multi("airspeed_wind", 1000);
-	add_topic_multi("multirotor_motor_limits", 1000, 2);
+	add_topic_multi("control_allocator_status", 200, 2);
 	add_topic_multi("rate_ctrl_status", 200, 2);
 	add_topic_multi("telemetry_status", 1000, 4);
 

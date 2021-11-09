@@ -48,10 +48,6 @@ uint8 NAVIGATION_STATE_AUTO_PRECLAND = 20	# Precision land with landing target
 uint8 NAVIGATION_STATE_ORBIT = 21       # Orbit in a circle
 uint8 NAVIGATION_STATE_MAX = 22
 
-uint8 RC_IN_MODE_DEFAULT = 0
-uint8 RC_IN_MODE_OFF = 1
-uint8 RC_IN_MODE_GENERATED = 2
-
 uint8 VEHICLE_TYPE_UNKNOWN = 0
 uint8 VEHICLE_TYPE_ROTARY_WING = 1
 uint8 VEHICLE_TYPE_FIXED_WING = 2
@@ -83,7 +79,6 @@ bool in_transition_mode			# True if VTOL is doing a transition
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
 
 bool rc_signal_lost				# true if RC reception lost
-uint8 rc_input_mode				# set to 1 to disable the RC input, 2 to enable manual control to RC in mapping.
 
 bool data_link_lost				# datalink to GCS lost
 uint8 data_link_lost_counter			# counts unique data link lost events

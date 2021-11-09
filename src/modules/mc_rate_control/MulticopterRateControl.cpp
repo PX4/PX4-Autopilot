@@ -37,6 +37,7 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
+#include <px4_platform_common/events.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -154,7 +155,15 @@ MulticopterRateControl::Run()
 
 			if (_landing_gear_sub.copy(&landing_gear)) {
 				if (landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
-					_landing_gear = landing_gear.landing_gear;
+					if (landing_gear.landing_gear == landing_gear_s::GEAR_UP && (_landed || _maybe_landed)) {
+						mavlink_log_critical(&_mavlink_log_pub, "Landed, unable to retract landing gear\t");
+						events::send(events::ID("mc_rate_control_not_retract_landing_gear_landed"),
+						{events::Log::Error, events::LogInternal::Info},
+						"Landed, unable to retract landing gear");
+
+					} else {
+						_landing_gear = landing_gear.landing_gear;
+					}
 				}
 			}
 		}
@@ -206,16 +215,26 @@ MulticopterRateControl::Run()
 				_rate_control.resetIntegral();
 			}
 
-			// update saturation status from mixer feedback
-			if (_motor_limits_sub.updated()) {
-				multirotor_motor_limits_s motor_limits;
+			// update saturation status from control allocation feedback
+			control_allocator_status_s control_allocator_status;
 
-				if (_motor_limits_sub.copy(&motor_limits)) {
-					MultirotorMixer::saturation_status saturation_status;
-					saturation_status.value = motor_limits.saturation_status;
+			if (_control_allocator_status_sub.update(&control_allocator_status)) {
+				Vector<bool, 3> saturation_positive;
+				Vector<bool, 3> saturation_negative;
 
-					_rate_control.setSaturationStatus(saturation_status);
+				if (!control_allocator_status.torque_setpoint_achieved) {
+					for (size_t i = 0; i < 3; i++) {
+						if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
+							saturation_positive(i) = true;
+
+						} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
+							saturation_negative(i) = true;
+						}
+					}
 				}
+
+				// TODO: send the unallocated value directly for better anti-windup
+				_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
 			}
 
 			// run rate controller
