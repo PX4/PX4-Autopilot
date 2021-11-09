@@ -642,7 +642,8 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 	     _control_mode.flag_control_offboard_enabled) && pos_sp_curr_valid) {
 		_control_mode_current = FW_POSCTRL_MODE_AUTO;
 
-	} else if (_control_mode.flag_control_auto_enabled && _control_mode.flag_control_climb_rate_enabled) {
+	} else if (_control_mode.flag_control_auto_enabled && _control_mode.flag_control_climb_rate_enabled
+		   && pos_sp_curr_valid) {
 
 		// reset timer the first time we switch into this mode
 		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_ALTITUDE && _control_mode_current != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
@@ -744,9 +745,34 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		publishOrbitStatus(pos_sp_curr);
 	}
 
-	_position_sp_type = handle_setpoint_type(pos_sp_curr.type, pos_sp_curr);
+	position_setpoint_s current_sp = pos_sp_curr;
 
-	switch (_position_sp_type) {
+	if (_vehicle_status.in_transition_to_fw) {
+
+		if (!PX4_ISFINITE(_transition_waypoint(0))) {
+			double lat_transition, lon_transition;
+			// create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
+			// during the transition
+			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, _yaw, HDG_HOLD_DIST_NEXT, &lat_transition,
+							   &lon_transition);
+
+			_transition_waypoint(0) = lat_transition;
+			_transition_waypoint(1) = lon_transition;
+		}
+
+
+		current_sp.lat = _transition_waypoint(0);
+		current_sp.lon = _transition_waypoint(1);
+
+	} else {
+		/* reset transition waypoint, will be set upon entering front transition */
+		_transition_waypoint(0) = static_cast<double>(NAN);
+		_transition_waypoint(1) = static_cast<double>(NAN);
+	}
+
+	const uint8_t position_sp_type = handle_setpoint_type(current_sp.type, current_sp);
+
+	switch (position_sp_type) {
 	case position_setpoint_s::SETPOINT_TYPE_IDLE:
 		_att_sp.thrust_body[0] = 0.0f;
 		_att_sp.roll_body = 0.0f;
@@ -754,19 +780,19 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_POSITION:
-		control_auto_position(now, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
+		control_auto_position(now, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
-		control_auto_loiter(now, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr, pos_sp_next);
+		control_auto_loiter(now, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LAND:
-		control_auto_landing(now, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
+		control_auto_landing(now, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_TAKEOFF:
-		control_auto_takeoff(now, dt, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
+		control_auto_takeoff(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
 	}
 
@@ -786,7 +812,7 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	}
 
 	/* Copy thrust output for publication, handle special cases */
-	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && // launchdetector only available in auto
+	if (_position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF && // launchdetector only available in auto
 	    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS &&
 	    !_runway_takeoff.runwayTakeoffEnabled()) {
 
@@ -795,12 +821,12 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
 		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
 
-	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
+	} else if (_position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 		   _runway_takeoff.runwayTakeoffEnabled()) {
 
 		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(now, get_tecs_thrust());
 
-	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
+	} else if (_position_sp_type == position_setpoint_s::SETPOINT_TYPE_IDLE) {
 
 		_att_sp.thrust_body[0] = 0.0f;
 
@@ -820,11 +846,11 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	bool use_tecs_pitch = true;
 
 	// auto runway takeoff
-	use_tecs_pitch &= !(pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
+	use_tecs_pitch &= !(_position_sp_type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
 			    (_launch_detection_state == LAUNCHDETECTION_RES_NONE || _runway_takeoff.runwayTakeoffEnabled()));
 
 	// flaring during landing
-	use_tecs_pitch &= !(pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LAND && _land_noreturn_vertical);
+	use_tecs_pitch &= !(_position_sp_type == position_setpoint_s::SETPOINT_TYPE_LAND && _land_noreturn_vertical);
 
 	if (use_tecs_pitch) {
 		_att_sp.pitch_body = get_tecs_pitch();
@@ -897,28 +923,9 @@ uint8_t
 FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr)
 {
 	Vector2d curr_wp{0, 0};
-	Vector2d prev_wp{0, 0};
 
-	if (_vehicle_status.in_transition_to_fw) {
-
-		if (!PX4_ISFINITE(_transition_waypoint(0))) {
-			double lat_transition, lon_transition;
-			// create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
-			// during the transition
-			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, _yaw, HDG_HOLD_DIST_NEXT, &lat_transition,
-							   &lon_transition);
-
-			_transition_waypoint(0) = lat_transition;
-			_transition_waypoint(1) = lon_transition;
-		}
-
-
-		curr_wp = prev_wp = _transition_waypoint;
-
-	} else {
-		/* current waypoint (the one currently heading for) */
-		curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
-	}
+	/* current waypoint (the one currently heading for) */
+	curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
 	const float acc_rad = _l1_control.switch_distance(500.0f);
 
@@ -978,44 +985,23 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const Ve
 	Vector2d curr_wp{0, 0};
 	Vector2d prev_wp{0, 0};
 
-	if (_vehicle_status.in_transition_to_fw) {
 
-		if (!PX4_ISFINITE(_transition_waypoint(0))) {
-			double lat_transition, lon_transition;
-			// create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
-			// during the transition
-			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, _yaw, HDG_HOLD_DIST_NEXT, &lat_transition,
-							   &lon_transition);
+	/* current waypoint (the one currently heading for) */
+	curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
-			_transition_waypoint(0) = lat_transition;
-			_transition_waypoint(1) = lon_transition;
-		}
-
-
-		curr_wp = prev_wp = _transition_waypoint;
+	if (pos_sp_prev.valid) {
+		prev_wp(0) = pos_sp_prev.lat;
+		prev_wp(1) = pos_sp_prev.lon;
 
 	} else {
-		/* current waypoint (the one currently heading for) */
-		curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
-
-		if (pos_sp_prev.valid) {
-			prev_wp(0) = pos_sp_prev.lat;
-			prev_wp(1) = pos_sp_prev.lon;
-
-		} else {
-			/*
-				* No valid previous waypoint, go for the current wp.
-				* This is automatically handled by the L1 library.
-				*/
-			prev_wp(0) = pos_sp_curr.lat;
-			prev_wp(1) = pos_sp_curr.lon;
-		}
-
-
-		/* reset transition waypoint, will be set upon entering front transition */
-		_transition_waypoint(0) = static_cast<double>(NAN);
-		_transition_waypoint(1) = static_cast<double>(NAN);
+		/*
+			* No valid previous waypoint, go for the current wp.
+			* This is automatically handled by the L1 library.
+			*/
+		prev_wp(0) = pos_sp_curr.lat;
+		prev_wp(1) = pos_sp_curr.lon;
 	}
+
 
 	float mission_airspeed = _param_fw_airspd_trim.get();
 
@@ -1108,43 +1094,20 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const Vect
 	Vector2d curr_wp{0, 0};
 	Vector2d prev_wp{0, 0};
 
-	if (_vehicle_status.in_transition_to_fw) {
+	/* current waypoint (the one currently heading for) */
+	curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
-		if (!PX4_ISFINITE(_transition_waypoint(0))) {
-			double lat_transition, lon_transition;
-			// create a virtual waypoint HDG_HOLD_DIST_NEXT meters in front of the vehicle which the L1 controller can track
-			// during the transition
-			waypoint_from_heading_and_distance(_current_latitude, _current_longitude, _yaw, HDG_HOLD_DIST_NEXT, &lat_transition,
-							   &lon_transition);
-
-			_transition_waypoint(0) = lat_transition;
-			_transition_waypoint(1) = lon_transition;
-		}
-
-
-		curr_wp = prev_wp = _transition_waypoint;
+	if (pos_sp_prev.valid) {
+		prev_wp(0) = pos_sp_prev.lat;
+		prev_wp(1) = pos_sp_prev.lon;
 
 	} else {
-		/* current waypoint (the one currently heading for) */
-		curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
-
-		if (pos_sp_prev.valid) {
-			prev_wp(0) = pos_sp_prev.lat;
-			prev_wp(1) = pos_sp_prev.lon;
-
-		} else {
-			/*
-				* No valid previous waypoint, go for the current wp.
-				* This is automatically handled by the L1 library.
-				*/
-			prev_wp(0) = pos_sp_curr.lat;
-			prev_wp(1) = pos_sp_curr.lon;
-		}
-
-
-		/* reset transition waypoint, will be set upon entering front transition */
-		_transition_waypoint(0) = static_cast<double>(NAN);
-		_transition_waypoint(1) = static_cast<double>(NAN);
+		/*
+			* No valid previous waypoint, go for the current wp.
+			* This is automatically handled by the L1 library.
+			*/
+		prev_wp(0) = pos_sp_curr.lat;
+		prev_wp(1) = pos_sp_curr.lon;
 	}
 
 	float mission_airspeed = _param_fw_airspd_trim.get();

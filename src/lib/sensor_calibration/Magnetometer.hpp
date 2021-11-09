@@ -69,7 +69,9 @@ public:
 	void set_rotation(Rotation rotation);
 	void set_temperature(float temperature) { _temperature = temperature; };
 
+	bool calibrated() const { return (_device_id != 0) && (_calibration_index >= 0); }
 	uint8_t calibration_count() const { return _calibration_count; }
+	int8_t calibration_index() const { return _calibration_index; }
 	uint32_t device_id() const { return _device_id; }
 	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
