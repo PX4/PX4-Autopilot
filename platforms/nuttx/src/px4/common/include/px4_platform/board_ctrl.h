@@ -47,8 +47,9 @@
 #define _ORBIOCDEVBASE				IOCTL_IDX_TO_BASE(0)
 #define _HRTIOCBASE				IOCTL_IDX_TO_BASE(1)
 #define _CRYPTOIOCBASE			IOCTL_IDX_TO_BASE(2)
-#define _BUILTINIOCBASE			IOCTL_IDX_TO_BASE(3)
-#define MAX_IOCTL_PTRS 4
+#define _PARAMIOCBASE			IOCTL_IDX_TO_BASE(3)
+#define _BUILTINIOCBASE			IOCTL_IDX_TO_BASE(4)
+#define MAX_IOCTL_PTRS 5
 
 /* The BUILTINIOCLAUNCH IOCTL is used to launch kernel side modules
  * from the user side code
