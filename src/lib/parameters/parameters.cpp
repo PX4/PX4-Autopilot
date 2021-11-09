@@ -72,6 +72,11 @@ using namespace time_literals;
 /* Include functions common to user and kernel sides */
 #include "parameters_common.cpp"
 
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+#include <px4_platform/board_ctrl.h>
+#include "parameters_ioctl.h"
+#endif
+
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
 #else
@@ -192,6 +197,10 @@ param_init()
 	param_find_perf = perf_alloc(PC_COUNT, "param: find");
 	param_get_perf = perf_alloc(PC_COUNT, "param: get");
 	param_set_perf = perf_alloc(PC_ELAPSED, "param: set");
+
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+	px4_register_boardct_ioctl(_PARAMIOCBASE, param_ioctl);
+#endif
 }
 
 /**
