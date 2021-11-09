@@ -1,4 +1,5 @@
 # Default parameter set for indoor flying with lighthouse tracker / libsurvive fake GPS
+# [ type: indoor ]
 
 # Disable internal compass
 param set GPS_1_CONFIG 0
