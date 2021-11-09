@@ -1,4 +1,5 @@
 # Default parameter set for HITL (partly derived from indoor flying parameters)
+# [ type: hitl ]
 
 #####################################
 # HITL configuration
