@@ -958,7 +958,7 @@ FixedwingPositionControl::control_auto_descend(const hrt_abstime &now)
 				   _param_fw_thr_cruise.get(),
 				   false,
 				   _param_fw_p_lim_min.get(),
-				   tecs_status_s::TECS_MODE_NORMAL,
+				   false,
 				   descend_rate);
 
 	_att_sp.roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
@@ -1319,8 +1319,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					   _param_fw_thr_max.get(), // XXX should we also set runway_takeoff_throttle here?
 					   _param_fw_thr_cruise.get(),
 					   _runway_takeoff.climbout(),
-					   radians(_runway_takeoff.getMinPitch(_takeoff_pitch_min.get(), _param_fw_p_lim_min.get())),
-					   tecs_status_s::TECS_MODE_TAKEOFF);
+					   radians(_runway_takeoff.getMinPitch(_takeoff_pitch_min.get(), _param_fw_p_lim_min.get())));
 
 		// assign values
 		_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.get_roll_setpoint());
@@ -1391,8 +1390,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 							   takeoff_throttle,
 							   _param_fw_thr_cruise.get(),
 							   true,
-							   radians(_takeoff_pitch_min.get()),
-							   tecs_status_s::TECS_MODE_TAKEOFF);
+							   radians(_takeoff_pitch_min.get()));
 
 				/* limit roll motion to ensure enough lift */
 				_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-15.0f), radians(15.0f));
@@ -1625,7 +1623,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const Vec
 					   throttle_land,
 					   false,
 					   _land_motor_lim ? radians(_param_fw_lnd_fl_pmin.get()) : radians(_param_fw_p_lim_min.get()),
-					   _land_motor_lim ? tecs_status_s::TECS_MODE_LAND_THROTTLELIM : tecs_status_s::TECS_MODE_LAND);
+					   true);
 
 		if (!_land_noreturn_vertical) {
 			// just started with the flaring phase
@@ -1742,7 +1740,7 @@ FixedwingPositionControl::control_manual_altitude(const hrt_abstime &now, const 
 				   _param_fw_thr_cruise.get(),
 				   false,
 				   pitch_limit_min,
-				   tecs_status_s::TECS_MODE_NORMAL,
+				   false,
 				   height_rate_sp);
 
 	_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
@@ -1801,7 +1799,7 @@ FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const 
 				   _param_fw_thr_cruise.get(),
 				   false,
 				   pitch_limit_min,
-				   tecs_status_s::TECS_MODE_NORMAL,
+				   false,
 				   height_rate_sp);
 
 	/* heading control */
@@ -2174,7 +2172,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		float pitch_min_rad, float pitch_max_rad,
 		float throttle_min, float throttle_max, float throttle_cruise,
 		bool climbout_mode, float climbout_pitch_min_rad,
-		uint8_t mode, float hgt_rate_sp)
+		bool disable_underspeed_detection, float hgt_rate_sp)
 {
 	const float dt = math::constrain((now - _last_tecs_update) * 1e-6f, 0.01f, 0.05f);
 	_last_tecs_update = now;
@@ -2238,8 +2236,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 	}
 
 	/* No underspeed protection in landing mode */
-	_tecs.set_detect_underspeed_enabled(!(mode == tecs_status_s::TECS_MODE_LAND
-					      || mode == tecs_status_s::TECS_MODE_LAND_THROTTLELIM));
+	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
 
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
 	bool in_air_alt_control = (!_landed &&
