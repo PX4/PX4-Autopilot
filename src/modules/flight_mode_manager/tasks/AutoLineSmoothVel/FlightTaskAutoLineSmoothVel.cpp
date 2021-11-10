@@ -72,8 +72,7 @@ bool FlightTaskAutoLineSmoothVel::activate(const vehicle_local_position_setpoint
 
 	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
 	_updateTrajConstraints();
-	_is_vert_emergency_braking_active = false;
-	_is_hor_emergency_braking_active = false;
+	_is_emergency_braking_active = false;
 
 	return ret;
 }
@@ -218,29 +217,26 @@ void FlightTaskAutoLineSmoothVel::_generateSetpoints()
 
 void FlightTaskAutoLineSmoothVel::_checkEmergencyBraking()
 {
-	if (!_is_vert_emergency_braking_active) {
-		if (_position_smoothing.getCurrentVelocityZ() > (2.f * _param_mpc_z_vel_max_dn.get())) {
-			_is_vert_emergency_braking_active = true;
+	if (!_is_emergency_braking_active) {
+		// activate emergency braking if significantly outside of velocity bounds
+		if (_position_smoothing.getCurrentVelocityZ() > (1.3f * _param_mpc_z_vel_max_dn.get())
+		    || _position_smoothing.getCurrentVelocityZ() < -(1.3f * _param_mpc_z_vel_max_up.get())
+		    || fabsf(_position_smoothing.getCurrentVelocityX()) > (1.3f * _param_mpc_xy_cruise.get())
+		    || fabsf(_position_smoothing.getCurrentVelocityY()) > (1.3f * _param_mpc_xy_cruise.get())) {
+			_is_emergency_braking_active = true;
 		}
 
 	} else {
-		if (fabsf(_position_smoothing.getCurrentVelocityZ()) < 0.01f) {
-			_is_vert_emergency_braking_active = false;
-		}
-	}
-
-	if (!_is_hor_emergency_braking_active) {
-		if (fabsf(_position_smoothing.getCurrentVelocityX()) > (2.f * _param_mpc_xy_cruise.get())
-		    || fabsf(_position_smoothing.getCurrentVelocityY()) > (2.f * _param_mpc_xy_cruise.get())) {
-			_is_hor_emergency_braking_active = true;
-		}
-
-	} else {
-		if (fabsf(_position_smoothing.getCurrentVelocityX()) < (_param_mpc_xy_cruise.get())
-		    && fabsf(_position_smoothing.getCurrentVelocityY()) < (_param_mpc_xy_cruise.get())
-		    && fabsf(_position_smoothing.getCurrentAccelerationX()) < (_param_mpc_acc_hor.get())
-		    && fabsf(_position_smoothing.getCurrentAccelerationY()) < (_param_mpc_acc_hor.get())) {
-			_is_hor_emergency_braking_active = false;
+		// deactivate emergency braking if all velocities and accelerations are again within their bounds
+		if (_position_smoothing.getCurrentVelocityZ() < _param_mpc_z_vel_max_dn.get()
+		    && _position_smoothing.getCurrentVelocityZ() > -_param_mpc_z_vel_max_up.get()
+		    && _position_smoothing.getCurrentAccelerationZ() > -_param_mpc_acc_up_max.get()
+		    && _position_smoothing.getCurrentAccelerationZ() < _param_mpc_acc_down_max.get()
+		    && fabsf(_position_smoothing.getCurrentVelocityX()) < _param_mpc_xy_cruise.get()
+		    && fabsf(_position_smoothing.getCurrentVelocityY()) < _param_mpc_xy_cruise.get()
+		    && fabsf(_position_smoothing.getCurrentAccelerationX()) < _param_mpc_acc_hor.get()
+		    && fabsf(_position_smoothing.getCurrentAccelerationY()) < _param_mpc_acc_hor.get()) {
+			_is_emergency_braking_active = false;
 		}
 	}
 }
@@ -297,29 +293,19 @@ void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 	float max_jerk = _param_mpc_jerk_auto.get();
 	_position_smoothing.setMaxJerk({max_jerk, max_jerk, max_jerk}); // TODO : Should be computed using heading
 
-	if (_is_hor_emergency_braking_active) {
-		// When initializing with large horizontal velocity, allow 1g of horizontal
+	if (_is_emergency_braking_active) {
+		// When initializing with large velocity, allow 1g of horizontal
 		// acceleration for fast braking
-		_position_smoothing.setMaxAccelerationXY(9.81f);
-		_position_smoothing.setMaxJerkXY(9.81f);
+		_position_smoothing.setMaxAcceleration({9.81f, 9.81f, 9.81f});
+		_position_smoothing.setMaxJerk({9.81f, 9.81f, 9.81f});
 
 		// If the current velocity is beyond the usual constraints, tell
 		// the controller to exceptionally increase its saturations to avoid
 		// cutting out the feedforward
 		_constraints.speed_xy = math::max(math::max(fabsf(_position_smoothing.getCurrentVelocityX()),
 						  fabsf(_position_smoothing.getCurrentVelocityY())), _param_mpc_xy_cruise.get());
-	}
-
-	if (_is_vert_emergency_braking_active) {
-		// When initializing with large downward velocity, allow 1g of vertical
-		// acceleration for fast braking
-		_position_smoothing.setMaxAccelerationZ(9.81f);
-		_position_smoothing.setMaxJerkZ(9.81f);
-
-		// If the current velocity is beyond the usual constraints, tell
-		// the controller to exceptionally increase its saturations to avoid
-		// cutting out the feedforward
 		_constraints.speed_down = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _param_mpc_z_vel_max_dn.get());
+		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _param_mpc_z_vel_max_up.get());
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
