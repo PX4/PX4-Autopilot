@@ -110,6 +110,70 @@ void FlightTaskAutoLineSmoothVel::_ekfResetHandlerHeading(float delta_psi)
 	_yaw_sp_prev += delta_psi;
 }
 
+bool FlightTaskAutoLineSmoothVel::update()
+{
+	bool ret = FlightTaskAuto::update();
+	// always reset constraints because they might change depending on the type
+	_setDefaultConstraints();
+
+	// The only time a thrust set-point is sent out is during
+	// idle. Hence, reset thrust set-point to NAN in case the
+	// vehicle exits idle.
+
+	if (_type_previous == WaypointType::idle) {
+		_acceleration_setpoint.setNaN();
+	}
+
+	// during mission and reposition, raise the landing gears but only
+	// if altitude is high enough
+	if (_highEnoughForLandingGear()) {
+		_gear.landing_gear = landing_gear_s::GEAR_UP;
+	}
+
+	switch (_type) {
+	case WaypointType::idle:
+		_prepareIdleSetpoints();
+		break;
+
+	case WaypointType::land:
+		_prepareLandSetpoints();
+		break;
+
+	case WaypointType::loiter:
+
+	/* fallthrought */
+	case WaypointType::position:
+		_preparePositionSetpoints();
+		break;
+
+	case WaypointType::takeoff:
+		_prepareTakeoffSetpoints();
+		break;
+
+	case WaypointType::velocity:
+		_prepareVelocitySetpoints();
+		break;
+
+	default:
+		_preparePositionSetpoints();
+		break;
+	}
+
+	if (_param_com_obs_avoid.get()) {
+		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint, (int)_type);
+		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
+				_yawspeed_setpoint);
+	}
+
+
+	_generateSetpoints();
+
+	// update previous type
+	_type_previous = _type;
+
+	return ret;
+}
+
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
 {
 	_checkEmergencyBraking();

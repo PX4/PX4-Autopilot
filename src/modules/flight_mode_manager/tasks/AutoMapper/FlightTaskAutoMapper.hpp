@@ -50,12 +50,8 @@ class FlightTaskAutoMapper : public FlightTaskAuto
 public:
 	FlightTaskAutoMapper();
 	virtual ~FlightTaskAutoMapper() = default;
-	bool update() override;
 
 protected:
-
-	virtual void _generateSetpoints() = 0; /**< Generate velocity and position setpoint for following line. */
-
 	void _prepareIdleSetpoints();
 	void _prepareLandSetpoints();
 	void _prepareVelocitySetpoints();
@@ -77,7 +73,7 @@ protected:
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max
 				       );
 
-private:
+protected:
 	Sticks _sticks;
 	StickAccelerationXY _stick_acceleration_xy;
 	StickYaw _stick_yaw;
