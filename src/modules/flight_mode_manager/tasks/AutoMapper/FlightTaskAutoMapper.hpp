@@ -41,14 +41,11 @@
 #pragma once
 
 #include "FlightTaskAuto.hpp"
-#include "Sticks.hpp"
-#include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
 
 class FlightTaskAutoMapper : public FlightTaskAuto
 {
 public:
-	FlightTaskAutoMapper();
+	FlightTaskAutoMapper() = default;
 	virtual ~FlightTaskAutoMapper() = default;
 
 protected:
@@ -65,13 +62,4 @@ protected:
 					_param_mpc_tko_ramp_t, // time constant for smooth takeoff ramp
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max
 				       );
-
-protected:
-	Sticks _sticks;
-	StickAccelerationXY _stick_acceleration_xy;
-	StickYaw _stick_yaw;
-	matrix::Vector3f _land_position;
-	float _land_heading;
-	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
-
 };
