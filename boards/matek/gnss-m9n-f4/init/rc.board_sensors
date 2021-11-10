@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Matek M9NF4 CAN specific board sensors init
+#------------------------------------------------------------------------------
+
+gps start -d /dev/ttyS3 -p ubx
+
+rm3100 -s start
+
+dps310 -I start
