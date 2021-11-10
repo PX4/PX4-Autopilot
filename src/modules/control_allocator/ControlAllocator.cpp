@@ -335,13 +335,10 @@ ControlAllocator::Run()
 		_control_allocation->allocate();
 
 		// Publish actuator setpoint and allocator status
-		publish_actuator_setpoint();
+		publish_actuator_controls();
 		publish_control_allocator_status();
 
-		// Publish on legacy topics for compatibility with
-		// the current mixer system and multicopter controller
-		// TODO: remove
-		publish_legacy_actuator_controls();
+
 	}
 
 	perf_end(_loop_perf);
@@ -371,19 +368,6 @@ ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 		// Assign control effectiveness matrix
 		_control_allocation->setEffectivenessMatrix(effectiveness, trim, _actuator_effectiveness->numActuators());
 	}
-}
-
-void
-ControlAllocator::publish_actuator_setpoint()
-{
-	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
-
-	vehicle_actuator_setpoint_s vehicle_actuator_setpoint{};
-	vehicle_actuator_setpoint.timestamp = hrt_absolute_time();
-	vehicle_actuator_setpoint.timestamp_sample = _timestamp_sample;
-	actuator_sp.copyTo(vehicle_actuator_setpoint.actuator);
-
-	_vehicle_actuator_setpoint_pub.publish(vehicle_actuator_setpoint);
 }
 
 void
@@ -434,7 +418,7 @@ ControlAllocator::publish_control_allocator_status()
 }
 
 void
-ControlAllocator::publish_legacy_actuator_controls()
+ControlAllocator::publish_actuator_controls()
 {
 	actuator_motors_s actuator_motors;
 	actuator_motors.timestamp = hrt_absolute_time();
