@@ -79,7 +79,7 @@ bool FlightTaskAutoLineSmoothVel::activate(const vehicle_local_position_setpoint
 
 void FlightTaskAutoLineSmoothVel::reActivate()
 {
-	FlightTaskAutoMapper::reActivate();
+	FlightTaskAuto::reActivate();
 
 	// On ground, reset acceleration and velocity to zero
 	_position_smoothing.reset({0.f, 0.f, 0.f}, {0.f, 0.f, 0.7f}, _position);
@@ -298,7 +298,7 @@ void FlightTaskAutoLineSmoothVel::_updateTrajConstraints()
 
 		// The constraints are broken because they are used as hard limits by the position controller, so put this here
 		// until the constraints don't do things like cause controller integrators to saturate. Once the controller
-		// doesn't use z speed constraints, this can go in AutoMapper::_prepareTakeoffSetpoints(). Accel limit is to
+		// doesn't use z speed constraints, this can go in _prepareTakeoffSetpoints(). Accel limit is to
 		// emulate the motor ramp (also done in the controller) so that the controller can actually track the setpoint.
 		if (_type == WaypointType::takeoff &&  _dist_to_ground < _param_mpc_land_alt1.get()) {
 			z_vel_constraint = _param_mpc_tko_speed.get();
