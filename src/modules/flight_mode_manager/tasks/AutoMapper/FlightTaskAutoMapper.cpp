@@ -45,13 +45,6 @@ FlightTaskAutoMapper::FlightTaskAutoMapper() :
 	_stick_acceleration_xy(this)
 {}
 
-bool FlightTaskAutoMapper::activate(const vehicle_local_position_setpoint_s &last_setpoint)
-{
-	bool ret = FlightTaskAuto::activate(last_setpoint);
-	_reset();
-	return ret;
-}
-
 bool FlightTaskAutoMapper::update()
 {
 	bool ret = FlightTaskAuto::update();
@@ -114,13 +107,6 @@ bool FlightTaskAutoMapper::update()
 	_type_previous = _type;
 
 	return ret;
-}
-
-void FlightTaskAutoMapper::_reset()
-{
-	// Set setpoints equal current state.
-	_velocity_setpoint = _velocity;
-	_position_setpoint = _position;
 }
 
 void FlightTaskAutoMapper::_prepareIdleSetpoints()
