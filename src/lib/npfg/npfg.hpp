@@ -417,7 +417,6 @@ private:
 	float roll_lim_rad_{math::radians(30.0f)}; // maximum roll angle [rad]
 	float roll_setpoint_{0.0f}; // current roll angle setpoint [rad]
 	float roll_slew_rate_{0.0f}; // roll angle setpoint slew rate limit [rad/s]
-	bool circle_mode_{false}; // true if following circle
 	bool path_type_loiter_{false}; // true if the guidance law is tracking a loiter circle
 
 
