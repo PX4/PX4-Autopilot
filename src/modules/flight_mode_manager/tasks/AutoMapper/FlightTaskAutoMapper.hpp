@@ -52,13 +52,6 @@ public:
 	virtual ~FlightTaskAutoMapper() = default;
 
 protected:
-	void _prepareIdleSetpoints();
-	void _prepareLandSetpoints();
-	void _prepareVelocitySetpoints();
-	void _prepareTakeoffSetpoints();
-	void _preparePositionSetpoints();
-
-	void updateParams() override; /**< See ModuleParam class */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
@@ -80,5 +73,5 @@ protected:
 	matrix::Vector3f _land_position;
 	float _land_heading;
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
-	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
+
 };
