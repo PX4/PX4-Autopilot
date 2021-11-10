@@ -42,11 +42,14 @@
 
 #include "FlightTaskAutoMapper.hpp"
 #include <motion_planning/PositionSmoothing.hpp>
+#include "Sticks.hpp"
+#include "StickAccelerationXY.hpp"
+#include "StickYaw.hpp"
 
 class FlightTaskAutoLineSmoothVel : public FlightTaskAutoMapper
 {
 public:
-	FlightTaskAutoLineSmoothVel() = default;
+	FlightTaskAutoLineSmoothVel();
 	virtual ~FlightTaskAutoLineSmoothVel() = default;
 
 	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
@@ -91,6 +94,13 @@ protected:
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 
 	void updateParams() override; /**< See ModuleParam class */
+
+	Sticks _sticks;
+	StickAccelerationXY _stick_acceleration_xy;
+	StickYaw _stick_yaw;
+	matrix::Vector3f _land_position;
+	float _land_heading;
+	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold

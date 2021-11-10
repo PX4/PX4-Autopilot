@@ -36,8 +36,3 @@
  */
 
 #include "FlightTaskAutoMapper.hpp"
-
-FlightTaskAutoMapper::FlightTaskAutoMapper() :
-	_sticks(this),
-	_stick_acceleration_xy(this)
-{}
