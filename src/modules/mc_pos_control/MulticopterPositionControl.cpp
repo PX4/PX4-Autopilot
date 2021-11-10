@@ -378,7 +378,6 @@ void MulticopterPositionControl::Run()
 				}
 
 				// override with defaults
-				_vehicle_constraints.speed_xy = _param_mpc_xy_vel_max.get();
 				_vehicle_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 				_vehicle_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
 			}
@@ -420,8 +419,6 @@ void MulticopterPositionControl::Run()
 					       PX4_ISFINITE(_vehicle_constraints.speed_up) ? _vehicle_constraints.speed_up : _param_mpc_z_vel_max_up.get());
 			const float speed_down = PX4_ISFINITE(_vehicle_constraints.speed_down) ? _vehicle_constraints.speed_down :
 						 _param_mpc_z_vel_max_dn.get();
-			const float speed_horizontal = PX4_ISFINITE(_vehicle_constraints.speed_xy) ? _vehicle_constraints.speed_xy :
-						       _param_mpc_xy_vel_max.get();
 
 			// Allow ramping from zero thrust on takeoff
 			const float minimum_thrust = flying ? _param_mpc_thr_min.get() : 0.f;
@@ -429,7 +426,7 @@ void MulticopterPositionControl::Run()
 			_control.setThrustLimits(minimum_thrust, _param_mpc_thr_max.get());
 
 			_control.setVelocityLimits(
-				math::constrain(speed_horizontal, 0.f, _param_mpc_xy_vel_max.get()),
+				_param_mpc_xy_vel_max.get(),
 				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
 				math::max(speed_down, 0.f));
 
@@ -466,7 +463,7 @@ void MulticopterPositionControl::Run()
 				failsafe(time_stamp_now, failsafe_setpoint, states, !was_in_failsafe);
 
 				// reset constraints
-				_vehicle_constraints = {0, NAN, NAN, NAN, false, {}};
+				_vehicle_constraints = {0, NAN, NAN, false, {}};
 
 				_control.setInputSetpoint(failsafe_setpoint);
 				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());

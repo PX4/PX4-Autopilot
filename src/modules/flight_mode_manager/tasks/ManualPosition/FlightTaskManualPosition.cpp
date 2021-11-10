@@ -61,15 +61,9 @@ bool FlightTaskManualPosition::activate(const vehicle_local_position_setpoint_s 
 	// all requirements from altitude-mode still have to hold
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 
-	// set task specific constraint
-	if (_constraints.speed_xy >= _param_mpc_vel_manual.get()) {
-		_constraints.speed_xy = _param_mpc_vel_manual.get();
-	}
-
 	_position_setpoint(0) = _position(0);
 	_position_setpoint(1) = _position(1);
 	_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
-	_velocity_scale = _constraints.speed_xy;
 
 	// for position-controlled mode, we need a valid position and velocity state
 	// in NE-direction
@@ -92,25 +86,22 @@ void FlightTaskManualPosition::_scaleSticks()
 
 	const float max_speed_from_estimator = _sub_vehicle_local_position.get().vxy_max;
 
-	if (PX4_ISFINITE(max_speed_from_estimator)) {
-		// use the minimum of the estimator and user specified limit
-		_velocity_scale = fminf(_constraints.speed_xy, max_speed_from_estimator);
-		// Allow for a minimum of 0.3 m/s for repositioning
-		_velocity_scale = fmaxf(_velocity_scale, 0.3f);
+	float velocity_scale = _param_mpc_vel_manual.get();
 
-	} else {
-		_velocity_scale = _constraints.speed_xy;
+	if (PX4_ISFINITE(max_speed_from_estimator)) {
+		// Constrain with optical flow limit but leave 0.3 m/s for repositioning
+		velocity_scale = math::constrain(velocity_scale, 0.3f, max_speed_from_estimator);
 	}
 
 	// scale velocity to its maximum limits
-	Vector2f vel_sp_xy = stick_xy * _velocity_scale;
+	Vector2f vel_sp_xy = stick_xy * velocity_scale;
 
 	/* Rotate setpoint into local frame. */
 	_rotateIntoHeadingFrame(vel_sp_xy);
 
 	// collision prevention
 	if (_collision_prevention.is_active()) {
-		_collision_prevention.modifySetpoint(vel_sp_xy, _velocity_scale, _position.xy(), _velocity.xy());
+		_collision_prevention.modifySetpoint(vel_sp_xy, velocity_scale, _position.xy(), _velocity.xy());
 	}
 
 	_velocity_setpoint.xy() = vel_sp_xy;
