@@ -688,7 +688,7 @@ void FlightTaskAuto::_generateHeading()
 {
 	// Generate heading along trajectory if possible, otherwise hold the previous yaw setpoint
 	if (!_generateHeadingAlongTraj()) {
-		_yaw_setpoint = _yaw_sp_prev;
+		_yaw_setpoint = PX4_ISFINITE(_yaw_sp_prev) ? _yaw_sp_prev : _yaw;
 	}
 }
 
