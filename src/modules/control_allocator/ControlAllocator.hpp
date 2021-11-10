@@ -67,7 +67,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/vehicle_actuator_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::WorkItem
@@ -108,10 +107,9 @@ private:
 
 	void update_effectiveness_matrix_if_needed(bool force = false);
 
-	void publish_actuator_setpoint();
 	void publish_control_allocator_status();
 
-	void publish_legacy_actuator_controls();
+	void publish_actuator_controls();
 
 	enum class AllocationMethod {
 		NONE = -1,
@@ -137,7 +135,6 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_sub{this, ORB_ID(vehicle_thrust_setpoint)};	 /**< vehicle thrust setpoint subscription */
 
 	// Outputs
-	uORB::Publication<vehicle_actuator_setpoint_s>	_vehicle_actuator_setpoint_pub{ORB_ID(vehicle_actuator_setpoint)};	/**< actuator setpoint publication */
 	uORB::Publication<control_allocator_status_s>	_control_allocator_status_pub{ORB_ID(control_allocator_status)};	/**< actuator setpoint publication */
 
 	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};

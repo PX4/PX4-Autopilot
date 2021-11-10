@@ -70,7 +70,6 @@
 #pragma once
 
 #include <matrix/matrix/math.hpp>
-#include <uORB/topics/vehicle_actuator_setpoint.h>
 
 class ControlAllocation
 {

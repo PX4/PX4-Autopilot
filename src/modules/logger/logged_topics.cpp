@@ -198,7 +198,6 @@ void LoggedTopics::add_default_topics()
 	if (sys_ctrl_alloc >= 1) {
 		add_topic("actuator_motors", 100);
 		add_topic("actuator_servos", 100);
-		add_topic("vehicle_actuator_setpoint", 20);
 		add_topic("vehicle_angular_acceleration", 20);
 		add_topic("vehicle_angular_acceleration_setpoint", 20);
 		add_topic("vehicle_thrust_setpoint", 20);
