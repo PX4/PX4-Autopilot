@@ -51,6 +51,7 @@ public:
 
 	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	void reActivate() override;
+	bool update() override;
 
 private:
 	PositionSmoothing _position_smoothing;
@@ -65,7 +66,7 @@ protected:
 	void _ekfResetHandlerVelocityZ(float delta_vz) override;
 	void _ekfResetHandlerHeading(float delta_psi) override;
 
-	void _generateSetpoints() override; /**< Generate setpoints along line. */
+	void _generateSetpoints(); /**< Generate setpoints along line. */
 	void _generateHeading();
 	void _checkEmergencyBraking();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
