@@ -83,6 +83,15 @@ protected:
 	bool _checkTakeoff() override { return _want_takeoff; };
 	bool _want_takeoff{false};
 
+	void _prepareIdleSetpoints();
+	void _prepareLandSetpoints();
+	void _prepareVelocitySetpoints();
+	void _prepareTakeoffSetpoints();
+	void _preparePositionSetpoints();
+	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
+
+	void updateParams() override; /**< See ModuleParam class */
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
 					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
