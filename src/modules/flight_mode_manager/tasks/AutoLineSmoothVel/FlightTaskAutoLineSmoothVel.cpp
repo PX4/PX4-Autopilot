@@ -42,7 +42,11 @@ using namespace matrix;
 
 bool FlightTaskAutoLineSmoothVel::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
-	bool ret = FlightTaskAutoMapper::activate(last_setpoint);
+	bool ret = FlightTaskAuto::activate(last_setpoint);
+
+	// Set setpoints equal current state.
+	_velocity_setpoint = _velocity;
+	_position_setpoint = _position;
 
 	Vector3f vel_prev{last_setpoint.vx, last_setpoint.vy, last_setpoint.vz};
 	Vector3f pos_prev{last_setpoint.x, last_setpoint.y, last_setpoint.z};
