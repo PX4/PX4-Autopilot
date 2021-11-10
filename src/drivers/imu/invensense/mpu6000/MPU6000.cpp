@@ -437,7 +437,7 @@ uint8_t MPU6000::RegisterRead(Register reg)
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
 	set_frequency(SPI_SPEED); // low speed for regular registers
 	transfer(cmd, cmd, sizeof(cmd));
-	up_udelay(10);
+	px4_udelay(10);
 	return cmd[1];
 }
 
