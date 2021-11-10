@@ -40,13 +40,13 @@
 
 #pragma once
 
-#include "FlightTaskAutoMapper.hpp"
+#include "FlightTaskAuto.hpp"
 #include <motion_planning/PositionSmoothing.hpp>
 #include "Sticks.hpp"
 #include "StickAccelerationXY.hpp"
 #include "StickYaw.hpp"
 
-class FlightTaskAutoLineSmoothVel : public FlightTaskAutoMapper
+class FlightTaskAutoLineSmoothVel : public FlightTaskAuto
 {
 public:
 	FlightTaskAutoLineSmoothVel();
