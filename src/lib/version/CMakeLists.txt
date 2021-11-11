@@ -79,6 +79,7 @@ add_library(version version.c)
 target_compile_definitions(version
 	PUBLIC
 		PX4_BOARD_NAME="${PX4_BOARD_NAME}"
+		PX4_BOARD_LABEL="${PX4_BOARD_LABEL}"
 	PRIVATE
 		BUILD_URI=${BUILD_URI}
 	)
