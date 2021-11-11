@@ -89,14 +89,27 @@ void PPSCapture::Run()
 		return;
 	}
 
-	pps_capture_s pps_capture;
-	pps_capture.timestamp = hrt_absolute_time();
-	pps_capture.rtc_timestamp = ts_to_abstime(&_rtc_system_time);
-	uint32_t microseconds_part = pps_capture.rtc_timestamp % USEC_IN_1_SEC;
+	sensor_gps_s sensor_gps;
 
-	/* max drift time to detect with PPS is in the range between -0.5 s to +0.5 s */
-	pps_capture.rtc_drift_time = (microseconds_part >= MAX_POSITIVE_DRIFT) ? ((-1 * USEC_IN_1_SEC) + microseconds_part)
-				     : microseconds_part;
+	if (_sensor_gps_sub.update(&sensor_gps)) {
+		_last_gps_utc_timestamp = sensor_gps.time_utc_usec;
+		_last_gps_timestamp = sensor_gps.timestamp;
+	}
+
+	pps_capture_s pps_capture;
+	pps_capture.timestamp = _hrt_timestamp;
+	// GPS UTC time when the GPIO interrupt was triggered
+	// UTC time + elapsed time since the UTC time was received - eleapsed time since the PPS interrupt
+	// event
+	uint64_t gps_utc_time = _last_gps_utc_timestamp + hrt_elapsed_time(&_last_gps_timestamp)
+				- hrt_elapsed_time(&_hrt_timestamp);
+
+	// (For ubx F9P) The rising edge of the PPS pulse is aligned to the top of second GPS time base.
+	// So, remove the fraction of second and shift to the next second. The interrupt is triggered
+	// before the matching timestamp tranfered, which means the last received GPS time is always
+	// behind.
+	pps_capture.rtc_timestamp = gps_utc_time - (gps_utc_time % USEC_PER_SEC) + USEC_PER_SEC;
+
 	_pps_capture_pub.publish(pps_capture);
 }
 
@@ -104,7 +117,7 @@ int PPSCapture::gpio_interrupt_callback(int irq, void *context, void *arg)
 {
 	PPSCapture *instance = static_cast<PPSCapture *>(arg);
 
-	px4_clock_gettime(CLOCK_REALTIME, &(instance->_rtc_system_time));
+	instance->_hrt_timestamp = hrt_absolute_time();
 	instance->ScheduleNow(); // schedule work queue to publish PPS captured time
 
 	return PX4_OK;

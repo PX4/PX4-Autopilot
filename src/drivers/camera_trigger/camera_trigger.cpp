@@ -174,7 +174,8 @@ private:
 	bool 			_turning_on{false};
 	matrix::Vector2f	_last_shoot_position{0.f, 0.f};
 	bool			_valid_position{false};
-	int32_t 		_rtc_drift_time{0};
+	uint64_t    _pps_hrt_timestamp{0};
+	uint64_t    _pps_rtc_timestamp{0};
 
 	//Camera Auto Mount Pivoting Oblique Survey (CAMPOS)
 	uint32_t		_CAMPOS_num_poses{0};
@@ -828,16 +829,24 @@ CameraTrigger::engage(void *arg)
 	pps_capture_s pps_capture;
 
 	if (trig->_pps_capture_sub.update(&pps_capture)) {
-		trig->_rtc_drift_time = pps_capture.rtc_drift_time;
+		trig->_pps_hrt_timestamp = pps_capture.timestamp;
+		trig->_pps_rtc_timestamp = pps_capture.rtc_timestamp;
 	}
 
 	// Send camera trigger message. This messages indicates that we sent
 	// the camera trigger request. Does not guarantee capture.
 	camera_trigger_s trigger{};
 
-	timespec tv{};
-	px4_clock_gettime(CLOCK_REALTIME, &tv);
-	trigger.timestamp_utc = ts_to_abstime(&tv) + trig->_rtc_drift_time;
+	if (trig->_pps_hrt_timestamp > 0) {
+		// Current RTC time (RTC time captured by the PPS module + elapsed time since capture)
+		trigger.timestamp_utc = trig->_pps_rtc_timestamp + hrt_elapsed_time(&trig->_pps_hrt_timestamp);
+
+	} else {
+		// No PPS capture received, use RTC clock as fallback
+		timespec tv{};
+		px4_clock_gettime(CLOCK_REALTIME, &tv);
+		trigger.timestamp_utc = ts_to_abstime(&tv);
+	}
 
 	trigger.seq = trig->_trigger_seq;
 	trigger.feedback = false;
