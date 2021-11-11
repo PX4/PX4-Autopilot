@@ -3778,7 +3778,7 @@ void Commander::estimator_check()
 						&& (fabsf(q(1)) <= 1.f)
 						&& (fabsf(q(2)) <= 1.f)
 						&& (fabsf(q(3)) <= 1.f);
-	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= FLT_EPSILON);
+	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= 1e-6f);
 
 	const bool condition_attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
 					      && norm_in_tolerance && no_element_larger_than_one;
