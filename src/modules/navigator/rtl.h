@@ -48,7 +48,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/rtl_flight_time.h>
+#include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 #include <matrix/math.hpp>
@@ -109,6 +109,17 @@ private:
 	void advance_rtl();
 
 	float calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg);
+	void calc_and_pub_rtl_time_estimate();
+
+	float getCruiseGroundSpeed();
+
+	float getClimbRate();
+
+	float getDescendRate();
+
+	float getCruiseSpeed();
+
+	float getHoverLandSpeed();
 
 	enum RTLState {
 		RTL_STATE_NONE = 0,
@@ -159,21 +170,25 @@ private:
 		(ParamFloat<px4::params::RTL_MIN_DIST>)    _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_TYPE>)          _param_rtl_type,
 		(ParamInt<px4::params::RTL_CONE_ANG>)      _param_rtl_cone_half_angle_deg,
-		(ParamFloat<px4::params::RTL_FLT_TIME>)    _param_rtl_flt_time,
 		(ParamInt<px4::params::RTL_PLD_MD>)        _param_rtl_pld_md,
 		(ParamFloat<px4::params::RTL_LOITER_RAD>)  _param_rtl_loiter_rad,
-		(ParamInt<px4::params::RTL_HDG_MD>)        _param_rtl_hdg_md
+		(ParamInt<px4::params::RTL_HDG_MD>)        _param_rtl_hdg_md,
+		(ParamFloat<px4::params::RTL_TIME_FACTOR>) _param_rtl_time_factor,
+		(ParamInt<px4::params::RTL_TIME_MARGIN>)   _param_rtl_time_margin
 	)
 
-	// These need to point at different parameters depending on vehicle type.
-	// Can't hard-code them because we have non-MC/FW/Rover builds
-	uint8_t _rtl_vehicle_type{vehicle_status_s::VEHICLE_TYPE_UNKNOWN};
+	param_t		_param_mpc_z_vel_max_up{PARAM_INVALID};
+	param_t		_param_mpc_z_vel_max_down{PARAM_INVALID};
+	param_t		_param_mpc_land_speed{PARAM_INVALID};
+	param_t		_param_fw_climb_rate{PARAM_INVALID};
+	param_t		_param_fw_sink_rate{PARAM_INVALID};
 
-	param_t _param_rtl_xy_speed{PARAM_INVALID};
-	param_t _param_rtl_descent_speed{PARAM_INVALID};
+	param_t 	_param_fw_airspeed_trim{PARAM_INVALID};
+	param_t 	_param_mpc_xy_cruise{PARAM_INVALID};
+	param_t 	_param_rover_cruise_speed{PARAM_INVALID};
 
 	uORB::SubscriptionData<wind_s>		_wind_sub{ORB_ID(wind)};
-	uORB::Publication<rtl_flight_time_s>	_rtl_flight_time_pub{ORB_ID(rtl_flight_time)};
+	uORB::Publication<rtl_time_estimate_s> _rtl_time_estimate_pub{ORB_ID(rtl_time_estimate)};
 };
 
 float time_to_home(const matrix::Vector3f &to_home_vec,
