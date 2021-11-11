@@ -134,6 +134,9 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_weight_eco(_param_fw_t_spdweight_eco.get());
 	_tecs.set_height_error_time_constant_eco(_param_fw_t_alt_tc_eco.get());
 
+	_tecs.set_target_climb_rate(_param_climbrate_target.get());
+	_tecs.set_target_sink_rate(_param_sinkrate_target.get());
+	_tecs.set_target_climb_rate_eco(_param_fw_t_clmb_r_sp_eco.get());
 
 	// Landing slope
 	/* check if negative value for 2/3 of flare altitude is set for throttle cut */
@@ -360,11 +363,11 @@ FixedwingPositionControl::get_demanded_airspeed()
 
 float
 FixedwingPositionControl::get_cruise_airspeed_setpoint(const hrt_abstime &now, const float pos_sp_cru_airspeed,
-		const Vector2f &ground_speed, float dt)
+		const Vector2f &ground_speed, float dt, const FW_SPEED_MODE spd_mode)
 {
 	float airspeed_setpoint = _param_fw_airspd_trim.get();
 
-	if (_speed_mode_current == FW_SPEED_MODE::FW_SPEED_MODE_ECO) {
+	if (spd_mode == FW_SPEED_MODE::FW_SPEED_MODE_ECO) {
 		airspeed_setpoint = _param_fw_airspd_min.get();
 
 		// Adapt cruise airspeed setpoint based on wind estimate (disable in airspeed-less mode)
@@ -380,7 +383,7 @@ FixedwingPositionControl::get_cruise_airspeed_setpoint(const hrt_abstime &now, c
 			}
 		}
 
-	} else if (_speed_mode_current == FW_SPEED_MODE::FW_SPEED_MODE_DASH) {
+	} else if (spd_mode == FW_SPEED_MODE::FW_SPEED_MODE_DASH) {
 		airspeed_setpoint = _param_fw_airspd_max.get();
 	}
 
@@ -440,56 +443,60 @@ FixedwingPositionControl::get_cruise_airspeed_setpoint(const hrt_abstime &now, c
 	return constrain(airspeed_setpoint, adjusted_min_airspeed, _param_fw_airspd_max.get());
 }
 
-void
-FixedwingPositionControl::updateSpeedMode()
+FixedwingPositionControl::FW_SPEED_MODE
+FixedwingPositionControl::getSpeedMode()
 {
 	FW_SPEED_MODE_COMMANDED new_mode = static_cast<FW_SPEED_MODE_COMMANDED>(_param_fw_spd_mode_set.get());
 
+	FW_SPEED_MODE speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL; //default;
+
 	switch (new_mode) {
 	case NORMAL:
-		_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL; //default
+		speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL; //default
 		break;
 
 	case ECO_CRUISE:
 		if (_conditions_for_eco_dash_met && _tecs.get_flight_phase() == tecs_status_s::TECS_FLIGHT_PHASE_LEVEL) {
-			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_ECO;
+			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_ECO;
 
 		} else {
-			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
+			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
 		}
 
 		break;
 
 	case ECO_FULL:
 		if (_conditions_for_eco_dash_met) {
-			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_ECO;
+			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_ECO;
 
 		} else {
-			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
+			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
 		}
 
 		break;
 
 	case DASH_CRUISE:
 		if (_conditions_for_eco_dash_met && _tecs.get_flight_phase() == tecs_status_s::TECS_FLIGHT_PHASE_LEVEL) {
-			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_DASH;
+			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_DASH;
 
 		} else {
-			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
+			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
 		}
 
 		break;
 
 	case DASH_FULL:
 		if (_conditions_for_eco_dash_met) {
-			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_DASH;
+			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_DASH;
 
 		} else {
-			_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
+			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
 		}
 
 		break;
 	}
+
+	return speed_mode_current;
 }
 
 void
@@ -517,7 +524,6 @@ FixedwingPositionControl::resetAutoSpeedAdaptions()
 {
 	_conditions_for_eco_dash_met = false;
 	_time_conditions_not_met = _local_pos.timestamp;
-	_speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL;
 }
 
 void
@@ -665,8 +671,7 @@ FixedwingPositionControl::getManualHeightRateSetpoint()
 	} else if (_manual_control_setpoint_altitude < - deadBand) {
 		/* pitching up */
 		float pitch = -(_manual_control_setpoint_altitude + deadBand) / factor;
-		const float climb_rate_target = _speed_mode_current == FW_SPEED_MODE::FW_SPEED_MODE_ECO ?
-						_param_fw_t_clmb_r_sp_eco.get() : _param_climbrate_target.get();
+		const float climb_rate_target = _param_climbrate_target.get();
 
 		height_rate_setpoint = pitch * climb_rate_target;
 	}
@@ -791,7 +796,7 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	const bool was_circle_mode = _l1_control.circle_mode();
 
 	check_eco_dash_allowed();
-	updateSpeedMode();
+	FW_SPEED_MODE spd_mode = getSpeedMode();
 
 	/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
@@ -843,11 +848,11 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_POSITION:
-		control_auto_position(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp);
+		control_auto_position(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp, spd_mode);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
-		control_auto_loiter(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
+		control_auto_loiter(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next, spd_mode);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LAND:
@@ -1042,7 +1047,8 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 
 void
 FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
-		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
+		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
+		const FW_SPEED_MODE spd_mode)
 {
 	const float acc_rad = _l1_control.switch_distance(500.0f);
 	Vector2d curr_wp{0, 0};
@@ -1130,20 +1136,21 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const fl
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	tecs_update_pitch_throttle(now, position_sp_alt,
-				   get_cruise_airspeed_setpoint(now, pos_sp_curr.cruising_speed, ground_speed, dt),
+				   get_cruise_airspeed_setpoint(now, pos_sp_curr.cruising_speed, ground_speed, dt, spd_mode),
 				   radians(_param_fw_p_lim_min.get()),
 				   radians(_param_fw_p_lim_max.get()),
 				   tecs_fw_thr_min,
 				   tecs_fw_thr_max,
 				   tecs_fw_mission_throttle,
 				   false,
-				   radians(_param_fw_p_lim_min.get()));
+				   radians(_param_fw_p_lim_min.get()),
+				   spd_mode == FW_SPEED_MODE_ECO);
 }
 
 void
 FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr,
-		const position_setpoint_s &pos_sp_next)
+		const position_setpoint_s &pos_sp_next, const FW_SPEED_MODE spd_mode)
 {
 	Vector2d curr_wp{0, 0};
 	Vector2d prev_wp{0, 0};
@@ -1235,14 +1242,15 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const floa
 	}
 
 	tecs_update_pitch_throttle(now, alt_sp,
-				   get_cruise_airspeed_setpoint(now, mission_airspeed, ground_speed, dt),
+				   get_cruise_airspeed_setpoint(now, mission_airspeed, ground_speed, dt, spd_mode),
 				   radians(_param_fw_p_lim_min.get()),
 				   radians(_param_fw_p_lim_max.get()),
 				   tecs_fw_thr_min,
 				   tecs_fw_thr_max,
 				   tecs_fw_mission_throttle,
 				   false,
-				   radians(_param_fw_p_lim_min.get()));
+				   radians(_param_fw_p_lim_min.get()),
+				   spd_mode == FW_SPEED_MODE_ECO);
 }
 
 void
@@ -1306,7 +1314,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		tecs_update_pitch_throttle(now, pos_sp_curr.alt,
 					   get_cruise_airspeed_setpoint(now, _runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get(), ground_speed,
-							   dt),
+							   dt, FW_SPEED_MODE::FW_SPEED_MODE_NORMAL),
 					   radians(_param_fw_p_lim_min.get()),
 					   radians(takeoff_pitch_max_deg),
 					   _param_fw_thr_min.get(),
@@ -1391,7 +1399,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			} else {
 				tecs_update_pitch_throttle(now, pos_sp_curr.alt,
-							   get_cruise_airspeed_setpoint(now, _param_fw_airspd_trim.get(), ground_speed, dt),
+							   get_cruise_airspeed_setpoint(now, _param_fw_airspd_trim.get(), ground_speed, dt, FW_SPEED_MODE::FW_SPEED_MODE_NORMAL),
 							   radians(_param_fw_p_lim_min.get()),
 							   radians(_param_fw_p_lim_max.get()),
 							   _param_fw_thr_min.get(),
@@ -1609,7 +1617,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		const float throttle_land = _param_fw_thr_min.get() + (_param_fw_thr_max.get() - _param_fw_thr_min.get()) * 0.1f;
 
 		tecs_update_pitch_throttle(now, terrain_alt + flare_curve_alt_rel,
-					   get_cruise_airspeed_setpoint(now, airspeed_land, ground_speed, dt),
+					   get_cruise_airspeed_setpoint(now, airspeed_land, ground_speed, dt, FW_SPEED_MODE::FW_SPEED_MODE_NORMAL),
 					   radians(_param_fw_lnd_fl_pmin.get()),
 					   radians(_param_fw_lnd_fl_pmax.get()),
 					   0.0f,
@@ -1679,7 +1687,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		const float airspeed_approach = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
 
 		tecs_update_pitch_throttle(now, altitude_desired,
-					   get_cruise_airspeed_setpoint(now, airspeed_approach, ground_speed, dt),
+					   get_cruise_airspeed_setpoint(now, airspeed_approach, ground_speed, dt, FW_SPEED_MODE::FW_SPEED_MODE_NORMAL),
 					   radians(_param_fw_p_lim_min.get()),
 					   radians(_param_fw_p_lim_max.get()),
 					   _param_fw_thr_min.get(),
@@ -2172,7 +2180,8 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		float pitch_min_rad, float pitch_max_rad,
 		float throttle_min, float throttle_max, float throttle_cruise,
 		bool climbout_mode, float climbout_pitch_min_rad,
-		bool disable_underspeed_detection, float hgt_rate_sp)
+		bool disable_underspeed_detection, float hgt_rate_sp,
+		bool eco_mode_enabled)
 {
 	const float dt = math::constrain((now - _last_tecs_update) * 1e-6f, 0.01f, 0.05f);
 	_last_tecs_update = now;
@@ -2265,9 +2274,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		}
 	}
 
-	const float climb_rate_target = _speed_mode_current == FW_SPEED_MODE::FW_SPEED_MODE_ECO ?
-					_param_fw_t_clmb_r_sp_eco.get() : _param_climbrate_target.get();
-
 	_tecs.update_pitch_throttle(_pitch - radians(_param_fw_psp_off.get()),
 				    _current_altitude, alt_sp,
 				    airspeed_sp, _airspeed, _eas2tas,
@@ -2276,8 +2282,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    throttle_min, throttle_max, throttle_cruise,
 				    pitch_min_rad - radians(_param_fw_psp_off.get()),
 				    pitch_max_rad - radians(_param_fw_psp_off.get()),
-				    climb_rate_target, _param_sinkrate_target.get(), hgt_rate_sp,
-				    _speed_mode_current == FW_SPEED_MODE::FW_SPEED_MODE_ECO);
+				    hgt_rate_sp, eco_mode_enabled);
 }
 
 void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_sp)

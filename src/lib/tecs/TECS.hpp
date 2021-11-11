@@ -94,7 +94,7 @@ public:
 	void update_pitch_throttle(float pitch, float baro_altitude, float hgt_setpoint,
 				   float EAS_setpoint, float equivalent_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
 				   float throttle_min, float throttle_setpoint_max, float throttle_cruise,
-				   float pitch_limit_min, float pitch_limit_max, float target_climbrate, float target_sinkrate, float hgt_rate_sp = NAN,
+				   float pitch_limit_min, float pitch_limit_max, float hgt_rate_sp = NAN,
 				   bool eco_mode_enabled = false);
 
 	void reset_state() { _states_initialized = false; }
@@ -142,9 +142,13 @@ public:
 
 	void set_seb_rate_ff_gain(float ff_gain) { _SEB_rate_ff = ff_gain; }
 
+	void set_target_climb_rate(float target_climb_rate) { _target_climb_rate = target_climb_rate; }
+	void set_target_sink_rate(float target_sink_rate) { _target_sink_rate = target_sink_rate; }
+
 	// eco mode settings
 	void set_speed_weight_eco(float weight_eco) { _pitch_speed_weight_eco = weight_eco; }
 	void set_height_error_time_constant_eco(float time_const_eco) { _height_error_gain_eco = 1.0f / math::max(time_const_eco, 0.1f); }
+	void set_target_climb_rate_eco(float target_climb_rate_eco) { _target_climb_rate_eco = target_climb_rate_eco; }
 
 	// getters
 	float get_throttle_setpoint() { return _last_throttle_setpoint; }
@@ -217,6 +221,7 @@ private:
 
 	float _height_error_gain_eco{0.2f};				///< in eco mode: height error inverse time constant [1/s]
 	float _pitch_speed_weight_eco{1.0f};				///< in eco mode: speed control weighting used by pitch demand calculation
+	float _target_climb_rate_eco{2.f};
 
 	// complimentary filter states
 	float _vert_vel_state{0.0f};					///< complimentary filter state - height rate (m/sec)
@@ -275,6 +280,9 @@ private:
 	// speed height weighting
 	float _SPE_weighting{1.0f};
 	float _SKE_weighting{1.0f};
+
+	float _target_climb_rate{3.f};
+	float _target_sink_rate{2.f};
 
 	// time steps (non-fixed)
 	float _dt{DT_DEFAULT};						///< Time since last update of main TECS loop (sec)

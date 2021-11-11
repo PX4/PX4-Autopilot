@@ -586,7 +586,7 @@ void TECS::_update_STE_rate_lim()
 void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_setpoint,
 				 float EAS_setpoint, float equivalent_airspeed, float eas_to_tas, bool climb_out_setpoint, float pitch_min_climbout,
 				 float throttle_min, float throttle_max, float throttle_cruise, float pitch_limit_min, float pitch_limit_max,
-				 float target_climbrate, float target_sinkrate, float hgt_rate_sp, bool eco_mode_enabled)
+				 float hgt_rate_sp, bool eco_mode_enabled)
 {
 	// Calculate the time since last update (seconds)
 	uint64_t now = hrt_absolute_time();
@@ -630,7 +630,9 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 
 	_updateFlightPhase(hgt_setpoint, hgt_rate_sp);
 
-	_calculateHeightRateSetpoint(hgt_setpoint, hgt_rate_sp, target_climbrate, target_sinkrate, baro_altitude);
+	const float target_climb_rate = _tecs_mode == ECL_TECS_MODE_ECO ? _target_climb_rate_eco : _target_climb_rate;
+
+	_calculateHeightRateSetpoint(hgt_setpoint, hgt_rate_sp, target_climb_rate, _target_sink_rate, baro_altitude);
 
 	// Calculate the specific energy values required by the control loop
 	_update_energy_estimates();

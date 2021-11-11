@@ -272,7 +272,7 @@ private:
 		FW_SPEED_MODE_NORMAL,
 		FW_SPEED_MODE_ECO,
 		FW_SPEED_MODE_DASH,
-	} _speed_mode_current{FW_SPEED_MODE_NORMAL};
+	};
 
 	enum FW_SPEED_MODE_COMMANDED {
 		NORMAL,
@@ -280,7 +280,7 @@ private:
 		ECO_FULL,
 		DASH_CRUISE,
 		DASH_FULL
-	} _speed_mode_setting{NORMAL};
+	};
 
 	bool _conditions_for_eco_dash_met{false};
 	hrt_abstime _time_conditions_not_met{0};
@@ -345,11 +345,12 @@ private:
 	void		control_auto_descend(const hrt_abstime &now);
 
 	void		control_auto_position(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
-					      const Vector2f &ground_speed,
-					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+					      const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+					      const position_setpoint_s &pos_sp_curr, const FW_SPEED_MODE spd_mode);
 	void		control_auto_loiter(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
-					    const Vector2f &ground_speed,
-					    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+					    const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+					    const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next,
+					    const FW_SPEED_MODE spd_mode);
 	void		control_auto_takeoff(const hrt_abstime &now, const float dt,  const Vector2d &curr_pos,
 					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,
@@ -366,7 +367,7 @@ private:
 
 	float		get_demanded_airspeed();
 	float		get_cruise_airspeed_setpoint(const hrt_abstime &now, const float pos_sp_cru_airspeed,
-			const Vector2f &ground_speed, float dt);
+			const Vector2f &ground_speed, float dt, const FW_SPEED_MODE spd_mode);
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
@@ -376,7 +377,7 @@ private:
 	void 		publishOrbitStatus(const position_setpoint_s pos_sp);
 
 	void		check_eco_dash_allowed();
-	void		updateSpeedMode();
+	FW_SPEED_MODE	getSpeedMode();
 	void		update_wind_mode();
 	void		resetAutoSpeedAdaptions();
 
@@ -387,7 +388,8 @@ private:
 					float pitch_min_rad, float pitch_max_rad,
 					float throttle_min, float throttle_max, float throttle_cruise,
 					bool climbout_mode, float climbout_pitch_min_rad,
-					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
+					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN,
+					bool enable_eco_mode = false);
 
 	DEFINE_PARAMETERS(
 
