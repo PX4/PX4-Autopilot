@@ -1427,6 +1427,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
 	case vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE:
 	case vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN:
+	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
