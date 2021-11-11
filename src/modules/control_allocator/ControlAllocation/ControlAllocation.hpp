@@ -132,7 +132,8 @@ public:
 	 *
 	 * @return Control vector
 	 */
-	const matrix::Vector<float, NUM_AXES> &getAllocatedControl() const { return _control_allocated; }
+	matrix::Vector<float, NUM_AXES> getAllocatedControl() const
+	{ return (_effectiveness * _actuator_sp).emult(_control_allocation_scale); }
 
 	/**
 	 * Get the control effectiveness matrix
@@ -190,11 +191,6 @@ public:
 	void clipActuatorSetpoint(matrix::Vector<float, NUM_ACTUATORS> &actuator) const;
 
 	/**
-	 * Compute the amount of allocated control thrust and torque
-	 */
-	void updateControlAllocated();
-
-	/**
 	 * Normalize the actuator setpoint between minimum and maximum values.
 	 *
 	 * The output is in the range [-1; +1]
@@ -218,7 +214,6 @@ protected:
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_max; 	//< Maximum actuator values
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	//< Actuator setpoint
 	matrix::Vector<float, NUM_AXES> _control_sp;   		//< Control setpoint
-	matrix::Vector<float, NUM_AXES> _control_allocated;  	//< Allocated control
 	matrix::Vector<float, NUM_AXES> _control_trim;  	//< Control at trim actuator values
 	int _num_actuators{0};
 };
