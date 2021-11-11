@@ -132,7 +132,7 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 
 	_tecs.set_speed_weight_eco(_param_fw_t_spdweight_eco.get());
-	_tecs.set_height_error_time_constant_eco(_param_fw_t_h_error_tc_eco.get());
+	_tecs.set_height_error_time_constant_eco(_param_fw_t_alt_tc_eco.get());
 
 
 	// Landing slope
@@ -443,7 +443,7 @@ FixedwingPositionControl::get_cruise_airspeed_setpoint(const hrt_abstime &now, c
 void
 FixedwingPositionControl::updateSpeedMode()
 {
-	FW_SPEED_MODE_COMMANDED new_mode = static_cast<FW_SPEED_MODE_COMMANDED>(_fw_spd_mode_set.get());
+	FW_SPEED_MODE_COMMANDED new_mode = static_cast<FW_SPEED_MODE_COMMANDED>(_param_fw_spd_mode_set.get());
 
 	switch (new_mode) {
 	case NORMAL:
@@ -495,9 +495,9 @@ FixedwingPositionControl::updateSpeedMode()
 void
 FixedwingPositionControl::check_eco_dash_allowed()
 {
-	const float altitude_amsl_min = max(_tecs.get_hgt_setpoint() - fw_alt_err_u.get(),
-					    _local_pos.ref_alt + fw_alt_min.get());
-	const float altitude_amsl_max = _tecs.get_hgt_setpoint() + fw_alt_err_o.get();
+	const float altitude_amsl_min = max(_tecs.get_hgt_setpoint() - _param_fw_spdm_alt_er_u.get(),
+					    _local_pos.ref_alt + _param_fw_alt_spdm_min.get());
+	const float altitude_amsl_max = _tecs.get_hgt_setpoint() + _param_fw_spdm_alt_er_o.get();
 
 	const bool altitdue_conditions_met = _current_altitude <= altitude_amsl_max
 					     && _current_altitude >= altitude_amsl_min;

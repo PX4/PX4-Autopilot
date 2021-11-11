@@ -901,7 +901,7 @@ PARAM_DEFINE_INT32(FW_SPD_MODE_SET, 0);
  * @increment 0.1
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_ALT_ERR_U, 10.f);
+PARAM_DEFINE_FLOAT(FW_SPDM_ALT_ER_U, 10.f);
 
 /**
  * Max altitude overshoot for Eco/Dash
@@ -914,7 +914,7 @@ PARAM_DEFINE_FLOAT(FW_ALT_ERR_U, 10.f);
  * @increment 0.1
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_ALT_ERR_O, 20.f);
+PARAM_DEFINE_FLOAT(FW_SPDM_ALT_ER_O, 20.f);
 
 /**
  * Min altitude for Eco/Dash
@@ -927,7 +927,7 @@ PARAM_DEFINE_FLOAT(FW_ALT_ERR_O, 20.f);
  * @increment 0.1
  * @group FW TECS
  */
-PARAM_DEFINE_FLOAT(FW_ALT_MIN, 50.f);
+PARAM_DEFINE_FLOAT(FW_SPDM_ALT_MIN, 50.f);
 
 /**
  * Eco Mode: Speed <--> Altitude priority
