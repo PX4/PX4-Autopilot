@@ -859,7 +859,7 @@ PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);
  * Wind-based airspeed scaling factor in Eco
  *
  * Multiplying this factor with the current absolute wind estimate gives the airspeed offset
- * added to the setpoint (which is FW_AIRSPD_MIN) in Eco mode. This helps to make the
+ * added to the setpoint (which is FW_AIRSPD_MIN) in Eco mode (see FW_SPD_MODE_SET). This helps to make the
  * system more robust against disturbances in high wind.
  *
  * setpoint = FW_AIRSPD_MIN + FW_LND_AIRSPD_SC * wind
@@ -893,7 +893,7 @@ PARAM_DEFINE_INT32(FW_SPD_MODE_SET, 0);
 /**
  * Max altitude undershoot for Eco/Dash
  *
- * Eco/Dash mode is disabled if the current altitude is more than this value below the setpoint.
+ * Eco/Dash mode is disabled if the current altitude overshoots the setpoint by this value.
  *
  * @min 1.0
  * @max 50.0
@@ -906,7 +906,7 @@ PARAM_DEFINE_FLOAT(FW_SPDM_ALT_ER_U, 10.f);
 /**
  * Max altitude overshoot for Eco/Dash
  *
- * Eco/Dash mode is disabled if the current altitude is more than this value above the setpoint.
+ * Eco/Dash mode is disabled if the current altitude undershoots the setpoint by this value.
  *
  * @min 1.0
  * @max 50.0
@@ -917,7 +917,7 @@ PARAM_DEFINE_FLOAT(FW_SPDM_ALT_ER_U, 10.f);
 PARAM_DEFINE_FLOAT(FW_SPDM_ALT_ER_O, 20.f);
 
 /**
- * Min altitude for Eco/Dash
+ * Minimum height above home for Eco/Dash
  *
  * Eco/Dash mode can be enabled if above this relative altitude to home.
  *
@@ -930,7 +930,7 @@ PARAM_DEFINE_FLOAT(FW_SPDM_ALT_ER_O, 20.f);
 PARAM_DEFINE_FLOAT(FW_SPDM_ALT_MIN, 50.f);
 
 /**
- * Eco Mode: Speed <--> Altitude priority
+ * Speed <--> Altitude priority in Eco mode
  *
  * @min 0.0
  * @max 2.0

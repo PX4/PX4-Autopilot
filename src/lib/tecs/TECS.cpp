@@ -714,6 +714,10 @@ TECS::tecs_status_publish(const hrt_abstime &now)
 
 	case TECS::ECL_TECS_MODE_ECO:
 		tecs_status.mode = tecs_status_s::TECS_MODE_ECO;
+		break;
+
+	default:
+		tecs_status.mode = tecs_status_s::TECS_MODE_NORMAL;
 	}
 
 	tecs_status.altitude_sp = _hgt_setpoint;

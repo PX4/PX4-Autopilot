@@ -448,6 +448,21 @@ FixedwingPositionControl::getSpeedMode()
 {
 	FW_SPEED_MODE_COMMANDED new_mode = static_cast<FW_SPEED_MODE_COMMANDED>(_param_fw_spd_mode_set.get());
 
+	const float altitude_amsl_min = max(_tecs.get_hgt_setpoint() - _param_fw_spdm_alt_er_u.get(),
+					    _local_pos.ref_alt + _param_fw_alt_spdm_min.get());
+	const float altitude_amsl_max = _tecs.get_hgt_setpoint() + _param_fw_spdm_alt_er_o.get();
+
+	const bool altitude_conditions_met = _current_altitude <= altitude_amsl_max
+					     && _current_altitude >= altitude_amsl_min;
+
+	if (!altitude_conditions_met) {
+		// reset timer
+		_time_conditions_not_met = _local_pos.timestamp;
+	}
+
+	// add a 10s timeout after conditions where not met
+	const bool conditions_for_eco_dash_met = hrt_elapsed_time(&_time_conditions_not_met) > 10_s;
+
 	FW_SPEED_MODE speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_NORMAL; //default;
 
 	switch (new_mode) {
@@ -456,7 +471,7 @@ FixedwingPositionControl::getSpeedMode()
 		break;
 
 	case ECO_CRUISE:
-		if (_conditions_for_eco_dash_met && _tecs.get_flight_phase() == tecs_status_s::TECS_FLIGHT_PHASE_LEVEL) {
+		if (conditions_for_eco_dash_met && _tecs.get_flight_phase() == tecs_status_s::TECS_FLIGHT_PHASE_LEVEL) {
 			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_ECO;
 
 		} else {
@@ -466,7 +481,7 @@ FixedwingPositionControl::getSpeedMode()
 		break;
 
 	case ECO_FULL:
-		if (_conditions_for_eco_dash_met) {
+		if (conditions_for_eco_dash_met) {
 			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_ECO;
 
 		} else {
@@ -476,7 +491,7 @@ FixedwingPositionControl::getSpeedMode()
 		break;
 
 	case DASH_CRUISE:
-		if (_conditions_for_eco_dash_met && _tecs.get_flight_phase() == tecs_status_s::TECS_FLIGHT_PHASE_LEVEL) {
+		if (conditions_for_eco_dash_met && _tecs.get_flight_phase() == tecs_status_s::TECS_FLIGHT_PHASE_LEVEL) {
 			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_DASH;
 
 		} else {
@@ -486,7 +501,7 @@ FixedwingPositionControl::getSpeedMode()
 		break;
 
 	case DASH_FULL:
-		if (_conditions_for_eco_dash_met) {
+		if (conditions_for_eco_dash_met) {
 			speed_mode_current = FW_SPEED_MODE::FW_SPEED_MODE_DASH;
 
 		} else {
@@ -500,29 +515,8 @@ FixedwingPositionControl::getSpeedMode()
 }
 
 void
-FixedwingPositionControl::check_eco_dash_allowed()
+FixedwingPositionControl::resetEcoDashAllowed()
 {
-	const float altitude_amsl_min = max(_tecs.get_hgt_setpoint() - _param_fw_spdm_alt_er_u.get(),
-					    _local_pos.ref_alt + _param_fw_alt_spdm_min.get());
-	const float altitude_amsl_max = _tecs.get_hgt_setpoint() + _param_fw_spdm_alt_er_o.get();
-
-	const bool altitdue_conditions_met = _current_altitude <= altitude_amsl_max
-					     && _current_altitude >= altitude_amsl_min;
-
-	// add a 10s timeout after conditions where not met
-	_conditions_for_eco_dash_met = altitdue_conditions_met && hrt_elapsed_time(&_time_conditions_not_met) > 10_s;
-
-
-	if (!altitdue_conditions_met) {
-		// reset timer
-		_time_conditions_not_met = _local_pos.timestamp;
-	}
-}
-
-void
-FixedwingPositionControl::resetAutoSpeedAdaptions()
-{
-	_conditions_for_eco_dash_met = false;
 	_time_conditions_not_met = _local_pos.timestamp;
 }
 
@@ -795,7 +789,6 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	/* get circle mode */
 	const bool was_circle_mode = _l1_control.circle_mode();
 
-	check_eco_dash_allowed();
 	FW_SPEED_MODE spd_mode = getSpeedMode();
 
 	/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
@@ -2039,25 +2032,25 @@ FixedwingPositionControl::Run()
 
 		case FW_POSCTRL_MODE_AUTO_ALTITUDE: {
 				control_auto_fixed_bank_alt_hold(_local_pos.timestamp);
-				resetAutoSpeedAdaptions();
+				resetEcoDashAllowed();
 				break;
 			}
 
 		case FW_POSCTRL_MODE_AUTO_CLIMBRATE: {
 				control_auto_descend(_local_pos.timestamp);
-				resetAutoSpeedAdaptions();
+				resetEcoDashAllowed();
 				break;
 			}
 
 		case FW_POSCTRL_MODE_MANUAL_POSITION: {
 				control_manual_position(_local_pos.timestamp, curr_pos, ground_speed);
-				resetAutoSpeedAdaptions();
+				resetEcoDashAllowed();
 				break;
 			}
 
 		case FW_POSCTRL_MODE_MANUAL_ALTITUDE: {
 				control_manual_altitude(_local_pos.timestamp, curr_pos, ground_speed);
-				resetAutoSpeedAdaptions();
+				resetEcoDashAllowed();
 				break;
 			}
 
@@ -2068,7 +2061,7 @@ FixedwingPositionControl::Run()
 					reset_takeoff_state();
 				}
 
-				resetAutoSpeedAdaptions();
+				resetEcoDashAllowed();
 
 				_att_sp.thrust_body[0] = min(_att_sp.thrust_body[0], _param_fw_thr_max.get());
 

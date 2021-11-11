@@ -282,7 +282,7 @@ private:
 		DASH_FULL
 	};
 
-	bool _conditions_for_eco_dash_met{false};
+	// bool _conditions_for_eco_dash_met{false};
 	hrt_abstime _time_conditions_not_met{0};
 
 	float _last_airspeed_setpoint{NAN};
@@ -376,10 +376,9 @@ private:
 
 	void 		publishOrbitStatus(const position_setpoint_s pos_sp);
 
-	void		check_eco_dash_allowed();
 	FW_SPEED_MODE	getSpeedMode();
 	void		update_wind_mode();
-	void		resetAutoSpeedAdaptions();
+	void		resetEcoDashAllowed();
 
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation
