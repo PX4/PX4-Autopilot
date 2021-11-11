@@ -217,6 +217,9 @@ int ver_main(int argc, char *argv[])
 
 			}
 
+			if (show_all) {
+				printf("Build variant: %s\n", px4_board_target_label());
+			}
 
 			if (show_all || !strncmp(argv[1], sz_ver_gcc_str, sizeof(sz_ver_gcc_str))) {
 				printf("Toolchain: %s, %s\n", px4_toolchain_name(), px4_toolchain_version());
