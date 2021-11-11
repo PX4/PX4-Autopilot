@@ -155,6 +155,7 @@ private:
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
+	hrt_abstime _last_status_pub{0};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
