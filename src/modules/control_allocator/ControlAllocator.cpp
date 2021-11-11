@@ -93,46 +93,6 @@ ControlAllocator::parameters_updated()
 		return;
 	}
 
-	// Minimum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> actuator_min;
-	actuator_min(0) = _param_ca_act0_min.get();
-	actuator_min(1) = _param_ca_act1_min.get();
-	actuator_min(2) = _param_ca_act2_min.get();
-	actuator_min(3) = _param_ca_act3_min.get();
-	actuator_min(4) = _param_ca_act4_min.get();
-	actuator_min(5) = _param_ca_act5_min.get();
-	actuator_min(6) = _param_ca_act6_min.get();
-	actuator_min(7) = _param_ca_act7_min.get();
-	actuator_min(8) = _param_ca_act8_min.get();
-	actuator_min(9) = _param_ca_act9_min.get();
-	actuator_min(10) = _param_ca_act10_min.get();
-	actuator_min(11) = _param_ca_act11_min.get();
-	actuator_min(12) = _param_ca_act12_min.get();
-	actuator_min(13) = _param_ca_act13_min.get();
-	actuator_min(14) = _param_ca_act14_min.get();
-	actuator_min(15) = _param_ca_act15_min.get();
-	_control_allocation->setActuatorMin(actuator_min);
-
-	// Maximum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> actuator_max;
-	actuator_max(0) = _param_ca_act0_max.get();
-	actuator_max(1) = _param_ca_act1_max.get();
-	actuator_max(2) = _param_ca_act2_max.get();
-	actuator_max(3) = _param_ca_act3_max.get();
-	actuator_max(4) = _param_ca_act4_max.get();
-	actuator_max(5) = _param_ca_act5_max.get();
-	actuator_max(6) = _param_ca_act6_max.get();
-	actuator_max(7) = _param_ca_act7_max.get();
-	actuator_max(8) = _param_ca_act8_max.get();
-	actuator_max(9) = _param_ca_act9_max.get();
-	actuator_max(10) = _param_ca_act10_max.get();
-	actuator_max(11) = _param_ca_act11_max.get();
-	actuator_max(12) = _param_ca_act12_max.get();
-	actuator_max(13) = _param_ca_act13_max.get();
-	actuator_max(14) = _param_ca_act14_max.get();
-	actuator_max(15) = _param_ca_act15_max.get();
-	_control_allocation->setActuatorMax(actuator_max);
-
 	_control_allocation->updateParameters();
 	update_effectiveness_matrix_if_needed(true);
 }

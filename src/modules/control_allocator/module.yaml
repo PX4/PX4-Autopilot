@@ -18,6 +18,17 @@ parameters:
                 2: Tiltrotor VTOL (WIP)
             default: 0
 
+        CA_METHOD:
+            description:
+                short: Control allocation method
+                long: |
+                  Selects the algorithm and desaturation method
+            type: enum
+            values:
+                0: Pseudo-inverse with output clipping
+                1: Pseudo-inverse with sequential desaturation technique
+            default: 1
+
         # MC rotors
         CA_MC_R_COUNT:
             description:

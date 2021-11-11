@@ -74,7 +74,7 @@
 class ControlAllocation
 {
 public:
-	ControlAllocation() { _control_allocation_scale.setAll(1.f); }
+	ControlAllocation();
 	virtual ~ControlAllocation() = default;
 
 	static constexpr uint8_t NUM_ACTUATORS = 16;
