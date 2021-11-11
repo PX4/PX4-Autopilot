@@ -1320,7 +1320,7 @@ GPS *GPS::instantiate(int argc, char *argv[])
 
 GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 {
-	const char *device_name = "/dev/ttyS3";
+	const char *device_name = nullptr;
 	const char *device_name_secondary = nullptr;
 	int baudrate_main = 0;
 	int baudrate_secondary = 0;
@@ -1427,9 +1427,14 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 		return nullptr;
 	}
 
-	GPS *gps;
+	GPS *gps = nullptr;
 	if (instance == Instance::Main) {
-		gps = new GPS(device_name, mode, interface, enable_sat_info, instance, baudrate_main);
+		if (device_name && (access(device_name, R_OK|W_OK) == 0)) {
+			gps = new GPS(device_name, mode, interface, enable_sat_info, instance, baudrate_main);
+
+		} else {
+			PX4_ERR("invalid device (-d) %s", device_name ? device_name  : "");
+		}
 
 		if (gps && device_name_secondary) {
 			task_spawn(argc, argv, Instance::Secondary);
@@ -1447,7 +1452,12 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			}
 		}
 	} else { // secondary instance
-		gps = new GPS(device_name_secondary, mode, interface_secondary, enable_sat_info, instance, baudrate_secondary);
+		if (device_name_secondary && (access(device_name_secondary, R_OK|W_OK) == 0)) {
+			gps = new GPS(device_name_secondary, mode, interface_secondary, enable_sat_info, instance, baudrate_secondary);
+
+		} else {
+			PX4_ERR("invalid secondary device (-g) %s", device_name_secondary ? device_name_secondary : "");
+		}
 	}
 
 	return gps;
