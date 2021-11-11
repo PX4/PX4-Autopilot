@@ -120,6 +120,7 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
 	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
+	param_get(_paramHandle.crawlSpeed, &_params.crawlSpeed);
 
 	if (_param_lndmc_z_vel_max.get() > _params.landSpeed) {
 		PX4_ERR("LNDMC_Z_VEL_MAX > MPC_LAND_SPEED, updating %.3f -> %.3f",
