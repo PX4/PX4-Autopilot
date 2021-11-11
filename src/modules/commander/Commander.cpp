@@ -3606,17 +3606,6 @@ void Commander::avoidance_check()
 
 void Commander::battery_status_check()
 {
-	battery_status_s batteries[_battery_status_subs.size()];
-	size_t num_connected_batteries = 0;
-
-	for (auto &battery_sub : _battery_status_subs) {
-		if (battery_sub.copy(&batteries[num_connected_batteries])) {
-			if (batteries[num_connected_batteries].connected) {
-				num_connected_batteries++;
-			}
-		}
-	}
-
 	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
 	// option is to check if ANY of them have a warning, and specifically find which one has the most
 	// urgent warning.
@@ -3624,52 +3613,62 @@ void Commander::battery_status_check()
 	// To make sure that all connected batteries are being regularly reported, we check which one has the
 	// oldest timestamp.
 	hrt_abstime oldest_update = hrt_absolute_time();
+	size_t num_connected_batteries{0};
+	float worst_battery_time_s{NAN};
 
 	_battery_current = 0.0f;
-	float battery_level = 0.0f;
 
+	for (auto &battery_sub : _battery_status_subs) {
+		battery_status_s battery;
 
-	// Only iterate over connected batteries. We don't care if a disconnected battery is not regularly publishing.
-	for (size_t i = 0; i < num_connected_batteries; i++) {
-		if (batteries[i].warning > worst_warning) {
-			worst_warning = batteries[i].warning;
+		if (!battery_sub.copy(&battery)) {
+			continue;
 		}
 
-		if (hrt_elapsed_time(&batteries[i].timestamp) > hrt_elapsed_time(&oldest_update)) {
-			oldest_update = batteries[i].timestamp;
-		}
+		if (battery.connected) {
+			num_connected_batteries++;
 
-		// Sum up current from all batteries.
-		_battery_current += batteries[i].current_filtered_a;
+			if (battery.warning > worst_warning) {
+				worst_warning = battery.warning;
+			}
 
-		// average levels from all batteries
-		battery_level += batteries[i].remaining;
-	}
+			if (battery.timestamp < oldest_update) {
+				oldest_update = battery.timestamp;
+			}
 
-	battery_level /= num_connected_batteries;
+			if (PX4_ISFINITE(battery.time_remaining_s)
+			    && (!PX4_ISFINITE(worst_battery_time_s)
+				|| (PX4_ISFINITE(worst_battery_time_s) && (battery.time_remaining_s < worst_battery_time_s)))) {
+				worst_battery_time_s = battery.time_remaining_s;
+			}
 
-	_rtl_flight_time_sub.update();
-	float battery_usage_to_home = 0;
-
-	if (hrt_absolute_time() - _rtl_flight_time_sub.get().timestamp < 2_s) {
-		battery_usage_to_home = _rtl_flight_time_sub.get().rtl_limit_fraction;
-	}
-
-	uint8_t battery_range_warning = battery_status_s::BATTERY_WARNING_NONE;
-
-	if (PX4_ISFINITE(battery_usage_to_home)) {
-		float battery_at_home = battery_level - battery_usage_to_home;
-
-		if (battery_at_home < _param_bat_crit_thr.get()) {
-			battery_range_warning =  battery_status_s::BATTERY_WARNING_CRITICAL;
-
-		} else if (battery_at_home < _param_bat_low_thr.get()) {
-			battery_range_warning = battery_status_s::BATTERY_WARNING_LOW;
+			// Sum up current from all batteries.
+			_battery_current += battery.current_filtered_a;
 		}
 	}
 
-	if (battery_range_warning > worst_warning) {
-		worst_warning = battery_range_warning;
+	rtl_time_estimate_s rtl_time_estimate{};
+
+	// Compare estimate of RTL time to estimate of remaining flight time
+	if (_rtl_time_estimate_sub.copy(&rtl_time_estimate)
+	    && hrt_absolute_time() - rtl_time_estimate.timestamp < 2_s
+	    && rtl_time_estimate.valid
+	    && _armed.armed
+	    && !_rtl_time_actions_done
+	    && PX4_ISFINITE(worst_battery_time_s)
+	    && rtl_time_estimate.safe_time_estimate >= worst_battery_time_s
+	    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
+	    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
+		// Try to trigger RTL
+		if (main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags,
+					  _internal_state) == TRANSITION_CHANGED) {
+			mavlink_log_emergency(&_mavlink_log_pub, "Flight time low, returning to land");
+
+		} else {
+			mavlink_log_emergency(&_mavlink_log_pub, "Flight time low, land now!");
+		}
+
+		_rtl_time_actions_done = true;
 	}
 
 	bool battery_warning_level_increased_while_armed = false;
