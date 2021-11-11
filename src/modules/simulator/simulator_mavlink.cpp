@@ -533,9 +533,6 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 		// always publish ground truth attitude message
 		_gpos_ground_truth_pub.publish(hil_gpos);
 	}
-	
-	matrix::Vector3f acc(hil_state.xacc / 1000.f, hil_state.yacc / 1000.f, hil_state.zacc / 1000.f);
-	acc = matrix::Quatf(hil_state.attitude_quaternion).conjugate(acc);
 
 	/* local position */
 	vehicle_local_position_s hil_lpos{};
