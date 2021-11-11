@@ -511,7 +511,7 @@ static constexpr const char *arm_disarm_reason_str(arm_disarm_reason_t calling_r
 };
 
 using battery_fault_reason_t = events::px4::enums::battery_fault_reason_t;
-static_assert(battery_status_s::BATTERY_FAULT_COUNT == static_cast<uint8_t>(battery_fault_reason_t::battery_fault_count)
+static_assert(battery_status_s::BATTERY_FAULT_COUNT == (static_cast<uint8_t>(battery_fault_reason_t::_max) + 1)
 	      , "Battery fault flags mismatch!");
 
 static constexpr const char *battery_fault_reason_str(battery_fault_reason_t battery_fault_reason)
@@ -539,7 +539,50 @@ static constexpr const char *battery_fault_reason_str(battery_fault_reason_t bat
 
 	case battery_fault_reason_t::over_temperature: return "near temperature limit";
 
-	case battery_fault_reason_t::battery_fault_count: return "error! battery fault count";
+	}
+
+	return "";
+};
+
+using battery_mode_t = events::px4::enums::battery_mode_t;
+static_assert(battery_status_s::BATTERY_MODE_COUNT == (static_cast<uint8_t>(battery_mode_t::_max) + 1)
+	      , "Battery mode flags mismatch!");
+static constexpr const char *battery_mode_str(battery_mode_t battery_mode)
+{
+	switch (battery_mode) {
+	case battery_mode_t::autodischarging: return "auto discharging";
+
+	case battery_mode_t::hotswap: return "hot-swap";
+
+	default: return "unknown";
+	}
+}
+
+using esc_fault_reason_t = events::px4::enums::esc_fault_reason_t;
+static_assert(esc_report_s::ESC_FAILURE_COUNT == (static_cast<uint8_t>(esc_fault_reason_t::_max) + 1)
+	      , "ESC fault flags mismatch!");
+static constexpr const char *esc_fault_reason_str(esc_fault_reason_t esc_fault_reason)
+{
+	switch (esc_fault_reason) {
+	case esc_fault_reason_t::over_current: return "over current";
+
+	case esc_fault_reason_t::over_voltage: return "over voltage";
+
+	case esc_fault_reason_t::motor_over_temp: return "motor critical temperature";
+
+	case esc_fault_reason_t::over_rpm: return "over RPM";
+
+	case esc_fault_reason_t::inconsistent_cmd: return "control failure";
+
+	case esc_fault_reason_t::motor_stuck: return "motor stall";
+
+	case esc_fault_reason_t::failure_generic: return "hardware failure";
+
+	case esc_fault_reason_t::motor_warn_temp: return "motor over temperature";
+
+	case esc_fault_reason_t::esc_warn_temp: return "over temperature";
+
+	case esc_fault_reason_t::esc_over_temp: return "critical temperature";
 
 	}
 
@@ -3726,23 +3769,11 @@ void Commander::battery_status_check()
 			}
 
 			if ((battery.mode > 0) && (battery.mode != _last_battery_mode[index])) {
-				const char *mode_text = nullptr;
 
-				switch (battery.mode) {
-				case (battery_status_s::BATTERY_MODE_AUTO_DISCHARGING):
-					mode_text = "auto discharging";
-					break;
-
-				case (battery_status_s::BATTERY_MODE_HOT_SWAP):
-					mode_text = "hot swap";
-					break;
-
-				default:
-					mode_text = "unknown";
-					break;
-				}
-
-				mavlink_log_critical(&_mavlink_log_pub, "Battery %d is in %s mode!", index + 1, mode_text);
+				mavlink_log_critical(&_mavlink_log_pub, "Battery %d is in %s mode! \t", index + 1,
+						     battery_mode_str(static_cast<battery_mode_t>(battery.mode)));
+				events::send<uint8_t, events::px4::enums::battery_mode_t>(events::ID("commander_battery_mode"), {events::Log::Critical, events::LogInternal::Warning},
+						"Battery {1} mode: {2}. Land now!", index + 1, static_cast<battery_mode_t>(battery.mode));
 			}
 		}
 
@@ -3764,14 +3795,23 @@ void Commander::battery_status_check()
 				battery_has_fault = true;
 
 				if (battery.faults != _last_battery_fault[index] || battery.custom_faults != _last_battery_custom_fault[index]) {
-					for (uint8_t fault_index = 0; fault_index < static_cast<uint8_t>(battery_fault_reason_t::battery_fault_count);
+					for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(battery_fault_reason_t::_max);
 					     fault_index++) {
 						if (battery.faults & (1 << fault_index)) {
 							mavlink_log_emergency(&_mavlink_log_pub, "Battery %d: %s. %s \t", index + 1,
 									      battery_fault_reason_str(static_cast<battery_fault_reason_t>(fault_index)),  _armed.armed ? "Land now!" : "");
 
-							events::send<uint8_t, events::px4::enums::battery_fault_reason_t>(events::ID("battery_fault"), {events::Log::Emergency, events::LogInternal::Warning},
-									"Battery {1}: {2}", index + 1, static_cast<battery_fault_reason_t>(fault_index));
+							events::px4::enums::suggested_action_t action = _armed.armed ? events::px4::enums::suggested_action_t::land :
+									events::px4::enums::suggested_action_t::none;
+
+							/* EVENT
+							 * @description
+							 * The battery reported a failure which might be dangerous to fly.
+							 * Manufacturer error code: {4}
+							 */
+							events::send<uint8_t, battery_fault_reason_t, events::px4::enums::suggested_action_t, uint32_t>
+							(events::ID("commander_battery_fault"), {events::Log::Emergency, events::LogInternal::Warning},
+							 "Battery {1}: {2}. {3}", index + 1, static_cast<battery_fault_reason_t>(fault_index), action, battery.custom_faults);
 						}
 					}
 				}
@@ -4159,7 +4199,10 @@ void Commander::esc_status_check()
 				if ((esc_status.esc_online_flags & (1 << index)) == 0) {
 					snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", index + 1);
 					esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
-					events::send<uint8_t>(events::ID("commander_esc_offline"), events::Log::Critical, "ESC{1} offline", index + 1);
+					events::px4::enums::suggested_action_t action = _armed.armed ? events::px4::enums::suggested_action_t::land :
+							events::px4::enums::suggested_action_t::none;
+					events::send<uint8_t, events::px4::enums::suggested_action_t>(events::ID("commander_esc_offline"),
+							events::Log::Critical, "ESC{1} offline. {2}", index + 1, action);
 				}
 			}
 
@@ -4173,61 +4216,40 @@ void Commander::esc_status_check()
 
 		for (int index = 0; index < esc_status.esc_count; index++) {
 
-			_status_flags.condition_escs_failure |= esc_status.esc[index].failures > esc_report_s::FAILURE_NONE;
+			_status_flags.condition_escs_failure |= esc_status.esc[index].failures > 0;
 
 			if (esc_status.esc[index].failures != _last_esc_failure[index]) {
 
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_CURRENT_MASK) {
-					mavlink_log_critical(&_mavlink_log_pub, "ESC%d: over current\t", index + 1);
-					events::send<uint8_t>(events::ID("commander_esc_over_current"), events::Log::Critical,
-							      "ESC{1}: over current", index + 1);
-				}
+				for (uint8_t fault_index = 0; fault_index <= static_cast<uint8_t>(esc_fault_reason_t::_max);
+				     fault_index++) {
+					if (esc_status.esc[index].failures & (1 << fault_index)) {
 
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_VOLTAGE_MASK) {
-					mavlink_log_critical(&_mavlink_log_pub, "ESC%d: over voltage\t", index + 1);
-					events::send<uint8_t>(events::ID("commander_esc_over_voltage"), events::Log::Critical,
-							      "ESC{1}: over voltage", index + 1);
-				}
+						esc_fault_reason_t fault_reason_index = static_cast<esc_fault_reason_t>(fault_index);
 
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_WARN_ESC_TEMPERATURE_MASK) {
-					mavlink_log_critical(&_mavlink_log_pub, "ESC%d: over temperature\t", index + 1);
-					events::send<uint8_t>(events::ID("commander_motor_over_temp"), events::Log::Critical,
-							      "ESC{1}: over temperature", index + 1);
-				}
+						const char *user_action = nullptr;
+						events::px4::enums::suggested_action_t action = events::px4::enums::suggested_action_t::none;
 
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_ESC_TEMPERATURE_MASK) {
-					mavlink_log_critical(&_mavlink_log_pub, "ESC%d: over temperature\t", index + 1);
-					events::send<uint8_t>(events::ID("commander_esc_over_temp"), events::Log::Critical,
-							      "ESC{1}: over temperature", index + 1);
-				}
+						if (fault_reason_index == esc_fault_reason_t::motor_warn_temp
+						    || fault_reason_index == esc_fault_reason_t::esc_warn_temp) {
+							user_action = "Reduce throttle";
+							action = events::px4::enums::suggested_action_t::reduce_throttle;
 
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_OVER_RPM_MASK) {
-					mavlink_log_critical(&_mavlink_log_pub, "ESC%d: over RPM\t", index + 1);
-					events::send<uint8_t>(events::ID("commander_esc_over_rpm"), events::Log::Critical,
-							      "ESC{1}: over RPM", index + 1);
-				}
+						} else {
+							user_action = "Land now!";
+							action = events::px4::enums::suggested_action_t::land;
+						}
 
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_INCONSISTENT_CMD_MASK) {
-					mavlink_log_critical(&_mavlink_log_pub, "ESC%d: command inconsistency\t", index + 1);
-					events::send<uint8_t>(events::ID("commander_esc_cmd_inconsistent"), events::Log::Critical,
-							      "ESC{1}: command inconsistency", index + 1);
-				}
+						mavlink_log_emergency(&_mavlink_log_pub, "ESC%d: %s. %s \t", index + 1,
+								      esc_fault_reason_str(fault_reason_index),  _armed.armed ? user_action : "");
 
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_MOTOR_STUCK_MASK) {
-					mavlink_log_critical(&_mavlink_log_pub, "ESC%d: motor stuck\t", index + 1);
-					events::send<uint8_t>(events::ID("commander_esc_motor_stuck"), events::Log::Critical,
-							      "ESC{1}: motor stuck", index + 1);
+						events::send<uint8_t, events::px4::enums::esc_fault_reason_t, events::px4::enums::suggested_action_t>
+						(events::ID("commander_esc_fault"), {events::Log::Emergency, events::LogInternal::Warning},
+						 "ESC {1}: {2}. {3}", index + 1, fault_reason_index, action);
+					}
 				}
-
-				if (esc_status.esc[index].failures & esc_report_s::FAILURE_GENERIC_MASK) {
-					mavlink_log_critical(&_mavlink_log_pub, "ESC%d: generic failure - code %d\t", index + 1,
-							     esc_status.esc[index].esc_state);
-					events::send<uint8_t, uint8_t>(events::ID("commander_esc_generic_failure"), events::Log::Critical,
-								       "ESC{1}: generic failure (code {2})", index + 1, esc_status.esc[index].esc_state);
-				}
-
-				_last_esc_failure[index] = esc_status.esc[index].failures;
 			}
+
+			_last_esc_failure[index] = esc_status.esc[index].failures;
 		}
 
 	}
