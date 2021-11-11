@@ -38,7 +38,9 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/pps_capture.h>
+#include <uORB/topics/sensor_gps.h>
 
 using namespace time_literals;
 
@@ -69,10 +71,14 @@ private:
 
 	uint32_t _pps_capture_gpio{0};
 	uORB::Publication<pps_capture_s>	_pps_capture_pub{ORB_ID(pps_capture)};
+	uORB::Subscription								_sensor_gps_sub{ORB_ID(sensor_gps)};
 
 	static constexpr unsigned USEC_IN_1_SEC{1000000}; // microseconds in 1 second
 	static constexpr unsigned MAX_POSITIVE_DRIFT{USEC_IN_1_SEC / 2}; // microseconds
 
-	timespec _rtc_system_time{0};
+	hrt_abstime _hrt_timestamp{0};
+
+	uint64_t _last_gps_timestamp{0};
+	uint64_t _last_gps_utc_timestamp{0};
 
 };
