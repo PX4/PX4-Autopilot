@@ -67,8 +67,6 @@ ControlAllocation::setActuatorSetpoint(
 
 	// Clip
 	clipActuatorSetpoint(_actuator_sp);
-
-	updateControlAllocated();
 }
 
 void
@@ -87,20 +85,13 @@ ControlAllocation::clipActuatorSetpoint(matrix::Vector<float, ControlAllocation:
 	}
 }
 
-void
-ControlAllocation::updateControlAllocated()
-{
-	// Compute achieved control
-	_control_allocated = (_effectiveness * _actuator_sp).emult(_control_allocation_scale);
-}
-
 matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
 ControlAllocation::normalizeActuatorSetpoint(const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator)
 const
 {
 	matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> actuator_normalized;
 
-	for (size_t i = 0; i < ControlAllocation::NUM_ACTUATORS; i++) {
+	for (int i = 0; i < _num_actuators; i++) {
 		if (_actuator_min(i) < _actuator_max(i)) {
 			actuator_normalized(i) = (actuator(i) - _actuator_min(i)) / (_actuator_max(i) - _actuator_min(i));
 

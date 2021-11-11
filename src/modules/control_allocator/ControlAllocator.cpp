@@ -336,9 +336,11 @@ ControlAllocator::Run()
 
 		// Publish actuator setpoint and allocator status
 		publish_actuator_controls();
-		publish_control_allocator_status();
 
-
+		if (now - _last_status_pub >= 5_ms) {
+			publish_control_allocator_status();
+			_last_status_pub = now;
+		}
 	}
 
 	perf_end(_loop_perf);
@@ -424,11 +426,11 @@ ControlAllocator::publish_actuator_controls()
 	actuator_motors.timestamp = hrt_absolute_time();
 	actuator_motors.timestamp_sample = _timestamp_sample;
 
-	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
+	const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp = _control_allocation->getActuatorSetpoint();
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp_normalized = _control_allocation->normalizeActuatorSetpoint(
 				actuator_sp);
 
-	for (size_t i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
+	for (int i = 0; i < _control_allocation->numConfiguredActuators(); i++) {
 		actuator_motors.control[i] = PX4_ISFINITE(actuator_sp_normalized(i)) ? actuator_sp_normalized(i) : NAN;
 	}
 
