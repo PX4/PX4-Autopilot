@@ -131,6 +131,13 @@ public:
 	{
 		return {getCurrentAccelerationX(), getCurrentAccelerationY(), getCurrentAccelerationZ()};
 	}
+	/**
+	 * @return float Current trajectory acceleration in X and Y
+	 */
+	inline Vector2f getCurrentAccelerationXY() const
+	{
+		return {getCurrentAccelerationX(), getCurrentAccelerationY()};
+	}
 
 	/**
 	 * @return float Current trajectory velocity in X
@@ -162,6 +169,14 @@ public:
 	inline Vector3f getCurrentVelocity() const
 	{
 		return {getCurrentVelocityX(), getCurrentVelocityY(), getCurrentVelocityZ()};
+	}
+
+	/**
+	 * @return float Current trajectory velocity in X and Y
+	 */
+	inline Vector2f getCurrentVelocityXY() const
+	{
+		return {getCurrentVelocityX(), getCurrentVelocityY()};
 	}
 
 	/**
