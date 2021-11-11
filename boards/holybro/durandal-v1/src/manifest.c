@@ -82,7 +82,9 @@ static const px4_hw_mft_item_t hw_mft_list_durandal[] = {
 };
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	{0x0000, hw_mft_list_durandal, arraySize(hw_mft_list_durandal)},
+//  ver_rev
+	{VD00, hw_mft_list_durandal, arraySize(hw_mft_list_durandal)},
+	{VD01, hw_mft_list_durandal, arraySize(hw_mft_list_durandal)},
 };
 
 /************************************************************************************
