@@ -46,6 +46,11 @@ add_custom_command(OUTPUT ${generated_actuators_metadata_file}
 		--compress
 		--board ${PX4_BOARD}
 		--output-file ${generated_actuators_metadata_file}
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
+		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/actuators.schema.json
+		${generated_actuators_metadata_file}
+		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
+		#--verbose
 	DEPENDS
 		${module_config_files}
 		${PX4_SOURCE_DIR}/Tools/module_config/generate_actuators_metadata.py
