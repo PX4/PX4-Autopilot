@@ -446,7 +446,7 @@ void MPU6000::RegisterWrite(Register reg, uint8_t value)
 	uint8_t cmd[2] { (uint8_t)reg, value };
 	set_frequency(SPI_SPEED); // low speed for regular registers
 	transfer(cmd, cmd, sizeof(cmd));
-	up_udelay(10);
+	px4_udelay(10);
 }
 
 void MPU6000::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
