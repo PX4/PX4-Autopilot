@@ -40,17 +40,21 @@
 
 #pragma once
 
-#include "FlightTaskAutoMapper.hpp"
+#include "FlightTaskAuto.hpp"
 #include <motion_planning/PositionSmoothing.hpp>
+#include "Sticks.hpp"
+#include "StickAccelerationXY.hpp"
+#include "StickYaw.hpp"
 
-class FlightTaskAutoLineSmoothVel : public FlightTaskAutoMapper
+class FlightTaskAutoLineSmoothVel : public FlightTaskAuto
 {
 public:
-	FlightTaskAutoLineSmoothVel() = default;
+	FlightTaskAutoLineSmoothVel();
 	virtual ~FlightTaskAutoLineSmoothVel() = default;
 
 	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	void reActivate() override;
+	bool update() override;
 
 private:
 	PositionSmoothing _position_smoothing;
@@ -65,7 +69,7 @@ protected:
 	void _ekfResetHandlerVelocityZ(float delta_vz) override;
 	void _ekfResetHandlerHeading(float delta_psi) override;
 
-	void _generateSetpoints() override; /**< Generate setpoints along line. */
+	void _generateSetpoints(); /**< Generate setpoints along line. */
 	void _generateHeading();
 	void _checkEmergencyBraking();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
@@ -82,13 +86,39 @@ protected:
 	bool _checkTakeoff() override { return _want_takeoff; };
 	bool _want_takeoff{false};
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
+	void _prepareIdleSetpoints();
+	void _prepareLandSetpoints();
+	void _prepareVelocitySetpoints();
+	void _prepareTakeoffSetpoints();
+	void _preparePositionSetpoints();
+	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
+
+	void updateParams() override; /**< See ModuleParam class */
+
+	Sticks _sticks;
+	StickAccelerationXY _stick_acceleration_xy;
+	StickYaw _stick_yaw;
+	matrix::Vector3f _land_position;
+	float _land_heading;
+	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
 					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
 					(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
 					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
-					(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max
+					(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
+					(ParamFloat<px4::params::MPC_LAND_ALT1>)
+					_param_mpc_land_alt1, // altitude at which speed limit downwards reaches maximum speed
+					(ParamFloat<px4::params::MPC_LAND_ALT2>)
+					_param_mpc_land_alt2, // altitude at which speed limit downwards reached minimum speed
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
+					(ParamFloat<px4::params::MPC_TKO_RAMP_T>)
+					_param_mpc_tko_ramp_t, // time constant for smooth takeoff ramp
+					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max
 				       );
 };
