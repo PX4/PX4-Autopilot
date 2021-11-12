@@ -478,7 +478,10 @@ else
 	fi
 
 	# PPS capture driver (before pwm_out)
-	pps_capture start
+	if param greater -s PPS_CAP_ENABLE 0
+	then
+		pps_capture start
+	fi
 
 	# Camera capture driver (before pwm_out)
 	if param greater -s CAM_CAP_FBACK 0
