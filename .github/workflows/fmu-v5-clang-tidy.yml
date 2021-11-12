@@ -12,7 +12,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/render-se/px4-clang:latest
+    container:
+      image: ghcr.io/render-se/px4-clang:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.ghcr_token }}
     steps:
     - uses: actions/checkout@v1
       with:
