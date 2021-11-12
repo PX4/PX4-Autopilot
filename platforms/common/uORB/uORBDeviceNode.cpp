@@ -44,17 +44,6 @@
 
 static uORB::SubscriptionInterval *filp_to_subscription(cdev::file_t *filp) { return static_cast<uORB::SubscriptionInterval *>(filp->f_priv); }
 
-// Determine the data range
-static inline bool is_in_range(unsigned left, unsigned value, unsigned right)
-{
-	if (right > left) {
-		return (left <= value) && (value <= right);
-
-	} else {  // Maybe the data overflowed and a wraparound occurred
-		return (left <= value) || (value <= right);
-	}
-}
-
 // round up to nearest power of two
 // Such as 0 => 1, 1 => 1, 2 => 2 ,3 => 4, 10 => 16, 60 => 64, 65...255 => 128
 // Note: When the input value > 128, the output is always 128
@@ -149,46 +138,6 @@ uORB::DeviceNode::close(cdev::file_t *filp)
 	}
 
 	return CDev::close(filp);
-}
-
-bool
-uORB::DeviceNode::copy(void *dst, unsigned &generation)
-{
-	if ((dst != nullptr) && (_data != nullptr)) {
-		if (_queue_size == 1) {
-			ATOMIC_ENTER;
-			memcpy(dst, _data, _meta->o_size);
-			generation = _generation.load();
-			ATOMIC_LEAVE;
-			return true;
-
-		} else {
-			ATOMIC_ENTER;
-			const unsigned current_generation = _generation.load();
-
-			if (current_generation == generation) {
-				/* The subscriber already read the latest message, but nothing new was published yet.
-				* Return the previous message
-				*/
-				--generation;
-			}
-
-			// Compatible with normal and overflow conditions
-			if (!is_in_range(current_generation - _queue_size, generation, current_generation - 1)) {
-				// Reader is too far behind: some messages are lost
-				generation = current_generation - _queue_size;
-			}
-
-			memcpy(dst, _data + (_meta->o_size * (generation % _queue_size)), _meta->o_size);
-			ATOMIC_LEAVE;
-
-			++generation;
-
-			return true;
-		}
-	}
-
-	return false;
 }
 
 ssize_t
