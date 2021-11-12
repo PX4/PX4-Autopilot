@@ -52,5 +52,5 @@ px4_add_module(
 		../mavlink_stream.cpp
 		../mavlink_ftp.cpp
 	DEPENDS
-		git_mavlink_v2
+		mavlink_c_generate
 	)
