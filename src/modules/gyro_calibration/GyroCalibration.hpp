@@ -95,6 +95,7 @@ private:
 	calibration::Gyroscope _gyro_calibration[MAX_SENSORS] {};
 	math::WelfordMean<matrix::Vector3f> _gyro_mean[MAX_SENSORS] {};
 	float _temperature[MAX_SENSORS] {};
+	hrt_abstime _gyro_last_update[MAX_SENSORS] {};
 
 	matrix::Vector3f _acceleration[MAX_SENSORS] {};
 
