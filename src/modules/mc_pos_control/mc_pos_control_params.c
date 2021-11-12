@@ -418,11 +418,11 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
  * Land crawl descend rate. Used below
  *
  * @unit m/s
- * @min 0.1
+ * @min 0.3
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_CRWL, 0.15f);
+PARAM_DEFINE_FLOAT(MPC_LAND_CRWL, 0.3f);
 
 /**
  * Enable user assisted descent speed for autonomous land routine.
