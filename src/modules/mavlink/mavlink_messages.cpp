@@ -90,6 +90,7 @@
 #include "streams/LOCAL_POSITION_NED.hpp"
 #include "streams/MAG_CAL_REPORT.hpp"
 #include "streams/MANUAL_CONTROL.hpp"
+#include "streams/MISSION_CHECKSUM.hpp"
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
 #include "streams/OBSTACLE_DISTANCE.hpp"
@@ -546,8 +547,11 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamEfiStatus>(),
 #endif // EFI_STATUS_HPP
 #if defined(GPS_RTCM_DATA_HPP)
-	create_stream_list_item<MavlinkStreamGPSRTCMData>()
+	create_stream_list_item<MavlinkStreamGPSRTCMData>(),
 #endif // GPS_RTCM_DATA_HPP
+#if defined(MISSION_CHECKSUM_HPP)
+	create_stream_list_item<MavlinkStreamMissionChecksum>()
+#endif // MISSION_CHECKSUM_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)
