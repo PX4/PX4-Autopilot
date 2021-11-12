@@ -203,7 +203,8 @@ struct mission_item_s {
  */
 struct mission_stats_entry_s {
 	uint16_t num_items;			/**< total number of items stored (excluding this one) */
-	uint16_t update_counter;			/**< This counter is increased when (some) items change (this can wrap) */
+	uint16_t update_counter;		/**< This counter is increased when (some) items change (this can wrap) */
+	uint32_t checksum;			/**< CRC32 checksum of the fence / safe points */
 };
 
 /**
