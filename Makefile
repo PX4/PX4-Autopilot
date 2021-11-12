@@ -444,6 +444,9 @@ px4_sitl_default-clang:
 clang-tidy: px4_sitl_default-clang
 	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -p .
 
+clang-tidy_px4_fmu-v5: px4_fmu-v5_default
+	@cd "$(SRC_DIR)"/build/px4_fmu-v5_default && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j_clang_tidy) -p .
+
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .
 clang-tidy-fix: px4_sitl_default-clang

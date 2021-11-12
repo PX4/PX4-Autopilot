@@ -1,0 +1,22 @@
+name: Clang Tidy
+
+on:
+  push:
+    branches:
+    - 'master'
+    - 'fmu-v5-actions'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-clang:2021-09-08
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{secrets.ACCESS_TOKEN}}
+
+    - name: make clang-tidy_px4_fmu-v5
+      run: make clang-tidy-px4_fmu-v5
