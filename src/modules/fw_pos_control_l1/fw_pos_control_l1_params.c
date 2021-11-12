@@ -896,7 +896,7 @@ PARAM_DEFINE_INT32(FW_SPD_MODE_SET, 0);
  * Eco/Dash mode is disabled if the current altitude overshoots the setpoint by this value.
  *
  * @min 1.0
- * @max 50.0
+ * @max 100.0
  * @decimal 1
  * @increment 0.1
  * @group FW TECS
@@ -909,7 +909,7 @@ PARAM_DEFINE_FLOAT(FW_SPDM_ALT_ER_U, 10.f);
  * Eco/Dash mode is disabled if the current altitude undershoots the setpoint by this value.
  *
  * @min 1.0
- * @max 50.0
+ * @max 100.0
  * @decimal 1
  * @increment 0.1
  * @group FW TECS
@@ -932,6 +932,12 @@ PARAM_DEFINE_FLOAT(FW_SPDM_ALT_MIN, 50.f);
 /**
  * Speed <--> Altitude priority in Eco mode
  *
+ * Overrides FW_T_SPDWEIGHT in Eco mode.
+ *
+ * Set it close to 2 for looser altitude control.
+ * That helps increasing power efficiency by having a smoother throttle setpoint, plus
+ * it enables the vehicle to exploit favorable local uplift conditions to gain some altitude.
+ *
  * @min 0.0
  * @max 2.0
  * @decimal 1
@@ -943,7 +949,11 @@ PARAM_DEFINE_FLOAT(FW_T_SPDWEIGHT_E, 1.8f);
 /**
  * Eco Mode: Altitude error time constant.
  *
- * Normally larger than FW_T_ALT_TC to have looser altitude control and in turn less throttle changes.
+ * Overrides FW_T_ALT_TC in Eco mode.
+ *
+ * Increase it for looser altitude control.
+ * That helps increasing power efficiency by having a smoother throttle setpoint, plus
+ * it enables the vehicle to exploit favorable local uplift conditions to gain some altitude.
  *
  * @min 2.0
  * @decimal 1
@@ -954,6 +964,8 @@ PARAM_DEFINE_FLOAT(FW_T_ALT_TC_E, 10.0f);
 
 /**
  * Eco target climbrate.
+ *
+ * Overrides FW_T_CLMB_R_SP in Eco mode.
  *
  * The rate at which the vehicle will climb in autonomous modes to achieve altitude setpoints in Eco mode.
  *
