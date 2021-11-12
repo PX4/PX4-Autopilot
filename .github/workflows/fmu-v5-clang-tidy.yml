@@ -1,4 +1,4 @@
-name: Clang Tidy
+name: FMU-v5 clang-tidy
 
 on:
   push:
@@ -12,7 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-clang:2021-09-08
+    container: ghcr.io/render-se/px4-clang:latest
     steps:
     - uses: actions/checkout@v1
       with:
