@@ -19,4 +19,4 @@ jobs:
         token: ${{secrets.ACCESS_TOKEN}}
 
     - name: make clang-tidy_px4_fmu-v5
-      run: make clang-tidy-px4_fmu-v5
+      run: make clang-tidy_px4_fmu-v5
