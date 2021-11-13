@@ -16,7 +16,7 @@ jobs:
       image: ghcr.io/render-se/px4-clang:latest
       credentials:
         username: ${{ github.repository_owner }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ secrets.ACTIONS_KEY }}
     steps:
     - uses: actions/checkout@v1
       with:
