@@ -59,7 +59,7 @@ PARAM_DEFINE_FLOAT(CAM_CAP_DELAY, 0.0f);
  * @group Camera Control
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(CAM_CAP_FBACK, 0);
+PARAM_DEFINE_BOOL(CAM_CAP_FBACK, 0);
 
 /**
  * Camera capture timestamping mode

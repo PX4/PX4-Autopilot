@@ -373,8 +373,8 @@ struct parameters {
 	float is_moving_scaler{1.0f};		///< gain scaler used to adjust the threshold for the on-ground movement detection. Larger values make the test less sensitive.
 
 	// compute synthetic magnetomter Z value if possible
-	int32_t synthesize_mag_z{0};
-	int32_t check_mag_strength{0};
+	bool synthesize_mag_z{0};
+	bool check_mag_strength{0};
 
 	// Parameters used to control when yaw is reset to the EKF-GSF yaw estimator value
 	float EKFGSF_tas_default{15.0f};	///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)

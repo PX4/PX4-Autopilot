@@ -57,9 +57,10 @@ __BEGIN_DECLS
 /**
  * Parameter types.
  */
-#define PARAM_TYPE_UNKNOWN		0
-#define PARAM_TYPE_INT32		1
-#define PARAM_TYPE_FLOAT		2
+#define PARAM_TYPE_UNKNOWN 0
+#define PARAM_TYPE_BOOL    1
+#define PARAM_TYPE_INT32   2
+#define PARAM_TYPE_FLOAT   3
 
 typedef uint8_t param_type_t;
 
@@ -452,9 +453,10 @@ __EXPORT void	param_control_autosave(bool enable);
  * Parameter value union.
  */
 union param_value_u {
-	void		*p;
-	int32_t		i;
-	float		f;
+	void    *p;
+	bool    b;
+	int32_t i;
+	float   f;
 };
 
 /**
@@ -493,14 +495,21 @@ __END_DECLS
 // param is a C-interface. This means there is no overloading, and thus no type-safety for param_get().
 // So for C++ code we redefine param_get() to inlined overloaded versions, which gives us type-safety
 // w/o having to use a different interface
-static inline int param_get_cplusplus(param_t param, float *val)
+static inline int param_get_cplusplus(param_t param, bool *val)
 {
-	CHECK_PARAM_TYPE(param, PARAM_TYPE_FLOAT);
+	CHECK_PARAM_TYPE(param, PARAM_TYPE_BOOL);
 	return param_get(param, (void *)val);
 }
+
 static inline int param_get_cplusplus(param_t param, int32_t *val)
 {
 	CHECK_PARAM_TYPE(param, PARAM_TYPE_INT32);
+	return param_get(param, (void *)val);
+}
+
+static inline int param_get_cplusplus(param_t param, float *val)
+{
+	CHECK_PARAM_TYPE(param, PARAM_TYPE_FLOAT);
 	return param_get(param, (void *)val);
 }
 #undef CHECK_PARAM_TYPE

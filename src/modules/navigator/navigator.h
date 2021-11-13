@@ -318,7 +318,7 @@ private:
 		_param_nav_fw_altl_rad,	/**< acceptance radius for fixedwing altitude before landing*/
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
-		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
+		(ParamBool<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
 		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
 		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/

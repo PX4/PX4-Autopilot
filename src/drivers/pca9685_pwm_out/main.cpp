@@ -314,7 +314,7 @@ void PCA9685Wrapper::updatePWMParams()
 
 		if (param_h != PARAM_INVALID) {
 			uint16_t &reverse_pwm_mask = _mixing_output.reverseOutputMask();
-			int32_t pval = 0;
+			bool pval = false;
 			param_get(param_h, &pval);
 			reverse_pwm_mask &= (0xfffe << i);  // clear this bit
 			reverse_pwm_mask |= (((uint16_t)(pval != 0)) << i); // set to new val

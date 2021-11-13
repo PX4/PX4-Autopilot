@@ -268,7 +268,7 @@ void LinuxPWMOut::update_params()
 		// PWM_MAIN_REVx
 		{
 			sprintf(str, "%s_REV%u", prefix, i + 1);
-			int32_t pwm_rev = 0;
+			bool pwm_rev = false;
 
 			if (param_get(param_find(str), &pwm_rev) == PX4_OK) {
 				uint16_t &reverse_pwm_mask = _mixing_output.reverseOutputMask();

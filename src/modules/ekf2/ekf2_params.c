@@ -717,7 +717,7 @@ PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
  * @boolean
  * @group EKF2
  */
-PARAM_DEFINE_INT32(EKF2_EV_NOISE_MD, 0);
+PARAM_DEFINE_BOOL(EKF2_EV_NOISE_MD, 0);
 
 /**
  * Measurement noise for vision position observations used to lower bound or replace the uncertainty included in the message
@@ -973,7 +973,7 @@ PARAM_DEFINE_FLOAT(EKF2_ARSP_THR, 0.0f);
 * @group EKF2
 * @boolean
 */
-PARAM_DEFINE_INT32(EKF2_FUSE_BETA, 0);
+PARAM_DEFINE_BOOL(EKF2_FUSE_BETA, 0);
 
 /**
 
@@ -1358,7 +1358,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
  * @group EKF2
  * @boolean
  */
-PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 1);
+PARAM_DEFINE_BOOL(EKF2_MAG_CHECK, 1);
 
 /**
  * Enable synthetic magnetometer Z component measurement.
@@ -1372,7 +1372,7 @@ PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 1);
  * @group EKF2
  * @boolean
 */
-PARAM_DEFINE_INT32(EKF2_SYNT_MAG_Z, 0);
+PARAM_DEFINE_BOOL(EKF2_SYNT_MAG_Z, 0);
 
 /**
  * Default value of true airspeed used in EKF-GSF AHRS calculation.

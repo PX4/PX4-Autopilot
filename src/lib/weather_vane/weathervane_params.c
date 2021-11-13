@@ -45,7 +45,7 @@
  * @boolean
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(WV_EN, 0);
+PARAM_DEFINE_BOOL(WV_EN, 0);
 
 /**
  * Weather-vane roll angle to yawrate.

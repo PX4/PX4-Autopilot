@@ -79,7 +79,7 @@ PARAM_DEFINE_INT32(SDLOG_MODE, 0);
  * @boolean
  * @group SD Logging
  */
-PARAM_DEFINE_INT32(SDLOG_BOOT_BAT, 0);
+PARAM_DEFINE_BOOL(SDLOG_BOOT_BAT, 0);
 
 /**
  * Mission Log
@@ -172,7 +172,7 @@ PARAM_DEFINE_INT32(SDLOG_DIRS_MAX, 0);
  * @boolean
  * @group SD Logging
  */
-PARAM_DEFINE_INT32(SDLOG_UUID, 1);
+PARAM_DEFINE_BOOL(SDLOG_UUID, 1);
 
 /**
  * Logfile Encryption algorithm

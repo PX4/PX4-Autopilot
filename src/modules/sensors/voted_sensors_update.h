@@ -183,7 +183,7 @@ private:
 	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+		(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
 

@@ -261,7 +261,7 @@ private:
 	int32_t _val;
 };
 
-//external version
+// external version
 template<px4::params p>
 class Param<int32_t &, p>
 {
@@ -318,7 +318,7 @@ class Param<bool, p>
 {
 public:
 	// static type-check
-	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_BOOL, "parameter type must be bool");
 
 	Param()
 	{
@@ -331,18 +331,10 @@ public:
 	const bool &reference() const { return _val; }
 
 	/// Store the parameter value to the parameter storage (@see param_set())
-	bool commit() const
-	{
-		int32_t value_int = (int32_t)_val;
-		return param_set(handle(), &value_int) == 0;
-	}
+	bool commit() const { return param_set(handle(), &_val) == 0; }
 
 	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
-	bool commit_no_notification() const
-	{
-		int32_t value_int = (int32_t)_val;
-		return param_set_no_notification(handle(), &value_int) == 0;
-	}
+	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
 
 	/// Set and commit a new value. Returns true if the value changed.
 	bool commit_no_notification(bool val)
@@ -364,38 +356,83 @@ public:
 		update();
 	}
 
-	bool update()
-	{
-		int32_t value_int;
-		int ret = param_get(handle(), &value_int);
-
-		if (ret == 0) {
-			_val = value_int != 0;
-			return true;
-		}
-
-		return false;
-	}
+	bool update() { return param_get(handle(), &_val) == 0; }
 
 	param_t handle() const { return param_handle(p); }
 private:
 	bool _val;
 };
 
+// external version
+template<px4::params p>
+class Param<bool &, p>
+{
+public:
+	// static type-check
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_BOOL, "parameter type must be bool");
+
+	Param(bool &external_val)
+		: _val(external_val)
+	{
+		param_set_used(handle());
+		update();
+	}
+
+	bool get() const { return _val; }
+
+	const bool &reference() const { return _val; }
+
+	/// Store the parameter value to the parameter storage (@see param_set())
+	bool commit() const { return param_set(handle(), &_val) == 0; }
+
+	/// Store the parameter value to the parameter storage, w/o notifying the system (@see param_set_no_notification())
+	bool commit_no_notification() const { return param_set_no_notification(handle(), &_val) == 0; }
+
+	/// Set and commit a new value. Returns true if the value changed.
+	bool commit_no_notification(bool val)
+	{
+		if (val != _val) {
+			set(val);
+			commit_no_notification();
+			return true;
+		}
+
+		return false;
+	}
+
+	void set(bool val) { _val = val; }
+
+	void reset()
+	{
+		param_reset_no_notification(handle());
+		update();
+	}
+
+	bool update() { return param_get(handle(), &_val) == 0; }
+
+	param_t handle() const { return param_handle(p); }
+private:
+	bool &_val;
+};
+
 template <px4::params p>
-using ParamFloat = Param<float, p>;
+using ParamBool = Param<bool, p>;
 
 template <px4::params p>
 using ParamInt = Param<int32_t, p>;
 
 template <px4::params p>
-using ParamExtFloat = Param<float &, p>;
+using ParamFloat = Param<float, p>;
+
+
+template <px4::params p>
+using ParamExtBool = Param<bool &, p>;
 
 template <px4::params p>
 using ParamExtInt = Param<int32_t &, p>;
 
 template <px4::params p>
-using ParamBool = Param<bool, p>;
+using ParamExtFloat = Param<float &, p>;
 
 } /* namespace do_not_explicitly_use_this_namespace */
 

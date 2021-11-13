@@ -58,7 +58,7 @@ PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
  * @max 1
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(CANNODE_TERM, 0);
+PARAM_DEFINE_BOOL(CANNODE_TERM, 0);
 
 /**
  * Cannode flow board rotation

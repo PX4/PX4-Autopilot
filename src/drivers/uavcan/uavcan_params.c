@@ -206,7 +206,7 @@ PARAM_DEFINE_INT32(UAVCAN_LGT_LAND, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_ASPD, 0);
+PARAM_DEFINE_BOOL(UAVCAN_SUB_ASPD, 0);
 
 /**
  * subscription barometer
@@ -219,7 +219,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_ASPD, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_BARO, 0);
+PARAM_DEFINE_BOOL(UAVCAN_SUB_BARO, 0);
 
 /**
  * subscription battery
@@ -248,7 +248,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BAT, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_DPRES, 0);
+PARAM_DEFINE_BOOL(UAVCAN_SUB_DPRES, 0);
 
 /**
  * subscription flow
@@ -259,7 +259,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_DPRES, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_FLOW, 0);
+PARAM_DEFINE_BOOL(UAVCAN_SUB_FLOW, 0);
 
 /**
  * subscription GPS
@@ -273,7 +273,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_FLOW, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_GPS, 1);
+PARAM_DEFINE_BOOL(UAVCAN_SUB_GPS, 1);
 
 /**
  * subscription ICE
@@ -285,7 +285,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_GPS, 1);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_ICE, 0);
+PARAM_DEFINE_BOOL(UAVCAN_SUB_ICE, 0);
 
 /**
  * subscription IMU
@@ -297,7 +297,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_ICE, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_IMU, 0);
+PARAM_DEFINE_BOOL(UAVCAN_SUB_IMU, 0);
 
 /**
  * subscription magnetometer
@@ -310,7 +310,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_IMU, 0);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 1);
+PARAM_DEFINE_BOOL(UAVCAN_SUB_MAG, 1);
 
 /**
  * subscription range finder
@@ -322,4 +322,4 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 1);
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);
+PARAM_DEFINE_BOOL(UAVCAN_SUB_RNG, 0);

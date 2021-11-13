@@ -251,7 +251,7 @@ PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
  * @boolean
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
+PARAM_DEFINE_BOOL(COM_HOME_IN_AIR, 0);
 
 /**
  * RC control input mode
@@ -323,7 +323,7 @@ PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
  * @value 0 Require GPS lock to arm
  * @value 1 Allow arming without GPS
  */
-PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
+PARAM_DEFINE_BOOL(COM_ARM_WO_GPS, 1);
 
 /**
  * Arm switch is a momentary button
@@ -335,7 +335,7 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
  * @group Commander
  * @boolean
  */
-PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
+PARAM_DEFINE_BOOL(COM_ARM_SWISBTN, 0);
 
 /**
  * Battery failsafe mode
@@ -669,7 +669,7 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
  * @group Commander
  * @boolean
  */
-PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
+PARAM_DEFINE_BOOL(COM_REARM_GRACE, 1);
 
 /**
  * Enable RC stick override of auto and/or offboard modes
@@ -713,7 +713,7 @@ PARAM_DEFINE_FLOAT(COM_RC_STICK_OV, 30.0f);
  * @group Commander
  * @boolean
  */
-PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
+PARAM_DEFINE_BOOL(COM_ARM_MIS_REQ, 0);
 
 /**
  * Position control navigation loss response.
@@ -736,7 +736,7 @@ PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
  * @group Commander
  * @boolean
  */
-PARAM_DEFINE_INT32(COM_ARM_AUTH_REQ, 0);
+PARAM_DEFINE_BOOL(COM_ARM_AUTH_REQ, 0);
 
 /**
  * Arm authorizer system id
@@ -930,7 +930,7 @@ PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
  * @boolean
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
+PARAM_DEFINE_BOOL(COM_OBS_AVOID, 0);
 
 /**
  * Expect and require a healthy MAVLink parachute system
@@ -965,7 +965,7 @@ PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
  * @group Commander
  * @boolean
  */
-PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 0);
+PARAM_DEFINE_BOOL(COM_ARM_CHK_ESCS, 0);
 
 /**
  * Condition to enter prearmed mode
@@ -990,7 +990,7 @@ PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
  * @boolean
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
+PARAM_DEFINE_BOOL(COM_MOT_TEST_EN, 1);
 
 /**
  * Timeout value for disarming when kill switch is engaged

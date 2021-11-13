@@ -111,7 +111,7 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                     for key in param['values']:
                         tags += '\n * @value {:} {:}'.format(key, param['values'][key])
                 elif param['type'] == 'boolean':
-                    param_type = 'INT32'
+                    param_type = 'BOOL'
                     tags += '\n * @boolean'
                 elif param['type'] == 'int32':
                     param_type = 'INT32'
@@ -135,9 +135,6 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                             default_value = param['default'][i]
                         else:
                             default_value = param['default']
-
-                    if type(default_value) == bool:
-                        default_value = int(default_value)
 
                     # output the existing C-style format
                     ret += '''

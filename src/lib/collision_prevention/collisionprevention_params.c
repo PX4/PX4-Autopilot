@@ -83,4 +83,4 @@ PARAM_DEFINE_FLOAT(CP_GUIDE_ANG, 30.f);
  * @boolean
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(CP_GO_NO_DATA, 0);
+PARAM_DEFINE_BOOL(CP_GO_NO_DATA, 0);

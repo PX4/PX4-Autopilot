@@ -222,7 +222,7 @@ private:
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
 		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
 		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
-		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
+		(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
 

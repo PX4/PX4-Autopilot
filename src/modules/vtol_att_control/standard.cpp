@@ -352,7 +352,7 @@ void Standard::fill_actuator_outputs()
 	auto &mc_out = _actuators_out_0->control;
 	auto &fw_out = _actuators_out_1->control;
 
-	const bool elevon_lock = (_params->elevons_mc_lock == 1);
+	const bool elevon_lock = _params->elevons_mc_lock;
 
 	switch (_vtol_schedule.flight_mode) {
 	case vtol_mode::MC_MODE:

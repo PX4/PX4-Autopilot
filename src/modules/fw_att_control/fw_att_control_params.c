@@ -293,8 +293,7 @@ PARAM_DEFINE_FLOAT(FW_RLL_TO_YAW_FF, 0.0f);
  * @boolean
  * @group FW Attitude Control
  */
-PARAM_DEFINE_INT32(FW_W_EN, 0);
-
+PARAM_DEFINE_BOOL(FW_W_EN, 0);
 
 /**
  * Wheel steering rate proportional gain
@@ -534,7 +533,7 @@ PARAM_DEFINE_INT32(FW_ARSP_MODE, 0);
  * @boolean
  * @group FW Attitude Control
  */
-PARAM_DEFINE_INT32(FW_ARSP_SCALE_EN, 1);
+PARAM_DEFINE_BOOL(FW_ARSP_SCALE_EN, 1);
 
 /**
  * Manual roll scale
@@ -591,7 +590,7 @@ PARAM_DEFINE_FLOAT(FW_MAN_Y_SC, 1.0f);
  * @boolean
  * @group FW Attitude Control
  */
-PARAM_DEFINE_INT32(FW_BAT_SCALE_EN, 0);
+PARAM_DEFINE_BOOL(FW_BAT_SCALE_EN, 0);
 
 /**
  * Acro body x max rate.

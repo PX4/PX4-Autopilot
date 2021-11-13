@@ -53,7 +53,7 @@
  * @boolean
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(EV_TSK_STAT_DIS, 0);
+PARAM_DEFINE_BOOL(EV_TSK_STAT_DIS, 0);
 
 /**
  * RC Loss Alarm
@@ -68,4 +68,4 @@ PARAM_DEFINE_INT32(EV_TSK_STAT_DIS, 0);
  * @boolean
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(EV_TSK_RC_LOSS, 0);
+PARAM_DEFINE_BOOL(EV_TSK_RC_LOSS, 0);

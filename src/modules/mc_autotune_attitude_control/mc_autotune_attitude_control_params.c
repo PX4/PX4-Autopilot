@@ -45,7 +45,7 @@
  * @boolean
  * @group Autotune
  */
-PARAM_DEFINE_INT32(MC_AT_EN, 0);
+PARAM_DEFINE_BOOL(MC_AT_EN, 0);
 
 /**
  * Start the autotuning sequence
@@ -64,7 +64,7 @@ PARAM_DEFINE_INT32(MC_AT_EN, 0);
  * @boolean
  * @group Autotune
  */
-PARAM_DEFINE_INT32(MC_AT_START, 0);
+PARAM_DEFINE_BOOL(MC_AT_START, 0);
 
 /**
  * Amplitude of the injected signal

@@ -157,7 +157,7 @@ private:
 	perf_counter_t _sample_perf{perf_alloc(PC_COUNT, "mb12xx_sample_perf")};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SENS_EN_MB12XX>)   _p_sensor_enabled,
+		(ParamBool<px4::params::SENS_EN_MB12XX>)   _p_sensor_enabled,
 		(ParamInt<px4::params::SENS_MB12_0_ROT>)  _p_sensor0_rot,
 		(ParamInt<px4::params::SENS_MB12_1_ROT>)  _p_sensor1_rot,
 		(ParamInt<px4::params::SENS_MB12_2_ROT>)  _p_sensor2_rot,

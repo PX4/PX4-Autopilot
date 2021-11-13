@@ -342,7 +342,7 @@ PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
  * @boolean
  * @group FW L1 Control
  */
-PARAM_DEFINE_INT32(FW_LND_USETER, 0);
+PARAM_DEFINE_BOOL(FW_LND_USETER, 0);
 
 /**
  * Early landing configuration deployment
@@ -358,7 +358,7 @@ PARAM_DEFINE_INT32(FW_LND_USETER, 0);
  *
  * @group FW L1 Control
  */
-PARAM_DEFINE_INT32(FW_LND_EARLYCFG, 0);
+PARAM_DEFINE_BOOL(FW_LND_EARLYCFG, 0);
 
 /**
  * Flare, minimum pitch

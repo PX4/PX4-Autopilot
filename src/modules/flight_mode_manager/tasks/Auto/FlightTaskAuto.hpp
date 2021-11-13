@@ -160,7 +160,7 @@ protected:
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
 					_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
-					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, // obstacle avoidance active
+					(ParamBool<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, // obstacle avoidance active
 					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
 					(ParamBool<px4::params::WV_EN>) _param_wv_en, // enable/disable weather vane (VTOL)

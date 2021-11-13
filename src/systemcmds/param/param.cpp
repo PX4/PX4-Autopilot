@@ -612,6 +612,7 @@ static int
 do_show_quiet(const char *param_name)
 {
 	param_t param = param_find_no_notification(param_name);
+	bool bb;
 	int32_t ii;
 	float ff;
 	// Print only the param value (can be used in scripts)
@@ -621,6 +622,12 @@ do_show_quiet(const char *param_name)
 	}
 
 	switch (param_type(param)) {
+	case PARAM_TYPE_BOOL:
+		if (!param_get(param, &bb)) {
+			PARAM_PRINT("%d", bb);
+		}
+
+		break;
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &ii)) {
 			PARAM_PRINT("%ld", (long)ii);
@@ -662,6 +669,8 @@ do_show_index(const char *index, bool used_index)
 	char *end;
 	int i = strtol(index, &end, 10);
 	param_t param;
+
+	bool bb;
 	int32_t ii;
 	float ff;
 
@@ -682,6 +691,12 @@ do_show_index(const char *index, bool used_index)
 		    param_name(param), param_get_used_index(param), param_get_index(param));
 
 	switch (param_type(param)) {
+	case PARAM_TYPE_BOOL:
+		if (!param_get(param, &bb)) {
+			PARAM_PRINT("%d\n", bb);
+		}
+
+		break;
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &ii)) {
 			PARAM_PRINT("%ld\n", (long)ii);
@@ -706,8 +721,10 @@ do_show_index(const char *index, bool used_index)
 static void
 do_show_print(void *arg, param_t param)
 {
+	bool b;
 	int32_t i;
 	float f;
+
 	const char *search_string = (const char *)arg;
 	const char *p_name = (const char *)param_name(param);
 
@@ -756,6 +773,13 @@ do_show_print(void *arg, param_t param)
 	 */
 
 	switch (param_type(param)) {
+	case PARAM_TYPE_BOOL:
+		if (!param_get(param, &b)) {
+			PARAM_PRINT("%d\n", b);
+			return;
+		}
+
+		break;
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &i)) {
 			PARAM_PRINT("%ld\n", (long)i);
@@ -831,8 +855,10 @@ do_show_print_for_airframe(void *arg, param_t param)
 static int
 do_set(const char *name, const char *val, bool fail_on_not_found)
 {
+	bool b;
 	int32_t i;
 	float f;
+
 	param_t param = param_find(name);
 
 	/* set nothing if parameter cannot be found */
@@ -842,11 +868,25 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 		return (fail_on_not_found) ? 1 : 0;
 	}
 
-	/*
-	 * Set parameter if type is known and conversion from string to value turns out fine
-	 */
-
+	// Set parameter if type is known and conversion from string to value turns out fine
 	switch (param_type(param)) {
+	case PARAM_TYPE_BOOL:
+		if (!param_get(param, &b)) {
+			/* convert string */
+			char *end;
+			bool newval = strtol(val, &end, 10);
+
+			if (b != newval) {
+				PARAM_PRINT("%c %s: ",
+					    param_value_unsaved(param) ? '*' : (param_value_is_default(param) ? ' ' : '+'),
+					    param_name(param));
+				PARAM_PRINT("curr: %d", b);
+				param_set(param, &newval);
+				PARAM_PRINT(" -> new: %d\n", newval);
+			}
+		}
+
+		break;
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &i)) {
 
@@ -911,6 +951,21 @@ do_set_custom_default(const char *name, const char *val, bool silent_fail)
 
 	// Set parameter if type is known and conversion from string to value turns out fine
 	switch (param_type(param)) {
+	case PARAM_TYPE_BOOL: {
+			bool b;
+
+			if (param_get_default_value(param, &b) == PX4_OK) {
+				/* convert string */
+				char *end;
+				bool newval = strtol(val, &end, 10);
+
+				if ((b != newval) && (param_set_default_value(param, &newval) == PX4_OK)) {
+					PX4_DEBUG(" parameter default: %s %d -> %d", param_name(param), b, newval);
+				}
+			}
+		}
+
+		break;
 	case PARAM_TYPE_INT32: {
 			int32_t i;
 
@@ -958,8 +1013,10 @@ static int
 do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmp_op,
 	   enum COMPARE_ERROR_LEVEL err_level)
 {
+	bool b;
 	int32_t i;
 	float f;
+
 	param_t param = param_find(name);
 
 	/* set nothing if parameter cannot be found */
@@ -979,6 +1036,33 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 	int ret = 1;
 
 	switch (param_type(param)) {
+	case PARAM_TYPE_BOOL:
+		if (!param_get(param, &b)) {
+			/* convert string */
+			char *end;
+
+			for (unsigned k = 0; k < comparisons; k++) {
+				i = b;
+				int j = strtol(vals[k], &end, 10);
+
+				if (cmp_op == COMPARE_OPERATOR::EQUAL) {
+					if (b && j > 0) {
+						ret = 0;
+					} else if (!b && j == 0) {
+						ret = 0;
+					}
+				} else if (cmp_op == COMPARE_OPERATOR::GREATER) {
+					if (b && j <= 0) {
+						ret = 0;
+					} else if (!b && j < 0) {
+						ret = 0;
+					}
+				}
+			}
+		}
+
+		break;
+
 	case PARAM_TYPE_INT32:
 		if (!param_get(param, &i)) {
 

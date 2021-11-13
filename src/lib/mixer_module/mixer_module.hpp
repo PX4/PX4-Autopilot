@@ -331,7 +331,7 @@ private:
 
 	perf_counter_t _control_latency_perf;
 
-	/* SYS_CTRL_ALLOC == 1 */
+	/* SYS_CTRL_ALLOC */
 	FunctionProviderBase *_function_allocated[MAX_ACTUATORS] {}; ///< unique allocated functions
 	FunctionProviderBase *_functions[MAX_ACTUATORS] {}; ///< currently assigned functions
 	OutputFunction _function_assignment[MAX_ACTUATORS] {};

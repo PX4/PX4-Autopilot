@@ -68,11 +68,10 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	/* ---- MAG ---- */
 	{
-		int32_t sys_has_mag = 1;
+		bool sys_has_mag = true;
 		param_get(param_find("SYS_HAS_MAG"), &sys_has_mag);
 
-		if (sys_has_mag == 1) {
-
+		if (sys_has_mag) {
 			/* check all sensors individually, but fail only for mandatory ones */
 			for (unsigned i = 0; i < max_optional_mag_count; i++) {
 				const bool required = (i < max_mandatory_mag_count) && (sys_has_mag == 1);
@@ -142,14 +141,14 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	/* ---- BARO ---- */
 	{
-		int32_t sys_has_baro = 1;
+		bool sys_has_baro = true;
 		param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
 
 		bool baro_fail_reported = false;
 
 		/* check all sensors, but fail only for mandatory ones */
 		for (unsigned i = 0; i < max_optional_baro_count; i++) {
-			const bool required = (i < max_mandatory_baro_count) && (sys_has_baro == 1);
+			const bool required = (i < max_mandatory_baro_count) && sys_has_baro;
 			bool report_fail = (required && report_failures && !baro_fail_reported);
 
 			int32_t device_id = -1;
