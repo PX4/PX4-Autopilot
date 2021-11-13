@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/render-se/px4-clang:latest
+      credentials:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - uses: actions/checkout@v1
       with:
