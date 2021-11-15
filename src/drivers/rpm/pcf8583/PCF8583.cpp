@@ -57,6 +57,8 @@ int PCF8583::init()
 	// start measurement
 	resetCounter();
 
+	_rpm_pub.advertise();
+
 	ScheduleOnInterval(_param_pcf8583_pool.get());
 
 	return PX4_OK;

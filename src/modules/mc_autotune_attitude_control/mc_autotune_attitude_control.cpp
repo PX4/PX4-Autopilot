@@ -45,6 +45,7 @@ McAutotuneAttitudeControl::McAutotuneAttitudeControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	_autotune_attitude_control_status_pub.advertise();
 	reset();
 }
 

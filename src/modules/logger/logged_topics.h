@@ -107,9 +107,15 @@ private:
 	 * @param name topic name
 	 * @param interval limit in milliseconds if >0, otherwise log as fast as the topic is updated.
 	 * @param instance orb topic instance
+	 * @param optional if true, the topic is only added if it exists
 	 * @return true on success
 	 */
-	bool add_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0);
+	bool add_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0, bool optional = false);
+
+	bool add_optional_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0)
+	{
+		return add_topic(name, interval_ms, instance, true);
+	}
 
 	/**
 	 * Add a topic to be logged.
@@ -117,9 +123,17 @@ private:
 	 * @param interval limit in milliseconds if >0, otherwise log as fast as the topic is updated.
 	 * @param instance orb topic instance
 	 * @param max_num_instances the max multi-instance to add.
+	 * @param optional if true, the topic is only added if it exists
 	 * @return true on success
 	 */
-	bool add_topic_multi(const char *name, uint16_t interval_ms = 0, uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES);
+	bool add_topic_multi(const char *name, uint16_t interval_ms = 0, uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES,
+			     bool optional = false);
+
+	bool add_optional_topic_multi(const char *name, uint16_t interval_ms = 0,
+				      uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES)
+	{
+		return add_topic_multi(name, interval_ms, max_num_instances, true);
+	}
 
 	/**
 	 * Parse a file containing a list of uORB topics to log, calling add_topic for each
@@ -157,7 +171,7 @@ private:
 	 * add a logged topic (called by add_topic() above).
 	 * @return true on success
 	 */
-	bool add_topic(const orb_metadata *topic, uint16_t interval_ms = 0, uint8_t instance = 0);
+	bool add_topic(const orb_metadata *topic, uint16_t interval_ms = 0, uint8_t instance = 0, bool optional = false);
 
 	RequestedSubscriptionArray _subscriptions;
 	int _num_mission_subs{0};
