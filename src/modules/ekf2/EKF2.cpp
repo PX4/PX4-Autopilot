@@ -1873,12 +1873,14 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 			float declination_deg;
 
 			if (_ekf.get_mag_decl_deg(&declination_deg)) {
-				_param_ekf2_mag_decl.set(declination_deg);
-				_mag_decl_saved = true;
+				_param_ekf2_mag_decl.update();
 
-				if (!_multi_mode || (_multi_mode && _instance == 0)) {
+				if (PX4_ISFINITE(declination_deg) && (fabsf(declination_deg - _param_ekf2_mag_decl.get()) > 0.1f)) {
+					_param_ekf2_mag_decl.set(declination_deg);
 					_param_ekf2_mag_decl.commit_no_notification();
 				}
+
+				_mag_decl_saved = true;
 			}
 		}
 	}
