@@ -101,6 +101,32 @@ protected:
 	void _updateInternalWaypoints(); /**< Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
 	bool _compute_heading_from_2D_vector(float &heading, matrix::Vector2f v); /**< Computes and sets heading a 2D vector */
 
+	/** Reset position or velocity setpoints in case of EKF reset event */
+	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
+	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
+	void _ekfResetHandlerPositionZ(float delta_z) override;
+	void _ekfResetHandlerVelocityZ(float delta_vz) override;
+	void _ekfResetHandlerHeading(float delta_psi) override;
+
+	void _generateSetpoints(); /**< Generate setpoints along line. */
+	void _generateHeading();
+	void _checkEmergencyBraking();
+	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
+	bool isTargetModified() const;
+	void _updateTrajConstraints();
+
+	/** determines when to trigger a takeoff (ignored in flight) */
+	bool _checkTakeoff() override { return _want_takeoff; };
+
+	void _prepareIdleSetpoints();
+	void _prepareLandSetpoints();
+	void _prepareVelocitySetpoints();
+	void _prepareTakeoffSetpoints();
+	void _preparePositionSetpoints();
+	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
+
+	void updateParams() override; /**< See ModuleParam class */
+
 	matrix::Vector3f _prev_prev_wp{}; /**< Pre-previous waypoint (local frame). This will be used for smoothing trajectories -> not used yet. */
 	matrix::Vector3f _prev_wp{}; /**< Previous waypoint  (local frame). If no previous triplet is available, the prev_wp is set to current position. */
 	bool _prev_was_valid{false};

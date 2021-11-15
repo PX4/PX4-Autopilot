@@ -51,36 +51,4 @@ public:
 	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	void reActivate() override;
 	bool update() override;
-
-protected:
-
-	/** Reset position or velocity setpoints in case of EKF reset event */
-	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
-	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
-	void _ekfResetHandlerPositionZ(float delta_z) override;
-	void _ekfResetHandlerVelocityZ(float delta_vz) override;
-	void _ekfResetHandlerHeading(float delta_psi) override;
-
-	void _generateSetpoints(); /**< Generate setpoints along line. */
-	void _generateHeading();
-	void _checkEmergencyBraking();
-	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
-
-
-	bool isTargetModified() const;
-
-	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
-	void _updateTrajConstraints();
-
-	/** determines when to trigger a takeoff (ignored in flight) */
-	bool _checkTakeoff() override { return _want_takeoff; };
-
-	void _prepareIdleSetpoints();
-	void _prepareLandSetpoints();
-	void _prepareVelocitySetpoints();
-	void _prepareTakeoffSetpoints();
-	void _preparePositionSetpoints();
-	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
-
-	void updateParams() override; /**< See ModuleParam class */
 };
