@@ -63,13 +63,10 @@ menu "Toolchain"
         help
             relative path to the ROMFS root directory
 
-    config BOARD_BUILD_BOOTLOADER
-        bool "Enable bootloader"
-        help
-            flag to enable building and including the bootloader config
-
     config BOARD_IO
         string "IO board name"
+        default "px4_io-v2_default"
+        depends on DRIVERS_PX4IO
         help
             name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
 
