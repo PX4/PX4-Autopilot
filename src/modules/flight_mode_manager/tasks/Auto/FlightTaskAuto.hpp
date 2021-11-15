@@ -47,6 +47,10 @@
 #include <uORB/topics/vehicle_status.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/motion_planning/PositionSmoothing.hpp>
+#include "Sticks.hpp"
+#include "StickAccelerationXY.hpp"
+#include "StickYaw.hpp"
 
 // TODO: make this switchable in the board config, like a module
 #if CONSTRAINED_FLASH
@@ -118,6 +122,17 @@ protected:
 	bool _yaw_sp_aligned{false};
 
 	ObstacleAvoidance _obstacle_avoidance; /**< class adjusting setpoints according to external avoidance module's input */
+
+	PositionSmoothing _position_smoothing;
+	Vector3f _unsmoothed_velocity_setpoint;
+	Sticks _sticks;
+	StickAccelerationXY _stick_acceleration_xy;
+	StickYaw _stick_yaw;
+	matrix::Vector3f _land_position;
+	float _land_heading;
+	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
+	bool _is_emergency_braking_active{false};
+	bool _want_takeoff{false};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
