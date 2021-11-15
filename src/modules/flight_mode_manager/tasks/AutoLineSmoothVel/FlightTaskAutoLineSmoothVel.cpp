@@ -40,11 +40,6 @@
 
 using namespace matrix;
 
-FlightTaskAutoLineSmoothVel::FlightTaskAutoLineSmoothVel() :
-	_sticks(this),
-	_stick_acceleration_xy(this)
-{}
-
 bool FlightTaskAutoLineSmoothVel::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTaskAuto::activate(last_setpoint);
