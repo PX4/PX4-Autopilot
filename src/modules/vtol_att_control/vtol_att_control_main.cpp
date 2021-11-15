@@ -116,6 +116,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	} else {
 		exit_and_cleanup();
 	}
+
+	_vtol_vehicle_status_pub.advertise();
 }
 
 VtolAttitudeControl::~VtolAttitudeControl()

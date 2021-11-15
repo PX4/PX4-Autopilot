@@ -133,6 +133,7 @@ Mavlink::Mavlink() :
 	}
 
 	_event_sub.subscribe();
+	_telemetry_status_pub.advertise();
 }
 
 Mavlink::~Mavlink()

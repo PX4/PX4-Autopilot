@@ -99,6 +99,7 @@ CameraCapture::CameraCapture() :
 		}
 	}
 
+	_trigger_pub.advertise();
 }
 
 CameraCapture::~CameraCapture()

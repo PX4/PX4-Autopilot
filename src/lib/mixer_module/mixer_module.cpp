@@ -113,6 +113,8 @@ _param_prefix(param_prefix)
 
 		updateParams();
 	}
+
+	_outputs_pub.advertise();
 }
 
 MixingOutput::~MixingOutput()
@@ -122,6 +124,8 @@ MixingOutput::~MixingOutput()
 	px4_sem_destroy(&_lock);
 
 	cleanupFunctions();
+
+	_outputs_pub.unadvertise();
 }
 
 void MixingOutput::initParamHandles()
