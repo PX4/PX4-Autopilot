@@ -47,8 +47,4 @@ class FlightTaskAutoLineSmoothVel : public FlightTaskAuto
 public:
 	FlightTaskAutoLineSmoothVel() = default;
 	virtual ~FlightTaskAutoLineSmoothVel() = default;
-
-	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
-	void reActivate() override;
-	bool update() override;
 };
