@@ -41,24 +41,16 @@
 #pragma once
 
 #include "FlightTaskAuto.hpp"
-#include <motion_planning/PositionSmoothing.hpp>
-#include "Sticks.hpp"
-#include "StickAccelerationXY.hpp"
-#include "StickYaw.hpp"
 
 class FlightTaskAutoLineSmoothVel : public FlightTaskAuto
 {
 public:
-	FlightTaskAutoLineSmoothVel();
+	FlightTaskAutoLineSmoothVel() = default;
 	virtual ~FlightTaskAutoLineSmoothVel() = default;
 
 	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	void reActivate() override;
 	bool update() override;
-
-private:
-	PositionSmoothing _position_smoothing;
-	Vector3f _unsmoothed_velocity_setpoint;
 
 protected:
 
@@ -77,14 +69,11 @@ protected:
 
 	bool isTargetModified() const;
 
-	bool _is_emergency_braking_active{false};
-
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();
 
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
-	bool _want_takeoff{false};
 
 	void _prepareIdleSetpoints();
 	void _prepareLandSetpoints();
@@ -94,13 +83,6 @@ protected:
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 
 	void updateParams() override; /**< See ModuleParam class */
-
-	Sticks _sticks;
-	StickAccelerationXY _stick_acceleration_xy;
-	StickYaw _stick_yaw;
-	matrix::Vector3f _land_position;
-	float _land_heading;
-	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
