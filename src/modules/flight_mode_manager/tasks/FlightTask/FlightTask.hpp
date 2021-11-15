@@ -220,7 +220,6 @@ protected:
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
 
-	float _time{}; /**< passed time in seconds since the task was activated */
 	float _deltatime{}; /**< passed time in seconds since the task was last updated */
 
 	hrt_abstime _time_stamp_activate{}; /**< time stamp when task was activated */
