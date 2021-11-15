@@ -194,6 +194,7 @@ bool EKF2::multi_init(int imu, int mag)
 	_ekf2_timestamps_pub.advertise();
 	_ekf_gps_drift_pub.advertise();
 	_estimator_baro_bias_pub.advertise();
+	_estimator_event_flags_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();

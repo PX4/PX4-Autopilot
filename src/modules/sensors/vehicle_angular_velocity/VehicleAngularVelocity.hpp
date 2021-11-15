@@ -157,8 +157,14 @@ private:
 	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESC_RPM] {};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_esc_rpm_reset_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_perf{nullptr};
+
+	perf_counter_t _dynamic_notch_filter_fft_disable_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_fft_reset_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
+
 	perf_counter_t _dynamic_notch_filter_fft_perf{nullptr};
 
 	bool _dynamic_notch_esc_rpm_available{false};
@@ -178,7 +184,8 @@ private:
 
 	DEFINE_PARAMETERS(
 #if !defined(CONSTRAINED_FLASH)
-		(ParamInt<px4::params::IMU_GYRO_DYN_NF>) _param_imu_gyro_dyn_nf,
+		(ParamInt<px4::params::IMU_GYRO_DNF_EN>) _param_imu_gyro_dnf_en,
+		(ParamFloat<px4::params::IMU_GYRO_DNF_BW>) _param_imu_gyro_dnf_bw,
 #endif // !CONSTRAINED_FLASH
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
 		(ParamFloat<px4::params::IMU_GYRO_NF_FREQ>) _param_imu_gyro_nf_freq,

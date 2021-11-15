@@ -57,6 +57,14 @@ static inline const char *px4_board_name(void)
 }
 
 /**
+ * get the board build target variant
+ */
+static inline const char *px4_board_target_label(void)
+{
+	return PX4_BOARD_LABEL;
+}
+
+/**
  * get the board sub type
  */
 static inline const char *px4_board_sub_type(void)
