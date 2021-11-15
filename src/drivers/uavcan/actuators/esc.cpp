@@ -72,6 +72,7 @@ UavcanEscController::init()
 	// ESC status will be relayed from UAVCAN bus into ORB at this rate
 	_orb_timer.setCallback(TimerCbBinder(this, &UavcanEscController::orb_pub_timer_cb));
 	_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ESC_STATUS_UPDATE_RATE_HZ));
+	_esc_status_pub.advertise();
 
 	return res;
 }
