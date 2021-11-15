@@ -48,6 +48,8 @@ GyroFFT::GyroFFT() :
 		_sensor_gyro_fft.peak_frequencies_y[i] = NAN;
 		_sensor_gyro_fft.peak_frequencies_z[i] = NAN;
 	}
+
+	_sensor_gyro_fft_pub.advertise();
 }
 
 GyroFFT::~GyroFFT()

@@ -264,6 +264,8 @@ void DShot::init_telemetry(const char *device)
 		}
 	}
 
+	_telemetry->esc_status_pub.advertise();
+
 	int ret = _telemetry->handler.init(device);
 
 	if (ret != 0) {

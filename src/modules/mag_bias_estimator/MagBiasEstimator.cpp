@@ -43,6 +43,7 @@ MagBiasEstimator::MagBiasEstimator() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
+	_magnetometer_bias_estimate_pub.advertise();
 }
 
 MagBiasEstimator::~MagBiasEstimator()
