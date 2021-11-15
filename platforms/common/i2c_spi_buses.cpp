@@ -173,7 +173,7 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 			break;
 
 		case 'c':
-			chipselect_index = atoi(_optarg);
+			chipselect = atoi(_optarg);
 			break;
 
 		case 'b':
@@ -251,7 +251,7 @@ BusInstanceIterator::BusInstanceIterator(const char *module_name,
 	: _module_name(module_name), _bus_option(cli_arguments.bus_option), _devid_driver_index(devid_driver_index),
 	  _i2c_address(cli_arguments.i2c_address),
 	  _spi_bus_iterator(spiFilter(cli_arguments.bus_option),
-			    cli_arguments.bus_option == I2CSPIBusOption::SPIExternal ? cli_arguments.chipselect_index : devid_driver_index,
+			    devid_driver_index, cli_arguments.chipselect,
 			    cli_arguments.requested_bus),
 	  _i2c_bus_iterator(i2cFilter(cli_arguments.bus_option), cli_arguments.requested_bus),
 	  _current_instance(i2c_spi_module_instances.end())

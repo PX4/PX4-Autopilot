@@ -139,8 +139,8 @@ public:
 
 	I2CSPIBusOption bus_option{I2CSPIBusOption::All};
 	int requested_bus{-1};
-	int chipselect_index{1};
 	int bus_frequency{0};
+	int chipselect {-1};
 	spi_mode_e spi_mode{SPIDEV_MODE3};
 	uint8_t i2c_address{0}; ///< I2C address (a driver must set the default address)
 	bool quiet_start{false}; ///< do not print a message when startup fails
