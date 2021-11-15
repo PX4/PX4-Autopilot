@@ -514,6 +514,11 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc);
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
+		} else if (status.data_link_lost && data_link_loss_act_configured && is_armed) {
+			// Data link lost, data link loss reaction configured -> do configured reaction
+			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
+			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
+
 		} else {
 			switch (internal_state.main_state) {
 			case commander_state_s::MAIN_STATE_ACRO:
@@ -552,6 +557,11 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 				/* A local position estimate is enough for POSCTL for multirotors,
 				 * this enables POSCTL using e.g. flow.
 				 * For fixedwing, a global position is needed. */
+
+			} else if (status.data_link_lost && data_link_loss_act_configured && is_armed) {
+				// Data link lost, data link loss reaction configured -> do configured reaction
+				enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
+				set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
 
 			} else if (check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags,
 							       rc_fallback_allowed, status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
