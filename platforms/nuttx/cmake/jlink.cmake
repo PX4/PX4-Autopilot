@@ -117,32 +117,21 @@ find_program(JLinkExe_PATH JLinkExe)
 if(JLinkExe_PATH)
 
 	# jlink_flash_bootloader_bin
-	if(bootloader_bin OR (EXISTS ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin))
+	if(EXISTS ${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin)
 
 		set(BOARD_FIRMWARE_BIN "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
 		set(BOARD_FIRMWARE_APP_OFFSET "0x08000000")
 		configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in ${PX4_BINARY_DIR}/flash_bootloader_bin.jlink @ONLY)
 
-		if(bootloader_bin)
-			add_custom_command(OUTPUT ${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
-				COMMAND ${CMAKE_COMMAND} -E copy_if_different ${bootloader_bin} ${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
-				DEPENDS ${bootloader_bin}
-			)
-		elseif(EXISTS ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin)
-			add_custom_command(OUTPUT ${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
-				COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin ${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
-				DEPENDS ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
-			)
-		endif()
-
 		add_custom_target(jlink_flash_bootloader_bin
+			${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin ${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
 			COMMAND ${JLinkExe_PATH} -CommandFile ${PX4_BINARY_DIR}/flash_bootloader_bin.jlink
 			DEPENDS
-				${PX4_BINARY_DIR}/${BOARD_FIRMWARE_BIN}
 				${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in
 			WORKING_DIRECTORY ${PX4_BINARY_DIR}
 			USES_TERMINAL
 		)
+
 	endif()
 
 	# jlink_flash_bin
@@ -161,8 +150,8 @@ if(JLinkExe_PATH)
 			USES_TERMINAL
 		)
 	else()
-		# regular firmware ${PX4_BINARY_DIR}/${PX4_BOARD}.bin
-		set(BOARD_FIRMWARE_BIN ${PX4_BOARD}.bin)
+		# regular firmware ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
+		set(BOARD_FIRMWARE_BIN ${PX4_CONFIG}.bin)
 		set(BOARD_FIRMWARE_APP_OFFSET "0x08008000") # TODO: get from board
 		configure_file(${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in ${PX4_BINARY_DIR}/flash_bin.jlink @ONLY)
 
@@ -171,7 +160,7 @@ if(JLinkExe_PATH)
 			COMMAND ${JLinkExe_PATH} -CommandFile ${PX4_BINARY_DIR}/flash_bin.jlink
 			DEPENDS
 				${PX4_SOURCE_DIR}/platforms/nuttx/Debug/flash_bin.jlink.in
-				${PX4_BINARY_DIR}/${PX4_BOARD}.bin
+				${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
 			WORKING_DIRECTORY ${PX4_BINARY_DIR}
 			USES_TERMINAL
 		)

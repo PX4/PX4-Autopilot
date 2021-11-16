@@ -14,10 +14,6 @@
 	path = Tools/sitl_gazebo
 	url = https://github.com/PX4/PX4-SITL_gazebo.git
 	branch = master
-[submodule "src/lib/matrix"]
-	path = src/lib/matrix
-	url = https://github.com/PX4/PX4-Matrix.git
-	branch = master
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
 	url = https://github.com/PX4/PX4-GPSDrivers.git

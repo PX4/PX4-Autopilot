@@ -48,31 +48,31 @@ px4_add_module(
 	)
 
 # include the px4io binary in ROMFS
-message(STATUS "Building and including ${config_io_board}")
+if(CONFIG_BOARD_IO)
+	message(STATUS "drivers/px4io: ROMFS including ${CONFIG_BOARD_IO}")
 
-include(ExternalProject)
-ExternalProject_Add(px4io_firmware
-	SOURCE_DIR ${CMAKE_SOURCE_DIR}
-	DOWNLOAD_COMMAND ""
-	UPDATE_COMMAND ""
-	CMAKE_ARGS -DCONFIG=${config_io_board}
-	INSTALL_COMMAND ""
-	USES_TERMINAL_BUILD true
-	DEPENDS git_nuttx git_nuttx_apps
-	BUILD_ALWAYS 1
-	BUILD_BYPRODUCTS ${PX4_BINARY_DIR}/external/Build/px4io_firmware/${config_io_board}.elf
-)
+	# ExternalProject_Add() with GIT_SUBMODULES "" initializes no submodules.
+	cmake_policy(SET CMP0097 NEW)
 
-set(fw_io_exe "${PX4_BINARY_DIR}/external/Build/px4io_firmware/${config_io_board}.elf")
-set(fw_io_bin "${PX4_BINARY_DIR}/romfs_extras/${config_io_board}.bin" CACHE FILEPATH "px4io binary path")
+	include(ExternalProject)
 
-file(RELATIVE_PATH fw_io_exe_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_exe})
-file(RELATIVE_PATH fw_io_bin_relative ${CMAKE_CURRENT_BINARY_DIR} ${fw_io_bin})
-
-add_custom_command(OUTPUT ${fw_io_bin}
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/romfs_extras
-	COMMAND ${CMAKE_OBJCOPY} -O binary ${fw_io_exe_relative} ${fw_io_bin_relative}
-	DEPENDS ${fw_io_exe} px4io_firmware
-	COMMENT "Copying ${config_io_board} to ROMFS extras"
+	ExternalProject_Add(px4io_firmware_build
+		DOWNLOAD_COMMAND rsync -a --safe-links --delete --exclude=build --exclude=*.o --exclude=*.a --exclude=.config ${PX4_SOURCE_DIR}/ ${PX4_BINARY_DIR}/external/Source/px4io_firmware_build/
+		UPDATE_COMMAND   rsync -a --safe-links --delete --exclude=build --exclude=*.o --exclude=*.a --exclude=.config ${PX4_SOURCE_DIR}/ ${PX4_BINARY_DIR}/external/Source/px4io_firmware_build/
+		DEPENDS git_nuttx git_nuttx_apps
+		SOURCE_DIR ${PX4_BINARY_DIR}/external/Source/px4io_firmware_build/
+		CMAKE_ARGS -DCONFIG=${CONFIG_BOARD_IO}
+		INSTALL_COMMAND ""
+		USES_TERMINAL_BUILD true
+		EXCLUDE_FROM_ALL true
+		BUILD_ALWAYS true
 	)
-add_custom_target(copy_px4io_bin DEPENDS ${fw_io_bin})
+
+	ExternalProject_Get_Property(px4io_firmware_build BINARY_DIR)
+
+	add_custom_target(px4io_firmware_update
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${BINARY_DIR}/${CONFIG_BOARD_IO}.bin ${PX4_BOARD_DIR}/extras/${CONFIG_BOARD_IO}.bin
+		DEPENDS px4io_firmware_build
+		COMMENT "Copying ${CONFIG_BOARD_IO} to board extras"
+	)
+endif()

@@ -1427,6 +1427,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
 	case vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE:
 	case vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN:
+	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -3778,7 +3780,7 @@ void Commander::estimator_check()
 						&& (fabsf(q(1)) <= 1.f)
 						&& (fabsf(q(2)) <= 1.f)
 						&& (fabsf(q(3)) <= 1.f);
-	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= FLT_EPSILON);
+	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= 1e-6f);
 
 	const bool condition_attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
 					      && norm_in_tolerance && no_element_larger_than_one;

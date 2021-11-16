@@ -65,6 +65,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	_pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
 	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
 	_yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
+
+	_rate_ctrl_status_pub.advertise();
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()

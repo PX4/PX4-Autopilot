@@ -138,6 +138,17 @@ typedef struct {
 
 } argus_pixel_t;
 
+/*!***************************************************************************
+ * @brief Representation of a correlation vector containing sine/cosine components.
+ *****************************************************************************/
+typedef struct {
+	/*! The sine component. */
+	q15_16_t S;
+
+	/*! The cosine component. */
+	q15_16_t C;
+
+} argus_vector_t;
 
 /*! @} */
 #endif /* ARGUS_PX_H */

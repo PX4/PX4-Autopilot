@@ -54,7 +54,7 @@ extern "C" {
  *
  *				**SPI interface:**
  *
- *				The SPI interface is based on a single function:
+ *				The SPI interface is based around a single functionality:
  *
  *				#S2PI_TransferFrame. This function transfers a specified number
  *				of bytes via the interfaces MOSI line and simultaneously reads
@@ -72,32 +72,34 @@ extern "C" {
  *
  *				**GPIO interface:**
  *
- *				The GPIO interface handles the measurement finished interrupt
+ *				The GPIO part of the S2PI interface has two distinct concerns:
+ *
+ *				First, the GPIO interface handles the measurement finished interrupt
  *				from the device. When the device invokes the interrupt, it pulls
  *				the interrupt line to low. Thus the interrupt must trigger when
  *				a transition from high to low occurs on the interrupt line.
  *
- *				The module simply invokes a callback when this interrupt the
- *				pending. The #S2PI_SetIrqCallback method is	used to install the
- *				callback for a specified slave. Each slave will have its own
- *				interrupt line. An additional callback parameter can be set that
- *				would be passed to the callback function.
+ *				The module simply invokes a callback when this interrupt occurs.
+ *				The #S2PI_SetIrqCallback method is used to install the callback
+ *				for a specified slave. Each slave will have its own interrupt
+ *				line. An additional callback parameter can be set that would be
+ *				passed to the callback function.
  *
  *				In addition to the interrupt, all SPI pins need to be accessible
- *				as GPIO pins through the interface. One basic operation would
- *				be to cycle the chip select pin which resets the device.
- *				Additional, the device contains an EEPROM that is connected to
- *				the SPI pins but requires a different protocol that is not
- *				compatible to any standard SPI interface. Therefore, the
- *				interface provides the possibility to switch to GPIO control
- *				that allows to emulate the EEPROM protocol via software bit
- *				banging. Two methods are provided to switch forth and back
- *				between SPI and GPIO control. In GPIO mode, several functions
- *				are used to read and write the individual GPIO pins.
+ *				as GPIO pins through this interface. This is required to read
+ *				the EEPROM memory on the device hat is connected to the SPI
+ *				pins but requires a different protocol that is not compatible
+ *				to any standard SPI interface. Therefore, the interface provides
+ *				the possibility to switch to GPIO control mode that allows to
+ *				emulate the EEPROM protocol via software bit banging.
+ *
+ *				Two methods are provided to switch forth and back between SPI
+ *				and GPIO control. In GPIO mode, several functions are used to
+ *				read and write the individual GPIO pins.
  *
  *				Note that the GPIO mode is only required to readout the EEPROM
- *				at initialization of the device, i.e. during execution of the
- *				#Argus_Init or #Argus_Reinit method. The GPIO mode is not used
+ *				upon initialization of the device, i.e. during execution of the
+ *				#Argus_Init or #Argus_Reinit methods. The GPIO mode is not used
  *				during measurements.
  *
  *
@@ -241,7 +243,9 @@ status_t S2PI_Abort(void);
  * 			 - #STATUS_OK: Successfully installation of the callback.
  *         	 - #ERROR_S2PI_INVALID_SLAVE: A wrong slave identifier is provided.
  *****************************************************************************/
-status_t S2PI_SetIrqCallback(s2pi_slave_t slave, s2pi_irq_callback_t callback, void *callbackData);
+status_t S2PI_SetIrqCallback(s2pi_slave_t slave,
+			     s2pi_irq_callback_t callback,
+			     void *callbackData);
 
 /*!***************************************************************************
  * @brief	Reads the current status of the IRQ pin.
@@ -339,11 +343,10 @@ status_t S2PI_WriteGpioPin(s2pi_slave_t slave, s2pi_pin_t pin, uint32_t value);
  *
  * @param	slave The specified S2PI slave.
  * @param	pin The specified S2PI pin.
- * @param	value The GPIO pin state to read (0 = low, 1 = high).
+ * @param	value The GPIO pin state to read (0 = low, GND level, 1 = high, VCC level).
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t S2PI_ReadGpioPin(s2pi_slave_t slave, s2pi_pin_t pin, uint32_t *value);
-
 #ifdef __cplusplus
 }
 #endif

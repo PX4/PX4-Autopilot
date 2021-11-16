@@ -52,6 +52,7 @@ MulticopterRateControl::MulticopterRateControl(bool vtol) :
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	parameters_updated();
+	_controller_status_pub.advertise();
 }
 
 MulticopterRateControl::~MulticopterRateControl()

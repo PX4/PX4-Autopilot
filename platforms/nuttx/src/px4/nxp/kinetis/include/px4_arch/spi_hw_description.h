@@ -36,6 +36,8 @@
 #include <px4_arch/hw_description.h>
 #include <px4_platform_common/spi.h>
 
+#if defined(CONFIG_SPI)
+
 #include <kinetis.h>
 
 static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::CS cs_gpio, SPI::DRDY drdy_gpio = {})
@@ -129,3 +131,5 @@ static inline constexpr SPI::bus_device_external_cfg_t initSPIConfigExternal(SPI
 	ret.drdy_gpio = drdy_gpio;
 	return ret;
 }
+
+#endif // CONFIG_SPI

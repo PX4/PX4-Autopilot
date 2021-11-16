@@ -47,6 +47,7 @@ FwAutotuneAttitudeControl::FwAutotuneAttitudeControl(bool is_vtol) :
 	_actuator_controls_sub(this, is_vtol ? ORB_ID(actuator_controls_1) : ORB_ID(actuator_controls_0)),
 	_actuator_controls_status_sub(is_vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0))
 {
+	_autotune_attitude_control_status_pub.advertise();
 	reset();
 }
 

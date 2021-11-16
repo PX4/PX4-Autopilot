@@ -36,4 +36,4 @@ px4_add_library(drivers_gyroscope
 	PX4Gyroscope.hpp
 )
 target_compile_options(drivers_gyroscope PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-target_link_libraries(drivers_gyroscope PRIVATE conversion drivers__device)
+target_link_libraries(drivers_gyroscope PRIVATE conversion)

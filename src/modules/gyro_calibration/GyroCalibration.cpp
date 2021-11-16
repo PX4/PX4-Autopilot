@@ -155,12 +155,20 @@ void GyroCalibration::Run()
 			if (_gyro_calibration[gyro].device_id() == sensor_gyro.device_id) {
 				const Vector3f val{Vector3f{sensor_gyro.x, sensor_gyro.y, sensor_gyro.z} - _gyro_calibration[gyro].thermal_offset()};
 				_gyro_mean[gyro].update(val);
+				_gyro_last_update[gyro] = sensor_gyro.timestamp;
 
 			} else {
 				// setting device id, reset all
 				_gyro_calibration[gyro].set_device_id(sensor_gyro.device_id);
 				Reset();
 			}
+		}
+
+		if ((_gyro_last_update[gyro] != 0) && (hrt_elapsed_time(&_gyro_last_update[gyro]) > 100_ms)) {
+			// reset on any timeout
+			Reset();
+			_gyro_last_update[gyro] = 0;
+			return;
 		}
 	}
 

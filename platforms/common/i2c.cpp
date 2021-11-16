@@ -32,9 +32,10 @@
  ****************************************************************************/
 
 #include <board_config.h>
-#ifndef BOARD_DISABLE_I2C_SPI
 
 #include <px4_platform_common/i2c.h>
+
+#if defined(CONFIG_I2C)
 
 #ifndef BOARD_OVERRIDE_I2C_BUS_EXTERNAL
 bool px4_i2c_bus_external(const px4_i2c_bus_t &bus)
@@ -85,4 +86,4 @@ bool I2CBusIterator::next()
 	return false;
 }
 
-#endif /* BOARD_DISABLE_I2C_SPI */
+#endif // CONFIG_I2C

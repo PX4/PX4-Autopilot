@@ -70,10 +70,10 @@ extern "C" {
  *
  *				The periodic interrupt timer is a simple callback interface.
  *				After installing the callback function pointer via #Timer_SetCallback,
- *				the timer can be started by setting interval via #Timer_SetInterval
- *				or #Timer_Start. From then, the callback is invoked periodically as
- *				the corresponding interval may specify. The timer is stopped via
- *				#Timer_Stop or by setting the interval to 0. The interval can be
+ *				the timer can be started by setting interval via #Timer_SetInterval.
+ *				From then, the callback is invoked periodically as the corresponding
+ *				interval may specify. The timer is stopped by setting the interval
+ *				to 0 using the #Timer_SetInterval function. The interval can be
  *				updated at any time by updating the interval via the #Timer_SetInterval
  *				function. To any of these functions, an abstract parameter pointer
  *				must be passed. This parameter is passed back to the callback any
@@ -84,11 +84,11 @@ extern "C" {
  *				at the same time. Therefore, the abstract parameter pointer is used
  *				to identify the corresponding callback interval. For example, there
  *				are two callbacks for two intervals, t1 and t2, required. The user
- *				can start two timers by calling the #Timer_Start method twice, but
- *				with an individual parameter pointer, ptr1 and ptr2, each:
+ *				can start two timers by calling the #Timer_SetInterval method twice,
+ *				but with an individual parameter pointer, ptr1 and ptr2, each:
  *				\code
- *					Timer_Start(100000, ptr1); // 10 ms callback w/ parameter ptr1
- *					Timer_Start(200000, ptr2); // 20 ms callback w/ parameter ptr1
+ *					Timer_SetInterval(100000, ptr1); // 10 ms callback w/ parameter ptr1
+ *					Timer_SetInterval(200000, ptr2); // 20 ms callback w/ parameter ptr1
  *				\endcode
  *
  *				Note that the implemented timer module must therefore support
@@ -214,50 +214,6 @@ status_t Timer_SetCallback(timer_cb_t f);
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t Timer_SetInterval(uint32_t dt_microseconds, void *param);
-
-/*!***************************************************************************
- * @brief	Starts the timer for a specified callback parameter.
- *
- * @details	Sets the callback interval for the specified parameter and starts
- * 			the timer with a new interval. If there is already an interval with
- * 			the given parameter, the timer is restarted with the given interval.
- * 			Passing a interval of 0 disables the timer.
- *
- * 			Note that a microsecond granularity for the timer interrupt period is
- * 			not required. Usually a microseconds granularity is sufficient.
- * 			The required granularity depends on the targeted frame rate, e.g. in
- * 			case of more than 1 kHz measurement rate, a granularity of less than
- * 			a microsecond is required to achieve the given frame rate.
- *
- * @note	The implementation of this function is optional for the correct
- * 			execution of the API. If not implemented, a weak implementation
- * 			within the API will be used that disable the periodic timer callback
- * 			and thus the automatic starting of measurements from the background.
- *
- * @param	dt_microseconds The callback interval in microseconds.
- *
- * @param	param An abstract parameter to be passed to the callback. This is
- * 				  also the identifier of the given interval.
- *
- * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
- *****************************************************************************/
-status_t Timer_Start(uint32_t dt_microseconds, void *param);
-
-/*!***************************************************************************
- * @brief	Stops the timer for a specified callback parameter.
- *
- * @details	Stops a callback interval for the specified parameter.
- *
- * @note	The implementation of this function is optional for the correct
- * 			execution of the API. If not implemented, a weak implementation
- * 			within the API will be used that disable the periodic timer callback
- * 			and thus the automatic starting of measurements from the background.
- *
- * @param	param An abstract parameter that identifies the interval to be stopped.
- *
- * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
- *****************************************************************************/
-status_t Timer_Stop(void *param);
 
 #ifdef __cplusplus
 }
