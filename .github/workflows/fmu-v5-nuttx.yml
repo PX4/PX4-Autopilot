@@ -1,0 +1,71 @@
+name: Nuttx Targets
+
+on:
+  push:
+    branches:
+    - 'master'
+    - 'fmu-v5-actions'
+  pull_request:
+    branches:
+    - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/render-se/px4-nuttx:latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        token: ${{secrets.ACCESS_TOKEN}}
+    - name: Build FMU-v5
+      run: make px4_fmu-v5
+    # - name: Prepare ccache timestamp
+    #   id: ccache_cache_timestamp
+    #   shell: cmake -P {0}
+    #   run: |
+    #     string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
+    #     message("::set-output name=timestamp::${current_date}")
+    # - name: ccache cache files
+    #   uses: actions/cache@v2
+    #   with:
+    #     path: ~/.ccache
+    #     key: ${{matrix.config}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
+    #     restore-keys: ${{matrix.config}}-ccache-
+    # - name: setup ccache
+    #   run: |
+    #       mkdir -p ~/.ccache
+    #       echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
+    #       echo "compression = true" >> ~/.ccache/ccache.conf
+    #       echo "compression_level = 6" >> ~/.ccache/ccache.conf
+    #       echo "max_size = 120M" >> ~/.ccache/ccache.conf
+    #       echo "hash_dir = false" >> ~/.ccache/ccache.conf
+    #       ccache -s
+    #       ccache -z
+
+    # - name: make all_variants_${{matrix.config}}
+    #   run: make all_variants_${{matrix.config}}
+    #   timeout-minutes: 45
+    # - name: make ${{matrix.config}} bloaty_compileunits
+    #   run: make ${{matrix.config}} bloaty_compileunits || true
+    # - name: make ${{matrix.config}} bloaty_inlines
+    #   run: make ${{matrix.config}} bloaty_inlines || true
+    # - name: make ${{matrix.config}} bloaty_segments
+    #   run: make ${{matrix.config}} bloaty_segments || true
+    # - name: make ${{matrix.config}} bloaty_symbols
+    #   run: make ${{matrix.config}} bloaty_symbols || true
+    # - name: make ${{matrix.config}} bloaty_templates
+    #   run: make ${{matrix.config}} bloaty_templates || true
+    # - name: make ${{matrix.config}} bloaty_ram
+    #   run: make ${{matrix.config}} bloaty_ram || true
+    # - name: make ${{matrix.config}} bloaty_compare_master
+    #   run: make ${{matrix.config}} bloaty_compare_master || true
+    # - name: ccache post-run
+    #   run: ccache -s
+
+    # - name: Upload px4 package
+    #   uses: actions/upload-artifact@v2
+    #   with:
+    #     name: px4_package_${{matrix.config}}
+    #     path: |
+    #       build/**/*.px4
+    #       build/**/*.bin
