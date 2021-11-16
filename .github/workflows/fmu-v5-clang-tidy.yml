@@ -12,8 +12,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/render-se/px4-clang:latest
+    container: ghcr.io/render-se/px4-clang:latest
     steps:
     - uses: actions/checkout@v1
       with:

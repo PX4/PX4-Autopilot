@@ -1,4 +1,4 @@
-name: Build FMU-v5
+name: FMU-v5 build
 
 on:
   push:
