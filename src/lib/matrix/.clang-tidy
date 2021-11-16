@@ -1,9 +1,0 @@
-Checks:          'clang-diagnostic-*,clang-analyzer-*,*,
-		,-cppcoreguidelines-pro-type-vararg
-		,-cppcoreguidelines-pro-bounds-array-to-pointer-decay
-		,-cppcoreguidelines-pro-bounds-constant-array-index
-		,-cppcoreguidelines-pro-bounds-pointer-arithmetic
-		'
-WarningsAsErrors: '*'
-HeaderFilterRegex: '*.h, *.hpp, *.hh, *.hxx'
-
