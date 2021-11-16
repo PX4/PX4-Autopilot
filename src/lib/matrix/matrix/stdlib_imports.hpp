@@ -20,7 +20,8 @@
 #define M_TWOPI (M_PI * 2.0)
 #endif
 
-namespace matrix {
+namespace matrix
+{
 
 #if !defined(FLT_EPSILON)
 #define FLT_EPSILON     __FLT_EPSILON__
