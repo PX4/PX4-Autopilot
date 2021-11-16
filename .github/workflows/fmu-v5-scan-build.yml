@@ -12,10 +12,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/render-se/px4-nuttx:latest
+    container: ghcr.io/render-se/px4-base:latest
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{secrets.ACCESS_TOKEN}}
     - name: Run scan-build
-      run: make scan-build_px4_fmu-v5
+      run: make scan-build
