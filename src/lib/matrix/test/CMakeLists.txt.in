@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 2.8.4)
+
+project(googletest-download NONE)
+
+include(ExternalProject)
+ExternalProject_Add(googletest
+	URL https://github.com/google/googletest/archive/e2239ee6043f73722e7aa812a459f54a28552929.zip
+	SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}/googletest-src"
+	BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/googletest-build"
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+	TEST_COMMAND ""
+	# Wrap download, configure and build steps in a script to log output
+    LOG_DOWNLOAD ON
+    LOG_CONFIGURE ON
+    LOG_BUILD ON
+)
