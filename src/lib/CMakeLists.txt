@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_matrix PATH "matrix")
-
 add_subdirectory(airspeed)
 add_subdirectory(avoidance)
 add_subdirectory(battery)
