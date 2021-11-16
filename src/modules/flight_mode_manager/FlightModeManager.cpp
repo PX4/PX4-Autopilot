@@ -241,7 +241,7 @@ void FlightModeManager::start_flight_task()
 		should_disable_task = false;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		error = switchTask(FlightTaskIndex::AutoLineSmoothVel);
+		error = switchTask(FlightTaskIndex::Auto);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {

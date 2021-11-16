@@ -155,6 +155,8 @@ private:
 	uint8_t _getServerComponentId(void);
 	uint8_t _getServerChannel(void);
 
+	bool _validatePathIsWritable(const char *path);
+
 	/**
 	 * make sure that the working buffers _work_buffer* are allocated
 	 * @return true if buffers exist, false if allocation failed

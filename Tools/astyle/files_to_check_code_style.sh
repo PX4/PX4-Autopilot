@@ -17,7 +17,6 @@ exec find boards msg src platforms test \
     -path src/drivers/uavcannode_gps_demo/libcanard -prune -o \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/events/libevents -prune -o \
-    -path src/lib/matrix -prune -o \
     -path src/lib/parameters/uthash -prune -o \
     -path src/modules/ekf2/EKF -prune -o \
     -path src/modules/gyro_fft/CMSIS_5 -prune -o \
