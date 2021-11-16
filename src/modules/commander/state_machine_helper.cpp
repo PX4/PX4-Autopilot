@@ -473,6 +473,7 @@ static void enable_failsafe(vehicle_status_s &status, bool old_failsafe, orb_adv
 		events::send<events::px4::enums::failsafe_reason_t>(
 			events::ID("commander_enable_failsafe"), {events::Log::Critical, events::LogInternal::Info},
 			"Failsafe enabled: {1}", event_failsafe_reason);
+		status.failsafe_but_user_took_over = false;
 	}
 
 	status.failsafe = true;
@@ -496,6 +497,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 
 	bool old_failsafe = status.failsafe;
 	status.failsafe = false;
+	status.failsafe_but_user_took_over &= status.data_link_lost;
 
 	// Safe to do reset flags here, as if loss state persists flags will be restored in the code below
 	reset_link_loss_globals(armed, old_failsafe, rc_loss_act);
@@ -514,7 +516,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_rc);
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act, param_com_rcl_act_t);
 
-		} else if (status.data_link_lost && data_link_loss_act_configured && is_armed) {
+		} else if (status.data_link_lost && data_link_loss_act_configured && is_armed && !status.failsafe_but_user_took_over) {
 			// Data link lost, data link loss reaction configured -> do configured reaction
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);
@@ -558,7 +560,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 				 * this enables POSCTL using e.g. flow.
 				 * For fixedwing, a global position is needed. */
 
-			} else if (status.data_link_lost && data_link_loss_act_configured && is_armed) {
+			} else if (status.data_link_lost && data_link_loss_act_configured && is_armed && !status.failsafe_but_user_took_over) {
 				// Data link lost, data link loss reaction configured -> do configured reaction
 				enable_failsafe(status, old_failsafe, mavlink_log_pub, event_failsafe_reason_t::no_datalink);
 				set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act, 0);

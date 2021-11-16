@@ -854,6 +854,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 			if (main_ret != TRANSITION_DENIED) {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+				_status.failsafe_but_user_took_over = true;
 
 			} else {
 				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
@@ -1621,6 +1622,8 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 			_internal_state.main_state = action_request.mode;
 			_internal_state.main_state_changes++;
 		}
+
+		_status.failsafe_but_user_took_over = true;
 
 		int ret = main_state_transition(_status, action_request.mode, _status_flags, _internal_state);
 
