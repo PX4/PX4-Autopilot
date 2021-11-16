@@ -145,5 +145,3 @@ print('b:')
 pprint(b)
 print('x:')
 pprint(x)
-
-# vim: set et ft=python fenc=utf-8 ff=unix sts=4 sw=4 ts=8 : 

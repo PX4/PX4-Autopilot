@@ -20,117 +20,134 @@ template<typename Type, size_t M>
 class Vector : public Matrix<Type, M, 1>
 {
 public:
-    using MatrixM1 = Matrix<Type, M, 1>;
+	using MatrixM1 = Matrix<Type, M, 1>;
 
-    Vector() = default;
+	Vector() = default;
 
-    Vector(const MatrixM1 & other) :
-        MatrixM1(other)
-    {
-    }
+	Vector(const MatrixM1 &other) :
+		MatrixM1(other)
+	{
+	}
 
-    explicit Vector(const Type data_[M]) :
-        MatrixM1(data_)
-    {
-    }
+	explicit Vector(const Type data_[M]) :
+		MatrixM1(data_)
+	{
+	}
 
-    template<size_t P, size_t Q>
-    Vector(const Slice<Type, M, 1, P, Q>& slice_in) :
-        Matrix<Type, M, 1>(slice_in)
-    {
-    }
+	template<size_t P, size_t Q>
+	Vector(const Slice<Type, M, 1, P, Q> &slice_in) :
+		Matrix<Type, M, 1>(slice_in)
+	{
+	}
 
-    template<size_t P, size_t Q, size_t DUMMY = 1>
-    Vector(const Slice<Type, 1, M, P, Q>& slice_in)
-    {
-        Vector &self(*this);
-        for (size_t i = 0; i<M; i++) {
-            self(i) = slice_in(0, i);
-        }
-    }
+	template<size_t P, size_t Q, size_t DUMMY = 1>
+	Vector(const Slice<Type, 1, M, P, Q> &slice_in)
+	{
+		Vector &self(*this);
 
-    inline const Type &operator()(size_t i) const
-    {
-        assert(i < M);
+		for (size_t i = 0; i < M; i++) {
+			self(i) = slice_in(0, i);
+		}
+	}
 
-        const MatrixM1 &v = *this;
-        return v(i, 0);
-    }
+	inline const Type &operator()(size_t i) const
+	{
+		assert(i < M);
 
-    inline Type &operator()(size_t i)
-    {
-        assert(i < M);
+		const MatrixM1 &v = *this;
+		return v(i, 0);
+	}
 
-        MatrixM1 &v = *this;
-        return v(i, 0);
-    }
+	inline Type &operator()(size_t i)
+	{
+		assert(i < M);
 
-    Type dot(const MatrixM1 & b) const {
-        const Vector &a(*this);
-        Type r(0);
-        for (size_t i = 0; i<M; i++) {
-            r += a(i)*b(i,0);
-        }
-        return r;
-    }
+		MatrixM1 &v = *this;
+		return v(i, 0);
+	}
 
-    inline Type operator*(const MatrixM1 & b) const {
-        const Vector &a(*this);
-        return a.dot(b);
-    }
+	Type dot(const MatrixM1 &b) const
+	{
+		const Vector &a(*this);
+		Type r(0);
 
-    inline Vector operator*(Type b) const {
-        return Vector(MatrixM1::operator*(b));
-    }
+		for (size_t i = 0; i < M; i++) {
+			r += a(i) * b(i, 0);
+		}
 
-    Type norm() const {
-        const Vector &a(*this);
-        return Type(matrix::sqrt(a.dot(a)));
-    }
+		return r;
+	}
 
-    Type norm_squared() const {
-        const Vector &a(*this);
-        return a.dot(a);
-    }
+	inline Type operator*(const MatrixM1 &b) const
+	{
+		const Vector &a(*this);
+		return a.dot(b);
+	}
 
-    inline Type length() const {
-        return norm();
-    }
+	inline Vector operator*(Type b) const
+	{
+		return Vector(MatrixM1::operator*(b));
+	}
 
-    inline void normalize() {
-        (*this) /= norm();
-    }
+	Type norm() const
+	{
+		const Vector &a(*this);
+		return Type(matrix::sqrt(a.dot(a)));
+	}
 
-    Vector unit() const {
-        return (*this) / norm();
-    }
+	Type norm_squared() const
+	{
+		const Vector &a(*this);
+		return a.dot(a);
+	}
 
-    Vector unit_or_zero(const Type eps = Type(1e-5)) const {
-        const Type n = norm();
-        if (n > eps) {
-            return (*this) / n;
-        }
-        return Vector();
-    }
+	inline Type length() const
+	{
+		return norm();
+	}
 
-    inline Vector normalized() const {
-        return unit();
-    }
+	inline void normalize()
+	{
+		(*this) /= norm();
+	}
 
-    bool longerThan(Type testVal) const {
-        return norm_squared() > testVal*testVal;
-    }
+	Vector unit() const
+	{
+		return (*this) / norm();
+	}
 
-    Vector sqrt() const {
-        const Vector &a(*this);
-        Vector r;
-        for (size_t i = 0; i<M; i++) {
-            r(i) = Type(matrix::sqrt(a(i)));
-        }
-        return r;
-    }
+	Vector unit_or_zero(const Type eps = Type(1e-5)) const
+	{
+		const Type n = norm();
+
+		if (n > eps) {
+			return (*this) / n;
+		}
+
+		return Vector();
+	}
+
+	inline Vector normalized() const
+	{
+		return unit();
+	}
+
+	bool longerThan(Type testVal) const
+	{
+		return norm_squared() > testVal * testVal;
+	}
+
+	Vector sqrt() const
+	{
+		const Vector &a(*this);
+		Vector r;
+
+		for (size_t i = 0; i < M; i++) {
+			r(i) = Type(matrix::sqrt(a(i)));
+		}
+
+		return r;
+	}
 };
 
 } // namespace matrix
-
-/* vim: set et fenc=utf-8 ff=unix sts=0 sw=4 ts=4 : */
