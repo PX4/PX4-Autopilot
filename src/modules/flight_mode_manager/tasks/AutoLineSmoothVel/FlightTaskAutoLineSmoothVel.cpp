@@ -190,6 +190,7 @@ void FlightTaskAutoLineSmoothVel::_generateSetpoints()
 	}
 
 	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned;
+	const bool force_zero_velocity_setpoint = should_wait_for_yaw_align || _is_emergency_braking_active;
 	_updateTrajConstraints();
 	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
 	_position_smoothing.generateSetpoints(
@@ -197,7 +198,7 @@ void FlightTaskAutoLineSmoothVel::_generateSetpoints()
 		waypoints,
 		_velocity_setpoint,
 		_deltatime,
-		should_wait_for_yaw_align,
+		force_zero_velocity_setpoint,
 		smoothed_setpoints
 	);
 
@@ -231,13 +232,10 @@ void FlightTaskAutoLineSmoothVel::_checkEmergencyBraking()
 		}
 
 	} else {
-		// deactivate emergency braking if all velocities and accelerations are again within their bounds
-		if (_position_smoothing.getCurrentVelocityZ() < _param_mpc_z_vel_max_dn.get()
-		    && _position_smoothing.getCurrentVelocityZ() > -_param_mpc_z_vel_max_up.get()
-		    && _position_smoothing.getCurrentAccelerationZ() > -_param_mpc_acc_up_max.get()
-		    && _position_smoothing.getCurrentAccelerationZ() < _param_mpc_acc_down_max.get()
-		    && _position_smoothing.getCurrentVelocityXY().longerThan(_param_mpc_xy_cruise.get())
-		    && _position_smoothing.getCurrentAccelerationXY().longerThan(_param_mpc_acc_hor.get())) {
+		// deactivate emergency braking when the vehicle has come to a full stop
+		if (_position_smoothing.getCurrentVelocityZ() < 0.01f
+		    && _position_smoothing.getCurrentVelocityZ() > -0.01f
+		    && !_position_smoothing.getCurrentVelocityXY().longerThan(0.01f)) {
 			_is_emergency_braking_active = false;
 		}
 	}
