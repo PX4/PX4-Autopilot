@@ -109,6 +109,7 @@ FLAGS = $(MAXOPTIMIZATION) -g2 \
 	-Wno-format-truncation \
 	-Wno-maybe-uninitialized \
 	-Wno-missing-field-initializers \
+	-Wno-stringop-truncation \
 	-Wno-sign-compare \
 	-Wno-type-limits \
 	-Wno-unused-parameter \

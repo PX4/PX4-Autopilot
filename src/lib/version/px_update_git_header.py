@@ -148,9 +148,9 @@ if (os.path.exists('src/modules/mavlink/mavlink/.git')):
 
 # NuttX
 if (os.path.exists('platforms/nuttx/NuttX/nuttx/.git')):
-    nuttx_git_tag = subprocess.check_output('git describe --always --tags --match nuttx-*  --dirty'.split(),
-                                  cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip().replace("nuttx-","v")
-    nuttx_git_tag = re.sub('-.*','.0',nuttx_git_tag)
+    nuttx_git_tag = subprocess.check_output('git describe --always --tags --match nuttx-* --dirty'.split(),
+                                  cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip().replace("nuttx-", "v")
+    nuttx_git_tag = re.sub('-.*', '.0', nuttx_git_tag)
     nuttx_git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
                                       cwd='platforms/nuttx/NuttX/nuttx', stderr=subprocess.STDOUT).decode('utf-8').strip()
     nuttx_git_version_short = nuttx_git_version[0:16]
