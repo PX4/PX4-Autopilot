@@ -369,6 +369,11 @@ tests_coverage:
 	@mkdir -p coverage
 	@lcov --directory build/px4_sitl_test --base-directory build/px4_sitl_test --gcov-tool gcov --capture -o coverage/lcov.info
 
+lcov_px4_fmu-v5:
+	@$(MAKE) clean
+	@$(MAKE) --no-print-directory tests PX4_CMAKE_BUILD_TYPE=Coverage
+	@mkdir -p lcov_px4_fmu-v5
+	@lcov --directory build/px4_sitl_test --base-directory build/px4_sitl_test --gcov-tool gcov --capture -o lcov_px4_fmu-v5/lcov.info
 
 rostest: px4_sitl_default
 	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
@@ -463,9 +468,9 @@ cppcheck: px4_sitl_default
 	@cppcheck-htmlreport --source-encoding=ascii --file="$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml --report-dir="$(SRC_DIR)"/build/cppcheck --source-dir="$(SRC_DIR)"/src/
 
 cppcheck_px4_fmu-v5: px4_fmu-v5_default
-  @mkdir -p "$(SRC_DIR)"/build/cppcheck_v5
-  @cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++14 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_fmu-v5_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck_v5/cppcheck-result.xml > /dev/null
-  @cppcheck-htmlreport --source-encoding=ascii --file="$(SRC_DIR)"/build/cppcheck_v5/cppcheck-result.xml --report-dir="$(SRC_DIR)"/build/cppcheck_v5 --source-dir="$(SRC_DIR)"/src/
+	@mkdir -p "$(SRC_DIR)"/build/cppcheck_v5
+	@cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++14 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_fmu-v5_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck_v5/cppcheck-result.xml > /dev/null
+	@cppcheck-htmlreport --source-encoding=ascii --file="$(SRC_DIR)"/build/cppcheck_v5/cppcheck-result.xml --report-dir="$(SRC_DIR)"/build/cppcheck_v5 --source-dir="$(SRC_DIR)"/src/
 
 shellcheck_all:
 	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/ROMFS/px4fmu_common/
