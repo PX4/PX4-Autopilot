@@ -1,4 +1,4 @@
-name: FMU-v5 clang-tidy
+name: FMU-v5 scan-build
 
 on:
   push:
@@ -12,10 +12,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ghcr.io/render-se/px4-clang:latest
+    container: ghcr.io/render-se/px4-nuttx:latest
     steps:
     - uses: actions/checkout@v1
       with:
         token: ${{secrets.ACCESS_TOKEN}}
-    - name: make clang-tidy_px4_fmu-v5
-      run: make clang-tidy_px4_fmu-v5
+    - name: Run scan-build
+      run: make scan-build_px4_fmu-v5
