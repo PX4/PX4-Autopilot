@@ -462,6 +462,11 @@ cppcheck: px4_sitl_default
 	@cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++14 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_sitl_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml > /dev/null
 	@cppcheck-htmlreport --source-encoding=ascii --file="$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml --report-dir="$(SRC_DIR)"/build/cppcheck --source-dir="$(SRC_DIR)"/src/
 
+cppcheck_px4_fmu-v5: px4_fmu-v5_default
+  @mkdir -p "$(SRC_DIR)"/build/cppcheck_v5
+  @cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++14 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_fmu-v5_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck_v5/cppcheck-result.xml > /dev/null
+  @cppcheck-htmlreport --source-encoding=ascii --file="$(SRC_DIR)"/build/cppcheck_v5/cppcheck-result.xml --report-dir="$(SRC_DIR)"/build/cppcheck_v5 --source-dir="$(SRC_DIR)"/src/
+
 shellcheck_all:
 	@"$(SRC_DIR)"/Tools/run-shellcheck.sh "$(SRC_DIR)"/ROMFS/px4fmu_common/
 	@make px4_fmu-v5_default shellcheck
