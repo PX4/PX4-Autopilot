@@ -683,27 +683,20 @@ void VehicleIMU::PrintStatus()
 
 void VehicleIMU::SensorCalibrationUpdate()
 {
-	// State variance assumed for accelerometer bias storage.
-	// This is a reference variance used to calculate the fraction of learned accelerometer bias that will be used to update the stored value.
-	// Larger values cause a larger fraction of the learned biases to be used.
-	static constexpr float max_var_allowed = 1e-3f;
-	static constexpr float max_var_ratio = 1e2f;
-
 	if (_armed) {
 		for (int i = 0; i < _estimator_sensor_bias_subs.size(); i++) {
 			estimator_sensor_bias_s estimator_sensor_bias;
 
 			if (_estimator_sensor_bias_subs[i].update(&estimator_sensor_bias)) {
 				// find corresponding accel bias
-				if (_accel_calibration.device_id() == estimator_sensor_bias.accel_device_id) {
+				if ((estimator_sensor_bias.accel_device_id != 0)
+				    && (_accel_calibration.device_id() == estimator_sensor_bias.accel_device_id)) {
+
 					const Vector3f bias{estimator_sensor_bias.accel_bias};
 					const Vector3f bias_variance{estimator_sensor_bias.accel_bias_variance};
 
-					const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s) &&
-							   (estimator_sensor_bias.accel_device_id != 0) &&
-							   estimator_sensor_bias.accel_bias_stable &&
-							   (bias_variance.max() < max_var_allowed) &&
-							   (bias_variance.max() < max_var_ratio * bias_variance.min());
+					const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s) && estimator_sensor_bias.accel_bias_valid
+							   && estimator_sensor_bias.accel_bias_stable;
 
 					if (valid) {
 						const Vector3f offset_old{_accel_learned_calibration[i].offset};
@@ -728,16 +721,13 @@ void VehicleIMU::SensorCalibrationUpdate()
 				}
 
 				// find corresponding gyro calibration
-				if (_gyro_calibration.device_id() == estimator_sensor_bias.gyro_device_id) {
+				if ((estimator_sensor_bias.gyro_device_id != 0)
+				    && (_gyro_calibration.device_id() == estimator_sensor_bias.gyro_device_id)) {
 					const Vector3f bias{estimator_sensor_bias.gyro_bias};
 					const Vector3f bias_variance{estimator_sensor_bias.gyro_bias_variance};
 
-					const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s) &&
-							   (estimator_sensor_bias.gyro_device_id != 0) &&
-							   estimator_sensor_bias.gyro_bias_valid &&
-							   estimator_sensor_bias.gyro_bias_stable &&
-							   (bias_variance.max() < max_var_allowed) &&
-							   (bias_variance.max() < max_var_ratio * bias_variance.min());
+					const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s) && estimator_sensor_bias.gyro_bias_valid
+							   && estimator_sensor_bias.gyro_bias_stable;
 
 					if (valid) {
 						const Vector3f offset_old{_gyro_learned_calibration[i].offset};
