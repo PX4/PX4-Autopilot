@@ -73,19 +73,18 @@ public:
 		}
 	}
 
-	void setCutoffFreq(float sample_freq, float cutoff_freq)
+	bool setCutoffFreq(float sample_freq, float cutoff_freq)
 	{
 		if ((sample_freq <= 0.f) || (cutoff_freq <= 0.f) || (cutoff_freq >= sample_freq / 2.f)
 		    || !isFinite(sample_freq) || !isFinite(cutoff_freq)) {
 
-			// No filtering
-			_alpha = 1.f;
-			_cutoff_freq = 0.f;
-			return;
+			// Invalid parameters
+			return false;
 		}
 
 		setParameters(1.f / sample_freq, 1.f / (2.f * M_PI_F * cutoff_freq));
 		_cutoff_freq = cutoff_freq;
+		return true;
 	}
 
 	/**
