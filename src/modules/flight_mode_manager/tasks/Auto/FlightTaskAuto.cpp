@@ -401,20 +401,24 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_yaw_setpoint = NAN;
 
 	} else {
-		if ((_type != WaypointType::takeoff || _sub_triplet_setpoint.get().current.disable_weather_vane)
-		    && _sub_triplet_setpoint.get().current.yaw_valid) {
+		if (!_is_yaw_good_for_control) {
+			_yaw_lock = false;
+			_yaw_setpoint = NAN;
+			_yawspeed_setpoint = 0.f;
+
+		} else if ((_type != WaypointType::takeoff || _sub_triplet_setpoint.get().current.disable_weather_vane)
+			   && _sub_triplet_setpoint.get().current.yaw_valid) {
 			// Use the yaw computed in Navigator except during takeoff because
 			// Navigator is not handling the yaw reset properly.
 			// But: use if from Navigator during takeoff if disable_weather_vane is true,
 			// because we're then aligning to the transition waypoint.
 			// TODO: fix in navigator
 			_yaw_setpoint = _sub_triplet_setpoint.get().current.yaw;
+			_yawspeed_setpoint = NAN;
 
 		} else {
 			_set_heading_from_mode();
 		}
-
-		_yawspeed_setpoint = NAN;
 	}
 
 	return true;
@@ -471,6 +475,8 @@ void FlightTaskAuto::_set_heading_from_mode()
 		_yaw_lock = false;
 		_yaw_setpoint = NAN;
 	}
+
+	_yawspeed_setpoint = NAN;
 }
 
 bool FlightTaskAuto::_isFinite(const position_setpoint_s &sp)
@@ -682,7 +688,7 @@ void FlightTaskAuto::_generateHeading()
 {
 	// Generate heading along trajectory if possible, otherwise hold the previous yaw setpoint
 	if (!_generateHeadingAlongTraj()) {
-		_yaw_setpoint = _yaw_sp_prev;
+		_yaw_setpoint = PX4_ISFINITE(_yaw_sp_prev) ? _yaw_sp_prev : _yaw;
 	}
 }
 
@@ -809,7 +815,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		land_speed *= (1 + _sticks.getPositionExpo()(2));
 
 		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading,
-					       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _deltatime);
+					       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
 		_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _land_heading, _position,
 				_velocity_setpoint_feedback.xy(), _deltatime);
 		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);

@@ -55,7 +55,7 @@ public:
 private:
 	explicit MavlinkStreamOrbitStatus(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::SubscriptionMultiArray<orbit_status_s> _orbit_status_subs{ORB_ID::orbit_status};
+	uORB::SubscriptionMultiArray<orbit_status_s, 2> _orbit_status_subs{ORB_ID::orbit_status};
 
 	bool send() override
 	{
@@ -63,9 +63,7 @@ private:
 		bool updated = false;
 
 		for (auto &orbit_sub : _orbit_status_subs) {
-
 			if (orbit_sub.update(&orbit_status)) {
-				updated = true;
 				mavlink_orbit_execution_status_t msg_orbit_execution_status{};
 
 				msg_orbit_execution_status.time_usec = orbit_status.timestamp;
@@ -78,6 +76,7 @@ private:
 				mavlink_msg_orbit_execution_status_send_struct(_mavlink->get_channel(), &msg_orbit_execution_status);
 
 				// only one subscription should ever be active at any time, so we can exit here
+				updated = true;
 				break;
 			}
 		}

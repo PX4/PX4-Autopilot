@@ -215,6 +215,16 @@ public:
 
 	bool isTerrainEstimateValid() const { return _hagl_valid; };
 
+	bool isYawFinalAlignComplete() const
+	{
+		const bool is_using_mag = (_control_status.flags.mag_3D || _control_status.flags.mag_hdg);
+		const bool is_mag_alignment_in_flight_complete = is_using_mag
+		                                                 && _control_status.flags.mag_aligned_in_flight
+		                                                 && ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)1e6);
+		return _control_status.flags.yaw_align
+		       && (is_mag_alignment_in_flight_complete || !is_using_mag);
+	}
+
 	uint8_t getTerrainEstimateSensorBitfield() const { return _hagl_sensor_status.value; }
 
 	// get the estimated terrain vertical position relative to the NED origin
