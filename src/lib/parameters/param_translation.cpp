@@ -239,15 +239,6 @@ bool param_modify_on_import(bson_node_t node)
 	device::Device::DeviceId device_id;
 	device_id.devid = (uint32_t) * ivalue;
 
-	// SPI board config translation
-#ifdef __PX4_NUTTX // only on NuttX the address is 0
-
-	if (device_id.devid_s.bus_type == device::Device::DeviceBusType_SPI) {
-		device_id.devid_s.address = 0;
-	}
-
-#endif
-
 	// deprecated ACC -> IMU translations
 	if (device_id.devid_s.devtype == DRV_ACC_DEVTYPE_MPU6000_LEGACY) {
 		device_id.devid_s.devtype = DRV_IMU_DEVTYPE_MPU6000;
