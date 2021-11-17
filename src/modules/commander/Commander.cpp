@@ -3396,8 +3396,8 @@ void Commander::data_link_check()
 					_status_changed = true;
 
 					if (_datalink_last_heartbeat_gcs != 0) {
-						mavlink_log_info(&_mavlink_log_pub, "Data link regained\t");
-						events::send(events::ID("commander_dl_regained"), events::Log::Info, "Data link regained");
+						mavlink_log_info(&_mavlink_log_pub, "Connection to ground station regained\t");
+						events::send(events::ID("commander_gcs_regained"), events::Log::Info, "Connection to ground station regained");
 					}
 
 					if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
