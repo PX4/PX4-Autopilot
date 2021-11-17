@@ -91,7 +91,6 @@ public:
 	void reActivate() override;
 	bool updateInitialize() override;
 	bool update() override;
-	bool updateFinalize() override;
 
 	/**
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.

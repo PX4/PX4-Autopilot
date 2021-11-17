@@ -214,17 +214,13 @@ bool FlightTaskAuto::update()
 	// update previous type
 	_type_previous = _type;
 
-	return ret;
-}
-
-bool FlightTaskAuto::updateFinalize()
-{
-	// All the auto FlightTasks have to comply with defined maximum yaw rate
 	// If the FlightTask generates a yaw or a yawrate setpoint that exceeds this value
 	// it will see its setpoint constrained here
 	_limitYawRate();
+
 	_constraints.want_takeoff = _checkTakeoff();
-	return true;
+
+	return ret;
 }
 
 void FlightTaskAuto::_prepareLandSetpoints()
