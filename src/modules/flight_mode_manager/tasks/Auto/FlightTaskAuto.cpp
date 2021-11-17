@@ -58,7 +58,6 @@ bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setp
 	_velocity_setpoint = _velocity;
 	_yaw_setpoint = _yaw;
 	_yawspeed_setpoint = 0.0f;
-	_setDefaultConstraints();
 
 	// Set setpoints equal current state.
 	_velocity_setpoint = _velocity;
@@ -126,7 +125,6 @@ bool FlightTaskAuto::update()
 	// The only time a thrust set-point is sent out is during
 	// idle. Hence, reset thrust set-point to NAN in case the
 	// vehicle exits idle.
-
 	if (_type_previous == WaypointType::idle) {
 		_acceleration_setpoint.setNaN();
 	}
@@ -139,30 +137,35 @@ bool FlightTaskAuto::update()
 
 	switch (_type) {
 	case WaypointType::idle:
-		_prepareIdleSetpoints();
+		// Send zero thrust setpoint
+		_position_setpoint.setNaN(); // Don't require any position/velocity setpoints
+		_velocity_setpoint.setNaN();
+		_acceleration_setpoint = Vector3f(0.f, 0.f, 100.f); // High downwards acceleration to make sure there's no thrust
 		break;
 
 	case WaypointType::land:
 		_prepareLandSetpoints();
 		break;
 
-	case WaypointType::loiter:
-
-	/* fallthrought */
-	case WaypointType::position:
-		_preparePositionSetpoints();
+	case WaypointType::velocity:
+		// XY Velocity waypoint
+		// TODO : Rewiew that. What is the expected behavior?
+		_position_setpoint = Vector3f(NAN, NAN, _position(2));
+		_velocity_setpoint.xy() = Vector2f(_velocity).unit_or_zero() * _mc_cruise_speed;
+		_velocity_setpoint(2) = NAN;
 		break;
 
 	case WaypointType::takeoff:
-		_prepareTakeoffSetpoints();
-		break;
+		// Takeoff is completely defined by target position
+		_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 
-	case WaypointType::velocity:
-		_prepareVelocitySetpoints();
-		break;
-
+	// FALLTHROUGH
+	case WaypointType::loiter:
+	case WaypointType::position:
 	default:
-		_preparePositionSetpoints();
+		// Simple waypoint navigation: go to xyz target, with standard limitations
+		_position_setpoint = _target;
+		_velocity_setpoint.setNaN();
 		break;
 	}
 
@@ -171,7 +174,6 @@ bool FlightTaskAuto::update()
 		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
 				_yawspeed_setpoint);
 	}
-
 
 	_generateSetpoints();
 
@@ -189,6 +191,51 @@ bool FlightTaskAuto::updateFinalize()
 	_limitYawRate();
 	_constraints.want_takeoff = _checkTakeoff();
 	return true;
+}
+
+void FlightTaskAuto::_prepareLandSetpoints()
+{
+	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
+
+	// Slow down automatic descend close to ground
+	float land_speed = math::gradual(_dist_to_ground,
+					 _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+					 _param_mpc_land_speed.get(), _constraints.speed_down);
+
+	if (_type_previous != WaypointType::land) {
+		// initialize xy-position and yaw to waypoint such that home is reached exactly without user input
+		_land_position = Vector3f(_target(0), _target(1), NAN);
+		_land_heading = _yaw_setpoint;
+		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
+	}
+
+	// User input assisted landing
+	if (_param_mpc_land_rc_help.get() && _sticks.checkAndSetStickInputs()) {
+		// Stick full up -1 -> stop, stick full down 1 -> double the speed
+		land_speed *= (1 + _sticks.getPositionExpo()(2));
+
+		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading,
+					       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
+		_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _land_heading, _position,
+				_velocity_setpoint_feedback.xy(), _deltatime);
+		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
+
+		// Hack to make sure the MPC_YAW_MODE 4 alignment doesn't stop the vehicle from descending when there's yaw input
+		if (fabsf(_yawspeed_setpoint) > FLT_EPSILON) {
+			_yaw_sp_aligned = true;
+		}
+
+	} else {
+		// Make sure we have a valid land position even in the case we loose RC while amending it
+		if (!PX4_ISFINITE(_land_position(0))) {
+			_land_position.xy() = Vector2f(_position);
+		}
+	}
+
+	_position_setpoint = _land_position; // The last element of the land position has to stay NAN
+	_yaw_setpoint = _land_heading;
+	_velocity_setpoint(2) = land_speed;
+	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
 void FlightTaskAuto::_limitYawRate()
@@ -783,84 +830,6 @@ void FlightTaskAuto::_updateTrajConstraints()
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
 		_position_smoothing.setMaxVelocityZ(_param_mpc_z_vel_max_dn.get());
 	}
-}
-
-void FlightTaskAuto::_prepareIdleSetpoints()
-{
-	// Send zero thrust setpoint
-	_position_setpoint.setNaN(); // Don't require any position/velocity setpoints
-	_velocity_setpoint.setNaN();
-	_acceleration_setpoint = Vector3f(0.f, 0.f, 100.f); // High downwards acceleration to make sure there's no thrust
-}
-
-void FlightTaskAuto::_prepareLandSetpoints()
-{
-	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
-
-	// Slow down automatic descend close to ground
-	float land_speed = math::gradual(_dist_to_ground,
-					 _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-					 _param_mpc_land_speed.get(), _constraints.speed_down);
-
-	if (_type_previous != WaypointType::land) {
-		// initialize xy-position and yaw to waypoint such that home is reached exactly without user input
-		_land_position = Vector3f(_target(0), _target(1), NAN);
-		_land_heading = _yaw_setpoint;
-		_stick_acceleration_xy.resetPosition(Vector2f(_target(0), _target(1)));
-	}
-
-	// User input assisted landing
-	if (_param_mpc_land_rc_help.get() && _sticks.checkAndSetStickInputs()) {
-		// Stick full up -1 -> stop, stick full down 1 -> double the speed
-		land_speed *= (1 + _sticks.getPositionExpo()(2));
-
-		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading,
-					       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
-		_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _land_heading, _position,
-				_velocity_setpoint_feedback.xy(), _deltatime);
-		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
-
-		// Hack to make sure the MPC_YAW_MODE 4 alignment doesn't stop the vehicle from descending when there's yaw input
-		if (fabsf(_yawspeed_setpoint) > FLT_EPSILON) {
-			_yaw_sp_aligned = true;
-		}
-
-	} else {
-		// Make sure we have a valid land position even in the case we loose RC while amending it
-		if (!PX4_ISFINITE(_land_position(0))) {
-			_land_position.xy() = Vector2f(_position);
-		}
-	}
-
-	_position_setpoint = _land_position; // The last element of the land position has to stay NAN
-	_yaw_setpoint = _land_heading;
-	_velocity_setpoint(2) = land_speed;
-	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
-}
-
-void FlightTaskAuto::_prepareTakeoffSetpoints()
-{
-	// Takeoff is completely defined by target position
-	_position_setpoint = _target;
-	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
-
-	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
-}
-
-void FlightTaskAuto::_prepareVelocitySetpoints()
-{
-	// XY Velocity waypoint
-	// TODO : Rewiew that. What is the expected behavior?
-	_position_setpoint = Vector3f(NAN, NAN, _position(2));
-	Vector2f vel_sp_xy = Vector2f(_velocity).unit_or_zero() * _mc_cruise_speed;
-	_velocity_setpoint = Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN);
-}
-
-void FlightTaskAuto::_preparePositionSetpoints()
-{
-	// Simple waypoint navigation: go to xyz target, with standard limitations
-	_position_setpoint = _target;
-	_velocity_setpoint.setNaN(); // No special velocity limitations
 }
 
 bool FlightTaskAuto::_highEnoughForLandingGear()
