@@ -1057,17 +1057,18 @@ void EKF2::PublishOdometryAligned(const hrt_abstime &timestamp, const vehicle_od
 void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 {
 	// estimator_sensor_bias
-	estimator_sensor_bias_s bias{};
-	bias.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
-
 	const Vector3f gyro_bias{_ekf.getGyroBias()};
 	const Vector3f accel_bias{_ekf.getAccelBias()};
 	const Vector3f mag_bias{_ekf.getMagBias()};
 
-	// only publish on change
+	// publish at ~1 Hz, or sooner if there's a change
 	if ((gyro_bias - _last_gyro_bias_published).longerThan(0.001f)
 	    || (accel_bias - _last_accel_bias_published).longerThan(0.001f)
-	    || (mag_bias - _last_mag_bias_published).longerThan(0.001f)) {
+	    || (mag_bias - _last_mag_bias_published).longerThan(0.001f)
+	    || (timestamp >= _last_sensor_bias_published + 1_s)) {
+
+		estimator_sensor_bias_s bias{};
+		bias.timestamp_sample = timestamp;
 
 		// take device ids from sensor_selection_s if not using specific vehicle_imu_s
 		if (_device_id_gyro != 0) {
@@ -1102,6 +1103,8 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 
 		bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_sensor_bias_pub.publish(bias);
+
+		_last_sensor_bias_published = bias.timestamp;
 	}
 }
 
@@ -1774,18 +1777,40 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 {
+	if (_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS) {
+		_accel_cal.cal_available = false;
+		return;
+	}
+
+	// State variance assumed for accelerometer bias storage.
+	// This is a reference variance used to calculate the fraction of learned accelerometer bias that will be used to update the stored value.
+	// Larger values cause a larger fraction of the learned biases to be used.
+	static constexpr float max_var_allowed = 1e-3f;
+	static constexpr float max_var_ratio = 1e2f;
+
+	const Vector3f bias_variance{_ekf.getAccelBiasVariance()};
+
 	// Check if conditions are OK for learning of accelerometer bias values
 	// the EKF is operating in the correct mode and there are no filter faults
-	if (_ekf.control_status_flags().in_air && (_ekf.fault_status().value == 0)
-	    && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
+	if ((_ekf.fault_status().value == 0)
+	    && !_ekf.accel_bias_inhibited()
+	    && !_preflt_checker.hasHorizFailed() && !_preflt_checker.hasVertFailed()
+	    && (_ekf.control_status_flags().baro_hgt || _ekf.control_status_flags().rng_hgt
+		|| _ekf.control_status_flags().gps_hgt || _ekf.control_status_flags().ev_hgt)
+	    && !_ekf.warning_event_flags().height_sensor_timeout && !_ekf.warning_event_flags().invalid_accel_bias_cov_reset
+	    && !_ekf.innov_check_fail_status_flags().reject_ver_pos && !_ekf.innov_check_fail_status_flags().reject_ver_vel
+	    && (bias_variance.max() < max_var_allowed) && (bias_variance.max() < max_var_ratio * bias_variance.min())
+	   ) {
 
 		if (_accel_cal.last_us != 0) {
 			_accel_cal.total_time_us += timestamp - _accel_cal.last_us;
 
 			// Start checking accel bias estimates when we have accumulated sufficient calibration time
 			if (_accel_cal.total_time_us > 30_s) {
-				_accel_cal.last_bias = _ekf.getAccelBias();
-				_accel_cal.last_bias_variance = _ekf.getAccelBiasVariance();
+				if (!_accel_cal.cal_available) {
+					PX4_DEBUG("%d accel bias now stable", _instance);
+				}
+
 				_accel_cal.cal_available = true;
 			}
 		}
@@ -1793,31 +1818,40 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 		_accel_cal.last_us = timestamp;
 
 	} else {
-		// conditions are NOT OK for learning accelerometer bias, reset timestamp
-		// but keep the accumulated calibration time
-		_accel_cal.last_us = 0;
-
-		if (_ekf.fault_status().value != 0) {
-			// if a filter fault has occurred, assume previous learning was invalid and do not
-			// count it towards total learning time.
-			_accel_cal.total_time_us = 0;
+		// conditions are NOT OK for learning accelerometer bias, reset
+		if (_accel_cal.total_time_us > 0) {
+			PX4_DEBUG("%d, clearing learned accel bias", _instance);
 		}
+
+		_accel_cal = {};
 	}
 }
 
 void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 {
+	// State variance assumed for accelerometer bias storage.
+	// This is a reference variance used to calculate the fraction of learned accelerometer bias that will be used to update the stored value.
+	// Larger values cause a larger fraction of the learned biases to be used.
+	static constexpr float max_var_allowed = 1e-3f;
+	static constexpr float max_var_ratio = 1e2f;
+
+	const Vector3f bias_variance{_ekf.getGyroBiasVariance()};
+
 	// Check if conditions are OK for learning of gyro bias values
 	// the EKF is operating in the correct mode and there are no filter faults
-	if (_ekf.control_status_flags().in_air && (_ekf.fault_status().value == 0)) {
+	if ((_ekf.fault_status().value == 0)
+	    && (bias_variance.max() < max_var_allowed) && (bias_variance.max() < max_var_ratio * bias_variance.min())
+	   ) {
 
 		if (_gyro_cal.last_us != 0) {
 			_gyro_cal.total_time_us += timestamp - _gyro_cal.last_us;
 
 			// Start checking gyro bias estimates when we have accumulated sufficient calibration time
 			if (_gyro_cal.total_time_us > 30_s) {
-				_gyro_cal.last_bias = _ekf.getGyroBias();
-				_gyro_cal.last_bias_variance = _ekf.getGyroBiasVariance();
+				if (!_gyro_cal.cal_available) {
+					PX4_DEBUG("%d gyro bias now stable", _instance);
+				}
+
 				_gyro_cal.cal_available = true;
 			}
 		}
@@ -1825,15 +1859,12 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 		_gyro_cal.last_us = timestamp;
 
 	} else {
-		// conditions are NOT OK for learning gyro bias, reset timestamp
-		// but keep the accumulated calibration time
-		_gyro_cal.last_us = 0;
-
-		if (_ekf.fault_status().value != 0) {
-			// if a filter fault has occurred, assume previous learning was invalid and do not
-			// count it towards total learning time.
-			_gyro_cal.total_time_us = 0;
+		// conditions are NOT OK for learning gyro bias, reset
+		if (_gyro_cal.total_time_us > 0) {
+			PX4_DEBUG("%d, clearing learned gyro bias", _instance);
 		}
+
+		_gyro_cal = {};
 	}
 }
 
@@ -1848,8 +1879,6 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 
 			// Start checking mag bias estimates when we have accumulated sufficient calibration time
 			if (_mag_cal.total_time_us > 30_s) {
-				_mag_cal.last_bias = _ekf.getMagBias();
-				_mag_cal.last_bias_variance = _ekf.getMagBiasVariance();
 				_mag_cal.cal_available = true;
 			}
 		}
