@@ -175,7 +175,41 @@ bool FlightTaskAuto::update()
 				_yawspeed_setpoint);
 	}
 
-	_generateSetpoints();
+	_checkEmergencyBraking();
+	Vector3f waypoints[] = {_prev_wp, _position_setpoint, _next_wp};
+
+	if (isTargetModified()) {
+		// In case object avoidance has injected a new setpoint, we take this as the next waypoints
+		waypoints[2] = _position_setpoint;
+	}
+
+	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned;
+	_updateTrajConstraints();
+	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
+	_position_smoothing.generateSetpoints(
+		_position,
+		waypoints,
+		_velocity_setpoint,
+		_deltatime,
+		should_wait_for_yaw_align,
+		smoothed_setpoints
+	);
+
+	_jerk_setpoint = smoothed_setpoints.jerk;
+	_acceleration_setpoint = smoothed_setpoints.acceleration;
+	_velocity_setpoint = smoothed_setpoints.velocity;
+	_position_setpoint = smoothed_setpoints.position;
+
+	_unsmoothed_velocity_setpoint = smoothed_setpoints.unsmoothed_velocity;
+	_want_takeoff = smoothed_setpoints.unsmoothed_velocity(2) < -0.3f;
+
+	if (!PX4_ISFINITE(_yaw_setpoint) && !PX4_ISFINITE(_yawspeed_setpoint)) {
+		// no valid heading -> generate heading in this flight task
+		// Generate heading along trajectory if possible, otherwise hold the previous yaw setpoint
+		if (!_generateHeadingAlongTraj()) {
+			_yaw_setpoint = PX4_ISFINITE(_yaw_sp_prev) ? _yaw_sp_prev : _yaw;
+		}
+	}
 
 	// update previous type
 	_type_previous = _type;
@@ -693,50 +727,6 @@ void FlightTaskAuto::_ekfResetHandlerVelocityZ(float delta_vz)
 void FlightTaskAuto::_ekfResetHandlerHeading(float delta_psi)
 {
 	_yaw_sp_prev += delta_psi;
-}
-
-void FlightTaskAuto::_generateSetpoints()
-{
-	_checkEmergencyBraking();
-	Vector3f waypoints[] = {_prev_wp, _position_setpoint, _next_wp};
-
-	if (isTargetModified()) {
-		// In case object avoidance has injected a new setpoint, we take this as the next waypoints
-		waypoints[2] = _position_setpoint;
-	}
-
-	const bool should_wait_for_yaw_align = _param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned;
-	_updateTrajConstraints();
-	PositionSmoothing::PositionSmoothingSetpoints smoothed_setpoints;
-	_position_smoothing.generateSetpoints(
-		_position,
-		waypoints,
-		_velocity_setpoint,
-		_deltatime,
-		should_wait_for_yaw_align,
-		smoothed_setpoints
-	);
-
-	_jerk_setpoint = smoothed_setpoints.jerk;
-	_acceleration_setpoint = smoothed_setpoints.acceleration;
-	_velocity_setpoint = smoothed_setpoints.velocity;
-	_position_setpoint = smoothed_setpoints.position;
-
-	_unsmoothed_velocity_setpoint = smoothed_setpoints.unsmoothed_velocity;
-	_want_takeoff = smoothed_setpoints.unsmoothed_velocity(2) < -0.3f;
-
-	if (!PX4_ISFINITE(_yaw_setpoint) && !PX4_ISFINITE(_yawspeed_setpoint)) {
-		// no valid heading -> generate heading in this flight task
-		_generateHeading();
-	}
-}
-
-void FlightTaskAuto::_generateHeading()
-{
-	// Generate heading along trajectory if possible, otherwise hold the previous yaw setpoint
-	if (!_generateHeadingAlongTraj()) {
-		_yaw_setpoint = PX4_ISFINITE(_yaw_sp_prev) ? _yaw_sp_prev : _yaw;
-	}
 }
 
 void FlightTaskAuto::_checkEmergencyBraking()

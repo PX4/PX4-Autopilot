@@ -110,8 +110,6 @@ protected:
 	void _ekfResetHandlerVelocityZ(float delta_vz) override;
 	void _ekfResetHandlerHeading(float delta_psi) override;
 
-	void _generateSetpoints(); /**< Generate setpoints along line. */
-	void _generateHeading();
 	void _checkEmergencyBraking();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 	bool isTargetModified() const;
