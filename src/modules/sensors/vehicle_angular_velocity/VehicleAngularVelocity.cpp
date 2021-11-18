@@ -167,8 +167,14 @@ void VehicleAngularVelocity::ResetFilters()
 			_notch_filter_velocity[axis].reset(angular_velocity_uncalibrated(axis));
 
 			// angular acceleration low pass
-			_lp_filter_acceleration[axis].setCutoffFreq(_filter_sample_rate_hz, _param_imu_dgyro_cutoff.get());
-			_lp_filter_acceleration[axis].reset(angular_acceleration_uncalibrated(axis));
+			if ((_param_imu_dgyro_cutoff.get() > 0.f)
+			    && (_lp_filter_acceleration[axis].setCutoffFreq(_filter_sample_rate_hz, _param_imu_dgyro_cutoff.get()))) {
+				_lp_filter_acceleration[axis].reset(angular_acceleration_uncalibrated(axis));
+
+			} else {
+				// disable filtering
+				_lp_filter_acceleration[axis].setAlpha(1.f);
+			}
 		}
 
 		// force reset notch filters on any scale change
