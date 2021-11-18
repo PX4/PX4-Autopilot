@@ -40,6 +40,7 @@
 
 #include "PPSCapture.hpp"
 #include "board_config.h"
+#include <px4_arch/io_timer.h>
 
 PPSCapture::PPSCapture() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -48,18 +49,35 @@ PPSCapture::PPSCapture() :
 
 PPSCapture::~PPSCapture()
 {
-	px4_arch_gpiosetevent(BOARD_CAPTURE_GPIO, false, false, false, nullptr, nullptr);
+#if defined(PPS_CAPTURE_CHANNEL)
+	io_timer_unallocate_channel(PPS_CAPTURE_CHANNEL);
+	px4_arch_gpiosetevent(_pps_capture_gpio, false, false, false, nullptr, nullptr);
+#endif
 }
 
 bool PPSCapture::init()
 {
 	bool success = false;
 
-	int ret_val = px4_arch_gpiosetevent(BOARD_CAPTURE_GPIO, true, false, true, &PPSCapture::gpio_interrupt_callback, this);
+#if defined(PPS_CAPTURE_CHANNEL)
+
+	int ret = io_timer_allocate_channel(PPS_CAPTURE_CHANNEL, IOTimerChanMode_PPS);
+
+	if (ret != PX4_OK) {
+		PX4_ERR("gpio alloc failed (%i) for PPS at channel (%d)", ret, PPS_CAPTURE_CHANNEL);
+		return false;
+	}
+
+	_pps_capture_gpio = PX4_MAKE_GPIO_EXTI(io_timer_channel_get_as_pwm_input(PPS_CAPTURE_CHANNEL));
+	int ret_val = px4_arch_gpiosetevent(_pps_capture_gpio, true, false, true, &PPSCapture::gpio_interrupt_callback, this);
 
 	if (ret_val == PX4_OK) {
 		success = true;
 	}
+
+#else
+#error Driver requires PPS_CAPTURE_CHANNEL to be enabled
+#endif
 
 	return success;
 }
