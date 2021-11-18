@@ -477,6 +477,9 @@ else
 		rc_input start $RC_INPUT_ARGS
 	fi
 
+	# PPS capture driver (before pwm_out)
+	pps_capture start
+
 	# Camera capture driver (before pwm_out)
 	if param greater -s CAM_CAP_FBACK 0
 	then

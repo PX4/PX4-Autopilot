@@ -67,6 +67,7 @@ public:
 private:
 	void Run() override;
 
+	uint32_t _pps_capture_gpio{0};
 	uORB::Publication<pps_capture_s>	_pps_capture_pub{ORB_ID(pps_capture)};
 
 	static constexpr unsigned USEC_IN_1_SEC{1000000}; // microseconds in 1 second
