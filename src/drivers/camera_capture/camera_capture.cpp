@@ -193,10 +193,8 @@ CameraCapture::publish_trigger()
 
 
 	if (_pps_hrt_timestamp > 0) {
-		// Current RTC time (RTC time captured by the PPS module + elapsed time since capture)
-		uint64_t gps_utc_time = _pps_rtc_timestamp + hrt_elapsed_time(&_pps_hrt_timestamp);
-		// Current RTC time - elapsed time since capture interrupt event
-		trigger.timestamp_utc = gps_utc_time - hrt_elapsed_time(&trigger.timestamp);
+		// Last PPS RTC time + elapsed time to the camera capture interrupt
+		trigger.timestamp_utc = _pps_rtc_timestamp + (trigger.timestamp - _pps_hrt_timestamp);
 
 	} else {
 		// No PPS capture received, use RTC clock as fallback
