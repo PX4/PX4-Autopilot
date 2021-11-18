@@ -99,14 +99,12 @@ void PPSCapture::Run()
 	pps_capture_s pps_capture;
 	pps_capture.timestamp = _hrt_timestamp;
 	// GPS UTC time when the GPIO interrupt was triggered
-	// UTC time + elapsed time since the UTC time was received - eleapsed time since the PPS interrupt
-	// event
-	uint64_t gps_utc_time = _last_gps_utc_timestamp + hrt_elapsed_time(&_last_gps_timestamp)
-				- hrt_elapsed_time(&_hrt_timestamp);
+	// Last UTC time received from the GPS + elapsed time to the PPS interrupt
+	uint64_t gps_utc_time = _last_gps_utc_timestamp + (_hrt_timestamp - _last_gps_timestamp);
 
 	// (For ubx F9P) The rising edge of the PPS pulse is aligned to the top of second GPS time base.
 	// So, remove the fraction of second and shift to the next second. The interrupt is triggered
-	// before the matching timestamp tranfered, which means the last received GPS time is always
+	// before the matching timestamp is received via a UART message, which means the last received GPS time is always
 	// behind.
 	pps_capture.rtc_timestamp = gps_utc_time - (gps_utc_time % USEC_PER_SEC) + USEC_PER_SEC;
 
