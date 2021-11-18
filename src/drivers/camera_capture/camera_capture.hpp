@@ -132,8 +132,8 @@ private:
 	hrt_abstime		_last_trig_time{0};
 	uint32_t 		_capture_overflows{0};
 
-	uint64_t    _pps_hrt_timestamp{0};
-	uint64_t    _pps_rtc_timestamp{0};
+	hrt_abstime	_pps_hrt_timestamp{0};
+	uint64_t		_pps_rtc_timestamp{0};
 
 	// Signal capture callback
 	void			capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);

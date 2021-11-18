@@ -174,8 +174,8 @@ private:
 	bool 			_turning_on{false};
 	matrix::Vector2f	_last_shoot_position{0.f, 0.f};
 	bool			_valid_position{false};
-	uint64_t    _pps_hrt_timestamp{0};
-	uint64_t    _pps_rtc_timestamp{0};
+	hrt_abstime	_pps_hrt_timestamp{0};
+	uint64_t		_pps_rtc_timestamp{0};
 
 	//Camera Auto Mount Pivoting Oblique Survey (CAMPOS)
 	uint32_t		_CAMPOS_num_poses{0};

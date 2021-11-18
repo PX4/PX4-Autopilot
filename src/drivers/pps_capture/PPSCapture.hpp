@@ -73,12 +73,9 @@ private:
 	uORB::Publication<pps_capture_s>	_pps_capture_pub{ORB_ID(pps_capture)};
 	uORB::Subscription								_sensor_gps_sub{ORB_ID(sensor_gps)};
 
-	static constexpr unsigned USEC_IN_1_SEC{1000000}; // microseconds in 1 second
-	static constexpr unsigned MAX_POSITIVE_DRIFT{USEC_IN_1_SEC / 2}; // microseconds
-
 	hrt_abstime _hrt_timestamp{0};
 
-	uint64_t _last_gps_timestamp{0};
-	uint64_t _last_gps_utc_timestamp{0};
+	hrt_abstime	_last_gps_timestamp{0};
+	uint64_t		_last_gps_utc_timestamp{0};
 
 };
