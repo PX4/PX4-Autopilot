@@ -530,12 +530,16 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
 		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
+#if !defined(CONSTRAINED_FLASH)
 
 		if (message_id == MAVLINK_MSG_ID_MISSION_CHECKSUM) {
 			result = _mission_manager.send_mission_checksum((MAV_MISSION_TYPE)roundf(vehicle_command.param2)) ?
 				 vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 
 		} else {
+#else
+		{
+#endif
 			result = handle_request_message_command(message_id,
 								vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
 								vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);

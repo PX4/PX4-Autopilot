@@ -75,7 +75,7 @@ static constexpr int MISSION_ITEM_CRC_SIZE = 32;
 		 (_msg.target_component == MAV_COMP_ID_ALL)))
 
 
-static uint32_t crc32_for_mission_item(const mission_item_s &mission_item, uint32_t prev_crc32)
+static uint32_t crc32_for_mission_item(const mavlink_mission_item_t &mission_item, uint32_t prev_crc32)
 {
 	union {
 		struct __attribute__((packed)) {
@@ -88,12 +88,15 @@ static uint32_t crc32_for_mission_item(const mission_item_s &mission_item, uint3
 	} u;
 
 	u.item.frame = mission_item.frame;
-	u.item.command = mission_item.nav_cmd;
+	u.item.command = mission_item.command;
 	u.item.autocontinue = mission_item.autocontinue;
-
-	for (int i = 0; i < 7; i++) {
-		u.item.params[i] = mission_item.params[i];
-	}
+	u.item.params[0] = mission_item.param1;
+	u.item.params[1] = mission_item.param2;
+	u.item.params[2] = mission_item.param3;
+	u.item.params[3] = mission_item.param4;
+	u.item.params[4] = mission_item.x;
+	u.item.params[5] = mission_item.y;
+	u.item.params[6] = mission_item.z;
 
 	return crc32part(u.raw, sizeof(u), prev_crc32);
 }
@@ -314,7 +317,12 @@ MavlinkMissionManager::send_mission_current(uint16_t seq)
 	PX4_DEBUG("WPM: Send MISSION_CURRENT seq %d", seq);
 }
 
-
+/**
+ * Combines two independently computed CRC32 checksums to a single checksum
+ * that is the same as if the checksum was computed over the concatenation
+ * of both blocks.
+ * Reference: https://stackoverflow.com/questions/23122312/crc-calculation-of-a-mostly-static-data-stream
+ */
 uint32_t crc32combine(uint32_t crc_a, uint32_t crc_b, size_t len_b)
 {
 	size_t i;
@@ -327,7 +335,7 @@ uint32_t crc32combine(uint32_t crc_a, uint32_t crc_b, size_t len_b)
 	return (crc_a ^ crc_b);
 }
 
-
+#if !defined(CONSTRAINED_FLASH)
 bool MavlinkMissionManager::send_mission_checksum(MAV_MISSION_TYPE mission_type)
 {
 	if (mission_type != MAV_MISSION_TYPE_MISSION &&
@@ -358,6 +366,7 @@ bool MavlinkMissionManager::send_mission_checksum(MAV_MISSION_TYPE mission_type)
 	mavlink_msg_mission_checksum_send_struct(_mavlink->get_channel(), &wpc);
 	return true;
 }
+#endif
 
 void
 MavlinkMissionManager::send_mission_count(uint8_t sysid, uint8_t compid, uint16_t count, MAV_MISSION_TYPE mission_type)
@@ -688,7 +697,6 @@ MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
 		break;
 
 	case MAVLINK_MSG_ID_COMMAND_INT:
-		printf("GOT A COMMAND\n");
 		break;
 
 	default:
@@ -1201,7 +1209,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			return;
 		}
 
-		_transfer_current_crc32 = crc32_for_mission_item(mission_item, _transfer_current_crc32);
+		_transfer_current_crc32 = crc32_for_mission_item(wp, _transfer_current_crc32);
 
 		bool write_failed = false;
 		bool check_failed = false;
@@ -1338,7 +1346,9 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 			if (ret == PX4_OK) {
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ACCEPTED);
+#if !defined(CONSTRAINED_FLASH)
 				send_mission_checksum(_mission_type);
+#endif
 
 			} else {
 				send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
