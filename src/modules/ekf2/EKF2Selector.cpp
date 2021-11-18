@@ -293,7 +293,7 @@ bool EKF2Selector::UpdateErrorScores()
 			float combined_test_ratio = fmaxf(0.5f * (status.vel_test_ratio + status.pos_test_ratio), status.hgt_test_ratio);
 
 			_instance[i].combined_test_ratio = combined_test_ratio;
-			_instance[i].healthy = (status.filter_fault_flags == 0) && (combined_test_ratio > 0.f);
+			_instance[i].healthy = (status.filter_fault_flags == 0) && (combined_test_ratio > 0.f) && (combined_test_ratio < 1.f);
 			_instance[i].filter_fault = (status.filter_fault_flags != 0);
 			_instance[i].timeout = false;
 
