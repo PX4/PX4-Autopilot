@@ -350,6 +350,17 @@ __EXPORT int		param_import(int fd, bool mark_saved);
 __EXPORT int		param_load(int fd);
 
 /**
+ * Read saved parameters from file and dump to console.
+ *
+ * This function reads the file and dumps all contents to console
+ * values from a file.
+ *
+ * @param fd		File descriptor to read from.
+ * @return		Zero on success, nonzero if an error occurred during import.
+ */
+__EXPORT int		param_dump(int fd);
+
+/**
  * Apply a function to each parameter.
  *
  * Note that the parameter set is not locked during the traversal. It also does
