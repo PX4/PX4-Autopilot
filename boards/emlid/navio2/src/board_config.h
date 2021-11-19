@@ -49,8 +49,12 @@
 
 
 // I2C
+#define CONFIG_I2C 1
 #define PX4_NUMBER_I2C_BUSES    1
 
+
+// SPI
+#define CONFIG_SPI 1
 
 // ADC channels:
 // A0 - board voltage (shows 5V)

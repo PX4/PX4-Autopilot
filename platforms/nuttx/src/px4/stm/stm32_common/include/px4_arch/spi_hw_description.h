@@ -36,6 +36,7 @@
 #include <px4_arch/hw_description.h>
 #include <px4_platform_common/spi.h>
 
+#if defined(CONFIG_SPI)
 
 #include <stm32_gpio.h>
 
@@ -168,3 +169,5 @@ constexpr bool validateSPIConfig(const px4_spi_bus_all_hw_t spi_buses_conf[BOARD
 
 	return false;
 }
+
+#endif // CONFIG_SPI

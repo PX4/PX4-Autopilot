@@ -68,11 +68,8 @@ union TaskUnion {
 
 @# loop through all requested tasks
 @[if tasks]@
-@{
-firstLowercase = lambda s: s[:1].lower() + s[1:] if s else ''
-}@
 @[for task in tasks]@
-    FlightTask@(task) @(firstLowercase(task));
+    FlightTask@(task) @(task);
 @[end for]@
 @[end if]@
 };

@@ -194,6 +194,7 @@ bool EKF2::multi_init(int imu, int mag)
 	_ekf2_timestamps_pub.advertise();
 	_ekf_gps_drift_pub.advertise();
 	_estimator_baro_bias_pub.advertise();
+	_estimator_event_flags_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
@@ -887,6 +888,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 	lpos.heading = Eulerf(_ekf.getQuaternion()).psi();
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
+	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
 
 	// Distance to bottom surface (ground) in meters
 	// constrain the distance to ground to _rng_gnd_clearance
@@ -1872,12 +1874,14 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 			float declination_deg;
 
 			if (_ekf.get_mag_decl_deg(&declination_deg)) {
-				_param_ekf2_mag_decl.set(declination_deg);
-				_mag_decl_saved = true;
+				_param_ekf2_mag_decl.update();
 
-				if (!_multi_mode || (_multi_mode && _instance == 0)) {
+				if (PX4_ISFINITE(declination_deg) && (fabsf(declination_deg - _param_ekf2_mag_decl.get()) > 0.1f)) {
+					_param_ekf2_mag_decl.set(declination_deg);
 					_param_ekf2_mag_decl.commit_no_notification();
 				}
+
+				_mag_decl_saved = true;
 			}
 		}
 	}

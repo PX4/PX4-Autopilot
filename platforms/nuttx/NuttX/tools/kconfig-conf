@@ -4,7 +4,6 @@ echo "DEBUG: kconfiglib kconfig-conf wrapper, arguments: ${@}"
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 export APPSDIR="`pwd`/../apps"
-export CONFIG_ARCH_BOARD_CUSTOM=y
 
 if [ "command -v python3" ]; then
 	PYTHON_EXECUTABLE=python3

@@ -32,3 +32,4 @@
 ############################################################################
 
 px4_add_library(drivers__smbus_sbs SBS.hpp)
+set_target_properties(drivers__smbus_sbs PROPERTIES LINKER_LANGUAGE CXX)

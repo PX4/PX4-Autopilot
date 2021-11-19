@@ -32,7 +32,6 @@
 ############################################################################
 
 px4_add_library(FlightTaskUtility
-	StraightLine.cpp
 	Sticks.cpp
 	StickAccelerationXY.cpp
 	StickYaw.cpp

@@ -99,7 +99,7 @@ uint32_t Time_GetNowSec(void);
  * @param	t_elapsed Returns the elapsed time since t_start.
  * @param	t_start Start time point.
  *****************************************************************************/
-void Time_GetElapsed(ltc_t *t_elapsed, ltc_t *const t_start);
+void Time_GetElapsed(ltc_t *t_elapsed, ltc_t const *t_start);
 
 /*!***************************************************************************
  * @brief	Obtains the elapsed microseconds since a given time point.
@@ -107,7 +107,7 @@ void Time_GetElapsed(ltc_t *t_elapsed, ltc_t *const t_start);
  * @param	t_start Start time point.
  * @return	Elapsed microseconds since t_start as uint32_t.
  *****************************************************************************/
-uint32_t Time_GetElapsedUSec(ltc_t *const t_start);
+uint32_t Time_GetElapsedUSec(ltc_t const *t_start);
 
 /*!***************************************************************************
  * @brief	Obtains the elapsed milliseconds since a given time point.
@@ -115,14 +115,14 @@ uint32_t Time_GetElapsedUSec(ltc_t *const t_start);
  * @param	t_start Start time point.
  * @return	Elapsed milliseconds since t_start as uint32_t.
  *****************************************************************************/
-uint32_t Time_GetElapsedMSec(ltc_t *const t_start);
+uint32_t Time_GetElapsedMSec(ltc_t const *t_start);
 
 /*!***************************************************************************
  * @brief	Obtains the elapsed seconds since a given time point.
  * @param	t_start Start time point.
  * @return	Elapsed seconds since t_start as uint32_t.
  *****************************************************************************/
-uint32_t Time_GetElapsedSec(ltc_t *const t_start);
+uint32_t Time_GetElapsedSec(ltc_t const *t_start);
 
 /*!***************************************************************************
  * @brief	Obtains the time difference between two given time points.

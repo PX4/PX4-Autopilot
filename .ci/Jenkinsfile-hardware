@@ -18,8 +18,8 @@ pipeline {
               }
               steps {
                 checkoutSCM()
+                sh 'make cubepilot_cubeorange_bootloader'
                 sh 'make cubepilot_cubeorange_test'
-                sh 'make cubepilot_cubeorange_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'cubepilot_cubeorange_test'
               }
@@ -39,7 +39,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'cubepilot_cubeorange_test'
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_bootloader.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_bootloader/cubepilot_cubeorange_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -89,8 +89,8 @@ pipeline {
               }
               steps {
                 checkoutSCM()
+                sh 'make cuav_x7pro_bootloader'
                 sh 'make cuav_x7pro_test'
-                sh 'make cuav_x7pro_test bootloader_elf'
                 sh 'ccache -s'
                 stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'cuav_x7pro_test'
               }
@@ -110,7 +110,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'cuav_x7pro_test'
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_bootloader.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_bootloader/cuav_x7pro_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }

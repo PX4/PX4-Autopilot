@@ -576,7 +576,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			}
 
 			if (!_vehicle_control_mode.flag_control_climb_rate_enabled &&
-			    !_status.rc_signal_lost && !_is_throttle_low) {
+			    !_status.rc_signal_lost && !_is_throttle_low && _status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROVER) {
 				mavlink_log_critical(&_mavlink_log_pub, "Arming denied: high throttle\t");
 				events::send(events::ID("commander_arm_denied_throttle_high"),
 				{events::Log::Critical, events::LogInternal::Info},
@@ -1427,6 +1427,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_ROI_NONE:
 	case vehicle_command_s::VEHICLE_CMD_INJECT_FAILURE:
 	case vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN:
+	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
+	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1547,6 +1549,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 			_status_changed = true;
 			_armed.manual_lockdown = true;
+			send_parachute_command();
 		}
 
 		break;
@@ -3422,6 +3425,21 @@ void Commander::data_link_check()
 				_datalink_last_heartbeat_onboard_controller = telemetry.timestamp;
 			}
 
+			if (telemetry.heartbeat_type_parachute) {
+				if (_parachute_system_lost) {
+					_parachute_system_lost = false;
+
+					if (_datalink_last_heartbeat_parachute_system != 0) {
+						mavlink_log_info(&_mavlink_log_pub, "Parachute system regained\t");
+						events::send(events::ID("commander_parachute_regained"), events::Log::Info, "Parachute system regained");
+					}
+				}
+
+				_datalink_last_heartbeat_parachute_system = telemetry.timestamp;
+				_status_flags.parachute_system_present = true;
+				_status_flags.parachute_system_healthy = telemetry.parachute_system_healthy;
+			}
+
 			if (telemetry.heartbeat_component_obstacle_avoidance) {
 				if (_avoidance_system_lost) {
 					_avoidance_system_lost = false;
@@ -3459,6 +3477,16 @@ void Commander::data_link_check()
 		mavlink_log_critical(&_mavlink_log_pub, "Connection to mission computer lost\t");
 		events::send(events::ID("commander_mission_comp_lost"), events::Log::Critical, "Connection to mission computer lost");
 		_onboard_controller_lost = true;
+		_status_changed = true;
+	}
+
+	// Parachute system
+	if ((hrt_elapsed_time(&_datalink_last_heartbeat_parachute_system) > 3_s)
+	    && !_parachute_system_lost) {
+		mavlink_log_critical(&_mavlink_log_pub, "Parachute system lost");
+		_status_flags.parachute_system_present = false;
+		_status_flags.parachute_system_healthy = false;
+		_parachute_system_lost = true;
 		_status_changed = true;
 	}
 
@@ -3778,7 +3806,7 @@ void Commander::estimator_check()
 						&& (fabsf(q(1)) <= 1.f)
 						&& (fabsf(q(2)) <= 1.f)
 						&& (fabsf(q(3)) <= 1.f);
-	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= FLT_EPSILON);
+	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= 1e-6f);
 
 	const bool condition_attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
 					      && norm_in_tolerance && no_element_larger_than_one;

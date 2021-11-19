@@ -538,6 +538,8 @@ int PX4IO::init()
 		_mixing_output.setMaxTopicUpdateRate(MIN_TOPIC_UPDATE_INTERVAL);
 	}
 
+	_px4io_status_pub.advertise();
+
 	update_params();
 
 	ScheduleNow();

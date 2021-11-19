@@ -616,6 +616,10 @@ MavlinkFTP::_workWrite(PayloadHeader *payload)
 		return kErrInvalidSession;
 	}
 
+	if (!_validatePathIsWritable(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
+
 	if (lseek(_session_info.fd, payload->offset, SEEK_SET) < 0) {
 		// Unable to see to the specified location
 		PX4_ERR("seek fail");
@@ -647,6 +651,10 @@ MavlinkFTP::_workRemoveFile(PayloadHeader *payload)
 	// ensure termination
 	_work_buffer1[_work_buffer1_len - 1] = '\0';
 
+	if (!_validatePathIsWritable(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
+
 	PX4_DEBUG("unlink %s", _work_buffer1);
 
 	if (unlink(_work_buffer1) == 0) {
@@ -669,6 +677,10 @@ MavlinkFTP::_workTruncateFile(PayloadHeader *payload)
 	// ensure termination
 	_work_buffer1[_work_buffer1_len - 1] = '\0';
 	payload->size = 0;
+
+	if (!_validatePathIsWritable(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
 
 #ifdef __PX4_NUTTX
 
@@ -832,6 +844,10 @@ MavlinkFTP::_workRename(PayloadHeader *payload)
 	strncpy(_work_buffer2 + _root_dir_len, ptr + oldpath_sz + 1, _work_buffer2_len - _root_dir_len);
 	_work_buffer2[_work_buffer2_len - 1] = '\0'; // ensure termination
 
+	if (!_validatePathIsWritable(_work_buffer2)) {
+		return kErrFailFileProtected;
+	}
+
 	PX4_DEBUG("rename from %s to %s", _work_buffer1, _work_buffer2);
 
 	if (rename(_work_buffer1, _work_buffer2) == 0) {
@@ -854,6 +870,10 @@ MavlinkFTP::_workRemoveDirectory(PayloadHeader *payload)
 	// ensure termination
 	_work_buffer1[_work_buffer1_len - 1] = '\0';
 
+	if (!_validatePathIsWritable(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
+
 	PX4_DEBUG("remove dir %s", _work_buffer1);
 
 	if (rmdir(_work_buffer1) == 0) {
@@ -875,6 +895,10 @@ MavlinkFTP::_workCreateDirectory(PayloadHeader *payload)
 	strncpy(_work_buffer1 + _root_dir_len, _data_as_cstring(payload), _work_buffer1_len - _root_dir_len);
 	// ensure termination
 	_work_buffer1[_work_buffer1_len - 1] = '\0';
+
+	if (!_validatePathIsWritable(_work_buffer1)) {
+		return kErrFailFileProtected;
+	}
 
 	PX4_DEBUG("create dir %s", _work_buffer1);
 
@@ -1137,4 +1161,20 @@ void MavlinkFTP::send()
 		ftp_msg.target_component = _session_info.stream_target_component_id;
 		_reply(&ftp_msg);
 	} while (more_data);
+}
+
+bool MavlinkFTP::_validatePathIsWritable(const char *path)
+{
+#ifdef __PX4_NUTTX
+
+	// Don't allow writes to system paths as they are in RAM
+	// Ideally we'd canonicalize the path (with 'realpath'), but it might not exist, so realpath() would fail.
+	// The next simpler thing is to check there's no reference to a parent dir.
+	if (strncmp(path, "/fs/microsd/", 12) != 0 || strstr(path, "/../") != nullptr) {
+		PX4_ERR("Disallowing write to %s", path);
+		return false;
+	}
+
+#endif
+	return true;
 }

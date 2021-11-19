@@ -32,9 +32,14 @@
  ****************************************************************************/
 
 #include <board_config.h>
-#ifndef BOARD_DISABLE_I2C_SPI
+
+#if defined(CONFIG_SPI)
 
 #include <px4_platform_common/spi.h>
+
+#ifndef GPIO_PIN_MASK
+#define GPIO_PIN_MASK 0
+#endif
 
 #if BOARD_NUM_SPI_CFG_HW_VERSIONS > 1
 void px4_set_spi_buses_from_hw_version()
@@ -123,10 +128,12 @@ bool SPIBusIterator::next()
 			case FilterType::InternalBus:
 				if (!bus_data.is_external) {
 					if (_bus == bus_data.bus || _bus == -1) {
-						// find device id
+						// Note: if chipselect < 0, it's not defined and used in filter
+						// find device
 						for (int i = _bus_device_index + 1; i < SPI_BUS_MAX_DEVICES; ++i) {
 							if (PX4_SPI_DEVICE_ID == PX4_SPIDEVID_TYPE(bus_data.devices[i].devid) &&
-							    _devid_driver_index == bus_data.devices[i].devtype_driver) {
+							    _devid_driver_index == bus_data.devices[i].devtype_driver &&
+							    (_chipselect < 0 || _chipselect == (int16_t)(bus_data.devices[i].cs_gpio & GPIO_PIN_MASK))) {
 								_bus_device_index = i;
 								return true;
 							}
@@ -138,7 +145,8 @@ bool SPIBusIterator::next()
 
 			case FilterType::ExternalBus:
 				if (bus_data.is_external) {
-					uint16_t cs_index = _devid_driver_index - 1;
+					// Note: chip-select index is starting from 1 in CLI, -1 means not defined
+					uint16_t cs_index = _chipselect < 1 ? 0 : _chipselect - 1;
 
 					if (_bus == _external_bus_counter && cs_index < SPI_BUS_MAX_DEVICES &&
 					    bus_data.devices[cs_index].cs_gpio != 0 && cs_index != _bus_device_index) {
@@ -163,4 +171,4 @@ bool SPIBusIterator::next()
 	return false;
 }
 
-#endif /* BOARD_DISABLE_I2C_SPI */
+#endif // CONFIG_SPI

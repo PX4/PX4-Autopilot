@@ -354,7 +354,6 @@ void LogWriterFile::run()
 		}
 
 		int poll_count = 0;
-		int written = 0;
 		hrt_abstime last_fsync = hrt_absolute_time();
 
 		pthread_mutex_lock(&_mtx);
@@ -420,7 +419,14 @@ void LogWriterFile::run()
 
 #endif
 
-					written = buffer.write_to_file(read_ptr, available, call_fsync);
+					int written = buffer.write_to_file(read_ptr, available, call_fsync);
+
+					if (written < 0) {
+						// retry once
+						PX4_ERR("write failed errno:%i (%s), retrying", errno, strerror(errno));
+						px4_usleep(10000); // 10 milliseconds
+						written = buffer.write_to_file(read_ptr, available, call_fsync);
+					}
 
 					/* buffer.mark_read() requires _mtx to be locked */
 					pthread_mutex_lock(&_mtx);

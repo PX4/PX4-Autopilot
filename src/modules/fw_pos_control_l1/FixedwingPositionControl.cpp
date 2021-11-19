@@ -70,6 +70,8 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	// limit to 50 Hz
 	_local_pos_sub.set_interval_ms(20);
 
+	_tecs_status_pub.advertise();
+
 	/* fetch initial parameter values */
 	parameters_update();
 }

@@ -47,6 +47,10 @@
 #include <uORB/topics/vehicle_status.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
+#include <lib/motion_planning/PositionSmoothing.hpp>
+#include "Sticks.hpp"
+#include "StickAccelerationXY.hpp"
+#include "StickYaw.hpp"
 
 // TODO: make this switchable in the board config, like a module
 #if CONSTRAINED_FLASH
@@ -84,8 +88,9 @@ public:
 
 	virtual ~FlightTaskAuto() = default;
 	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
+	void reActivate() override;
 	bool updateInitialize() override;
-	bool updateFinalize() override;
+	bool update() override;
 
 	/**
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
@@ -96,6 +101,26 @@ protected:
 	matrix::Vector2f _getTargetVelocityXY(); /**< only used for follow-me and only here because of legacy reason.*/
 	void _updateInternalWaypoints(); /**< Depending on state of vehicle, the internal waypoints might differ from target (for instance if offtrack). */
 	bool _compute_heading_from_2D_vector(float &heading, matrix::Vector2f v); /**< Computes and sets heading a 2D vector */
+
+	/** Reset position or velocity setpoints in case of EKF reset event */
+	void _ekfResetHandlerPositionXY(const matrix::Vector2f &delta_xy) override;
+	void _ekfResetHandlerVelocityXY(const matrix::Vector2f &delta_vxy) override;
+	void _ekfResetHandlerPositionZ(float delta_z) override;
+	void _ekfResetHandlerVelocityZ(float delta_vz) override;
+	void _ekfResetHandlerHeading(float delta_psi) override;
+
+	void _checkEmergencyBraking();
+	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
+	bool isTargetModified() const;
+	void _updateTrajConstraints();
+
+	/** determines when to trigger a takeoff (ignored in flight) */
+	bool _checkTakeoff() override { return _want_takeoff; };
+
+	void _prepareLandSetpoints();
+	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
+
+	void updateParams() override; /**< See ModuleParam class */
 
 	matrix::Vector3f _prev_prev_wp{}; /**< Pre-previous waypoint (local frame). This will be used for smoothing trajectories -> not used yet. */
 	matrix::Vector3f _prev_wp{}; /**< Previous waypoint  (local frame). If no previous triplet is available, the prev_wp is set to current position. */
@@ -119,6 +144,17 @@ protected:
 
 	ObstacleAvoidance _obstacle_avoidance; /**< class adjusting setpoints according to external avoidance module's input */
 
+	PositionSmoothing _position_smoothing;
+	Vector3f _unsmoothed_velocity_setpoint;
+	Sticks _sticks;
+	StickAccelerationXY _stick_acceleration_xy;
+	StickYaw _stick_yaw;
+	matrix::Vector3f _land_position;
+	float _land_heading;
+	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
+	bool _is_emergency_braking_active{false};
+	bool _want_takeoff{false};
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 					(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
@@ -127,7 +163,23 @@ protected:
 					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, // obstacle avoidance active
 					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
-					(ParamBool<px4::params::WV_EN>) _param_wv_en // enable/disable weather vane (VTOL)
+					(ParamBool<px4::params::WV_EN>) _param_wv_en, // enable/disable weather vane (VTOL)
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
+					(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
+					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
+					(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
+					(ParamFloat<px4::params::MPC_LAND_ALT1>)
+					_param_mpc_land_alt1, // altitude at which speed limit downwards reaches maximum speed
+					(ParamFloat<px4::params::MPC_LAND_ALT2>)
+					_param_mpc_land_alt2, // altitude at which speed limit downwards reached minimum speed
+					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
+					(ParamFloat<px4::params::MPC_TKO_RAMP_T>)
+					_param_mpc_tko_ramp_t, // time constant for smooth takeoff ramp
+					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max
 				       );
 
 private:

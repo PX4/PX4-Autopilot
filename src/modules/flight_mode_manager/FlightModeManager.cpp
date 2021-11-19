@@ -241,7 +241,7 @@ void FlightModeManager::start_flight_task()
 		should_disable_task = false;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		error = switchTask(FlightTaskIndex::AutoLineSmoothVel);
+		error = switchTask(FlightTaskIndex::Auto);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
@@ -456,7 +456,7 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	vehicle_local_position_setpoint_s setpoint = FlightTask::empty_setpoint;
 	vehicle_constraints_s constraints = FlightTask::empty_constraints;
 
-	if (_current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize()) {
+	if (_current_task.task->updateInitialize() && _current_task.task->update()) {
 		// setpoints and constraints for the position controller from flighttask
 		setpoint = _current_task.task->getPositionSetpoint();
 		constraints = _current_task.task->getConstraints();

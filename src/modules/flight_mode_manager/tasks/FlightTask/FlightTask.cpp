@@ -29,7 +29,6 @@ void FlightTask::reActivate()
 bool FlightTask::updateInitialize()
 {
 	_time_stamp_current = hrt_absolute_time();
-	_time = (_time_stamp_current - _time_stamp_activate) / 1e6f;
 	_deltatime  = math::min((_time_stamp_current - _time_stamp_last), _timeout) / 1e6f;
 	_time_stamp_last = _time_stamp_current;
 
@@ -125,6 +124,7 @@ void FlightTask::_evaluateVehicleLocalPosition()
 
 		// yaw
 		_yaw = _sub_vehicle_local_position.get().heading;
+		_is_yaw_good_for_control = _sub_vehicle_local_position.get().heading_good_for_control;
 
 		// position
 		if (_sub_vehicle_local_position.get().xy_valid) {
