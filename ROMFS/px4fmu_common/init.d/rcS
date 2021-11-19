@@ -35,7 +35,7 @@ set MIXER_AUX none
 set MIXER_FILE none
 set MIXER_EXTRA none
 set OUTPUT_MODE none
-set PARAM_FILE /fs/microsd/params
+set PARAM_FILE ""
 set PWM_OUT none
 set PWM_MAIN_RATE p:PWM_MAIN_RATE
 set PWM_AUX_OUT none
@@ -129,6 +129,8 @@ then
 			fi
 		fi
 	fi
+
+	set PARAM_FILE /fs/microsd/params
 fi
 
 #
@@ -161,8 +163,21 @@ else
 	param select $PARAM_FILE
 	if ! param import
 	then
-		param reset_all
+		echo "ERROR [init] param import failed"
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+
+		param dump $PARAM_FILE
+
+		if [ -d "/fs/microsd" ]
+		then
+			dmesg >> /fs/microsd/param_import_fail.txt &
+
+			# try to make a backup copy
+			cp $PARAM_FILE /fs/microsd/param_import_fail.bson &
+		fi
+
 	fi
+
 	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X
 	then
 		netman update -i eth0
