@@ -83,6 +83,7 @@ enum class COMPARE_ERROR_LEVEL {
 
 static int 	do_save(const char *param_file_name);
 static int	do_save_default();
+static int 	do_dump(const char *param_file_name);
 static int 	do_load(const char *param_file_name);
 static int	do_import(const char *param_file_name = nullptr);
 static int	do_show(const char *search_string, bool only_changed);
@@ -134,6 +135,8 @@ $ reboot
 	PRINT_MODULE_USAGE_COMMAND_DESCR("import", "Import params from a file");
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save params to a file");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("dump", "Dump params from a file");
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("select", "Select default file");
@@ -203,6 +206,15 @@ param_main(int argc, char *argv[])
 				} else {
 					return 0;
 				}
+			}
+		}
+
+		if (!strcmp(argv[1], "dump")) {
+			if (argc >= 3) {
+				return do_dump(argv[2]);
+
+			} else {
+				return do_dump(param_get_default_file());
 			}
 		}
 
@@ -417,6 +429,43 @@ do_save(const char *param_file_name)
 		(void)unlink(param_file_name);
 #endif
 		PX4_ERR("exporting to '%s' failed (%i)", param_file_name, result);
+		return 1;
+	}
+
+	return 0;
+}
+
+static int
+do_dump(const char *param_file_name)
+{
+	int fd = -1;
+
+	if (param_file_name) { // passing NULL means to select the flash storage
+
+		fd = open(param_file_name, O_RDONLY);
+
+		if (fd < 0) {
+			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
+			return 1;
+		} else {
+			PX4_INFO_RAW("[param] reading from %s\n\n", param_file_name);
+		}
+	}
+
+	int result = param_dump(fd);
+
+	if (fd >= 0) {
+		close(fd);
+	}
+
+	if (result < 0) {
+		if (param_file_name) {
+			PX4_ERR("reading from '%s' failed (%i)", param_file_name, result);
+
+		} else {
+			PX4_ERR("reading failed (%i)", result);
+		}
+
 		return 1;
 	}
 
