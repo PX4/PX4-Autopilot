@@ -1201,7 +1201,7 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 	}
 
 	param_wbuf_s *s = nullptr;
-	struct bson_encoder_s encoder;
+	bson_encoder_s encoder{};
 
 	int shutdown_lock_ret = px4_shutdown_lock();
 
@@ -1366,7 +1366,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 				goto out;
 			}
 
-			i = node->i;
+			i = node->i32;
 			v = &i;
 
 			PX4_DEBUG("Imported %s with value %d", param_name(param), i);
@@ -1408,7 +1408,7 @@ static int
 param_import_internal(int fd, bool mark_saved)
 {
 	for (int attempt = 1; attempt < 5; attempt++) {
-		bson_decoder_s decoder;
+		bson_decoder_s decoder{};
 		param_import_state state;
 
 		if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state) == 0) {
@@ -1422,8 +1422,10 @@ param_import_internal(int fd, bool mark_saved)
 			} while (result > 0);
 
 			if (result == 0) {
-				PX4_INFO("BSON document size %" PRId32 " bytes, decoded %" PRId32 " bytes", decoder.total_document_size,
-					 decoder.total_decoded_size);
+				PX4_INFO("BSON document size %" PRId32 " bytes, decoded %" PRId32 " bytes (INT32:%" PRIu16 ", FLOAT:%" PRIu16 ")",
+					 decoder.total_document_size, decoder.total_decoded_size,
+					 decoder.count_node_int32, decoder.count_node_double);
+
 				return 0;
 
 			} else if (result == -ENODATA) {
