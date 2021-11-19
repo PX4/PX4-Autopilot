@@ -1549,6 +1549,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 			_status_changed = true;
 			_armed.manual_lockdown = true;
+			send_parachute_command();
 		}
 
 		break;
@@ -3424,6 +3425,21 @@ void Commander::data_link_check()
 				_datalink_last_heartbeat_onboard_controller = telemetry.timestamp;
 			}
 
+			if (telemetry.heartbeat_type_parachute) {
+				if (_parachute_system_lost) {
+					_parachute_system_lost = false;
+
+					if (_datalink_last_heartbeat_parachute_system != 0) {
+						mavlink_log_info(&_mavlink_log_pub, "Parachute system regained\t");
+						events::send(events::ID("commander_parachute_regained"), events::Log::Info, "Parachute system regained");
+					}
+				}
+
+				_datalink_last_heartbeat_parachute_system = telemetry.timestamp;
+				_status_flags.parachute_system_present = true;
+				_status_flags.parachute_system_healthy = telemetry.parachute_system_healthy;
+			}
+
 			if (telemetry.heartbeat_component_obstacle_avoidance) {
 				if (_avoidance_system_lost) {
 					_avoidance_system_lost = false;
@@ -3461,6 +3477,16 @@ void Commander::data_link_check()
 		mavlink_log_critical(&_mavlink_log_pub, "Connection to mission computer lost\t");
 		events::send(events::ID("commander_mission_comp_lost"), events::Log::Critical, "Connection to mission computer lost");
 		_onboard_controller_lost = true;
+		_status_changed = true;
+	}
+
+	// Parachute system
+	if ((hrt_elapsed_time(&_datalink_last_heartbeat_parachute_system) > 3_s)
+	    && !_parachute_system_lost) {
+		mavlink_log_critical(&_mavlink_log_pub, "Parachute system lost");
+		_status_flags.parachute_system_present = false;
+		_status_flags.parachute_system_healthy = false;
+		_parachute_system_lost = true;
 		_status_changed = true;
 	}
 
