@@ -676,15 +676,12 @@ autosave_worker(void *arg)
 {
 	bool disabled = false;
 
-	if (!param_get_default_file()) {
-		// In case we save to FLASH, defer param writes until disarmed,
-		// as writing to FLASH can stall the entire CPU (in rare cases around 300ms on STM32F7)
-		uORB::SubscriptionData<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
+	// defer param writes until disarmed
+	uORB::SubscriptionData<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
 
-		if (armed_sub.get().armed) {
-			work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(1_s));
-			return;
-		}
+	if (armed_sub.get().armed) {
+		work_queue(HPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(1_s));
+		return;
 	}
 
 	param_lock_writer();
@@ -718,11 +715,11 @@ param_autosave()
 		return;
 	}
 
-	// wait at least 300ms before saving, because:
+	// wait at least 100ms before saving, because:
 	// - tasks often call param_set() for multiple params, so this avoids unnecessary save calls
 	// - the logger stores changed params. He gets notified on a param change via uORB and then
 	//   looks at all unsaved params.
-	hrt_abstime delay = 300_ms;
+	hrt_abstime delay = 100_ms;
 
 	static constexpr const hrt_abstime rate_limit = 2_s; // rate-limit saving to 2 seconds
 	const hrt_abstime last_save_elapsed = hrt_elapsed_time(&last_autosave_timestamp);
@@ -732,7 +729,7 @@ param_autosave()
 	}
 
 	autosave_scheduled.store(true);
-	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(delay));
+	work_queue(HPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(delay));
 }
 
 void
@@ -741,7 +738,7 @@ param_control_autosave(bool enable)
 	param_lock_writer();
 
 	if (!enable && autosave_scheduled.load()) {
-		work_cancel(LPWORK, &autosave_work);
+		work_cancel(HPWORK, &autosave_work);
 		autosave_scheduled.store(false);
 	}
 
@@ -1302,7 +1299,7 @@ param_export(int fd, param_filter_func filter)
 
 	param_lock_reader();
 
-	uint8_t bson_buffer[256];
+	uint8_t bson_buffer[512];
 	bson_encoder_init_buf_file(&encoder, fd, &bson_buffer, sizeof(bson_buffer));
 
 	/* no modified parameters -> we are done */
