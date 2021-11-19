@@ -261,7 +261,8 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		break;
 
 	default:
-		debug("unrecognised node type");
+		PX4_ERR("%s unrecognised node type %d", node->name, node->type);
+		result = 1; // just skip this entry
 		goto out;
 	}
 
