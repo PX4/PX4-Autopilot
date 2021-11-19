@@ -71,15 +71,14 @@ using namespace time_literals;
 
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
-static const char *param_default_file = nullptr; // nullptr means to store to FLASH
 #else
 inline static int flash_param_save(bool only_unsaved, param_filter_func filter) { return -1; }
 inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
-static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 #endif
 
-static char *param_user_file = nullptr;
+static char *param_default_file = nullptr;
+static char *param_backup_file = nullptr;
 
 #include <px4_platform_common/workqueue.h>
 /* autosaving variables */
@@ -1080,19 +1079,24 @@ param_reset_specific(const char *resets[], int num_resets)
 int
 param_set_default_file(const char *filename)
 {
+	if ((param_backup_file && strcmp(filename, param_backup_file) == 0)) {
+		PX4_ERR("default file can't be the same as the backup file %s", filename);
+		return PX4_ERROR;
+	}
+
 #ifdef FLASH_BASED_PARAMS
 	// the default for flash-based params is always the FLASH
 	(void)filename;
 #else
 
-	if (param_user_file != nullptr) {
+	if (param_default_file != nullptr) {
 		// we assume this is not in use by some other thread
-		free(param_user_file);
-		param_user_file = nullptr;
+		free(param_default_file);
+		param_default_file = nullptr;
 	}
 
 	if (filename) {
-		param_user_file = strdup(filename);
+		param_default_file = strdup(filename);
 	}
 
 #endif /* FLASH_BASED_PARAMS */
@@ -1100,27 +1104,42 @@ param_set_default_file(const char *filename)
 	return 0;
 }
 
-const char *
-param_get_default_file()
+const char *param_get_default_file()
 {
-	return (param_user_file != nullptr) ? param_user_file : param_default_file;
+	return param_default_file;
 }
 
-int param_save_default()
+int param_set_backup_file(const char *filename)
 {
-	int res = PX4_ERROR;
-
-	const char *filename = param_get_default_file();
-
-	if (!filename) {
-		param_lock_writer();
-		perf_begin(param_export_perf);
-		res = flash_param_save(false, nullptr);
-		perf_end(param_export_perf);
-		param_unlock_writer();
-		return res;
+	if (param_default_file && strcmp(filename, param_default_file) == 0) {
+		PX4_ERR("backup file can't be the same as the default file %s", filename);
+		return PX4_ERROR;
 	}
 
+	if (param_backup_file != nullptr) {
+		// we assume this is not in use by some other thread
+		free(param_backup_file);
+		param_backup_file = nullptr;
+	}
+
+	if (filename) {
+		param_backup_file = strdup(filename);
+
+	} else {
+		param_backup_file = nullptr; // backup disabled
+	}
+
+	return 0;
+}
+
+const char *param_get_backup_file()
+{
+	return param_backup_file;
+}
+
+static int param_save_file_internal(const char *filename)
+{
+	int res = PX4_ERROR;
 	int attempts = 5;
 
 	while (res != OK && attempts > 0) {
@@ -1131,7 +1150,10 @@ int param_save_default()
 			res = param_export(fd, false, nullptr);
 			::close(fd);
 
-			if (res != PX4_OK) {
+			if (res == PX4_OK) {
+				return PX4_OK;
+
+			} else {
 				PX4_ERR("param_export failed, retrying %d", attempts);
 				px4_usleep(10000); // wait at least 10 milliseconds before trying again
 			}
@@ -1145,6 +1167,30 @@ int param_save_default()
 
 	if (res != OK) {
 		PX4_ERR("failed to write parameters to file: %s", filename);
+	}
+
+	return PX4_ERROR;
+}
+
+int param_save_default()
+{
+	int res = PX4_ERROR;
+	const char *filename = param_get_default_file();
+
+	if (filename) {
+		res = param_save_file_internal(filename);
+
+	} else {
+		param_lock_writer();
+		perf_begin(param_export_perf);
+		res = flash_param_save(false, nullptr);
+		perf_end(param_export_perf);
+		param_unlock_writer();
+	}
+
+	// backup file
+	if (param_backup_file) {
+		param_save_file_internal(param_backup_file);
 	}
 
 	return res;
@@ -1591,6 +1637,10 @@ void param_print_status()
 
 	if (filename != nullptr) {
 		PX4_INFO("file: %s", param_get_default_file());
+	}
+
+	if (param_backup_file) {
+		PX4_INFO("backup file: %s", param_backup_file);
 	}
 
 #endif /* FLASH_BASED_PARAMS */

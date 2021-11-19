@@ -140,7 +140,10 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("<file>", "File name (use default if not given)", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("select", "Select default file");
-	PRINT_MODULE_USAGE_ARG("<file>", "File name (use <root>/eeprom/parameters if not given)", true);
+	PRINT_MODULE_USAGE_ARG("<file>", "File name", true);
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("select-backup", "Select default file");
+	PRINT_MODULE_USAGE_ARG("<file>", "File name", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Show parameter values");
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Show all parameters (not just used)", true);
@@ -248,6 +251,23 @@ param_main(int argc, char *argv[])
 
 			if (default_file) {
 				PX4_INFO("selected parameter default file %s", default_file);
+			}
+
+			return 0;
+		}
+
+		if (!strcmp(argv[1], "select-backup")) {
+			if (argc >= 3) {
+				param_set_backup_file(argv[2]);
+
+			} else {
+				param_set_backup_file(nullptr);
+			}
+
+			const char *backup_file = param_get_backup_file();
+
+			if (backup_file) {
+				PX4_INFO("selected parameter backup file %s", backup_file);
 			}
 
 			return 0;
@@ -525,6 +545,8 @@ do_import(const char *param_file_name)
 			PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
 			return 1;
 		}
+
+		PX4_INFO("importing from '%s'", param_file_name);
 	}
 
 	int result = param_import(fd, mark_saved);

@@ -396,6 +396,22 @@ __EXPORT int 		param_set_default_file(const char *filename);
 __EXPORT const char	*param_get_default_file(void);
 
 /**
+ * Set the backup parameter file name.
+ *
+ * @param filename	Path to the backup parameter file. The file is not required to
+ *			exist.
+ * @return		Zero on success.
+ */
+__EXPORT int 		param_set_backup_file(const char *filename);
+
+/**
+ * Get the backup parameter file name.
+ *
+ * @return		The path to the backup parameter file
+ */
+__EXPORT const char	*param_get_backup_file(void);
+
+/**
  * Save parameters to the default file.
  * Note: this method requires a large amount of stack size!
  *
