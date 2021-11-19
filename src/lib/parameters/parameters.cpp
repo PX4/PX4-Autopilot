@@ -1133,6 +1133,7 @@ int param_save_default()
 
 			if (res != PX4_OK) {
 				PX4_ERR("param_export failed, retrying %d", attempts);
+				px4_usleep(10000); // wait at least 10 milliseconds before trying again
 			}
 
 		} else {
@@ -1474,6 +1475,7 @@ param_import_internal(int fd, bool mark_saved)
 		}
 
 		lseek(fd, 0, SEEK_SET);
+		px4_usleep(10000); // wait at least 10 milliseconds before trying again
 	}
 
 	return -1;
