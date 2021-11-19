@@ -53,7 +53,7 @@ bool param_modify_on_import(bson_node_t node)
 				} __attribute__((packed)) struct_value;
 				int32_t param_value;
 			} old_param;
-			old_param.param_value = node->i;
+			old_param.param_value = node->i32;
 
 			int32_t method = old_param.struct_value.authentication_method;
 			param_set_no_notification(param_find("COM_ARM_AUTH_MET"), &method);
@@ -62,7 +62,7 @@ bool param_modify_on_import(bson_node_t node)
 			param_set_no_notification(param_find("COM_ARM_AUTH_TO"), &timeout);
 
 			strcpy(node->name, "COM_ARM_AUTH_ID");
-			node->i = old_param.struct_value.authorizer_system_id;
+			node->i32 = old_param.struct_value.authorizer_system_id;
 
 			PX4_INFO("migrating COM_ARM_AUTH: %" PRId32 " -> COM_ARM_AUTH_ID:%" PRId8 ", COM_ARM_AUTH_MET: %" PRId32
 				 " and COM_ARM_AUTH_TO: %f",
@@ -77,7 +77,7 @@ bool param_modify_on_import(bson_node_t node)
 	if (node->type == BSON_INT32) {
 		if (strcmp("LED_RGB_MAXBRT", node->name) == 0) {
 			// convert integer (0-15) to float percentage
-			node->d = math::constrain(static_cast<double>(node->i) / 15., 0., 1.);
+			node->d = math::constrain(static_cast<double>(node->i32) / 15., 0., 1.);
 			node->type = BSON_DOUBLE;
 			strcpy(node->name, "SYS_RGB_MAXBRT");
 			PX4_INFO("param migrating LED_RGB_MAXBRT (removed) -> SYS_RGB_MAXBRT: value=%.3f", node->d);
