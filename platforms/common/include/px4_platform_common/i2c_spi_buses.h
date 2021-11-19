@@ -176,7 +176,7 @@ public:
 	int requested_bus{-1};
 	int bus_frequency{0};
 #if defined(CONFIG_SPI)
-	int chipselect_index {1};
+	int chipselect {-1};
 	spi_mode_e spi_mode{SPIDEV_MODE3};
 #endif // CONFIG_SPI
 #if defined(CONFIG_I2C)

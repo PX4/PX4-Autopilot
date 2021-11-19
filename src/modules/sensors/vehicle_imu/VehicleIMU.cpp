@@ -703,10 +703,21 @@ void VehicleIMU::SensorCalibrationUpdate()
 							   (bias_variance.max() < max_var_ratio * bias_variance.min());
 
 					if (valid) {
+						const Vector3f offset_old{_accel_learned_calibration[i].offset};
+
 						_accel_learned_calibration[i].offset = _accel_calibration.BiasCorrectedSensorOffset(bias);
 						_accel_learned_calibration[i].bias_variance = bias_variance;
 						_accel_learned_calibration[i].valid = true;
 						_accel_cal_available = true;
+
+						if ((offset_old - _accel_learned_calibration[i].offset).longerThan(0.05f)) {
+							PX4_DEBUG("accel %d (%" PRIu32 ") new offset: [%.2f %.2f %.2f] (full bias [%.2f %.2f %.2f])",
+								  _instance, _accel_calibration.device_id(),
+								  (double)_accel_learned_calibration[i].offset(0),
+								  (double)_accel_learned_calibration[i].offset(1),
+								  (double)_accel_learned_calibration[i].offset(2),
+								  (double)bias(0), (double)bias(1), (double)bias(2));
+						}
 
 					} else {
 						_accel_learned_calibration[i].valid = false;
@@ -726,10 +737,21 @@ void VehicleIMU::SensorCalibrationUpdate()
 							   (bias_variance.max() < max_var_ratio * bias_variance.min());
 
 					if (valid) {
+						const Vector3f offset_old{_gyro_learned_calibration[i].offset};
+
 						_gyro_learned_calibration[i].offset = _gyro_calibration.BiasCorrectedSensorOffset(bias);
 						_gyro_learned_calibration[i].bias_variance = bias_variance;
 						_gyro_learned_calibration[i].valid = true;
 						_gyro_cal_available = true;
+
+						if ((offset_old - _gyro_learned_calibration[i].offset).longerThan(0.01f)) {
+							PX4_DEBUG("gyro %d (%" PRIu32 ") new offset: [%.2f %.2f %.2f] (full bias [%.2f %.2f %.2f])",
+								  _instance, _gyro_calibration.device_id(),
+								  (double)_gyro_learned_calibration[i].offset(0),
+								  (double)_gyro_learned_calibration[i].offset(1),
+								  (double)_gyro_learned_calibration[i].offset(2),
+								  (double)bias(0), (double)bias(1), (double)bias(2));
+						}
 
 					} else {
 						_gyro_learned_calibration[i].valid = false;
@@ -743,17 +765,17 @@ void VehicleIMU::SensorCalibrationUpdate()
 
 	// not armed and accel cal available
 	if (!_armed && _accel_cal_available) {
-
+		const Vector3f accel_cal_orig{_accel_calibration.offset()};
 		bool initialised = false;
-		Vector3f bias_variance {};
-		Vector3f bias_estimate {};
+		Vector3f offset_estimate{};
+		Vector3f bias_variance{};
 
 		// apply all valid saved offsets
 		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 			if (_accel_learned_calibration[i].valid) {
 				if (!initialised) {
 					bias_variance = _accel_learned_calibration[i].bias_variance;
-					bias_estimate = _accel_learned_calibration[i].offset;
+					offset_estimate = _accel_learned_calibration[i].offset;
 					initialised = true;
 
 				} else {
@@ -761,28 +783,19 @@ void VehicleIMU::SensorCalibrationUpdate()
 						const float sum_of_variances = _accel_learned_calibration[i].bias_variance(axis_index) + bias_variance(axis_index);
 						const float k1 = bias_variance(axis_index) / sum_of_variances;
 						const float k2 = _accel_learned_calibration[i].bias_variance(axis_index) / sum_of_variances;
-						bias_estimate(axis_index) = k2 * bias_estimate(axis_index) + k1 * _accel_learned_calibration[i].offset(axis_index);
+						offset_estimate(axis_index) = k2 * offset_estimate(axis_index) + k1 * _accel_learned_calibration[i].offset(axis_index);
 						bias_variance(axis_index) *= k2;
 					}
 				}
 			}
 		}
 
-		if (initialised && bias_estimate.longerThan(0.05f)) {
-			const Vector3f accel_cal_orig{_accel_calibration.offset()};
-			Vector3f accel_cal_offset{_accel_calibration.offset()};
-
-			for (int axis_index = 0; axis_index < 3; axis_index++) {
-				accel_cal_offset(axis_index) += bias_estimate(axis_index);
-			}
-
-			if (_accel_calibration.set_offset(accel_cal_offset)) {
-
-				PX4_INFO("accel %d (%" PRIu32 ") offset committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f] (full [%.2f %.2f %.2f])",
+		if (initialised && (accel_cal_orig - offset_estimate).longerThan(0.05f)) {
+			if (_accel_calibration.set_offset(offset_estimate)) {
+				PX4_INFO("accel %d (%" PRIu32 ") offset committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f])",
 					 _instance, _accel_calibration.device_id(),
 					 (double)accel_cal_orig(0), (double)accel_cal_orig(1), (double)accel_cal_orig(2),
-					 (double)accel_cal_offset(0), (double)accel_cal_offset(1), (double)accel_cal_offset(2),
-					 (double)bias_estimate(0), (double)bias_estimate(1), (double)bias_estimate(2));
+					 (double)offset_estimate(0), (double)offset_estimate(1), (double)offset_estimate(2));
 
 				_accel_calibration.ParametersSave();
 			}
@@ -799,16 +812,17 @@ void VehicleIMU::SensorCalibrationUpdate()
 
 	// not armed and gyro cal available
 	if (!_armed && _gyro_cal_available) {
+		const Vector3f gyro_cal_orig{_gyro_calibration.offset()};
 		bool initialised = false;
-		Vector3f bias_variance {};
-		Vector3f bias_estimate {};
+		Vector3f offset_estimate{};
+		Vector3f bias_variance{};
 
 		// apply all valid saved offsets
 		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 			if (_gyro_learned_calibration[i].valid) {
 				if (!initialised) {
 					bias_variance = _gyro_learned_calibration[i].bias_variance;
-					bias_estimate = _gyro_learned_calibration[i].offset;
+					offset_estimate = _gyro_learned_calibration[i].offset;
 					initialised = true;
 
 				} else {
@@ -816,28 +830,19 @@ void VehicleIMU::SensorCalibrationUpdate()
 						const float sum_of_variances = _gyro_learned_calibration[i].bias_variance(axis_index) + bias_variance(axis_index);
 						const float k1 = bias_variance(axis_index) / sum_of_variances;
 						const float k2 = _gyro_learned_calibration[i].bias_variance(axis_index) / sum_of_variances;
-						bias_estimate(axis_index) = k2 * bias_estimate(axis_index) + k1 * _gyro_learned_calibration[i].offset(axis_index);
+						offset_estimate(axis_index) = k2 * offset_estimate(axis_index) + k1 * _gyro_learned_calibration[i].offset(axis_index);
 						bias_variance(axis_index) *= k2;
 					}
 				}
 			}
 		}
 
-		if (initialised && bias_estimate.longerThan(0.05f)) {
-			const Vector3f gyro_cal_orig{_gyro_calibration.offset()};
-			Vector3f gyro_cal_offset{_gyro_calibration.offset()};
-
-			for (int axis_index = 0; axis_index < 3; axis_index++) {
-				gyro_cal_offset(axis_index) += bias_estimate(axis_index);
-			}
-
-			if (_gyro_calibration.set_offset(gyro_cal_offset)) {
-
-				PX4_INFO("gyro %d (%" PRIu32 ") offset committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f] (full [%.2f %.2f %.2f])",
+		if (initialised && (gyro_cal_orig - offset_estimate).longerThan(0.01f)) {
+			if (_gyro_calibration.set_offset(offset_estimate)) {
+				PX4_INFO("gyro %d (%" PRIu32 ") offset committed: [%.2f %.2f %.2f]->[%.2f %.2f %.2f])",
 					 _instance, _gyro_calibration.device_id(),
 					 (double)gyro_cal_orig(0), (double)gyro_cal_orig(1), (double)gyro_cal_orig(2),
-					 (double)gyro_cal_offset(0), (double)gyro_cal_offset(1), (double)gyro_cal_offset(2),
-					 (double)bias_estimate(0), (double)bias_estimate(1), (double)bias_estimate(2));
+					 (double)offset_estimate(0), (double)offset_estimate(1), (double)offset_estimate(2));
 
 				_gyro_calibration.ParametersSave();
 			}
