@@ -446,7 +446,7 @@ __END_DECLS
 
 
 #if defined(__cplusplus) && !defined(PARAM_IMPLEMENTATION)
-#if 0 // set to 1 to debug param type mismatches
+#if 1 // set to 1 to debug param type mismatches
 #include <cstdio>
 #define CHECK_PARAM_TYPE(param, type) \
 	if (param_type(param) != type) { \
