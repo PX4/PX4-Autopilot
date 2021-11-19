@@ -702,7 +702,7 @@ void checkStatus() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show SYS*"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true' // reboot to apply
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show SYS*"'
 
   // run logger
@@ -762,7 +762,7 @@ void runTests() {
   sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "IMU_GYRO_FFT_EN" --value "0" || true' // disable during testing
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true' // reboot to apply
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "top once"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "work_queue status"'
@@ -795,13 +795,13 @@ void runTests() {
   resetParameters()
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 4001" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true'
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true'
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true'
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true'
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
 }
 
@@ -909,7 +909,7 @@ void resetBoard() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SDLOG_MODE -1" || true'        // limit cpu usage
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true' // reboot to apply
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
 
   // check SD card
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "df -h" || true'
