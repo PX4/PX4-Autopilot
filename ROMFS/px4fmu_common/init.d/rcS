@@ -176,6 +176,16 @@ else
 			cp $PARAM_FILE /fs/microsd/param_import_fail.bson &
 		fi
 
+		# try importing from backup file
+		if [ -f "/fs/microsd/parameters_backup.bson" ]
+		then
+			param import /fs/microsd/parameters_backup.bson
+		fi
+	fi
+
+	if [ $SDCARD_AVAILABLE = yes ]
+	then
+		param select-backup /fs/microsd/parameters_backup.bson
 	fi
 
 	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X

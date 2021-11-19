@@ -3,6 +3,8 @@
 # (px4-alias.sh is expected to be in the PATH)
 . px4-alias.sh
 
+param select eeprom/parameters
+
 dataman start
 
 simulator start
