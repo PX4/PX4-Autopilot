@@ -396,7 +396,7 @@ private:
 	float _param_sens_flow_maxhgt{-1.0f};
 	float _param_sens_flow_maxr{-1.0f};
 	float _param_sens_flow_minhgt{-1.0f};
-	float _param_sens_flow_rot{-1.0f};
+	int32_t _param_sens_flow_rot{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
