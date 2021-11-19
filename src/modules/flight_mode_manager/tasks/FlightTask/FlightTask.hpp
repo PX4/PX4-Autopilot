@@ -109,14 +109,6 @@ public:
 	virtual bool update();
 
 	/**
-	 * Call after update()
-	 * to constrain the generated setpoints in order to comply
-	 * with the constraints of the current mode
-	 * @return true on success, false on error
-	 */
-	virtual bool updateFinalize() { return true; };
-
-	/**
 	 * Get the output data
 	 * @return task output setpoints that get executed by the positon controller
 	 */

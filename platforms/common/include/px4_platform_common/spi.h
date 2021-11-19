@@ -141,12 +141,14 @@ public:
 	 * Constructor
 	 * Note: only for devices of type PX4_SPI_DEVICE_ID
 	 * @param filter
-	 * @param devid_driver_index DRV_* or chip-select index starting from 1
+	 * @param devid_driver_index DRV_*
+	 * @param chipselect pin of SPIInternal (-1=all) or chip-select index of SPIExternal starting from 1 (optional)
 	 * @param bus starts with 1 (-1=all, but only for internal). Numbering for internal is arch-specific, for external
 	 *            it is the n-th external bus.
 	 */
-	SPIBusIterator(FilterType filter, uint16_t devid_driver_index, int bus = -1)
+	SPIBusIterator(FilterType filter, uint16_t devid_driver_index, int16_t chipselect = -1, int bus = -1)
 		: _filter(filter), _devid_driver_index(devid_driver_index),
+		  _chipselect(chipselect),
 		  _bus(filter == FilterType::ExternalBus && bus == -1 ? 1 : bus) {}
 
 	bool next();
@@ -165,6 +167,7 @@ public:
 private:
 	const FilterType _filter;
 	const uint16_t _devid_driver_index;
+	const int16_t _chipselect;
 	const int _bus;
 	int _index{0};
 	int _external_bus_counter{1};

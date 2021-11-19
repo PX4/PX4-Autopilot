@@ -187,7 +187,7 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 			break;
 
 		case 'c':
-			chipselect_index = atoi(_optarg);
+			chipselect = atoi(_optarg);
 			break;
 #endif // CONFIG_SPI
 
@@ -286,7 +286,7 @@ BusInstanceIterator::BusInstanceIterator(const char *module_name,
 #endif // CONFIG_I2C
 #if defined(CONFIG_SPI)
 	  _spi_bus_iterator(spiFilter(cli_arguments.bus_option),
-			    cli_arguments.bus_option == I2CSPIBusOption::SPIExternal ? cli_arguments.chipselect_index : devid_driver_index,
+			    devid_driver_index, cli_arguments.chipselect,
 			    cli_arguments.requested_bus),
 #endif // CONFIG_SPI
 #if defined(CONFIG_I2C)
