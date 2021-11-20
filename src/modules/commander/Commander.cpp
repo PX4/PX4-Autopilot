@@ -3821,12 +3821,22 @@ void Commander::estimator_check()
 	// angular velocity
 	vehicle_angular_velocity_s angular_velocity{};
 	_vehicle_angular_velocity_sub.copy(&angular_velocity);
-	const bool condition_angular_velocity_valid = (hrt_elapsed_time(&angular_velocity.timestamp) < 1_s)
-			&& PX4_ISFINITE(angular_velocity.xyz[0]) && PX4_ISFINITE(angular_velocity.xyz[1])
-			&& PX4_ISFINITE(angular_velocity.xyz[2]);
+	const bool condition_angular_velocity_time_valid = (angular_velocity.timestamp != 0)
+			&& (hrt_elapsed_time(&angular_velocity.timestamp) < 1_s);
+	const bool condition_angular_velocity_finite = PX4_ISFINITE(angular_velocity.xyz[0])
+			&& PX4_ISFINITE(angular_velocity.xyz[1]) && PX4_ISFINITE(angular_velocity.xyz[2]);
+	const bool condition_angular_velocity_valid = condition_angular_velocity_time_valid
+			&& condition_angular_velocity_finite;
 
 	if (_status_flags.condition_angular_velocity_valid && !condition_angular_velocity_valid) {
-		PX4_ERR("angular velocity no longer valid");
+		const char err_str[] {"angular velocity no longer valid"};
+
+		if (!condition_angular_velocity_time_valid) {
+			PX4_ERR("%s (timeout)", err_str);
+
+		} else if (!condition_angular_velocity_finite) {
+			PX4_ERR("%s (non-finite values)", err_str);
+		}
 	}
 
 	_status_flags.condition_angular_velocity_valid = condition_angular_velocity_valid;
