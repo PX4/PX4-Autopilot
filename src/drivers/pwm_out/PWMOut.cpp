@@ -576,6 +576,9 @@ void PWMOut::update_params()
 				} else if (pwm_default_channel_mask & 1 << i) {
 					_mixing_output.minValue(i) = pwm_min_default;
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 		}
 
@@ -596,6 +599,9 @@ void PWMOut::update_params()
 				} else if (pwm_default_channel_mask & 1 << i) {
 					_mixing_output.maxValue(i) = pwm_max_default;
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 		}
 
@@ -613,6 +619,9 @@ void PWMOut::update_params()
 						param_set(param_find(str), &pwm_fail_new);
 					}
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 		}
 
@@ -633,6 +642,9 @@ void PWMOut::update_params()
 				} else if (pwm_default_channel_mask & 1 << i) {
 					_mixing_output.disarmedValue(i) = pwm_disarmed_default;
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 
 			if (_mixing_output.disarmedValue(i) > 0) {
@@ -654,6 +666,9 @@ void PWMOut::update_params()
 				} else {
 					reverse_pwm_mask = reverse_pwm_mask & ~(1 << i);
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 		}
 	}
@@ -665,7 +680,11 @@ void PWMOut::update_params()
 			sprintf(str, "%s_TRIM%u", prefix, i + 1);
 
 			float pval = 0.0f;
-			param_get(param_find(str), &pval);
+
+			if (param_get(param_find(str), &pval) != PX4_OK) {
+				PX4_ERR("param %s not found", str);
+			}
+
 			values[i] = roundf(10000 * pval);
 		}
 
