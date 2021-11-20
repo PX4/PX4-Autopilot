@@ -61,6 +61,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v5_default
+    px4_fmu-v5_debug:
+      short: px4_fmu-v5_debug
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v5_debug
     px4_fmu-v5x_default:
       short: px4_fmu-v5x
       buildType: MinSizeRel
