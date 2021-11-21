@@ -377,6 +377,7 @@ private:
 	hrt_abstime _heartbeat_type_gimbal{0};
 	hrt_abstime _heartbeat_type_adsb{0};
 	hrt_abstime _heartbeat_type_camera{0};
+	hrt_abstime _heartbeat_type_parachute{0};
 
 	hrt_abstime _heartbeat_component_telemetry_radio{0};
 	hrt_abstime _heartbeat_component_log{0};
@@ -395,7 +396,7 @@ private:
 	float _param_sens_flow_maxhgt{-1.0f};
 	float _param_sens_flow_maxr{-1.0f};
 	float _param_sens_flow_minhgt{-1.0f};
-	float _param_sens_flow_rot{-1.0f};
+	int32_t _param_sens_flow_rot{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

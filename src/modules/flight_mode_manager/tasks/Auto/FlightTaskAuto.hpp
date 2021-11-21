@@ -91,7 +91,6 @@ public:
 	void reActivate() override;
 	bool updateInitialize() override;
 	bool update() override;
-	bool updateFinalize() override;
 
 	/**
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
@@ -110,8 +109,6 @@ protected:
 	void _ekfResetHandlerVelocityZ(float delta_vz) override;
 	void _ekfResetHandlerHeading(float delta_psi) override;
 
-	void _generateSetpoints(); /**< Generate setpoints along line. */
-	void _generateHeading();
 	void _checkEmergencyBraking();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 	bool isTargetModified() const;
@@ -120,11 +117,7 @@ protected:
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
 
-	void _prepareIdleSetpoints();
 	void _prepareLandSetpoints();
-	void _prepareVelocitySetpoints();
-	void _prepareTakeoffSetpoints();
-	void _preparePositionSetpoints();
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
 
 	void updateParams() override; /**< See ModuleParam class */

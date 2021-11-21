@@ -888,6 +888,7 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 	lpos.heading = Eulerf(_ekf.getQuaternion()).psi();
 	lpos.delta_heading = Eulerf(delta_q_reset).psi();
+	lpos.heading_good_for_control = _ekf.isYawFinalAlignComplete();
 
 	// Distance to bottom surface (ground) in meters
 	// constrain the distance to ground to _rng_gnd_clearance

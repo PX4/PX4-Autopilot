@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,38 @@
  *
  ****************************************************************************/
 
-/**
- * @file StraightLine.hpp
- *
- * lib to return setpoints on a straight line
- *
- * @author Christoph Tobler <christoph@px4.io>
- */
+#include "../PreFlightCheck.hpp"
 
-#pragma once
+#include <lib/parameters/param.h>
+#include <lib/systemlib/mavlink_log.h>
 
-#include <matrix/matrix/math.hpp>
+using namespace time_literals;
 
-class StraightLine
+bool PreFlightCheck::parachuteCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
+				    const vehicle_status_flags_s &status_flags)
 {
-public:
-	StraightLine(const matrix::Vector3f &pos) : _position(pos) {};
-	~StraightLine() = default;
+	bool success = true;
 
-	// setter functions
-	void setLineFromTo(const matrix::Vector3f &start, const matrix::Vector3f &end);
-	void setSpeed(const float &speed) { _speed = speed; };
+	int32_t param_com_parachute = false;
+	param_get(param_find("COM_PARACHUTE"), &param_com_parachute);
+	const bool parachute_required = param_com_parachute != 0;
 
-	/**
-	 * Generate setpoints on a straight line according to parameters
-	 *
-	 * @param position_setpoint: reference to the 3D vector with the position setpoint to update
-	 * @param velocity_setpoint: reference to the 3D vector with the velocity setpoint to update
-	 */
-	void generateSetpoints(matrix::Vector3f &position_setpoint, matrix::Vector3f &velocity_setpoint);
+	if (parachute_required) {
+		if (!status_flags.parachute_system_present) {
+			success = false;
 
-	/**
-	 * Check if the end was reached
-	 *
-	 * @return false when on the way from start to end, true when end was reached
-	 */
-	bool isEndReached() const { return _end_reached; }
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "Fail: Parachute system missing");
+			}
 
-	void reset() { _end_reached = true; }
+		} else if (!status_flags.parachute_system_healthy) {
+			success = false;
 
-private:
-	const matrix::Vector3f &_position; /**< vehicle position (dependency injection) */
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "Fail: Parachute system not ready");
+			}
+		}
+	}
 
-	matrix::Vector3f _start; /**< Start point of the straight line */
-	matrix::Vector3f _end; /**< End point of the straight line */
-	float _speed = 1.f; /**< desired speed between accelerating and decelerating */
-
-	bool _end_reached = true; /**< Flag to lock further movement when end is reached */
-};
+	return success;
+}
