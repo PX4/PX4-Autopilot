@@ -53,7 +53,6 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	parameters_update(true);
 	_failsafe_land_hysteresis.set_hysteresis_time_from(false, LOITER_TIME_BEFORE_DESCEND);
 	_tilt_limit_slew_rate.setSlewRate(.2f);
-	reset_setpoint_to_nan(_setpoint);
 }
 
 MulticopterPositionControl::~MulticopterPositionControl()
