@@ -456,8 +456,8 @@ float NPFG::lateralAccelFF(const Vector2f &unit_path_tangent, const Vector2f &gr
 
 	// path frame curvature is the instantaneous curvature at our current distance
 	// from the actual path (considering e.g. concentric circles emanating outward/inward)
-	const float path_frame_curvature = path_curvature / math::max(1.0f - path_curvature * signed_track_error,
-					   path_curvature * MIN_RADIUS);
+	float path_frame_curvature = path_curvature / math::max(1.0f - path_curvature * signed_track_error,
+				     fabsf(path_curvature) * MIN_RADIUS);
 
 	// limit tangent ground speed to along track (forward moving) direction
 	const float tangent_ground_speed = math::max(ground_vel.dot(unit_path_tangent), 0.0f);
