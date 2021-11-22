@@ -348,6 +348,8 @@ rtps:
     id: 161
   - msg: airflow_slip
     id: 162
+  - msg: npfg_status
+    id: 163
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 170
