@@ -195,7 +195,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 			   reinit_filter);
 
 	if (meas_is_rejected || _tas_innov_var < 0.f) {
-		// only reset filter if _tas_innov_var gets unfeasible, but not never if tas measurement is rejected
+		// only reset filter if _tas_innov_var gets unfeasible
 		if (_tas_innov_var < 0.0f) {
 			_initialised =	initialise(velI, matrix::Vector2f(0.1f, 0.1f), true_airspeed);
 		}
