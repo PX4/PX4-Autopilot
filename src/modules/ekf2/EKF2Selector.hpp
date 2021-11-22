@@ -130,6 +130,7 @@ private:
 		float relative_test_ratio{NAN};
 
 		bool healthy{false};
+		bool warning{false};
 		bool filter_fault{false};
 		bool timeout{false};
 

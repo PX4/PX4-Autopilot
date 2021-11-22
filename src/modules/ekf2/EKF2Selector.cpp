@@ -293,7 +293,8 @@ bool EKF2Selector::UpdateErrorScores()
 			float combined_test_ratio = fmaxf(0.5f * (status.vel_test_ratio + status.pos_test_ratio), status.hgt_test_ratio);
 
 			_instance[i].combined_test_ratio = combined_test_ratio;
-			_instance[i].healthy = (status.filter_fault_flags == 0) && (combined_test_ratio > 0.f) && (combined_test_ratio < 1.f);
+			_instance[i].healthy = (status.filter_fault_flags == 0) && (combined_test_ratio > 0.f);
+			_instance[i].warning = (combined_test_ratio >= 1.f);
 			_instance[i].filter_fault = (status.filter_fault_flags != 0);
 			_instance[i].timeout = false;
 
@@ -733,7 +734,9 @@ void EKF2Selector::Run()
 				SelectInstance(best_ekf);
 			}
 
-		} else if (lower_error_available && (hrt_elapsed_time(&_last_instance_change) > 10_s)) {
+		} else if (lower_error_available
+			   && ((hrt_elapsed_time(&_last_instance_change) > 10_s) || _instance[_selected_instance].warning)) {
+
 			// if this instance has a significantly lower relative error to the active primary, we consider it as a
 			// better instance and would like to switch to it even if the current primary is healthy
 			SelectInstance(best_ekf_alternate);
