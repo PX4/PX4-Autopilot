@@ -267,7 +267,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	const bool previous_stick_arm_hysteresis = _stick_arm_hysteresis.get_state();
 	_stick_arm_hysteresis.set_state_and_update(left_stick_lower_right && right_stick_centered, input.timestamp);
 
-	if (!previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
+	if (_param_man_arm_gesture.get() && !previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_RC_STICK_GESTURE);
 	}
 
@@ -277,7 +277,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	const bool previous_stick_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
 	_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
 
-	if (!previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
+	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_STICK_GESTURE);
 	}
 }
