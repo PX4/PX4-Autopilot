@@ -107,7 +107,7 @@ function(px4_add_module)
 		# unity build
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp
 			COMMAND cat ${SRCS} > ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp
-			DEPENDS ${MODULE}_original ${DEPENDS} ${SRCS}
+			DEPENDS ${SRCS}
 			COMMENT "${MODULE} merging source"
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 			)
@@ -115,6 +115,7 @@ function(px4_add_module)
 
 		add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp)
 		target_include_directories(${MODULE} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+		add_dependencies(${MODULE} ${MODULE}_original) # build standalone module first to get clean compile errors
 
 		if(COMPILE_FLAGS)
 			target_compile_options(${MODULE}_original PRIVATE ${COMPILE_FLAGS})
@@ -125,7 +126,7 @@ function(px4_add_module)
 			#  as well as interface include and libraries
 			foreach(dep ${DEPENDS})
 				get_target_property(dep_type ${dep} TYPE)
-				if (${dep_type} STREQUAL "STATIC_LIBRARY")
+				if((${dep_type} STREQUAL "STATIC_LIBRARY") OR (${dep_type} STREQUAL "INTERFACE_LIBRARY"))
 					target_link_libraries(${MODULE}_original PRIVATE ${dep})
 				else()
 					add_dependencies(${MODULE}_original ${dep})
@@ -156,10 +157,11 @@ function(px4_add_module)
 	if(NOT DYNAMIC)
 		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface px4_layer px4_platform systemlib)
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
-		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
-		px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${SRCS})
-		set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
 	endif()
+
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+	px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${SRCS})
+	set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
 
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
@@ -204,7 +206,7 @@ function(px4_add_module)
 		#  as well as interface include and libraries
 		foreach(dep ${DEPENDS})
 			get_target_property(dep_type ${dep} TYPE)
-			if (${dep_type} STREQUAL "STATIC_LIBRARY")
+			if((${dep_type} STREQUAL "STATIC_LIBRARY") OR (${dep_type} STREQUAL "INTERFACE_LIBRARY"))
 				target_link_libraries(${MODULE} PRIVATE ${dep})
 			else()
 				add_dependencies(${MODULE} ${dep})

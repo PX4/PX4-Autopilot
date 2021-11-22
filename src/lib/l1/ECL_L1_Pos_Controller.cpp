@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -76,6 +76,8 @@ void
 ECL_L1_Pos_Controller::navigate_waypoints(const Vector2d &vector_A, const Vector2d &vector_B,
 		const Vector2d &vector_curr_position, const Vector2f &ground_speed_vector)
 {
+	_has_guidance_updated = true;
+
 	/* this follows the logic presented in [1] */
 	float eta = 0.0f;
 
@@ -211,6 +213,8 @@ void
 ECL_L1_Pos_Controller::navigate_loiter(const Vector2d &vector_A, const Vector2d &vector_curr_position, float radius,
 				       int8_t loiter_direction, const Vector2f &ground_speed_vector)
 {
+	_has_guidance_updated = true;
+
 	/* the complete guidance logic in this section was proposed by [2] */
 
 	/* calculate the gains for the PD loop (circle tracking) */
@@ -272,7 +276,9 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2d &vector_A, const Vector2d 
 	float tangent_vel = xtrack_vel_center * loiter_direction;
 
 	/* prevent PD output from turning the wrong way when in circle mode */
-	if (tangent_vel < 0.0f && _circle_mode) {
+	const float l1_op_tan_vel = 2.f; // hard coded max tangential velocity in the opposite direction
+
+	if (tangent_vel < -l1_op_tan_vel && _circle_mode) {
 		lateral_accel_sp_circle_pd = math::max(lateral_accel_sp_circle_pd, 0.0f);
 	}
 
@@ -312,6 +318,8 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2d &vector_A, const Vector2d 
 void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float current_heading,
 		const Vector2f &ground_speed_vector)
 {
+	_has_guidance_updated = true;
+
 	/* the complete guidance logic in this section was proposed by [2] */
 
 	/*
@@ -348,6 +356,8 @@ void ECL_L1_Pos_Controller::navigate_heading(float navigation_heading, float cur
 
 void ECL_L1_Pos_Controller::navigate_level_flight(float current_heading)
 {
+	_has_guidance_updated = true;
+
 	/* the logic in this section is trivial, but originally proposed by [2] */
 
 	/* reset all heading / error measures resulting in zero roll */

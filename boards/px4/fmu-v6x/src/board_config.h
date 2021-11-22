@@ -229,20 +229,6 @@
 #define GPIO_HEATER_OUTPUT   /* PB10  T2CH3 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN10)
 #define HEATER_OUTPUT_EN(on_true)	       px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, (on_true))
 
-/* PWM Capture
- *
- * 1  PWM Capture inputs are configured.
- *
- * Pins:
- *
- * FMU_CAP1 : PE11  : TIM1_CH2
- */
-
-#define GPIO_TIM1_CH2IN      /* PE11  T1C2   FMU_CAP1 */ GPIO_TIM1_CH2IN_2
-#define GPIO_TIM1_CH2OUT     /* PE11  T1C2   FMU_CAP1 */ GPIO_TIM1_CH2OUT_2
-
-#define DIRECT_PWM_CAPTURE_CHANNELS  1
-
 /* PE6 is nARMED
  *  The GPIO will be set as input while not armed HW will have external HW Pull UP.
  *  While armed it shall be configured at a GPIO OUT set LOW
@@ -256,9 +242,9 @@
 
 /* PWM
  */
-#define DIRECT_PWM_OUTPUT_CHANNELS   8
+#define DIRECT_PWM_OUTPUT_CHANNELS   9
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7, 8};
 
 /* Power supply control and monitoring GPIOs */
 

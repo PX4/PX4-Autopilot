@@ -265,15 +265,21 @@ void ICM20948::RunImpl()
 				if (samples > _fifo_gyro_samples) {
 					// grab desired number of samples, but reschedule next cycle sooner
 					int extra_samples = samples - _fifo_gyro_samples;
-					timestamp_sample -= extra_samples * FIFO_SAMPLE_DT;
 					samples = _fifo_gyro_samples;
 
-					ScheduleOnInterval(_fifo_empty_interval_us,
-							   _fifo_empty_interval_us - (extra_samples * FIFO_SAMPLE_DT));
+					if (_fifo_gyro_samples > extra_samples) {
+						// reschedule to run when a total of _fifo_gyro_samples should be available in the FIFO
+						const uint32_t reschedule_delay_us = (_fifo_gyro_samples - extra_samples) * static_cast<int>(FIFO_SAMPLE_DT);
+						ScheduleOnInterval(_fifo_empty_interval_us, reschedule_delay_us);
+
+					} else {
+						// otherwise reschedule to run immediately
+						ScheduleOnInterval(_fifo_empty_interval_us);
+					}
 
 				} else if (samples < _fifo_gyro_samples) {
 					// reschedule next cycle to catch the desired number of samples
-					ScheduleOnInterval(_fifo_empty_interval_us, (_fifo_gyro_samples - samples) * FIFO_SAMPLE_DT);
+					ScheduleOnInterval(_fifo_empty_interval_us, (_fifo_gyro_samples - samples) * static_cast<int>(FIFO_SAMPLE_DT));
 				}
 
 				if (samples == _fifo_gyro_samples) {

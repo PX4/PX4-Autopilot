@@ -129,7 +129,7 @@ typedef enum {
 
 
 	/*! Reserved for future extensions. */
-	Reserved = 0b111111
+	Reserved = 0x3F
 
 } argus_module_version_t;
 
@@ -149,6 +149,9 @@ typedef enum {
 	/*! 680nm Red VCSEL v1 */
 	LASER_R_V1 = 3,
 
+	/*! 850nm Infra-Red VCSEL v2 /w extended mode. */
+	LASER_H_V2X = 4,
+
 } argus_laser_type_t;
 
 /*!***************************************************************************
@@ -158,14 +161,20 @@ typedef enum {
 	/*! No device connected or not recognized. */
 	ADS0032_NONE = 0,
 
-	/*! ADS0032 v1.0 */
-	ADS0032_V1_0 = 1,
+	/*! ADS0032 v1a */
+	ADS0032_V1A = 1,
 
-	/*! ADS0032 v1.1 */
-	ADS0032_V1_1 = 2,
+	/*! ADS0032 v1b */
+	ADS0032_V1B = 2,
 
-	/*! ADS0032 v1.2 */
-	ADS0032_V1_2 = 3,
+	/*! ADS0032 v1c */
+	ADS0032_V1C = 3,
+
+	/*! ADS0032 v1d */
+	ADS0032_V1D = 4,
+
+	/*! ADS0032 v1e */
+	ADS0032_V1E = 5,
 
 } argus_chip_version_t;
 
@@ -192,11 +201,11 @@ typedef enum {
  * @details	Invoked by the API. The content of the abstract data pointer
  * 			depends upon the context.
  * @param	status The module status that caused the callback. #STATUS_OK if
- * 					 everything was as expected.
- * @param	data   An abstract pointer to an user defined data. This will
- * 					 usually be passed to the function that also takes the
- * 					 callback as an parameter. Otherwise it has a special
- * 					 meaning such as configuration or calibration data.
+ * 				   everything was as expected.
+ * @param	data An abstract pointer to an user defined data. This will usually
+ * 				 be passed to the function that also takes the callback as an
+ * 				 parameter. Otherwise it has a special meaning such as
+ * 				 configuration or calibration data.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 typedef status_t (*argus_callback_t)(status_t status, void *data);

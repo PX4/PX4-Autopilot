@@ -69,7 +69,7 @@ num_vehicles=${NUM_VEHICLES:=3}
 world=${WORLD:=empty}
 target=${TARGET:=px4_sitl_default}
 vehicle_model=${VEHICLE_MODEL:="iris"}
-export PX4_SIM_MODEL=${vehicle_model}${LABEL}
+export PX4_SIM_MODEL=${vehicle_model}
 
 echo ${SCRIPT}
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -126,7 +126,8 @@ else
 
 		m=0
 		while [ $m -lt ${target_number} ]; do
-			spawn_model ${target_vehicle} $n $target_x $target_y
+			export PX4_SIM_MODEL=${target_vehicle}
+			spawn_model ${target_vehicle}${LABEL} $n $target_x $target_y
 			m=$(($m + 1))
 			n=$(($n + 1))
 		done

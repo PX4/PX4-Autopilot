@@ -288,7 +288,7 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 
 void FlightTaskManualAltitude::_rotateIntoHeadingFrame(Vector2f &v)
 {
-	float yaw_rotate = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw;
+	const float yaw_rotate = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw;
 	Vector3f v_r = Vector3f(Dcmf(Eulerf(0.0f, 0.0f, yaw_rotate)) * Vector3f(v(0), v(1), 0.0f));
 	v(0) = v_r(0);
 	v(1) = v_r(1);
@@ -296,7 +296,7 @@ void FlightTaskManualAltitude::_rotateIntoHeadingFrame(Vector2f &v)
 
 void FlightTaskManualAltitude::_updateHeadingSetpoints()
 {
-	if (_isYawInput()) {
+	if (_isYawInput() || !_is_yaw_good_for_control) {
 		_unlockYaw();
 
 	} else {
@@ -352,7 +352,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	sp = _man_input_filter.getState();
 	_rotateIntoHeadingFrame(sp);
 
-	if (sp.length() > 1.0f) {
+	if (sp.longerThan(1.0f)) {
 		sp.normalize();
 	}
 

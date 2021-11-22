@@ -215,26 +215,6 @@ void FlightModeManager::start_flight_task()
 			_task_failure_count = 0;
 		}
 
-	} else if (_vehicle_control_mode_sub.get().flag_control_auto_enabled) {
-		// Auto related maneuvers
-		should_disable_task = false;
-		FlightTaskError error = FlightTaskError::NoError;
-
-		error = switchTask(FlightTaskIndex::AutoLineSmoothVel);
-
-		if (error != FlightTaskError::NoError) {
-			if (prev_failure_count == 0) {
-				PX4_WARN("Auto activation failed with error: %s", errorToString(error));
-			}
-
-			task_failure = true;
-			_task_failure_count++;
-
-		} else {
-			// we want to be in this mode, reset the failure count
-			_task_failure_count = 0;
-		}
-
 	} else if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
 
 		// Emergency descend
@@ -246,6 +226,26 @@ void FlightModeManager::start_flight_task()
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Descend activation failed with error: %s", errorToString(error));
+			}
+
+			task_failure = true;
+			_task_failure_count++;
+
+		} else {
+			// we want to be in this mode, reset the failure count
+			_task_failure_count = 0;
+		}
+
+	} else if (_vehicle_control_mode_sub.get().flag_control_auto_enabled) {
+		// Auto related maneuvers
+		should_disable_task = false;
+		FlightTaskError error = FlightTaskError::NoError;
+
+		error = switchTask(FlightTaskIndex::Auto);
+
+		if (error != FlightTaskError::NoError) {
+			if (prev_failure_count == 0) {
+				PX4_WARN("Auto activation failed with error: %s", errorToString(error));
 			}
 
 			task_failure = true;
@@ -456,7 +456,7 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	vehicle_local_position_setpoint_s setpoint = FlightTask::empty_setpoint;
 	vehicle_constraints_s constraints = FlightTask::empty_constraints;
 
-	if (_current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize()) {
+	if (_current_task.task->updateInitialize() && _current_task.task->update()) {
 		// setpoints and constraints for the position controller from flighttask
 		setpoint = _current_task.task->getPositionSetpoint();
 		constraints = _current_task.task->getConstraints();

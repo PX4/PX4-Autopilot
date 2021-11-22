@@ -232,4 +232,6 @@ private:
 	uint8_t      _volume    = 0;
 
 	bool  _using_custom_msg = false;
+
+	bool _tunes_disabled{false};
 };

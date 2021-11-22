@@ -37,6 +37,7 @@
 #include <lib/sensor_calibration/Gyroscope.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
+#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/mathlib/math/filter/NotchFilter.hpp>
 #include <px4_platform_common/log.h>
@@ -156,8 +157,14 @@ private:
 	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESC_RPM] {};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_esc_rpm_reset_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_perf{nullptr};
+
+	perf_counter_t _dynamic_notch_filter_fft_disable_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_fft_reset_perf{nullptr};
+	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
+
 	perf_counter_t _dynamic_notch_filter_fft_perf{nullptr};
 
 	bool _dynamic_notch_esc_rpm_available{false};
@@ -165,7 +172,7 @@ private:
 #endif // !CONSTRAINED_FLASH
 
 	// angular acceleration filter
-	math::LowPassFilter2p<float> _lp_filter_acceleration[3] {};
+	AlphaFilter<float> _lp_filter_acceleration[3] {};
 
 	uint32_t _selected_sensor_device_id{0};
 
@@ -177,7 +184,8 @@ private:
 
 	DEFINE_PARAMETERS(
 #if !defined(CONSTRAINED_FLASH)
-		(ParamInt<px4::params::IMU_GYRO_DYN_NF>) _param_imu_gyro_dyn_nf,
+		(ParamInt<px4::params::IMU_GYRO_DNF_EN>) _param_imu_gyro_dnf_en,
+		(ParamFloat<px4::params::IMU_GYRO_DNF_BW>) _param_imu_gyro_dnf_bw,
 #endif // !CONSTRAINED_FLASH
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
 		(ParamFloat<px4::params::IMU_GYRO_NF_FREQ>) _param_imu_gyro_nf_freq,

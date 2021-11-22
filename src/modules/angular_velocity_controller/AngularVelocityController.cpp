@@ -50,6 +50,7 @@ AngularVelocityController::AngularVelocityController() :
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	parameters_updated();
+	_rate_ctrl_status_pub.advertise();
 }
 
 AngularVelocityController::~AngularVelocityController()
@@ -96,7 +97,8 @@ AngularVelocityController::parameters_updated()
 	_control.setInertiaMatrix(matrix::Matrix3f(inertia));
 
 	// Hover thrust
-	if (!_param_mpc_use_hte.get()) {
+	if (!_param_mpc_use_hte.get()
+	    || !_vehicle_control_mode.flag_armed) {
 		_hover_thrust = _param_mpc_thr_hover.get();
 	}
 }
@@ -149,11 +151,16 @@ AngularVelocityController::Run()
 		}
 
 		// Check for updates of hover thrust
-		if (_param_mpc_use_hte.get()) {
+		if (!_vehicle_control_mode.flag_armed) {
+			_hover_thrust = _param_mpc_thr_hover.get();
+
+		} else if (_param_mpc_use_hte.get()) {
 			hover_thrust_estimate_s hte;
 
 			if (_hover_thrust_estimate_sub.update(&hte)) {
-				_hover_thrust = hte.hover_thrust;
+				if (hte.valid) {
+					_hover_thrust = hte.hover_thrust;
+				}
 			}
 		}
 

@@ -71,13 +71,13 @@ if(NOT "${PX4_BOARD_LABEL}" MATCHES  "canbootloader")
 			${PX4_BINARY_DIR}/${uavcan_bl_image_name}
 			${PX4_BINARY_DIR}/deploy/${HWBOARD_ID}.bin
 		COMMAND
-			${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/make_can_boot_descriptor.py -v --padding ${uavcanbl_padding} --use-git-hash ${PX4_BOARD}.bin ${uavcan_bl_image_name}
+			${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/make_can_boot_descriptor.py -v --padding ${uavcanbl_padding} --use-git-hash ${PX4_CONFIG}.bin ${uavcan_bl_image_name}
 		COMMAND
 			 COMMAND ${CMAKE_COMMAND} -E make_directory deploy
 		COMMAND
 			${CMAKE_COMMAND} -E copy ${uavcan_bl_image_name} deploy/${HWBOARD_ID}.bin
 		DEPENDS
-			${PX4_BINARY_DIR}/${PX4_BOARD}.bin
+			${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
 			${CMAKE_CURRENT_SOURCE_DIR}/make_can_boot_descriptor.py
 		WORKING_DIRECTORY
 			${PX4_BINARY_DIR}

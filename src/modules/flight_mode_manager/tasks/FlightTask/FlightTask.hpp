@@ -109,14 +109,6 @@ public:
 	virtual bool update();
 
 	/**
-	 * Call after update()
-	 * to constrain the generated setpoints in order to comply
-	 * with the constraints of the current mode
-	 * @return true on success, false on error
-	 */
-	virtual bool updateFinalize() { return true; };
-
-	/**
 	 * Get the output data
 	 * @return task output setpoints that get executed by the positon controller
 	 */
@@ -220,7 +212,6 @@ protected:
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
 
-	float _time{}; /**< passed time in seconds since the task was activated */
 	float _deltatime{}; /**< passed time in seconds since the task was last updated */
 
 	hrt_abstime _time_stamp_activate{}; /**< time stamp when task was activated */
@@ -232,6 +223,7 @@ protected:
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 
 	float _yaw{}; /**< current vehicle yaw heading */
+	bool _is_yaw_good_for_control{}; /**< true if the yaw estimate can be used for yaw control */
 	float _dist_to_bottom{}; /**< current height above ground level */
 	float _dist_to_ground{}; /**< equals _dist_to_bottom if valid, height above home otherwise */
 

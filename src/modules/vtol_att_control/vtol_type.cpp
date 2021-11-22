@@ -48,6 +48,8 @@
 
 using namespace matrix;
 
+#define THROTTLE_BLENDING_DUR_S 1.0f
+
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_attc(att_controller),
@@ -158,6 +160,7 @@ void VtolType::update_fw_state()
 	}
 
 	resetAccelToPitchPitchIntegrator();
+	_last_thr_in_fw_mode =  _actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
 
 	VtolType::set_alternate_motor_state(motor_state::DISABLED);
 
@@ -182,6 +185,17 @@ void VtolType::update_fw_state()
 	    && _v_control_mode->flag_control_altitude_enabled) {
 
 		waiting_on_tecs();
+		_throttle_blend_start_ts = hrt_absolute_time();
+
+	} else if (shouldBlendThrottleAfterFrontTransition()) {
+		const float progress = (float)(hrt_absolute_time() - _throttle_blend_start_ts) * 1e-6f / THROTTLE_BLENDING_DUR_S;
+
+		if (progress >= 1.0f) {
+			stopBlendingThrottleAfterFrontTransition();
+
+		} else {
+			blendThrottleAfterFrontTransition(progress);
+		}
 	}
 
 	check_quadchute_condition();
@@ -193,6 +207,7 @@ void VtolType::update_transition_state()
 	_transition_dt = (float)(t_now - _last_loop_ts) / 1e6f;
 	_transition_dt = math::constrain(_transition_dt, 0.0001f, 0.02f);
 	_last_loop_ts = t_now;
+	_throttle_blend_start_ts = t_now;
 
 
 
@@ -216,14 +231,14 @@ float VtolType::update_and_get_backtransition_pitch_sp()
 	float integrator_input = _params->dec_to_pitch_i * accel_error_forward;
 
 	if ((pitch_sp_new >= pitch_lim && accel_error_forward > 0.0f) ||
-	    (pitch_sp_new <= -pitch_lim && accel_error_forward < 0.0f)) {
+	    (pitch_sp_new <= 0.f && accel_error_forward < 0.0f)) {
 		integrator_input = 0.0f;
 	}
 
 	_accel_to_pitch_integ += integrator_input * _transition_dt;
 
-
-	return math::constrain(pitch_sp_new, -pitch_lim, pitch_lim);
+	// only allow positive (pitch up) pitch setpoint
+	return math::constrain(pitch_sp_new, 0.f, pitch_lim);
 }
 
 bool VtolType::can_transition_on_ground()
@@ -381,7 +396,7 @@ void VtolType::set_all_motor_state(const motor_state target_state, const int val
 
 void VtolType::set_main_motor_state(const motor_state target_state, const int value)
 {
-	if (_main_motor_state != target_state) {
+	if (_main_motor_state != target_state || target_state == motor_state::VALUE) {
 
 		if (set_motor_state(target_state, _main_motor_channel_bitmap, value)) {
 			_main_motor_state = target_state;
@@ -391,7 +406,7 @@ void VtolType::set_main_motor_state(const motor_state target_state, const int va
 
 void VtolType::set_alternate_motor_state(const motor_state target_state, const int value)
 {
-	if (_alternate_motor_state != target_state) {
+	if (_alternate_motor_state != target_state || target_state == motor_state::VALUE) {
 
 		if (set_motor_state(target_state, _alternate_motor_channel_bitmap, value)) {
 			_alternate_motor_state = target_state;
@@ -559,23 +574,32 @@ float VtolType::pusher_assist()
 
 	// calculate the desired pitch seen in the heading frame
 	// this value corresponds to the amount the vehicle would try to pitch down
-	float pitch_down = atan2f(body_z_sp(0), body_z_sp(2));
+	const float pitch_setpoint = atan2f(body_z_sp(0), body_z_sp(2));
 
 	// normalized pusher support throttle (standard VTOL) or tilt (tiltrotor), initialize to 0
 	float forward_thrust = 0.0f;
 
+	float pitch_setpoint_min = _params->pitch_min_rad;
+
+	if (_attc->get_pos_sp_triplet()->current.valid
+	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		pitch_setpoint_min = _params->land_pitch_min_rad; // set min pitch during LAND (usually lower to generate less lift)
+	}
+
 	// only allow pitching down up to threshold, the rest of the desired
 	// forward acceleration will be compensated by the pusher/tilt
-	if (pitch_down < -_params->down_pitch_max) {
-		// desired roll angle in heading frame stays the same
-		float roll_new = -asinf(body_z_sp(1));
 
-		forward_thrust = (sinf(-pitch_down) - sinf(_params->down_pitch_max)) * _params->forward_thrust_scale;
+	if (pitch_setpoint < pitch_setpoint_min) {
+		// desired roll angle in heading frame stays the same
+		const float roll_new = -asinf(body_z_sp(1));
+
+		forward_thrust = (sinf(pitch_setpoint_min) - sinf(pitch_setpoint)) * _params->forward_thrust_scale;
 		// limit forward actuation to [0, 0.9]
 		forward_thrust = math::constrain(forward_thrust, 0.0f, 0.9f);
 
-		// return the vehicle to level position
-		float pitch_new = 0.0f;
+		// Set the pitch to 0 if the pitch limit is negative (pitch down), but allow a positive (pitch up) pitch.
+		// This can be used for tiltrotor to make them hover with a positive angle of attack
+		const float pitch_new = pitch_setpoint_min > 0.f ? pitch_setpoint_min : 0.f;
 
 		// create corrected desired body z axis in heading frame
 		const Dcmf R_tmp = Eulerf(roll_new, pitch_new, 0.0f);

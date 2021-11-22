@@ -17,4 +17,3 @@ def save_compressed(filename):
             f.write(content_file.read())
 
 save_compressed(filename)
-

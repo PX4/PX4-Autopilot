@@ -67,6 +67,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed_validated.h>
@@ -87,6 +88,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/orbit_status.h>
 #include <uORB/uORB.h>
 #include <vtol_att_control/vtol_type.h>
 
@@ -110,7 +112,6 @@ static constexpr hrt_abstime T_ALT_TIMEOUT = 1_s; // time after which we abort l
 
 static constexpr float THROTTLE_THRESH =
 	0.05f;	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
-static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
@@ -156,6 +157,7 @@ private:
 	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication
 	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication
+	uORB::PublicationMulti<orbit_status_s>			_orbit_status_pub{ORB_ID(orbit_status)};
 
 	manual_control_setpoint_s	_manual_control_setpoint {};			///< r/c channel data
 	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items
@@ -173,14 +175,10 @@ private:
 	map_projection_reference_s _global_local_proj_ref{};
 	float	_global_local_alt0{NAN};
 
-	float	_hold_alt{0.0f};				///< hold altitude for altitude mode
-	float 	_manual_height_rate_setpoint_m_s{NAN};
 	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched
 	float	_hdg_hold_yaw{0.0f};				///< hold heading for velocity mode
 	bool	_hdg_hold_enabled{false};			///< heading hold enabled
 	bool	_yaw_lock_engaged{false};			///< yaw is locked for heading hold
-	float	_althold_epv{0.0f};				///< the position estimate accuracy when engaging alt hold
-	bool	_was_in_deadband{false};			///< wether the last stick input was in althold deadband
 
 	float	_min_current_sp_distance_xy{FLT_MAX};
 
@@ -254,14 +252,18 @@ private:
 	float _manual_control_setpoint_altitude{0.0f};
 	float _manual_control_setpoint_airspeed{0.0f};
 
+	hrt_abstime _time_in_fixed_bank_loiter{0};
+
 	ECL_L1_Pos_Controller	_l1_control;
 	TECS			_tecs;
 
-	uint8_t _type{0};
+	uint8_t _position_sp_type{0};
 	enum FW_POSCTRL_MODE {
 		FW_POSCTRL_MODE_AUTO,
-		FW_POSCTRL_MODE_POSITION,
-		FW_POSCTRL_MODE_ALTITUDE,
+		FW_POSCTRL_MODE_AUTO_ALTITUDE,
+		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
+		FW_POSCTRL_MODE_MANUAL_POSITION,
+		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
 		FW_POSCTRL_MODE_OTHER
 	} _control_mode_current{FW_POSCTRL_MODE_OTHER};		///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
@@ -302,17 +304,12 @@ private:
 	 */
 	float		get_terrain_altitude_takeoff(float takeoff_alt);
 
+	float getManualHeightRateSetpoint();
+
 	/**
 	 * Check if we are in a takeoff situation
 	 */
 	bool 		in_takeoff_situation();
-
-	/**
-	 * Do takeoff help when in altitude controlled modes
-	 * @param hold_altitude altitude setpoint for controller
-	 * @param pitch_limit_min minimum pitch allowed
-	 */
-	void 		do_takeoff_help(float *hold_altitude, float *pitch_limit_min);
 
 	/**
 	 * Update desired altitude base on user pitch stick input
@@ -320,16 +317,27 @@ private:
 	 * @param dt Time step
 	 */
 	void		update_desired_altitude(float dt);
+	uint8_t		handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr);
+	void		control_auto(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+				     const position_setpoint_s &pos_sp_prev,
+				     const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
-	bool		control_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
-					 const position_setpoint_s &pos_sp_prev,
-					 const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-	void		control_takeoff(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
-					const position_setpoint_s &pos_sp_prev,
-					const position_setpoint_s &pos_sp_curr);
-	void		control_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
-					const position_setpoint_s &pos_sp_prev,
-					const position_setpoint_s &pos_sp_curr);
+	void		control_auto_fixed_bank_alt_hold(const hrt_abstime &now);
+	void		control_auto_descend(const hrt_abstime &now);
+
+	void		control_auto_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void		control_auto_loiter(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+					    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+	void		control_auto_takeoff(const hrt_abstime &now, const float dt,  const Vector2d &curr_pos,
+					     const Vector2f &ground_speed,
+					     const position_setpoint_s &pos_sp_prev,
+					     const position_setpoint_s &pos_sp_curr);
+	void		control_auto_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+					     const position_setpoint_s &pos_sp_prev,
+					     const position_setpoint_s &pos_sp_curr);
+	void		control_manual_altitude(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void		control_manual_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
 
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
@@ -339,6 +347,10 @@ private:
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
+	Vector2f 	get_nav_speed_2d(const Vector2f &ground_speed);
+	void		set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid);
+
+	void publishOrbitStatus(const position_setpoint_s pos_sp);
 
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation
@@ -409,6 +421,10 @@ private:
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
 
 		(ParamBool<px4::params::FW_POSCTL_INV_ST>) _param_fw_posctl_inv_st,
+
+
+		(ParamInt<px4::params::FW_GPSF_LT>) _param_nav_gpsf_lt,
+		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,
 
 		// external parameters
 		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,7 @@
  * @file VTOL_att_control_main.cpp
  * Implementation of an attitude controller for VTOL airframes. This module receives data
  * from both the fixed wing- and the multicopter attitude controllers and processes it.
- * It computes the correct actuator controls depending on which mode the vehicle is in (hover,forward-
+ * It computes the correct actuator controls depending on which mode the vehicle is in (hover, forward-
  * flight or transition). It also publishes the resulting controls on the actuator controls topics.
  *
  * @author Roman Bapst 		<bapstr@ethz.ch>
@@ -91,8 +91,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.dec_to_pitch_i = param_find("VT_B_DEC_I");
 	_params_handles.back_trans_dec_sp = param_find("VT_B_DEC_MSS");
 
-
-	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
+	_params_handles.pitch_min_rad = param_find("VT_PTCH_MIN");
 	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
 	_params_handles.vt_mc_on_fmu = param_find("VT_MC_ON_FMU");
 
@@ -100,8 +99,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.mpc_land_alt1 = param_find("MPC_LAND_ALT1");
 	_params_handles.mpc_land_alt2 = param_find("MPC_LAND_ALT2");
 
-	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
-	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
+	_params_handles.land_pitch_min_rad = param_find("VT_LND_PTCH_MIN");
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -117,6 +116,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	} else {
 		exit_and_cleanup();
 	}
+
+	_vtol_vehicle_status_pub.advertise();
 }
 
 VtolAttitudeControl::~VtolAttitudeControl()
@@ -140,6 +141,27 @@ VtolAttitudeControl::init()
 	return true;
 }
 
+void VtolAttitudeControl::action_request_poll()
+{
+	while (_action_request_sub.updated()) {
+		action_request_s action_request;
+
+		if (_action_request_sub.copy(&action_request)) {
+			switch (action_request.action) {
+			case action_request_s::ACTION_VTOL_TRANSITION_TO_MULTICOPTER:
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				_immediate_transition = false;
+				break;
+
+			case action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING:
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				_immediate_transition = false;
+				break;
+			}
+		}
+	}
+}
+
 void VtolAttitudeControl::vehicle_cmd_poll()
 {
 	vehicle_command_s vehicle_command;
@@ -151,16 +173,19 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
-			// deny any transition in auto takeoff mode, plus transition from RW to FW in land or RTL mode
-			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
-			    || (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-				&& (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
-				    || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL))) {
+			const int transition_command_param1 = int(vehicle_command.param1 + 0.5f);
+
+			// deny transition from MC to FW in Takeoff, Land, RTL and Orbit
+			if (transition_command_param1 == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
+			    (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+			     ||  vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
 
 				result = vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED;
 
 			} else {
-				_transition_command = int(vehicle_command.param1 + 0.5f);
+				_transition_command = transition_command_param1;
 				_immediate_transition = (PX4_ISFINITE(vehicle_command.param2)) ? int(vehicle_command.param2 + 0.5f) : false;
 			}
 
@@ -179,35 +204,15 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 	}
 }
 
-/*
- * Returns true if fixed-wing mode is requested.
- * Changed either via switch or via command.
- */
-bool
-VtolAttitudeControl::is_fixed_wing_requested()
-{
-	bool to_fw = false;
-
-	if (_manual_control_switches.transition_switch != manual_control_switches_s::SWITCH_POS_NONE &&
-	    _v_control_mode.flag_control_manual_enabled) {
-		to_fw = (_manual_control_switches.transition_switch == manual_control_switches_s::SWITCH_POS_ON);
-
-	} else {
-		// listen to transition commands if not in manual or mode switch is not mapped
-		to_fw = (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	}
-
-	return to_fw;
-}
-
 void
 VtolAttitudeControl::quadchute(QuadchuteReason reason)
 {
 	if (!_vtol_vehicle_status.vtol_transition_failsafe) {
 		switch (reason) {
 		case QuadchuteReason::TransitionTimeout:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: timeout\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical, "Quadchute triggered, due to timeout");
+			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: transition timeout\t");
+			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical,
+				     "Quadchute triggered, due to transition timeout");
 			break;
 
 		case QuadchuteReason::ExternalCommand:
@@ -325,8 +330,12 @@ VtolAttitudeControl::parameters_update()
 	_params.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
 
 	/* maximum down pitch allowed */
-	param_get(_params_handles.down_pitch_max, &v);
-	_params.down_pitch_max = math::radians(v);
+	param_get(_params_handles.pitch_min_rad, &v);
+	_params.pitch_min_rad = math::radians(v);
+
+	/* maximum down pitch allowed during landing*/
+	param_get(_params_handles.land_pitch_min_rad, &v);
+	_params.land_pitch_min_rad = math::radians(v);
 
 	/* scale for fixed wing thrust used for forward acceleration in multirotor mode */
 	param_get(_params_handles.forward_thrust_scale, &_params.forward_thrust_scale);
@@ -427,7 +436,6 @@ VtolAttitudeControl::Run()
 		}
 
 		_v_control_mode_sub.update(&_v_control_mode);
-		_manual_control_switches_sub.update(&_manual_control_switches);
 		_v_att_sub.update(&_v_att);
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
@@ -435,6 +443,7 @@ VtolAttitudeControl::Run()
 		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		action_request_poll();
 		vehicle_cmd_poll();
 
 		// check if mc and fw sp were updated
@@ -443,24 +452,6 @@ VtolAttitudeControl::Run()
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
-
-		// reset transition command if not auto control
-		if (_v_control_mode.flag_control_manual_enabled) {
-			if (_vtol_type->get_mode() == mode::ROTARY_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-
-			} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-
-			} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
-				/* We want to make sure that a mode change (manual>auto) during the back transition
-				 * doesn't result in an unsafe state. This prevents the instant fall back to
-				 * fixed-wing on the switch from manual to auto */
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-			}
-		}
-
-
 
 		// check in which mode we are in and call mode specific functions
 		switch (_vtol_type->get_mode()) {

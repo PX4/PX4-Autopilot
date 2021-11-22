@@ -44,15 +44,12 @@ set PWM_EXTRA_OUT none
 set PWM_EXTRA_RATE p:PWM_EXTRA_RATE
 set EXTRA_MIXER_MODE none
 set RC_INPUT_ARGS ""
+set SDCARD_AVAILABLE no
+set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
-
-#
-# Start CDC/ACM serial driver.
-#
-sercon
 
 #
 # Print full system version.
@@ -62,7 +59,6 @@ ver all
 #
 # Try to mount the microSD card.
 #
-set SDCARD_AVAILABLE no
 # REBOOTWORK this needs to start after the flight control loop.
 if mount -t vfat /dev/mmcsd0 /fs/microsd
 then
@@ -102,15 +98,13 @@ if [ $SDCARD_AVAILABLE = yes ]
 then
 	if hardfault_log check
 	then
-		# Error tune.
-		set STARTUP_TUNE 2
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 		if hardfault_log commit
 		then
 			hardfault_log reset
 		fi
 	fi
 fi
-unset SDCARD_AVAILABLE
 
 #
 # Look for an init script on the microSD card.
@@ -188,15 +182,6 @@ else
 	tone_alarm start
 
 	#
-	# Play the startup tune (if not disabled or there is an error)
-	#
-	param compare CBRK_BUZZER 782090
-	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
-	then
-		tune_control play -t $STARTUP_TUNE
-	fi
-
-	#
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
@@ -221,10 +206,22 @@ else
 	#
 	# Set parameters and env variables for selected AUTOSTART.
 	#
+	set AUTOSTART_PATH etc/init.d/rc.autostart
 	if ! param compare SYS_AUTOSTART 0
 	then
-		. ${R}etc/init.d/rc.autostart
+		if param greater SYS_AUTOSTART 1000000
+		then
+			# Use external startup file
+			if [ $SDCARD_AVAILABLE = yes ]
+			then
+				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
+			else
+				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
+			fi
+		fi
+		. ${R}$AUTOSTART_PATH
 	fi
+	unset AUTOSTART_PATH
 
 	#
 	# Override parameters from user configuration file.
@@ -255,7 +252,7 @@ else
 			then
 				# Start UAVCAN firmware update server and dynamic node ID allocation server.
 				uavcan start fw
-				tune_control play -t 1
+
 				if param greater UAVCAN_ENABLE 2
 				then
 					set OUTPUT_MODE uavcan_esc
@@ -320,7 +317,7 @@ else
 	if [ $USE_IO = yes -a $IO_PRESENT = no ]
 	then
 		echo "PX4IO not found"
-		tune_control play error
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 	fi
 
 	#
@@ -328,6 +325,7 @@ else
 	#  start before commander
 	#
 	rc_update start
+	manual_control start
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
@@ -374,6 +372,22 @@ else
 		commander start
 	fi
 
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
+	then
+		tune_control play -t $STARTUP_TUNE
+	fi
+
+
+	# Pre-takeoff continuous magnetometer calibration
+	if param compare -s MBE_ENABLE 1
+	then
+		mag_bias_estimator start
+	fi
 
 	if param greater -s TRIG_MODE 0
 	then
@@ -493,21 +507,13 @@ else
 		. ${R}etc/init.d/rc.autostart.post
 	fi
 
-	#
-	# Bootloader upgrade
-	#
-	if param compare -s SYS_BL_UPDATE 1
+
+	set BOARD_BOOTLOADER_UPGRADE ${R}etc/init.d/rc.board_bootloader_upgrade
+	if [ -f $BOARD_BOOTLOADER_UPGRADE ]
 	then
-		if [ -f "/etc/extras/bootloader.bin" ]
-		then
-			param set SYS_BL_UPDATE 0
-			param save
-			echo "bootloader update..."
-			bl_update "/etc/extras/bootloader.bin"
-			echo "bootloader update done, rebooting"
-			reboot
-		fi
+		sh $BOARD_BOOTLOADER_UPGRADE
 	fi
+	unset BOARD_BOOTLOADER_UPGRADE
 
 #
 # End of autostart.
@@ -539,6 +545,8 @@ unset PWM_OUT
 unset PWM_EXTRA_OUT
 unset PWM_EXTRA_RATE
 unset RC_INPUT_ARGS
+unset SDCARD_AVAILABLE
+unset SDCARD_EXT_PATH
 unset SDCARD_MIXERS_PATH
 unset STARTUP_TUNE
 unset USE_IO

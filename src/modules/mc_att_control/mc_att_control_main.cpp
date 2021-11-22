@@ -211,7 +211,8 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
 	q_sp.copyTo(attitude_setpoint.q_d);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve(math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f));
+	attitude_setpoint.thrust_body[2] = -throttle_curve(math::constrain(_manual_control_setpoint.z, 0.0f,
+					   1.0f));
 	attitude_setpoint.timestamp = hrt_absolute_time();
 
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
@@ -316,13 +317,26 @@ MulticopterAttitudeControl::Run()
 
 			Vector3f rates_sp = _attitude_control.update(q);
 
+			const hrt_abstime now = hrt_absolute_time();
+			autotune_attitude_control_status_s pid_autotune;
+
+			if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
+				if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
+				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
+				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
+				     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
+				    && ((now - pid_autotune.timestamp) < 1_s)) {
+					rates_sp += Vector3f(pid_autotune.rate_sp);
+				}
+			}
+
 			// publish rate setpoint
 			vehicle_rates_setpoint_s v_rates_sp{};
 			v_rates_sp.roll = rates_sp(0);
 			v_rates_sp.pitch = rates_sp(1);
 			v_rates_sp.yaw = rates_sp(2);
 			_thrust_setpoint_body.copyTo(v_rates_sp.thrust_body);
-			v_rates_sp.timestamp = hrt_absolute_time();
+			v_rates_sp.timestamp = now;
 
 			_v_rates_sp_pub.publish(v_rates_sp);
 		}

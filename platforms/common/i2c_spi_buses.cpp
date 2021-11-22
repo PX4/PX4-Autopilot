@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include <board_config.h>
-#ifndef BOARD_DISABLE_I2C_SPI
 
 #ifndef MODULE_NAME
 #define MODULE_NAME "SPI_I2C"
@@ -57,11 +56,15 @@ I2CSPIDriverConfig::I2CSPIDriverConfig(const BusCLIArguments &cli, const BusInst
 	  bus_option(iterator.configuredBusOption()),
 	  bus_type(iterator.busType()),
 	  bus(iterator.bus()),
+#if defined(CONFIG_I2C)
 	  i2c_address(cli.i2c_address),
+#endif // CONFIG_I2C
 	  bus_frequency(cli.bus_frequency),
+#if defined(CONFIG_SPI)
 	  drdy_gpio(iterator.DRDYGPIO()),
 	  spi_mode(cli.spi_mode),
 	  spi_devid(iterator.devid()),
+#endif // CONFIG_SPI
 	  bus_device_index(iterator.busDeviceIndex()),
 	  rotation(cli.rotation),
 	  quiet_start(cli.quiet_start),
@@ -93,6 +96,8 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 
 		char *p = (char *)&_options;
 
+#if defined(CONFIG_I2C)
+
 		if (_i2c_support) {
 			*(p++) = 'X'; // external
 			*(p++) = 'I'; // internal
@@ -102,12 +107,17 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 			}
 		}
 
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
+
 		if (_spi_support) {
 			*(p++) = 'S'; // external
 			*(p++) = 's'; // internal
 			*(p++) = 'c'; *(p++) = ':'; // chip-select
 			*(p++) = 'm'; *(p++) = ':'; // spi mode
 		}
+
+#endif // CONFIG_SPI
 
 		if (support_keep_running) {
 			*(p++) = 'k';
@@ -148,6 +158,8 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 
 	while ((ch = px4_getopt(argc, argv, _options, &_optind, &_optarg)) != EOF) {
 		switch (ch) {
+#if defined(CONFIG_I2C)
+
 		case 'X':
 			bus_option = I2CSPIBusOption::I2CExternal;
 			break;
@@ -163,6 +175,8 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 
 			i2c_address = (int)strtol(_optarg, nullptr, 0);
 			break;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 
 		case 'S':
 			bus_option = I2CSPIBusOption::SPIExternal;
@@ -173,8 +187,9 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 			break;
 
 		case 'c':
-			chipselect_index = atoi(_optarg);
+			chipselect = atoi(_optarg);
 			break;
+#endif // CONFIG_SPI
 
 		case 'b':
 			requested_bus = atoi(_optarg);
@@ -183,10 +198,12 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 		case 'f':
 			bus_frequency = 1000 * atoi(_optarg);
 			break;
+#if defined(CONFIG_SPI)
 
 		case 'm':
 			spi_mode = (spi_mode_e)atoi(_optarg);
 			break;
+#endif // CONFIG_SPI
 
 		case 'q':
 			quiet_start = true;
@@ -216,12 +233,21 @@ int BusCLIArguments::getOpt(int argc, char *argv[], const char *options)
 
 		// apply defaults if not provided
 		if (bus_frequency == 0) {
+#if defined(CONFIG_I2C)
+
 			if (bus_option == I2CSPIBusOption::I2CExternal || bus_option == I2CSPIBusOption::I2CInternal) {
 				bus_frequency = default_i2c_frequency;
 
-			} else if (bus_option == I2CSPIBusOption::SPIExternal || bus_option == I2CSPIBusOption::SPIInternal) {
+			}
+
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
+
+			if (bus_option == I2CSPIBusOption::SPIExternal || bus_option == I2CSPIBusOption::SPIInternal) {
 				bus_frequency = default_spi_frequency;
 			}
+
+#endif // CONFIG_SPI
 		}
 	}
 
@@ -232,16 +258,22 @@ bool BusCLIArguments::validateConfiguration()
 {
 	bool success = true;
 
+#if defined(CONFIG_I2C)
+
 	if (_i2c_support && default_i2c_frequency == -1) {
 		PX4_ERR("Bug: driver %s does not set default_i2c_frequency", px4_get_taskname());
 		success = false;
 	}
+
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 
 	if (_spi_support && default_spi_frequency == -1) {
 		PX4_ERR("Bug: driver %s does not set default_spi_frequency", px4_get_taskname());
 		success = false;
 	}
 
+#endif // CONFIG_SPI
 	return success;
 }
 
@@ -249,11 +281,17 @@ bool BusCLIArguments::validateConfiguration()
 BusInstanceIterator::BusInstanceIterator(const char *module_name,
 		const BusCLIArguments &cli_arguments, uint16_t devid_driver_index)
 	: _module_name(module_name), _bus_option(cli_arguments.bus_option), _devid_driver_index(devid_driver_index),
+#if defined(CONFIG_I2C)
 	  _i2c_address(cli_arguments.i2c_address),
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 	  _spi_bus_iterator(spiFilter(cli_arguments.bus_option),
-			    cli_arguments.bus_option == I2CSPIBusOption::SPIExternal ? cli_arguments.chipselect_index : devid_driver_index,
+			    devid_driver_index, cli_arguments.chipselect,
 			    cli_arguments.requested_bus),
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
 	  _i2c_bus_iterator(i2cFilter(cli_arguments.bus_option), cli_arguments.requested_bus),
+#endif // CONFIG_I2C
 	  _current_instance(i2c_spi_module_instances.end())
 {
 	// We lock the module instance list as long as this object is alive, since we iterate over the list.
@@ -290,20 +328,31 @@ bool BusInstanceIterator::next()
 
 		return false;
 
+#if defined(CONFIG_SPI)
+
 	} else if (busType() == BOARD_SPI_BUS) {
 		if (_spi_bus_iterator.next()) {
 			bus = _spi_bus_iterator.bus().bus;
 		}
 
-	} else {
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
+
+	} else if (busType() == BOARD_I2C_BUS) {
 		if (_i2c_bus_iterator.next()) {
 			bus = _i2c_bus_iterator.bus().bus;
 		}
+
+#endif // CONFIG_I2C
 	}
 
 	if (bus != -1) {
 		// find matching runtime instance
+#if defined(CONFIG_I2C)
 		bool is_i2c = busType() == BOARD_I2C_BUS;
+#else
+		bool is_i2c = false;
+#endif
 
 		for (_current_instance = i2c_spi_module_instances.begin(); _current_instance != i2c_spi_module_instances.end();
 		     ++_current_instance) {
@@ -314,7 +363,12 @@ bool BusInstanceIterator::next()
 			if (_bus_option == (*_current_instance)->_bus_option && bus == (*_current_instance)->_bus &&
 			    _devid_driver_index == (*_current_instance)->_devid_driver_index &&
 			    busDeviceIndex() == (*_current_instance)->_bus_device_index &&
-			    (!is_i2c || _i2c_address == (*_current_instance)->_i2c_address)) {
+			    (!is_i2c
+#if defined(CONFIG_I2C)
+			     || _i2c_address == (*_current_instance)->_i2c_address
+#endif // CONFIG_I2C
+			    )
+			   ) {
 				break;
 			}
 		}
@@ -371,13 +425,19 @@ board_bus_types BusInstanceIterator::busType() const
 	case I2CSPIBusOption::All:
 		return BOARD_INVALID_BUS;
 
+#if defined(CONFIG_I2C)
+
 	case I2CSPIBusOption::I2CInternal:
 	case I2CSPIBusOption::I2CExternal:
 		return BOARD_I2C_BUS;
+#endif // CONFIG_I2C
+
+#if defined(CONFIG_SPI)
 
 	case I2CSPIBusOption::SPIInternal:
 	case I2CSPIBusOption::SPIExternal:
 		return BOARD_SPI_BUS;
+#endif // CONFIG_SPI
 	}
 
 	return BOARD_INVALID_BUS;
@@ -385,78 +445,104 @@ board_bus_types BusInstanceIterator::busType() const
 
 int BusInstanceIterator::bus() const
 {
-	if (busType() == BOARD_INVALID_BUS) {
-		return -1;
+#if defined(CONFIG_SPI)
 
-	} else if (busType() == BOARD_SPI_BUS) {
+	if (busType() == BOARD_SPI_BUS) {
 		return _spi_bus_iterator.bus().bus;
+	}
 
-	} else {
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
+
+	if (busType() == BOARD_I2C_BUS) {
 		return _i2c_bus_iterator.bus().bus;
 	}
-}
 
-uint32_t BusInstanceIterator::devid() const
-{
-	if (busType() == BOARD_INVALID_BUS) {
-		return 0;
-
-	} else if (busType() == BOARD_SPI_BUS) {
-		return _spi_bus_iterator.devid();
-
-	} else {
-		return 0;
-	}
-}
-
-spi_drdy_gpio_t BusInstanceIterator::DRDYGPIO() const
-{
-	if (busType() == BOARD_INVALID_BUS) {
-		return 0;
-
-	} else if (busType() == BOARD_SPI_BUS) {
-		return _spi_bus_iterator.DRDYGPIO();
-
-	} else {
-		return 0;
-	}
-}
-
-bool BusInstanceIterator::external() const
-{
-	if (busType() == BOARD_INVALID_BUS) {
-		return false;
-
-	} else if (busType() == BOARD_SPI_BUS) {
-		return _spi_bus_iterator.external();
-
-	} else {
-		return _i2c_bus_iterator.external();
-	}
-}
-
-int BusInstanceIterator::externalBusIndex() const
-{
-	if (busType() == BOARD_INVALID_BUS) {
-		return 0;
-
-	} else if (busType() == BOARD_SPI_BUS) {
-		return _spi_bus_iterator.externalBusIndex();
-
-	} else {
-		return _i2c_bus_iterator.externalBusIndex();
-	}
-}
-
-int BusInstanceIterator::busDeviceIndex() const
-{
-	if (busType() == BOARD_SPI_BUS) {
-		return _spi_bus_iterator.busDeviceIndex();
-	}
+#endif // CONFIG_I2C
 
 	return -1;
 }
 
+uint32_t BusInstanceIterator::devid() const
+{
+#if defined(CONFIG_SPI)
+
+	if (busType() == BOARD_SPI_BUS) {
+		return _spi_bus_iterator.devid();
+	}
+
+#endif // CONFIG_SPI
+
+	return 0;
+}
+
+#if defined(CONFIG_SPI)
+spi_drdy_gpio_t BusInstanceIterator::DRDYGPIO() const
+{
+	if (busType() == BOARD_SPI_BUS) {
+		return _spi_bus_iterator.DRDYGPIO();
+	}
+
+	return 0;
+}
+#endif // CONFIG_SPI
+
+bool BusInstanceIterator::external() const
+{
+#if defined(CONFIG_SPI)
+
+	if (busType() == BOARD_SPI_BUS) {
+		return _spi_bus_iterator.external();
+	}
+
+#endif // CONFIG_SPI
+
+#if defined(CONFIG_I2C)
+
+	if (busType() == BOARD_I2C_BUS) {
+		return _i2c_bus_iterator.external();
+	}
+
+#endif // CONFIG_I2C
+
+	return false;
+}
+
+int BusInstanceIterator::externalBusIndex() const
+{
+#if defined(CONFIG_SPI)
+
+	if (busType() == BOARD_SPI_BUS) {
+		return _spi_bus_iterator.externalBusIndex();
+	}
+
+#endif // CONFIG_SPI
+
+#if defined(CONFIG_I2C)
+
+	if (busType() == BOARD_I2C_BUS) {
+		return _i2c_bus_iterator.externalBusIndex();
+	}
+
+#endif // CONFIG_I2C
+
+	return 0;
+}
+
+int BusInstanceIterator::busDeviceIndex() const
+{
+#if defined(CONFIG_SPI)
+
+	if (busType() == BOARD_SPI_BUS) {
+		return _spi_bus_iterator.busDeviceIndex();
+	}
+
+#endif // CONFIG_SPI
+
+	return -1;
+}
+
+#if defined(CONFIG_I2C)
 I2CBusIterator::FilterType BusInstanceIterator::i2cFilter(I2CSPIBusOption bus_option)
 {
 	switch (bus_option) {
@@ -471,7 +557,9 @@ I2CBusIterator::FilterType BusInstanceIterator::i2cFilter(I2CSPIBusOption bus_op
 
 	return I2CBusIterator::FilterType::All;
 }
+#endif // CONFIG_I2C
 
+#if defined(CONFIG_SPI)
 SPIBusIterator::FilterType BusInstanceIterator::spiFilter(I2CSPIBusOption bus_option)
 {
 	switch (bus_option) {
@@ -484,6 +572,7 @@ SPIBusIterator::FilterType BusInstanceIterator::spiFilter(I2CSPIBusOption bus_op
 
 	return SPIBusIterator::FilterType::InternalBus;
 }
+#endif // CONFIG_SPI
 
 struct I2CSPIDriverInitializing {
 	const I2CSPIDriverConfig &config;
@@ -520,9 +609,15 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 		device_id.devid_s.bus = iterator.bus();
 
 		switch (iterator.busType()) {
+#if defined(CONFIG_I2C)
+
 		case BOARD_I2C_BUS: device_id.devid_s.bus_type = device::Device::DeviceBusType_I2C; break;
+#endif // CONFIG_I2C
+
+#if defined(CONFIG_SPI)
 
 		case BOARD_SPI_BUS: device_id.devid_s.bus_type = device::Device::DeviceBusType_SPI; break;
+#endif // CONFIG_SPI
 
 		case BOARD_INVALID_BUS: device_id.devid_s.bus_type = device::Device::DeviceBusType_UNKNOWN; break;
 		}
@@ -543,15 +638,21 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 			continue;
 		}
 
+#if defined(CONFIG_I2C)
+
 		if (cli.i2c_address != 0 && instance->_i2c_address == 0) {
 			PX4_ERR("Bug: driver %s does not pass the I2C address to I2CSPIDriverBase", instance->ItemName());
 		}
+
+#endif // CONFIG_I2C
 
 		iterator.addInstance(instance);
 		started = true;
 
 		// print some info that we are running
 		switch (iterator.busType()) {
+#if defined(CONFIG_I2C)
+
 		case BOARD_I2C_BUS:
 			PX4_INFO_RAW("%s #%i on I2C bus %d", instance->ItemName(), runtime_instance, iterator.bus());
 
@@ -570,6 +671,8 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 			PX4_INFO_RAW("\n");
 
 			break;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 
 		case BOARD_SPI_BUS:
 			PX4_INFO_RAW("%s #%i on SPI bus %d", instance->ItemName(), runtime_instance, iterator.bus());
@@ -585,6 +688,7 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 			PX4_INFO_RAW("\n");
 
 			break;
+#endif // CONFIG_SPI
 
 		case BOARD_INVALID_BUS:
 			break;
@@ -594,14 +698,17 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 	if (!started && !cli.quiet_start) {
 		PX4_WARN("%s: no instance started (no device on bus?)", px4_get_taskname());
 
+#if defined(CONFIG_I2C)
+
 		if (iterator.busType() == BOARD_I2C_BUS && cli.i2c_address == 0) {
 			PX4_ERR("%s: driver does not set i2c address", px4_get_taskname());
 		}
+
+#endif // CONFIG_I2C
 	}
 
 	return started ? 0 : -1;
 }
-
 
 int I2CSPIDriverBase::module_stop(BusInstanceIterator &iterator)
 {
@@ -680,14 +787,23 @@ int I2CSPIDriverBase::module_custom_method(const BusCLIArguments &cli, BusInstan
 
 void I2CSPIDriverBase::print_status()
 {
-	bool is_i2c_bus = _bus_option == I2CSPIBusOption::I2CExternal || _bus_option == I2CSPIBusOption::I2CInternal;
+#if defined(CONFIG_I2C)
 
-	if (is_i2c_bus) {
+	if (_bus_option == I2CSPIBusOption::I2CExternal || _bus_option == I2CSPIBusOption::I2CInternal) {
 		PX4_INFO("Running on I2C Bus %i, Address 0x%02X", _bus, get_i2c_address());
-
-	} else {
-		PX4_INFO("Running on SPI Bus %i", _bus);
+		return;
 	}
+
+#endif // CONFIG_I2C
+
+#if defined(CONFIG_SPI)
+
+	if (_bus_option == I2CSPIBusOption::SPIExternal || _bus_option == I2CSPIBusOption::SPIInternal) {
+		PX4_INFO("Running on SPI Bus %i", _bus);
+		return;
+	}
+
+#endif // CONFIG_SPI
 }
 
 void I2CSPIDriverBase::request_stop_and_wait()
@@ -705,5 +821,3 @@ void I2CSPIDriverBase::request_stop_and_wait()
 		PX4_ERR("Module did not respond to stop request");
 	}
 }
-
-#endif /* BOARD_DISABLE_I2C_SPI */

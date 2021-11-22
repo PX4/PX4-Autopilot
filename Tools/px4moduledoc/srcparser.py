@@ -14,7 +14,7 @@ class ModuleDocumentation(object):
     # If you add categories or subcategories, they also need to be added to the
     # TOC in https://github.com/PX4/Devguide/blob/master/en/SUMMARY.md
     valid_categories = ['driver', 'estimator', 'controller', 'system',
-                        'communication', 'command', 'template', 'simulation']
+                        'communication', 'command', 'template', 'simulation', 'autotune']
     valid_subcategories = ['', 'distance_sensor', 'imu', 'airspeed_sensor',
                            'magnetometer', 'baro', 'optical_flow']
 
@@ -137,8 +137,8 @@ class ModuleDocumentation(object):
             "\"board-specific bus (default=all) (external SPI: n-th bus (default=1))\"", 'true'])
 
         if self._is_bool_true(args[1]):
-            self._handle_usage_param_int(['\'c\'', '1', '1', '10',
-                "\"chip-select index (for external SPI)\"", 'true'])
+            self._handle_usage_param_int(['\'c\'', '-1', '0', '31',
+                "\"chip-select pin (for internal SPI) or index (for external SPI)\"", 'true'])
             self._handle_usage_param_int(['\'m\'', '-1', '0', '3', "\"SPI mode\"", 'true'])
 
         self._handle_usage_param_int(['\'f\'', '-1', '0', '1000000', "\"bus frequency in kHz\"", 'true'])

@@ -55,7 +55,7 @@ void EkfLogger::writeState()
 			matrix::Vector<float, 24> state = _ekf->getStateAtFusionHorizonAsVector();
 
 			for (int i = 0; i < 24; i++) {
-				_file << "," << std::setprecision(4) << state(i);
+				_file << "," << std::setprecision(3) << state(i);
 			}
 		}
 

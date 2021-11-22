@@ -36,6 +36,7 @@
 #include "UavcanPublisherBase.hpp"
 
 #include <com/hex/equipment/flow/Measurement.hpp>
+#include <conversion/rotation.h>
 
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/optical_flow.h>
@@ -53,7 +54,16 @@ public:
 		UavcanPublisherBase(com::hex::equipment::flow::Measurement::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(optical_flow)),
 		uavcan::Publisher<com::hex::equipment::flow::Measurement>(node)
-	{}
+	{
+		_rotation = matrix::Dcmf{matrix::Eulerf{0.f, 0.f, 0.f}};
+
+		param_t rot = param_find("CANNODE_FLOW_ROT");
+		int32_t val = 0;
+
+		if (param_get(rot, &val) == PX4_OK) {
+			_rotation = get_rot_matrix((enum Rotation)val);
+		}
+	}
 
 	void PrintInfo() override
 	{
@@ -73,10 +83,16 @@ public:
 		if (uORB::SubscriptionCallbackWorkItem::update(&optical_flow)) {
 			com::hex::equipment::flow::Measurement measurement{};
 			measurement.integration_interval  = optical_flow.integration_timespan * 1e-6f; // us -> s
-			measurement.rate_gyro_integral[0] = optical_flow.gyro_x_rate_integral;
-			measurement.rate_gyro_integral[1] = optical_flow.gyro_y_rate_integral;
-			measurement.flow_integral[0] = optical_flow.pixel_flow_x_integral;
-			measurement.flow_integral[1] = optical_flow.pixel_flow_y_integral;
+
+			// rotate measurements in yaw from sensor frame to body frame
+			const matrix::Vector3f gyro_flow_rotated = _rotation * matrix::Vector3f{optical_flow.gyro_x_rate_integral, optical_flow.gyro_y_rate_integral, 0.f};
+			const matrix::Vector3f pixel_flow_rotated = _rotation * matrix::Vector3f{optical_flow.pixel_flow_x_integral, optical_flow.pixel_flow_y_integral, 0.f};
+
+			measurement.rate_gyro_integral[0] = gyro_flow_rotated(0);
+			measurement.rate_gyro_integral[1] = gyro_flow_rotated(1);
+			measurement.flow_integral[0] = pixel_flow_rotated(0);
+			measurement.flow_integral[1] = pixel_flow_rotated(1);
+
 			measurement.quality = optical_flow.quality;
 
 			uavcan::Publisher<com::hex::equipment::flow::Measurement>::broadcast(measurement);
@@ -85,5 +101,7 @@ public:
 			uORB::SubscriptionCallbackWorkItem::registerCallback();
 		}
 	}
+private:
+	matrix::Dcmf _rotation;
 };
 } // namespace uavcannode

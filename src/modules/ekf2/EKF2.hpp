@@ -166,7 +166,10 @@ private:
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateImuStatus();
 
+	void UpdateAccelCalibration(const hrt_abstime &timestamp);
+	void UpdateGyroCalibration(const hrt_abstime &timestamp);
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
+
 
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
@@ -198,16 +201,21 @@ private:
 	perf_counter_t _msg_missed_odometry_perf{nullptr};
 	perf_counter_t _msg_missed_optical_flow_perf{nullptr};
 
-	// Used to check, save and use learned magnetometer biases
-	hrt_abstime _mag_cal_last_us{0};	///< last time the EKF was operating a mode that estimates magnetomer biases (uSec)
-	hrt_abstime _mag_cal_total_time_us{0};	///< accumulated calibration time since the last save
-
-	Vector3f _mag_cal_last_bias{};	///< last valid XYZ magnetometer bias estimates (Gauss)
-	Vector3f _mag_cal_last_bias_variance{};	///< variances for the last valid magnetometer XYZ bias estimates (Gauss**2)
-	bool _mag_cal_available{false};	///< true when an unsaved valid calibration for the XYZ magnetometer bias is available
-
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
+
+	// Used to check, save and use learned accel/gyro/mag biases
+	struct InFlightCalibration {
+		hrt_abstime last_us{0};         ///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
+		hrt_abstime total_time_us{0};   ///< accumulated calibration time since the last save
+		Vector3f last_bias{};           ///< last valid XYZ accelerometer bias estimates (Gauss)
+		Vector3f last_bias_variance{};  ///< variances for the last valid accelerometer XYZ bias estimates (m/s**2)**2
+		bool cal_available{false};      ///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
+	};
+
+	InFlightCalibration _accel_cal{};
+	InFlightCalibration _gyro_cal{};
+	InFlightCalibration _mag_cal{};
 
 	bool _had_valid_terrain{false};			///< true if at any time there was a valid terrain estimate
 
@@ -216,7 +224,8 @@ private:
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
-	uint8_t _imu_calibration_count{0};
+	uint8_t _accel_calibration_count{0};
+	uint8_t _gyro_calibration_count{0};
 	uint8_t _mag_calibration_count{0};
 
 	uint32_t _device_id_accel{0};
@@ -227,6 +236,11 @@ private:
 	Vector3f _last_accel_bias_published{};
 	Vector3f _last_gyro_bias_published{};
 	Vector3f _last_mag_bias_published{};
+
+	Vector3f _last_accel_calibration_published{};
+	Vector3f _last_gyro_calibration_published{};
+	Vector3f _last_mag_calibration_published{};
+
 	float _last_baro_bias_published{};
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
@@ -471,7 +485,7 @@ private:
 		_param_ekf2_ev_pos_z,		///< Z position of VI sensor focal point in body frame (m)
 
 		// control of airspeed and sideslip fusion
-		(ParamFloat<px4::params::EKF2_ARSP_THR>)
+		(ParamExtFloat<px4::params::EKF2_ARSP_THR>)
 		_param_ekf2_arsp_thr, 	///< A value of zero will disabled airspeed fusion. Any positive value sets the minimum airspeed which will be used (m/sec)
 		(ParamInt<px4::params::EKF2_FUSE_BETA>)
 		_param_ekf2_fuse_beta,		///< Controls synthetic sideslip fusion, 0 disables, 1 enables

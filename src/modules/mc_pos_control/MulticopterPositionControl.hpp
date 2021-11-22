@@ -109,14 +109,11 @@ private:
 
 	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 
-	int _task_failure_count{0};         /**< counter for task failures */
-
 	vehicle_local_position_setpoint_s _setpoint {};
 	vehicle_control_mode_s _vehicle_control_mode {};
 
 	vehicle_constraints_s _vehicle_constraints {
 		.timestamp = 0,
-		.speed_xy = NAN,
 		.speed_up = NAN,
 		.speed_down = NAN,
 		.want_takeoff = false,
@@ -223,13 +220,6 @@ private:
 	 * Check for validity of positon/velocity states.
 	 */
 	PositionControlStates set_vehicle_states(const vehicle_local_position_s &local_pos);
-
-	/**
-	 * Adjust the setpoint during landing.
-	 * Thrust is adjusted to support the land-detector during detection.
-	 * @param setpoint gets adjusted based on land-detector state
-	 */
-	void limit_thrust_during_landing(vehicle_attitude_setpoint_s &setpoint);
 
 	/**
 	 * Failsafe.

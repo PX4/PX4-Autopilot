@@ -126,7 +126,6 @@ status_t NVM_Write(uint32_t offset, uint32_t size, uint8_t const *buf);
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t NVM_Read(uint32_t offset, uint32_t size, uint8_t *buf);
-
 #ifdef __cplusplus
 }
 #endif

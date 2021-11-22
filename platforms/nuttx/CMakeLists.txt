@@ -37,13 +37,10 @@ endif()
 
 include(cygwin_cygpath)
 
-set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
-set(NUTTX_APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
-
 add_executable(px4 ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
-add_dependencies(px4 git_nuttx nuttx_build)
+add_dependencies(px4 git_nuttx)
 
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 
@@ -97,7 +94,7 @@ list(APPEND nuttx_libs
 	nuttx_crypto
 )
 
-if (CONFIG_NET)
+if(CONFIG_NET)
 	list(APPEND nuttx_libs nuttx_net)
 	target_link_libraries(nuttx_fs INTERFACE nuttx_net)
 endif()
@@ -127,7 +124,7 @@ target_link_libraries(px4 PRIVATE
 
 	-fno-exceptions
 	-fno-rtti
-	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/${SCRIPT_PREFIX}script.ld
+	-Wl,--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}script.ld
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
@@ -146,21 +143,21 @@ endif()
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
 
-if (config_romfs_root)
+if(config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
 	target_link_libraries(px4 PRIVATE romfs)
 endif()
 
 if((DEFINED ENV{SIGNING_TOOL}) AND (NOT NUTTX_DIR MATCHES "external"))
-	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR}/${PX4_BOARD}_unsigned.bin)
+	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR}/${PX4_CONFIG}_unsigned.bin)
 
-	add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
-		COMMAND $ENV{SIGNING_TOOL} $ENV{SIGNING_ARGS} ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR}/${PX4_BOARD}.bin
+	add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin
+		COMMAND $ENV{SIGNING_TOOL} $ENV{SIGNING_ARGS} ${PX4_BINARY_OUTPUT} ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
 		DEPENDS ${PX4_BINARY_OUTPUT}
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
 else()
-	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin)
+	set(PX4_BINARY_OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_CONFIG}.bin)
 endif()
 
 add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
@@ -181,9 +178,9 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 				--git_identity ${PX4_SOURCE_DIR}
 				--parameter_xml ${PX4_BINARY_DIR}/parameters.xml
 				--airframe_xml ${PX4_BINARY_DIR}/airframes.xml
-				--image ${PX4_BINARY_DIR}/${PX4_BOARD}.bin > ${fw_package}
+				--image ${PX4_BINARY_DIR}/${PX4_CONFIG}.bin > ${fw_package}
 		DEPENDS
-			${PX4_BINARY_DIR}/${PX4_BOARD}.bin
+			${PX4_BINARY_DIR}/${PX4_CONFIG}.bin
 			airframes_xml
 			parameters_xml
 		COMMENT "Creating ${fw_package}"
@@ -200,6 +197,14 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 
 endif()
 
+if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
+	add_custom_command(OUTPUT ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
+		COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
+		DEPENDS px4
+	)
+	add_custom_target(px4_bootloader_keep ALL DEPENDS ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin)
+endif()
+
 # print weak symbols
 add_custom_target(weak_symbols
 	COMMAND ${CMAKE_NM} $<TARGET_FILE:px4> | ${GREP} " w " | cat
@@ -209,14 +214,14 @@ add_custom_target(weak_symbols
 )
 
 # generate bootloader.elf and copy to top level build directory
-if(EXISTS "${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin")
+if(NOT ("${PX4_BOARD_LABEL}" STREQUAL "bootloader") AND (EXISTS "${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin"))
 	add_custom_command(
 		OUTPUT ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
 		COMMAND
 			${CMAKE_OBJCOPY} -I binary -O elf32-little --change-section-address .data=0x08000000
-				${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+				${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
 				${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf
-		DEPENDS ${PX4_BOARD_DIR}/bootloader/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
+		DEPENDS ${PX4_BOARD_DIR}/extras/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.bin
 		WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)
 	add_custom_target(bootloader_elf DEPENDS ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_bootloader.elf)

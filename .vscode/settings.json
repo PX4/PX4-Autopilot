@@ -14,7 +14,6 @@
         "C_Cpp.workspaceParsingPriority": "low",
         "cmake.buildBeforeRun": true,
         "cmake.buildDirectory": "${workspaceFolder}/build/${variant:CONFIG}",
-        "cmake.buildTask": true,
         "cmake.configureOnOpen": true,
         "cmake.ctest.parallelJobs": 1,
         "cmake.skipConfigureIfCachePresent": true,
@@ -136,5 +135,6 @@
         "workbench.settings.enableNaturalLanguageSearch": false,
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
-        }
+        },
+        "cortex-debug.openocdPath": "${env:PICO_SDK_PATH}/../openocd/src/openocd"       // Added for rp2040
 }

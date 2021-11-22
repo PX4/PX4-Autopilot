@@ -50,8 +50,10 @@
 
 /* Define PX4_ISFINITE */
 #ifdef __cplusplus
-constexpr bool PX4_ISFINITE(float x) { return __builtin_isfinite(x); }
-constexpr bool PX4_ISFINITE(double x) { return __builtin_isfinite(x); }
+static inline constexpr bool PX4_ISFINITE(float x) { return __builtin_isfinite(x); }
+static inline constexpr bool PX4_ISFINITE(double x) { return __builtin_isfinite(x); }
+#else
+#define PX4_ISFINITE(x) __builtin_isfinite(x)
 #endif /* __cplusplus */
 
 #if defined(__PX4_NUTTX)

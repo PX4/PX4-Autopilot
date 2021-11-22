@@ -22,10 +22,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-
 # use the Q attitude estimator, it works w/o mag or GPS.
 param set-default SYS_MC_EST_GROUP 3
 param set-default ATT_ACC_COMP 0
@@ -65,7 +61,6 @@ param set-default MPC_THR_HOVER 0.25
 param set-default THR_MDL_FAC 0.3
 
 # System
-param set-default PWM_MAIN_MAX 1950
 param set-default PWM_MAIN_MIN 1180
 
 # enable one-shot
@@ -82,4 +77,3 @@ param set-default IMU_DGYRO_CUTOFF 100
 
 # enable to use high-rate logging for better rate tracking analysis
 param set-default SDLOG_PROFILE 27
-

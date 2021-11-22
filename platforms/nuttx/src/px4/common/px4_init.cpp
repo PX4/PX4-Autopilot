@@ -56,6 +56,8 @@
 #include <px4_platform_common/crypto.h>
 #endif
 
+extern void cdcacm_init(void);
+
 int px4_platform_init()
 {
 
@@ -139,6 +141,10 @@ int px4_platform_init()
 	uorb_start();
 
 	px4_log_initialize();
+
+#if defined(CONFIG_SYSTEM_CDCACM) && defined(CONFIG_BUILD_FLAT)
+	cdcacm_init();
+#endif
 
 	return PX4_OK;
 }

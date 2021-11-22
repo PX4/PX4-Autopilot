@@ -231,7 +231,7 @@ void MPU6000::RunImpl()
 
 				// tolerate minor jitter, leave sample to next iteration if behind by only 1
 				if (samples == _fifo_gyro_samples + 1) {
-					timestamp_sample -= FIFO_SAMPLE_DT;
+					timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
 					samples--;
 				}
 
@@ -256,6 +256,7 @@ void MPU6000::RunImpl()
 
 				// full reset if things are failing consistently
 				if (_failure_count > 10) {
+					PX4_DEBUG("Full reset because things are failing consistently");
 					Reset();
 					return;
 				}
@@ -270,6 +271,7 @@ void MPU6000::RunImpl()
 				} else {
 					// register check failed, force reset
 					perf_count(_bad_register_perf);
+					PX4_DEBUG("Force reset because register 0x%02hhX check failed ", (uint8_t)_register_cfg[_checked_register].reg);
 					Reset();
 				}
 
@@ -435,6 +437,7 @@ uint8_t MPU6000::RegisterRead(Register reg)
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
 	set_frequency(SPI_SPEED); // low speed for regular registers
 	transfer(cmd, cmd, sizeof(cmd));
+	px4_udelay(10);
 	return cmd[1];
 }
 
@@ -443,6 +446,7 @@ void MPU6000::RegisterWrite(Register reg, uint8_t value)
 	uint8_t cmd[2] { (uint8_t)reg, value };
 	set_frequency(SPI_SPEED); // low speed for regular registers
 	transfer(cmd, cmd, sizeof(cmd));
+	px4_udelay(10);
 }
 
 void MPU6000::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)

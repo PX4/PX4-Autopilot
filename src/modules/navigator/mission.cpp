@@ -683,11 +683,22 @@ Mission::set_mission_items()
 
 		_mission_type = MISSION_TYPE_NONE;
 
-		/* set loiter mission item and ensure that there is a minimum clearance from home */
-		set_loiter_item(&_mission_item, _navigator->get_takeoff_min_alt());
+		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+		if (_navigator->get_land_detected()->landed) {
+			_mission_item.nav_cmd = NAV_CMD_IDLE;
+
+		} else {
+			if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+				setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
+
+			} else {
+				setLoiterItemFromCurrentPosition(&_mission_item);
+			}
+
+		}
 
 		/* update position setpoint triplet  */
-		position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 		pos_sp_triplet->previous.valid = false;
 		mission_apply_limitation(_mission_item);
 		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);

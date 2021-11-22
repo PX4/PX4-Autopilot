@@ -50,6 +50,8 @@ else()
 endif()
 
 set(SRCS)
+set(DPNDS)
+
 if(${PX4_PLATFORM} MATCHES "nuttx")
 	if(CONFIG_NET_CAN)
 		list(APPEND SRCS
@@ -64,6 +66,40 @@ if(${PX4_PLATFORM} MATCHES "nuttx")
 	endif()
 endif()
 
+if(CONFIG_UAVCAN_V1_NODE_MANAGER)
+    list(APPEND SRCS
+		NodeManager.hpp
+		NodeManager.cpp
+    )
+endif()
+
+if(CONFIG_UAVCAN_V1_NODE_CLIENT)
+    list(APPEND SRCS
+		NodeClient.hpp
+		NodeClient.cpp
+    )
+    list(APPEND DPNDS
+        drivers_bootloaders
+    )
+endif()
+
+# Temporary measure to get Kconfig option as defines into this application
+# Ideally we want nicely decouple and define this in kconfig.cmake
+# But then we need to overhaul the src modules naming convention
+set(DRIVERS_UAVCAN_V1_OPTIONS)
+get_cmake_property(_variableNames VARIABLES)
+foreach (_variableName ${_variableNames})
+    string(REGEX MATCH "^CONFIG_UAVCAN_V1_" UAVCAN_V1_OPTION ${_variableName})
+
+    if(UAVCAN_V1_OPTION)
+        if(${${_variableName}} STREQUAL "y")
+            list(APPEND DRIVERS_UAVCAN_V1_OPTIONS "-D${_variableName}=1")
+        else()
+            list(APPEND DRIVERS_UAVCAN_V1_OPTIONS "-D${_variableName}=${${_variableName}}")
+        endif()
+    endif()
+endforeach()
+
 px4_add_module(
 	MODULE drivers__uavcan_v1
 	MAIN uavcan_v1
@@ -72,6 +108,7 @@ px4_add_module(
 		#-DCANARD_ASSERT
 		-DUINT32_C\(x\)=__UINT32_C\(x\)
 		-O0
+		${DRIVERS_UAVCAN_V1_OPTIONS}
 	INCLUDES
 		${LIBCANARD_DIR}/libcanard/
 		${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated
@@ -82,8 +119,6 @@ px4_add_module(
 		SubscriptionManager.hpp
 		ParamManager.hpp
 		ParamManager.cpp
-		NodeManager.hpp
-		NodeManager.cpp
 		Uavcan.cpp
 		Uavcan.hpp
 		Publishers/uORB/uorb_publisher.cpp
@@ -92,9 +127,12 @@ px4_add_module(
 		o1heap/o1heap.h
 		${LIBCANARD_DIR}/libcanard/canard.c
 		${LIBCANARD_DIR}/libcanard/canard.h
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		git_libcanard
 		git_public_regulated_data_types
 		git_legacy_data_types
 		version
+		${DPNDS}
 	)

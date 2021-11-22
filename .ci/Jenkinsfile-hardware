@@ -13,19 +13,15 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
+                checkoutSCM()
+                sh 'make cubepilot_cubeorange_bootloader'
                 sh 'make cubepilot_cubeorange_test'
-                sh 'make cubepilot_cubeorange_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'cubepilot_cubeorange_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'cubepilot_cubeorange_test'
               }
               post {
                 always {
@@ -43,7 +39,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'cubepilot_cubeorange_test'
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_bootloader.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_bootloader/cubepilot_cubeorange_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -74,6 +70,7 @@ pipeline {
               }
               post {
                 always {
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf || true'
                     resetBoard()
                 }
               }
@@ -87,19 +84,15 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
+                checkoutSCM()
+                sh 'make cuav_x7pro_bootloader'
                 sh 'make cuav_x7pro_test'
-                sh 'make cuav_x7pro_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'cuav_x7pro_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'cuav_x7pro_test'
               }
               post {
                 always {
@@ -117,7 +110,7 @@ pipeline {
                     sh 'export'
                     sh 'find /dev/serial'
                     unstash 'cuav_x7pro_test'
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_bootloader.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_bootloader/cuav_x7pro_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                   }
@@ -146,6 +139,7 @@ pipeline {
               }
               post {
                 always {
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/cuav_x7pro_test/cuav_x7pro_test.elf || true'
                     resetBoard()
                 }
               }
@@ -159,19 +153,15 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v3_test'
                 sh 'make px4_fmu-v3_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v3_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'px4_fmu-v3_test'
               }
               post {
                 always {
@@ -218,6 +208,7 @@ pipeline {
               }
               post {
                 always {
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf || true'
                     resetBoard()
                 }
               }
@@ -231,19 +222,15 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v4_test'
                 sh 'make px4_fmu-v4_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v4_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'px4_fmu-v4_test'
               }
               post {
                 always {
@@ -289,6 +276,7 @@ pipeline {
               }
               post {
                 always {
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf || true'
                     resetBoard()
                 }
               }
@@ -302,19 +290,15 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v4pro_test'
                 sh 'make px4_fmu-v4pro_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v4pro_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'px4_fmu-v4pro_test'
               }
               post {
                 always {
@@ -361,6 +345,7 @@ pipeline {
               }
               post {
                 always {
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf || true'
                     resetBoard()
                 }
               }
@@ -374,19 +359,15 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v5_debug'
                 sh 'make px4_fmu-v5_debug bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_debug'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'px4_fmu-v5_debug'
               }
               post {
                 always {
@@ -418,6 +399,7 @@ pipeline {
                   steps {
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "top once"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "work_queue status"'
+                    //sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_stress"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests latency_test" || true'
                   }
@@ -443,78 +425,7 @@ pipeline {
               }
               post {
                 always {
-                    resetBoard()
-                }
-              }
-            } // stage test
-          }
-        }
-
-        stage("px4_fmu-v5_optimized") {
-          stages {
-            stage("build px4_fmu-v5_optimized") {
-              agent {
-                docker {
-                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-                }
-              }
-              steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
-                sh 'make px4_fmu-v5_optimized'
-                sh 'make px4_fmu-v5_optimized bootloader_elf'
-                sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_optimized'
-              }
-              post {
-                always {
-                    sh 'make distclean'
-                }
-              }
-            } // stage build
-            stage("hardware") {
-              agent {
-                label 'px4_fmu-v5'
-              }
-              stages {
-                stage("flash") {
-                  steps {
-                    sh 'export'
-                    sh 'find /dev/serial'
-                    unstash 'px4_fmu-v5_optimized'
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_optimized/px4_fmu-v5_bootloader.elf'
-                    // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_optimized/px4_fmu-v5_optimized.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
-                  }
-                }
-                stage("tests") {
-                  steps {
-                    runTests()
-                  }
-                }
-                stage("status") {
-                  steps {
-                    // configure
-                    resetParameters()
-                    sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "4001"'    // generic quadcopter
-                    sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-                    checkStatus()
-                    quickCalibrate()
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status" || true'
-                  }
-                }
-                stage("print topics") {
-                  steps {
-                    printTopics()
-                  }
-                }
-              }
-              post {
-                always {
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf || true'
                     resetBoard()
                 }
               }
@@ -528,19 +439,15 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v5_stackcheck'
                 sh 'make px4_fmu-v5_stackcheck bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_stackcheck'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'px4_fmu-v5_stackcheck'
               }
               post {
                 always {
@@ -597,6 +504,7 @@ pipeline {
               }
               post {
                 always {
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf || true'
                     resetBoard()
                 }
               }
@@ -610,19 +518,15 @@ pipeline {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make px4_fmu-v5_test'
                 sh 'make px4_fmu-v5_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'px4_fmu-v5_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'px4_fmu-v5_test'
               }
               post {
                 always {
@@ -669,6 +573,7 @@ pipeline {
               }
               post {
                 always {
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf || true'
                     resetBoard()
                 }
               }
@@ -676,92 +581,21 @@ pipeline {
           }
         }
 
-        // stage("modalai_fc-v1_test") {
-        //   stages {
-        //     stage("build modalai_fc-v1_test") {
-        //       agent {
-        //         docker {
-        //           image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-        //           args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-        //         }
-        //       }
-        //       steps {
-        //         checkout scm
-        //         sh 'export'
-        //         sh 'make distclean'
-        //         sh 'ccache -s'
-        //         sh 'git fetch --tags'
-        //         sh 'make modalai_fc-v1_test'
-        //         sh 'make modalai_fc-v1_test bootloader_elf'
-        //         sh 'ccache -s'
-        //         stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'modalai_fc-v1_test'
-        //       }
-        //       post {
-        //         always {
-        //             sh 'make distclean'
-        //         }
-        //       }
-        //     } // stage build
-        //     stage("hardware") {
-        //       agent {
-        //         label 'modalai_fc-v1'
-        //       }
-        //       stages {
-        //         stage("flash") {
-        //           steps {
-        //             sh 'export'
-        //             sh 'find /dev/serial'
-        //             unstash 'modalai_fc-v1_test'
-        //             sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/modalai_fc-v1_test/modalai_fc-v1_bootloader.elf'
-        //             // flash board and watch bootup
-        //             sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/modalai_fc-v1_test/modalai_fc-v1_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
-        //           }
-        //         }
-        //         stage("tests") {
-        //           steps {
-        //             runTests()
-        //           }
-        //         }
-        //         stage("status") {
-        //           steps {
-        //             // configure
-        //             resetParameters()
-        //             sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "4001"'    // generic quadcopter
-        //             sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-        //             checkStatus()
-        //             quickCalibrate()
-        //           }
-        //         }
-        //         stage("print topics") {
-        //           steps {
-        //             printTopics()
-        //           }
-        //         }
-
-        //       }
-        //     } // stage test
-        //   }
-        // }
-
         stage("nxp_fmuk66-v3_test") {
           stages {
             stage("build nxp_fmuk66-v3_test") {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
-                  args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
               steps {
-                checkout scm
-                sh 'export'
-                sh 'make distclean'
-                sh 'ccache -s'
-                sh 'git fetch --tags'
+                checkoutSCM()
                 sh 'make nxp_fmuk66-v3_test'
                 //sh 'make nxp_fmuk66-v3_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/upload_jlink_gdb.sh, Tools/HIL/*.py', name: 'nxp_fmuk66-v3_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*.py', name: 'nxp_fmuk66-v3_test'
               }
               post {
                 always {
@@ -808,6 +642,7 @@ pipeline {
               }
               post {
                 always {
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf || true'
                     resetBoard()
                 }
               }
@@ -830,20 +665,44 @@ pipeline {
   }
 }
 
-void quickCalibrate() {
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate accel quick; sleep 1; param show CAL_ACC*"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate gyro; sleep 1; param show CAL_GYRO*"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate level; sleep 1; param show SENS_BOARD*"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate mag quick; sleep 1; param show CAL_MAG*"'
+void checkoutSCM() {
+  retry(3) {
+    checkout scm
+    sh 'export'
+    sh 'make distclean'
+    sh 'git fetch --tags'
+    sh 'ccache -z'
+  }
+}
 
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "gyro_calibration status; param show CAL_GYRO*"'
+void quickCalibrate() {
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_*"' // parameters before
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sensors status"'
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "gyro_calibration status || true"'
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate accel quick"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_ACC*"'
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate gyro"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_GYRO*"'
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate level"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show SENS*"'
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate mag quick"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_MAG*"'
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_*"' // parameters after
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sensors status"'
 }
 
 void checkStatus() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show SYS*"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true' // reboot to apply
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show SYS*"'
 
   // run logger
@@ -867,8 +726,8 @@ void checkStatus() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /etc"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /obj"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /proc"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mavlink status streams"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mavlink status"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mavlink status streams" || true'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mavlink status" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mount"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mtd status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show" || true'
@@ -903,7 +762,7 @@ void runTests() {
   sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "IMU_GYRO_FFT_EN" --value "0" || true' // disable during testing
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true' // reboot to apply
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "top once"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "work_queue status"'
@@ -926,6 +785,9 @@ void runTests() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_bench"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_bench -u"'
 
+  //sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_stress"'
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander stop"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sensors stop"' // ignore irrelevant sensor timeouts during microbenchmarks
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "microbench all"'
 
@@ -933,13 +795,13 @@ void runTests() {
   resetParameters()
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 4001" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true'
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true'
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true'
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true'
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
 }
 
@@ -1047,7 +909,7 @@ void resetBoard() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SDLOG_MODE -1" || true'        // limit cpu usage
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "reboot" || true' // reboot to apply
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
 
   // check SD card
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "df -h" || true'

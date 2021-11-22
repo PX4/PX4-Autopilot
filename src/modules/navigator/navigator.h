@@ -44,7 +44,6 @@
 #include "enginefailure.h"
 #include "follow_target.h"
 #include "geofence.h"
-#include "gpsfailure.h"
 #include "land.h"
 #include "precland.h"
 #include "loiter.h"
@@ -86,7 +85,7 @@ using namespace time_literals;
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 9
+#define NAVIGATOR_MODE_ARRAY_SIZE 8
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -287,8 +286,7 @@ public:
 	float 	get_mission_landing_alt() { return _mission.get_landing_alt(); }
 
 	// RTL
-	bool		mission_landing_required() { return _rtl.rtl_type() == RTL::RTL_LAND; }
-	int			rtl_type() { return _rtl.rtl_type(); }
+	bool		mission_landing_required() { return _rtl.get_rtl_type() == RTL::RTL_TYPE_MISSION_LANDING; }
 	bool		in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
 
 	bool		abort_landing();
@@ -403,7 +401,6 @@ private:
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
-	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
@@ -441,4 +438,6 @@ private:
 	void		publish_mission_result();
 
 	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
+
+	bool 		geofence_allows_position(const vehicle_global_position_s &pos);
 };

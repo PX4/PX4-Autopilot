@@ -25,4 +25,8 @@ param set-default GPS_UBX_DYNMODEL 6
 #
 set MIXER_AUX pass
 
+set MIXER quad_x
+
+set PWM_OUT 1234
+
 set PWM_AUX_OUT 1234

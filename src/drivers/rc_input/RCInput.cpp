@@ -861,7 +861,7 @@ int RCInput::print_status()
 	perf_print_counter(_publish_interval_perf);
 
 	if (hrt_elapsed_time(&_rc_in.timestamp) < 1_s) {
-		print_message(_rc_in);
+		print_message(ORB_ID(input_rc), _rc_in);
 	}
 
 	return 0;

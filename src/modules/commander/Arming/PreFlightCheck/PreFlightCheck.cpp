@@ -197,7 +197,10 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	/* ---- RC CALIBRATION ---- */
-	if (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT) {
+	int32_t com_rc_in_mode{0};
+	param_get(param_find("COM_RC_IN_MODE"), &com_rc_in_mode);
+
+	if (com_rc_in_mode == 0) {
 		if (rcCalibrationCheck(mavlink_log_pub, report_failures, status.is_vtol) != OK) {
 			if (report_failures) {
 				mavlink_log_critical(mavlink_log_pub, "RC calibration check failed");
@@ -263,6 +266,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	failed = failed || !manualControlCheck(mavlink_log_pub, report_failures);
 	failed = failed || !cpuResourceCheck(mavlink_log_pub, report_failures);
+	failed = failed || !parachuteCheck(mavlink_log_pub, report_failures, status_flags);
 
 	/* Report status */
 	return !failed;

@@ -72,6 +72,7 @@ UavcanEscController::init()
 	// ESC status will be relayed from UAVCAN bus into ORB at this rate
 	_orb_timer.setCallback(TimerCbBinder(this, &UavcanEscController::orb_pub_timer_cb));
 	_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ESC_STATUS_UPDATE_RATE_HZ));
+	_esc_status_pub.advertise();
 
 	return res;
 }
@@ -79,14 +80,6 @@ UavcanEscController::init()
 void
 UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
-	if (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) {
-		num_outputs = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize;
-	}
-
-	if (num_outputs > esc_status_s::CONNECTED_ESC_MAX) {
-		num_outputs = esc_status_s::CONNECTED_ESC_MAX;
-	}
-
 	/*
 	 * Rate limiting - we don't want to congest the bus
 	 */

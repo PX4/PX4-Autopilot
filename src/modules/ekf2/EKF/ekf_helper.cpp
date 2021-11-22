@@ -1480,6 +1480,24 @@ void Ekf::loadMagCovData()
 	P.slice<2, 2>(16, 16) = _saved_mag_ef_covmat;
 }
 
+void Ekf::startAirspeedFusion()
+{
+	// If starting wind state estimation, reset the wind states and covariances before fusing any data
+	if (!_control_status.flags.wind) {
+		// activate the wind states
+		_control_status.flags.wind = true;
+		// reset the wind speed states and corresponding covariances
+		resetWindUsingAirspeed();
+	}
+
+	_control_status.flags.fuse_aspd = true;
+}
+
+void Ekf::stopAirspeedFusion()
+{
+	_control_status.flags.fuse_aspd = false;
+}
+
 void Ekf::startGpsFusion()
 {
 	resetHorizontalPositionToGps();
@@ -1497,9 +1515,14 @@ void Ekf::startGpsFusion()
 
 void Ekf::stopGpsFusion()
 {
-	stopGpsPosFusion();
-	stopGpsVelFusion();
-	stopGpsYawFusion();
+	if (_control_status.flags.gps) {
+		stopGpsPosFusion();
+		stopGpsVelFusion();
+	}
+
+	if (_control_status.flags.gps_yaw) {
+		stopGpsYawFusion();
+	}
 
 	// We do not need to know the true North anymore
 	// EV yaw can start again
@@ -1509,7 +1532,11 @@ void Ekf::stopGpsFusion()
 void Ekf::stopGpsPosFusion()
 {
 	_control_status.flags.gps = false;
-	_control_status.flags.gps_hgt = false;
+
+	if (_control_status.flags.gps_hgt) {
+		startBaroHgtFusion();
+	}
+
 	_gps_pos_innov.setZero();
 	_gps_pos_innov_var.setZero();
 	_gps_pos_test_ratio.setZero();
@@ -1524,11 +1551,15 @@ void Ekf::stopGpsVelFusion()
 
 void Ekf::startGpsYawFusion()
 {
-	_control_status.flags.mag_dec = false;
-	stopEvYawFusion();
-	stopMagHdgFusion();
-	stopMag3DFusion();
-	_control_status.flags.gps_yaw = true;
+	if (resetYawToGps()) {
+		_control_status.flags.yaw_align = true;
+		_control_status.flags.mag_dec = false;
+		stopEvYawFusion();
+		stopMagHdgFusion();
+		stopMag3DFusion();
+		_control_status.flags.gps_yaw = true;
+	}
+
 }
 
 void Ekf::stopGpsYawFusion()
@@ -1719,13 +1750,15 @@ bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_M
 
 void Ekf::runYawEKFGSF()
 {
-	float TAS;
+	float TAS = 0.f;
 
-	if (isTimedOut(_airspeed_sample_delayed.time_us, 1000000) && _control_status.flags.fixed_wing) {
-		TAS = _params.EKFGSF_tas_default;
+	if (_control_status.flags.fixed_wing) {
+		if (isTimedOut(_airspeed_sample_delayed.time_us, 1000000)) {
+			TAS = _params.EKFGSF_tas_default;
 
-	} else {
-		TAS = _airspeed_sample_delayed.true_airspeed;
+		} else if (_airspeed_sample_delayed.true_airspeed >= _params.arsp_thr) {
+			TAS = _airspeed_sample_delayed.true_airspeed;
+		}
 	}
 
 	const Vector3f imu_gyro_bias = getGyroBias();

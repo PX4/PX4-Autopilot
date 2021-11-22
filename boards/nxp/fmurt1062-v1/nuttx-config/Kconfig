@@ -20,7 +20,7 @@ config BOARD_HAS_PROBES
 	default y
 	---help---
 		This board provides GPIO FMU-CH1-8, as PROBE_1-8 to provide timing signals
-                from selected drivers.
+		from selected drivers.
 
 config BOARD_USE_PROBES
 	bool "Enable the use the board provided FMU-CH1-8 as PROBE_1-8"
@@ -29,4 +29,13 @@ config BOARD_USE_PROBES
 
 	---help---
 		Select to use GPIO FMU-CH1-8, as PROBE_1-8 to provide timing signals
-                from selected drivers.
+		from selected drivers.
+
+config BOARD_FORCE_ALIGNMENT
+	bool "Forces all acesses to be Aligned"
+	default n
+
+	---help---
+		Adds -mno-unaligned-access to build flags. to force alignment.
+		This can be needed if data is stored in a region of memory, that
+		is Strongly ordered and dcache is off.

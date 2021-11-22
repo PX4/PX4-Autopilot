@@ -9,6 +9,7 @@
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
+# @board holybro_kakutef7 exclude
 #
 
 . ${R}etc/init.d/rc.vtol_defaults
@@ -18,10 +19,8 @@ param set-default BAT1_N_CELLS 3
 
 param set-default COM_RC_IN_MODE 1
 
-param set-default EKF2_AID_MASK 1
 param set-default EKF2_ANGERR_INIT 0.01
 param set-default EKF2_GBIAS_INIT 0.01
-param set-default EKF2_HGT_MODE 0
 param set-default EKF2_MAG_TYPE 1
 
 param set-default FW_AIRSPD_MAX 25
