@@ -213,7 +213,7 @@ void PPSCapture::stop()
 
 extern "C" __EXPORT int pps_capture_main(int argc, char *argv[])
 {
-	if (!strcmp(argv[1], "stop")) {
+	if (argc >= 2 && !strcmp(argv[1], "stop") && PPSCapture::is_running()) {
 		PPSCapture::stop();
 	}
 
