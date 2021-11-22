@@ -156,6 +156,7 @@ set(models
 	iris_vision
 	nxp_cupcar
 	plane
+	plane_ctrlalloc
 	plane_cam
 	plane_catapult
 	plane_lidar
@@ -166,9 +167,11 @@ set(models
 	solo
 	standard_vtol
 	standard_vtol_drop
+	standard_vtol_ctrlalloc
 	tailsitter
 	techpod
 	tiltrotor
+	tiltrotor_ctrlalloc
 	typhoon_h480
 	typhoon_h480_ctrlalloc
 	uuv_bluerov2_heavy
