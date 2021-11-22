@@ -98,16 +98,17 @@ matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
 ControlAllocation::normalizeActuatorSetpoint(const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator)
 const
 {
-	matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> actuator_normalized;
+	// matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> actuator_normalized;
 
-	for (size_t i = 0; i < ControlAllocation::NUM_ACTUATORS; i++) {
-		if (_actuator_min(i) < _actuator_max(i)) {
-			actuator_normalized(i) = (actuator(i) - _actuator_min(i)) / (_actuator_max(i) - _actuator_min(i));
+	// for (size_t i = 0; i < ControlAllocation::NUM_ACTUATORS; i++) {
+	// 	printf("_actuator_min(%i):%f\n", i, (double)_actuator_min(i));
+	// 	if (_actuator_min(i) < _actuator_max(i)) {
+	// 		actuator_normalized(i) = (actuator(i) - _actuator_min(i)) / (_actuator_max(i) - _actuator_min(i));
 
-		} else {
-			actuator_normalized(i) = (_actuator_trim(i) - _actuator_min(i)) / (_actuator_max(i) - _actuator_min(i));
-		}
-	}
+	// 	} else {
+	// 		actuator_normalized(i) = (_actuator_trim(i) - _actuator_min(i)) / (_actuator_max(i) - _actuator_min(i));
+	// 	}
+	// }
 
-	return actuator_normalized;
+	return actuator;
 }

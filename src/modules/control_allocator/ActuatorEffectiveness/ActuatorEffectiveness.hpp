@@ -44,6 +44,7 @@
 #include <ControlAllocation/ControlAllocation.hpp>
 
 #include <matrix/matrix/math.hpp>
+#include <mixer_module/output_functions.hpp>
 #include <uORB/topics/vehicle_actuator_setpoint.h>
 
 class ActuatorEffectiveness
@@ -72,12 +73,18 @@ public:
 		_flight_phase = flight_phase;
 	}
 
+	virtual void setCombinedTilt(float tilt)
+	{
+		_combined_tilt = tilt;
+	}
+
 	/**
 	 * Get the control effectiveness matrix if updated
 	 *
 	 * @return true if updated and matrix is set
 	 */
-	virtual bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) = 0;
+	virtual bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix_0,
+					    matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix_1, bool force) = 0;
 
 	/**
 	 * Get the actuator trims
@@ -102,9 +109,22 @@ public:
 	/**
 	 * Get the number of actuators
 	 */
-	virtual int numActuators() const = 0;
+	virtual int numActuators0() const = 0;
+	virtual int numActuators1() const = 0;
+
+	virtual int numActuatorsInMatrix_0() const = 0;
+	virtual int numActuatorsInMatrix_1() const = 0;
+
+	/**
+	 * Get the function of an actuator
+	 */
+	virtual int actuatorFunction(uint8_t idx) const = 0;
+
+	virtual int get_actuator_type_0(uint8_t idx) const = 0;
+	virtual int get_actuator_type_1(uint8_t idx) const = 0;
 
 protected:
 	matrix::Vector<float, NUM_ACTUATORS> _trim;			///< Actuator trim
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase
+	float _combined_tilt{0.f};
 };

@@ -17,6 +17,14 @@ fw_att_control start
 fw_pos_control_l1 start
 airspeed_selector start
 
+if param compare SYS_CTRL_ALLOC 1
+then
+	#
+	# Start Control Allocator
+	#
+	control_allocator start
+fi
+
 #
 # Start attitude control auto-tuner
 #

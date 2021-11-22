@@ -55,13 +55,39 @@ public:
 	ActuatorEffectivenessCustom(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessCustom() = default;
 
-	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) override;
+	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix_0,
+				    matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix_1, bool force) override;
 
-	int numActuators() const override { return _num_actuators; }
+	void setCombinedTilt(float tilt) override;
+
+	int numActuators0() const override { return _acutator_index_0; }
+	int numActuators1() const override { return _acutator_index_1; }
+
+	int numActuatorsInMatrix_0() const override { return _num_actuators_0; };
+	int numActuatorsInMatrix_1() const override { return _num_actuators_1; };
+
+	int get_actuator_type_0(uint8_t idx) const override {return _actuator_0_type[idx]; }
+	int get_actuator_type_1(uint8_t idx) const override {return _actuator_1_type[idx]; }
+
 private:
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness{};
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness_0{};
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness_1{};
 
-	int _num_actuators{0};
+	int _num_actuators_0{0};
+	int _num_actuators_1{0};
+
+	int _acutator_index_0{0};
+	int _acutator_index_1{0};
+
+	int _actuator_0_type [NUM_ACTUATORS] {};
+	int _actuator_1_type [NUM_ACTUATORS] {};
 
 	bool _updated{true};
+
+	hrt_abstime _last_effectiveness_update{0};
+
+	int actuatorFunction(uint8_t idx) const { return (int)OutputFunction::Motor1 + idx; }; /// TODO: This is wrong
+
+	bool _is_VTOL{false}; // set to true if both MC motors and either aileron, elevator or rudder is present
+	bool _has_MC{false};
 };
