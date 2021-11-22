@@ -71,14 +71,15 @@
 # define BOARD_INTERFACE_CONFIG_USB  INTERFACE_USB_CONFIG
 #endif
 
-#if defined(CONFIG_MTD_M25P)
 static struct mtd_dev_s *mtd = 0;
+static struct mtd_geometry_s geo;
+
+#if defined(CONFIG_MTD_M25P)
 static struct spi_dev_s *spinor = 0;
 
 static bool device_flashed = false;
 static uintptr_t end_address = 0;
 static uintptr_t first_unwritten = 0;
-static struct mtd_geometry_s geo;
 #endif
 
 /* board definition */
@@ -491,6 +492,7 @@ arch_do_jump(const uint32_t *app_base)
 	}
 }
 
+#if defined(CONFIG_MMCSD) || defined(CONFIG_MTD_M25P)
 static size_t get_image_size(void)
 {
 	const image_toc_entry_t *toc_entries;
@@ -512,6 +514,7 @@ static size_t get_image_size(void)
 	// image size is end address - app start
 	return (uintptr_t)end - APP_LOAD_ADDRESS;
 }
+#endif
 
 int
 bootloader_main(void)
