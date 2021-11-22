@@ -352,6 +352,8 @@ ControlAllocator::update_effectiveness_matrices_if_needed(bool force)
 		matrix::Vector<float, NUM_ACTUATORS> actuator_0_min;
 		matrix::Vector<float, NUM_ACTUATORS> actuator_0_max;
 
+		//printf("_actuator_effectiveness->numActuators0():%i\n", _actuator_effectiveness->numActuators0());
+
 		for (int i = 0; i < _actuator_effectiveness->numActuators0(); i++) {
 			switch (_actuator_effectiveness->get_actuator_type_0(i)) {
 			case 1:
@@ -370,7 +372,14 @@ ControlAllocator::update_effectiveness_matrices_if_needed(bool force)
 
 				break;
 
-			case 4: // flaps - doesn't go through matrix
+			case 4: // tilt with yaw
+				actuator_0_min(i) = -1.f;
+				actuator_0_max(i) = 1.f;
+
+				break;
+
+
+			case 5: // flaps - doesn't go through matrix
 				// actuator_0_min(i) = -1.f;
 				// actuator_0_max(i) = 1.f;
 				break;
@@ -382,6 +391,8 @@ ControlAllocator::update_effectiveness_matrices_if_needed(bool force)
 				printf("no valid actuator type in allocation 0, i: %i\n", i);
 				break;
 			}
+
+			// printf("actuator_0_min(%i):%f\n", i, (double)actuator_0_min(i));
 		}
 
 		// set min/max of allocation 1
@@ -408,7 +419,13 @@ ControlAllocator::update_effectiveness_matrices_if_needed(bool force)
 
 				break;
 
-			case 4: // flaps - doesn't go through matrix
+			case 4: // tilt with yaw
+				// actuator_1_min(i) = -1.f;
+				// actuator_1_max(i) = 1.f;
+
+				break;
+
+			case 5: // flaps - doesn't go through matrix
 				// actuator_1_min(i) = -1.f;
 				// actuator_1_max(i) = 1.f;
 				break;
@@ -533,10 +550,18 @@ ControlAllocator::publish_legacy_actuator_controls()
 			break;
 
 		case 3: // tilt
-			// index_servo++;
+			// TODO: add custom offset, scaling and inversion
+			actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f;
+			index_servo++;
 			break;
 
-		case 4: // flaps
+		case 4: // tilt with yaw control
+			// TODO: add custom offset, scaling and inversion, fix indexing (tilts need come first currently)
+			actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f + actuator_sp_normalized_0(i);
+			index_servo++;
+			break;
+
+		case 5: // flaps
 			actuator_servos.control[index_servo] = _actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
 			index_servo++;
 			break;
@@ -563,13 +588,19 @@ ControlAllocator::publish_legacy_actuator_controls()
 			index_servo++;
 			break;
 
-		case 3: // tilt
-			// TODO: add custom offset, scaling and inversion
-			actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f;
-			index_servo++;
-			break;
+		// case 3: // tilt
+		// 	// TODO: add custom offset, scaling and inversion
+		// 	actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f;
+		// 	index_servo++;
+		// 	break;
 
-		case 4: // flaps
+		// case 4: // tilt with yaw control
+		// 	// TODO: add custom offset, scaling and inversion, fix indexing (tilts need come first currently)
+		// 	actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f + actuator_sp_normalized_0(i);
+		// 	index_servo++;
+		// 	break;
+
+		case 5: // flaps
 			// actuator_servos.control[index_servo] = _actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
 			// index_servo++;
 			break;

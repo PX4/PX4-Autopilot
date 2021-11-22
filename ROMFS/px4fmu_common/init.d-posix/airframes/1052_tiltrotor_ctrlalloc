@@ -15,49 +15,50 @@ param set-default CA_ACT1_FUNC 1 # motor
 param set-default CA_ACT2_FUNC 1 # motor
 param set-default CA_ACT3_FUNC 1 # motor
 
-param set-default CA_ACT4_FUNC 100 # ail left
-param set-default CA_ACT5_FUNC 100 # ail right
-param set-default CA_ACT6_FUNC 101 # elev
-
+param set-default CA_ACT4_FUNC 121 # tilt front left
+param set-default CA_ACT5_FUNC 121 # tilt front right
+param set-default CA_ACT6_FUNC 120 # tilt
 param set-default CA_ACT7_FUNC 120 # tilt
-param set-default CA_ACT8_FUNC 120 # tilt
-param set-default CA_ACT9_FUNC 120 # tilt
-param set-default CA_ACT10_FUNC 120 # tilt
+
+param set-default CA_ACT8_FUNC 100 # ail left
+param set-default CA_ACT9_FUNC 100 # ail right
+param set-default CA_ACT10_FUNC 101 # elev
 
 param set-default CA_ACT0_PX 0.177
 param set-default CA_ACT0_PY 0.177
 param set-default CA_ACT0_CT 6.5
-param set-default CA_ACT0_KM 0.05
+param set-default CA_ACT0_KM 0.00 #disable yaw control via motor speeds
 
 param set-default CA_ACT1_PX -0.177
 param set-default CA_ACT1_PY -0.177
 param set-default CA_ACT1_CT 6.5
-param set-default CA_ACT1_KM 0.05
+param set-default CA_ACT1_KM 0.00 #disable yaw control via motor speeds
 
 param set-default CA_ACT2_PX 0.177
 param set-default CA_ACT2_PY -0.177
 param set-default CA_ACT2_CT 6.5
-param set-default CA_ACT2_KM -0.05
+param set-default CA_ACT2_KM -0.00 #disable yaw control via motor speeds
 
 param set-default CA_ACT3_PX -0.177
 param set-default CA_ACT3_PY 0.177
 param set-default CA_ACT3_CT 6.5
-param set-default CA_ACT3_KM -0.05
+param set-default CA_ACT3_KM -0.00 #disable yaw control via motor speeds
 
-param set-default CA_ACT4_SC -1 # left ail
+param set-default CA_ACT4_SC 0.01 # effectiveness of tilt for yaw, front left
+param set-default CA_ACT5_SC -0.01 # effectiveness of tilt for yaw, front right
+param set-default CA_ACT8_SC -1 # left ail
 
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
 param set-default PWM_MAIN_FUNC3 103
 param set-default PWM_MAIN_FUNC4 104
-param set-default PWM_MAIN_FUNC5 204 # tilt 1
-param set-default PWM_MAIN_FUNC6 205 # tilt 2
-param set-default PWM_MAIN_FUNC7 206 # tilt 3
-param set-default PWM_MAIN_FUNC8 207 # tilt 4
-param set-default PWM_MAIN_FUNC9 201 # aileron left
-param set-default PWM_MAIN_FUNC10 202 # aileron right
-param set-default PWM_MAIN_FUNC11 203 # elevator
-
+param set-default PWM_MAIN_FUNC5 202 # tilt 1 front right
+param set-default PWM_MAIN_FUNC6 203 # tilt 2 rear left
+param set-default PWM_MAIN_FUNC7 201 # tilt 3 front left
+param set-default PWM_MAIN_FUNC8 204 # tilt 4 rear right
+param set-default PWM_MAIN_FUNC9 205 # aileron left
+param set-default PWM_MAIN_FUNC10 206 # aileron right
+param set-default PWM_MAIN_FUNC11 207 # elevator
 
 
 param set-default FW_L1_PERIOD 12

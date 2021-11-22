@@ -15,8 +15,8 @@ param set-default CA_ACT1_FUNC 100 # ail left
 param set-default CA_ACT2_FUNC 100 # ail right
 param set-default CA_ACT3_FUNC 101 # elev
 param set-default CA_ACT4_FUNC 102 # rudd
-param set-default CA_ACT5_FUNC 121 # left flap
-param set-default CA_ACT6_FUNC 121 # right flap
+param set-default CA_ACT5_FUNC 130 # left flap
+param set-default CA_ACT6_FUNC 130 # right flap
 
 
 #aileron left

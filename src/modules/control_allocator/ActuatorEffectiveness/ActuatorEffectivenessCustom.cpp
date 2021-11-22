@@ -298,17 +298,27 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 				break;
 
 			case 120: {
-					// tilt (VTOL tiltrotor)
+					// tilt not used for yaw control (VTOL tiltrotor)
 					// do not add to effectiveness but increase counter
-					_actuator_1_type[_acutator_index_1] = 3;
-					_acutator_index_1++;
+					_actuator_0_type[_acutator_index_0] = 3;
+					_acutator_index_0++;
 				}
 				break;
 
 			case 121: {
+					// tilt front left (VTOL tiltrotor)
+					_effectiveness_0(2, n_0) = getScaleParameter(n);
+					n_0++;
+					_actuator_0_type[_acutator_index_0] = 4;
+					_acutator_index_0++;
+				}
+				break;
+
+
+			case 130: {
 					// Flaps
 					// do not add to effectiveness but increase counter
-					_actuator_0_type[_acutator_index_0] = 4;
+					_actuator_0_type[_acutator_index_0] = 5;
 					_acutator_index_0++;
 				}
 				break;
