@@ -320,6 +320,11 @@ void ManualControl::evaluateModeSlot(uint8_t mode_slot)
 
 void ManualControl::sendActionRequest(int8_t action, int8_t source, int8_t mode)
 {
+	// We catch default unassigned mode slots which have value -1
+	if (action == action_request_s::ACTION_SWITCH_MODE && mode < 0) {
+		return;
+	}
+
 	action_request_s action_request{};
 	action_request.action = action;
 	action_request.source = source;
