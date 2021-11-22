@@ -105,7 +105,7 @@ public:
 	 * @param B Effectiveness matrix
 	 */
 	virtual void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
-					    const matrix::Vector<float, NUM_ACTUATORS> &actuator_trim, int num_actuators);
+					    const matrix::Vector<float, NUM_ACTUATORS> &actuator_trim);
 
 	/**
 	 * Get the allocated actuator vector

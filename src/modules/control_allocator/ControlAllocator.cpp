@@ -342,8 +342,8 @@ ControlAllocator::update_effectiveness_matrices_if_needed(bool force)
 		// }
 
 		// Assign control effectiveness matrix
-		_control_allocation_0->setEffectivenessMatrix(effectiveness_0, trim, _actuator_effectiveness->numActuatorsInMatrix_0());
-		_control_allocation_1->setEffectivenessMatrix(effectiveness_1, trim, _actuator_effectiveness->numActuatorsInMatrix_1());
+		_control_allocation_0->setEffectivenessMatrix(effectiveness_0, trim);
+		_control_allocation_1->setEffectivenessMatrix(effectiveness_1, trim);
 
 		// set min/max of allocation 0
 		// set min to -1 if servo and not tilt, set max to 1 for all
@@ -446,9 +446,6 @@ ControlAllocator::update_effectiveness_matrices_if_needed(bool force)
 
 		_control_allocation_0->setActuatorMax(actuator_0_max);
 		_control_allocation_1->setActuatorMax(actuator_1_max);
-
-		// printf("num of actuators in matrix 0: %i\n", _actuator_effectiveness->numActuatorsInMatrix_0());
-		// printf("num of actuators in matrix 1: %i\n", _actuator_effectiveness->numActuatorsInMatrix_1());
 	}
 }
 

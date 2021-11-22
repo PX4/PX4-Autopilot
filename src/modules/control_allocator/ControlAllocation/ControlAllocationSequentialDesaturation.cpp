@@ -96,6 +96,8 @@ float ControlAllocationSequentialDesaturation::computeDesaturationGain(const Act
 	float k_min = 0.f;
 	float k_max = 0.f;
 
+	// printf("_actuator_min(0): %f\n", (double)_actuator_min(0));
+
 	for (int i = 0; i < _num_actuators; i++) {
 		// Avoid division by zero. If desaturation_vector(i) is zero, there's nothing we can do to unsaturate anyway
 		if (fabsf(desaturation_vector(i)) < FLT_EPSILON) {

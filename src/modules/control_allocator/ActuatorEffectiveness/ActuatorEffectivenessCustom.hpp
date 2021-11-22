@@ -63,18 +63,12 @@ public:
 	int numActuators0() const override { return _acutator_index_0; }
 	int numActuators1() const override { return _acutator_index_1; }
 
-	int numActuatorsInMatrix_0() const override { return _num_actuators_0; };
-	int numActuatorsInMatrix_1() const override { return _num_actuators_1; };
-
 	int get_actuator_type_0(uint8_t idx) const override {return _actuator_0_type[idx]; }
 	int get_actuator_type_1(uint8_t idx) const override {return _actuator_1_type[idx]; }
 
 private:
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness_0{};
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness_1{};
-
-	int _num_actuators_0{0};
-	int _num_actuators_1{0};
 
 	int _acutator_index_0{0};
 	int _acutator_index_1{0};

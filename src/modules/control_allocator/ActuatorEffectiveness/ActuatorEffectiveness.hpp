@@ -112,9 +112,6 @@ public:
 	virtual int numActuators0() const = 0;
 	virtual int numActuators1() const = 0;
 
-	virtual int numActuatorsInMatrix_0() const = 0;
-	virtual int numActuatorsInMatrix_1() const = 0;
-
 	/**
 	 * Get the function of an actuator
 	 */

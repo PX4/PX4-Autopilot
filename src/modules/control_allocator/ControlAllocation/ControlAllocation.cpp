@@ -44,8 +44,19 @@
 void
 ControlAllocation::setEffectivenessMatrix(
 	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
-	const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator_trim, int num_actuators)
+	const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator_trim)
 {
+	// get number of actuators in matrix:
+	int num_actuators = 0;
+
+	for (int i = 0; i < NUM_ACTUATORS; i++) {
+		if (effectiveness.col(i).longerThan(0.f)) {
+			num_actuators += 1;
+		}
+	}
+
+	// printf("num_actuators: %i\n", num_actuators);
+
 	_effectiveness = effectiveness;
 	_actuator_trim = actuator_trim;
 	clipActuatorSetpoint(_actuator_trim);

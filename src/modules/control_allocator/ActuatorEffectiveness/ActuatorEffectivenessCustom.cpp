@@ -337,8 +337,6 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 		_effectiveness_0.transpose().print();
 		_effectiveness_1.transpose().print();
 
-		_num_actuators_0 = n_0;
-		_num_actuators_1 = n_1;
 		matrix_0 = _effectiveness_0;
 		matrix_1 = _effectiveness_1;
 		_last_effectiveness_update = hrt_absolute_time();
