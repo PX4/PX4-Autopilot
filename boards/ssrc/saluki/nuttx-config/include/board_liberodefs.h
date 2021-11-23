@@ -21,8 +21,9 @@
 #ifndef __BOARDS_RISCV_MPFS_ICICLE_INCLUDE_BOARD_LIBERODEFS_H
 #define __BOARDS_RISCV_MPFS_ICICLE_INCLUDE_BOARD_LIBERODEFS_H
 
-/* These are constants provided by the vendor. Values have been synced from
- * hart-software-services (HSS) with the tag: 2021.08
+/* These are board specific constants provided by the vendor. Values have
+ * been synced from hart-software-services (HSS) with the tag: 2021.08.
+ * Different memories have their own subset of defines.
  */
 
 #define LIBERO_SETTING_MSS_EXT_SGMII_REF_CLK 125000000
@@ -591,5 +592,26 @@
 
 #define LIBERO_SETTING_DPC_BITS              0x00050422
 #define LIBERO_SETTING_DATA_LANES_USED       0x00000004
+
+/* Cache settings */
+
+#define LIBERO_SETTING_WAY_MASK_DMA          0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_AXI4_PORT_0  0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_AXI4_PORT_1  0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_AXI4_PORT_2  0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_AXI4_PORT_3  0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_E51_DCACHE   0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_E51_ICACHE   0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_U54_1_DCACHE 0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_U54_1_ICACHE 0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_U54_2_DCACHE 0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_U54_2_ICACHE 0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_U54_3_DCACHE 0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_U54_3_ICACHE 0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_U54_4_DCACHE 0x0000ffff
+#define LIBERO_SETTING_WAY_MASK_U54_4_ICACHE 0x0000ffff
+#define LIBERO_SETTING_NUM_SCRATCH_PAD_WAYS  0x00000000
+#define LIBERO_SETTING_L2_SHUTDOWN_CR        0x00000000
+#define LIBERO_SETTING_WAY_ENABLE            0x00000007
 
 #endif /* __BOARDS_RISCV_MPFS_ICICLE_INCLUDE_BOARD_LIBERODEFS_H */
