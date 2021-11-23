@@ -446,12 +446,18 @@ __END_DECLS
 
 
 #if defined(__cplusplus) && !defined(PARAM_IMPLEMENTATION)
-#if 0 // set to 1 to debug param type mismatches
+#if defined(CONFIG_ARCH_BOARD_PX4_SITL) || 0 // set to 1 to debug param type mismatches
 #include <cstdio>
+#include <px4_platform_common/log.h>
+
+#ifndef MODULE_NAME
+#define MODULE_NAME "px4"
+#endif
+
 #define CHECK_PARAM_TYPE(param, type) \
 	if (param_type(param) != type) { \
 		/* use printf() to avoid having to use more includes */ \
-		printf("wrong type passed to param_get() for param %s\n", param_name(param)); \
+		PX4_ERR("wrong type passed to param_get() for param %s", param_name(param)); \
 	}
 #else
 #define CHECK_PARAM_TYPE(param, type)

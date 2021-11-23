@@ -141,10 +141,16 @@ void VehicleIMU::Run()
 {
 	const hrt_abstime now_us = hrt_absolute_time();
 
+	ParametersUpdate();
+
+	if (!_accel_calibration.enabled() || !_gyro_calibration.enabled()) {
+		_sensor_gyro_sub.unregisterCallback();
+		ScheduleDelayed(1_s);
+		return;
+	}
+
 	// backup schedule
 	ScheduleDelayed(_backup_schedule_timeout_us);
-
-	ParametersUpdate();
 
 	// check vehicle status for changes to armed state
 	if (_vehicle_control_mode_sub.updated()) {
@@ -153,10 +159,6 @@ void VehicleIMU::Run()
 		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
 			_armed = vehicle_control_mode.flag_armed;
 		}
-	}
-
-	if (!_accel_calibration.enabled() || !_gyro_calibration.enabled()) {
-		return;
 	}
 
 	// reset data gap monitor
@@ -622,6 +624,7 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 
 			if (gyro_integral_samples % n == 0) {
 				_sensor_gyro_sub.set_required_updates(n);
+				_sensor_gyro_sub.registerCallback();
 
 				_intervals_configured = true;
 				_update_integrator_config = false;

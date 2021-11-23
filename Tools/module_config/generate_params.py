@@ -6,6 +6,7 @@
 import argparse
 import os
 import sys
+from copy import deepcopy
 
 from output_groups_from_timer_config import get_timer_groups, get_output_groups
 
@@ -197,6 +198,21 @@ def get_actuator_output_params(yaml_config, output_functions,
                     verbose=verbose)
                 all_params.update(timer_params)
                 output_groups.extend(timer_output_groups)
+
+                # In case of a board w/o IO and >8 PWM channels, pwm_out splits
+                # into 2 instances (if SYS_CTRL_ALLOC==0) and we need to add the
+                # PWM_AUX min/max/disarmed params as well.
+                num_channels = len(timer_groups['types'])
+                if not board_with_io and num_channels > 8:
+                    output_groups.append(
+                        {
+                            'param_prefix': 'PWM_AUX',
+                            'channel_label': 'PWM AUX',
+                            'instance_start': 1,
+                            'num_channels': num_channels - 8,
+                            'standard_params': deepcopy(timer_output_groups[0]['standard_params'])
+                        })
+
             else:
                 raise Exception('unknown generator {:}'.format(group['generator']))
             continue
