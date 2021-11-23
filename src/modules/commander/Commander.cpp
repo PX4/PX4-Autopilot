@@ -1739,7 +1739,7 @@ Commander::run()
 	bool sensor_fail_tune_played = false;
 
 	const param_t param_airmode = param_find("MC_AIRMODE");
-	const param_t param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
+	const param_t param_man_arm_gesture = param_find("MAN_ARM_GESTURE");
 
 	/* initialize */
 	led_init();
@@ -1794,9 +1794,6 @@ Commander::run()
 	_last_lpos_fail_time_us = _boot_timestamp;
 	_last_gpos_fail_time_us = _boot_timestamp;
 	_last_lvel_fail_time_us = _boot_timestamp;
-
-	int32_t airmode = 0;
-	int32_t rc_map_arm_switch = 0;
 
 	_status.system_id = _param_mav_sys_id.get();
 	arm_auth_init(&_mavlink_log_pub, &_status.system_id);
@@ -1862,19 +1859,20 @@ Commander::run()
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
-			if (param_airmode != PARAM_INVALID && param_rc_map_arm_switch != PARAM_INVALID) {
+			if (param_airmode != PARAM_INVALID && param_man_arm_gesture != PARAM_INVALID) {
+				int32_t airmode = 0, man_arm_gesture = 0;
 				param_get(param_airmode, &airmode);
-				param_get(param_rc_map_arm_switch, &rc_map_arm_switch);
+				param_get(param_man_arm_gesture, &man_arm_gesture);
 
-				if (airmode == 2 && rc_map_arm_switch == 0) {
+				if (airmode == 2 && man_arm_gesture == 1) {
 					airmode = 1; // change to roll/pitch airmode
 					param_set(param_airmode, &airmode);
-					mavlink_log_critical(&_mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch\t")
+					mavlink_log_critical(&_mavlink_log_pub, "Yaw Airmode requires disabling the stick arm gesture\t")
 					/* EVENT
 					 * @description <param>MC_AIRMODE</param> is now set to roll/pitch airmode.
 					 */
-					events::send(events::ID("commander_airmode_requires_arm_sw"), {events::Log::Error, events::LogInternal::Disabled},
-						     "Yaw Airmode requires the use of an Arm Switch");
+					events::send(events::ID("commander_airmode_requires_no_arm_gesture"), {events::Log::Error, events::LogInternal::Disabled},
+						     "Yaw Airmode requires disabling the stick arm gesture");
 				}
 			}
 
@@ -3821,12 +3819,22 @@ void Commander::estimator_check()
 	// angular velocity
 	vehicle_angular_velocity_s angular_velocity{};
 	_vehicle_angular_velocity_sub.copy(&angular_velocity);
-	const bool condition_angular_velocity_valid = (hrt_elapsed_time(&angular_velocity.timestamp) < 1_s)
-			&& PX4_ISFINITE(angular_velocity.xyz[0]) && PX4_ISFINITE(angular_velocity.xyz[1])
-			&& PX4_ISFINITE(angular_velocity.xyz[2]);
+	const bool condition_angular_velocity_time_valid = (angular_velocity.timestamp != 0)
+			&& (hrt_elapsed_time(&angular_velocity.timestamp) < 1_s);
+	const bool condition_angular_velocity_finite = PX4_ISFINITE(angular_velocity.xyz[0])
+			&& PX4_ISFINITE(angular_velocity.xyz[1]) && PX4_ISFINITE(angular_velocity.xyz[2]);
+	const bool condition_angular_velocity_valid = condition_angular_velocity_time_valid
+			&& condition_angular_velocity_finite;
 
 	if (_status_flags.condition_angular_velocity_valid && !condition_angular_velocity_valid) {
-		PX4_ERR("angular velocity no longer valid");
+		const char err_str[] {"angular velocity no longer valid"};
+
+		if (!condition_angular_velocity_time_valid) {
+			PX4_ERR("%s (timeout)", err_str);
+
+		} else if (!condition_angular_velocity_finite) {
+			PX4_ERR("%s (non-finite values)", err_str);
+		}
 	}
 
 	_status_flags.condition_angular_velocity_valid = condition_angular_velocity_valid;

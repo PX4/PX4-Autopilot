@@ -141,6 +141,7 @@ public:
 
 private:
 	int init(int argc, char *argv[]);
+	void deinit();
 
 	/*
 	 * Loop executed while in SATCOM_STATE_STANDBY
