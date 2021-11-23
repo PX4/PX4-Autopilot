@@ -9,7 +9,7 @@
 #                       Begin Estimator group selection                       #
 ###############################################################################
 
-ekf2 start &
+sleep 2;ekf2 start &
 
 # 2 seconds of delay avoids most of high accelerometer bias errors
 
