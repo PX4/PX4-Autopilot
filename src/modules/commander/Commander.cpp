@@ -3481,9 +3481,12 @@ void Commander::data_link_check()
 					}
 				}
 
+				bool healthy = telemetry.parachute_system_healthy;
+
 				_datalink_last_heartbeat_parachute_system = telemetry.timestamp;
 				_status_flags.parachute_system_present = true;
-				_status_flags.parachute_system_healthy = telemetry.parachute_system_healthy;
+				_status_flags.parachute_system_healthy = healthy;
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PARACHUTE, true, true, healthy, _status);
 			}
 
 			if (telemetry.heartbeat_component_obstacle_avoidance) {
@@ -3534,6 +3537,7 @@ void Commander::data_link_check()
 		_status_flags.parachute_system_healthy = false;
 		_parachute_system_lost = true;
 		_status_changed = true;
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PARACHUTE, false, true, false, _status);
 	}
 
 	// AVOIDANCE SYSTEM state check (only if it is enabled)
