@@ -107,18 +107,14 @@ public:
 	}
 
 	/**
-	 * Get the number of actuators
-	 */
-	virtual int numActuators0() const = 0;
-	virtual int numActuators1() const = 0;
-
-	/**
 	 * Get the function of an actuator
 	 */
 	virtual int actuatorFunction(uint8_t idx) const = 0;
 
-	virtual int get_actuator_type_0(uint8_t idx) const = 0;
-	virtual int get_actuator_type_1(uint8_t idx) const = 0;
+	virtual int get_actuator_type(uint8_t idx) const = 0;
+	virtual int get_actuator_destination(uint8_t idx) const = 0;
+	virtual int get_actuator_index(uint8_t idx) const = 0;
+
 
 protected:
 	matrix::Vector<float, NUM_ACTUATORS> _trim;			///< Actuator trim

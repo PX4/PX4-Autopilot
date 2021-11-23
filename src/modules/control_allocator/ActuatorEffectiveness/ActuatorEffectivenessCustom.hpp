@@ -60,21 +60,17 @@ public:
 
 	void setCombinedTilt(float tilt) override;
 
-	int numActuators0() const override { return _acutator_index_0; }
-	int numActuators1() const override { return _acutator_index_1; }
-
-	int get_actuator_type_0(uint8_t idx) const override {return _actuator_0_type[idx]; }
-	int get_actuator_type_1(uint8_t idx) const override {return _actuator_1_type[idx]; }
+	int get_actuator_type(uint8_t idx) const override {return _actuator_type[idx]; }
+	int get_actuator_destination(uint8_t idx) const override {return _actuator_destination[idx]; }
+	int get_actuator_index(uint8_t idx) const override {return _actuator_index[idx]; }
 
 private:
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness_0{};
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness_1{};
 
-	int _acutator_index_0{0};
-	int _acutator_index_1{0};
-
-	int _actuator_0_type [NUM_ACTUATORS] {};
-	int _actuator_1_type [NUM_ACTUATORS] {};
+	int _actuator_type [NUM_ACTUATORS] {};
+	int _actuator_destination[NUM_ACTUATORS] {};
+	int _actuator_index [NUM_ACTUATORS] {};
 
 	bool _updated{true};
 

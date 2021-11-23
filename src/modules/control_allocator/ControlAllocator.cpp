@@ -329,18 +329,6 @@ ControlAllocator::update_effectiveness_matrices_if_needed(bool force)
 
 		const matrix::Vector<float, NUM_ACTUATORS> &trim = _actuator_effectiveness->getActuatorTrim();
 
-		// Set 0 effectiveness for actuators that are disabled (act_min >= act_max)
-		// matrix::Vector<float, NUM_ACTUATORS> actuator_max = _control_allocation->getActuatorMax();
-		// matrix::Vector<float, NUM_ACTUATORS> actuator_min = _control_allocation->getActuatorMin();
-
-		// for (size_t j = 0; j < NUM_ACTUATORS; j++) {
-		// 	if (actuator_min(j) >= actuator_max(j)) {
-		// 		for (size_t i = 0; i < NUM_AXES; i++) {
-		// 			effectiveness_0(i, j) = 0.0f;
-		// 		}
-		// 	}
-		// }
-
 		// Assign control effectiveness matrix
 		_control_allocation_0->setEffectivenessMatrix(effectiveness_0, trim);
 		_control_allocation_1->setEffectivenessMatrix(effectiveness_1, trim);
@@ -352,93 +340,58 @@ ControlAllocator::update_effectiveness_matrices_if_needed(bool force)
 		matrix::Vector<float, NUM_ACTUATORS> actuator_0_min;
 		matrix::Vector<float, NUM_ACTUATORS> actuator_0_max;
 
-		//printf("_actuator_effectiveness->numActuators0():%i\n", _actuator_effectiveness->numActuators0());
-
-		for (int i = 0; i < _actuator_effectiveness->numActuators0(); i++) {
-			switch (_actuator_effectiveness->get_actuator_type_0(i)) {
-			case 1:
-				actuator_0_min(i) = 0.f;
-				actuator_0_max(i) = 1.f;
-				break;
-
-			case 2: // aileron, elevator, rudder, elevons
-				actuator_0_min(i) = -1.f;
-				actuator_0_max(i) = 1.f;
-				break;
-
-			case 3: // tilt - doesn't go through matrix
-				// actuator_0_min(i) = 0.f;
-				// actuator_0_max(i) = 1.f;
-
-				break;
-
-			case 4: // tilt with yaw
-				actuator_0_min(i) = -1.f;
-				actuator_0_max(i) = 1.f;
-
-				break;
-
-
-			case 5: // flaps - doesn't go through matrix
-				// actuator_0_min(i) = -1.f;
-				// actuator_0_max(i) = 1.f;
-				break;
-
-			case 0: //fall through
-			default:
-				actuator_0_min(i) = 0.f;
-				actuator_0_max(i) = 0.f;
-				printf("no valid actuator type in allocation 0, i: %i\n", i);
-				break;
-			}
-
-			// printf("actuator_0_min(%i):%f\n", i, (double)actuator_0_min(i));
-		}
-
-		// set min/max of allocation 1
-		// set min to -1 if servo and not tilt, set max to 1 for all
-		// go through all actuators of output 1
 		matrix::Vector<float, NUM_ACTUATORS> actuator_1_min;
 		matrix::Vector<float, NUM_ACTUATORS> actuator_1_max;
 
-		for (int i = 0; i < _actuator_effectiveness->numActuators1(); i++) {
-			switch (_actuator_effectiveness->get_actuator_type_1(i)) {
+		int i_0 = 0;
+		int i_1 = 0;
+
+		for (int i = 0; i < NUM_ACTUATORS; i++) {
+			switch (_actuator_effectiveness->get_actuator_type(i)) {
 			case 1:
-				actuator_1_min(i) = 0.f;
-				actuator_1_max(i) = 1.f;
+			case 4: // tilt with yaw
+				if (_actuator_effectiveness->get_actuator_destination(i) == 0) {
+					actuator_0_min(i_0) = 0.f;
+					actuator_0_max(i_0) = 1.f;
+					i_0 ++;
+
+				} else if (_actuator_effectiveness->get_actuator_destination(i) == 1) {
+					actuator_1_min(i_1) = 0.f;
+					actuator_1_max(i_1) = 1.f;
+					i_1 ++;
+				}
+
 				break;
 
 			case 2: // aileron, elevator, rudder, elevons
-				actuator_1_min(i) = -1.f;
-				actuator_1_max(i) = 1.f;
+				if (_actuator_effectiveness->get_actuator_destination(i) == 0) {
+					actuator_0_min(i_0) = -1.f;
+					actuator_0_max(i_0) = 1.f;
+					i_0++;
+
+				} else if (_actuator_effectiveness->get_actuator_destination(i) == 1) {
+					actuator_1_min(i_1) = -1.f;
+					actuator_1_max(i_1) = 1.f;
+					i_1++;
+				}
+
 				break;
 
 			case 3: // tilt - doesn't go through matrix
-				// actuator_1_min(i) = 0.f;
-				// actuator_1_max(i) = 1.f;
-
-				break;
-
-			case 4: // tilt with yaw
-				// actuator_1_min(i) = -1.f;
-				// actuator_1_max(i) = 1.f;
 
 				break;
 
 			case 5: // flaps - doesn't go through matrix
-				// actuator_1_min(i) = -1.f;
-				// actuator_1_max(i) = 1.f;
+
 				break;
 
 			case 0: //fall through
 			default:
-				actuator_1_min(i) = 0.f;
-				actuator_1_max(i) = 0.f;
-				printf("no valid actuator type in allocation 0, i: %i\n", i);
+				actuator_0_min(i_0) = 0.f;
+				actuator_0_max(i_0) = 0.f;
+				// printf("no valid actuator type in allocation 0, i: %i\n", i);
 				break;
 			}
-
-			printf("actuator_1_min(%i):%f\n", i, (double)actuator_1_min(i));
 		}
 
 		_control_allocation_0->setActuatorMin(actuator_0_min);
@@ -533,78 +486,58 @@ ControlAllocator::publish_legacy_actuator_controls()
 	int index_motor = 0;
 	int index_servo = 0;
 
-	// go through all actuators of output 0
-	for (int i = 0; i < _actuator_effectiveness->numActuators0(); i++) {
-		switch (_actuator_effectiveness->get_actuator_type_0(i)) {
+	for (int i = 0; i < NUM_ACTUATORS; i++) {
+		switch (_actuator_effectiveness->get_actuator_type(i)) {
 		case 1:
-			actuator_motors.control[index_motor] = actuator_sp_normalized_0(i);
+			if (_actuator_effectiveness->get_actuator_destination(i) == 0) {
+				actuator_motors.control[index_motor] = actuator_sp_normalized_0(_actuator_effectiveness->get_actuator_index(i));
+
+			} else if (_actuator_effectiveness->get_actuator_destination(i) == 1) {
+				actuator_motors.control[index_motor] = actuator_sp_normalized_1(_actuator_effectiveness->get_actuator_index(i));
+			}
+
 			index_motor++;
 			break;
 
 		case 2:
-			actuator_servos.control[index_servo] = actuator_sp_normalized_0(i);
+			if (_actuator_effectiveness->get_actuator_destination(i) == 0) {
+				actuator_servos.control[index_servo] = actuator_sp_normalized_0(_actuator_effectiveness->get_actuator_index(i));
+
+			} else if (_actuator_effectiveness->get_actuator_destination(i) == 1) {
+				actuator_servos.control[index_servo] = actuator_sp_normalized_1(_actuator_effectiveness->get_actuator_index(i));
+			}
+
 			index_servo++;
 			break;
 
-		case 3: // tilt
-			// TODO: add custom offset, scaling and inversion
-			actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f;
+		case 3:
+			if (_actuator_effectiveness->get_actuator_destination(i) == 4) {
+				actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f;
+			}
+
 			index_servo++;
 			break;
 
-		case 4: // tilt with yaw control
-			// TODO: add custom offset, scaling and inversion, fix indexing (tilts need come first currently)
-			actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f + actuator_sp_normalized_0(i);
+		case 4:
+			if (_actuator_effectiveness->get_actuator_destination(i) == 0) {
+				actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f + actuator_sp_normalized_0(
+						_actuator_effectiveness->get_actuator_index(i));
+			}
+
 			index_servo++;
 			break;
 
-		case 5: // flaps
-			actuator_servos.control[index_servo] = _actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
+		case 5:
+			if (_actuator_effectiveness->get_actuator_destination(i) == 3) {
+				actuator_servos.control[index_servo] = _actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
+			}
+
 			index_servo++;
 			break;
 
 		case 0: //fall through
 		default:
-			printf("no valid actuator type in allocation 0, i: %i\n", i);
-			break;
-		}
-	}
-
-	// printf("actuator_sp_normalized_1: %f\n", (double)actuator_sp_normalized_1(0));
-
-	// go through all actuators of output 1
-	for (int i = 0; i < _actuator_effectiveness->numActuators1(); i++) {
-		switch (_actuator_effectiveness->get_actuator_type_1(i)) {
-		case 1:
-			actuator_motors.control[index_motor] = actuator_sp_normalized_1(i);
-			index_motor++;
-			break;
-
-		case 2:
-			actuator_servos.control[index_servo] = actuator_sp_normalized_1(i);
-			index_servo++;
-			break;
-
-		// case 3: // tilt
-		// 	// TODO: add custom offset, scaling and inversion
-		// 	actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f;
-		// 	index_servo++;
-		// 	break;
-
-		// case 4: // tilt with yaw control
-		// 	// TODO: add custom offset, scaling and inversion, fix indexing (tilts need come first currently)
-		// 	actuator_servos.control[index_servo] = _actuator_controls_1.control[4] * 2.f - 1.f + actuator_sp_normalized_0(i);
-		// 	index_servo++;
-		// 	break;
-
-		case 5: // flaps
-			// actuator_servos.control[index_servo] = _actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
-			// index_servo++;
-			break;
-
-		case 0: //fall through
-		default:
-			printf("no valid actuator type in allocation 1\n");
+			//printf("no valid actuator type in allocation 0, i: %i\n", i);
 			break;
 		}
 	}

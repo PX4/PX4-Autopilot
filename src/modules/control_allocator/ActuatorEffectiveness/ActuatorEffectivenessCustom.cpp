@@ -83,9 +83,6 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 		int n_0 = 0; // iterator for matrix 0
 		int n_1 = 0; // iterator for matrix 1
 
-		_acutator_index_0 = 0;
-		_acutator_index_1 = 0;
-
 		for (int n = 0; n < NUM_ACTUATORS; n++) {
 			// CA_ACTn_FUNC: look up function
 			char buffer[17];
@@ -164,9 +161,10 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 						_effectiveness_0(j + 3, n_0) = thrust(j);
 					}
 
-					_actuator_0_type[_acutator_index_0] = 1;
+					_actuator_type[n] = 1;
+					_actuator_destination[n] = 0;
+					_actuator_index[n] = n_0;
 					n_0++;
-					_acutator_index_0++;
 				}
 
 				break;
@@ -195,16 +193,18 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 					// 100: Aileron, scaled (CA_ACTn_SC) roll torque
 					if (_is_VTOL) {
 						_effectiveness_1(0, n_1) = getScaleParameter(n);
-						_actuator_1_type[_acutator_index_1] = 2;
+						_actuator_destination[n] = 1;
+						_actuator_index[n] = n_1;
 						n_1++;
-						_acutator_index_1++;
 
 					} else {
 						_effectiveness_0(0, n_0) = getScaleParameter(n);
-						_actuator_0_type[_acutator_index_0] = 2;
+						_actuator_destination[n] = 0;
+						_actuator_index[n] = n_0;
 						n_0++;
-						_acutator_index_0++;
 					}
+
+					_actuator_type[n] = 2;
 				}
 				break;
 
@@ -214,16 +214,18 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 					// 101: Elevator, scaled (CA_ACTn_SC) pitch torque
 					if (_is_VTOL) {
 						_effectiveness_1(1, n_1) = getScaleParameter(n);
-						_actuator_1_type[_acutator_index_1] = 2;
+						_actuator_destination[n] = 1;
+						_actuator_index[n] = n_1;
 						n_1++;
-						_acutator_index_1++;
 
 					} else {
 						_effectiveness_0(1, n_0) = getScaleParameter(n);
-						_actuator_0_type[_acutator_index_0] = 2;
+						_actuator_destination[n] = 0;
+						_actuator_index[n] = n_0;
 						n_0++;
-						_acutator_index_0++;
 					}
+
+					_actuator_type[n] = 2;
 				}
 				break;
 
@@ -233,16 +235,18 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 					// 102: Rudder, scaled (CA_ACTn_SC) yaw torque
 					if (_is_VTOL) {
 						_effectiveness_1(2, n_1) = getScaleParameter(n);
-						_actuator_1_type[_acutator_index_1] = 2;
+						_actuator_destination[n] = 1;
+						_actuator_index[n] = n_1;
 						n_1++;
-						_acutator_index_1++;
 
 					} else {
 						_effectiveness_0(2, n_0) = getScaleParameter(n);
-						_actuator_0_type[_acutator_index_0] = 2;
+						_actuator_destination[n] = 0;
+						_actuator_index[n] = n_0;
 						n_0++;
-						_acutator_index_0++;
 					}
+
+					_actuator_type[n] = 2;
 				}
 				break;
 
@@ -252,16 +256,17 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 					// 103: Throttle, scaled (CA_ACTn_SC) X thrust
 					if (_is_VTOL) {
 						_effectiveness_1(3, n_1) = getScaleParameter(n);
-						_actuator_1_type[_acutator_index_1] = 1;
+						_actuator_index[n] = n_1;
 						n_1++;
-						_acutator_index_1++;
 
 					} else {
 						_effectiveness_0(3, n_0) = getScaleParameter(n);
-						_actuator_0_type[_acutator_index_0] = 1;
+						_actuator_destination[n] = 0;
+						_actuator_index[n] = n_0;
 						n_0++;
-						_acutator_index_0++;
 					}
+
+					_actuator_type[n] = 1;
 				}
 				break;
 
@@ -300,17 +305,18 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 			case 120: {
 					// tilt not used for yaw control (VTOL tiltrotor)
 					// do not add to effectiveness but increase counter
-					_actuator_0_type[_acutator_index_0] = 3;
-					_acutator_index_0++;
+					_actuator_type[n] = 3;
+					_actuator_destination[n] = 4;
 				}
 				break;
 
 			case 121: {
-					// tilt front left (VTOL tiltrotor)
+					// tilt with yawing (VTOL tiltrotor)
 					_effectiveness_0(2, n_0) = getScaleParameter(n);
+					_actuator_type[n] = 4;
+					_actuator_destination[n] = 0;
+					_actuator_index[n] = n_0;
 					n_0++;
-					_actuator_0_type[_acutator_index_0] = 4;
-					_acutator_index_0++;
 				}
 				break;
 
@@ -318,8 +324,8 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 			case 130: {
 					// Flaps
 					// do not add to effectiveness but increase counter
-					_actuator_0_type[_acutator_index_0] = 5;
-					_acutator_index_0++;
+					_actuator_type[n] = 5;
+					_actuator_destination[n] = 3;
 				}
 				break;
 
@@ -327,11 +333,6 @@ bool ActuatorEffectivenessCustom::getEffectivenessMatrix(matrix::Matrix<float, N
 				PX4_ERR("%s invalid function %d", buffer, n);
 				break;
 			}
-
-			// TODO: change way num_actuator_0/1 is counted
-			// if (_effectiveness_0.col(n).longerThan(0.f)) {
-			// 	num_actuators = n + 1;
-			// }
 		}
 
 		_effectiveness_0.transpose().print();
