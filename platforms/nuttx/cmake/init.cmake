@@ -96,13 +96,11 @@ foreach(NameAndValue ${ConfigContents})
 		# Find the value
 		string(REPLACE "${Name}=" "" Value ${NameAndValue})
 
-		if(Value)
-			# remove extra quotes
-			string(REPLACE "\"" "" Value ${Value})
+		# remove extra quotes
+		string(REPLACE "\"" "" Value ${Value})
 
-			# Set the variable
-			#message(STATUS "${Name} ${Value}")
-			set(${Name} ${Value} CACHE INTERNAL "NUTTX DEFCONFIG: ${Name}" FORCE)
-		endif()
+		# Set the variable
+		#message(STATUS "${Name} ${Value}")
+		set(${Name} ${Value} CACHE INTERNAL "NUTTX DEFCONFIG: ${Name}" FORCE)
 	endif()
 endforeach()

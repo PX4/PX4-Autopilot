@@ -161,7 +161,7 @@ __EXPORT void board_on_reset(int status)
 		up_mdelay(400);
 
 		/* on reboot (status >= 0) reset sensors and peripherals */
-		board_spi_reset(10, 0xffff);
+		board_control_spi_sensors_power(false, 0xffff);
 	}
 }
 

@@ -522,13 +522,24 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 	 * get param value, since MAVLink encodes float and int params in the same
 	 * space during transmission, copy param onto float val_buf
 	 */
-	float param_value{};
+	if (param_type(param) == PARAM_TYPE_INT32) {
+		int32_t param_value;
 
-	if (param_get(param, &param_value) != OK) {
-		return 2;
+		if (param_get(param, &param_value) != OK) {
+			return 2;
+		}
+
+		memcpy(&msg.param_value, &param_value, sizeof(param_value));
+
+	} else {
+		float param_value;
+
+		if (param_get(param, &param_value) != OK) {
+			return 2;
+		}
+
+		msg.param_value = param_value;
 	}
-
-	msg.param_value = param_value;
 
 	msg.param_count = param_count_used();
 	msg.param_index = param_get_used_index(param);
