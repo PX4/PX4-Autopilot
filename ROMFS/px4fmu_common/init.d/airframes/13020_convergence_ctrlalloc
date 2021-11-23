@@ -1,0 +1,103 @@
+#!/bin/sh
+#
+# @name E-flite Convergence ctrlalloc
+#
+# @type VTOL Tiltrotor
+# @class VTOL
+#
+# @output MAIN1 Motor right
+# @output MAIN2 Motor left
+# @output MAIN3 Motor back
+# @output MAIN4 empty
+# @output MAIN5 Tilt servo right
+# @output MAIN6 Tilt servo left
+# @output MAIN7 Elevon right
+# @output MAIN8 Elevon left
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+
+param set-default SYS_CTRL_ALLOC 1
+param set-default CA_METHOD 0
+
+param set-default CA_ACT0_FUNC 1 # motor
+param set-default CA_ACT1_FUNC 1 # motor
+param set-default CA_ACT2_FUNC 1 # motor
+
+param set-default CA_ACT3_FUNC 121 # tilt
+param set-default CA_ACT4_FUNC 121 #
+param set-default CA_ACT5_FUNC 100 #
+param set-default CA_ACT6_FUNC 100 #
+
+param set-default CA_ACT0_PX 0.1
+param set-default CA_ACT0_PY 0.2
+param set-default CA_ACT0_CT 1
+param set-default CA_ACT0_KM 0.05
+
+param set-default CA_ACT1_PX 0.1
+param set-default CA_ACT1_PY -0.2
+param set-default CA_ACT1_CT 1
+param set-default CA_ACT1_KM 0.05
+
+param set-default CA_ACT2_PX -0.2
+param set-default CA_ACT2_PY 0.0
+param set-default CA_ACT2_CT 1
+param set-default CA_ACT2_KM -0.05
+
+param set-default CA_ACT3_SC 0.01 # effectiveness of tilt for yaw, front left
+param set-default CA_ACT4_SC -0.01 # effectiveness of tilt for yaw, front right
+
+
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 0
+param set-default PWM_MAIN_FUNC5 201 # tilt right
+param set-default PWM_MAIN_FUNC6 202 # tilt left
+param set-default PWM_MAIN_FUNC7 203 # elevon right
+param set-default PWM_MAIN_FUNC8 204 # elevon left
+
+
+param set-default FW_L1_PERIOD 17
+param set-default FW_MAN_R_MAX 50
+param set-default FW_ACRO_X_MAX   270
+param set-default FW_ACRO_Y_MAX   270
+param set-default FW_ACRO_Z_MAX   180
+param set-default FW_PSP_OFF  5
+param set-default FW_P_LIM_MAX    30
+param set-default FW_P_LIM_MIN    -30
+param set-default FW_RR_FF    0.33
+param set-default FW_RR_P 0.11
+
+param set-default MC_PITCHRATE_P  0.15
+param set-default MC_PITCH_P  6
+param set-default MC_ROLLRATE_P   0.15
+param set-default MC_ROLL_P   6
+param set-default MC_YAWRATE_MAX  120
+param set-default MC_YAWRATE_P    0.27
+param set-default MC_YAW_P    2.5
+
+param set-default MC_YAWRATE_P 0.3
+param set-default MPC_LAND_SPEED 1.2
+param set-default MPC_TKO_SPEED 2.5
+
+param set-default VT_B_TRANS_DUR  1
+param set-default VT_F_TRANS_DUR  1.2
+param set-default VT_F_TR_OL_TM   4
+param set-default VT_FW_DIFTHR_EN 1
+param set-default VT_FW_DIFTHR_SC 0.17
+param set-default VT_FW_MOT_OFFID 3
+param set-default VT_IDLE_PWM_MC 1200
+param set-default VT_MOT_ID 123
+param set-default VT_TILT_TRANS   0.45
+param set-default VT_TRANS_MIN_TM 1.2
+param set-default VT_TRANS_P2_DUR 1.3
+param set-default VT_ELEV_MC_LOCK 0
+param set-default VT_TYPE 1
+set MAV_TYPE 21
+
+set MIXER skip
