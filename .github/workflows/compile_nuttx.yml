@@ -25,7 +25,7 @@ jobs:
           cuav_can-gps-v1_canbootloader,
           cuav_can-gps-v1_debug,
           cuav_can-gps-v1_default,
-          cuav_nora_default,
+          # cuav_nora_default,
           # cuav_x7pro_default,
           cubepilot_cubeorange_console,
           cubepilot_cubeorange_default,
