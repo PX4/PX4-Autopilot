@@ -39,6 +39,8 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 #include <uORB/topics/esc_status.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 #include "DShotTelemetry.h"
 
@@ -116,6 +118,8 @@ private:
 		dshot_command_t command{};
 		int num_repetitions{0};
 		uint8_t motor_mask{0xff};
+		bool save{false};
+
 		bool valid() const { return num_repetitions > 0; }
 		void clear() { num_repetitions = 0; }
 	};
@@ -139,6 +143,8 @@ private:
 	void update_params();
 
 	void update_telemetry_num_motors();
+
+	void handle_vehicle_commands();
 
 #ifdef BOARD_WITH_IO
 # define PARAM_PREFIX "PWM_AUX"
@@ -170,6 +176,8 @@ private:
 	Command _current_command{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::DSHOT_CONFIG>)   _param_dshot_config,
