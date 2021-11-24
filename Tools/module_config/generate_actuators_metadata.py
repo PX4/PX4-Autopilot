@@ -417,10 +417,18 @@ def get_mixers(yaml_config, output_functions, verbose):
 
     if verbose:
         print('Mixer configs: {}'.format(config))
+
+    rules = []
+    for rule in yaml_config['mixer'].get('rules', []):
+        rules.append({k.replace('_','-'): v for k, v in rule.items()})
+
+    if verbose:
+        print('Mixer rules: {}'.format(rules))
     
     mixers = {
             'actuator-types': actuator_types,
             'config': config,
+            'rules': rules,
         }
     return mixers
 
