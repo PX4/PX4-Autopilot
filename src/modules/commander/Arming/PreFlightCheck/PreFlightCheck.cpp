@@ -201,7 +201,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	param_get(param_find("COM_RC_IN_MODE"), &com_rc_in_mode);
 
 	if (com_rc_in_mode == 0) {
-		if (rcCalibrationCheck(mavlink_log_pub, report_failures, status.is_vtol) != OK) {
+		if (rcCalibrationCheck(mavlink_log_pub, report_failures) != OK) {
 			if (report_failures) {
 				mavlink_log_critical(mavlink_log_pub, "RC calibration check failed");
 			}
