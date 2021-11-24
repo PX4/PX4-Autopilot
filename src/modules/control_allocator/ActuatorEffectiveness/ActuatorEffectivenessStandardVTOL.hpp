@@ -42,25 +42,50 @@
 #pragma once
 
 #include "ActuatorEffectiveness.hpp"
+#include "ActuatorEffectivenessRotors.hpp"
+#include "ActuatorEffectivenessControlSurfaces.hpp"
 
-class ActuatorEffectivenessStandardVTOL: public ActuatorEffectiveness
+#include <uORB/topics/actuator_controls.h>
+
+class ActuatorEffectivenessStandardVTOL : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-	ActuatorEffectivenessStandardVTOL();
+	ActuatorEffectivenessStandardVTOL(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessStandardVTOL() = default;
 
-	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) override;
-
-	/**
-	 * Set the current flight phase
-	 *
-	 * @param Flight phase
-	 */
-	void setFlightPhase(const FlightPhase &flight_phase) override;
-
-	int numActuators() const override { return 7; }
+	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
 
 	const char *name() const override { return "Standard VTOL"; }
-protected:
-	bool _updated{true};
+
+	int numMatrices() const override { return 2; }
+
+	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
+	{
+		static_assert(MAX_NUM_MATRICES >= 2, "expecting at least 2 matrices");
+		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
+		allocation_method_out[1] = AllocationMethod::PSEUDO_INVERSE;
+	}
+
+	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
+			    ActuatorVector &actuator_sp) override;
+
+	void setFlightPhase(const FlightPhase &flight_phase) override;
+
+	uint32_t getStoppedMotors() const override { return _stopped_motors; }
+
+private:
+	ActuatorEffectivenessRotors _mc_rotors;
+	ActuatorEffectivenessControlSurfaces _control_surfaces;
+
+	uint32_t _mc_motors_mask{}; ///< mc motors (stopped during forward flight)
+	uint32_t _stopped_motors{}; ///< currently stopped motors
+
+	int _first_control_surface_idx{0}; ///< applies to matrix 1
+
+	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_0)};
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::CA_STDVTOL_N_P>) _param_ca_stdvtol_n_p ///< number of pushers
+	)
+
 };

@@ -71,14 +71,16 @@
 
 #include <matrix/matrix/math.hpp>
 
+#include "ActuatorEffectiveness/ActuatorEffectiveness.hpp"
+
 class ControlAllocation
 {
 public:
 	ControlAllocation();
 	virtual ~ControlAllocation() = default;
 
-	static constexpr uint8_t NUM_ACTUATORS = 16;
-	static constexpr uint8_t NUM_AXES = 6;
+	static constexpr uint8_t NUM_ACTUATORS = ActuatorEffectiveness::NUM_ACTUATORS;
+	static constexpr uint8_t NUM_AXES = ActuatorEffectiveness::NUM_AXES;
 
 	typedef matrix::Vector<float, NUM_ACTUATORS> ActuatorVector;
 
@@ -93,8 +95,6 @@ public:
 
 	/**
 	 * Allocate control setpoint to actuators
-	 *
-	 * @param control_setpoint  Desired control setpoint vector (input)
 	 */
 	virtual void allocate() = 0;
 
@@ -190,6 +190,8 @@ public:
 	 */
 	void clipActuatorSetpoint(matrix::Vector<float, NUM_ACTUATORS> &actuator) const;
 
+	void clipActuatorSetpoint() { clipActuatorSetpoint(_actuator_sp); }
+
 	/**
 	 * Normalize the actuator setpoint between minimum and maximum values.
 	 *
@@ -207,6 +209,8 @@ public:
 	int numConfiguredActuators() const { return _num_actuators; }
 
 protected:
+	friend class ControlAllocator; // for _actuator_sp
+
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  //< Effectiveness matrix
 	matrix::Vector<float, NUM_AXES> _control_allocation_scale;  	//< Scaling applied during allocation
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_trim; 	//< Neutral actuator values
