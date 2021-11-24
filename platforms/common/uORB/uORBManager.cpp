@@ -112,8 +112,10 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		return ret;
 	}
 
-	if (get_device_master()) {
-		uORB::DeviceNode *node = _device_master->getDeviceNode(meta, instance);
+	uORB::DeviceMaster *dev =  uORB::Manager::get_instance()->get_device_master();
+
+	if (dev) {
+		uORB::DeviceNode *node = dev->getDeviceNode(meta, instance);
 
 		if (node != nullptr) {
 			if (node->is_advertised()) {
@@ -317,6 +319,65 @@ int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
 	int ret = px4_ioctl(handle, ORBIOCGETINTERVAL, (unsigned long)interval);
 	*interval /= 1000;
 	return ret;
+}
+
+
+bool uORB::Manager::orb_device_node_exists(ORB_ID orb_id, uint8_t instance)
+{
+	DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
+
+	return device_master != nullptr &&
+	       device_master->deviceNodeExists(orb_id, instance);
+}
+
+void *uORB::Manager::orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation)
+{
+	uORB::DeviceNode *node = nullptr;
+	DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
+
+	if (device_master != nullptr) {
+		node = device_master->getDeviceNode(get_orb_meta(orb_id), instance);
+
+		if (node) {
+			node->add_internal_subscriber();
+			*initial_generation = node->get_initial_generation();
+		}
+	}
+
+	return node;
+}
+
+void uORB::Manager::orb_remove_internal_subscriber(void *node_handle)
+{
+	static_cast<DeviceNode *>(node_handle)->remove_internal_subscriber();
+}
+
+uint8_t uORB::Manager::orb_get_queue_size(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->get_queue_size(); }
+
+bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation)
+{
+	return static_cast<DeviceNode *>(node_handle)->copy(dst, generation);
+}
+
+// add item to list of work items to schedule on node update
+bool uORB::Manager::register_callback(void *node_handle, SubscriptionCallback *callback_sub)
+{
+	return static_cast<DeviceNode *>(node_handle)->register_callback(callback_sub);
+}
+
+// remove item from list of work items
+void uORB::Manager::unregister_callback(void *node_handle, SubscriptionCallback *callback_sub)
+{
+	static_cast<DeviceNode *>(node_handle)->unregister_callback(callback_sub);
+}
+
+uint8_t uORB::Manager::orb_get_instance(const void *node_handle)
+{
+	if (node_handle) {
+		return static_cast<const uORB::DeviceNode *>(node_handle)->get_instance();
+	}
+
+	return -1;
 }
 
 int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, int *instance)
