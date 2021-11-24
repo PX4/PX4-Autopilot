@@ -5,17 +5,17 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-#if ! ver hwcmp OMNIBUS_F4SD
-#then
-#	if ! ver hwcmp BITCRAZE_CRAZYFLIE
-#	then
+if ! ver hwcmp OMNIBUS_F4SD
+then
+	if ! ver hwcmp BITCRAZE_CRAZYFLIE
+	then
 		# Configure all I2C buses to 100 KHz as they
 		# are all external or slow
 		# TODO: move this
-pwm_out i2c 1 100000
-pwm_out i2c 2 100000
-#	fi
-#fi
+		pwm_out i2c 1 100000
+		pwm_out i2c 2 100000
+	fi
+fi
 
 ###############################################################################
 #                           Begin Optional drivers                            #
