@@ -817,7 +817,6 @@ void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 #ifdef MAVLINK_UDP
 void Mavlink::find_broadcast_address()
 {
-#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 	struct ifconf ifconf;
 	int ret;
 
@@ -867,7 +866,7 @@ void Mavlink::find_broadcast_address()
 	// The ugly `for` construct is used because it allows to use
 	// `continue` and `break`.
 	for (;
-	     offset < ifconf.ifc_len;
+	     offset < (int)ifconf.ifc_len;
 #if defined(__APPLE__) && defined(__MACH__)
 	     // On Mac, to get to next entry in buffer, jump by the size of
 	     // the interface name size plus whatever is greater, either the
@@ -928,49 +927,6 @@ void Mavlink::find_broadcast_address()
 		}
 	}
 
-#elif defined (CONFIG_NET) && defined (__PX4_NUTTX)
-	int ret;
-
-	PX4_INFO("using network interface");
-
-	struct in_addr eth_addr;
-	struct in_addr bc_addr;
-	struct in_addr netmask_addr;
-	ret = netlib_get_ipv4addr("eth0", &eth_addr);
-
-	if (ret != 0) {
-		PX4_ERR("getting network config failed");
-		return;
-	}
-
-	ret = netlib_get_ipv4netmask("eth0", &netmask_addr);
-
-	if (ret != 0) {
-		PX4_ERR("getting network config failed");
-		return;
-	}
-
-	PX4_INFO("ipv4addr IP: %s", inet_ntoa(eth_addr));
-	PX4_INFO("netmask_addr IP: %s", inet_ntoa(netmask_addr));
-
-	bc_addr.s_addr = eth_addr.s_addr | ~(netmask_addr.s_addr);
-
-	if (!_broadcast_address_found) {
-		PX4_INFO("using network interface %s, IP: %s", "eth0", inet_ntoa(eth_addr));
-
-		//struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
-		PX4_INFO("with broadcast IP: %s", inet_ntoa(bc_addr));
-
-		_bcast_addr.sin_family = AF_INET;
-		_bcast_addr.sin_addr = bc_addr;
-
-		_broadcast_address_found = true;
-	}
-
-#endif
-
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
-
 	if (_broadcast_address_found) {
 		_bcast_addr.sin_port = htons(_remote_port);
 
@@ -989,39 +945,27 @@ void Mavlink::find_broadcast_address()
 		}
 	}
 
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 	delete[] ifconf.ifc_req;
-#endif
-
-#endif
 }
-#endif // MAVLINK_UDP
 
-#ifdef __PX4_POSIX
-const in_addr
-Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifreq)
+const in_addr Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifreq)
 {
-	struct ifreq netmask_ifreq;
-	memset(&netmask_ifreq, 0, sizeof(netmask_ifreq));
+	struct ifreq netmask_ifreq {};
 	strncpy(netmask_ifreq.ifr_name, ifreq.ifr_name, IF_NAMESIZE);
 	ioctl(socket_fd, SIOCGIFNETMASK, &netmask_ifreq);
 
 	return ((struct sockaddr_in *)&netmask_ifreq.ifr_addr)->sin_addr;
 }
 
-const in_addr
-Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr)
+const in_addr Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr)
 {
 	struct in_addr broadcast_addr;
 	broadcast_addr.s_addr = ~netmask_addr.s_addr | host_addr.s_addr;
 
 	return broadcast_addr;
 }
-#endif
 
-#ifdef MAVLINK_UDP
-void
-Mavlink::init_udp()
+void Mavlink::init_udp()
 {
 	PX4_DEBUG("Setting up UDP with port %hu", _network_port);
 
