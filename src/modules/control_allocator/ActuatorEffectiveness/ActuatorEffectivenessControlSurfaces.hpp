@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,65 @@
  *
  ****************************************************************************/
 
-/**
- * @file ControlAllocationTest.cpp
- *
- * Tests for Control Allocation Algorithms
- *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
- */
+#pragma once
 
-#include <gtest/gtest.h>
-#include <ControlAllocationPseudoInverse.hpp>
+#include "ActuatorEffectiveness.hpp"
 
-using namespace matrix;
+#include <px4_platform_common/module_params.h>
 
-TEST(ControlAllocationTest, AllZeroCase)
+class ActuatorEffectivenessControlSurfaces : public ModuleParams, public ActuatorEffectiveness
 {
-	ControlAllocationPseudoInverse method;
+public:
 
-	matrix::Vector<float, 6> control_sp;
-	matrix::Vector<float, 6> control_allocated;
-	matrix::Vector<float, 6> control_allocated_expected;
-	matrix::Matrix<float, 6, 16> effectiveness;
-	matrix::Vector<float, 16> actuator_sp;
-	matrix::Vector<float, 16> actuator_trim;
-	matrix::Vector<float, 16> actuator_sp_expected;
+	static constexpr int MAX_COUNT = 8;
 
-	method.setEffectivenessMatrix(effectiveness, actuator_trim, 16);
-	method.setControlSetpoint(control_sp);
-	method.allocate();
-	method.clipActuatorSetpoint();
-	actuator_sp = method.getActuatorSetpoint();
-	control_allocated_expected = method.getAllocatedControl();
+	enum class Type : int32_t {
+		// This matches with the parameter
+		Elevator = 1,
+		Rudder = 2,
+		LeftElevon = 3,
+		RightElevon = 4,
+		LeftVTail = 5,
+		RightVTail = 6,
+		LeftFlaps = 7,
+		RightFlaps = 8,
+		LeftAileron = 9,
+		RightAileron = 10,
+		Airbrakes = 11,
+		Custom = 12,
+	};
 
-	EXPECT_EQ(actuator_sp, actuator_sp_expected);
-	EXPECT_EQ(control_allocated, control_allocated_expected);
-}
+	struct Params {
+		Type type;
+
+		matrix::Vector3f torque;
+	};
+
+	ActuatorEffectivenessControlSurfaces(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessControlSurfaces() = default;
+
+	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+
+	const char *name() const override { return "Control Surfaces"; }
+
+	int count() const { return _count; }
+
+	const Params &config(int idx) const { return _params[idx]; }
+
+	void applyFlapsAndAirbrakes(float flaps_control, float airbrakes_control, int first_actuator_idx,
+				    ActuatorVector &actuator_sp) const;
+
+private:
+	void updateParams() override;
+
+	struct ParamHandles {
+		param_t type;
+
+		param_t torque[3];
+	};
+	ParamHandles _param_handles[MAX_COUNT];
+	param_t _count_handle;
+
+	Params _params[MAX_COUNT] {};
+	int _count{0};
+};

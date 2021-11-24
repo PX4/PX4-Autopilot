@@ -41,9 +41,22 @@
 
 #pragma once
 
-#include <ControlAllocation/ControlAllocation.hpp>
-
 #include <matrix/matrix/math.hpp>
+
+enum class AllocationMethod {
+	NONE = -1,
+	PSEUDO_INVERSE = 0,
+	SEQUENTIAL_DESATURATION = 1,
+	AUTO = 2,
+};
+
+enum class ActuatorType {
+	MOTORS = 0,
+	SERVOS,
+
+	COUNT
+};
+
 
 class ActuatorEffectiveness
 {
@@ -51,14 +64,44 @@ public:
 	ActuatorEffectiveness() = default;
 	virtual ~ActuatorEffectiveness() = default;
 
-	static constexpr uint8_t NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
-	static constexpr uint8_t NUM_AXES = ControlAllocation::NUM_AXES;
+	static constexpr int NUM_ACTUATORS = 16;
+	static constexpr int NUM_AXES = 6;
+
+	static constexpr int MAX_NUM_MATRICES = 2;
+
+	using EffectivenessMatrix = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>;
+	using ActuatorVector = matrix::Vector<float, NUM_ACTUATORS>;
 
 	enum class FlightPhase {
 		HOVER_FLIGHT = 0,
 		FORWARD_FLIGHT = 1,
 		TRANSITION_HF_TO_FF = 2,
 		TRANSITION_FF_TO_HF = 3
+	};
+
+	struct Configuration {
+		/**
+		 * Add an actuator to the selected matrix, returning the index, or -1 on error
+		 */
+		int addActuator(ActuatorType type, const matrix::Vector3f &torque, const matrix::Vector3f &thrust);
+
+		/**
+		 * Call this after manually adding N actuators to the selected matrix
+		 */
+		void actuatorsAdded(ActuatorType type, int count);
+
+		int totalNumActuators() const;
+
+		/// Configured effectiveness matrix. Actuators are expected to be filled in order, motors first, then servos
+		EffectivenessMatrix effectiveness_matrices[MAX_NUM_MATRICES];
+
+		int num_actuators_matrix[MAX_NUM_MATRICES]; ///< current amount, and next actuator index to fill in to effectiveness_matrices
+		ActuatorVector trim[MAX_NUM_MATRICES];
+
+		int selected_matrix;
+
+		uint8_t matrix_selection_indexes[NUM_ACTUATORS * MAX_NUM_MATRICES];
+		int num_actuators[(int)ActuatorType::COUNT];
 	};
 
 	/**
@@ -72,21 +115,27 @@ public:
 	}
 
 	/**
+	 * Get the number of effectiveness matrices. Must be <= MAX_NUM_MATRICES.
+	 * This is expected to stay constant.
+	 */
+	virtual int numMatrices() const { return 1; }
+
+	/**
+	 * Get the desired allocation method(s) for each matrix, if configured as AUTO
+	 */
+	virtual void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const
+	{
+		for (int i = 0; i < MAX_NUM_MATRICES; ++i) {
+			allocation_method_out[i] = AllocationMethod::PSEUDO_INVERSE;
+		}
+	}
+
+	/**
 	 * Get the control effectiveness matrix if updated
 	 *
 	 * @return true if updated and matrix is set
 	 */
-	virtual bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) = 0;
-
-	/**
-	 * Get the actuator trims
-	 *
-	 * @return Actuator trims
-	 */
-	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorTrim() const
-	{
-		return _trim;
-	}
+	virtual bool getEffectivenessMatrix(Configuration &configuration, bool force) = 0;
 
 	/**
 	 * Get the current flight phase
@@ -99,16 +148,25 @@ public:
 	}
 
 	/**
-	 * Get the number of actuators
-	 */
-	virtual int numActuators() const = 0;
-
-	/**
 	 * Display name
 	 */
 	virtual const char *name() const = 0;
 
+
+	/**
+	 * Callback from the control allocation, allowing to manipulate the setpoint.
+	 * This can be used to e.g. add non-linear or external terms.
+	 * It is called after the matrix multiplication and before final clipping.
+	 * @param actuator_sp input & output setpoint
+	 */
+	virtual void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+				    int matrix_index, ActuatorVector &actuator_sp) {}
+
+	/**
+	 * Get a bitmask of motors to be stopped
+	 */
+	virtual uint32_t getStoppedMotors() const { return 0; }
+
 protected:
-	matrix::Vector<float, NUM_ACTUATORS> _trim;			///< Actuator trim
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase
 };

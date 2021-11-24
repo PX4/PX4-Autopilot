@@ -60,9 +60,6 @@ ControlAllocationSequentialDesaturation::allocate()
 		mixAirmodeDisabled();
 		break;
 	}
-
-	// Clip
-	clipActuatorSetpoint(_actuator_sp);
 }
 
 void ControlAllocationSequentialDesaturation::desaturateActuators(
