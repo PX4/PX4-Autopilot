@@ -59,6 +59,8 @@ public:
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 	int numActuators() const override { return 7; }
+
+	const char *name() const override { return "Standard VTOL"; }
 protected:
 	bool _updated{true};
 };
