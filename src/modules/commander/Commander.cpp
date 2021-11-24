@@ -1163,6 +1163,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		cmd_result = handle_command_motor_test(cmd);
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_ACTUATOR_TEST:
+		cmd_result = handle_command_actuator_test(cmd);
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN: {
 
 			const int param1 = cmd.param1;
@@ -1429,6 +1433,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 	case vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN:
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_PITCHYAW:
 	case vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE:
+	case vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR:
 		/* ignore commands that are handled by other parts of the system */
 		break;
 
@@ -1492,6 +1497,58 @@ Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 	test_motor.driver_instance = 0; // the mavlink command does not allow to specify the instance, so set to 0 for now
 	_test_motor_pub.publish(test_motor);
 
+	return vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+}
+
+unsigned
+Commander::handle_command_actuator_test(const vehicle_command_s &cmd)
+{
+	if (_armed.armed || (_safety.safety_switch_available && !_safety.safety_off)) {
+		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+	}
+
+	actuator_test_s actuator_test{};
+	actuator_test.timestamp = hrt_absolute_time();
+	actuator_test.function = (int)(cmd.param5 + 0.5);
+
+	if (actuator_test.function < 1000) {
+		const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
+		const int first_servo_function = 33;
+
+		if (actuator_test.function >= first_motor_function
+		    && actuator_test.function < first_motor_function + actuator_test_s::MAX_NUM_MOTORS) {
+			actuator_test.function = actuator_test.function - first_motor_function + actuator_test_s::FUNCTION_MOTOR1;
+
+		} else if (actuator_test.function >= first_servo_function
+			   && actuator_test.function < first_servo_function + actuator_test_s::MAX_NUM_SERVOS) {
+			actuator_test.function = actuator_test.function - first_servo_function + actuator_test_s::FUNCTION_SERVO1;
+
+		} else {
+			return vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+		}
+
+	} else {
+		actuator_test.function -= 1000;
+	}
+
+	actuator_test.value = cmd.param1;
+
+	actuator_test.action = actuator_test_s::ACTION_DO_CONTROL;
+	int timeout_ms = (int)(cmd.param2 * 1000.f + 0.5f);
+
+	if (timeout_ms <= 0) {
+		actuator_test.action = actuator_test_s::ACTION_RELEASE_CONTROL;
+
+	} else {
+		actuator_test.timeout_ms = timeout_ms;
+	}
+
+	// enforce a timeout and a maximum limit
+	if (actuator_test.timeout_ms == 0 || actuator_test.timeout_ms > 3000) {
+		actuator_test.timeout_ms = 3000;
+	}
+
+	_actuator_test_pub.publish(actuator_test);
 	return vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 }
 
@@ -1739,7 +1796,7 @@ Commander::run()
 	bool sensor_fail_tune_played = false;
 
 	const param_t param_airmode = param_find("MC_AIRMODE");
-	const param_t param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
+	const param_t param_man_arm_gesture = param_find("MAN_ARM_GESTURE");
 
 	/* initialize */
 	led_init();
@@ -1794,9 +1851,6 @@ Commander::run()
 	_last_lpos_fail_time_us = _boot_timestamp;
 	_last_gpos_fail_time_us = _boot_timestamp;
 	_last_lvel_fail_time_us = _boot_timestamp;
-
-	int32_t airmode = 0;
-	int32_t rc_map_arm_switch = 0;
 
 	_status.system_id = _param_mav_sys_id.get();
 	arm_auth_init(&_mavlink_log_pub, &_status.system_id);
@@ -1862,19 +1916,20 @@ Commander::run()
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
-			if (param_airmode != PARAM_INVALID && param_rc_map_arm_switch != PARAM_INVALID) {
+			if (param_airmode != PARAM_INVALID && param_man_arm_gesture != PARAM_INVALID) {
+				int32_t airmode = 0, man_arm_gesture = 0;
 				param_get(param_airmode, &airmode);
-				param_get(param_rc_map_arm_switch, &rc_map_arm_switch);
+				param_get(param_man_arm_gesture, &man_arm_gesture);
 
-				if (airmode == 2 && rc_map_arm_switch == 0) {
+				if (airmode == 2 && man_arm_gesture == 1) {
 					airmode = 1; // change to roll/pitch airmode
 					param_set(param_airmode, &airmode);
-					mavlink_log_critical(&_mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch\t")
+					mavlink_log_critical(&_mavlink_log_pub, "Yaw Airmode requires disabling the stick arm gesture\t")
 					/* EVENT
 					 * @description <param>MC_AIRMODE</param> is now set to roll/pitch airmode.
 					 */
-					events::send(events::ID("commander_airmode_requires_arm_sw"), {events::Log::Error, events::LogInternal::Disabled},
-						     "Yaw Airmode requires the use of an Arm Switch");
+					events::send(events::ID("commander_airmode_requires_no_arm_gesture"), {events::Log::Error, events::LogInternal::Disabled},
+						     "Yaw Airmode requires disabling the stick arm gesture");
 				}
 			}
 
@@ -2135,7 +2190,9 @@ Commander::run()
 
 		_cpuload_sub.update(&_cpuload);
 
-		battery_status_check();
+		if (_battery_status_subs.updated()) {
+			battery_status_check();
+		}
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!_status_flags.condition_calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
@@ -3549,24 +3606,6 @@ void Commander::avoidance_check()
 
 void Commander::battery_status_check()
 {
-	// We need to update the status flag if ANY battery is updated, because the system source might have
-	// changed, or might be nothing (if there is no battery connected)
-	if (!_battery_status_subs.updated()) {
-		// Nothing has changed since the last time this function was called, so nothing needs to be done now.
-		return;
-	}
-
-	battery_status_s batteries[_battery_status_subs.size()];
-	size_t num_connected_batteries = 0;
-
-	for (auto &battery_sub : _battery_status_subs) {
-		if (battery_sub.copy(&batteries[num_connected_batteries])) {
-			if (batteries[num_connected_batteries].connected) {
-				num_connected_batteries++;
-			}
-		}
-	}
-
 	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
 	// option is to check if ANY of them have a warning, and specifically find which one has the most
 	// urgent warning.
@@ -3574,52 +3613,62 @@ void Commander::battery_status_check()
 	// To make sure that all connected batteries are being regularly reported, we check which one has the
 	// oldest timestamp.
 	hrt_abstime oldest_update = hrt_absolute_time();
+	size_t num_connected_batteries{0};
+	float worst_battery_time_s{NAN};
 
 	_battery_current = 0.0f;
-	float battery_level = 0.0f;
 
+	for (auto &battery_sub : _battery_status_subs) {
+		battery_status_s battery;
 
-	// Only iterate over connected batteries. We don't care if a disconnected battery is not regularly publishing.
-	for (size_t i = 0; i < num_connected_batteries; i++) {
-		if (batteries[i].warning > worst_warning) {
-			worst_warning = batteries[i].warning;
+		if (!battery_sub.copy(&battery)) {
+			continue;
 		}
 
-		if (hrt_elapsed_time(&batteries[i].timestamp) > hrt_elapsed_time(&oldest_update)) {
-			oldest_update = batteries[i].timestamp;
-		}
+		if (battery.connected) {
+			num_connected_batteries++;
 
-		// Sum up current from all batteries.
-		_battery_current += batteries[i].current_filtered_a;
+			if (battery.warning > worst_warning) {
+				worst_warning = battery.warning;
+			}
 
-		// average levels from all batteries
-		battery_level += batteries[i].remaining;
-	}
+			if (battery.timestamp < oldest_update) {
+				oldest_update = battery.timestamp;
+			}
 
-	battery_level /= num_connected_batteries;
+			if (PX4_ISFINITE(battery.time_remaining_s)
+			    && (!PX4_ISFINITE(worst_battery_time_s)
+				|| (PX4_ISFINITE(worst_battery_time_s) && (battery.time_remaining_s < worst_battery_time_s)))) {
+				worst_battery_time_s = battery.time_remaining_s;
+			}
 
-	_rtl_flight_time_sub.update();
-	float battery_usage_to_home = 0;
-
-	if (hrt_absolute_time() - _rtl_flight_time_sub.get().timestamp < 2_s) {
-		battery_usage_to_home = _rtl_flight_time_sub.get().rtl_limit_fraction;
-	}
-
-	uint8_t battery_range_warning = battery_status_s::BATTERY_WARNING_NONE;
-
-	if (PX4_ISFINITE(battery_usage_to_home)) {
-		float battery_at_home = battery_level - battery_usage_to_home;
-
-		if (battery_at_home < _param_bat_crit_thr.get()) {
-			battery_range_warning =  battery_status_s::BATTERY_WARNING_CRITICAL;
-
-		} else if (battery_at_home < _param_bat_low_thr.get()) {
-			battery_range_warning = battery_status_s::BATTERY_WARNING_LOW;
+			// Sum up current from all batteries.
+			_battery_current += battery.current_filtered_a;
 		}
 	}
 
-	if (battery_range_warning > worst_warning) {
-		worst_warning = battery_range_warning;
+	rtl_time_estimate_s rtl_time_estimate{};
+
+	// Compare estimate of RTL time to estimate of remaining flight time
+	if (_rtl_time_estimate_sub.copy(&rtl_time_estimate)
+	    && hrt_absolute_time() - rtl_time_estimate.timestamp < 2_s
+	    && rtl_time_estimate.valid
+	    && _armed.armed
+	    && !_rtl_time_actions_done
+	    && PX4_ISFINITE(worst_battery_time_s)
+	    && rtl_time_estimate.safe_time_estimate >= worst_battery_time_s
+	    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
+	    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
+		// Try to trigger RTL
+		if (main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags,
+					  _internal_state) == TRANSITION_CHANGED) {
+			mavlink_log_emergency(&_mavlink_log_pub, "Flight time low, returning to land");
+
+		} else {
+			mavlink_log_emergency(&_mavlink_log_pub, "Flight time low, land now!");
+		}
+
+		_rtl_time_actions_done = true;
 	}
 
 	bool battery_warning_level_increased_while_armed = false;

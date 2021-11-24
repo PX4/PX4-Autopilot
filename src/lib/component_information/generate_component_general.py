@@ -65,8 +65,9 @@ for metadata_type_tuple in args.type:
             'type': int(type_id),
             'uri': uri.replace('{version}', version_dir),
             'fileCrc': file_crc,
-            'uriFallback': fallback_uri.replace('{version}', version_dir),
             }
+    if len(fallback_uri) > 0:
+        json_type['uriFallback'] = fallback_uri.replace('{version}', version_dir)
     if len(translation_uri) > 0:
         json_type['translationUri'] = translation_uri
     metadata_types.append(json_type)

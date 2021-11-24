@@ -71,9 +71,9 @@ void ManualControl::Run()
 
 		updateParams();
 
-		_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
-		_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
-		_button_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
+		_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+		_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+		_button_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
 
 		_selector.setRcInMode(_param_com_rc_in_mode.get());
 		_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
@@ -267,7 +267,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	const bool previous_stick_arm_hysteresis = _stick_arm_hysteresis.get_state();
 	_stick_arm_hysteresis.set_state_and_update(left_stick_lower_right && right_stick_centered, input.timestamp);
 
-	if (!previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
+	if (_param_man_arm_gesture.get() && !previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_RC_STICK_GESTURE);
 	}
 
@@ -277,7 +277,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	const bool previous_stick_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
 	_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
 
-	if (!previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
+	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_STICK_GESTURE);
 	}
 }
@@ -320,6 +320,11 @@ void ManualControl::evaluateModeSlot(uint8_t mode_slot)
 
 void ManualControl::sendActionRequest(int8_t action, int8_t source, int8_t mode)
 {
+	// We catch default unassigned mode slots which have value -1
+	if (action == action_request_s::ACTION_SWITCH_MODE && mode < 0) {
+		return;
+	}
+
 	action_request_s action_request{};
 	action_request.action = action;
 	action_request.source = source;

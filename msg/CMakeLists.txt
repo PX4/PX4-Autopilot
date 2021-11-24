@@ -44,6 +44,7 @@ set(msg_files
 	actuator_motors.msg
 	actuator_outputs.msg
 	actuator_servos.msg
+	actuator_test.msg
 	adc_report.msg
 	airspeed.msg
 	airspeed_validated.msg
@@ -130,7 +131,7 @@ set(msg_files
 	rc_channels.msg
 	rc_parameter_map.msg
 	rpm.msg
-	rtl_flight_time.msg
+	rtl_time_estimate.msg
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
@@ -163,7 +164,6 @@ set(msg_files
 	ulog_stream.msg
 	ulog_stream_ack.msg
 	vehicle_acceleration.msg
-	vehicle_actuator_setpoint.msg
 	vehicle_air_data.msg
 	vehicle_angular_acceleration.msg
 	vehicle_angular_acceleration_setpoint.msg

@@ -35,7 +35,8 @@
 
 FunctionMotors::FunctionMotors(const Context &context)
 	: _topic(&context.work_item, ORB_ID(actuator_motors)),
-	  _reversible_motors(context.reversible_motors)
+	  _reversible_motors(context.reversible_motors),
+	  _thrust_factor(context.thrust_factor)
 {
 	for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
 		_data.control[i] = NAN;
@@ -43,18 +44,8 @@ FunctionMotors::FunctionMotors(const Context &context)
 }
 void FunctionMotors::update()
 {
-	bool updated = _topic.update(&_data);
-
-	if (updated && !_reversible_motors) {
-		for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
-			if (_data.control[i] < -FLT_EPSILON) {
-				_data.control[i] = NAN;
-
-			} else {
-				// remap from [0, 1] to [-1, 1]
-				_data.control[i] = _data.control[i] * 2.f - 1.f;
-			}
-		}
+	if (_topic.update(&_data)) {
+		updateValues(_reversible_motors, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
 	}
 }
 

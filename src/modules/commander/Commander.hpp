@@ -48,6 +48,7 @@
 // publications
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/actuator_test.h>
 #include <uORB/topics/failure_detector_status.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/test_motor.h>
@@ -76,7 +77,7 @@
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/power_button_state.h>
-#include <uORB/topics/rtl_flight_time.h>
+#include <uORB/topics/rtl_time_estimate.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/telemetry_status.h>
@@ -149,6 +150,7 @@ private:
 	bool handle_command(const vehicle_command_s &cmd);
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
+	unsigned handle_command_actuator_test(const vehicle_command_s &cmd);
 
 	void executeActionRequest(const action_request_s &action_request);
 
@@ -319,6 +321,8 @@ private:
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
 
+	bool		_rtl_time_actions_done{false};
+
 	FailureDetector	_failure_detector;
 	bool		_flight_termination_triggered{false};
 	bool		_lockdown_triggered{false};
@@ -406,6 +410,7 @@ private:
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
@@ -429,13 +434,13 @@ private:
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::SubscriptionData<rtl_flight_time_s>		_rtl_flight_time_sub{ORB_ID(rtl_flight_time)};
 
 	// Publications
 	uORB::Publication<actuator_armed_s>			_armed_pub{ORB_ID(actuator_armed)};
 	uORB::Publication<commander_state_s>			_commander_state_pub{ORB_ID(commander_state)};
 	uORB::Publication<failure_detector_status_s>		_failure_detector_status_pub{ORB_ID(failure_detector_status)};
 	uORB::Publication<test_motor_s>				_test_motor_pub{ORB_ID(test_motor)};
+	uORB::Publication<actuator_test_s>			_actuator_test_pub{ORB_ID(actuator_test)};
 	uORB::Publication<vehicle_control_mode_s>		_control_mode_pub{ORB_ID(vehicle_control_mode)};
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};

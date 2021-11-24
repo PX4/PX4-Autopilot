@@ -51,7 +51,7 @@ using namespace time_literals;
 
 ControlAllocator::ControlAllocator() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::ctrl_alloc),
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	parameters_updated();
@@ -92,46 +92,6 @@ ControlAllocator::parameters_updated()
 	if (_control_allocation == nullptr) {
 		return;
 	}
-
-	// Minimum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> actuator_min;
-	actuator_min(0) = _param_ca_act0_min.get();
-	actuator_min(1) = _param_ca_act1_min.get();
-	actuator_min(2) = _param_ca_act2_min.get();
-	actuator_min(3) = _param_ca_act3_min.get();
-	actuator_min(4) = _param_ca_act4_min.get();
-	actuator_min(5) = _param_ca_act5_min.get();
-	actuator_min(6) = _param_ca_act6_min.get();
-	actuator_min(7) = _param_ca_act7_min.get();
-	actuator_min(8) = _param_ca_act8_min.get();
-	actuator_min(9) = _param_ca_act9_min.get();
-	actuator_min(10) = _param_ca_act10_min.get();
-	actuator_min(11) = _param_ca_act11_min.get();
-	actuator_min(12) = _param_ca_act12_min.get();
-	actuator_min(13) = _param_ca_act13_min.get();
-	actuator_min(14) = _param_ca_act14_min.get();
-	actuator_min(15) = _param_ca_act15_min.get();
-	_control_allocation->setActuatorMin(actuator_min);
-
-	// Maximum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> actuator_max;
-	actuator_max(0) = _param_ca_act0_max.get();
-	actuator_max(1) = _param_ca_act1_max.get();
-	actuator_max(2) = _param_ca_act2_max.get();
-	actuator_max(3) = _param_ca_act3_max.get();
-	actuator_max(4) = _param_ca_act4_max.get();
-	actuator_max(5) = _param_ca_act5_max.get();
-	actuator_max(6) = _param_ca_act6_max.get();
-	actuator_max(7) = _param_ca_act7_max.get();
-	actuator_max(8) = _param_ca_act8_max.get();
-	actuator_max(9) = _param_ca_act9_max.get();
-	actuator_max(10) = _param_ca_act10_max.get();
-	actuator_max(11) = _param_ca_act11_max.get();
-	actuator_max(12) = _param_ca_act12_max.get();
-	actuator_max(13) = _param_ca_act13_max.get();
-	actuator_max(14) = _param_ca_act14_max.get();
-	actuator_max(15) = _param_ca_act15_max.get();
-	_control_allocation->setActuatorMax(actuator_max);
 
 	_control_allocation->updateParameters();
 	update_effectiveness_matrix_if_needed(true);
@@ -335,13 +295,12 @@ ControlAllocator::Run()
 		_control_allocation->allocate();
 
 		// Publish actuator setpoint and allocator status
-		publish_actuator_setpoint();
-		publish_control_allocator_status();
+		publish_actuator_controls();
 
-		// Publish on legacy topics for compatibility with
-		// the current mixer system and multicopter controller
-		// TODO: remove
-		publish_legacy_actuator_controls();
+		if (now - _last_status_pub >= 5_ms) {
+			publish_control_allocator_status();
+			_last_status_pub = now;
+		}
 	}
 
 	perf_end(_loop_perf);
@@ -371,19 +330,6 @@ ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 		// Assign control effectiveness matrix
 		_control_allocation->setEffectivenessMatrix(effectiveness, trim, _actuator_effectiveness->numActuators());
 	}
-}
-
-void
-ControlAllocator::publish_actuator_setpoint()
-{
-	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
-
-	vehicle_actuator_setpoint_s vehicle_actuator_setpoint{};
-	vehicle_actuator_setpoint.timestamp = hrt_absolute_time();
-	vehicle_actuator_setpoint.timestamp_sample = _timestamp_sample;
-	actuator_sp.copyTo(vehicle_actuator_setpoint.actuator);
-
-	_vehicle_actuator_setpoint_pub.publish(vehicle_actuator_setpoint);
 }
 
 void
@@ -434,17 +380,17 @@ ControlAllocator::publish_control_allocator_status()
 }
 
 void
-ControlAllocator::publish_legacy_actuator_controls()
+ControlAllocator::publish_actuator_controls()
 {
 	actuator_motors_s actuator_motors;
 	actuator_motors.timestamp = hrt_absolute_time();
 	actuator_motors.timestamp_sample = _timestamp_sample;
 
-	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
+	const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp = _control_allocation->getActuatorSetpoint();
 	matrix::Vector<float, NUM_ACTUATORS> actuator_sp_normalized = _control_allocation->normalizeActuatorSetpoint(
 				actuator_sp);
 
-	for (size_t i = 0; i < actuator_motors_s::NUM_CONTROLS; i++) {
+	for (int i = 0; i < _control_allocation->numConfiguredActuators(); i++) {
 		actuator_motors.control[i] = PX4_ISFINITE(actuator_sp_normalized(i)) ? actuator_sp_normalized(i) : NAN;
 	}
 

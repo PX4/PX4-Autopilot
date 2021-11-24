@@ -83,7 +83,7 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
 	add_optional_topic("rpm", 500);
-	add_topic("rtl_flight_time", 1000);
+	add_topic("rtl_time_estimate", 1000);
 	add_topic("safety");
 	add_topic("sensor_combined");
 	add_optional_topic("sensor_correction");
@@ -198,7 +198,6 @@ void LoggedTopics::add_default_topics()
 	if (sys_ctrl_alloc >= 1) {
 		add_topic("actuator_motors", 100);
 		add_topic("actuator_servos", 100);
-		add_topic("vehicle_actuator_setpoint", 20);
 		add_topic("vehicle_angular_acceleration", 20);
 		add_topic("vehicle_angular_acceleration_setpoint", 20);
 		add_topic("vehicle_thrust_setpoint", 20);

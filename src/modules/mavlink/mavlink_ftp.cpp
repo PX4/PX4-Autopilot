@@ -572,7 +572,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 		return kErrFailErrno;
 	}
 
-	int bytes_read = ::read(_session_info.fd, &payload->data[0], kMaxDataLength);
+	int bytes_read = ::read(_session_info.fd, &payload->data[0], payload->size);
 
 	if (bytes_read < 0) {
 		// Negative return indicates error other than eof
