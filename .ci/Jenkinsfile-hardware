@@ -790,7 +790,7 @@ void runTests() {
 
   sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-*`'
 
-  //sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests file" || true'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests file" || true'
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mtd readtest"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mtd rwtest"'
