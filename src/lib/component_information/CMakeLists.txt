@@ -37,6 +37,7 @@
 # 2: COMP_METADATA_TYPE_COMMANDS
 # 3: COMP_METADATA_TYPE_PERIPHERALS
 # 4: COMP_METADATA_TYPE_EVENTS
+# 5: COMP_METADATA_TYPE_ACTUATORS
 set(comp_metadata_types)
 set(comp_metadata_board "${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}")
 set(s3_url "https://px4-travis.s3.amazonaws.com")
@@ -67,6 +68,18 @@ else()
 endif()
 list(APPEND comp_metadata_types "--type" "4,${PX4_BINARY_DIR}/events/all_events.json.xz,${comp_metadata_events_uri},${comp_metadata_events_uri_fallback},")
 
+set(comp_metadata_actuators_uri_board "${s3_url}/Firmware/{version}/${comp_metadata_board}/actuators.json.xz")
+list(FIND config_romfs_extra_dependencies "actuators_json" index)
+if (${index} EQUAL -1)
+	set(comp_metadata_actuators_uri ${comp_metadata_actuators_uri_board})
+	set(comp_metadata_actuators_uri_fallback "")
+else()
+	set(comp_metadata_actuators_uri "mftp://etc/extras/actuators.json.xz")
+	set(comp_metadata_actuators_uri_fallback ${comp_metadata_actuators_uri_board})
+endif()
+list(APPEND comp_metadata_types "--type" "5,${PX4_BINARY_DIR}/actuators.json.xz,${comp_metadata_actuators_uri},${comp_metadata_actuators_uri_fallback},")
+
+
 set(component_general_json ${PX4_BINARY_DIR}/component_general.json)
 set(component_information_header ${CMAKE_CURRENT_BINARY_DIR}/checksums.h)
 add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz ${component_information_header}
@@ -84,6 +97,8 @@ add_custom_command(OUTPUT ${component_general_json} ${component_general_json}.xz
 		parameters_xml
 		${PX4_BINARY_DIR}/events/all_events.json.xz
 		events_json
+		${PX4_BINARY_DIR}/actuators.json.xz
+		actuators_json
 		ver_gen
 		generate_crc.py
 	COMMENT "Generating component_general.json and checksums.h"

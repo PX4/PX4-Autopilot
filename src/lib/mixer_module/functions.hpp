@@ -53,6 +53,7 @@ public:
 	struct Context {
 		px4::WorkItem &work_item;
 		bool reversible_motors;
+		const float &thrust_factor;
 	};
 
 	FunctionProviderBase() = default;
@@ -122,11 +123,39 @@ public:
 	uORB::SubscriptionCallbackWorkItem *subscriptionCallback() override { return &_topic; }
 
 	bool getLatestSampleTimestamp(hrt_abstime &t) const override { t = _data.timestamp_sample; return t != 0; }
+
+	static inline void updateValues(bool reversible, float thrust_factor, float *values, int num_values);
 private:
 	uORB::SubscriptionCallbackWorkItem _topic;
 	actuator_motors_s _data{};
 	const bool _reversible_motors;
+	const float &_thrust_factor;
 };
+
+void FunctionMotors::updateValues(bool reversible, float thrust_factor, float *values, int num_values)
+{
+	if (thrust_factor > FLT_EPSILON) {
+		for (int i = 0; i < num_values; ++i) {
+			float control = values[i];
+			control = matrix::sign(control) * (-(1.0f - thrust_factor) / (2.0f * thrust_factor) + sqrtf((1.0f - thrust_factor) *
+							   (1.0f - thrust_factor) / (4.0f * thrust_factor * thrust_factor) + (fabsf(control) / thrust_factor)));
+			values[i] = control;
+		}
+	}
+
+	if (!reversible) {
+		for (int i = 0; i < num_values; ++i) {
+			if (values[i] < -FLT_EPSILON) {
+				values[i] = NAN;
+
+			} else {
+				// remap from [0, 1] to [-1, 1]
+				values[i] = values[i] * 2.f - 1.f;
+			}
+		}
+	}
+}
+
 
 /**
  * Functions: Servo1 ... ServoMax
