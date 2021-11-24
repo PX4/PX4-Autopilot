@@ -51,6 +51,8 @@ pipeline {
 
                     // load all airframes
                     // sh("./Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` `cd build/cubepilot_cubeorange_test/etc/init.d/airframes/; find . -regex '.*/[0-9].*' -exec basename {} \\; | cut -d '_' -f 1` || true") // test loading all airframes\
+
+                    runTestHardFault()
                   }
                 }
                 stage("status") {
@@ -121,6 +123,7 @@ pipeline {
                 stage("tests") {
                   steps {
                     runTests()
+                    runTestHardFault()
                   }
                 }
                 stage("status") {
@@ -190,6 +193,7 @@ pipeline {
                 stage("tests") {
                   steps {
                     runTests()
+                    runTestHardFault()
                   }
                 }
                 stage("status") {
@@ -259,6 +263,7 @@ pipeline {
                 stage("tests") {
                   steps {
                     runTests()
+                    runTestHardFault()
                   }
                 }
                 stage("status") {
@@ -327,6 +332,7 @@ pipeline {
                 stage("tests") {
                   steps {
                     runTests()
+                    runTestHardFault()
                   }
                 }
                 stage("status") {
@@ -562,6 +568,7 @@ pipeline {
                 stage("tests") {
                   steps {
                     runTests()
+                    runTestHardFault()
                   }
                 }
                 stage("status") {
@@ -818,6 +825,12 @@ void runTests() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
   sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
+}
+
+void runTestHardFault() {
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /fs/microsd" | grep fault_.*.log || true'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "hardfault_log fault 0" || true'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /fs/microsd" | grep fault_.*.log'
 }
 
 void printTopics() {
