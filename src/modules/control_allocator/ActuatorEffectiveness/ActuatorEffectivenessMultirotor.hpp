@@ -79,6 +79,8 @@ public:
 	bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) override;
 
 	int numActuators() const override { return _num_actuators; }
+
+	const char *name() const override { return "Multirotor"; }
 private:
 	bool _updated{true};
 	int _num_actuators{0};

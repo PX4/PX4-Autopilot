@@ -103,6 +103,11 @@ public:
 	 */
 	virtual int numActuators() const = 0;
 
+	/**
+	 * Display name
+	 */
+	virtual const char *name() const = 0;
+
 protected:
 	matrix::Vector<float, NUM_ACTUATORS> _trim;			///< Actuator trim
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};		///< Current flight phase

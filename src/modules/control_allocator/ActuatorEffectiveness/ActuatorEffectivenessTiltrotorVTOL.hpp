@@ -59,6 +59,8 @@ public:
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 	int numActuators() const override { return 10; }
+
+	const char *name() const override { return "VTOL Tiltrotor"; }
 protected:
 	bool _updated{true};
 };

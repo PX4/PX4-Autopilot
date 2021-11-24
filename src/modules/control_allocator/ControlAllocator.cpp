@@ -442,22 +442,8 @@ int ControlAllocator::print_status()
 	}
 
 	// Print current airframe
-	switch ((EffectivenessSource)_param_ca_airframe.get()) {
-	case EffectivenessSource::NONE:
-		PX4_INFO("EffectivenessSource: None");
-		break;
-
-	case EffectivenessSource::MULTIROTOR:
-		PX4_INFO("EffectivenessSource: MC parameters");
-		break;
-
-	case EffectivenessSource::STANDARD_VTOL:
-		PX4_INFO("EffectivenessSource: Standard VTOL");
-		break;
-
-	case EffectivenessSource::TILTROTOR_VTOL:
-		PX4_INFO("EffectivenessSource: Tiltrotor VTOL");
-		break;
+	if (_actuator_effectiveness != nullptr) {
+		PX4_INFO("Effectiveness Source: %s", _actuator_effectiveness->name());
 	}
 
 	// Print current effectiveness matrix
