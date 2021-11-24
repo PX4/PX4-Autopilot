@@ -1,0 +1,8 @@
+
+module_name: HIL
+actuator_output:
+  show_subgroups_if: 'SYS_HITL>0'
+  output_groups:
+    - param_prefix: HIL_ACT
+      channel_label: Channel
+      num_channels: 16

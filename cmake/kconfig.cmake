@@ -194,10 +194,12 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if (NOT CONSTRAINED_FLASH AND NOT EXTERNAL_METADATA AND NOT ${PX4_BOARD_LABEL} STREQUAL "test")
 		list(APPEND romfs_extra_files
 			${PX4_BINARY_DIR}/parameters.json.xz
-			${PX4_BINARY_DIR}/events/all_events.json.xz)
+			${PX4_BINARY_DIR}/events/all_events.json.xz
+			${PX4_BINARY_DIR}/actuators.json.xz)
 		list(APPEND romfs_extra_dependencies
 			parameters_xml
-			events_json)
+			events_json
+			actuators_json)
 	endif()
 	list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/component_general.json.xz)
 	list(APPEND romfs_extra_dependencies component_general_json)

@@ -125,6 +125,4 @@ ControlAllocationPseudoInverse::allocate()
 
 	// Clip
 	clipActuatorSetpoint(_actuator_sp);
-
-	ControlAllocation::updateControlAllocated();
 }

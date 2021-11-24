@@ -67,7 +67,6 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
-#include <uORB/topics/vehicle_actuator_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::WorkItem
@@ -108,10 +107,9 @@ private:
 
 	void update_effectiveness_matrix_if_needed(bool force = false);
 
-	void publish_actuator_setpoint();
 	void publish_control_allocator_status();
 
-	void publish_legacy_actuator_controls();
+	void publish_actuator_controls();
 
 	enum class AllocationMethod {
 		NONE = -1,
@@ -137,7 +135,6 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_sub{this, ORB_ID(vehicle_thrust_setpoint)};	 /**< vehicle thrust setpoint subscription */
 
 	// Outputs
-	uORB::Publication<vehicle_actuator_setpoint_s>	_vehicle_actuator_setpoint_pub{ORB_ID(vehicle_actuator_setpoint)};	/**< actuator setpoint publication */
 	uORB::Publication<control_allocator_status_s>	_control_allocator_status_pub{ORB_ID(control_allocator_status)};	/**< actuator setpoint publication */
 
 	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
@@ -158,44 +155,11 @@ private:
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
+	hrt_abstime _last_status_pub{0};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
-		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
-		(ParamBool<px4::params::CA_BAT_SCALE_EN>) _param_ca_bat_scale_en,
-		(ParamBool<px4::params::CA_AIR_SCALE_EN>) _param_ca_air_scale_en,
-		(ParamFloat<px4::params::CA_ACT0_MIN>) _param_ca_act0_min,
-		(ParamFloat<px4::params::CA_ACT1_MIN>) _param_ca_act1_min,
-		(ParamFloat<px4::params::CA_ACT2_MIN>) _param_ca_act2_min,
-		(ParamFloat<px4::params::CA_ACT3_MIN>) _param_ca_act3_min,
-		(ParamFloat<px4::params::CA_ACT4_MIN>) _param_ca_act4_min,
-		(ParamFloat<px4::params::CA_ACT5_MIN>) _param_ca_act5_min,
-		(ParamFloat<px4::params::CA_ACT6_MIN>) _param_ca_act6_min,
-		(ParamFloat<px4::params::CA_ACT7_MIN>) _param_ca_act7_min,
-		(ParamFloat<px4::params::CA_ACT8_MIN>) _param_ca_act8_min,
-		(ParamFloat<px4::params::CA_ACT9_MIN>) _param_ca_act9_min,
-		(ParamFloat<px4::params::CA_ACT10_MIN>) _param_ca_act10_min,
-		(ParamFloat<px4::params::CA_ACT11_MIN>) _param_ca_act11_min,
-		(ParamFloat<px4::params::CA_ACT12_MIN>) _param_ca_act12_min,
-		(ParamFloat<px4::params::CA_ACT13_MIN>) _param_ca_act13_min,
-		(ParamFloat<px4::params::CA_ACT14_MIN>) _param_ca_act14_min,
-		(ParamFloat<px4::params::CA_ACT15_MIN>) _param_ca_act15_min,
-		(ParamFloat<px4::params::CA_ACT0_MAX>) _param_ca_act0_max,
-		(ParamFloat<px4::params::CA_ACT1_MAX>) _param_ca_act1_max,
-		(ParamFloat<px4::params::CA_ACT2_MAX>) _param_ca_act2_max,
-		(ParamFloat<px4::params::CA_ACT3_MAX>) _param_ca_act3_max,
-		(ParamFloat<px4::params::CA_ACT4_MAX>) _param_ca_act4_max,
-		(ParamFloat<px4::params::CA_ACT5_MAX>) _param_ca_act5_max,
-		(ParamFloat<px4::params::CA_ACT6_MAX>) _param_ca_act6_max,
-		(ParamFloat<px4::params::CA_ACT7_MAX>) _param_ca_act7_max,
-		(ParamFloat<px4::params::CA_ACT8_MAX>) _param_ca_act8_max,
-		(ParamFloat<px4::params::CA_ACT9_MAX>) _param_ca_act9_max,
-		(ParamFloat<px4::params::CA_ACT10_MAX>) _param_ca_act10_max,
-		(ParamFloat<px4::params::CA_ACT11_MAX>) _param_ca_act11_max,
-		(ParamFloat<px4::params::CA_ACT12_MAX>) _param_ca_act12_max,
-		(ParamFloat<px4::params::CA_ACT13_MAX>) _param_ca_act13_max,
-		(ParamFloat<px4::params::CA_ACT14_MAX>) _param_ca_act14_max,
-		(ParamFloat<px4::params::CA_ACT15_MAX>) _param_ca_act15_max
+		(ParamInt<px4::params::CA_METHOD>) _param_ca_method
 	)
 
 };

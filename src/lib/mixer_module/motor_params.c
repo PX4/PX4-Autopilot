@@ -66,6 +66,8 @@ PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
  *
  * @min 0.0
  * @max 1.0
+ * @decimal 1
+ * @increment 0.1
  * @group PWM Outputs
  */
 PARAM_DEFINE_FLOAT(THR_MDL_FAC, 0.0f);

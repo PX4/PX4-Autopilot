@@ -151,6 +151,9 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
 
         channel_label = channel_labels[channel_type_idx]
         channel_type_instance = instance_start_label[channel_type_idx]
+        group_label = channel_label + ' ' + str(channel_type_instance)
+        if group_count > 1:
+            group_label += '-' + str(channel_type_instance+group_count-1)
         group = {
             'param_prefix': param_prefix,
             'channel_label': channel_label,
@@ -159,16 +162,39 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
             'extra_function_groups': deepcopy(extra_function_groups),
             'num_channels': group_count,
             'standard_params': deepcopy(standard_params),
+            'group_label': group_label,
+            'channel_label_module_name_prefix': False,
         }
-        output_groups.append(group)
 
         if pwm_timer_param is not None:
-            timer_channels_label = channel_label + ' ' + str(channel_type_instance)
-            if group_count > 1:
-                timer_channels_label += '-' + str(channel_type_instance+group_count-1)
             pwm_timer_param_cp = deepcopy(pwm_timer_param)
+            timer_param_name = param_prefix+'_TIM'+str(timer_index)
 
-            if not dshot_support:
+            group['config_parameters'] = [
+                    {
+                        'param': timer_param_name,
+                        'function': 'primary',
+                    }
+                ]
+
+            if dshot_support:
+                # don't show pwm limit params when dshot enabled
+
+                for standard_param in group['standard_params']:
+                    group['standard_params'][standard_param]['show_if'] = timer_param_name + '>=-1'
+
+                # indicate support for changing motor spin direction
+                group['supported_actions'] = {
+                        'set_spin_direction1': {
+                            'supported_if': timer_param_name + '<-1',
+                            'actuator_types': ['motor']
+                        },
+                        'set_spin_direction2': {
+                            'supported_if': timer_param_name + '<-1',
+                            'actuator_types': ['motor']
+                        },
+                    }
+            else:
                 # remove dshot entries if no dshot support
                 values = pwm_timer_param_cp['values']
                 for key in list(values.keys()):
@@ -178,8 +204,9 @@ def get_output_groups(timer_groups, param_prefix="PWM_MAIN",
             for descr_type in ['short', 'long']:
                 descr = pwm_timer_param_cp['description'][descr_type]
                 pwm_timer_param_cp['description'][descr_type] = \
-                    descr.replace('${label}', timer_channels_label)
-            timer_params[param_prefix+'_TIM'+str(timer_index)] = pwm_timer_param_cp
+                    descr.replace('${label}', group_label)
+            timer_params[timer_param_name] = pwm_timer_param_cp
+        output_groups.append(group)
         instance_start += group_count
         instance_start_label[channel_type_idx] += group_count
     return (output_groups, timer_params)
