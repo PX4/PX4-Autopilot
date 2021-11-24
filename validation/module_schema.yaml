@@ -498,6 +498,12 @@ mixer:
                                     type: integer
                                 function:
                                     type: string
+                                identifier:
+                                    # for rules
+                                    type: string
+        rules:
+            # mixer rules, validated by the mavlink actuator component information schema
+            type: list
         config:
             # Airframe types
             type: dict
@@ -525,6 +531,8 @@ mixer:
                                     type: dict
                                     schema:
                                         actuator_type:
+                                            type: string
+                                        group_label:
                                             type: string
                                         count:
                                             # param name or fixed count
