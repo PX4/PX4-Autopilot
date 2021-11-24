@@ -44,6 +44,7 @@ add_custom_command(OUTPUT ${functions_header}
 add_custom_target(output_functions_header DEPENDS ${functions_header})
 
 px4_add_library(mixer_module
+	actuator_test.cpp
 	mixer_module.cpp
 	functions.cpp
 	)

@@ -423,6 +423,8 @@ endforeach()
 
 # add events lib after modules and libs as it needs to know all source files (PX4_SRC_FILES)
 add_subdirectory(src/lib/events EXCLUDE_FROM_ALL)
+# metadata needs PX4_MODULE_CONFIG_FILES
+add_subdirectory(src/lib/metadata EXCLUDE_FROM_ALL)
 
 # must be the last module before firmware
 add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)

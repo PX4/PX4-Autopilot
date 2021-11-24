@@ -1,9 +1,10 @@
-module_name: IO PWM Output
+module_name: PWM MAIN
 actuator_output:
   output_groups:
     - generator: pwm
       param_prefix: PWM_MAIN
-      channel_labels: ['PWM Main', 'PWM Capture']
+      channel_labels: ['MAIN', 'Capture']
+      channel_label_module_name_prefix: false
       timer_config_file: "boards/px4/io-v2/src/timer_config.cpp"
       standard_params:
         disarmed: { min: 800, max: 2200, default: 900 }
