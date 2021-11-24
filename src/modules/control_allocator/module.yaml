@@ -1,4 +1,6 @@
 __max_num_mc_motors: &max_num_mc_motors 8
+__max_num_servos: &max_num_servos 8
+__max_num_tilts: &max_num_tilts 4
 
 module_name: Control Allocation
 
@@ -22,30 +24,50 @@ parameters:
             description:
                 short: Control allocation method
                 long: |
-                  Selects the algorithm and desaturation method
+                  Selects the algorithm and desaturation method.
+                  If set to Automtic, the selection is based on the airframe (CA_AIRFRAME).
             type: enum
             values:
                 0: Pseudo-inverse with output clipping
                 1: Pseudo-inverse with sequential desaturation technique
-            default: 1
+                2: Automatic
+            default: 2
 
-        # MC rotors
-        CA_MC_R_COUNT:
+        # Motor parameters
+        CA_R_REV:
+            description:
+                short: Reversible motors
+                long: |
+                  Configure motors to be reversible. Note that the output driver needs to support this as well.
+            type: bitmask
+            bit:
+                0: Motor 1
+                1: Motor 2
+                2: Motor 3
+                3: Motor 4
+                4: Motor 5
+                5: Motor 6
+                6: Motor 7
+                7: Motor 8
+            default: 0
+
+        # (MC) Rotors
+        CA_ROTOR_COUNT:
             description:
                 short: Total number of rotors
             type: enum
             values:
-                0: 0 Motors
-                1: 1 Motor
-                2: 2 Motors
-                3: 3 Motors
-                4: 4 Motors
-                5: 5 Motors
-                6: 6 Motors
-                7: 7 Motors
-                8: 8 Motors
+                0: '0'
+                1: '1'
+                2: '2'
+                3: '3'
+                4: '4'
+                5: '5'
+                6: '6'
+                7: '7'
+                8: '8'
             default: 0
-        CA_MC_R${i}_PX:
+        CA_ROTOR${i}_PX:
             description:
                 short: Position of rotor ${i} along X body axis
             type: float
@@ -56,7 +78,7 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-        CA_MC_R${i}_PY:
+        CA_ROTOR${i}_PY:
             description:
                 short: Position of rotor ${i} along Y body axis
             type: float
@@ -67,7 +89,7 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-        CA_MC_R${i}_PZ:
+        CA_ROTOR${i}_PZ:
             description:
                 short: Position of rotor ${i} along Z body axis
             type: float
@@ -79,7 +101,7 @@ parameters:
             max: 100
             default: 0.0
 
-        CA_MC_R${i}_AX:
+        CA_ROTOR${i}_AX:
             description:
                 short: Axis of rotor ${i} thrust vector, X body axis component
                 long: Only the direction is considered (the vector is normalized).
@@ -90,7 +112,7 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-        CA_MC_R${i}_AY:
+        CA_ROTOR${i}_AY:
             description:
                 short: Axis of rotor ${i} thrust vector, Y body axis component
                 long: Only the direction is considered (the vector is normalized).
@@ -101,7 +123,7 @@ parameters:
             min: -100
             max: 100
             default: 0.0
-        CA_MC_R${i}_AZ:
+        CA_ROTOR${i}_AZ:
             description:
                 short: Axis of rotor ${i} thrust vector, Z body axis component
                 long: Only the direction is considered (the vector is normalized).
@@ -113,7 +135,7 @@ parameters:
             max: 100
             default: -1.0
 
-        CA_MC_R${i}_CT:
+        CA_ROTOR${i}_CT:
             description:
                 short: Thrust coefficient of rotor ${i}
                 long: |
@@ -128,7 +150,7 @@ parameters:
             max: 100
             default: 6.5
 
-        CA_MC_R${i}_KM:
+        CA_ROTOR${i}_KM:
             description:
                 short: Moment coefficient of rotor ${i}
                 long: |
@@ -143,6 +165,163 @@ parameters:
             min: -1
             max: 1
             default: 0.05
+        CA_ROTOR${i}_TILT:
+            description:
+                short: Rotor ${i} tilt assignment
+                long: If not set to None, this motor is tilted by the configured tilt servo.
+            type: enum
+            values:
+                0: 'None'
+                1: 'Tilt 1'
+                2: 'Tilt 2'
+                3: 'Tilt 3'
+                4: 'Tilt 4'
+            num_instances: *max_num_mc_motors
+            instance_start: 0
+            default: 0
+
+        # control surfaces
+        CA_SV_CS_COUNT:
+            description:
+                short: Total number of Control Surfaces
+            type: enum
+            values:
+                0: '0'
+                1: '1'
+                2: '2'
+                3: '3'
+                4: '4'
+                5: '5'
+                6: '6'
+                7: '7'
+                8: '8'
+            default: 0
+        CA_SV_CS${i}_TYPE:
+            description:
+                short: Control Surface ${i} type
+            type: enum
+            values:
+                1: Elevator
+                2: Rudder
+                3: Left Elevon
+                4: Right Elevon
+                5: Left V-Tail
+                6: Right V-Tail
+                7: Left Flaps
+                8: Right Flaps
+                9: Left Aileron
+                10: Right Aileron
+                11: Airbrakes
+                12: Custom
+            num_instances: *max_num_servos
+            instance_start: 0
+            default: 1
+
+        CA_SV_CS${i}_TRQ_R:
+            description:
+                short: Control Surface ${i} roll torque scaling
+            type: float
+            decimal: 2
+            num_instances: *max_num_servos
+            instance_start: 0
+            default: 0.0
+
+        CA_SV_CS${i}_TRQ_P:
+            description:
+                short: Control Surface ${i} pitch torque scaling
+            type: float
+            decimal: 2
+            num_instances: *max_num_servos
+            instance_start: 0
+            default: 0.0
+
+        CA_SV_CS${i}_TRQ_Y:
+            description:
+                short: Control Surface ${i} yaw torque scaling
+            type: float
+            decimal: 2
+            num_instances: *max_num_servos
+            instance_start: 0
+            default: 0.0
+
+        # Tilts
+        CA_SV_TL_COUNT:
+            description:
+                short: Total number of Tilt Servos
+            type: enum
+            values:
+                0: '0'
+                1: '1'
+                2: '2'
+                3: '3'
+                4: '4'
+            default: 0
+        CA_SV_TL${i}_CT:
+            description:
+                short: Tilt ${i} is used for control
+                long: Define if this servo is used for additional control.
+            type: enum
+            values:
+                0: 'None'
+                1: 'Yaw'
+            num_instances: *max_num_tilts
+            instance_start: 0
+            default: 1
+        CA_SV_TL${i}_MINA:
+            description:
+                short: Tilt Servo ${i} Tilt Angle at Minimum
+                long: |
+                  Defines the tilt angle when the servo is at the minimum.
+                  An angle of zero means upwards.
+            type: float
+            decimal: 0
+            unit: 'deg'
+            num_instances: *max_num_tilts
+            instance_start: 0
+            min: -90.0
+            max: 90.0
+            default: 0.0
+        CA_SV_TL${i}_MAXA:
+            description:
+                short: Tilt Servo ${i} Tilt Angle at Maximum
+                long: |
+                  Defines the tilt angle when the servo is at the maximum.
+                  An angle of zero means upwards.
+            type: float
+            decimal: 0
+            unit: 'deg'
+            num_instances: *max_num_tilts
+            instance_start: 0
+            min: -90.0
+            max: 90.0
+            default: 90.0
+        CA_SV_TL${i}_TD:
+            description:
+                short: Tilt Servo ${i} Tilt Direction
+                long: |
+                  Defines the direction the servo tilts towards when moving towards the maximum tilt angle.
+                  For example if the minimum tilt angle is -90, the maximum 90, and the direction 'Towards Front',
+                  the motor axis aligns with the XZ-plane, points towards -X at the minimum and +X at the maximum tilt.
+            type: enum
+            values:
+                0: 'Towards Front'
+                90: 'Towards Right'
+            num_instances: *max_num_tilts
+            instance_start: 0
+            default: 0
+
+        # Standard VTOL
+        CA_STDVTOL_N_P:
+            description:
+                short: Number of fixed wing (pusher/puller) motors
+            type: enum
+            values:
+                1: '1'
+                2: '2'
+                3: '3'
+                4: '4'
+            default: 1
+
 
 # Mixer
 mixer:
@@ -153,6 +332,12 @@ mixer:
                 min: 0
                 max: 1
                 default_is_nan: true
+            per_item_parameters:
+              - name: 'CA_R_REV'
+                label: 'Reversible'
+                show_as: 'bitset'
+                index_offset: 0
+                advanced: true
         servo:
             functions: 'Servo'
             actuator_testing_values:
@@ -165,42 +350,125 @@ mixer:
                 max: 1
                 default: -1
 
+    rules:
+      - select_identifier: 'servo-type' # restrict torque based on servo type
+        apply_identifiers: ['servo-torque-roll', 'servo-torque-pitch', 'servo-torque-yaw']
+        items:
+            # TODO
+            1: # Elevator
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+            2: # Rudder
+              - { 'hidden': True, 'default': 0.0 } # roll
+              - { 'hidden': True, 'default': 0.0 } # pitch
+              - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # yaw
+            3: # Left elevon
+              - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # roll
+              - { 'min': -1.0, 'max': 0.0, 'default': -1.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+            4: # Right elevon
+              - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # roll
+              - { 'min': 0.0, 'max': 1.0, 'default': 1.0 } # pitch
+              - { 'hidden': True, 'default': 0.0 } # yaw
+
     config:
         param: CA_AIRFRAME
         types:
             0: # Multirotor
-                type: "multirotor"
+                type: 'multirotor'
                 actuators:
                   - actuator_type: 'motor'
-                    count: 'CA_MC_R_COUNT'
+                    count: 'CA_ROTOR_COUNT'
                     per_item_parameters:
                         standard:
-                            position: [ 'CA_MC_R${i}_PX', 'CA_MC_R${i}_PY', 'CA_MC_R${i}_PZ' ]
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
                         extra:
-                          - name: 'CA_MC_R${i}_KM'
+                          - name: 'CA_ROTOR${i}_KM'
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
 
-            2: # Tiltrotor VTOL example
+            1: # Standard VTOL
                 actuators:
                   - actuator_type: 'motor'
-                    instances:
-                      - name: 'Front Left Motor'
-                        position: [ 0.3, -0.3, 0 ]
-                      - name: 'Front Right Motor'
-                        position: [ 0.3, 0.3, 0 ]
-                      - name: 'Rear Motor'
-                        position: [ -0.75, 0.3, 0 ]
+                    group_label: 'MC Motors'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_KM'
+                            label: 'Direction CCW'
+                            function: 'spin-dir'
+                            show_as: 'true-if-positive'
+                  - actuator_type: 'motor'
+                    group_label: 'FW Motors'
+                    count: 'CA_STDVTOL_N_P'
+                    item_label_prefix: 'FW Motor ${i}'
                   - actuator_type: 'servo'
-                    instances:
-                      - name: 'Front Left Tilt'
-                        position: [ 0.3, -0.3, 0 ]
-                      - name: 'Front Right Tilt'
-                        position: [ 0.3, 0.3, 0 ]
-                      - name: 'Left Elevon'
-                        position: [ 0, -0.3, 0 ]
-                      - name: 'Right Elevon'
-                        position: [ 0, 0.3, 0 ]
+                    group_label: 'Control Surfaces'
+                    count: 'CA_SV_CS_COUNT'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_CS${i}_TYPE'
+                            label: 'Type'
+                            function: 'type'
+                            identifier: 'servo-type'
+                          - name: 'CA_SV_CS${i}_TRQ_R'
+                            label: 'Roll Scale'
+                            identifier: 'servo-torque-roll'
+                          - name: 'CA_SV_CS${i}_TRQ_P'
+                            label: 'Pitch Scale'
+                            identifier: 'servo-torque-pitch'
+                          - name: 'CA_SV_CS${i}_TRQ_Y'
+                            label: 'Yaw Scale'
+                            identifier: 'servo-torque-yaw'
+
+            2: # Tiltrotor VTOL
+                actuators:
+                  - actuator_type: 'motor'
+                    group_label: 'MC Motors'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_TILT'
+                            label: 'Tilted by'
+                  - actuator_type: 'servo'
+                    group_label: 'Control Surfaces'
+                    count: 'CA_SV_CS_COUNT'
+                    item_label_prefix: 'Surface ${i}'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_CS${i}_TYPE'
+                            label: 'Type'
+                            function: 'type'
+                            identifier: 'servo-type'
+                          - name: 'CA_SV_CS${i}_TRQ_R'
+                            label: 'Roll Torque'
+                            identifier: 'servo-torque-roll'
+                          - name: 'CA_SV_CS${i}_TRQ_P'
+                            label: 'Pitch Torque'
+                            identifier: 'servo-torque-pitch'
+                          - name: 'CA_SV_CS${i}_TRQ_Y'
+                            label: 'Yaw Torque'
+                            identifier: 'servo-torque-yaw'
+                  - actuator_type: 'servo'
+                    group_label: 'Tilt Servos'
+                    count: 'CA_SV_TL_COUNT'
+                    item_label_prefix: 'Tilt ${i}'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_TL${i}_MINA'
+                            label: "Angle at Min\nTilt"
+                          - name: 'CA_SV_TL${i}_MAXA'
+                            label: "Angle at Max\nTilt"
+                          - name: 'CA_SV_TL${i}_TD'
+                            label: 'Tilt Direction'
+                          - name: 'CA_SV_TL${i}_CT'
+                            label: 'Use for Control'
+
 
 

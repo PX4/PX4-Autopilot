@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,67 @@
  *
  ****************************************************************************/
 
-/**
- * @file ControlAllocationTest.cpp
- *
- * Tests for Control Allocation Algorithms
- *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
- */
+#pragma once
 
-#include <gtest/gtest.h>
-#include <ControlAllocationPseudoInverse.hpp>
+#include "ActuatorEffectiveness.hpp"
+#include "ActuatorEffectivenessRotors.hpp"
 
-using namespace matrix;
+#include <px4_platform_common/module_params.h>
 
-TEST(ControlAllocationTest, AllZeroCase)
+class ActuatorEffectivenessTilts : public ModuleParams, public ActuatorEffectiveness
 {
-	ControlAllocationPseudoInverse method;
+public:
 
-	matrix::Vector<float, 6> control_sp;
-	matrix::Vector<float, 6> control_allocated;
-	matrix::Vector<float, 6> control_allocated_expected;
-	matrix::Matrix<float, 6, 16> effectiveness;
-	matrix::Vector<float, 16> actuator_sp;
-	matrix::Vector<float, 16> actuator_trim;
-	matrix::Vector<float, 16> actuator_sp_expected;
+	static constexpr int MAX_COUNT = 4;
 
-	method.setEffectivenessMatrix(effectiveness, actuator_trim, 16);
-	method.setControlSetpoint(control_sp);
-	method.allocate();
-	method.clipActuatorSetpoint();
-	actuator_sp = method.getActuatorSetpoint();
-	control_allocated_expected = method.getAllocatedControl();
+	enum class Control : int32_t {
+		// This matches with the parameter
+		None = 0,
+		Yaw = 1,
+	};
+	enum class TiltDirection : int32_t {
+		// This matches with the parameter
+		TowardsFront = 0,
+		TowardsRight = 90,
+	};
 
-	EXPECT_EQ(actuator_sp, actuator_sp_expected);
-	EXPECT_EQ(control_allocated, control_allocated_expected);
-}
+	struct Params {
+		Control control;
+		float min_angle;
+		float max_angle;
+		TiltDirection tilt_direction;
+	};
+
+	ActuatorEffectivenessTilts(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessTilts() = default;
+
+	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+
+	const char *name() const override { return "Tilts"; }
+
+	int count() const { return _count; }
+
+	const Params &config(int idx) const { return _params[idx]; }
+
+	void updateYawSign(const ActuatorEffectivenessRotors::Geometry &geometry);
+
+	bool hasYawControl() const;
+
+private:
+	void updateParams() override;
+
+	struct ParamHandles {
+		param_t control;
+		param_t min_angle;
+		param_t max_angle;
+		param_t tilt_direction;
+	};
+
+	ParamHandles _param_handles[MAX_COUNT];
+	param_t _count_handle;
+
+	Params _params[MAX_COUNT] {};
+	int _count{0};
+
+	float _yaw_torque[MAX_COUNT] {};
+};

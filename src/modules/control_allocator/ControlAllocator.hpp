@@ -42,7 +42,7 @@
 #pragma once
 
 #include <ActuatorEffectiveness.hpp>
-#include <ActuatorEffectivenessMultirotor.hpp>
+#include <ActuatorEffectivenessRotors.hpp>
 #include <ActuatorEffectivenessStandardVTOL.hpp>
 #include <ActuatorEffectivenessTiltrotorVTOL.hpp>
 
@@ -61,8 +61,6 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
@@ -72,6 +70,11 @@
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::WorkItem
 {
 public:
+	static constexpr int NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
+	static constexpr int NUM_AXES = ControlAllocation::NUM_AXES;
+
+	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
+
 	ControlAllocator();
 
 	virtual ~ControlAllocator();
@@ -92,9 +95,6 @@ public:
 
 	bool init();
 
-	static constexpr uint8_t NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
-	static constexpr uint8_t NUM_AXES = ControlAllocation::NUM_AXES;
-
 private:
 
 	/**
@@ -102,8 +102,8 @@ private:
 	 */
 	void parameters_updated();
 
-	void update_allocation_method();
-	void update_effectiveness_source();
+	void update_allocation_method(bool force);
+	bool update_effectiveness_source();
 
 	void update_effectiveness_matrix_if_needed(bool force = false);
 
@@ -111,14 +111,10 @@ private:
 
 	void publish_actuator_controls();
 
-	enum class AllocationMethod {
-		NONE = -1,
-		PSEUDO_INVERSE = 0,
-		SEQUENTIAL_DESATURATION = 1,
-	};
-
 	AllocationMethod _allocation_method_id{AllocationMethod::NONE};
-	ControlAllocation *_control_allocation{nullptr}; 	///< class for control allocation calculations
+	ControlAllocation *_control_allocation[ActuatorEffectiveness::MAX_NUM_MATRICES] {}; 	///< class for control allocation calculations
+	int _num_control_allocation{0};
+	hrt_abstime _last_effectiveness_update{0};
 
 	enum class EffectivenessSource {
 		NONE = -1,
@@ -130,9 +126,15 @@ private:
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
 	ActuatorEffectiveness *_actuator_effectiveness{nullptr}; 	///< class providing actuator effectiveness
 
+	uint8_t _control_allocation_selection_indexes[NUM_ACTUATORS * ActuatorEffectiveness::MAX_NUM_MATRICES] {};
+	int _num_actuators[(int)ActuatorType::COUNT] {};
+
 	// Inputs
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{this, ORB_ID(vehicle_torque_setpoint)};  /**< vehicle torque setpoint subscription */
 	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_sub{this, ORB_ID(vehicle_thrust_setpoint)};	 /**< vehicle thrust setpoint subscription */
+
+	uORB::Subscription _vehicle_torque_setpoint1_sub{ORB_ID(vehicle_torque_setpoint), 1};  /**< vehicle torque setpoint subscription (2. instance) */
+	uORB::Subscription _vehicle_thrust_setpoint1_sub{ORB_ID(vehicle_thrust_setpoint), 1};	 /**< vehicle thrust setpoint subscription (2. instance) */
 
 	// Outputs
 	uORB::Publication<control_allocator_status_s>	_control_allocator_status_pub{ORB_ID(control_allocator_status)};	/**< actuator setpoint publication */
@@ -142,14 +144,10 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};				/**< airspeed subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	matrix::Vector3f _torque_sp;
 	matrix::Vector3f _thrust_sp;
-
-	// float _battery_scale_factor{1.0f};
-	// float _airspeed_scale_factor{1.0f};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
@@ -159,7 +157,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,
-		(ParamInt<px4::params::CA_METHOD>) _param_ca_method
+		(ParamInt<px4::params::CA_METHOD>) _param_ca_method,
+		(ParamInt<px4::params::CA_R_REV>) _param_r_rev
 	)
 
 };
