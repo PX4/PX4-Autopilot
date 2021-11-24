@@ -138,17 +138,6 @@ PARAM_DEFINE_INT32(RTL_TYPE, 0);
 PARAM_DEFINE_INT32(RTL_CONE_ANG, 45);
 
 /**
- * Maximum allowed RTL flight in minutes
- *
- * This is used to determine when the vehicle should be switched to RTL due to low battery.
- * Note, particularly for multirotors this should reflect flight time at cruise speed, not while stationary
- *
- * @unit min
- * @group Commander
- */
-PARAM_DEFINE_FLOAT(RTL_FLT_TIME, 15);
-
-/**
  * RTL precision land mode
  *
  * Use precision landing when doing an RTL landing phase.
@@ -185,3 +174,32 @@ PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
  * @group Return Mode
  */
 PARAM_DEFINE_INT32(RTL_HDG_MD, 0);
+
+/**
+ * RTL time estimate safety margin factor
+ *
+ * Safety factor that is used to scale the actual RTL time estiamte.
+ * Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+ *
+ * @min 1.0
+ * @max 2.0
+ * @decimal 1
+ * @increment 0.1
+ * @group Return To Land
+ */
+PARAM_DEFINE_FLOAT(RTL_TIME_FACTOR, 1.1f);
+
+/**
+ * RTL time estimate safety margin offset
+ *
+ * Margin that is added to the time estimate, after it has already been scaled
+ * Time with margin = RTL_TIME_FACTOR * time + RTL_TIME_MARGIN
+ *
+ * @unit s
+ * @min 0
+ * @max 300
+ * @decimal 1
+ * @increment 1
+ * @group Return To Land
+ */
+PARAM_DEFINE_INT32(RTL_TIME_MARGIN, 110);
