@@ -134,7 +134,6 @@ private:
 	enum class PrintLoadReason {
 		Preflight,
 		Postflight,
-		Watchdog
 	};
 
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */

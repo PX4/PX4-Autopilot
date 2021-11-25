@@ -45,7 +45,6 @@ px4_add_module(
 		log_writer_file.cpp
 		log_writer_mavlink.cpp
 		util.cpp
-		watchdog.cpp
 	DEPENDS
 		version
 	)
