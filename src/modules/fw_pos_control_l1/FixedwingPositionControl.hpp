@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -363,7 +363,7 @@ private:
 					float pitch_min_rad, float pitch_max_rad,
 					float throttle_min, float throttle_max, float throttle_cruise,
 					bool climbout_mode, float climbout_pitch_min_rad,
-					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL, float hgt_rate_sp = NAN);
+					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
 
 	DEFINE_PARAMETERS(
 
