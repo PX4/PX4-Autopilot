@@ -56,7 +56,7 @@
 class TECS
 {
 public:
-	TECS() = default;
+	TECS();
 	~TECS() = default;
 
 	// no copy, assignment, move, move assignment
@@ -370,5 +370,7 @@ private:
 	_alt_control_traj_generator;	// generates height rate and altitude setpoint trajectory when altitude is commanded
 	ManualVelocitySmoothingZ
 	_velocity_control_traj_generator;	// generates height rate and altitude setpoint trajectory when height rate is commanded
+
+	uORB::Publication<tecs_status_s>	_tecs_status_pub{ORB_ID(tecs_status)};
 
 };

@@ -50,6 +50,12 @@ static constexpr float DT_MAX = 1.0f;	///< max value of _dt allowed before a fil
  * @author Paul Riseborough
  */
 
+
+TECS::TECS()
+{
+	_tecs_status_pub.advertise();
+}
+
 /*
  * This function implements a complementary filter to estimate the climb rate when
  * inertial nav data is not available. It also calculates a true airspeed derivative

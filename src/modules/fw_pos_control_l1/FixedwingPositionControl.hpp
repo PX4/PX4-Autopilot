@@ -156,8 +156,7 @@ private:
 
 	uORB::Publication<vehicle_attitude_setpoint_s>		_attitude_sp_pub;
 	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication
-	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication
-	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication
+	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication					///< TECS status publication
 	uORB::PublicationMulti<orbit_status_s>			_orbit_status_pub{ORB_ID(orbit_status)};
 
 	manual_control_setpoint_s	_manual_control_setpoint {};			///< r/c channel data
@@ -282,7 +281,6 @@ private:
 		DASH_FULL
 	};
 
-	// bool _conditions_for_eco_dash_met{false};
 	hrt_abstime _time_conditions_not_met{0};
 
 	float _last_airspeed_setpoint{NAN};
