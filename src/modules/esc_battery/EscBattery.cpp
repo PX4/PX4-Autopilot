@@ -102,17 +102,13 @@ EscBattery::Run()
 		const bool connected = true;
 		const int priority = 0;
 
-		actuator_controls_s ctrl;
-		_actuator_ctrl_0_sub.copy(&ctrl);
-
 		_battery.updateBatteryStatus(
 			esc_status.timestamp,
 			average_voltage_v,
 			total_current_a,
 			connected,
 			battery_status_s::BATTERY_SOURCE_ESCS,
-			priority,
-			ctrl.control[actuator_controls_s::INDEX_THROTTLE]);
+			priority);
 	}
 }
 

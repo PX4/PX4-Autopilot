@@ -71,7 +71,7 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 
 void
 AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw,
-				      int source, int priority, float throttle_normalized)
+				      int source, int priority)
 {
 	float voltage_v = voltage_raw * _analog_params.v_div;
 	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
@@ -81,7 +81,7 @@ AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, 
 
 
 	Battery::updateBatteryStatus(timestamp, voltage_v, current_a, connected,
-				     source, priority, throttle_normalized);
+				     source, priority);
 }
 
 bool AnalogBattery::is_valid()

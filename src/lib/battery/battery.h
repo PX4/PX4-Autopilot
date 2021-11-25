@@ -54,6 +54,8 @@
 #include <lib/parameters/param.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 
 /**
@@ -91,10 +93,9 @@ public:
 	 * @param timestamp: Time at which the ADC was read (use hrt_absolute_time())
 	 * @param source: Source type in relation to BAT%d_SOURCE param.
 	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
-	 * @param throttle_normalized: Throttle of the vehicle, between 0 and 1
 	 */
 	void updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
-				 int source, int priority, float throttle_normalized);
+				 int source, int priority);
 
 protected:
 	struct {
@@ -130,11 +131,12 @@ protected:
 
 private:
 	void sumDischarged(const hrt_abstime &timestamp, float current_a);
-	void estimateStateOfCharge(const float voltage_v, const float current_a, const float throttle);
+	void estimateStateOfCharge(const float voltage_v, const float current_a);
 	uint8_t determineWarning(float state_of_charge);
 	void computeScale();
 	float computeRemainingTime(float current_a);
 
+	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	bool _battery_initialized{false};

@@ -74,8 +74,7 @@ INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
 		0.0,
 		false,
 		battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-		0,
-		0.0
+		0
 	);
 }
 
@@ -199,16 +198,13 @@ int INA238::collect()
 		bus_voltage = current = 0;
 	}
 
-	_actuators_sub.copy(&_actuator_controls);
-
 	_battery.updateBatteryStatus(
 		hrt_absolute_time(),
 		(float) bus_voltage * INA238_VSCALE,
 		(float) current * _current_lsb,
 		success,
 		battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-		0,
-		_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE]
+		0
 	);
 
 	perf_end(_sample_perf);
@@ -269,8 +265,7 @@ void INA238::RunImpl()
 			0.0f,
 			false,
 			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-			0,
-			0.0f
+			0
 		);
 
 		if (init() != PX4_OK) {
