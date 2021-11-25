@@ -97,19 +97,17 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) 
 }
 
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
-				  int source, int priority, float throttle_normalized)
+				  int source, int priority)
 {
 	if (!_battery_initialized) {
 		_voltage_filter_v.reset(voltage_v);
 		_current_filter_a.reset(current_a);
-		_throttle_filter.reset(throttle_normalized);
 	}
 
 	_voltage_filter_v.update(voltage_v);
 	_current_filter_a.update(current_a);
-	_throttle_filter.update(throttle_normalized);
 	sumDischarged(timestamp, current_a);
-	estimateStateOfCharge(_voltage_filter_v.getState(), _current_filter_a.getState(), _throttle_filter.getState());
+	estimateStateOfCharge(_voltage_filter_v.getState(), _current_filter_a.getState());
 	computeScale();
 
 	if (connected && _battery_initialized) {
@@ -169,7 +167,7 @@ void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)
 	_last_timestamp = timestamp;
 }
 
-void Battery::estimateStateOfCharge(const float voltage_v, const float current_a, const float throttle)
+void Battery::estimateStateOfCharge(const float voltage_v, const float current_a)
 {
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _params.n_cells;
@@ -179,6 +177,15 @@ void Battery::estimateStateOfCharge(const float voltage_v, const float current_a
 		cell_voltage += _params.r_internal * current_a;
 
 	} else {
+		actuator_controls_s actuator_controls{};
+		_actuator_controls_0_sub.copy(&actuator_controls);
+		const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
+		_throttle_filter.update(throttle);
+
+		if (!_battery_initialized) {
+			_throttle_filter.reset(throttle);
+		}
+
 		// assume linear relation between throttle and voltage drop
 		cell_voltage += throttle * _params.v_load_drop;
 	}

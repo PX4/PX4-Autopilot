@@ -56,10 +56,9 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/battery/battery.h>
 #include <lib/conversion/rotation.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/adc_report.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -100,7 +99,6 @@ public:
 private:
 	void Run() override;
 
-	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};				/**< notification of parameter updates */
 	uORB::SubscriptionCallbackWorkItem _adc_report_sub{this, ORB_ID(adc_report)};
 
@@ -220,16 +218,12 @@ BatteryStatus::adc_poll()
 
 		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
-			actuator_controls_s ctrl{};
-			_actuator_ctrl_0_sub.copy(&ctrl);
-
 			_analogBatteries[b]->updateBatteryStatusADC(
 				hrt_absolute_time(),
 				bat_voltage_adc_readings[b],
 				bat_current_adc_readings[b],
 				battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-				b,
-				ctrl.control[actuator_controls_s::INDEX_THROTTLE]
+				b
 			);
 		}
 	}
