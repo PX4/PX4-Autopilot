@@ -95,6 +95,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/px4.pdat.in ${CMAKE_CURRENT_BINARY_DI
 # APPS
 
 # libapps.a
+file(GLOB_RECURSE nuttx_apps_files LIST_DIRECTORIES false
+	${APPS_DIR}/*.c
+	${APPS_DIR}/*.h
+)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/apps/libapps.a
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${APPS_DIR}/libapps.a ${APPS_DIR}/builtin/builtin_list.h ${APPS_DIR}/builtin/builtin_proto.h
 	COMMAND find ${APPS_DIR} -type f -name \*.o -delete
@@ -103,7 +107,7 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/apps/libapps.a
 	COMMAND ${CMAKE_COMMAND} -E touch_nocreate ${APPS_DIR}/builtin/registry/.updated
 	COMMAND make --no-print-directory --silent TOPDIR="${NUTTX_DIR}" > ${CMAKE_CURRENT_BINARY_DIR}/nuttx_apps.log
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${APPS_DIR}/libapps.a ${CMAKE_CURRENT_BINARY_DIR}/apps/libapps.a
-	DEPENDS nuttx_context ${NUTTX_DIR}/include/nuttx/config.h
+	DEPENDS ${nuttx_apps_files} nuttx_context ${NUTTX_DIR}/include/nuttx/config.h
 	WORKING_DIRECTORY ${APPS_DIR}
 	#USES_TERMINAL
 )
