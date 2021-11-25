@@ -267,7 +267,7 @@ void EKF2::Run()
 		_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
 
 		// The airspeed scale factor correcton is only available via parameter as used by the airspeed module
-		param_t param_aspd_scale = param_find("ASPD_SCALE");
+		param_t param_aspd_scale = param_find("ASPD_SCALE_1");
 
 		if (param_aspd_scale != PARAM_INVALID) {
 			param_get(param_aspd_scale, &_airspeed_scale_factor);
