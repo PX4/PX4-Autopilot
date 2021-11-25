@@ -77,8 +77,7 @@ VOXLPM::init()
 			0.0,
 			false,
 			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-			0,
-			0.0
+			0
 		);
 	}
 
@@ -346,15 +345,12 @@ VOXLPM::measure()
 	if (ret == PX4_OK) {
 		switch (_ch_type) {
 		case VOXLPM_CH_TYPE_VBATT: {
-				_actuators_sub.copy(&_actuator_controls);
-
 				_battery.updateBatteryStatus(tnow,
 							     _voltage,
 							     _amperage,
 							     true,
 							     battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-							     0,
-							     _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE]);
+							     0);
 			}
 
 		// fallthrough
@@ -382,8 +378,7 @@ VOXLPM::measure()
 							     0.0,
 							     true,
 							     battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-							     0,
-							     0.0);
+							     0);
 			}
 			break;
 
