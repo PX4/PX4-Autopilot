@@ -29,12 +29,9 @@ param set-default FW_THR_MAX 0.6
 param set-default FW_THR_MIN 0.05
 param set-default FW_THR_CRUISE 0.25
 
-param set-default FW_T_ALT_TC 2
 param set-default FW_T_CLMB_MAX 8
-param set-default FW_T_HRATE_FF 0.5
 param set-default FW_T_SINK_MAX 2.7
 param set-default FW_T_SINK_MIN 2.2
-param set-default FW_T_TAS_TC 2
 
 param set-default FW_W_EN 1
 
