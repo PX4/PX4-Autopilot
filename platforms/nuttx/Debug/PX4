@@ -11,10 +11,29 @@ end
 document px4
 . Various macros for working with the PX4 firmware.
 .
+.    dmesg
+.        Prints the dmesg output (if available).
+.
 .    perf
 .        Prints the state of all performance counters.
 .
 . Use 'help <macro>' for more specific help.
+end
+
+
+define dmesg
+	if g_console_buffer
+		printf "PX4 dmesg:\n"
+		# TODO: respect head and tail
+		printf "%s\n", g_console_buffer._buffer
+	else
+		printf "PX4 dmesg unavailable\n"
+	end
+end
+
+document dmesg
+.    dmesg
+.        Prints dmesg (if available).
 end
 
 
@@ -35,7 +54,11 @@ define _perf_print
 	# PC_INTERVAL
 	if $hdr->type == 2
 		set $interval = (struct perf_ctr_interval *)$hdr
-		printf "%llu events, %llu avg, min %lluus max %lluus\n", $interval->event_count, ($interval->time_last - $interval->time_first) / $interval->event_count, $interval->time_least, $interval->time_most
+		if $interval->event_count == 0
+			printf "%llu events, %llu avg, min %lluus max %lluus\n", $interval->event_count, 0, $interval->time_least, $interval->time_most
+		else
+			printf "%llu events, %llu avg, min %lluus max %lluus\n", $interval->event_count, ($interval->time_last - $interval->time_first) / $interval->event_count, $interval->time_least, $interval->time_most
+		end
 	end
 end
 

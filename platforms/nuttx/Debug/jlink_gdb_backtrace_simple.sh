@@ -40,10 +40,10 @@ backtrace
 
 vecstate
 
-info_nxthreads
+info threads
 
-nxthread_all_bt
+bt full
 
 EOL
 
-${GDB_CMD} -silent --nh --nx --nw -batch -ix=${WORKSPACE}/platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit -x ${gdb_cmd_file} ${1}
+${GDB_CMD} -silent --nh --nx --nw -batch -x ${gdb_cmd_file} ${1}
