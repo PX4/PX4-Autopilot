@@ -78,19 +78,17 @@ Navigator::Navigator() :
 	_land(this),
 	_precland(this),
 	_rtl(this),
-	_engineFailure(this),
 	_follow_target(this)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
 	_navigation_mode_array[1] = &_loiter;
 	_navigation_mode_array[2] = &_rtl;
-	_navigation_mode_array[3] = &_engineFailure;
-	_navigation_mode_array[4] = &_takeoff;
-	_navigation_mode_array[5] = &_land;
-	_navigation_mode_array[6] = &_precland;
-	_navigation_mode_array[7] = &_vtol_takeoff;
-	_navigation_mode_array[8] = &_follow_target;
+	_navigation_mode_array[3] = &_takeoff;
+	_navigation_mode_array[4] = &_land;
+	_navigation_mode_array[5] = &_precland;
+	_navigation_mode_array[6] = &_vtol_takeoff;
+	_navigation_mode_array[7] = &_follow_target;
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
@@ -695,11 +693,6 @@ void Navigator::run()
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_precland;
 			_precland.set_mode(PrecLandMode::Required);
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-			_pos_sp_triplet_published_invalid_once = false;
-			navigation_mode_new = &_engineFailure;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:

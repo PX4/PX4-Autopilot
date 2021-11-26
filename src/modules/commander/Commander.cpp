@@ -2734,49 +2734,6 @@ Commander::run()
 
 		avoidance_check();
 
-		// engine failure detection
-		// TODO: move out of commander
-		if (_actuator_controls_sub.updated()) {
-			/* Check engine failure
-			 * only for fixed wing for now
-			 */
-			if (!_status_flags.circuit_breaker_engaged_enginefailure_check &&
-			    _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !_status.is_vtol && _armed.armed) {
-
-				actuator_controls_s actuator_controls{};
-				_actuator_controls_sub.copy(&actuator_controls);
-
-				const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
-				const float current2throttle = _battery_current / throttle;
-
-				if (((throttle > _param_ef_throttle_thres.get()) && (current2throttle < _param_ef_current2throttle_thres.get()))
-				    || _status.engine_failure) {
-
-					const float elapsed = hrt_elapsed_time(&_timestamp_engine_healthy) / 1e6f;
-
-					/* potential failure, measure time */
-					if ((_timestamp_engine_healthy > 0) && (elapsed > _param_ef_time_thres.get())
-					    && !_status.engine_failure) {
-
-						_status.engine_failure = true;
-						_status_changed = true;
-
-						PX4_ERR("Engine Failure");
-						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, true, true, false, _status);
-					}
-				}
-
-			} else {
-				/* no failure reset flag */
-				_timestamp_engine_healthy = hrt_absolute_time();
-
-				if (_status.engine_failure) {
-					_status.engine_failure = false;
-					_status_changed = true;
-				}
-			}
-		}
-
 		/* check if we are disarmed and there is a better mode to wait in */
 		if (!_armed.armed) {
 			/* if there is no radio control but GPS lock the user might want to fly using
@@ -2822,6 +2779,8 @@ Commander::run()
 
 		/* Check for failure detector status */
 		if (_failure_detector.update(_status, _vehicle_control_mode)) {
+			const bool motor_failure_changed = ((_status.failure_detector_status & vehicle_status_s::FAILURE_MOTOR) > 0) !=
+							   _failure_detector.getStatus().flags.motor;
 			_status.failure_detector_status = _failure_detector.getStatus().value;
 			auto fd_status_flags = _failure_detector.getStatusFlags();
 			_status_changed = true;
@@ -2883,6 +2842,67 @@ Commander::run()
 					imbalanced_prop_failsafe(&_mavlink_log_pub, _status, _status_flags, &_internal_state,
 								 (imbalanced_propeller_action_t)_param_com_imb_prop_act.get());
 				}
+			}
+
+			// One-time actions based on motor failure
+			if (motor_failure_changed) {
+				if (fd_status_flags.motor) {
+					mavlink_log_critical(&_mavlink_log_pub, "Motor failure detected\t");
+					events::send(events::ID("commander_motor_failure"), events::Log::Emergency,
+						     "Motor failure! Land immediately");
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, true, true, false, _status);
+
+				} else {
+					mavlink_log_critical(&_mavlink_log_pub, "Motor recovered\t");
+					events::send(events::ID("commander_motor_recovered"), events::Log::Warning,
+						     "Motor recovered, landing still advised");
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, true, true, true, _status);
+				}
+			}
+
+			if (fd_status_flags.motor) {
+				switch ((ActuatorFailureActions)_param_com_actuator_failure_act.get()) {
+				case ActuatorFailureActions::AUTO_LOITER:
+					mavlink_log_critical(&_mavlink_log_pub, "Loitering due to actuator failure\t");
+					events::send(events::ID("commander_act_failure_loiter"), events::Log::Warning,
+						     "Loitering due to actuator failure");
+					main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
+					_status_changed = true;
+					break;
+
+				case ActuatorFailureActions::AUTO_LAND:
+					mavlink_log_critical(&_mavlink_log_pub, "Landing due to actuator failure\t");
+					events::send(events::ID("commander_act_failure_land"), events::Log::Warning,
+						     "Landing due to actuator failure");
+					main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LAND, _status_flags, _internal_state);
+					_status_changed = true;
+					break;
+
+				case ActuatorFailureActions::AUTO_RTL:
+					mavlink_log_critical(&_mavlink_log_pub, "Returning home due to actuator failure\t");
+					events::send(events::ID("commander_act_failure_rtl"), events::Log::Warning,
+						     "Returning home due to actuator failure");
+					main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags, _internal_state);
+					_status_changed = true;
+					break;
+
+				case ActuatorFailureActions::TERMINATE:
+					if (!_armed.manual_lockdown) {
+						mavlink_log_critical(&_mavlink_log_pub, "Flight termination due to actuator failure\t");
+						events::send(events::ID("commander_act_failure_term"), events::Log::Warning,
+							     "Flight termination due to actuator failure");
+						_status_changed = true;
+						_armed.manual_lockdown = true;
+						send_parachute_command();
+					}
+
+					break;
+
+				default:
+					// nothing to do here
+					break;
+				}
+
 			}
 		}
 
@@ -3070,7 +3090,9 @@ Commander::run()
 			fd_status.fd_arm_escs = _failure_detector.getStatusFlags().arm_escs;
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
+			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
+			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
 			_failure_detector_status_pub.publish(fd_status);
 		}
 
@@ -3178,8 +3200,6 @@ Commander::get_circuit_breaker_params()
 			CBRK_USB_CHK_KEY);
 	_status_flags.circuit_breaker_engaged_airspd_check = circuit_breaker_enabled_by_val(_param_cbrk_airspd_chk.get(),
 			CBRK_AIRSPD_CHK_KEY);
-	_status_flags.circuit_breaker_engaged_enginefailure_check = circuit_breaker_enabled_by_val(_param_cbrk_enginefail.get(),
-			CBRK_ENGINEFAIL_KEY);
 	_status_flags.circuit_breaker_flight_termination_disabled = circuit_breaker_enabled_by_val(_param_cbrk_flightterm.get(),
 			CBRK_FLIGHTTERM_KEY);
 	_status_flags.circuit_breaker_engaged_posfailure_check = circuit_breaker_enabled_by_val(_param_cbrk_velposerr.get(),
@@ -3420,7 +3440,6 @@ Commander::update_control_mode()
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
@@ -3832,8 +3851,6 @@ void Commander::battery_status_check()
 	hrt_abstime oldest_update = hrt_absolute_time();
 	float worst_battery_time_s{NAN};
 
-	_battery_current = 0.0f;
-
 	for (auto &battery_sub : _battery_status_subs) {
 		int index = battery_sub.get_instance();
 		battery_status_s battery;
@@ -3919,8 +3936,6 @@ void Commander::battery_status_check()
 				worst_battery_time_s = battery.time_remaining_s;
 			}
 
-			// Sum up current from all batteries.
-			_battery_current += battery.current_filtered_a;
 		}
 	}
 
@@ -4386,6 +4401,7 @@ void Commander::esc_status_check()
 					esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
 					events::px4::enums::suggested_action_t action = _armed.armed ? events::px4::enums::suggested_action_t::land :
 							events::px4::enums::suggested_action_t::none;
+					// TODO: use esc_status.esc[index].actuator_function as index after SYS_CTRL_ALLOC becomes default
 					events::send<uint8_t, events::px4::enums::suggested_action_t>(events::ID("commander_esc_offline"),
 							events::Log::Critical, "ESC{1} offline. {2}", index + 1, action);
 				}

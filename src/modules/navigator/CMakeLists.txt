@@ -48,7 +48,6 @@ px4_add_module(
 		precland.cpp
 		mission_feasibility_checker.cpp
 		geofence.cpp
-		enginefailure.cpp
 		follow_target.cpp
 		vtol_takeoff.cpp
 	DEPENDS
