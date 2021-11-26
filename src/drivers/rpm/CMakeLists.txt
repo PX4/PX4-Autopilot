@@ -1,1 +1,2 @@
 add_subdirectory(pcf8583)
+add_subdirectory(brushless_rpm_sensor)
