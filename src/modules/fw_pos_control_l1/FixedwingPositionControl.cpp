@@ -2682,12 +2682,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		_reinitialize_tecs = false;
 	}
 
-	if (_vehicle_status.engine_failure) {
-		/* Force the slow downwards spiral */
-		pitch_min_rad = radians(-1.0f);
-		pitch_max_rad = radians(5.0f);
-	}
-
 	/* No underspeed protection in landing mode */
 	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
 

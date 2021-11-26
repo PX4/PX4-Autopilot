@@ -581,9 +581,10 @@ void FixedwingAttitudeControl::Run()
 						_wheel_ctrl.reset_integrator();
 					}
 
-					/* throttle passed through if it is finite and if no engine failure was detected */
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(_att_sp.thrust_body[0])
-							&& !_vehicle_status.engine_failure) ? _att_sp.thrust_body[0] : 0.0f;
+					/* throttle passed through if it is finite */
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(_att_sp.thrust_body[0])) ?
+							_att_sp.thrust_body[0] :
+							0.0f;
 
 					/* scale effort by battery status */
 					if (_param_fw_bat_scale_en.get() &&

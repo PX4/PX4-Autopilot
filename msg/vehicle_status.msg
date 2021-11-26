@@ -11,14 +11,15 @@ uint8 ARMING_STATE_IN_AIR_RESTORE = 5
 uint8 ARMING_STATE_MAX = 6
 
 # FailureDetector status
-uint8 FAILURE_NONE = 0
-uint8 FAILURE_ROLL = 1 	        # (1 << 0)
-uint8 FAILURE_PITCH = 2	        # (1 << 1)
-uint8 FAILURE_ALT = 4 	        # (1 << 2)
-uint8 FAILURE_EXT = 8 	        # (1 << 3)
-uint8 FAILURE_ARM_ESC = 16      # (1 << 4)
-uint8 FAILURE_BATTERY = 32          # (1 << 5)
-uint8 FAILURE_IMBALANCED_PROP = 64 # (1 << 6)
+uint16 FAILURE_NONE = 0
+uint16 FAILURE_ROLL = 1              # (1 << 0)
+uint16 FAILURE_PITCH = 2             # (1 << 1)
+uint16 FAILURE_ALT = 4               # (1 << 2)
+uint16 FAILURE_EXT = 8               # (1 << 3)
+uint16 FAILURE_ARM_ESC = 16          # (1 << 4)
+uint16 FAILURE_BATTERY = 32          # (1 << 5)
+uint16 FAILURE_IMBALANCED_PROP = 64  # (1 << 6)
+uint16 FAILURE_MOTOR = 128           # (1 << 7)
 
 # HIL
 uint8 HIL_STATE_OFF = 0
@@ -31,7 +32,7 @@ uint8 NAVIGATION_STATE_POSCTL = 2		# Position control mode
 uint8 NAVIGATION_STATE_AUTO_MISSION = 3		# Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4		# Auto loiter mode
 uint8 NAVIGATION_STATE_AUTO_RTL = 5		# Auto return to launch mode
-uint8 NAVIGATION_STATE_AUTO_LANDENGFAIL = 8 	# Auto land on engine failure
+uint8 NAVIGATION_STATE_UNUSED3 = 8 	        # Free slot
 uint8 NAVIGATION_STATE_UNUSED = 9	        # Free slot
 uint8 NAVIGATION_STATE_ACRO = 10		# Acro mode
 uint8 NAVIGATION_STATE_UNUSED1 = 11		# Free slot
@@ -85,11 +86,10 @@ uint8 data_link_lost_counter			# counts unique data link lost events
 
 bool high_latency_data_link_lost 			# Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost
 
-bool engine_failure				# Set to true if an engine failure is detected
 bool mission_failure				# Set to true if mission could not continue/finish
 bool geofence_violated
 
-uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
+uint16 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 
 # see SYS_STATUS mavlink message for the following
 # lower 32 bits are for the base flags, higher 32 bits are or the extended flags
