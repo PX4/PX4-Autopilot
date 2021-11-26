@@ -339,7 +339,8 @@ Mission::set_execution_mode(const uint8_t mode)
 
 					position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 					pos_sp_triplet->previous = pos_sp_triplet->current;
-					generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
+					// keep current setpoints (FW position controller generates wp to track during transition)
+					pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					publish_navigator_mission_item(); // for logging
 					_navigator->set_position_setpoint_triplet_updated();
 					issue_command(_mission_item);
@@ -863,8 +864,8 @@ Mission::set_mission_items()
 					set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 					_mission_item.yaw = _navigator->get_local_position()->heading;
 
-					/* set position setpoint to target during the transition */
-					generate_waypoint_from_heading(&pos_sp_triplet->current, _mission_item.yaw);
+					// keep current setpoints (FW position controller generates wp to track during transition)
+					pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 				}
 
 				/* takeoff completed and transitioned, move to takeoff wp as fixed wing */
@@ -1069,9 +1070,9 @@ Mission::set_mission_items()
 					/* re-enable weather vane again after alignment */
 					pos_sp_triplet->current.disable_weather_vane = false;
 
-					/* set position setpoint to target during the transition */
 					pos_sp_triplet->previous = pos_sp_triplet->current;
-					generate_waypoint_from_heading(&pos_sp_triplet->current, pos_sp_triplet->current.yaw);
+					// keep current setpoints (FW position controller generates wp to track during transition)
+					pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 				}
 
 				// ignore certain commands in mission fast forward
@@ -1799,17 +1800,6 @@ Mission::need_to_reset_mission()
 	}
 
 	return false;
-}
-
-void
-Mission::generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw)
-{
-	waypoint_from_heading_and_distance(
-		_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-		yaw, 1000000.0f,
-		&(setpoint->lat), &(setpoint->lon));
-	setpoint->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-	setpoint->yaw = yaw;
 }
 
 int32_t
