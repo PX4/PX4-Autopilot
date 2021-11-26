@@ -165,7 +165,7 @@ MavlinkFTP::_process_request(
 	// basic sanity checks; must validate length before use
 	if (payload->size > kMaxDataLength) {
 		errorCode = kErrInvalidDataSize;
-		PX4_WARN("invalid data size");
+		PX4_WARN("invalid data size: %d", payload->size);
 		goto out;
 	}
 
@@ -572,7 +572,7 @@ MavlinkFTP::_workRead(PayloadHeader *payload)
 		return kErrFailErrno;
 	}
 
-	int bytes_read = ::read(_session_info.fd, &payload->data[0], kMaxDataLength);
+	int bytes_read = ::read(_session_info.fd, &payload->data[0], payload->size);
 
 	if (bytes_read < 0) {
 		// Negative return indicates error other than eof
