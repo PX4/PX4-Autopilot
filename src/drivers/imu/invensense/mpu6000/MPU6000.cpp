@@ -436,8 +436,8 @@ uint8_t MPU6000::RegisterRead(Register reg)
 	uint8_t cmd[2] {};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
 	set_frequency(SPI_SPEED); // low speed for regular registers
-	transfer(cmd, cmd, sizeof(cmd));
 	px4_udelay(10);
+	transfer(cmd, cmd, sizeof(cmd));
 	return cmd[1];
 }
 
@@ -445,8 +445,8 @@ void MPU6000::RegisterWrite(Register reg, uint8_t value)
 {
 	uint8_t cmd[2] { (uint8_t)reg, value };
 	set_frequency(SPI_SPEED); // low speed for regular registers
-	transfer(cmd, cmd, sizeof(cmd));
 	px4_udelay(10);
+	transfer(cmd, cmd, sizeof(cmd));
 }
 
 void MPU6000::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits)
