@@ -444,20 +444,28 @@ class Tester:
         for runner in self.active_runners:
             runner.set_log_filename(
                 self.determine_logfile_path(log_dir, runner.name))
-            try:
-                runner.start()
-            except TimeoutError:
-                abort = True
-                print("A timeout happened for runner: {}"
-                      .format(runner.name))
-                break
 
-            # Workaround to prevent gz not being able to communicate
-            # with gzserver. In CI it tends to take longer.
-            if os.getenv("GITHUB_WORKFLOW") and runner.name == "gzserver":
-                time.sleep(10)
+            # Some runners need to be started a couple of times
+            # until they succeed.
+            for _ in range(10):
+                try:
+                    runner.start()
+                except TimeoutError:
+                    abort = True
+                    print("A timeout happened for runner: {}"
+                          .format(runner.name))
+                    break
+
+                if runner.has_started_ok():
+                    break
+
+                runner.stop
+                time.sleep(1)
+
             else:
-                time.sleep(2)
+                abort = True
+                print("Could not start runner: {}".format(runner.name))
+                break
 
         if abort:
             self.stop_runners()
