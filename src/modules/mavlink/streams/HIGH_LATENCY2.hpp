@@ -437,7 +437,7 @@ private:
 				msg->failure_flags |= HL_FAILURE_FLAG_RC_RECEIVER;
 			}
 
-			if (status.engine_failure) {
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_MOTOR) {
 				msg->failure_flags |= HL_FAILURE_FLAG_ENGINE;
 			}
 
