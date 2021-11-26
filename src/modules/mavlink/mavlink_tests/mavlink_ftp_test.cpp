@@ -700,7 +700,11 @@ bool MavlinkFtpTest::_removedirectory_test()
 		uint8_t		error_code;
 	};
 	static const struct _testCase rgTestCases[] = {
+#ifdef __PX4_NUTTX
+		{ "/bogus",						false,	false, 1, MavlinkFTP::kErrFailFileProtected },
+#else
 		{ "/bogus",						false,	false, 1, MavlinkFTP::kErrFileNotFound },
+#endif
 		{ _unittest_microsd_dir,				false,	false, 2, MavlinkFTP::kErrFailErrno },
 		{ _unittest_microsd_file,				false,	false, 2, MavlinkFTP::kErrFailErrno },
 		{ _unittest_microsd_dir,				true,	true, 0, MavlinkFTP::kErrNone },
@@ -808,7 +812,11 @@ bool MavlinkFtpTest::_removefile_test()
 		uint8_t		error_code;
 	};
 	static const struct _testCase rgTestCases[] = {
+#ifdef __PX4_NUTTX
+		{ "/bogus",			false, 1, MavlinkFTP::kErrFailFileProtected },
+#else
 		{ "/bogus",			false, 1, MavlinkFTP::kErrFileNotFound },
+#endif
 		{ _unittest_microsd_dir,	false, 2, MavlinkFTP::kErrFailErrno },
 		{ _unittest_microsd_file,	true,  0, MavlinkFTP::kErrNone },
 		{ _unittest_microsd_file,	false, 1, MavlinkFTP::kErrFileNotFound },
