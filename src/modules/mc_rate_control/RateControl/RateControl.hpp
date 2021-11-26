@@ -76,7 +76,11 @@ public:
 	 * @param control saturation vector from control allocator
 	 */
 	void setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive,
-				 const matrix::Vector<bool, 3> &saturation_negative);
+				 const matrix::Vector<bool, 3> &saturation_negative)
+	{
+		_control_allocator_saturation_positive = saturation_positive;
+		_control_allocator_saturation_negative = saturation_negative;
+	}
 
 	/**
 	 * Run one control loop cycle calculation
@@ -98,7 +102,12 @@ public:
 	 * Get status message of controller for logging/debugging
 	 * @param rate_ctrl_status status message to fill with internal states
 	 */
-	void getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status);
+	void getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status) const
+	{
+		rate_ctrl_status.rollspeed_integ = _rate_int(0);
+		rate_ctrl_status.pitchspeed_integ = _rate_int(1);
+		rate_ctrl_status.yawspeed_integ = _rate_int(2);
+	}
 
 private:
 	void updateIntegral(matrix::Vector3f &rate_error, const float dt);

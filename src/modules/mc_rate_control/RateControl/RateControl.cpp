@@ -47,13 +47,6 @@ void RateControl::setGains(const Vector3f &P, const Vector3f &I, const Vector3f 
 	_gain_d = D;
 }
 
-void RateControl::setSaturationStatus(const Vector<bool, 3> &saturation_positive,
-				      const Vector<bool, 3> &saturation_negative)
-{
-	_control_allocator_saturation_positive = saturation_positive;
-	_control_allocator_saturation_negative = saturation_negative;
-}
-
 Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, const Vector3f &angular_accel,
 			     const float dt, const bool landed)
 {
@@ -101,11 +94,4 @@ void RateControl::updateIntegral(Vector3f &rate_error, const float dt)
 			_rate_int(i) = math::constrain(rate_i, -_lim_int(i), _lim_int(i));
 		}
 	}
-}
-
-void RateControl::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status)
-{
-	rate_ctrl_status.rollspeed_integ = _rate_int(0);
-	rate_ctrl_status.pitchspeed_integ = _rate_int(1);
-	rate_ctrl_status.yawspeed_integ = _rate_int(2);
 }
