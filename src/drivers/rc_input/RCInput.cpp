@@ -92,6 +92,9 @@ RCInput::init()
 	// it also powers on the radio if needed
 	_rcs_fd = dsm_init(_device);
 
+	// TODO: need call?
+	// _rcs_fd = SRXLCodec::init(_device);
+
 	if (_rcs_fd < 0) {
 		return -errno;
 	}
@@ -318,35 +321,53 @@ void RCInput::Run()
 			if (vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
 
 				uint8_t cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+
+				if (input_rc_s::RC_INPUT_SOURCE_PX4FMU_SRXL == _rc_in.input_source) {
+					cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+
+					// WARNING:  SRXL uses a different bind mechanism and values than legacy receivers
+					//           It doens't require the power cycling, just sending the correct data frames
+					if (_rc_scan_locked && !_armed) {
+						if (0 < _srxl.request_bind_receiver(vcmd.param2)) {
+							cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+						}
+					}
+
 #if defined(SPEKTRUM_POWER)
 
-				if (!_rc_scan_locked && !_armed) {
-					if ((int)vcmd.param1 == 0) {
-						// DSM binding command
-						int dsm_bind_mode = (int)vcmd.param2;
+				} else if (input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM == _rc_in.input_source) {
+					if (!_rc_scan_locked && !_armed) {
+						if ((int)vcmd.param1 == 0) {
+							// DSM binding command
+							int dsm_bind_mode = (int)vcmd.param2;
 
-						int dsm_bind_pulses = 0;
+							int dsm_bind_pulses = 0;
 
-						if (dsm_bind_mode == 0) {
-							dsm_bind_pulses = DSM2_BIND_PULSES;
+							if (dsm_bind_mode == 0) {
+								dsm_bind_pulses = DSM2_BIND_PULSES;
 
-						} else if (dsm_bind_mode == 1) {
-							dsm_bind_pulses = DSMX_BIND_PULSES;
+							} else if (dsm_bind_mode == 1) {
+								dsm_bind_pulses = DSMX_BIND_PULSES;
 
-						} else {
-							dsm_bind_pulses = DSMX8_BIND_PULSES;
+							} else {
+								dsm_bind_pulses = DSMX8_BIND_PULSES;
+							}
+
+							bind_spektrum(dsm_bind_pulses);
+
+							cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 						}
 
-						bind_spektrum(dsm_bind_pulses);
-
-						cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					} else {
+						cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 					}
+
+#endif // SPEKTRUM_POWER
 
 				} else {
 					cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
-#endif // SPEKTRUM_POWER
 
 				// publish acknowledgement
 				vehicle_command_ack_s command_ack{};
@@ -710,6 +731,38 @@ void RCInput::Run()
 
 			} else {
 				// Scan the next protocol
+				set_rc_scan_state(RC_SCAN_SRXL);
+			}
+
+			break;
+
+		case RC_SCAN_SRXL:
+			if (_rc_scan_begin == 0) {
+				_rc_scan_begin = cycle_timestamp;
+				// Configure serial port for SRXL
+				_srxl.configure(_rcs_fd);
+
+			} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
+				if (newBytes > 0) {
+					rc_updated = _srxl.parse(cycle_timestamp, &_rcs_buf[0], newBytes);
+
+					if (rc_updated) {
+						_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SRXL;
+
+						// we have a new SRXL frame. Publish it.
+						fill_rc_in(_srxl.channel_count(), _srxl.channels(),   // need to verify channel units
+							   cycle_timestamp,
+							   false,  // bool frame_drop,
+							   false,  // bool failsafe,
+							   _srxl.frame_drops(),
+							   _srxl.rssi_percentage());
+						_rc_in.rc_ppm_frame_length = 0;
+						_rc_scan_locked = true;
+					}
+				}
+
+			} else {
+				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_SBUS);
 			}
 
@@ -731,6 +784,7 @@ void RCInput::Run()
 			_report_lock = false;
 			PX4_INFO("RC scan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
 		}
+
 	}
 }
 
@@ -789,6 +843,13 @@ int RCInput::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	// Not Yet Implemented.
+	// if (!strcmp(verb, "bind_srxl")) {
+	// 	PX4_INFO("Binding Spektrum SRXL receiver");
+	// 	SRXLDriver::bind(_rcs_fd);
+	// 	return 0;
+	// }
+
 #endif /* SPEKTRUM_POWER */
 
 	/* start the FMU if not running */
@@ -831,8 +892,9 @@ int RCInput::print_status()
 
 		case RC_SCAN_DSM:
 			// DSM status output
-#if defined(SPEKTRUM_POWER)
-#endif
+// #if defined(SPEKTRUM_POWER)
+// 			PX4_INFO("Spektrum Telemetry: %s", _dsm_telemetry ? "yes" : "no");
+// #endif
 			break;
 
 		case RC_SCAN_PPM:
@@ -846,6 +908,14 @@ int RCInput::print_status()
 		case RC_SCAN_ST24:
 			// SUMD status output
 			break;
+
+		case RC_SCAN_SRXL:
+#ifdef SPEKTRUM_POWER
+			// PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
+			// PX4_INFO("Spektrum Telemetry: %s", _srxl_telemetry ? "yes" : "no");
+#endif
+			break;
+
 		}
 	}
 
@@ -881,8 +951,9 @@ This module does the RC input parsing and auto-selecting the method. Supported m
 - PPM
 - SBUS
 - DSM
-- SUMD
+- SRXL
 - ST24
+- SUMD
 - TBS Crossfire (CRSF)
 
 )DESCR_STR");
