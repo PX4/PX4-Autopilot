@@ -251,6 +251,9 @@ actuator_output:
                   function:
                       type: string
                       allowed: [ enable ]
+        add_reverse_range_param:
+            # Add a separate range reversing bitmask param.
+            type: boolean
         output_groups:
             type: list
             minlength: 1

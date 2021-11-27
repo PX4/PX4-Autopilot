@@ -1,5 +1,6 @@
 module_name: '${PWM_MAIN_OR_AUX}'
 actuator_output:
+  add_reverse_range_param: true
   output_groups:
     - generator: pwm
       param_prefix: '${PWM_MAIN_OR_AUX}'

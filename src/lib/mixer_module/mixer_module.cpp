@@ -138,6 +138,9 @@ void MixingOutput::initParamHandles()
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FAIL", i + 1);
 		_param_handles[i].failsafe = param_find(param_name);
 	}
+
+	snprintf(param_name, sizeof(param_name), "%s_%s", _param_prefix, "REV");
+	_param_handle_rev_range = param_find(param_name);
 }
 
 void MixingOutput::printStatus() const
@@ -228,6 +231,12 @@ void MixingOutput::updateParams()
 			if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
 				_failsafe_value[i] = val;
 			}
+		}
+
+		int32_t rev_range_param;
+
+		if (_param_handle_rev_range != PARAM_INVALID && param_get(_param_handle_rev_range, &rev_range_param) == 0) {
+			_reverse_output_mask |= rev_range_param;
 		}
 
 		if (function_changed) {
