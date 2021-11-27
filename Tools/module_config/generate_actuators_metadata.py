@@ -130,7 +130,8 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
         return None
 
 
-    output_groups = yaml_config['actuator_output']['output_groups']
+    actuator_output_yaml = yaml_config['actuator_output']
+    output_groups = actuator_output_yaml['output_groups']
     module_name = process_module_name(yaml_config['module_name'])
     group_idx = 0
 
@@ -139,8 +140,9 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
     actuator_output = {
             'label': module_name
         }
-    if 'show_subgroups_if' in yaml_config['actuator_output']:
-        actuator_output['show-subgroups-if'] = yaml_config['actuator_output']['show_subgroups_if']
+    if 'show_subgroups_if' in actuator_output_yaml:
+        actuator_output['show-subgroups-if'] = actuator_output_yaml['show_subgroups_if']
+    add_reverse_range_param = actuator_output_yaml.get('add_reverse_range_param', False)
 
     # config parameters
     def get_config_params(param_list):
@@ -159,7 +161,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
             parameters.append(param)
         return parameters
 
-    parameters = get_config_params(yaml_config['actuator_output'].get('config_parameters', []))
+    parameters = get_config_params(actuator_output_yaml.get('config_parameters', []))
     if len(parameters) > 0:
         actuator_output['parameters'] = parameters
 
@@ -253,6 +255,16 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 if advanced: param['advanced'] = True
                 if show_if: param['show-if'] = show_if
                 per_channel_params.append(param)
+
+
+        if add_reverse_range_param:
+            param = {
+                    'label': 'Rev Range\n(for Servos)',
+                    'name': param_prefix+'_REV',
+                    'index-offset': -1,
+                    'show-as': 'bitset',
+                }
+            per_channel_params.append(param)
 
         # TODO: support non-standard per-channel parameters
 

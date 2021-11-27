@@ -178,6 +178,9 @@ def get_actuator_output_params(yaml_config, output_functions,
     all_params = {}
     group_idx = 0
 
+    add_reverse_range_param = yaml_config['actuator_output'].get('add_reverse_range_param', False)
+    all_param_prefixes = {}
+
     def add_local_param(param_name, param_def):
         nonlocal all_params
         # add as a list, as there can be multiple entries with the same param_name
@@ -259,6 +262,11 @@ def get_actuator_output_params(yaml_config, output_functions,
                     for i in range(count):
                         output_function_values[start+i] = function_name_label+' '+str(i+1)
 
+        if param_prefix not in all_param_prefixes:
+            all_param_prefixes[param_prefix] = []
+        all_param_prefixes[param_prefix].append((instance_start,
+            instance_start_label, num_channels, channel_label))
+
         # function param
         param = {
             'description': {
@@ -337,6 +345,30 @@ When set to -1 (default), the value depends on the function (see {:}).
                     'default': standard_params[key]['default'],
                     }
                 add_local_param(param_prefix+'_'+param_suffix+'${i}', param)
+
+    if add_reverse_range_param:
+        for param_prefix in all_param_prefixes:
+            groups = all_param_prefixes[param_prefix]
+            # collect the bits
+            channel_bits = {}
+            for instance_start, instance_start_label, num_instances, label in groups:
+                for instance in range(instance_start, instance_start+num_instances):
+                    instance_label = instance - instance_start + instance_start_label
+                    channel_bits[instance-1] = label + ' ' + str(instance_label)
+
+            param = {
+                'description': {
+                    'short': 'Reverse Output Range for '+module_name,
+                    'long':
+'''Allows to reverse the output range for each channel.
+Note: this is only useful for servos.
+'''.format(channel_label),
+                    },
+                'type': 'bitmask',
+                'default': 0,
+                'bit': channel_bits
+                }
+            add_local_param(param_prefix+'_REV', param)
 
     if verbose: print('adding actuator params: {:}'.format(all_params))
     return all_params
