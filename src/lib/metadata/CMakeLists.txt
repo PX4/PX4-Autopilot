@@ -33,7 +33,7 @@
 
 # actuator metadata generation
 get_property(module_config_files GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
-if(config_io_board)
+if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
 set(generated_actuators_metadata_file ${PX4_BINARY_DIR}/actuators.json)
