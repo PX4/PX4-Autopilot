@@ -385,7 +385,7 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 
 	cleanupFunctions();
 
-	const FunctionProviderBase::Context context{_interface, _reversible_motors, _param_thr_mdl_fac.reference()};
+	const FunctionProviderBase::Context context{_interface, _param_thr_mdl_fac.reference()};
 	int provider_indexes[MAX_ACTUATORS] {};
 	int next_provider = 0;
 	int subscription_callback_provider_index = INT_MAX;
@@ -776,11 +776,12 @@ bool MixingOutput::updateDynamicMixer()
 	}
 
 	// check for actuator test
-	_actuator_test.update(_max_num_outputs, _reversible_motors, _param_thr_mdl_fac.get());
+	_actuator_test.update(_max_num_outputs, _param_thr_mdl_fac.get());
 
 	// get output values
 	float outputs[MAX_ACTUATORS];
 	bool all_disabled = true;
+	_reversible_mask = 0;
 
 	for (int i = 0; i < _max_num_outputs; ++i) {
 		if (_functions[i]) {
@@ -792,6 +793,8 @@ bool MixingOutput::updateDynamicMixer()
 			} else {
 				outputs[i] = NAN;
 			}
+
+			_reversible_mask |= (uint32_t)_functions[i]->reversible(_function_assignment[i]) << i;
 
 		} else {
 			outputs[i] = NAN;
