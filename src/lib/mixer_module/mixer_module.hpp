@@ -82,7 +82,7 @@ public:
 				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
 
 	/** called whenever the mixer gets updated/reset */
-	virtual void mixerChanged() {};
+	virtual void mixerChanged() {}
 };
 
 /**
@@ -215,6 +215,12 @@ public:
 
 	void setLowrateSchedulingInterval(hrt_abstime interval) { _lowrate_schedule_interval = interval; }
 
+	/**
+	 * Get the bitmask of reversible outputs (motors only).
+	 * This might change at any time (while disarmed), so output drivers requiring this should query this regularly.
+	 */
+	uint32_t reversibleOutputs() const { return _reversible_mask; }
+
 protected:
 	void updateParams() override;
 
@@ -338,12 +344,11 @@ private:
 	bool _need_function_update{true};
 	bool _use_dynamic_mixing{false}; ///< set to _param_sys_ctrl_alloc on init (avoid changing after startup)
 	bool _has_backup_schedule{false};
-	bool _reversible_motors =
-		false; ///< whether or not the output module supports reversible motors (range [-1, 0] for motors)
 	const char *const _param_prefix;
 	ParamHandles _param_handles[MAX_ACTUATORS];
 	hrt_abstime _lowrate_schedule_interval{300_ms};
 	ActuatorTest _actuator_test{_function_assignment};
+	uint32_t _reversible_mask{0}; ///< per-output bits. If set, the output is configured to be reversible (motors only)
 
 	uORB::SubscriptionCallbackWorkItem *_subscription_callback{nullptr}; ///< current scheduling callback
 
