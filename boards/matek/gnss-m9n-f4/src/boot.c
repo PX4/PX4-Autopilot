@@ -40,7 +40,6 @@
 
 #include <px4_config.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include "boot_config.h"
 #include "board.h"
 
@@ -50,8 +49,6 @@
 
 #include "led.h"
 #include <nuttx/board.h>
-#include <px4_platform_common/px4_config.h>
-#include "stm32.h"
 
 
 /************************************************************************************
@@ -72,6 +69,8 @@ __EXPORT void stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_CAN1_SILENT_S0);
 	putreg32(getreg32(STM32_RCC_APB1RSTR) | RCC_APB1RSTR_CAN1RST, STM32_RCC_APB1RSTR);
 	putreg32(getreg32(STM32_RCC_APB1RSTR) & ~RCC_APB1RSTR_CAN1RST, STM32_RCC_APB1RSTR);
+
+	//led_init();
 
 #if defined(OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO)
 	stm32_configgpio(GPIO_GETNODEINFO_JUMPER);

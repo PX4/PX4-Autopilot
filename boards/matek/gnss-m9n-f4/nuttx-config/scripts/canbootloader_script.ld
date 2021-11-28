@@ -44,8 +44,8 @@
  * where the code expects to begin execution by jumping to the entry point in
  * the 0x0800:0000 address range.
  *
- * The first 16 KiB of flash is reserved for the bootloader.
- * Paramater storage will use the next 16KiB Sector.
+ * The first 32 KiB of flash is reserved for the bootloader.
+ * Paramater storage will use the next 32KiB Sector.
  */
 
 MEMORY

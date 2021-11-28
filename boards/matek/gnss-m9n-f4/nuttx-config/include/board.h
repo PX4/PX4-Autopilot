@@ -35,6 +35,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
+#include "board_dma_map.h"
 
 #ifndef __ARCH_BOARD_BOARD_H
 #define __ARCH_BOARD_BOARD_H
@@ -45,28 +46,13 @@
 #endif
 
 #include <stm32.h>
-/************************************************************************************
- * Included Files
- ************************************************************************************/
-#include "board_dma_map.h"
-
-#include <nuttx/config.h>
-
-#ifndef __ASSEMBLY__
-# include <stdint.h>
-#endif
-
-#include "stm32_rcc.h"
-#include "stm32_sdio.h"
-#include "stm32.h"
 
 /************************************************************************************
  * Definitions
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The omnibusf4sd board features a single 8MHz crystal.  Space is provided
- * for a 32kHz RTC backup crystal, but it is not stuffed.
+/* The Mateksys GNSS M9N-F4 board features a single 8MHz crystal.
  *
  * This is the canonical configuration:
  *   System Clock source           : PLL (HSE)
@@ -220,7 +206,7 @@
 #define BOARD_NLEDS       2
 
 #define BOARD_LED_BLUE    BOARD_LED1
-#define BOARD_LED_GREEN     BOARD_LED2
+#define BOARD_LED_GREEN   BOARD_LED2
 
 /* LED bits for use with stm32_setleds() */
 
@@ -250,11 +236,18 @@
 #define GPIO_USART1_RX GPIO_USART1_RX_1
 #define GPIO_USART1_TX GPIO_USART1_TX_1
 
+/* UART2:
+ *
+ * PA10 (RX) and PA9 (TX) are broken out on J5
+ */
+
+//#define GPIO_USART2_RX GPIO_USART2_RX_1
+//#define GPIO_USART2_TX GPIO_USART2_TX_1
+
 /* USART3:
  *
  * PC10 (TX) and PC11 (RX) are broken out on J4
  *
- * However, this port is shared with SPI3 which contains the BMP280 and MAX7456
  *
  * The Silkscreen pin labeled SCL is TX
  *                           MISO is RX
@@ -271,17 +264,17 @@
 #define GPIO_UART4_RX	GPIO_UART4_RX_1
 #define GPIO_UART4_TX	GPIO_UART4_TX_1
 
-/* UART6:
+/* UART5:
  *
  * PC6 (TX) and PC7 (RX) are broken out on J10
  */
 
-#define GPIO_USART6_RX GPIO_USART6_RX_1
-#define GPIO_USART6_TX GPIO_USART6_TX_1
+//#define GPIO_UART5_RX GPIO_UART5_RX_1
+//#define GPIO_UART5_TX GPIO_UART5_TX_1
 
 /* CAN */
-#define GPIO_CAN1_RX    GPIO_CAN1_RX_1
-#define GPIO_CAN1_TX    GPIO_CAN1_TX_1
+#define GPIO_CAN1_RX    GPIO_CAN1_RX_2
+#define GPIO_CAN1_TX    GPIO_CAN1_TX_2
 
 /* SPI1:
  *  CS: PA4 -- configured in board_config.h
@@ -313,9 +306,9 @@
  *  MOSI: PC12
  */
 
-#define GPIO_SPI3_SCK  GPIO_SPI3_SCK_2
-#define GPIO_SPI3_MISO GPIO_SPI3_MISO_2
-#define GPIO_SPI3_MOSI GPIO_SPI3_MOSI_2
+//#define GPIO_SPI3_SCK  GPIO_SPI3_SCK_2
+//#define GPIO_SPI3_MISO GPIO_SPI3_MISO_2
+//#define GPIO_SPI3_MOSI GPIO_SPI3_MOSI_2
 
 /*
  * I2C (external)

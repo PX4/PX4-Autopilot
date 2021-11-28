@@ -76,6 +76,7 @@
 #include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/board_dma_alloc.h>
+#include <px4_platform/gpio.h>
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <parameters/flashparams/flashfs.h>
@@ -129,9 +130,9 @@ __EXPORT void board_peripheral_reset(int ms)
 __EXPORT void board_on_reset(int status)
 {
 	/* configure the GPIO pins to outputs and keep them low */
-	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+	/*for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
-	}
+	}*/
 
 	/* On resets invoked from system (not boot) insure we establish a low
 	 * output state (discharge the pins) on PWM pins before they become inputs.
@@ -155,22 +156,10 @@ __EXPORT void board_on_reset(int status)
 __EXPORT void
 stm32_boardinitialize(void)
 {
-	/* Reset all PWM to Low outputs */
 
-	board_on_reset(-1);
-
-	/* configure LEDs */
-	//board_autoled_initialize();
-
-	/* configure CAN interface */
-	stm32_configgpio(GPIO_CAN1_RX);
-	stm32_configgpio(GPIO_CAN1_TX);
-	stm32_configgpio(GPIO_CAN1_SILENT_S0);
-
-
-	/* configure ADC pins */
-	stm32_configgpio(GPIO_ADC1_IN12);	/* BATT_VOLTAGE_SENS */
-	stm32_configgpio(GPIO_ADC1_IN11);	/* BATT_CURRENT_SENS */
+	/* configure pins */
+	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
+	px4_gpio_init(gpio, arraySize(gpio));
 
 	/* configure SPI all interfaces GPIO */
 
@@ -285,7 +274,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {
-		{1, 16 * 1024, 0x08004000},
+		{2, 32 * 1024, 0x08008000},
 		{0, 0, 0},
 	};
 

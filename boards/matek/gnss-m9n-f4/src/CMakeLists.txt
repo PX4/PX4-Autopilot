@@ -37,6 +37,8 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 		boot_config.h
 		boot.c
 		led.c
+                led.h
+                usb.c
 	)
 	target_link_libraries(drivers_board
 		PRIVATE

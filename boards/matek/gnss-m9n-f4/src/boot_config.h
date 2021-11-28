@@ -94,13 +94,12 @@
 #define OPT_WAIT_FOR_GETNODEINFO                    0
 #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO        1
 #define OPT_WAIT_FOR_GETNODEINFO_JUMPER_GPIO_INVERT 0
-
 #define OPT_ENABLE_WD           1
 
 #define OPT_RESTART_TIMEOUT_MS          20000
 
 /* Reserved for the Booloader */
-#define OPT_BOOTLOADER_SIZE_IN_K        (1024*32)
+#define OPT_BOOTLOADER_SIZE_IN_K        (1024*64)
 
 /* Reserved for the application out of the total
  * system flash minus the BOOTLOADER_SIZE_IN_K
@@ -120,7 +119,7 @@
 #define APPLICATION_LAST_32BIT_ADDRRESS ((uint32_t *)((APPLICATION_LOAD_ADDRESS+APPLICATION_SIZE)-sizeof(uint32_t)))
 #define APPLICATION_LAST_64BIT_ADDRRESS ((uint64_t *)((APPLICATION_LOAD_ADDRESS+APPLICATION_SIZE)-sizeof(uint64_t)))
 
-/* If this board uses big flash that have large sectors */
+//* If this board uses big flash that have large sectors */
 
 #define OPT_USE_YIELD
 

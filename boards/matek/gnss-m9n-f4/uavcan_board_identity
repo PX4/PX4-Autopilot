@@ -8,7 +8,7 @@ add_definitions(
 
 set(uavcanblid_hw_version_major 0)
 set(uavcanblid_hw_version_minor 140)
-set(uavcanblid_name "\"org.mateksys.gnss-m9n-f4\"")
+set(uavcanblid_name "\"org.matek.gnss-m9n-f4\"")
 
 add_definitions(
 	-DHW_UAVCAN_NAME=${uavcanblid_name}

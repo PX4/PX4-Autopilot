@@ -1,4 +1,5 @@
 {
+    "board_id": 140,
     "magic": "PX4FWv1",
     "description": "Firmware for the MatekM9nf4can cannode board",
     "image": "",
