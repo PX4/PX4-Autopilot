@@ -46,6 +46,7 @@ set EXTRA_MIXER_MODE none
 set RC_INPUT_ARGS ""
 set SDCARD_AVAILABLE no
 set SDCARD_EXT_PATH /fs/microsd/ext_autostart
+set SDCARD_FORMAT no
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set STARTUP_TUNE 1
 set USE_IO no
@@ -59,49 +60,73 @@ ver all
 #
 # Try to mount the microSD card.
 #
-# REBOOTWORK this needs to start after the flight control loop.
-if mount -t vfat /dev/mmcsd0 /fs/microsd
+if [ -b "/dev/mmcsd0" ]
 then
-	set PX4_INIT_TEST_FILE "/fs/microsd/.px4_init_test_file"
-	date >> $PX4_INIT_TEST_FILE
-
-	if [ -f $PX4_INIT_TEST_FILE ]
+	if mount -t vfat /dev/mmcsd0 /fs/microsd
 	then
-		cat $PX4_INIT_TEST_FILE
-		rm $PX4_INIT_TEST_FILE
-
-		if [ ! -f $PX4_INIT_TEST_FILE ]
+		if [ -f "/fs/microsd/.format" ]
 		then
-			set SDCARD_AVAILABLE yes
-		fi
-	fi
-fi
-
-if [ $SDCARD_AVAILABLE = no ]
-then
-	set STARTUP_TUNE 14 # tune 14 = SD_INIT
-	if mkfatfs -F 32 /dev/mmcsd0
-	then
-		if mount -t vfat /dev/mmcsd0 /fs/microsd
-		then
-			set SDCARD_AVAILABLE yes
-			echo "INFO [init] card formatted"
+			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
+			set SDCARD_FORMAT yes
+			rm /fs/microsd/.format
+			umount /fs/microsd
 
 		else
-			set STARTUP_TUNE 15 # tune 15 = SD_ERROR
+			# very basic I/O test
+			set PX4_INIT_TEST_FILE "/fs/microsd/.px4_init_test_file"
+			date >> $PX4_INIT_TEST_FILE
+
+			if [ $? -eq 0 -a -f $PX4_INIT_TEST_FILE ]
+			then
+				cat $PX4_INIT_TEST_FILE
+				rm $PX4_INIT_TEST_FILE
+
+				if [ $? -eq 0 -a ! -f $PX4_INIT_TEST_FILE ]
+				then
+					set SDCARD_AVAILABLE yes
+				fi
+			fi
+			unset PX4_INIT_TEST_FILE
+
+			if [ $SDCARD_AVAILABLE = no ]
+			then
+				echo "ERROR [init] card I/O failure, formatting"
+				set SDCARD_FORMAT yes
+				umount /fs/microsd
+			fi
+		fi
+	fi
+
+	if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
+	then
+		echo "INFO [init] formatting /dev/mmcsd0"
+		set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
+
+		if mkfatfs -F 32 /dev/mmcsd0
+		then
+			echo "INFO [init] card formatted"
+
+			if mount -t vfat /dev/mmcsd0 /fs/microsd
+			then
+				set SDCARD_AVAILABLE yes
+				set STARTUP_TUNE 14 # tune 14 = SD_INIT
+			else
+				echo "ERROR [init] card mount failed"
+			fi
+		else
 			echo "ERROR [init] format failed"
 		fi
 	fi
-fi
 
-if [ $SDCARD_AVAILABLE = yes ]
-then
-	if hardfault_log check
+	if [ $SDCARD_AVAILABLE = yes ]
 	then
-		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
-		if hardfault_log commit
+		if hardfault_log check
 		then
-			hardfault_log reset
+			set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+			if hardfault_log commit
+			then
+				hardfault_log reset
+			fi
 		fi
 	fi
 fi
@@ -547,6 +572,7 @@ unset PWM_EXTRA_RATE
 unset RC_INPUT_ARGS
 unset SDCARD_AVAILABLE
 unset SDCARD_EXT_PATH
+unset SDCARD_FORMAT
 unset SDCARD_MIXERS_PATH
 unset STARTUP_TUNE
 unset USE_IO

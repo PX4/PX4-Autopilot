@@ -165,7 +165,7 @@ MavlinkFTP::_process_request(
 	// basic sanity checks; must validate length before use
 	if (payload->size > kMaxDataLength) {
 		errorCode = kErrInvalidDataSize;
-		PX4_WARN("invalid data size");
+		PX4_WARN("invalid data size: %d", payload->size);
 		goto out;
 	}
 
