@@ -63,8 +63,18 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_id = 0;
 
-	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
-	_params_handles.vtol_motor_id = param_find("VT_MOT_ID");
+	_params_handles.sys_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
+	_params.ctrl_alloc = 0;
+	param_get(_params_handles.sys_ctrl_alloc, &_params.ctrl_alloc);
+
+	if (_params.ctrl_alloc != 1) {
+		// these are not used with dynamic control allocation
+		_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
+		_params_handles.vtol_motor_id = param_find("VT_MOT_ID");
+		_params_handles.vt_mc_on_fmu = param_find("VT_MC_ON_FMU");
+		_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
+	}
+
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
@@ -84,7 +94,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
-	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 	_params_handles.dec_to_pitch_ff = param_find("VT_B_DEC_FF");
@@ -93,7 +102,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	_params_handles.pitch_min_rad = param_find("VT_PTCH_MIN");
 	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
-	_params_handles.vt_mc_on_fmu = param_find("VT_MC_ON_FMU");
 
 	_params_handles.vt_forward_thrust_enable_mode = param_find("VT_FWD_THRUST_EN");
 	_params_handles.mpc_land_alt1 = param_find("MPC_LAND_ALT1");
@@ -265,12 +273,17 @@ VtolAttitudeControl::parameters_update()
 {
 	float v;
 	int32_t l;
-	/* idle pwm for mc mode */
-	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
 
-	/* vtol motor count */
-	param_get(_params_handles.vtol_motor_id, &_params.vtol_motor_id);
-	param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
+	if (_params.ctrl_alloc != 1) {
+		/* idle pwm for mc mode */
+		param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
+		param_get(_params_handles.vtol_motor_id, &_params.vtol_motor_id);
+		param_get(_params_handles.vt_mc_on_fmu, &l);
+		_params.vt_mc_on_fmu = l;
+
+		/* vtol motor count */
+		param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
+	}
 
 	/* vtol fw permanent stabilization */
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
@@ -354,9 +367,6 @@ VtolAttitudeControl::parameters_update()
 
 	param_get(_params_handles.dec_to_pitch_ff, &_params.dec_to_pitch_ff);
 	param_get(_params_handles.dec_to_pitch_i, &_params.dec_to_pitch_i);
-
-	param_get(_params_handles.vt_mc_on_fmu, &l);
-	_params.vt_mc_on_fmu = l;
 
 	param_get(_params_handles.vt_forward_thrust_enable_mode, &_params.vt_forward_thrust_enable_mode);
 	param_get(_params_handles.mpc_land_alt1, &_params.mpc_land_alt1);

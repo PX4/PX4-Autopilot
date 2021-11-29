@@ -235,6 +235,7 @@ private:
 		param_t vt_forward_thrust_enable_mode;
 		param_t mpc_land_alt1;
 		param_t mpc_land_alt2;
+		param_t sys_ctrl_alloc;
 	} _params_handles{};
 
 	hrt_abstime _last_run_timestamp{0};
