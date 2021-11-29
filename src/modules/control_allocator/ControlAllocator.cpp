@@ -191,6 +191,14 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessTiltrotorVTOL(this);
 			break;
 
+		case EffectivenessSource::ROVER_ACKERMANN:
+			tmp = new ActuatorEffectivenessRoverAckermann();
+			break;
+
+		case EffectivenessSource::ROVER_DIFFERENTIAL:
+			tmp = new ActuatorEffectivenessRoverDifferential();
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
