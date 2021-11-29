@@ -18,6 +18,8 @@ parameters:
                 0: Multirotor
                 1: Standard VTOL (WIP)
                 2: Tiltrotor VTOL (WIP)
+                3: Rover (Ackermann)
+                4: Rover (Differential)
             default: 0
 
         CA_METHOD:
@@ -469,6 +471,26 @@ mixer:
                             label: 'Tilt Direction'
                           - name: 'CA_SV_TL${i}_CT'
                             label: 'Use for Control'
+
+            3: # Rover (Ackermann)
+                actuators:
+                  - actuator_type: 'motor'
+                    instances:
+                      - name: 'Throttle'
+                        position: [ -1., 0, 0 ]
+                  - actuator_type: 'servo'
+                    instances:
+                      - name: 'Steering'
+                        position: [ 1., 0, 0 ]
+
+            4: # Rover (Differential)
+                actuators:
+                  - actuator_type: 'motor'
+                    instances:
+                      - name: 'Left Motor'
+                        position: [ 0, -1., 0 ]
+                      - name: 'Right Motor'
+                        position: [ 0, 1., 0 ]
 
 
 
