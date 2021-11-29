@@ -346,33 +346,39 @@ def get_mixers(yaml_config, output_functions, verbose):
 
             if 'count' in actuator_conf: # possibly dynamic size
                 actuator['count'] = actuator_conf['count']
-                per_item_params = actuator_conf['per_item_parameters']
+                per_item_params = actuator_conf.get('per_item_parameters', {})
                 params = []
                 if 'standard' in per_item_params:
                     standard_params = per_item_params['standard']
+                    index_offset = standard_params.get('index_offset', 0)
                     if 'position' in standard_params:
                         params.extend([
                         {
                             'label': 'Position X',
                             'function': 'posx',
                             'name': standard_params['position'][0],
+                            'index-offset': index_offset,
                         },
                         {
                             'label': 'Position Y',
                             'function': 'posy',
                             'name': standard_params['position'][1],
+                            'index-offset': index_offset,
                         },
                         {
                             'label': 'Position Z',
                             'function': 'posz',
                             'name': standard_params['position'][2],
                             'advanced': True,
+                            'index-offset': index_offset,
                         },
                         ])
                 if 'extra' in per_item_params:
                     for extra_param in per_item_params['extra']:
                         params.append({k.replace('_','-'): v for k, v in extra_param.items()})
                 actuator['per-item-parameters'] = params
+                if 'item_label_prefix' in actuator_conf:
+                    actuator['item-label-prefix'] = actuator_conf['item_label_prefix']
             else: # fixed size
                 labels = []
                 pos_x = []
