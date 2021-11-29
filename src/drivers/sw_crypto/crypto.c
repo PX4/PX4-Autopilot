@@ -410,7 +410,7 @@ size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx)
 
 	case CRYPTO_RSA_OAEP: {
 			rsa_key enc_key;
-			unsigned pub_key_sz;
+			size_t pub_key_sz;
 			uint8_t *pub_key = (uint8_t *)crypto_get_key_ptr(handle.keystore_handle, key_idx, &pub_key_sz);
 
 			if (pub_key &&
