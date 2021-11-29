@@ -539,6 +539,13 @@ mixer:
                                             oneof:
                                               - type: string
                                               - type: integer
+                                        item_label_prefix:
+                                            # optional per-item label prefix list or (indexed) string
+                                            oneof:
+                                              - type: list
+                                                schema:
+                                                    type: string
+                                              - type: string
                                         parameters:
                                             type: list
                                             minlength: 1
@@ -556,6 +563,8 @@ mixer:
                                                             schema:
                                                                 # position param names
                                                                 type: string
+                                                        index_offset:
+                                                            type: integer
                                                 extra:
                                                     type: list
                                                     schema: *mixer_parameter
