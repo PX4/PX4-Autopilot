@@ -199,6 +199,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessRoverDifferential();
 			break;
 
+		case EffectivenessSource::FIXED_WING:
+			tmp = new ActuatorEffectivenessFixedWing(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
