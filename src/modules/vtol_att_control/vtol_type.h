@@ -48,6 +48,7 @@
 #include <drivers/drv_pwm_output.h>
 
 struct Params {
+	int32_t ctrl_alloc;
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
 	int32_t vtol_motor_id;
 	int32_t vtol_type;
