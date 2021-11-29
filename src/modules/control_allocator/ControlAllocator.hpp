@@ -45,6 +45,8 @@
 #include <ActuatorEffectivenessRotors.hpp>
 #include <ActuatorEffectivenessStandardVTOL.hpp>
 #include <ActuatorEffectivenessTiltrotorVTOL.hpp>
+#include <ActuatorEffectivenessRoverAckermann.hpp>
+#include <ActuatorEffectivenessRoverDifferential.hpp>
 
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
@@ -121,6 +123,8 @@ private:
 		MULTIROTOR = 0,
 		STANDARD_VTOL = 1,
 		TILTROTOR_VTOL = 2,
+		ROVER_ACKERMANN = 3,
+		ROVER_DIFFERENTIAL = 4,
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
