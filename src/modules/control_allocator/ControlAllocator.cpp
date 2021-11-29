@@ -337,6 +337,8 @@ ControlAllocator::Run()
 		// Publish actuator setpoint and allocator status
 		publish_actuator_controls();
 
+		// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
+		// (i.e. anti-integrator windup)
 		if (now - _last_status_pub >= 5_ms) {
 			publish_control_allocator_status();
 			_last_status_pub = now;
