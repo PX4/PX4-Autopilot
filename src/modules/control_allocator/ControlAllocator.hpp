@@ -47,6 +47,7 @@
 #include <ActuatorEffectivenessTiltrotorVTOL.hpp>
 #include <ActuatorEffectivenessRoverAckermann.hpp>
 #include <ActuatorEffectivenessRoverDifferential.hpp>
+#include <ActuatorEffectivenessFixedWing.hpp>
 
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
@@ -125,6 +126,7 @@ private:
 		TILTROTOR_VTOL = 2,
 		ROVER_ACKERMANN = 3,
 		ROVER_DIFFERENTIAL = 4,
+		FIXED_WING = 5,
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
