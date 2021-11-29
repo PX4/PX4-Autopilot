@@ -28,6 +28,15 @@ param set-default CBRK_AIRSPD_CHK 162128
 param set-default GND_MAX_ANG 0.6
 param set-default GND_WHEEL_BASE 2.0
 
+param set-default SYS_CTRL_ALLOC 1
+param set-default CA_AIRFRAME 4
+
+param set-default CA_R_REV 3
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 101
+param set-default PWM_MAIN_FUNC6 102
+param set-default PWM_MAIN_FUNC7 102
+
 set MAV_TYPE 10
 
-set MIXER_FILE etc/mixers-sitl/rover_diff_sitl.main.mix
+set MIXER_FILE skip
