@@ -298,6 +298,10 @@ bool EKF2Selector::UpdateErrorScores()
 			_instance[i].filter_fault = (status.filter_fault_flags != 0);
 			_instance[i].timeout = false;
 
+			if (!_instance[i].warning) {
+				_instance[i].time_last_no_warning = status.timestamp_sample;
+			}
+
 			if (!PX4_ISFINITE(_instance[i].relative_test_ratio)) {
 				_instance[i].relative_test_ratio = 0;
 			}
@@ -735,7 +739,9 @@ void EKF2Selector::Run()
 			}
 
 		} else if (lower_error_available
-			   && ((hrt_elapsed_time(&_last_instance_change) > 10_s) || _instance[_selected_instance].warning)) {
+			   && ((hrt_elapsed_time(&_last_instance_change) > 10_s)
+			       || (_instance[_selected_instance].warning
+				   && (hrt_elapsed_time(&_instance[_selected_instance].time_last_no_warning) > 1_s)))) {
 
 			// if this instance has a significantly lower relative error to the active primary, we consider it as a
 			// better instance and would like to switch to it even if the current primary is healthy

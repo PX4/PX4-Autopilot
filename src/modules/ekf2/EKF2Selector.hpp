@@ -125,6 +125,7 @@ private:
 		uint32_t mag_device_id{0};
 
 		hrt_abstime time_last_selected{0};
+		hrt_abstime time_last_no_warning{0};
 
 		float combined_test_ratio{NAN};
 		float relative_test_ratio{NAN};
