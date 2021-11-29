@@ -114,14 +114,9 @@ config BOARD_ETHERNET
         flag to indicate that ethernet is enabled
 
 config BOARD_CRYPTO
-    string "Crypto"
+    bool "Crypto support"
     help
-        Crypto implementation selection
-
-config BOARD_KEYSTORE
-    string "Keystore"
-    help
-        Keystore implememntation selection
+        Enable PX4 Crypto Support. Select the implementation under drivers
 
 menu "Serial ports"
 

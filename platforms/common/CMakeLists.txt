@@ -61,4 +61,3 @@ endif()
 
 add_subdirectory(px4_work_queue)
 add_subdirectory(work_queue)
-add_subdirectory(px4_sw_crypto)

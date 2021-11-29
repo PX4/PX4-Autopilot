@@ -297,6 +297,7 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 			if ((int)nread != block_size) {
 				PX4_ERR("Read error");
+				free(read_block);
 				return -1;
 			}
 
@@ -330,5 +331,6 @@ int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 	PX4_INFO("  Avg   : %8.2lf KB/s %d blocks read and verified", (double)block_size * total_blocks / total_elapsed / 1024.,
 		 total_blocks);
+	free(read_block);
 	return 0;
 }
