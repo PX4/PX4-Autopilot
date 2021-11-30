@@ -451,17 +451,17 @@ void InputMavlinkGimbalV2::_stream_gimbal_manager_status()
 
 	if (_gimbal_device_attitude_status_sub.updated()) {
 		_gimbal_device_attitude_status_sub.copy(&gimbal_device_attitude_status);
-	}
 
-	gimbal_manager_status_s gimbal_manager_status{};
-	gimbal_manager_status.timestamp = hrt_absolute_time();
-	gimbal_manager_status.flags = gimbal_device_attitude_status.device_flags;
-	gimbal_manager_status.gimbal_device_id = 0;
-	gimbal_manager_status.primary_control_sysid = _sys_id_primary_control;
-	gimbal_manager_status.primary_control_compid = _comp_id_primary_control;
-	gimbal_manager_status.secondary_control_sysid = 0; // TODO: support secondary control
-	gimbal_manager_status.secondary_control_compid = 0; // TODO: support secondary control
-	_gimbal_manager_status_pub.publish(gimbal_manager_status);
+		gimbal_manager_status_s gimbal_manager_status{};
+		gimbal_manager_status.timestamp = hrt_absolute_time();
+		gimbal_manager_status.flags = gimbal_device_attitude_status.device_flags;
+		gimbal_manager_status.gimbal_device_id = 0;
+		gimbal_manager_status.primary_control_sysid = _sys_id_primary_control;
+		gimbal_manager_status.primary_control_compid = _comp_id_primary_control;
+		gimbal_manager_status.secondary_control_sysid = 0; // TODO: support secondary control
+		gimbal_manager_status.secondary_control_compid = 0; // TODO: support secondary control
+		_gimbal_manager_status_pub.publish(gimbal_manager_status);
+	}
 }
 
 void InputMavlinkGimbalV2::_stream_gimbal_manager_information()
