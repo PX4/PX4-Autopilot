@@ -916,7 +916,7 @@ void PX4IO::update_params()
 	}
 
 	// PWM_MAIN_TRIMx
-	if (_mixing_output.mixers()) {
+	{
 		int16_t values[8] {};
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
@@ -928,8 +928,10 @@ void PX4IO::update_params()
 			}
 		}
 
-		// copy the trim values to the mixer offsets
-		_mixing_output.mixers()->set_trims(values, _max_actuators);
+		if (_mixing_output.mixers()) {
+			// copy the trim values to the mixer offsets
+			_mixing_output.mixers()->set_trims(values, _max_actuators);
+		}
 	}
 }
 
