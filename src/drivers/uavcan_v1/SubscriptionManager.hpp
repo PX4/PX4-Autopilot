@@ -76,13 +76,14 @@
 
 #include "ServiceClients/GetInfo.hpp"
 #include "ServiceClients/Access.hpp"
+#include "ServiceClients/List.hpp"
 #include "Subscribers/BaseSubscriber.hpp"
 #include "Subscribers/Heartbeat.hpp"
 #include "Subscribers/DS-015/Battery.hpp"
 #include "Subscribers/DS-015/Esc.hpp"
 #include "Subscribers/DS-015/Gnss.hpp"
 #include "Subscribers/legacy/LegacyBatteryInfo.hpp"
-#include "Subscribers/uORB/sensor_gps.hpp"
+#include "Subscribers/uORB/uorb_subscriber.hpp"
 
 typedef struct {
 	UavcanDynamicPortSubscriber *(*create_sub)(CanardInstance &ins, UavcanParamManager &pmgr) {};
@@ -116,6 +117,7 @@ private:
 
 	// Process register requests
 	UavcanAccessResponse  _access_rsp {_canard_instance, _param_manager};
+	UavcanListResponse  _list_rsp {_canard_instance, _param_manager};
 
 	const UavcanDynSubBinder _uavcan_subs[UAVCAN_SUB_COUNT] {
 #if CONFIG_UAVCAN_V1_ESC_SUBSCRIBER
@@ -172,7 +174,7 @@ private:
 		{
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
-				return new UORB_over_UAVCAN_sensor_gps_Subscriber(ins, pmgr, 0);
+				return new uORB_over_UAVCAN_Subscriber<sensor_gps_s>(ins, pmgr, ORB_ID(sensor_gps));
 			},
 			"uorb.sensor_gps",
 			0
