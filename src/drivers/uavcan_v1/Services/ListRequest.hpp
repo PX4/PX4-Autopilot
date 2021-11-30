@@ -55,7 +55,7 @@ class UavcanListServiceRequest : public UavcanServiceRequest
 {
 public:
 	UavcanListServiceRequest(CanardInstance &ins) :
-		UavcanServiceRequest(ins, "List", uavcan_register_List_1_0_FIXED_PORT_ID_,
+		UavcanServiceRequest(ins, "", "List", uavcan_register_List_1_0_FIXED_PORT_ID_,
 				     uavcan_register_List_Response_1_0_EXTENT_BYTES_) { };
 
 

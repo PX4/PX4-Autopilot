@@ -52,7 +52,7 @@ class uORB_over_UAVCAN_Publisher : public UavcanPublisher
 public:
 	uORB_over_UAVCAN_Publisher(CanardInstance &ins, UavcanParamManager &pmgr, const orb_metadata *meta,
 				   uint8_t instance = 0) :
-		UavcanPublisher(ins, pmgr, meta->o_name, instance),
+		UavcanPublisher(ins, pmgr, "uorb.", meta->o_name, instance),
 		_uorb_meta{meta},
 		_uorb_sub(meta)
 	{};
