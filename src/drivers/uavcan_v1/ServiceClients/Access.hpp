@@ -56,7 +56,7 @@ class UavcanAccessResponse : public UavcanBaseSubscriber
 {
 public:
 	UavcanAccessResponse(CanardInstance &ins, UavcanParamManager &pmgr) :
-		UavcanBaseSubscriber(ins, "Access", 0),  _param_manager(pmgr) { };
+		UavcanBaseSubscriber(ins, "", "Access", 0),  _param_manager(pmgr) { };
 
 	void subscribe() override
 	{

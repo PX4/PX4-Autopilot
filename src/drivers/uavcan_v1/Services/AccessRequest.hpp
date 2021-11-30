@@ -55,7 +55,7 @@ class UavcanAccessServiceRequest : public UavcanServiceRequest
 {
 public:
 	UavcanAccessServiceRequest(CanardInstance &ins, UavcanParamManager &pmgr) :
-		UavcanServiceRequest(ins, "Access", uavcan_register_Access_1_0_FIXED_PORT_ID_,
+		UavcanServiceRequest(ins, "", "Access", uavcan_register_Access_1_0_FIXED_PORT_ID_,
 				     uavcan_register_Access_Response_1_0_EXTENT_BYTES_),  _param_manager(pmgr)  { };
 
 	bool setPortId(CanardNodeID node_id, uavcan_register_Name_1_0 &name, UavcanServiceRequestInterface *handler)

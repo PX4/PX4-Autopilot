@@ -68,7 +68,7 @@ public:
 	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
 
 	UavcanEscController(CanardInstance &ins, UavcanParamManager &pmgr) :
-		UavcanPublisher(ins, pmgr, "esc") { };
+		UavcanPublisher(ins, pmgr, "ds_015", "esc") { };
 
 	~UavcanEscController() {};
 

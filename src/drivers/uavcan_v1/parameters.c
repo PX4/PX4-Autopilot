@@ -141,6 +141,16 @@ PARAM_DEFINE_INT32(UCAN1_LG_BMS_SUB, -1);
  */
 PARAM_DEFINE_INT32(UCAN1_UORB_GPS, -1);
 
+
+/**
+ * sensor_gps uORB over UAVCAN v1 publication port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group UAVCAN v1
+ */
+PARAM_DEFINE_INT32(UCAN1_UORB_GPS_P, -1);
+
 // Publication Port IDs
 
 /**
