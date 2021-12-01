@@ -86,7 +86,7 @@ INA226::INA226(const I2CSPIDriverConfig &config, int battery_index) :
 	_battery.setConnected(false);
 	_battery.updateVoltage(0.f);
 	_battery.updateCurrent(0.f);
-	_battery.updateBatteryStatus(hrt_absolute_time());
+	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 }
 
 INA226::~INA226()
@@ -229,7 +229,7 @@ INA226::collect()
 	_battery.setConnected(success);
 	_battery.updateVoltage(static_cast<float>(_bus_voltage * INA226_VSCALE));
 	_battery.updateCurrent(static_cast<float>(_current * _current_lsb));
-	_battery.updateBatteryStatus(hrt_absolute_time());
+	_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 	perf_end(_sample_perf);
 
@@ -295,7 +295,7 @@ INA226::RunImpl()
 		_battery.setConnected(false);
 		_battery.updateVoltage(0.f);
 		_battery.updateCurrent(0.f);
-		_battery.updateBatteryStatus(hrt_absolute_time());
+		_battery.updateAndPublishBatteryStatus(hrt_absolute_time());
 
 		if (init() != PX4_OK) {
 			ScheduleDelayed(INA226_INIT_RETRY_INTERVAL_US);

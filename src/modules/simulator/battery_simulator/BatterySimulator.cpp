@@ -102,7 +102,7 @@ void BatterySimulator::Run()
 	_battery.setConnected(true);
 	_battery.updateVoltage(vbatt);
 	_battery.updateCurrent(ibatt);
-	_battery.updateBatteryStatus(now_us);
+	_battery.updateAndPublishBatteryStatus(now_us);
 
 	perf_end(_loop_perf);
 }
