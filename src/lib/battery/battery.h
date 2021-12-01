@@ -91,9 +91,9 @@ public:
 	void updateCurrent(const float current_a);
 
 	/**
-	 * Update current battery status message.
+	 * Update state of charge calculations
 	 *
-	 * @param timestamp: Time at which the ADC was read (use hrt_absolute_time())
+	 * @param timestamp Time at which the battery data sample was measured
 	 */
 	void updateBatteryStatus(const hrt_abstime &timestamp);
 
