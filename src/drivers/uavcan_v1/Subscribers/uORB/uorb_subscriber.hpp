@@ -32,76 +32,84 @@
  ****************************************************************************/
 
 /**
- * @file ServiceRequest.hpp
+ * @file uorb_template.hpp
  *
- * Defines a Service invoker base class and process responses
+* Defines generic, templatized uORB over UAVCANv1 publisher
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
 
 #pragma once
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <version/version.h>
+#include "../DynamicPortSubscriber.hpp"
 
-#include <uavcan/_register/List_1_0.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/actuator_outputs.h>
 
-#include "../Subscribers/BaseSubscriber.hpp"
+#include <uORB/topics/sensor_gps.h>
 
-
-class UavcanServiceRequestInterface
+template <class T>
+class uORB_over_UAVCAN_Subscriber : public UavcanDynamicPortSubscriber
 {
 public:
-	virtual void response_callback(const CanardTransfer &receive) = 0;
-};
+	uORB_over_UAVCAN_Subscriber(CanardInstance &ins, UavcanParamManager &pmgr, const orb_metadata *meta,
+				    uint8_t instance = 0) :
+		UavcanDynamicPortSubscriber(ins, pmgr, "uorb.", meta->o_name, instance),
+		_uorb_meta{meta},
+		_uorb_pub(meta)
+	{};
 
-class UavcanServiceRequest : public UavcanBaseSubscriber
-{
-public:
-	UavcanServiceRequest(CanardInstance &ins, const char *prefix_name, const char *subject_name, CanardPortID portID,
-			     size_t extent) :
-		UavcanBaseSubscriber(ins, prefix_name, subject_name, 0), _portID(portID), _extent(extent) { };
-
+	~uORB_over_UAVCAN_Subscriber() override = default;
 
 	void subscribe() override
 	{
-		// Subscribe to requests response
+		T *data = NULL;
+
+		// Subscribe to messages uORB sensor_gps payload over UAVCAN
 		canardRxSubscribe(&_canard_instance,
-				  CanardTransferKindResponse,
-				  _portID,
-				  _extent,
-				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
+				  CanardTransferKindMessage,
+				  _subj_sub._canard_sub.port_id,
+				  get_payload_size(data),
+				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC * 10000,
 				  &_subj_sub._canard_sub);
 	};
 
-	bool request(CanardTransfer *transfer, UavcanServiceRequestInterface *handler)
-	{
-		_response_callback = handler;
-		remote_node_id = transfer->remote_node_id;
-		++request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-		return canardTxPush(&_canard_instance, transfer) > 0;
-	}
-
 	void callback(const CanardTransfer &receive) override
 	{
-		PX4_INFO("Response");
+		T *data = (T *)receive.payload;
 
-		if (_response_callback != nullptr &&
-		    receive.transfer_id == (request_transfer_id - 1) &&
-		    receive.remote_node_id == remote_node_id) {
-			_response_callback->response_callback(receive);
+		if (receive.payload_size == get_payload_size(data)) {
+
+			/* Data type specific conversion if necceary  */
+			convert(data);
+
+			_uorb_pub.publish(*data);
+
+		} else {
+			PX4_ERR("uORB over UAVCAN %s payload size mismatch got %d expected %d",
+				_subj_sub._subject_name, receive.payload_size, get_payload_size(data));
 		}
 	};
 
-
-
 protected:
-	CanardTransferID request_transfer_id = 0;
-	CanardNodeID remote_node_id = CANARD_NODE_ID_UNSET;
+	// Default payload-size function -- can specialize in derived class
+	size_t get_payload_size(const T *msg)
+	{
+		(void)msg;
+		return sizeof(T);
+	};
 
-	const CanardPortID _portID;
-	const size_t _extent;
-	UavcanServiceRequestInterface *_response_callback = nullptr;
+	void convert(T *data) {};
 
+private:
+	const orb_metadata *_uorb_meta;
+	uORB::PublicationMulti<T> _uorb_pub;
 };
+
+/* ---- Specializations of get_payload_size() to reduce wasted bandwidth where possible ---- */
+
+
+/* ---- Specializations of convert() to convert incompatbile data, instance no. timestamp ---- */
+
+template<>
+void uORB_over_UAVCAN_Subscriber<sensor_gps_s>::convert(sensor_gps_s *data);

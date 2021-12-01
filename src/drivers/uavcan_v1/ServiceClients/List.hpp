@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file ServiceRequest.hpp
+ * @file List.hpp
  *
- * Defines a Service invoker base class and process responses
+ * Defines response to a List request
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
@@ -45,63 +45,72 @@
 #include <px4_platform_common/module.h>
 #include <version/version.h>
 
+#include "../ParamManager.hpp"
+
 #include <uavcan/_register/List_1_0.h>
 
 #include "../Subscribers/BaseSubscriber.hpp"
 
-
-class UavcanServiceRequestInterface
+class UavcanListResponse : public UavcanBaseSubscriber
 {
 public:
-	virtual void response_callback(const CanardTransfer &receive) = 0;
-};
-
-class UavcanServiceRequest : public UavcanBaseSubscriber
-{
-public:
-	UavcanServiceRequest(CanardInstance &ins, const char *prefix_name, const char *subject_name, CanardPortID portID,
-			     size_t extent) :
-		UavcanBaseSubscriber(ins, prefix_name, subject_name, 0), _portID(portID), _extent(extent) { };
-
+	UavcanListResponse(CanardInstance &ins, UavcanParamManager &pmgr) :
+		UavcanBaseSubscriber(ins, "", "List", 0),  _param_manager(pmgr) { };
 
 	void subscribe() override
 	{
-		// Subscribe to requests response
+		// Subscribe to requests uavcan.pnp.NodeIDAllocationData
 		canardRxSubscribe(&_canard_instance,
-				  CanardTransferKindResponse,
-				  _portID,
-				  _extent,
+				  CanardTransferKindRequest,
+				  uavcan_register_List_1_0_FIXED_PORT_ID_,
+				  uavcan_register_List_Response_1_0_EXTENT_BYTES_,
 				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC,
 				  &_subj_sub._canard_sub);
-	};
 
-	bool request(CanardTransfer *transfer, UavcanServiceRequestInterface *handler)
-	{
-		_response_callback = handler;
-		remote_node_id = transfer->remote_node_id;
-		++request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
-		return canardTxPush(&_canard_instance, transfer) > 0;
-	}
+	};
 
 	void callback(const CanardTransfer &receive) override
 	{
-		PX4_INFO("Response");
+		PX4_INFO("List request");
 
-		if (_response_callback != nullptr &&
-		    receive.transfer_id == (request_transfer_id - 1) &&
-		    receive.remote_node_id == remote_node_id) {
-			_response_callback->response_callback(receive);
+		uavcan_register_List_Request_1_0 msg;
+		uavcan_register_List_Response_1_0 response;
+
+		uavcan_register_List_Request_1_0_initialize_(&msg);
+		uavcan_register_List_Response_1_0_initialize_(&response);
+
+		size_t register_in_size_bits = receive.payload_size;
+		uavcan_register_List_Request_1_0_deserialize_(&msg, (const uint8_t *)receive.payload, &register_in_size_bits);
+
+		int result {0};
+
+		if (_param_manager.GetParamName(msg.index, response.name) == 0) {
+			response.name.name.count = 0;
 		}
+
+		uint8_t response_payload_buffer[uavcan_register_List_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_];
+
+		CanardTransfer transfer = {
+			.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
+			.priority       = CanardPriorityNominal,
+			.transfer_kind  = CanardTransferKindResponse,
+			.port_id        = uavcan_register_List_1_0_FIXED_PORT_ID_,                // This is the subject-ID.
+			.remote_node_id = receive.remote_node_id,       // Messages cannot be unicast, so use UNSET.
+			.transfer_id    = receive.transfer_id,
+			.payload_size   = uavcan_register_List_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
+			.payload        = &response_payload_buffer,
+		};
+
+		result = uavcan_register_List_Response_1_0_serialize_(&response, response_payload_buffer, &transfer.payload_size);
+
+		if (result == 0) {
+			// set the data ready in the buffer and chop if needed
+			result = canardTxPush(&_canard_instance, &transfer);
+		}
+
 	};
 
-
-
-protected:
-	CanardTransferID request_transfer_id = 0;
-	CanardNodeID remote_node_id = CANARD_NODE_ID_UNSET;
-
-	const CanardPortID _portID;
-	const size_t _extent;
-	UavcanServiceRequestInterface *_response_callback = nullptr;
+private:
+	UavcanParamManager &_param_manager;
 
 };
