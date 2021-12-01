@@ -32,56 +32,23 @@
  ****************************************************************************/
 
 /**
- * @file sensor_gps.hpp
+ * @file uorb_template.cpp
  *
- * Defines uORB over UAVCANv1 sensor_gps subscriber
+* Defines generic, templatized uORB over UAVCANv1 subscriber
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
+ * @author Jacob Crabill <jacob@flyvoly.com>
  */
 
-#pragma once
+#include "uorb_subscriber.hpp"
 
-#include <uORB/topics/sensor_gps.h>
-#include <uORB/PublicationMulti.hpp>
+/* ---- Specializations of get_payload_size() to reduce wasted bandwidth where possible ---- */
 
-#include "../DynamicPortSubscriber.hpp"
+/* ---- Specializations of convert() to convert incompatbile data, instance no. timestamp ---- */
 
-class UORB_over_UAVCAN_sensor_gps_Subscriber : public UavcanDynamicPortSubscriber
+template<>
+void uORB_over_UAVCAN_Subscriber<sensor_gps_s>::convert(sensor_gps_s *data)
 {
-public:
-	UORB_over_UAVCAN_sensor_gps_Subscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(ins, pmgr, "uorb.sensor_gps", instance) { };
-
-	void subscribe() override
-	{
-		// Subscribe to messages uORB sensor_gps payload over UAVCAN
-		canardRxSubscribe(&_canard_instance,
-				  CanardTransferKindMessage,
-				  _subj_sub._canard_sub.port_id,
-				  sizeof(struct sensor_gps_s),
-				  CANARD_DEFAULT_TRANSFER_ID_TIMEOUT_USEC * 10000,
-				  &_subj_sub._canard_sub);
-	};
-
-	void callback(const CanardTransfer &receive) override
-	{
-		//PX4_INFO("uORB sensor_gps Callback");
-
-		if (receive.payload_size == sizeof(struct sensor_gps_s)) {
-			sensor_gps_s *gps_msg = (sensor_gps_s *)receive.payload;
-			gps_msg->timestamp = hrt_absolute_time();
-
-			/* As long as we don't have timesync between nodes we set the timestamp to the current time */
-
-			_sensor_gps_pub.publish(*gps_msg);
-
-		} else {
-			PX4_ERR("uORB over UAVCAN %s playload size mismatch got %d expected %d",
-				_subj_sub._subject_name, receive.payload_size, sizeof(struct sensor_gps_s));
-		}
-	};
-
-private:
-	uORB::PublicationMulti<sensor_gps_s> _sensor_gps_pub{ORB_ID(sensor_gps)};
-
-};
+	/* HOTFIX as long as we don't have UAVCAN timesyncronization we update the timestamp on arrival */
+	data->timestamp = hrt_absolute_time();
+}

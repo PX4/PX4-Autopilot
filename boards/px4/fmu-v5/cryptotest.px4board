@@ -1,0 +1,5 @@
+CONFIG_BOARD_CRYPTO=y
+CONFIG_DRIVERS_SW_CRYPTO=y
+CONFIG_DRIVERS_STUB_KEYSTORE=y
+CONFIG_PUBLIC_KEY0="../../../Tools/test_keys/key0.pub"
+CONFIG_PUBLIC_KEY1="../../../Tools/test_keys/rsa2048.pub"
