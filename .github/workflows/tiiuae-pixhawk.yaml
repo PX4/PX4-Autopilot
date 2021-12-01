@@ -35,7 +35,7 @@ jobs:
 
       - name: Install jfrog CLI tool
         env:
-          JFROG_CLI_URL: https://artifactory.ssrc.fi/artifactory/gen-public-local/tools/jfrog/jfrog-1.45.2.tar.gz
+          JFROG_CLI_URL: https://ssrc.jfrog.io/artifactory/ssrc-gen-public-remote-cache/tools/jfrog/jfrog-1.45.2.tar.gz
         if: github.event_name == 'push'
         run: |
           set -exu

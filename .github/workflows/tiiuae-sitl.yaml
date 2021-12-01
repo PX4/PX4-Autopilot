@@ -35,7 +35,7 @@ jobs:
 
       - name: Install jfrog CLI tool
         env:
-          JFROG_CLI_URL: https://artifactory.ssrc.fi/artifactory/gen-public-local/tools/jfrog/jfrog-1.45.2.tar.gz
+          JFROG_CLI_URL: https://ssrc.jfrog.io/artifactory/ssrc-gen-public-remote-cache/tools/jfrog/jfrog-1.45.2.tar.gz
         if: github.event_name == 'push'
         run: |
           set -exu
@@ -96,14 +96,3 @@ jobs:
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/$pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/gazebo-data/latest/px4_gazebo_data.tar.gz"
-
-      - name: trigger fog-drone build
-        env:
-          USER: ${{ secrets.DISPATCH_USER }}
-          TOKEN: ${{ secrets.DISPATCH_TOKEN }}
-        if: github.event_name == 'push'
-        run: |
-          curl -X POST https://api.github.com/repos/tiiuae/dronsole-containers/dispatches \
-               -H 'Accept: application/vnd.github.everest-preview+json' \
-               -u $USER:$TOKEN \
-               --data '{"event_type": "rebuild-fog-drone", "client_payload": { "repository": "'"$GITHUB_REPOSITORY"'" }}'
