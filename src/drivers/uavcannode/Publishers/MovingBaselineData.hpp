@@ -37,6 +37,7 @@
 
 #include <ardupilot/gnss/MovingBaselineData.hpp>
 
+#include <lib/drivers/device/Device.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/gps_inject_data.h>
 
@@ -76,7 +77,10 @@ public:
 
 		if (uORB::SubscriptionCallbackWorkItem::update(&inject_data)) {
 			// Prevent republishing rtcm data we received from uavcan
-			if (inject_data.device_id > uavcan::NodeID::Max) {
+			union device::Device::DeviceId device_id;
+			device_id.devid = inject_data.device_id;
+
+			if (device_id.devid_s.bus_type != device::Device::DeviceBusType::DeviceBusType_UAVCAN) {
 				ardupilot::gnss::MovingBaselineData movingbaselinedata{};
 
 				const size_t capacity = movingbaselinedata.data.capacity();
