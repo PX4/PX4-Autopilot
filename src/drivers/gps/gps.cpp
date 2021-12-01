@@ -559,6 +559,10 @@ int GPS::setBaudrate(unsigned baud)
 
 	case 460800: speed = B460800; break;
 
+#ifndef B921600
+#define B921600 921600
+#endif
+
 	case 921600: speed = B921600; break;
 
 	default:
