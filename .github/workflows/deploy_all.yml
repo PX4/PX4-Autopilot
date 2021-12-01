@@ -1,11 +1,17 @@
-name: Deploy metadata for all targets
+name: Build and deploy all targets with metadata
 
 on:
+  release:
+    types: [published]
+  create:
+    tags:
+      - 'v*'
   push:
     branches:
     - 'master'
     - 'release/*'
     - 'pr-metadata-test'
+    - 'build_and_deploy_mix'
 
 jobs:
   enumerate_targets:
@@ -18,8 +24,8 @@ jobs:
       with:
         token: ${{secrets.ACCESS_TOKEN}}
     - id: set-matrix
-      run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py)"
-  build:
+      run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py -a)"
+  build_all:
     runs-on: ubuntu-latest
     needs: enumerate_targets
     strategy:
@@ -34,21 +40,4 @@ jobs:
       run: make ${{matrix.target}}
 
     - name: parameter & events metadata
-      run: |
-        make ${{matrix.target}} ver_gen events_json actuators_json
-        ./src/lib/version/get_git_tag_or_branch_version.sh build/${{ matrix.target }} >> $GITHUB_ENV
-        cd build/${{ matrix.target }}
-        mkdir _metadata || true
-        cp parameters.* events/*.xz actuators.json* _metadata
-
-    - uses: jakejarvis/s3-sync-action@master
-      with:
-        args: --acl public-read
-      env:
-        AWS_S3_BUCKET: 'px4-travis'
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: 'us-west-1'
-        SOURCE_DIR: 'build/${{ matrix.target }}/_metadata/'
-        DEST_DIR: 'Firmware/${{ env.version }}/${{ matrix.target }}/'
-
+      run: make ${{matrix.target}} ver_gen events_json actuators_json
