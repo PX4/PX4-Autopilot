@@ -131,7 +131,8 @@ bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bo
 
 		_first_time = false;
 
-		matrix::Eulerf euler(new_aux_values[0] * M_PI_F, new_aux_values[1] * M_PI_F,
+		// We scale manual input from roll -180..180, pitch -90..90, yaw, -180..180 degrees.
+		matrix::Eulerf euler(new_aux_values[0] * M_PI_F, new_aux_values[1] * M_PI_F / 2.0f,
 				     new_aux_values[2] * M_PI_F);
 		matrix::Quatf q(euler);
 		q.copyTo(control_data.type_data.angle.q);

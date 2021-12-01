@@ -50,7 +50,7 @@ class UavcanGnssSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
 	UavcanGnssSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(ins, pmgr, "gps", instance) { };
+		UavcanDynamicPortSubscriber(ins, pmgr, "ds_015.", "gps", instance) { };
 
 	void subscribe() override
 	{

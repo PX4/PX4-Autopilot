@@ -1,6 +1,7 @@
+
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 Technology Innoavation Institute. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,53 +32,37 @@
 #
 ############################################################################
 
-set(LIBCANARD_DIR ${CMAKE_CURRENT_SOURCE_DIR}/libcanard)
-set(DSDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/public_regulated_data_types)
+px4_add_library(keystore_backend stub_keystore.c)
 
-px4_add_git_submodule(TARGET git_libcanard PATH ${LIBCANARD_DIR})
-px4_add_git_submodule(TARGET git_public_regulated_data_types PATH ${DSDL_DIR})
+target_include_directories(keystore_backend PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-find_program(NNVG_PATH nnvg)
-if(NNVG_PATH)
-	execute_process(COMMAND ${NNVG_PATH} --outdir ${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated --target-language c -I ${DSDL_DIR}/uavcan ${DSDL_DIR}/reg)
-	execute_process(COMMAND ${NNVG_PATH} --outdir ${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated --target-language c ${DSDL_DIR}/uavcan)
+# Parse keyfile locations from boardconfig
 
-else()
-	message(FATAL_ERROR "UAVCAN Nunavut nnvg not found")
-endif()
+# If the key file path is defined in environment variable, use it from there
+# else, if it is hardcoded in CONFIG_PUBLIC_KEYx, use that
 
-add_definitions(
-	-DCONFIG_EXAMPLES_LIBCANARDV1_DEV="can0"
-	-DCONFIG_EXAMPLES_LIBCANARDV1_NODE_MEM_POOL_SIZE=8192
-	-DCONFIG_EXAMPLES_LIBCANARDV1_DAEMON_STACK_SIZE=5000
-	-DCONFIG_EXAMPLES_LIBCANARDV1_DAEMON_PRIORITY=100
-	-DCANARD_DSDL_CONFIG_LITTLE_ENDIAN=1
-)
+file(STRINGS ${BOARD_CONFIG} ConfigContents)
+foreach(NameAndValue ${ConfigContents})
+# Strip leading spaces
+    string(REGEX REPLACE "^[ ]+" "" NameAndValue ${NameAndValue})
 
-px4_add_module(
-	MODULE drivers__uavcannode-gps-demo
-	MAIN uavcannode_gps_demo
-	COMPILE_FLAGS
-		-Wno-error
-	    -DUINT32_C\(x\)=__UINT32_C\(x\)
-	INCLUDES
-		${LIBCANARD_DIR}/libcanard/
-		${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated
-	SRCS
-		canard_main.c
-		socketcan.c
-		socketcan.h
-		uorb_converter.c
-		uorb_converter.h
-		o1heap.c
-		o1heap.h
-		libcancl/pnp.c
-		libcancl/registerinterface.c
-		${LIBCANARD_DIR}/libcanard/canard.c
-		${LIBCANARD_DIR}/libcanard/canard.h
-	DEPENDS
-		git_libcanard
-		git_public_regulated_data_types
-		drivers_bootloaders
-		version
-	)
+    # Find variable name
+    string(REGEX MATCH "^CONFIG_PUBLIC_KEY[^=]+" Name ${NameAndValue})
+
+	if(Name)
+	  string(REPLACE "${Name}=" "" Value ${NameAndValue})
+	  string(REPLACE "\"" "" Value ${Value})
+
+	  # Strip CONFIG_
+	  string(REPLACE "CONFIG_" "" Name ${Name})
+
+	  # Get the value from env variable, if set
+	  if(DEFINED ENV{${Name}})
+		set(Value $ENV{${Name}})
+	  endif()
+
+	  if(NOT Value STREQUAL "")
+		add_definitions(-D${Name}=${Value})
+	  endif()
+	endif()
+endforeach()

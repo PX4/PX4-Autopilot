@@ -53,7 +53,9 @@ public:
 		UavcanPublisherBase(uavcan::equipment::range_sensor::Measurement::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(distance_sensor), instance),
 		uavcan::Publisher<uavcan::equipment::range_sensor::Measurement>(node)
-	{}
+	{
+		this->setPriority(uavcan::TransferPriority::Default);
+	}
 
 	void PrintInfo() override
 	{
