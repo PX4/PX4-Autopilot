@@ -100,10 +100,9 @@ EscBattery::Run()
 		average_voltage_v /= esc_status.esc_count;
 
 		_battery.setConnected(true);
-		_battery.updateBatteryStatus(
-			esc_status.timestamp,
-			average_voltage_v,
-			total_current_a);
+		_battery.updateVoltage(average_voltage_v);
+		_battery.updateCurrent(total_current_a);
+		_battery.updateBatteryStatus(esc_status.timestamp);
 	}
 }
 
