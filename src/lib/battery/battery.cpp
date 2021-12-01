@@ -97,8 +97,7 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	updateParams();
 }
 
-void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
-				  int priority)
+void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected)
 {
 	if (!_battery_initialized) {
 		_voltage_filter_v.reset(voltage_v);
@@ -136,7 +135,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 	battery_status.cell_count = _params.n_cells;
 	battery_status.connected = connected;
 	battery_status.source = _source;
-	battery_status.priority = priority;
+	battery_status.priority = _priority;
 	battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
 	battery_status.id = static_cast<uint8_t>(_index);
 	battery_status.warning = _warning;
