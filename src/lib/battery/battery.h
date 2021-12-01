@@ -87,15 +87,15 @@ public:
 
 	void setPriority(const uint8_t priority) { _priority = priority; }
 	void setConnected(const bool connected) { _connected = connected; }
+	void updateVoltage(const float voltage_v);
+	void updateCurrent(const float current_a);
 
 	/**
 	 * Update current battery status message.
 	 *
-	 * @param voltage_raw: Battery voltage, in Volts
-	 * @param current_raw: Battery current, in Amps
 	 * @param timestamp: Time at which the ADC was read (use hrt_absolute_time())
 	 */
-	void updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a);
+	void updateBatteryStatus(const hrt_abstime &timestamp);
 
 protected:
 	struct {
@@ -143,7 +143,9 @@ private:
 	const uint8_t _source{};
 	uint8_t _priority{0};
 	bool _battery_initialized{false};
+	float _voltage_v{0.f};
 	AlphaFilter<float> _voltage_filter_v;
+	float _current_a{-1};
 	AlphaFilter<float> _current_filter_a;
 	AlphaFilter<float> _current_average_filter_a;
 	AlphaFilter<float> _throttle_filter;
