@@ -100,7 +100,9 @@ void BatterySimulator::Run()
 	vbatt *= _battery.cell_count();
 
 	_battery.setConnected(true);
-	_battery.updateBatteryStatus(now_us, vbatt, ibatt);
+	_battery.updateVoltage(vbatt);
+	_battery.updateCurrent(ibatt);
+	_battery.updateBatteryStatus(now_us);
 
 	perf_end(_loop_perf);
 }
