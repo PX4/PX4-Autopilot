@@ -100,14 +100,12 @@ EscBattery::Run()
 		average_voltage_v /= esc_status.esc_count;
 
 		const bool connected = true;
-		const int priority = 0;
 
 		_battery.updateBatteryStatus(
 			esc_status.timestamp,
 			average_voltage_v,
 			total_current_a,
-			connected,
-			priority);
+			connected);
 	}
 }
 
