@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # PX4 commands need the 'px4-' prefix in bash.
 # (px4-alias.sh is expected to be in the PATH)
 # shellcheck disable=SC1091
