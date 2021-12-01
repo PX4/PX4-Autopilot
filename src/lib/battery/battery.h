@@ -86,6 +86,7 @@ public:
 	float full_cell_voltage() { return _params.v_charged; }
 
 	void setPriority(const uint8_t priority) { _priority = priority; }
+	void setConnected(const bool connected) { _connected = connected; }
 
 	/**
 	 * Update current battery status message.
@@ -94,7 +95,7 @@ public:
 	 * @param current_raw: Battery current, in Amps
 	 * @param timestamp: Time at which the ADC was read (use hrt_absolute_time())
 	 */
-	void updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected);
+	void updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a);
 
 protected:
 	struct {
@@ -138,6 +139,7 @@ private:
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
+	bool _connected{false};
 	const uint8_t _source{};
 	uint8_t _priority{0};
 	bool _battery_initialized{false};

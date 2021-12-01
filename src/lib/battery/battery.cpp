@@ -97,7 +97,7 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	updateParams();
 }
 
-void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected)
+void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a)
 {
 	if (!_battery_initialized) {
 		_voltage_filter_v.reset(voltage_v);
@@ -110,7 +110,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 	estimateStateOfCharge(_voltage_filter_v.getState(), _current_filter_a.getState());
 	computeScale();
 
-	if (connected && _battery_initialized) {
+	if (_connected && _battery_initialized) {
 		_warning = determineWarning(_state_of_charge);
 	}
 
@@ -118,7 +118,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 		_battery_initialized = true;
 
 	} else {
-		connected = false;
+		_connected = false;
 	}
 
 	battery_status_s battery_status{};
@@ -133,7 +133,7 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 	battery_status.time_remaining_s = computeRemainingTime(current_a);
 	battery_status.temperature = NAN;
 	battery_status.cell_count = _params.n_cells;
-	battery_status.connected = connected;
+	battery_status.connected = _connected;
 	battery_status.source = _source;
 	battery_status.priority = _priority;
 	battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;

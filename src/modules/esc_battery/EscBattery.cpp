@@ -99,13 +99,11 @@ EscBattery::Run()
 
 		average_voltage_v /= esc_status.esc_count;
 
-		const bool connected = true;
-
+		_battery.setConnected(true);
 		_battery.updateBatteryStatus(
 			esc_status.timestamp,
 			average_voltage_v,
-			total_current_a,
-			connected);
+			total_current_a);
 	}
 }
 

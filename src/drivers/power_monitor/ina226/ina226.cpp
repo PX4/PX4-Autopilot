@@ -83,11 +83,11 @@ INA226::INA226(const I2CSPIDriverConfig &config, int battery_index) :
 	_power_lsb = 25 * _current_lsb;
 
 	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
+	_battery.setConnected(false);
 	_battery.updateBatteryStatus(
 		hrt_absolute_time(),
 		0.0,
-		0.0,
-		false
+		0.0
 	);
 }
 
@@ -228,11 +228,11 @@ INA226::collect()
 		_bus_voltage = _power = _current = _shunt = 0;
 	}
 
+	_battery.setConnected(success);
 	_battery.updateBatteryStatus(
 		hrt_absolute_time(),
 		(float) _bus_voltage * INA226_VSCALE,
-		(float) _current * _current_lsb,
-		success
+		(float) _current * _current_lsb
 	);
 
 	perf_end(_sample_perf);
@@ -296,11 +296,11 @@ INA226::RunImpl()
 		ScheduleDelayed(INA226_CONVERSION_INTERVAL);
 
 	} else {
+		_battery.setConnected(false);
 		_battery.updateBatteryStatus(
 			hrt_absolute_time(),
 			0.0f,
-			0.0f,
-			false
+			0.0f
 		);
 
 		if (init() != PX4_OK) {
