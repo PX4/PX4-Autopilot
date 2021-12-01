@@ -74,11 +74,11 @@ AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_i
 void
 AnalogBattery::updateBatteryStatusADC(hrt_abstime timestamp, float voltage_raw, float current_raw)
 {
-	float voltage_v = voltage_raw * _analog_params.v_div;
-	float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
+	const float voltage_v = voltage_raw * _analog_params.v_div;
+	const float current_a = (current_raw - _analog_params.v_offs_cur) * _analog_params.a_per_v;
 
-	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
-			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
+	const bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
+			       (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 
 	Battery::setConnected(connected);
 	Battery::updateVoltage(voltage_v);
