@@ -94,6 +94,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_handle_sens_flow_maxr = param_find("SENS_FLOW_MAXR");
 	_handle_sens_flow_minhgt = param_find("SENS_FLOW_MINHGT");
 	_handle_sens_flow_rot = param_find("SENS_FLOW_ROT");
+	_handle_ekf2_min_rng = param_find("EKF2_MIN_RNG");
+	_handle_ekf2_rng_a_hmax = param_find("EKF2_RNG_A_HMAX");
 }
 
 void
@@ -829,8 +831,8 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 		device_id.devid_s.address = msg->sysid;
 
 		d.timestamp = f.timestamp;
-		d.min_distance = _param_ekf2_min_rng.get();
-		d.max_distance = _param_ekf2_rng_a_hmax.get();
+		d.min_distance = _param_ekf2_min_rng;
+		d.max_distance = _param_ekf2_rng_a_hmax;
 		d.current_distance = flow.distance; /* both are in m */
 		d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 		d.device_id = device_id.devid;
@@ -3447,6 +3449,14 @@ MavlinkReceiver::updateParams()
 
 	if (_handle_sens_flow_rot != PARAM_INVALID) {
 		param_get(_handle_sens_flow_rot, &_param_sens_flow_rot);
+	}
+
+	if (_handle_ekf2_min_rng != PARAM_INVALID) {
+		param_get(_handle_ekf2_min_rng, &_param_ekf2_min_rng);
+	}
+
+	if (_handle_ekf2_rng_a_hmax != PARAM_INVALID) {
+		param_get(_handle_ekf2_rng_a_hmax, &_param_ekf2_rng_a_hmax);
 	}
 }
 
