@@ -36,7 +36,7 @@
 BatterySimulator::BatterySimulator() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_battery(1, this, BATTERY_SIMLATOR_SAMPLE_INTERVAL_US)
+	_battery(1, this, BATTERY_SIMLATOR_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
 {
 }
 
@@ -99,7 +99,7 @@ void BatterySimulator::Run()
 	float vbatt = math::gradual(_battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
 	vbatt *= _battery.cell_count();
 
-	_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, battery_status_s::BATTERY_SOURCE_POWER_MODULE, 0);
+	_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, 0);
 
 	perf_end(_loop_perf);
 }

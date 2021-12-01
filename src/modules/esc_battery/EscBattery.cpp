@@ -38,7 +38,7 @@ using namespace time_literals;
 EscBattery::EscBattery() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
-	_battery(1, this, ESC_BATTERY_INTERVAL_US)
+	_battery(1, this, ESC_BATTERY_INTERVAL_US, battery_status_s::BATTERY_SOURCE_ESCS)
 {
 }
 
@@ -107,7 +107,6 @@ EscBattery::Run()
 			average_voltage_v,
 			total_current_a,
 			connected,
-			battery_status_s::BATTERY_SOURCE_ESCS,
 			priority);
 	}
 }
