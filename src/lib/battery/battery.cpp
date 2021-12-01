@@ -130,7 +130,10 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 	} else {
 		_connected = false;
 	}
+}
 
+battery_status_s Battery::getBatteryStatus()
+{
 	battery_status_s battery_status{};
 	battery_status.voltage_v = _voltage_v;
 	battery_status.voltage_filtered_v = _voltage_filter_v.getState();
@@ -149,11 +152,21 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp)
 	battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
 	battery_status.id = static_cast<uint8_t>(_index);
 	battery_status.warning = _warning;
+	battery_status.timestamp = hrt_absolute_time();
+	return battery_status;
+}
 
+void Battery::publishBatteryStatus(const battery_status_s &battery_status)
+{
 	if (_source == _params.source) {
-		battery_status.timestamp = hrt_absolute_time();
 		_battery_status_pub.publish(battery_status);
 	}
+}
+
+void Battery::updateAndPublishBatteryStatus(const hrt_abstime &timestamp)
+{
+	updateBatteryStatus(timestamp);
+	publishBatteryStatus(getBatteryStatus());
 }
 
 void Battery::sumDischarged(const hrt_abstime &timestamp, float current_a)

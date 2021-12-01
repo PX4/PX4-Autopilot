@@ -102,7 +102,7 @@ EscBattery::Run()
 		_battery.setConnected(true);
 		_battery.updateVoltage(average_voltage_v);
 		_battery.updateCurrent(total_current_a);
-		_battery.updateBatteryStatus(esc_status.timestamp);
+		_battery.updateAndPublishBatteryStatus(esc_status.timestamp);
 	}
 }
 

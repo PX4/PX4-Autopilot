@@ -97,6 +97,16 @@ public:
 	 */
 	void updateBatteryStatus(const hrt_abstime &timestamp);
 
+	battery_status_s getBatteryStatus();
+	void publishBatteryStatus(const battery_status_s &battery_status);
+
+	/**
+	 * Convenience function for combined update and publication
+	 * @see updateBatteryStatus()
+	 * @see publishBatteryStatus()
+	 */
+	void updateAndPublishBatteryStatus(const hrt_abstime &timestamp);
+
 protected:
 	struct {
 		param_t v_empty;
