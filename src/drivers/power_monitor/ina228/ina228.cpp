@@ -89,8 +89,7 @@ INA228::INA228(const I2CSPIDriverConfig &config, int battery_index) :
 		hrt_absolute_time(),
 		0.0,
 		0.0,
-		false,
-		0
+		false
 	);
 }
 
@@ -314,8 +313,7 @@ INA228::collect()
 		hrt_absolute_time(),
 		(float) _bus_voltage * INA228_VSCALE,
 		(float) _current * _current_lsb,
-		success,
-		0
+		success
 	);
 
 	perf_end(_sample_perf);
@@ -383,8 +381,7 @@ INA228::RunImpl()
 			hrt_absolute_time(),
 			0.0f,
 			0.0f,
-			false,
-			0
+			false
 		);
 
 		if (init() != PX4_OK) {

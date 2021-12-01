@@ -85,16 +85,16 @@ public:
 	 */
 	float full_cell_voltage() { return _params.v_charged; }
 
+	void setPriority(const uint8_t priority) { _priority = priority; }
+
 	/**
 	 * Update current battery status message.
 	 *
 	 * @param voltage_raw: Battery voltage, in Volts
 	 * @param current_raw: Battery current, in Amps
 	 * @param timestamp: Time at which the ADC was read (use hrt_absolute_time())
-	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
 	 */
-	void updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
-				 int priority);
+	void updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected);
 
 protected:
 	struct {
@@ -139,6 +139,7 @@ private:
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	const uint8_t _source{};
+	uint8_t _priority{0};
 	bool _battery_initialized{false};
 	AlphaFilter<float> _voltage_filter_v;
 	AlphaFilter<float> _current_filter_a;
