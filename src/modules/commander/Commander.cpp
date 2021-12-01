@@ -713,9 +713,9 @@ Commander::Commander() :
 bool
 Commander::handle_command(const vehicle_command_s &cmd)
 {
-	/* only handle commands that are meant to be handled by this system and component */
-	if (cmd.target_system != _status.system_id || ((cmd.target_component != _status.component_id)
-			&& (cmd.target_component != 0))) { // component_id 0: valid for all components
+	/* only handle commands that are meant to be handled by this system and component, or broadcast */
+	if (((cmd.target_system != _status.system_id) && (cmd.target_system != 0))
+	    || ((cmd.target_component != _status.component_id) && (cmd.target_component != 0))) {
 		return false;
 	}
 
