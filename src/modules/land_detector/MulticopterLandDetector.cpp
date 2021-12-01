@@ -323,16 +323,6 @@ bool MulticopterLandDetector::_get_landed_state()
 	return _maybe_landed_hysteresis.get_state();
 }
 
-float MulticopterLandDetector::_get_max_altitude()
-{
-	if (_param_lndmc_alt_max.get() < 0.0f) {
-		return INFINITY;
-
-	} else {
-		return _param_lndmc_alt_max.get();
-	}
-}
-
 float MulticopterLandDetector::_get_gnd_effect_altitude()
 {
 	if (_param_lndmc_alt_gnd_effect.get() < 0.0f) {
