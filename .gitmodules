@@ -74,3 +74,6 @@
 	path = src/lib/crypto/libtommath
 	url = https://github.com/PX4/libtommath.git
 	branch = px4
+[submodule "boards/ssrc/saluki-v1"]
+	path = boards/ssrc/saluki-v1
+	url = ../saluki-v1.git
