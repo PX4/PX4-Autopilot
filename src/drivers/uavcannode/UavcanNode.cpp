@@ -46,13 +46,14 @@
 #include "Publishers/MagneticFieldStrength2.hpp"
 #include "Publishers/RangeSensorMeasurement.hpp"
 #include "Publishers/RawAirData.hpp"
+#include "Publishers/MovingBaselineData.hpp"
 #include "Publishers/SafetyButton.hpp"
 #include "Publishers/StaticPressure.hpp"
 #include "Publishers/StaticTemperature.hpp"
 
 #include "Subscribers/BeepCommand.hpp"
 #include "Subscribers/LightsCommand.hpp"
-#include "Subscribers/RTCMStream.hpp"
+#include "Subscribers/MovingBaselineData.hpp"
 
 using namespace time_literals;
 
@@ -303,13 +304,14 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new MagneticFieldStrength2(this, _node));
 	_publisher_list.add(new RangeSensorMeasurement(this, _node));
 	_publisher_list.add(new RawAirData(this, _node));
+	_publisher_list.add(new MovingBaselineDataPub(this, _node));
 	_publisher_list.add(new SafetyButton(this, _node));
 	_publisher_list.add(new StaticPressure(this, _node));
 	_publisher_list.add(new StaticTemperature(this, _node));
 
 	_subscriber_list.add(new BeepCommand(_node));
 	_subscriber_list.add(new LightsCommand(_node));
-	_subscriber_list.add(new RTCMStream(_node));
+	_subscriber_list.add(new MovingBaselineData(_node));
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();

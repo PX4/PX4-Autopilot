@@ -53,7 +53,9 @@ public:
 		UavcanPublisherBase(uavcan::equipment::power::BatteryInfo::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(battery_status)),
 		uavcan::Publisher<uavcan::equipment::power::BatteryInfo>(node)
-	{}
+	{
+		this->setPriority(uavcan::TransferPriority::MiddleLower);
+	}
 
 	void PrintInfo() override
 	{

@@ -42,6 +42,7 @@ pipeline {
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_bootloader/cubepilot_cubeorange_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    resetBoard()
                   }
                 }
                 stage("tests") {
@@ -74,7 +75,6 @@ pipeline {
               post {
                 always {
                     sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf || true'
-                    resetBoard()
                 }
               }
             } // stage test
@@ -116,6 +116,7 @@ pipeline {
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_bootloader/cuav_x7pro_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    resetBoard()
                   }
                 }
                 stage("tests") {
@@ -143,7 +144,6 @@ pipeline {
               post {
                 always {
                     sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/cuav_x7pro_test/cuav_x7pro_test.elf || true'
-                    resetBoard()
                 }
               }
             } // stage test
@@ -185,6 +185,7 @@ pipeline {
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v3_test/px4_fmu-v3_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    resetBoard()
                   }
                 }
                 stage("tests") {
@@ -212,7 +213,6 @@ pipeline {
               post {
                 always {
                     sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf || true'
-                    resetBoard()
                 }
               }
             } // stage test
@@ -254,6 +254,7 @@ pipeline {
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4_test/px4_fmu-v4_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    resetBoard()
                   }
                 }
                 stage("tests") {
@@ -280,7 +281,6 @@ pipeline {
               post {
                 always {
                     sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf || true'
-                    resetBoard()
                 }
               }
             } // stage test
@@ -322,6 +322,7 @@ pipeline {
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    resetBoard()
                   }
                 }
                 stage("tests") {
@@ -349,7 +350,6 @@ pipeline {
               post {
                 always {
                     sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf || true'
-                    resetBoard()
                 }
               }
             } // stage test
@@ -396,6 +396,7 @@ pipeline {
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600 || true'
+                    resetBoard()
                   }
                 }
                 stage("tests") {
@@ -436,7 +437,6 @@ pipeline {
               post {
                 always {
                     sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf || true'
-                    resetBoard()
                 }
               }
             } // stage test
@@ -483,6 +483,7 @@ pipeline {
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    resetBoard()
                   }
                 }
                 stage("tests") {
@@ -515,7 +516,6 @@ pipeline {
               post {
                 always {
                     sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf || true'
-                    resetBoard()
                 }
               }
             } // stage test
@@ -557,6 +557,7 @@ pipeline {
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_test/px4_fmu-v5_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    resetBoard()
                   }
                 }
                 stage("tests") {
@@ -584,7 +585,6 @@ pipeline {
               post {
                 always {
                     sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf || true'
-                    resetBoard()
                 }
               }
             } // stage test
@@ -626,6 +626,7 @@ pipeline {
                     //sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_bootloader.elf'
                     // flash board and watch bootup
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    resetBoard()
                   }
                 }
                 stage("tests") {
@@ -653,7 +654,6 @@ pipeline {
               post {
                 always {
                     sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf || true'
-                    resetBoard()
                 }
               }
             } // stage test
@@ -928,6 +928,7 @@ void resetBoard() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SDLOG_MODE -1" || true'        // limit cpu usage
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "echo > /fs/microsd/.format" || true'
   sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
 
   // check SD card
@@ -952,4 +953,6 @@ void resetBoard() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/blocks" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/mount" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/usage" || true'
+
+  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
 }
