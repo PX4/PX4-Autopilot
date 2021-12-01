@@ -54,7 +54,7 @@ VOXLPM::VOXLPM(const I2CSPIDriverConfig &config) :
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
 	_ch_type((VOXLPM_CH_TYPE)config.custom1),
-	_battery(1, this, _meas_interval_us)
+	_battery(1, this, _meas_interval_us, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
 {
 }
 
@@ -76,7 +76,6 @@ VOXLPM::init()
 			0.0,
 			0.0,
 			false,
-			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 			0
 		);
 	}
@@ -349,7 +348,6 @@ VOXLPM::measure()
 							     _voltage,
 							     _amperage,
 							     true,
-							     battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 							     0);
 			}
 
@@ -377,7 +375,6 @@ VOXLPM::measure()
 							     0.0,
 							     0.0,
 							     true,
-							     battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 							     0);
 			}
 			break;

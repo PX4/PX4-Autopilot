@@ -45,7 +45,7 @@ INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
 	_sample_perf(perf_alloc(PC_ELAPSED, "ina238_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ina238_com_err")),
 	_collection_errors(perf_alloc(PC_COUNT, "ina238_collection_err")),
-	_battery(battery_index, this, INA238_SAMPLE_INTERVAL_US)
+	_battery(battery_index, this, INA238_SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE)
 {
 	float fvalue = DEFAULT_MAX_CURRENT;
 	_max_current = fvalue;
@@ -73,7 +73,6 @@ INA238::INA238(const I2CSPIDriverConfig &config, int battery_index) :
 		0.0,
 		0.0,
 		false,
-		battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 		0
 	);
 }
@@ -203,7 +202,6 @@ int INA238::collect()
 		(float) bus_voltage * INA238_VSCALE,
 		(float) current * _current_lsb,
 		success,
-		battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 		0
 	);
 
@@ -264,7 +262,6 @@ void INA238::RunImpl()
 			0.0f,
 			0.0f,
 			false,
-			battery_status_s::BATTERY_SOURCE_POWER_MODULE,
 			0
 		);
 

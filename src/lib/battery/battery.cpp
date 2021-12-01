@@ -47,9 +47,10 @@
 
 using namespace time_literals;
 
-Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) :
+Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, const uint8_t source) :
 	ModuleParams(parent),
-	_index(index < 1 || index > 9 ? 1 : index)
+	_index(index < 1 || index > 9 ? 1 : index),
+	_source(source)
 {
 	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
 	_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
@@ -97,7 +98,7 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us) 
 }
 
 void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
-				  int source, int priority)
+				  int priority)
 {
 	if (!_battery_initialized) {
 		_voltage_filter_v.reset(voltage_v);
@@ -134,13 +135,13 @@ void Battery::updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v,
 	battery_status.temperature = NAN;
 	battery_status.cell_count = _params.n_cells;
 	battery_status.connected = connected;
-	battery_status.source = source;
+	battery_status.source = _source;
 	battery_status.priority = priority;
 	battery_status.capacity = _params.capacity > 0.f ? static_cast<uint16_t>(_params.capacity) : 0;
 	battery_status.id = static_cast<uint8_t>(_index);
 	battery_status.warning = _warning;
 
-	if (source == _params.source) {
+	if (_source == _params.source) {
 		battery_status.timestamp = hrt_absolute_time();
 		_battery_status_pub.publish(battery_status);
 	}

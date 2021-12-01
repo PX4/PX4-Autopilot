@@ -67,7 +67,7 @@
 class Battery : public ModuleParams
 {
 public:
-	Battery(int index, ModuleParams *parent, const int sample_interval_us);
+	Battery(int index, ModuleParams *parent, const int sample_interval_us, const uint8_t source);
 	~Battery() = default;
 
 	/**
@@ -91,11 +91,10 @@ public:
 	 * @param voltage_raw: Battery voltage, in Volts
 	 * @param current_raw: Battery current, in Amps
 	 * @param timestamp: Time at which the ADC was read (use hrt_absolute_time())
-	 * @param source: Source type in relation to BAT%d_SOURCE param.
 	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
 	 */
 	void updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
-				 int source, int priority);
+				 int priority);
 
 protected:
 	struct {
@@ -139,6 +138,7 @@ private:
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
+	const uint8_t _source{};
 	bool _battery_initialized{false};
 	AlphaFilter<float> _voltage_filter_v;
 	AlphaFilter<float> _current_filter_a;
