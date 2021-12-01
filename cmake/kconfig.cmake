@@ -319,12 +319,8 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	endif()
 
 	if(CRYPTO)
-		set(PX4_CRYPTO ${CRYPTO} CACHE STRING "PX4 crypto implementation" FORCE)
+		set(PX4_CRYPTO "1" CACHE INTERNAL "PX4 crypto implementation" FORCE)
 		add_definitions(-DPX4_CRYPTO)
-	endif()
-
-	if(KEYSTORE)
-		set(PX4_KEYSTORE ${KEYSTORE} CACHE STRING "PX4 keystore implementation" FORCE)
 	endif()
 
 	if(LINKER_PREFIX)
