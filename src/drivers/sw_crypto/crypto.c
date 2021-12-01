@@ -52,11 +52,11 @@ extern void libtomcrypt_init(void);
 #define KEY_CACHE_LEN 16
 
 #ifndef SECMEM_ALLOC
-#define SECMEM_ALLOC malloc
+#define SECMEM_ALLOC XMALLOC
 #endif
 
 #ifndef SECMEM_FREE
-#define SECMEM_FREE free
+#define SECMEM_FREE XFREE
 #endif
 
 /*
@@ -156,7 +156,7 @@ crypto_session_handle_t crypto_open(px4_crypto_algorithm_t algorithm)
 
 	switch (algorithm) {
 	case CRYPTO_XCHACHA20: {
-			chacha20_context_t *context = malloc(sizeof(chacha20_context_t));
+			chacha20_context_t *context = XMALLOC(sizeof(chacha20_context_t));
 
 			if (!context) {
 				ret.handle = 0;
@@ -188,7 +188,7 @@ void crypto_close(crypto_session_handle_t *handle)
 	crypto_open_count--;
 	handle->handle = 0;
 	keystore_close(&handle->keystore_handle);
-	free(handle->context);
+	XFREE(handle->context);
 	handle->context = NULL;
 }
 
@@ -410,7 +410,7 @@ size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx)
 
 	case CRYPTO_RSA_OAEP: {
 			rsa_key enc_key;
-			unsigned pub_key_sz;
+			size_t pub_key_sz;
 			uint8_t *pub_key = (uint8_t *)crypto_get_key_ptr(handle.keystore_handle, key_idx, &pub_key_sz);
 
 			if (pub_key &&

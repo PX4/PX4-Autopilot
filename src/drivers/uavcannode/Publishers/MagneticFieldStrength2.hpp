@@ -53,7 +53,9 @@ public:
 		UavcanPublisherBase(uavcan::equipment::ahrs::MagneticFieldStrength2::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_mag)),
 		uavcan::Publisher<uavcan::equipment::ahrs::MagneticFieldStrength2>(node)
-	{}
+	{
+		this->setPriority(uavcan::TransferPriority::Default);
+	}
 
 	void PrintInfo() override
 	{

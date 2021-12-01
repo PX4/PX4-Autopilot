@@ -35,26 +35,27 @@
 
 #include "UavcanPublisherBase.hpp"
 
-#include <uavcan/equipment/air_data/StaticTemperature.hpp>
+#include <ardupilot/gnss/MovingBaselineData.hpp>
 
+#include <lib/drivers/device/Device.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/gps_inject_data.h>
 
 namespace uavcannode
 {
 
-class StaticTemperature :
+class MovingBaselineDataPub :
 	public UavcanPublisherBase,
 	public uORB::SubscriptionCallbackWorkItem,
-	private uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>
+	private uavcan::Publisher<ardupilot::gnss::MovingBaselineData>
 {
 public:
-	StaticTemperature(px4::WorkItem *work_item, uavcan::INode &node) :
-		UavcanPublisherBase(uavcan::equipment::air_data::StaticTemperature::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_baro)),
-		uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>(node)
+	MovingBaselineDataPub(px4::WorkItem *work_item, uavcan::INode &node) :
+		UavcanPublisherBase(ardupilot::gnss::MovingBaselineData::DefaultDataTypeID),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(gps_inject_data)),
+		uavcan::Publisher<ardupilot::gnss::MovingBaselineData>(node)
 	{
-		this->setPriority(uavcan::TransferPriority::MiddleLower);
+		this->setPriority(uavcan::TransferPriority::NumericallyMax);
 	}
 
 	void PrintInfo() override
@@ -62,28 +63,51 @@ public:
 		if (uORB::SubscriptionCallbackWorkItem::advertised()) {
 			printf("\t%s -> %s:%d\n",
 			       uORB::SubscriptionCallbackWorkItem::get_topic()->o_name,
-			       uavcan::equipment::air_data::StaticTemperature::getDataTypeFullName(),
-			       uavcan::equipment::air_data::StaticTemperature::DefaultDataTypeID);
+			       ardupilot::gnss::MovingBaselineData::getDataTypeFullName(),
+			       id());
 		}
 	}
 
 	void BroadcastAnyUpdates() override
 	{
-		// sensor_baro -> uavcan::equipment::air_data::StaticTemperature
-		sensor_baro_s baro;
+		using ardupilot::gnss::MovingBaselineData;
 
-		if ((hrt_elapsed_time(&_last_static_temperature_publish) > 1_s) && uORB::SubscriptionCallbackWorkItem::update(&baro)) {
-			uavcan::equipment::air_data::StaticTemperature static_temperature{};
-			static_temperature.static_temperature = baro.temperature + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-			uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>::broadcast(static_temperature);
+		// gps_inject_data -> ardupilot::gnss::MovingBaselineData
+		gps_inject_data_s inject_data;
 
-			// ensure callback is registered
-			uORB::SubscriptionCallbackWorkItem::registerCallback();
+		if (uORB::SubscriptionCallbackWorkItem::update(&inject_data)) {
+			// Prevent republishing rtcm data we received from uavcan
+			union device::Device::DeviceId device_id;
+			device_id.devid = inject_data.device_id;
 
-			_last_static_temperature_publish = hrt_absolute_time();
+			if (device_id.devid_s.bus_type != device::Device::DeviceBusType::DeviceBusType_UAVCAN) {
+				ardupilot::gnss::MovingBaselineData movingbaselinedata{};
+
+				const size_t capacity = movingbaselinedata.data.capacity();
+				size_t written = 0;
+				int result = 0;
+
+				while ((result >= 0) && written < inject_data.len) {
+					size_t chunk_size = inject_data.len - written;
+
+					if (chunk_size > capacity) {
+						chunk_size = capacity;
+					}
+
+					for (size_t i = 0; i < chunk_size; ++i) {
+						movingbaselinedata.data.push_back(inject_data.data[written]);
+						written += 1;
+					}
+
+					result = uavcan::Publisher<ardupilot::gnss::MovingBaselineData>::broadcast(movingbaselinedata);
+
+					// ensure callback is registered
+					uORB::SubscriptionCallbackWorkItem::registerCallback();
+
+					movingbaselinedata.data.clear();
+				}
+			}
 		}
 	}
-private:
-	hrt_abstime _last_static_temperature_publish{0};
 };
 } // namespace uavcannode
