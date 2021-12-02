@@ -2071,7 +2071,7 @@ Mavlink::task_main(int argc, char *argv[])
 	/* USB serial is indicated by /dev/ttyACMx */
 	if (strncmp(_device_name, "/dev/ttyACM", 11) == 0) {
 		if (_datarate == 0) {
-			_datarate = 800000;
+			_datarate = 100000;
 		}
 
 		/* USB has no baudrate, but use a magic number for 'fast' */
@@ -2083,7 +2083,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 		_ftp_on = true;
 		_is_usb_uart = true;
-		_flow_control_mode = FLOW_CONTROL_OFF;
 
 		set_telemetry_status_type(telemetry_status_s::LINK_TYPE_USB);
 	}
