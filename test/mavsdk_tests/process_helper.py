@@ -115,7 +115,7 @@ class Runner:
         if returncode is None:
 
             if self.verbose:
-                print("Terminating {}".format(self.cmd))
+                print("Terminating {}".format(self.name))
             self.process.terminate()
 
             try:
@@ -125,13 +125,13 @@ class Runner:
 
             if returncode is None:
                 if self.verbose:
-                    print("Killing {}".format(self.cmd))
+                    print("Killing {}".format(self.name))
                 self.process.kill()
                 returncode = self.process.poll()
 
         if self.verbose:
             print("{} exited with {}".format(
-                self.cmd, self.process.returncode))
+                self.name, self.process.returncode))
 
         self.stop_thread.set()
         self.thread.join()
@@ -223,11 +223,26 @@ class GzserverRunner(Runner):
         self.env["GAZEBO_MODEL_PATH"] = \
             workspace_dir + "/Tools/sitl_gazebo/models"
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
-        self.cmd = "nice"
-        self.args = ["-n 1",
-                     "gzserver", "--verbose",
-                     workspace_dir + "/Tools/sitl_gazebo/worlds/" +
-                     "empty.world"]
+        self.cmd = "stdbuf"
+        self.args = ["-o0", "-e0", "gzserver", "--verbose",
+                     os.path.join(workspace_dir,
+                                  "Tools/sitl_gazebo/worlds",
+                                  "empty.world")]
+
+    def has_started_ok(self) -> bool:
+        # Wait until gzerver has started and connected to gazebo master.
+        timeout_s = 20
+        steps = 10
+        for step in range(steps):
+            with open(self.log_filename, 'r') as f:
+                for line in f.readlines():
+                    if 'Connected to gazebo master' in line:
+                        return True
+            time.sleep(float(timeout_s)/float(steps))
+
+        print("gzserver did not connect within {}s"
+              .format(timeout_s))
+        return False
 
 
 class GzmodelspawnRunner(Runner):
@@ -261,7 +276,11 @@ class GzmodelspawnRunner(Runner):
         else:
             raise Exception("Model not found")
 
-        self.args = ["model", "--spawn-file", model_path,
+        self.cmd = "stdbuf"
+        self.args = ["-o0", "-e0",
+                     "gz", "model",
+                     "--verbose",
+                     "--spawn-file", model_path,
                      "--model-name", self.model,
                      "-x", "1.01", "-y", "0.98", "-z", "0.83"]
 
@@ -271,21 +290,15 @@ class GzmodelspawnRunner(Runner):
         # "An instance of Gazebo is not running." but still returns 0
         # as a result.
         # We work around this by trying to start and then check whether
-        # using has_started_ok() whether it was succesful or not.
-        timeout_s = 3
+        # using has_started_ok() whether it was successful or not.
+        timeout_s = 20
         steps = 10
-        for _ in range(steps*timeout_s):
-            if self.verbose:
-                print("Checking if gz model spawn is done...")
+        for _ in range(steps):
             returncode = self.process.poll()
             if returncode is None:
-                if self.verbose:
-                    print("not done yet")
                 time.sleep(float(timeout_s)/float(steps))
                 continue
 
-            if self.verbose:
-                print("gz model spawn is done")
             with open(self.log_filename, 'r') as f:
                 for line in f.readlines():
                     if 'An instance of Gazebo is not running' in line:
@@ -293,9 +306,8 @@ class GzmodelspawnRunner(Runner):
                 else:
                     return True
 
-        if self.verbose:
-            print("gzmodelspawn did not return within {}s".
-                  format(timeout_s))
+        print("gzmodelspawn did not return within {}s"
+              .format(timeout_s))
         return False
 
 
