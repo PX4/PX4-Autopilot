@@ -218,6 +218,11 @@ public:
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 
+	struct vehicle_torque_setpoint_s 		*_torque_setpoint_0;
+	struct vehicle_torque_setpoint_s 		*_torque_setpoint_1;
+	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_0;
+	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_1;
+
 	struct Params 					*_params;
 
 	bool _flag_idle_mc = false;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
