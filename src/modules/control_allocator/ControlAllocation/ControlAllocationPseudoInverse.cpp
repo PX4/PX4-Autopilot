@@ -44,9 +44,9 @@
 void
 ControlAllocationPseudoInverse::setEffectivenessMatrix(
 	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
-	const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator_trim, int num_actuators)
+	const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators)
 {
-	ControlAllocation::setEffectivenessMatrix(effectiveness, actuator_trim, num_actuators);
+	ControlAllocation::setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, num_actuators);
 	_mix_update_needed = true;
 }
 
@@ -119,6 +119,8 @@ ControlAllocationPseudoInverse::allocate()
 {
 	//Compute new gains if needed
 	updatePseudoInverse();
+
+	_prev_actuator_sp = _actuator_sp;
 
 	// Allocate
 	_actuator_sp = _actuator_trim + _mix * (_control_sp - _control_trim);

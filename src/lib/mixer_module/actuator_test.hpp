@@ -38,6 +38,7 @@
 #include <drivers/drv_pwm_output.h>
 #include <uORB/topics/actuator_test.h>
 #include <uORB/topics/actuator_motors.h>
+#include <uORB/topics/actuator_servos_trim.h>
 #include <uORB/Subscription.hpp>
 
 static_assert(actuator_test_s::FUNCTION_MOTOR1 == (int)OutputFunction::Motor1, "define mismatch");
@@ -66,6 +67,7 @@ private:
 
 	uORB::Subscription _actuator_test_sub{ORB_ID(actuator_test)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+	uORB::Subscription _actuator_servos_trim_sub{ORB_ID(actuator_servos_trim)};
 	bool _in_test_mode{false};
 	hrt_abstime _next_timeout{0};
 

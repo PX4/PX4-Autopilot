@@ -64,6 +64,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/actuator_servos.h>
+#include <uORB/topics/actuator_servos_trim.h>
 #include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_torque_setpoint.h>
@@ -75,6 +76,9 @@ class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParam
 public:
 	static constexpr int NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
 	static constexpr int NUM_AXES = ControlAllocation::NUM_AXES;
+
+	static constexpr int MAX_NUM_MOTORS = actuator_motors_s::NUM_CONTROLS;
+	static constexpr int MAX_NUM_SERVOS = actuator_servos_s::NUM_CONTROLS;
 
 	using ActuatorVector = ActuatorEffectiveness::ActuatorVector;
 
@@ -99,6 +103,16 @@ public:
 	bool init();
 
 private:
+
+	struct ParamHandles {
+		param_t slew_rate_motors[MAX_NUM_MOTORS];
+		param_t slew_rate_servos[MAX_NUM_SERVOS];
+	};
+
+	struct Params {
+		float slew_rate_motors[MAX_NUM_MOTORS];
+		float slew_rate_servos[MAX_NUM_SERVOS];
+	};
 
 	/**
 	 * initialize some vectors/matrices from parameters
@@ -147,6 +161,7 @@ private:
 
 	uORB::Publication<actuator_motors_s>	_actuator_motors_pub{ORB_ID(actuator_motors)};
 	uORB::Publication<actuator_servos_s>	_actuator_servos_pub{ORB_ID(actuator_servos)};
+	uORB::Publication<actuator_servos_trim_s>	_actuator_servos_trim_pub{ORB_ID(actuator_servos_trim)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -160,6 +175,10 @@ private:
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 	hrt_abstime _last_status_pub{0};
+
+	ParamHandles _param_handles{};
+	Params _params{};
+	bool _has_slew_rate{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CA_AIRFRAME>) _param_ca_airframe,

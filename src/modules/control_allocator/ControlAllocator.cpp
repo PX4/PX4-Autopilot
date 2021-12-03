@@ -54,6 +54,18 @@ ControlAllocator::ControlAllocator() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
+		char buffer[17];
+		snprintf(buffer, sizeof(buffer), "CA_R%u_SLEW", i);
+		_param_handles.slew_rate_motors[i] = param_find(buffer);
+	}
+
+	for (int i = 0; i < MAX_NUM_SERVOS; ++i) {
+		char buffer[17];
+		snprintf(buffer, sizeof(buffer), "CA_SV%u_SLEW", i);
+		_param_handles.slew_rate_servos[i] = param_find(buffer);
+	}
+
 	parameters_updated();
 }
 
@@ -87,6 +99,18 @@ ControlAllocator::init()
 void
 ControlAllocator::parameters_updated()
 {
+	_has_slew_rate = false;
+
+	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
+		param_get(_param_handles.slew_rate_motors[i], &_params.slew_rate_motors[i]);
+		_has_slew_rate |= _params.slew_rate_motors[i] > FLT_EPSILON;
+	}
+
+	for (int i = 0; i < MAX_NUM_SERVOS; ++i) {
+		param_get(_param_handles.slew_rate_servos[i], &_params.slew_rate_servos[i]);
+		_has_slew_rate |= _params.slew_rate_servos[i] > FLT_EPSILON;
+	}
+
 	// Allocation method & effectiveness source
 	// Do this first: in case a new method is loaded, it will be configured below
 	bool updated = update_effectiveness_source();
@@ -343,6 +367,11 @@ ControlAllocator::Run()
 			// Do allocation
 			_control_allocation[i]->allocate();
 			_actuator_effectiveness->updateSetpoint(c[i], i, _control_allocation[i]->_actuator_sp);
+
+			if (_has_slew_rate) {
+				_control_allocation[i]->applySlewRateLimit(dt);
+			}
+
 			_control_allocation[i]->clipActuatorSetpoint();
 		}
 
@@ -378,14 +407,19 @@ ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 		// Get the minimum and maximum depending on type and configuration
 		ActuatorEffectiveness::ActuatorVector minimum[ActuatorEffectiveness::MAX_NUM_MATRICES];
 		ActuatorEffectiveness::ActuatorVector maximum[ActuatorEffectiveness::MAX_NUM_MATRICES];
+		ActuatorEffectiveness::ActuatorVector slew_rate[ActuatorEffectiveness::MAX_NUM_MATRICES];
 		int actuator_idx = 0;
 		int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
+
+		actuator_servos_trim_s trims{};
+		static_assert(actuator_servos_trim_s::NUM_CONTROLS == actuator_servos_s::NUM_CONTROLS, "size mismatch");
 
 		for (int actuator_type = 0; actuator_type < (int)ActuatorType::COUNT; ++actuator_type) {
 			_num_actuators[actuator_type] = config.num_actuators[actuator_type];
 
 			for (int actuator_type_idx = 0; actuator_type_idx < config.num_actuators[actuator_type]; ++actuator_type_idx) {
 				if (actuator_idx >= NUM_ACTUATORS) {
+					_num_actuators[actuator_type] = 0;
 					PX4_ERR("Too many actuators");
 					break;
 				}
@@ -393,6 +427,12 @@ ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 				int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
 
 				if ((ActuatorType)actuator_type == ActuatorType::MOTORS) {
+					if (actuator_type_idx >= MAX_NUM_MOTORS) {
+						PX4_ERR("Too many motors");
+						_num_actuators[actuator_type] = 0;
+						break;
+					}
+
 					if (_param_r_rev.get() & (1u << actuator_type_idx)) {
 						minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = -1.f;
 
@@ -400,11 +440,25 @@ ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 						minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = 0.f;
 					}
 
+					slew_rate[selected_matrix](actuator_idx_matrix[selected_matrix]) = _params.slew_rate_motors[actuator_type_idx];
+
+				} else if ((ActuatorType)actuator_type == ActuatorType::SERVOS) {
+					if (actuator_type_idx >= MAX_NUM_SERVOS) {
+						PX4_ERR("Too many servos");
+						_num_actuators[actuator_type] = 0;
+						break;
+					}
+
+					minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = -1.f;
+					slew_rate[selected_matrix](actuator_idx_matrix[selected_matrix]) = _params.slew_rate_servos[actuator_type_idx];
+					trims.trim[actuator_type_idx] = config.trim[selected_matrix](actuator_idx_matrix[selected_matrix]);
+
 				} else {
 					minimum[selected_matrix](actuator_idx_matrix[selected_matrix]) = -1.f;
 				}
 
 				maximum[selected_matrix](actuator_idx_matrix[selected_matrix]) = 1.f;
+
 				++actuator_idx_matrix[selected_matrix];
 				++actuator_idx;
 			}
@@ -413,11 +467,16 @@ ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 		for (int i = 0; i < _num_control_allocation; ++i) {
 			_control_allocation[i]->setActuatorMin(minimum[i]);
 			_control_allocation[i]->setActuatorMax(maximum[i]);
+			_control_allocation[i]->setSlewRateLimit(slew_rate[i]);
 
 			// Assign control effectiveness matrix
 			int total_num_actuators = config.num_actuators_matrix[i];
-			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i], total_num_actuators);
+			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
+					config.linearization_point[i], total_num_actuators);
 		}
+
+		trims.timestamp = hrt_absolute_time();
+		_actuator_servos_trim_pub.publish(trims);
 	}
 }
 
