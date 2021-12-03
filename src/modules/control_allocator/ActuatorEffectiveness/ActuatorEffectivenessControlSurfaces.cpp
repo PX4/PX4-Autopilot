@@ -50,6 +50,8 @@ ActuatorEffectivenessControlSurfaces::ActuatorEffectivenessControlSurfaces(Modul
 		_param_handles[i].torque[1] = param_find(buffer);
 		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_TRQ_Y", i);
 		_param_handles[i].torque[2] = param_find(buffer);
+		snprintf(buffer, sizeof(buffer), "CA_SV_CS%u_TRIM", i);
+		_param_handles[i].trim = param_find(buffer);
 	}
 
 	_count_handle = param_find("CA_SV_CS_COUNT");
@@ -77,6 +79,8 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		for (int n = 0; n < 3; ++n) {
 			param_get(_param_handles[i].torque[n], &torque(n));
 		}
+
+		param_get(_param_handles[i].trim, &_params[i].trim);
 
 		// TODO: enforce limits?
 		switch (_params[i].type) {
@@ -126,7 +130,11 @@ bool ActuatorEffectivenessControlSurfaces::getEffectivenessMatrix(Configuration 
 	}
 
 	for (int i = 0; i < _count; i++) {
-		configuration.addActuator(ActuatorType::SERVOS, _params[i].torque, Vector3f{});
+		int actuator_idx = configuration.addActuator(ActuatorType::SERVOS, _params[i].torque, Vector3f{});
+
+		if (actuator_idx >= 0) {
+			configuration.trim[configuration.selected_matrix](actuator_idx) = _params[i].trim;
+		}
 	}
 
 	return true;

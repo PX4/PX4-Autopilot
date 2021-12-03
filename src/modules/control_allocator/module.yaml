@@ -53,6 +53,42 @@ parameters:
                 6: Motor 7
                 7: Motor 8
             default: 0
+        CA_R${i}_SLEW:
+            description:
+                short: Motor ${i} slew rate limit
+                long: |
+                  Minimum time allowed for the motor input signal to pass through
+                  the full output range. A value x means that the motor signal
+                  can only go from 0 to 1 in minimum x seconds (in case of
+                  reversible motors, the range is -1 to 1).
+
+                  Zero means that slew rate limiting is disabled.
+            type: float
+            decimal: 2
+            increment: 0.01
+            num_instances: *max_num_mc_motors
+            min: 0
+            max: 10
+            default: 0.0
+
+        # Servo params
+        CA_SV${i}_SLEW:
+            description:
+                short: Servo ${i} slew rate limit
+                long: |
+                  Minimum time allowed for the servo input signal to pass through
+                  the full output range. A value x means that the servo signal
+                  can only go from -1 to 1 in minimum x seconds.
+
+                  Zero means that slew rate limiting is disabled.
+            type: float
+            decimal: 2
+            increment: 0.05
+            num_instances: *max_num_servos
+            min: 0
+            max: 10
+            default: 0.0
+
 
         # (MC) Rotors
         CA_ROTOR_COUNT:
@@ -246,6 +282,17 @@ parameters:
             num_instances: *max_num_servos
             instance_start: 0
             default: 0.0
+        CA_SV_CS${i}_TRIM:
+            description:
+                short: Control Surface ${i} trim
+                long: Can be used to add an offset to the servo control.
+            type: float
+            decimal: 2
+            min: -1.0
+            max: 1.0
+            num_instances: *max_num_servos
+            instance_start: 0
+            default: 0.0
 
         # Tilts
         CA_SV_TL_COUNT:
@@ -341,12 +388,21 @@ mixer:
                 show_as: 'bitset'
                 index_offset: 0
                 advanced: true
+              - name: 'CA_R${i}_SLEW'
+                label: 'Slew Rate'
+                index_offset: 0
+                advanced: true
         servo:
             functions: 'Servo'
             actuator_testing_values:
                 min: -1
                 max: 1
                 default: 0
+            per_item_parameters:
+              - name: 'CA_SV${i}_SLEW'
+                label: 'Slew Rate'
+                index_offset: 0
+                advanced: true
         DEFAULT:
             actuator_testing_values:
                 min: -1
@@ -427,6 +483,8 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRQ_Y'
                             label: 'Yaw Scale'
                             identifier: 'servo-torque-yaw'
+                          - name: 'CA_SV_CS${i}_TRIM'
+                            label: 'Trim'
 
             2: # Tiltrotor VTOL
                 actuators:
@@ -458,6 +516,8 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRQ_Y'
                             label: 'Yaw Torque'
                             identifier: 'servo-torque-yaw'
+                          - name: 'CA_SV_CS${i}_TRIM'
+                            label: 'Trim'
                   - actuator_type: 'servo'
                     group_label: 'Tilt Servos'
                     count: 'CA_SV_TL_COUNT'
@@ -519,5 +579,7 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRQ_Y'
                             label: 'Yaw Torque'
                             identifier: 'servo-torque-yaw'
+                          - name: 'CA_SV_CS${i}_TRIM'
+                            label: 'Trim'
 
 

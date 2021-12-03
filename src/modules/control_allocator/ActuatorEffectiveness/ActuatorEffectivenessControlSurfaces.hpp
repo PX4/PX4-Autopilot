@@ -63,6 +63,7 @@ public:
 		Type type;
 
 		matrix::Vector3f torque;
+		float trim;
 	};
 
 	ActuatorEffectivenessControlSurfaces(ModuleParams *parent);
@@ -86,6 +87,7 @@ private:
 		param_t type;
 
 		param_t torque[3];
+		param_t trim;
 	};
 	ParamHandles _param_handles[MAX_COUNT];
 	param_t _count_handle;

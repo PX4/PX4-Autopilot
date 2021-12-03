@@ -54,9 +54,10 @@ TEST(ControlAllocationTest, AllZeroCase)
 	matrix::Matrix<float, 6, 16> effectiveness;
 	matrix::Vector<float, 16> actuator_sp;
 	matrix::Vector<float, 16> actuator_trim;
+	matrix::Vector<float, 16> linearization_point;
 	matrix::Vector<float, 16> actuator_sp_expected;
 
-	method.setEffectivenessMatrix(effectiveness, actuator_trim, 16);
+	method.setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, 16);
 	method.setControlSetpoint(control_sp);
 	method.allocate();
 	method.clipActuatorSetpoint();
