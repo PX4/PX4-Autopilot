@@ -294,11 +294,37 @@ void UUVAttitudeControl::Run()
 	    _vcontrol_mode.flag_control_attitude_enabled) {
 		/* publish the actuator controls */
 		_actuator_controls_pub.publish(_actuators);
-
+		publishTorqueSetpoint(0);
+		publishThrustSetpoint(0);
 	}
 
 	perf_end(_loop_perf);
 }
+
+void UUVAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample)
+{
+	vehicle_torque_setpoint_s v_torque_sp = {};
+	v_torque_sp.timestamp = hrt_absolute_time();
+	v_torque_sp.timestamp_sample = timestamp_sample;
+	v_torque_sp.xyz[0] = _actuators.control[actuator_controls_s::INDEX_ROLL];
+	v_torque_sp.xyz[1] = _actuators.control[actuator_controls_s::INDEX_PITCH];
+	v_torque_sp.xyz[2] = _actuators.control[actuator_controls_s::INDEX_YAW];
+
+	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+}
+
+void UUVAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
+{
+	vehicle_thrust_setpoint_s v_thrust_sp = {};
+	v_thrust_sp.timestamp = hrt_absolute_time();
+	v_thrust_sp.timestamp_sample = timestamp_sample;
+	v_thrust_sp.xyz[0] = _actuators.control[actuator_controls_s::INDEX_THROTTLE];
+	v_thrust_sp.xyz[1] = 0.0f;
+	v_thrust_sp.xyz[2] = 0.0f;
+
+	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
+}
+
 
 int UUVAttitudeControl::task_spawn(int argc, char *argv[])
 {
