@@ -141,6 +141,7 @@ private:
 		ROVER_ACKERMANN = 3,
 		ROVER_DIFFERENTIAL = 4,
 		FIXED_WING = 5,
+		MOTORS_6DOF = 6,
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
