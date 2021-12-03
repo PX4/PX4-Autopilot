@@ -227,6 +227,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessFixedWing(this);
 			break;
 
+		case EffectivenessSource::MOTORS_6DOF: // just a different UI from MULTIROTOR
+			tmp = new ActuatorEffectivenessRotors(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;
