@@ -173,6 +173,7 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
+	bool _armed{false};
 	hrt_abstime _last_run{0};
 	hrt_abstime _timestamp_sample{0};
 	hrt_abstime _last_status_pub{0};
