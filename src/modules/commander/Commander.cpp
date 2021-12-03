@@ -706,6 +706,9 @@ Commander::Commander() :
 	// default for vtol is rotary wing
 	_vtol_status.vtol_in_rw_mode = true;
 
+	_vehicle_gps_position_valid.set_hysteresis_time_from(false, 3_s);
+	_vehicle_gps_position_valid.set_hysteresis_time_from(true, 1_s);
+
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
 }
@@ -3912,6 +3915,36 @@ void Commander::estimator_check()
 	}
 
 	_status_flags.condition_angular_velocity_valid = condition_angular_velocity_valid;
+
+
+	// gps
+	const bool condition_gps_position_was_valid = _status_flags.condition_gps_position_valid;
+
+	if (_vehicle_gps_position_sub.updated()) {
+		vehicle_gps_position_s vehicle_gps_position;
+
+		if (_vehicle_gps_position_sub.copy(&vehicle_gps_position)) {
+
+			bool time = (vehicle_gps_position.timestamp != 0) && (hrt_elapsed_time(&vehicle_gps_position.timestamp) < 1_s);
+
+			bool fix = vehicle_gps_position.fix_type >= 2;
+			bool eph = vehicle_gps_position.eph < _param_com_pos_fs_eph.get();
+			bool epv = vehicle_gps_position.epv < _param_com_pos_fs_epv.get();
+			bool evh = vehicle_gps_position.s_variance_m_s < _param_com_vel_fs_evh.get();
+
+			_vehicle_gps_position_valid.set_state_and_update(time && fix && eph && epv && evh, hrt_absolute_time());
+			_status_flags.condition_gps_position_valid = _vehicle_gps_position_valid.get_state();
+		}
+
+	} else {
+		_vehicle_gps_position_valid.set_state_and_update(false, hrt_absolute_time());
+		_status_flags.condition_gps_position_valid = _vehicle_gps_position_valid.get_state();
+	}
+
+	if (condition_gps_position_was_valid && !_status_flags.condition_gps_position_valid) {
+		PX4_ERR("GPS no longer valid");
+	}
+
 }
 
 void Commander::UpdateEstimateValidity()

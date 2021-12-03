@@ -85,6 +85,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
@@ -315,6 +316,8 @@ private:
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
+	Hysteresis _vehicle_gps_position_valid{false};
+
 	bool		_geofence_loiter_on{false};
 	bool		_geofence_rtl_on{false};
 	bool		_geofence_land_on{false};
@@ -415,6 +418,7 @@ private:
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription					_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription					_vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 	uORB::Subscription					_wind_sub{ORB_ID(wind)};
 

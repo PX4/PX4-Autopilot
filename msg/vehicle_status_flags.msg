@@ -13,6 +13,7 @@ bool condition_local_altitude_valid
 bool condition_local_position_valid		# set to true by the commander app if the quality of the local position estimate is good enough to use for navigation
 bool condition_local_velocity_valid		# set to true by the commander app if the quality of the local horizontal velocity data is good enough to use for navigation
 bool condition_global_position_valid		# set to true by the commander app if the quality of the global position estimate is good enough to use for navigation
+bool condition_gps_position_valid
 bool condition_home_position_valid		# indicates a valid home position (a valid home position is not always a valid launch)
 bool condition_power_input_valid                # set if input power is valid
 bool condition_battery_healthy                # set if battery is available and not low
