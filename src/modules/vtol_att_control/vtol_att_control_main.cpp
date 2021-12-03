@@ -513,8 +513,11 @@ VtolAttitudeControl::Run()
 		_vtol_type->fill_actuator_outputs();
 		_actuators_0_pub.publish(_actuators_out_0);
 		_actuators_1_pub.publish(_actuators_out_1);
-		publishTorqueSetpoints(0);
-		publishThrustSetpoints(0);
+
+		_vehicle_torque_setpoint0_pub.publish(_torque_setpoint_0);
+		_vehicle_torque_setpoint1_pub.publish(_torque_setpoint_1);
+		_vehicle_thrust_setpoint0_pub.publish(_thrust_setpoint_0);
+		_vehicle_thrust_setpoint1_pub.publish(_thrust_setpoint_1);
 
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
@@ -522,39 +525,6 @@ VtolAttitudeControl::Run()
 	}
 
 	perf_end(_loop_perf);
-}
-
-void VtolAttitudeControl::publishTorqueSetpoints(const hrt_abstime &timestamp_sample)
-{
-	vehicle_torque_setpoint_s v_torque_sp = {};
-	v_torque_sp.timestamp = hrt_absolute_time();
-	v_torque_sp.timestamp_sample = timestamp_sample;
-	v_torque_sp.xyz[0] = _actuators_out_0.control[actuator_controls_s::INDEX_ROLL];
-	v_torque_sp.xyz[1] = _actuators_out_0.control[actuator_controls_s::INDEX_PITCH];
-	v_torque_sp.xyz[2] = _actuators_out_0.control[actuator_controls_s::INDEX_YAW];
-	_vehicle_torque_setpoint0_pub.publish(v_torque_sp);
-
-	v_torque_sp.xyz[0] = _actuators_out_1.control[actuator_controls_s::INDEX_ROLL];
-	v_torque_sp.xyz[1] = _actuators_out_1.control[actuator_controls_s::INDEX_PITCH];
-	v_torque_sp.xyz[2] = _actuators_out_1.control[actuator_controls_s::INDEX_YAW];
-	_vehicle_torque_setpoint1_pub.publish(v_torque_sp);
-}
-
-void VtolAttitudeControl::publishThrustSetpoints(const hrt_abstime &timestamp_sample)
-{
-	vehicle_thrust_setpoint_s v_thrust_sp = {};
-	v_thrust_sp.timestamp = hrt_absolute_time();
-	v_thrust_sp.timestamp_sample = timestamp_sample;
-	// TODO: separate thrust
-	v_thrust_sp.xyz[0] = _actuators_out_0.control[actuator_controls_s::INDEX_THROTTLE];
-	v_thrust_sp.xyz[1] = 0.0f;
-	v_thrust_sp.xyz[2] = -_actuators_out_0.control[actuator_controls_s::INDEX_THROTTLE];
-	_vehicle_thrust_setpoint0_pub.publish(v_thrust_sp);
-
-	v_thrust_sp.xyz[0] = _actuators_out_1.control[actuator_controls_s::INDEX_THROTTLE];
-	v_thrust_sp.xyz[1] = 0.0f;
-	v_thrust_sp.xyz[2] = 0.0f;
-	_vehicle_thrust_setpoint1_pub.publish(v_thrust_sp);
 }
 
 int
