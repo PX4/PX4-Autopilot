@@ -58,7 +58,7 @@ void Ekf::fuseAirspeed()
 			       math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
 
 	// determine if we need the airspeed fusion to correct states other than wind
-	const bool update_wind_only = !_is_wind_dead_reckoning;
+	const bool update_wind_only = !_control_status.flags.wind_dead_reckoning;
 
 	// Intermediate variables
 	const float HK0 = vn - vwn;
