@@ -98,6 +98,8 @@ public:
 		int num_actuators_matrix[MAX_NUM_MATRICES]; ///< current amount, and next actuator index to fill in to effectiveness_matrices
 		ActuatorVector trim[MAX_NUM_MATRICES];
 
+		ActuatorVector linearization_point[MAX_NUM_MATRICES];
+
 		int selected_matrix;
 
 		uint8_t matrix_selection_indexes[NUM_ACTUATORS * MAX_NUM_MATRICES];

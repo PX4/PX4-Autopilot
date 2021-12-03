@@ -81,6 +81,17 @@ void ActuatorTest::update(int num_outputs, float thrust_curve)
 						FunctionMotors::updateValues(motors.reversible_flags >> motor_idx, thrust_curve, &value, 1);
 					}
 
+					// handle servos: add trim
+					if (actuator_test.function >= (int)OutputFunction::Servo1 && actuator_test.function <= (int)OutputFunction::ServoMax) {
+						actuator_servos_trim_s trim{};
+						_actuator_servos_trim_sub.copy(&trim);
+						int idx = actuator_test.function - (int)OutputFunction::Servo1;
+
+						if (idx < actuator_servos_trim_s::NUM_CONTROLS) {
+							value += trim.trim[idx];
+						}
+					}
+
 					_current_outputs[i] = value;
 
 				} else {
