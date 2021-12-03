@@ -21,6 +21,7 @@ parameters:
                 3: Rover (Ackermann)
                 4: Rover (Differential)
                 5: Fixed Wing
+                5: Motors (6DOF)
             default: 0
 
         CA_METHOD:
@@ -582,4 +583,23 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
 
+            6: # Motors (6DOF)
+                actuators:
+                  - actuator_type: 'motor'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                          - name: 'CA_ROTOR${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                          - name: 'CA_ROTOR${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
+                          - name: 'CA_ROTOR${i}_KM'
+                            label: "Moment\nCoefficient"
 
