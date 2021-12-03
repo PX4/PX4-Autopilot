@@ -37,25 +37,38 @@ float32 rx_message_lost_rate
 
 uint64 HEARTBEAT_TIMEOUT_US = 1500000       # Heartbeat timeout 1.5 seconds
 
-# Heartbeats per type
-bool heartbeat_type_antenna_tracker         # MAV_TYPE_ANTENNA_TRACKER
-bool heartbeat_type_gcs                     # MAV_TYPE_GCS
-bool heartbeat_type_onboard_controller      # MAV_TYPE_ONBOARD_CONTROLLER
-bool heartbeat_type_gimbal                  # MAV_TYPE_GIMBAL
-bool heartbeat_type_adsb                    # MAV_TYPE_ADSB
-bool heartbeat_type_camera                  # MAV_TYPE_CAMERA
-bool heartbeat_type_parachute               # MAV_TYPE_PARACHUTE
+# Heartbeats
+bool heartbeat_adsb               # MAV_TYPE_ADSB
+bool heartbeat_antenna_tracker    # MAV_TYPE_ANTENNA_TRACKER
+bool heartbeat_battery            # MAV_TYPE_BATTERY
+bool heartbeat_camera             # MAV_TYPE_CAMERA
+bool heartbeat_gcs                # MAV_TYPE_GCS
+bool heartbeat_gimbal             # MAV_TYPE_GIMBAL
+bool heartbeat_log                # MAV_COMP_ID_LOG
+bool heartbeat_obstacle_avoidance # MAV_COMP_ID_OBSTACLE_AVOIDANCE
+bool heartbeat_onboard_controller # MAV_TYPE_ONBOARD_CONTROLLER
+bool heartbeat_osd                # MAV_COMP_ID_OSD
+bool heartbeat_pairing_manager    # MAV_COMP_ID_PAIRING_MANAGER
+bool heartbeat_parachute          # MAV_TYPE_PARACHUTE
+bool heartbeat_telemetry_radio    # MAV_COMP_ID_TELEMETRY_RADIO
+bool heartbeat_uart_bridge        # MAV_COMP_ID_UART_BRIDGE
+bool heartbeat_udp_bridge         # MAV_COMP_ID_UDP_BRIDGE
+bool heartbeat_vio                # MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY
 
-# Heartbeats per component
-bool heartbeat_component_telemetry_radio    # MAV_COMP_ID_TELEMETRY_RADIO
-bool heartbeat_component_log                # MAV_COMP_ID_LOG
-bool heartbeat_component_osd                # MAV_COMP_ID_OSD
-bool heartbeat_component_obstacle_avoidance # MAV_COMP_ID_OBSTACLE_AVOIDANCE
-bool heartbeat_component_vio                # MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY
-bool heartbeat_component_pairing_manager    # MAV_COMP_ID_PAIRING_MANAGER
-bool heartbeat_component_udp_bridge         # MAV_COMP_ID_UDP_BRIDGE
-bool heartbeat_component_uart_bridge        # MAV_COMP_ID_UART_BRIDGE
-
-# Misc component health
-bool avoidance_system_healthy
-bool parachute_system_healthy
+# system status healthy
+bool system_healthy_adsb
+bool system_healthy_antenna_tracker
+bool system_healthy_battery
+bool system_healthy_camera
+bool system_healthy_gcs
+bool system_healthy_gimbal
+bool system_healthy_log
+bool system_healthy_obstacle_avoidance
+bool system_healthy_onboard_controller
+bool system_healthy_osd
+bool system_healthy_pairing_manager
+bool system_healthy_parachute
+bool system_healthy_telemetry_radio
+bool system_healthy_uart_bridge
+bool system_healthy_udp_bridge
+bool system_healthy_vio

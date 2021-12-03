@@ -2118,41 +2118,63 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 		if (same_system || hb.type == MAV_TYPE_GCS) {
 
-			camera_status_s camera_status{};
+			const bool healthy = (hb.system_status == MAV_STATE_STANDBY) || (hb.system_status == MAV_STATE_ACTIVE);
 
 			switch (hb.type) {
 			case MAV_TYPE_ANTENNA_TRACKER:
-				_heartbeat_type_antenna_tracker = now;
+				_heartbeat_antenna_tracker = now;
+				_mavlink->telemetry_status().heartbeat_antenna_tracker = true;
+				_mavlink->telemetry_status().system_healthy_antenna_tracker = healthy;
 				break;
 
 			case MAV_TYPE_GCS:
-				_heartbeat_type_gcs = now;
+				_heartbeat_gcs = now;
+				_mavlink->telemetry_status().heartbeat_gcs = true;
+				_mavlink->telemetry_status().system_healthy_gcs = healthy;
 				break;
 
 			case MAV_TYPE_ONBOARD_CONTROLLER:
-				_heartbeat_type_onboard_controller = now;
+				_heartbeat_onboard_controller = now;
+				_mavlink->telemetry_status().heartbeat_onboard_controller = true;
+				_mavlink->telemetry_status().system_healthy_onboard_controller = healthy;
 				break;
 
 			case MAV_TYPE_GIMBAL:
-				_heartbeat_type_gimbal = now;
+				_heartbeat_gimbal = now;
+				_mavlink->telemetry_status().heartbeat_gimbal = true;
+				_mavlink->telemetry_status().system_healthy_gimbal = healthy;
 				break;
 
 			case MAV_TYPE_ADSB:
-				_heartbeat_type_adsb = now;
+				_heartbeat_adsb = now;
+				_mavlink->telemetry_status().heartbeat_adsb = true;
+				_mavlink->telemetry_status().system_healthy_adsb = healthy;
 				break;
 
 			case MAV_TYPE_CAMERA:
-				_heartbeat_type_camera = now;
-				camera_status.timestamp = now;
-				camera_status.active_comp_id = msg->compid;
-				camera_status.active_sys_id = msg->sysid;
-				_camera_status_pub.publish(camera_status);
+				_heartbeat_camera = now;
+				_mavlink->telemetry_status().heartbeat_camera = true;
+				_mavlink->telemetry_status().system_healthy_camera = healthy;
+				{
+
+					camera_status_s camera_status{};
+					camera_status.active_comp_id = msg->compid;
+					camera_status.active_sys_id = msg->sysid;
+					camera_status.timestamp = hrt_absolute_time();
+					_camera_status_pub.publish(camera_status);
+				}
+				break;
+
+			case MAV_TYPE_BATTERY:
+				_heartbeat_battery = now;
+				_mavlink->telemetry_status().heartbeat_battery = true;
+				_mavlink->telemetry_status().system_healthy_battery = healthy;
 				break;
 
 			case MAV_TYPE_PARACHUTE:
-				_heartbeat_type_parachute = now;
-				_mavlink->telemetry_status().parachute_system_healthy =
-					(hb.system_status == MAV_STATE_STANDBY) || (hb.system_status == MAV_STATE_ACTIVE);
+				_heartbeat_parachute = now;
+				_mavlink->telemetry_status().heartbeat_parachute = true;
+				_mavlink->telemetry_status().system_healthy_parachute = healthy;
 				break;
 
 			default:
@@ -2163,36 +2185,51 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 
 			switch (msg->compid) {
 			case MAV_COMP_ID_TELEMETRY_RADIO:
-				_heartbeat_component_telemetry_radio = now;
+				_heartbeat_telemetry_radio = now;
+				_mavlink->telemetry_status().heartbeat_telemetry_radio = true;
+				_mavlink->telemetry_status().system_healthy_telemetry_radio = healthy;
 				break;
 
 			case MAV_COMP_ID_LOG:
-				_heartbeat_component_log = now;
+				_heartbeat_log = now;
+				_mavlink->telemetry_status().heartbeat_osd = true;
+				_mavlink->telemetry_status().system_healthy_osd = healthy;
 				break;
 
 			case MAV_COMP_ID_OSD:
-				_heartbeat_component_osd = now;
+				_heartbeat_osd = now;
+				_mavlink->telemetry_status().heartbeat_osd = true;
+				_mavlink->telemetry_status().system_healthy_osd = healthy;
 				break;
 
 			case MAV_COMP_ID_OBSTACLE_AVOIDANCE:
-				_heartbeat_component_obstacle_avoidance = now;
-				_mavlink->telemetry_status().avoidance_system_healthy = (hb.system_status == MAV_STATE_ACTIVE);
+				_heartbeat_obstacle_avoidance = now;
+				_mavlink->telemetry_status().heartbeat_obstacle_avoidance = true;
+				_mavlink->telemetry_status().system_healthy_obstacle_avoidance = healthy;
 				break;
 
 			case MAV_COMP_ID_VISUAL_INERTIAL_ODOMETRY:
-				_heartbeat_component_visual_inertial_odometry = now;
+				_heartbeat_visual_inertial_odometry = now;
+				_mavlink->telemetry_status().heartbeat_vio = true;
+				_mavlink->telemetry_status().system_healthy_vio = healthy;
 				break;
 
 			case MAV_COMP_ID_PAIRING_MANAGER:
-				_heartbeat_component_pairing_manager = now;
+				_heartbeat_pairing_manager = now;
+				_mavlink->telemetry_status().heartbeat_pairing_manager = true;
+				_mavlink->telemetry_status().system_healthy_pairing_manager = healthy;
 				break;
 
 			case MAV_COMP_ID_UDP_BRIDGE:
-				_heartbeat_component_udp_bridge = now;
+				_heartbeat_udp_bridge = now;
+				_mavlink->telemetry_status().heartbeat_udp_bridge = true;
+				_mavlink->telemetry_status().system_healthy_udp_bridge = healthy;
 				break;
 
 			case MAV_COMP_ID_UART_BRIDGE:
-				_heartbeat_component_uart_bridge = now;
+				_heartbeat_uart_bridge = now;
+				_mavlink->telemetry_status().heartbeat_uart_bridge = true;
+				_mavlink->telemetry_status().system_healthy_uart_bridge = healthy;
 				break;
 
 			default:
@@ -2200,7 +2237,7 @@ MavlinkReceiver::handle_message_heartbeat(mavlink_message_t *msg)
 					  msg->compid);
 			}
 
-			CheckHeartbeats(now, true);
+			_mavlink->telemetry_status_updated();
 		}
 	}
 }
@@ -2935,7 +2972,7 @@ void MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
 	}
 }
 
-void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
+void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t)
 {
 	// check HEARTBEATs for timeout
 	static constexpr uint64_t TIMEOUT = telemetry_status_s::HEARTBEAT_TIMEOUT_US;
@@ -2944,25 +2981,25 @@ void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 		return;
 	}
 
-	if ((t >= _last_heartbeat_check + (TIMEOUT / 2)) || force) {
+	if ((t >= _last_heartbeat_check + (TIMEOUT / 2))) {
 		telemetry_status_s &tstatus = _mavlink->telemetry_status();
 
-		tstatus.heartbeat_type_antenna_tracker         = (t <= TIMEOUT + _heartbeat_type_antenna_tracker);
-		tstatus.heartbeat_type_gcs                     = (t <= TIMEOUT + _heartbeat_type_gcs);
-		tstatus.heartbeat_type_onboard_controller      = (t <= TIMEOUT + _heartbeat_type_onboard_controller);
-		tstatus.heartbeat_type_gimbal                  = (t <= TIMEOUT + _heartbeat_type_gimbal);
-		tstatus.heartbeat_type_adsb                    = (t <= TIMEOUT + _heartbeat_type_adsb);
-		tstatus.heartbeat_type_camera                  = (t <= TIMEOUT + _heartbeat_type_camera);
-		tstatus.heartbeat_type_parachute               = (t <= TIMEOUT + _heartbeat_type_parachute);
-
-		tstatus.heartbeat_component_telemetry_radio    = (t <= TIMEOUT + _heartbeat_component_telemetry_radio);
-		tstatus.heartbeat_component_log                = (t <= TIMEOUT + _heartbeat_component_log);
-		tstatus.heartbeat_component_osd                = (t <= TIMEOUT + _heartbeat_component_osd);
-		tstatus.heartbeat_component_obstacle_avoidance = (t <= TIMEOUT + _heartbeat_component_obstacle_avoidance);
-		tstatus.heartbeat_component_vio                = (t <= TIMEOUT + _heartbeat_component_visual_inertial_odometry);
-		tstatus.heartbeat_component_pairing_manager    = (t <= TIMEOUT + _heartbeat_component_pairing_manager);
-		tstatus.heartbeat_component_udp_bridge         = (t <= TIMEOUT + _heartbeat_component_udp_bridge);
-		tstatus.heartbeat_component_uart_bridge        = (t <= TIMEOUT + _heartbeat_component_uart_bridge);
+		tstatus.heartbeat_adsb               = (t <= TIMEOUT + _heartbeat_adsb);
+		tstatus.heartbeat_antenna_tracker    = (t <= TIMEOUT + _heartbeat_antenna_tracker);
+		tstatus.heartbeat_battery            = (t <= TIMEOUT + _heartbeat_battery);
+		tstatus.heartbeat_camera             = (t <= TIMEOUT + _heartbeat_camera);
+		tstatus.heartbeat_gcs                = (t <= TIMEOUT + _heartbeat_gcs);
+		tstatus.heartbeat_gimbal             = (t <= TIMEOUT + _heartbeat_gimbal);
+		tstatus.heartbeat_log                = (t <= TIMEOUT + _heartbeat_log);
+		tstatus.heartbeat_obstacle_avoidance = (t <= TIMEOUT + _heartbeat_obstacle_avoidance);
+		tstatus.heartbeat_onboard_controller = (t <= TIMEOUT + _heartbeat_onboard_controller);
+		tstatus.heartbeat_osd                = (t <= TIMEOUT + _heartbeat_osd);
+		tstatus.heartbeat_pairing_manager    = (t <= TIMEOUT + _heartbeat_pairing_manager);
+		tstatus.heartbeat_parachute          = (t <= TIMEOUT + _heartbeat_parachute);
+		tstatus.heartbeat_telemetry_radio    = (t <= TIMEOUT + _heartbeat_telemetry_radio);
+		tstatus.heartbeat_uart_bridge        = (t <= TIMEOUT + _heartbeat_uart_bridge);
+		tstatus.heartbeat_udp_bridge         = (t <= TIMEOUT + _heartbeat_udp_bridge);
+		tstatus.heartbeat_vio                = (t <= TIMEOUT + _heartbeat_visual_inertial_odometry);
 
 		_mavlink->telemetry_status_updated();
 		_last_heartbeat_check = t;

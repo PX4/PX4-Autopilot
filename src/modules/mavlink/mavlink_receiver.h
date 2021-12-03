@@ -206,7 +206,7 @@ private:
 #endif // !CONSTRAINED_FLASH
 	void handle_message_request_event(mavlink_message_t *msg);
 
-	void CheckHeartbeats(const hrt_abstime &t, bool force = false);
+	void CheckHeartbeats(const hrt_abstime &t);
 
 	/**
 	 * Set the interval at which the given message stream is published.
@@ -373,22 +373,22 @@ private:
 
 	hrt_abstime _last_heartbeat_check{0};
 
-	hrt_abstime _heartbeat_type_antenna_tracker{0};
-	hrt_abstime _heartbeat_type_gcs{0};
-	hrt_abstime _heartbeat_type_onboard_controller{0};
-	hrt_abstime _heartbeat_type_gimbal{0};
-	hrt_abstime _heartbeat_type_adsb{0};
-	hrt_abstime _heartbeat_type_camera{0};
-	hrt_abstime _heartbeat_type_parachute{0};
-
-	hrt_abstime _heartbeat_component_telemetry_radio{0};
-	hrt_abstime _heartbeat_component_log{0};
-	hrt_abstime _heartbeat_component_osd{0};
-	hrt_abstime _heartbeat_component_obstacle_avoidance{0};
-	hrt_abstime _heartbeat_component_visual_inertial_odometry{0};
-	hrt_abstime _heartbeat_component_pairing_manager{0};
-	hrt_abstime _heartbeat_component_udp_bridge{0};
-	hrt_abstime _heartbeat_component_uart_bridge{0};
+	hrt_abstime _heartbeat_adsb{0};
+	hrt_abstime _heartbeat_antenna_tracker{0};
+	hrt_abstime _heartbeat_battery{0};
+	hrt_abstime _heartbeat_camera{0};
+	hrt_abstime _heartbeat_gcs{0};
+	hrt_abstime _heartbeat_gimbal{0};
+	hrt_abstime _heartbeat_log{0};
+	hrt_abstime _heartbeat_obstacle_avoidance{0};
+	hrt_abstime _heartbeat_onboard_controller{0};
+	hrt_abstime _heartbeat_osd{0};
+	hrt_abstime _heartbeat_pairing_manager{0};
+	hrt_abstime _heartbeat_parachute{0};
+	hrt_abstime _heartbeat_telemetry_radio{0};
+	hrt_abstime _heartbeat_uart_bridge{0};
+	hrt_abstime _heartbeat_udp_bridge{0};
+	hrt_abstime _heartbeat_visual_inertial_odometry{0};
 
 	param_t _handle_sens_flow_maxhgt{PARAM_INVALID};
 	param_t _handle_sens_flow_maxr{PARAM_INVALID};

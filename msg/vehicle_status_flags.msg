@@ -36,8 +36,16 @@ bool vtol_transition_failure                        # Set to true if vtol transi
 bool usb_connected                                # status of the USB power supply
 bool sd_card_detected_once                        # set to true if the SD card was detected
 
-bool avoidance_system_required					  # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
-bool avoidance_system_valid                       # Status of the obstacle avoidance system
+bool system_required_obstacle_avoidance					  # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
 
-bool parachute_system_present
-bool parachute_system_healthy
+bool system_present_gcs
+bool system_present_gimbal
+bool system_present_obstacle_avoidance
+bool system_present_onboard_controller
+bool system_present_parachute
+
+bool system_valid_gcs
+bool system_valid_gimbal
+bool system_valid_obstacle_avoidance
+bool system_valid_onboard_controller
+bool system_valid_parachute

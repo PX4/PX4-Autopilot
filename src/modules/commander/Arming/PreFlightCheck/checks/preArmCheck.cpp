@@ -123,7 +123,7 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		prearm_ok = false;
 	}
 
-	if (status_flags.avoidance_system_required && !status_flags.avoidance_system_valid) {
+	if (status_flags.system_required_obstacle_avoidance && !status_flags.system_valid_obstacle_avoidance) {
 		if (prearm_ok) {
 			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! Avoidance system not ready"); }
 		}

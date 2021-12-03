@@ -1901,7 +1901,7 @@ Commander::run()
 				_status_changed = true;
 			}
 
-			_status_flags.avoidance_system_required = _param_com_obs_avoid.get();
+			_status_flags.system_required_obstacle_avoidance = _param_com_obs_avoid.get();
 
 			_arm_requirements.arm_authorization = _param_arm_auth_required.get();
 			_arm_requirements.esc_check = _param_escs_checks_required.get();
@@ -1953,7 +1953,7 @@ Commander::run()
 		}
 
 		/* Update OA parameter */
-		_status_flags.avoidance_system_required = _param_com_obs_avoid.get();
+		_status_flags.system_required_obstacle_avoidance = _param_com_obs_avoid.get();
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 
@@ -3436,124 +3436,152 @@ void Commander::data_link_check()
 				}
 			}
 
-			if (telemetry.heartbeat_type_gcs) {
-				// Initial connection or recovery from data link lost
-				if (_status.data_link_lost) {
-					_status.data_link_lost = false;
+			if (telemetry.heartbeat_gcs) {
+				if (!_status_flags.system_present_gcs && (_datalink_last_heartbeat_gcs != 0)) {
 					_status_changed = true;
-
-					if (_datalink_last_heartbeat_gcs != 0) {
-						mavlink_log_info(&_mavlink_log_pub, "Data link regained\t");
-						events::send(events::ID("commander_dl_regained"), events::Log::Info, "Data link regained");
-					}
-
-					if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
-						// make sure to report preflight check failures to a connecting GCS
-						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, true, false,
-									       hrt_elapsed_time(&_boot_timestamp));
-					}
+					mavlink_log_info(&_mavlink_log_pub, "Data link regained\t");
+					events::send(events::ID("commander_dl_regained"), events::Log::Info, "Data link regained");
 				}
 
 				_datalink_last_heartbeat_gcs = telemetry.timestamp;
+				_status_flags.system_valid_gcs = telemetry.system_healthy_onboard_controller;
+				_status_flags.system_present_gcs = true;
+
+
+				// Initial connection or recovery from data link lost
+				if (_status.data_link_lost) {
+					_status.data_link_lost = false;
+				}
+
+				if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
+					// make sure to report preflight check failures to a connecting GCS
+					PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, true, false,
+								       hrt_elapsed_time(&_boot_timestamp));
+				}
 			}
 
-			if (telemetry.heartbeat_type_onboard_controller) {
-				if (_onboard_controller_lost) {
-					_onboard_controller_lost = false;
+			if (telemetry.heartbeat_onboard_controller) {
+				if (!_status_flags.system_present_onboard_controller && (_datalink_last_heartbeat_onboard_controller != 0)) {
 					_status_changed = true;
-
-					if (_datalink_last_heartbeat_onboard_controller != 0) {
-						mavlink_log_info(&_mavlink_log_pub, "Onboard controller regained\t");
-						events::send(events::ID("commander_onboard_ctrl_regained"), events::Log::Info, "Onboard controller regained");
-					}
+					mavlink_log_info(&_mavlink_log_pub, "Onboard controller regained\t");
+					events::send(events::ID("commander_onboard_ctrl_regained"), events::Log::Info, "Onboard controller regained");
 				}
 
 				_datalink_last_heartbeat_onboard_controller = telemetry.timestamp;
+				_status_flags.system_valid_onboard_controller = telemetry.system_healthy_onboard_controller;
+				_status_flags.system_present_onboard_controller = true;
 			}
 
-			if (telemetry.heartbeat_type_parachute) {
-				if (_parachute_system_lost) {
-					_parachute_system_lost = false;
-
-					if (_datalink_last_heartbeat_parachute_system != 0) {
-						mavlink_log_info(&_mavlink_log_pub, "Parachute system regained\t");
-						events::send(events::ID("commander_parachute_regained"), events::Log::Info, "Parachute system regained");
-					}
+			if (telemetry.heartbeat_gimbal) {
+				if (!_status_flags.system_present_gimbal && (_datalink_last_heartbeat_gimbal != 0)) {
+					_status_changed = true;
+					mavlink_log_info(&_mavlink_log_pub, "Gimbal regained\t");
+					events::send(events::ID("commander_gimbal_regained"), events::Log::Info, "Gimbal regained");
 				}
 
-				bool healthy = telemetry.parachute_system_healthy;
+				_datalink_last_heartbeat_gimbal = telemetry.timestamp;
+				_status_flags.system_valid_gimbal = telemetry.system_healthy_gimbal;
+				_status_flags.system_present_gimbal = true;
+			}
+
+			if (telemetry.heartbeat_parachute) {
+				if (!_status_flags.system_present_parachute && (_datalink_last_heartbeat_parachute_system != 0)) {
+					_status_changed = true;
+					mavlink_log_info(&_mavlink_log_pub, "Parachute system regained\t");
+					events::send(events::ID("commander_parachute_regained"), events::Log::Info, "Parachute system regained");
+				}
+
+				const bool healthy = telemetry.system_healthy_parachute;
 
 				_datalink_last_heartbeat_parachute_system = telemetry.timestamp;
-				_status_flags.parachute_system_present = true;
-				_status_flags.parachute_system_healthy = healthy;
+				_status_flags.system_present_parachute = true;
+				_status_flags.system_valid_parachute = healthy;
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PARACHUTE, true, true, healthy, _status);
 			}
 
-			if (telemetry.heartbeat_component_obstacle_avoidance) {
-				if (_avoidance_system_lost) {
-					_avoidance_system_lost = false;
+			if (telemetry.heartbeat_obstacle_avoidance) {
+				if (!_status_flags.system_present_obstacle_avoidance && (_datalink_last_heartbeat_obstacle_avoidance_system != 0)) {
 					_status_changed = true;
+					mavlink_log_info(&_mavlink_log_pub, "Obstacle avoidance system regained\t");
+					events::send(events::ID("commander_obstacle_avoidance_regained"), events::Log::Info,
+						     "Obstacle avoidance system regained");
 				}
 
-				_datalink_last_heartbeat_avoidance_system = telemetry.timestamp;
-				_status_flags.avoidance_system_valid = telemetry.avoidance_system_healthy;
+				_datalink_last_heartbeat_obstacle_avoidance_system = telemetry.timestamp;
+				_status_flags.system_valid_obstacle_avoidance = telemetry.system_healthy_obstacle_avoidance;
+				_status_flags.system_present_obstacle_avoidance = true;
 			}
 		}
 	}
 
+	static constexpr uint64_t TIMEOUT_DEFAULT = 3_s;
 
-	// GCS data link loss failsafe
-	if (!_status.data_link_lost) {
-		if ((_datalink_last_heartbeat_gcs != 0)
-		    && hrt_elapsed_time(&_datalink_last_heartbeat_gcs) > (_param_com_dl_loss_t.get() * 1_s)) {
 
-			_status.data_link_lost = true;
-			_status.data_link_lost_counter++;
+	// GCS (data link loss failsafe)
+	if (_status_flags.system_present_gcs
+	    && hrt_elapsed_time(&_datalink_last_heartbeat_gcs) > (_param_com_dl_loss_t.get() * 1_s)) {
 
-			mavlink_log_info(&_mavlink_log_pub, "Connection to ground station lost\t");
-			events::send(events::ID("commander_gcs_lost"), {events::Log::Warning, events::LogInternal::Info},
-				     "Connection to ground station lost");
+		_status_flags.system_present_gcs = false;
+		_status_flags.system_valid_gcs = false;
+		_status_changed = true;
+		mavlink_log_info(&_mavlink_log_pub, "Connection to ground station lost\t");
+		events::send(events::ID("commander_gcs_lost"), {events::Log::Warning, events::LogInternal::Info},
+			     "Connection to ground station lost");
 
-			_status_changed = true;
-		}
+		_status.data_link_lost = true;
+		_status.data_link_lost_counter++;
 	}
 
-	// ONBOARD CONTROLLER data link loss failsafe
-	if ((_datalink_last_heartbeat_onboard_controller > 0)
-	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > (_param_com_obc_loss_t.get() * 1_s))
-	    && !_onboard_controller_lost) {
+	// gimbal
+	if (_status_flags.system_present_gimbal
+	    && (hrt_elapsed_time(&_datalink_last_heartbeat_gimbal) > TIMEOUT_DEFAULT)) {
 
+		_status_flags.system_present_gimbal = false;
+		_status_flags.system_valid_gimbal = false;
+		_status_changed = true;
+		mavlink_log_critical(&_mavlink_log_pub, "Connection to gimbal lost\t");
+		events::send(events::ID("commander_gimbal_lost"), events::Log::Critical, "Connection to gimbal lost");
+	}
+
+	// obstacle avoidance
+	if (_status_flags.system_present_obstacle_avoidance
+	    && (hrt_elapsed_time(&_datalink_last_heartbeat_obstacle_avoidance_system) > TIMEOUT_DEFAULT)) {
+
+		_status_flags.system_present_obstacle_avoidance = false;
+		_status_flags.system_valid_obstacle_avoidance = false;
+		_status_changed = true;
+		mavlink_log_critical(&_mavlink_log_pub, "Connection to obstacle avoidance lost\t");
+		events::send(events::ID("commander_obstacle_avoidance_lost"), events::Log::Critical,
+			     "Connection to obstacle avoidance lost");
+	}
+
+	// onboard controller
+	if (_status_flags.system_present_onboard_controller
+	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > (_param_com_obc_loss_t.get() * 1_s))) {
+
+		_status_flags.system_present_onboard_controller = false;
+		_status_flags.system_valid_onboard_controller = false;
+		_status_changed = true;
 		mavlink_log_critical(&_mavlink_log_pub, "Connection to mission computer lost\t");
 		events::send(events::ID("commander_mission_comp_lost"), events::Log::Critical, "Connection to mission computer lost");
-		_onboard_controller_lost = true;
-		_status_changed = true;
 	}
 
-	// Parachute system
-	if ((hrt_elapsed_time(&_datalink_last_heartbeat_parachute_system) > 3_s)
-	    && !_parachute_system_lost) {
-		mavlink_log_critical(&_mavlink_log_pub, "Parachute system lost");
-		_status_flags.parachute_system_present = false;
-		_status_flags.parachute_system_healthy = false;
-		_parachute_system_lost = true;
+	// parachute
+	if (_status_flags.system_present_parachute
+	    && (hrt_elapsed_time(&_datalink_last_heartbeat_parachute_system) > TIMEOUT_DEFAULT)) {
+
+		_status_flags.system_present_parachute = false;
+		_status_flags.system_valid_parachute = false;
 		_status_changed = true;
 		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PARACHUTE, false, true, false, _status);
-	}
-
-	// AVOIDANCE SYSTEM state check (only if it is enabled)
-	if (_status_flags.avoidance_system_required && !_onboard_controller_lost) {
-		// if heartbeats stop
-		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
-		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
-
-			_avoidance_system_lost = true;
-			_status_flags.avoidance_system_valid = false;
-		}
+		mavlink_log_critical(&_mavlink_log_pub, "Connection to parachute lost\t");
+		events::send(events::ID("commander_parachute_lost"), events::Log::Critical, "Connection to parachute lost");
 	}
 
 	// high latency data link loss failsafe
-	if (_high_latency_datalink_heartbeat > 0
+	if ((_high_latency_datalink_heartbeat != 0)
 	    && hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_param_com_hldl_loss_t.get() * 1_s)) {
+
 		_high_latency_datalink_lost = hrt_absolute_time();
 
 		if (!_status.high_latency_data_link_lost) {
@@ -3582,16 +3610,18 @@ void Commander::avoidance_check()
 	const bool cp_enabled =  _param_cp_dist.get() > 0.f;
 
 	const bool distance_sensor_valid = hrt_elapsed_time(&_valid_distance_sensor_time_us) < 500_ms;
-	const bool cp_healthy = _status_flags.avoidance_system_valid || distance_sensor_valid;
+	const bool cp_healthy = _status_flags.system_valid_obstacle_avoidance || distance_sensor_valid;
 
-	const bool sensor_oa_present = cp_healthy || _status_flags.avoidance_system_required || cp_enabled;
+	const bool sensor_oa_present = cp_healthy || _status_flags.system_required_obstacle_avoidance || cp_enabled;
 
 	const bool auto_mode = _vehicle_control_mode.flag_control_auto_enabled;
 	const bool pos_ctl_mode = (_vehicle_control_mode.flag_control_manual_enabled
 				   && _vehicle_control_mode.flag_control_position_enabled);
 
-	const bool sensor_oa_enabled = ((auto_mode && _status_flags.avoidance_system_required) || (pos_ctl_mode && cp_enabled));
-	const bool sensor_oa_healthy = ((auto_mode && _status_flags.avoidance_system_valid) || (pos_ctl_mode && cp_healthy));
+	const bool sensor_oa_enabled = ((auto_mode && _status_flags.system_required_obstacle_avoidance) || (pos_ctl_mode
+					&& cp_enabled));
+	const bool sensor_oa_healthy = ((auto_mode && _status_flags.system_valid_obstacle_avoidance) || (pos_ctl_mode
+					&& cp_healthy));
 
 	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE, sensor_oa_present, sensor_oa_enabled,
 			 sensor_oa_healthy, _status);
