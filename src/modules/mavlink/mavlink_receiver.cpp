@@ -383,6 +383,17 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	mavlink_command_long_t cmd_mavlink;
 	mavlink_msg_command_long_decode(msg, &cmd_mavlink);
 
+	if (!evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component)) {
+		// Reject alien commands only if there is no forwarding or we've never seen target component before
+		if (!_mavlink->get_forwarding_on()
+		    || !_mavlink->component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
+
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
+		}
+
+		return;
+	}
+
 	vehicle_command_s vcmd{};
 
 	vcmd.timestamp = hrt_absolute_time();
@@ -415,7 +426,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	vcmd.confirmation = cmd_mavlink.confirmation;
 	vcmd.from_external = true;
 
-	handle_message_command_both(msg, cmd_mavlink, vcmd);
+	handle_message_command_both(msg, cmd_mavlink.command, vcmd);
 }
 
 void
@@ -424,6 +435,17 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	/* command */
 	mavlink_command_int_t cmd_mavlink;
 	mavlink_msg_command_int_decode(msg, &cmd_mavlink);
+
+	if (!evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component)) {
+		// Reject alien commands only if there is no forwarding or we've never seen target component before
+		if (!_mavlink->get_forwarding_on()
+		    || !_mavlink->component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
+
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
+		}
+
+		return;
+	}
 
 	vehicle_command_s vcmd{};
 	vcmd.timestamp = hrt_absolute_time();
@@ -460,266 +482,280 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	vcmd.confirmation = false;
 	vcmd.from_external = true;
 
-	handle_message_command_both(msg, cmd_mavlink, vcmd);
+	handle_message_command_both(msg, cmd_mavlink.command, vcmd);
 }
 
-template <class T>
-void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
+void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, uint16_t command,
 		const vehicle_command_s &vehicle_command)
 {
-	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
-	bool send_ack = true;
-	uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
-	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
-
-	if (!target_ok) {
-		// Reject alien commands only if there is no forwarding or we've never seen target component before
-		if (!_mavlink->get_forwarding_on()
-		    || !_mavlink->component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
-			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
-		}
-
+	if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
+		PX4_WARN("ignoring CMD with same SYS/COMP (%" PRIu8 "/%" PRIu8 ") ID", mavlink_system.sysid, mavlink_system.compid);
 		return;
 	}
 
-	// First we handle legacy support requests which were used before we had
-	// the generic MAV_CMD_REQUEST_MESSAGE.
-	if (cmd_mavlink.command == MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_AUTOPILOT_VERSION);
+	switch (command) {
+	case MAV_CMD_REQUEST_AUTOPILOT_CAPABILITIES:
+		acknowledge(msg->sysid, msg->compid, command,
+			    handle_request_message_command(MAVLINK_MSG_ID_AUTOPILOT_VERSION));
+		return;
 
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_PROTOCOL_VERSION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_PROTOCOL_VERSION);
+	case MAV_CMD_REQUEST_PROTOCOL_VERSION:
+		acknowledge(msg->sysid, msg->compid, command,
+			    handle_request_message_command(MAVLINK_MSG_ID_PROTOCOL_VERSION));
+		return;
 
-	} else if (cmd_mavlink.command == MAV_CMD_GET_HOME_POSITION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_HOME_POSITION);
+	case MAV_CMD_GET_HOME_POSITION:
+		acknowledge(msg->sysid, msg->compid, command,
+			    handle_request_message_command(MAVLINK_MSG_ID_HOME_POSITION));
+		return;
 
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_FLIGHT_INFORMATION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_FLIGHT_INFORMATION);
+	case MAV_CMD_REQUEST_FLIGHT_INFORMATION:
+		acknowledge(msg->sysid, msg->compid, command,
+			    handle_request_message_command(MAVLINK_MSG_ID_FLIGHT_INFORMATION));
+		return;
 
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_STORAGE_INFORMATION) {
-		result = handle_request_message_command(MAVLINK_MSG_ID_STORAGE_INFORMATION);
+	case MAV_CMD_REQUEST_STORAGE_INFORMATION:
+		acknowledge(msg->sysid, msg->compid, command,
+			    handle_request_message_command(MAVLINK_MSG_ID_STORAGE_INFORMATION));
+		return;
 
-	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
-		if (set_message_interval((int)roundf(cmd_mavlink.param1), cmd_mavlink.param2, cmd_mavlink.param3)) {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
-		}
-
-	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
-		get_message_interval((int)roundf(cmd_mavlink.param1));
-
-	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_MESSAGE) {
-
-		uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
-		result = handle_request_message_command(message_id,
-							vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
-							vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
-
-	} else if (cmd_mavlink.command == MAV_CMD_SET_CAMERA_ZOOM) {
-		struct actuator_controls_s actuator_controls = {};
-		actuator_controls.timestamp = hrt_absolute_time();
-
-		for (size_t i = 0; i < 8; i++) {
-			actuator_controls.control[i] = NAN;
-		}
-
-		switch ((int)(cmd_mavlink.param1 + 0.5f)) {
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_RANGE:
-			actuator_controls.control[actuator_controls_s::INDEX_CAMERA_ZOOM] = cmd_mavlink.param2 / 50.0f - 1.0f;
-			break;
-
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_STEP:
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_CONTINUOUS:
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_FOCAL_LENGTH:
-		default:
-			send_ack = false;
-		}
-
-		_actuator_controls_pubs[actuator_controls_s::GROUP_INDEX_GIMBAL].publish(actuator_controls);
-
-	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
-		if (_mavlink->failure_injection_enabled()) {
-			_cmd_pub.publish(vehicle_command);
-			send_ack = false;
+	case MAV_CMD_SET_MESSAGE_INTERVAL:
+		if (set_message_interval((int)roundf(vehicle_command.param1), vehicle_command.param2, vehicle_command.param3)) {
+			acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED);
 
 		} else {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
-			send_ack = true;
+			acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
 		}
 
-	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) {
-		// since we're only paying attention to 3 AUX outputs, the
-		// index should be 0, otherwise ignore the message
-		if (((int) vehicle_command.param7) == 0) {
+		return;
+
+	case MAV_CMD_GET_MESSAGE_INTERVAL:
+		get_message_interval((int)roundf(vehicle_command.param1));
+		acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED);
+		return;
+
+	case MAV_CMD_REQUEST_MESSAGE:
+		if (vehicle_command.param1 >= 0 && vehicle_command.param1 <= UINT16_MAX) {
+			uint16_t message_id = (uint16_t)roundf(vehicle_command.param1);
+			uint8_t result = handle_request_message_command(message_id,
+					 vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
+					 vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+			acknowledge(msg->sysid, msg->compid, command, result);
+
+		} else {
+			acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
+		}
+
+		return;
+
+	case MAV_CMD_SET_CAMERA_ZOOM:
+
+		// param1: camera_zoom_type
+		if ((int)roundf(vehicle_command.param1) == vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_RANGE) {
 			actuator_controls_s actuator_controls{};
-			// update with existing values to avoid changing unspecified controls
-			_actuator_controls_3_sub.update(&actuator_controls);
+
+			for (size_t i = 0; i < (sizeof(actuator_controls.control) / sizeof(actuator_controls.control[0])); i++) {
+				actuator_controls.control[i] = NAN;
+			}
+
+			actuator_controls.control[actuator_controls_s::INDEX_CAMERA_ZOOM] = vehicle_command.param2 / 50.0f - 1.0f;
 
 			actuator_controls.timestamp = hrt_absolute_time();
+			_actuator_controls_pubs[actuator_controls_s::GROUP_INDEX_GIMBAL].publish(actuator_controls);
 
-			bool updated = false;
+			acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED);
 
-			if (PX4_ISFINITE(vehicle_command.param1)) {
-				actuator_controls.control[5] = vehicle_command.param1;
-				updated = true;
-			}
-
-			if (PX4_ISFINITE(vehicle_command.param2)) {
-				actuator_controls.control[6] = vehicle_command.param2;
-				updated = true;
-			}
-
-			if (PX4_ISFINITE(vehicle_command.param3)) {
-				actuator_controls.control[7] = vehicle_command.param3;
-				updated = true;
-			}
-
-			if (updated) {
-				_actuator_controls_pubs[3].publish(actuator_controls);
-			}
+		} else {
+			// no acknowledge, but republish
 		}
 
 		_cmd_pub.publish(vehicle_command);
+		return;
 
-	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
-
-		bool has_module = true;
-		autotune_attitude_control_status_s status{};
-		_autotune_attitude_control_status_sub.copy(&status);
-
-		// if not busy enable via the parameter
-		// do not check the return value of the uORB copy above because the module
-		// starts publishing only when MC_AT_START is set
-		if (status.state == autotune_attitude_control_status_s::STATE_IDLE) {
-			vehicle_status_s vehicle_status{};
-			_vehicle_status_sub.copy(&vehicle_status);
-
-			if (!vehicle_status.in_transition_mode) {
-				param_t atune_start;
-
-				switch (vehicle_status.vehicle_type) {
-				case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
-					atune_start = param_find("FW_AT_START");
-
-					break;
-
-				case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
-					atune_start = param_find("MC_AT_START");
-
-					break;
-
-				default:
-					atune_start = PARAM_INVALID;
-					break;
-				}
-
-				if (atune_start == PARAM_INVALID) {
-					has_module = false;
-
-				} else {
-					int32_t start = 1;
-					param_set(atune_start, &start);
-				}
-
-			} else {
-				has_module = false;
-			}
-		}
-
-		if (has_module) {
-
-			// most are in progress
-			result = vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS;
-
-			switch (status.state) {
-			case autotune_attitude_control_status_s::STATE_IDLE:
-			case autotune_attitude_control_status_s::STATE_INIT:
-				progress = 0;
-				break;
-
-			case autotune_attitude_control_status_s::STATE_ROLL:
-			case autotune_attitude_control_status_s::STATE_ROLL_PAUSE:
-				progress = 20;
-				break;
-
-			case autotune_attitude_control_status_s::STATE_PITCH:
-			case autotune_attitude_control_status_s::STATE_PITCH_PAUSE:
-				progress = 40;
-				break;
-
-			case autotune_attitude_control_status_s::STATE_YAW:
-			case autotune_attitude_control_status_s::STATE_YAW_PAUSE:
-				progress = 60;
-				break;
-
-			case autotune_attitude_control_status_s::STATE_VERIFICATION:
-				progress = 80;
-				break;
-
-			case autotune_attitude_control_status_s::STATE_APPLY:
-				progress = 85;
-				break;
-
-			case autotune_attitude_control_status_s::STATE_TEST:
-				progress = 90;
-				break;
-
-			case autotune_attitude_control_status_s::STATE_WAIT_FOR_DISARM:
-				progress = 95;
-				break;
-
-			case autotune_attitude_control_status_s::STATE_COMPLETE:
-				progress = 100;
-				// ack it properly with an ACCEPTED once we're done
-				result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
-				break;
-
-			case autotune_attitude_control_status_s::STATE_FAIL:
-				progress = 0;
-				result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
-				break;
-			}
+	case MAV_CMD_INJECT_FAILURE:
+		if (_mavlink->failure_injection_enabled()) {
+			_cmd_pub.publish(vehicle_command);
 
 		} else {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+			acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
 		}
 
-		send_ack = true;
+		return;
 
-	} else {
-		send_ack = false;
+	case MAV_CMD_DO_SET_ACTUATOR:
+		if (_param_sys_ctrl_alloc.get()) {
+			_cmd_pub.publish(vehicle_command);
 
-		if (msg->sysid == mavlink_system.sysid && msg->compid == mavlink_system.compid) {
-			PX4_WARN("ignoring CMD with same SYS/COMP (%" PRIu8 "/%" PRIu8 ") ID", mavlink_system.sysid, mavlink_system.compid);
-			return;
-		}
+		} else {
+			// since we're only paying attention to 3 AUX outputs, the
+			// index should be 0, otherwise ignore the message
+			int index = roundf(vehicle_command.param7);
 
-		if (cmd_mavlink.command == MAV_CMD_LOGGING_START) {
-			// check that we have enough bandwidth available: this is given by the configured logger topics
-			// and rates. The 5000 is somewhat arbitrary, but makes sure that we cannot enable log streaming
-			// on a radio link
-			if (_mavlink->get_data_rate() < 5000) {
-				send_ack = true;
-				result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
-				_mavlink->send_statustext_critical("Not enough bandwidth to enable log streaming\t");
-				events::send<uint32_t>(events::ID("mavlink_log_not_enough_bw"), events::Log::Error,
-						       "Not enough bandwidth to enable log streaming ({1} \\< 5000)", _mavlink->get_data_rate());
+			if (index == 0) {
+				actuator_controls_s actuator_controls{};
+				// update with existing values to avoid changing unspecified controls
+				_actuator_controls_3_sub.update(&actuator_controls);
 
-			} else {
-				// we already instanciate the streaming object, because at this point we know on which
-				// mavlink channel streaming was requested. But in fact it's possible that the logger is
-				// not even running. The main mavlink thread takes care of this by waiting for an ack
-				// from the logger.
-				_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+				bool updated = false;
+
+				if (PX4_ISFINITE(vehicle_command.param1)) {
+					actuator_controls.control[5] = vehicle_command.param1;
+					updated = true;
+				}
+
+				if (PX4_ISFINITE(vehicle_command.param2)) {
+					actuator_controls.control[6] = vehicle_command.param2;
+					updated = true;
+				}
+
+				if (PX4_ISFINITE(vehicle_command.param3)) {
+					actuator_controls.control[7] = vehicle_command.param3;
+					updated = true;
+				}
+
+				if (updated) {
+					actuator_controls.timestamp = hrt_absolute_time();
+					_actuator_controls_pubs[3].publish(actuator_controls);
+				}
+
+				acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED);
 			}
 		}
 
-		if (!send_ack) {
-			_cmd_pub.publish(vehicle_command);
-		}
-	}
+		return;
 
-	if (send_ack) {
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, result, progress);
+	case MAV_CMD_LOGGING_START:
+
+		// check that we have enough bandwidth available: this is given by the configured logger topics
+		// and rates. The 5000 is somewhat arbitrary, but makes sure that we cannot enable log streaming
+		// on a radio link
+		if (_mavlink->get_data_rate() < 5000) {
+			_mavlink->send_statustext_critical("Not enough bandwidth to enable log streaming\t");
+			events::send<uint32_t>(events::ID("mavlink_log_not_enough_bw"), events::Log::Error,
+					       "Not enough bandwidth to enable log streaming ({1} \\< 5000)", _mavlink->get_data_rate());
+
+			acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+
+		} else {
+			// we already instanciate the streaming object, because at this point we know on which
+			// mavlink channel streaming was requested. But in fact it's possible that the logger is
+			// not even running. The main mavlink thread takes care of this by waiting for an ack
+			// from the logger.
+			_mavlink->try_start_ulog_streaming(msg->sysid, msg->compid);
+		}
+
+		return;
+
+	case MAV_CMD_DO_AUTOTUNE_ENABLE: {
+			autotune_attitude_control_status_s status{};
+			_autotune_attitude_control_status_sub.copy(&status);
+
+			bool has_module = (status.timestamp != 0);
+
+			// if not busy enable via the parameter
+			// do not check the return value of the uORB copy above because the module
+			// starts publishing only when MC_AT_START is set
+			if (status.state == autotune_attitude_control_status_s::STATE_IDLE) {
+				vehicle_status_s vehicle_status{};
+				_vehicle_status_sub.copy(&vehicle_status);
+
+				if (vehicle_status.in_transition_mode) {
+					acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED);
+					return;
+
+				} else {
+					param_t atune_start = PARAM_INVALID;
+
+					switch (vehicle_status.vehicle_type) {
+					case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
+						atune_start = param_find("FW_AT_START");
+						break;
+
+					case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
+						atune_start = param_find("MC_AT_START");
+						break;
+
+					default:
+						break;
+					}
+
+					if (atune_start == PARAM_INVALID) {
+						has_module = false;
+
+					} else {
+						int32_t start = 1;
+						param_set(atune_start, &start);
+					}
+				}
+			}
+
+			if (has_module) {
+				// most are in progress
+				uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS;
+				uint8_t progress = 0;
+
+				switch (status.state) {
+				case autotune_attitude_control_status_s::STATE_IDLE:
+				case autotune_attitude_control_status_s::STATE_INIT:
+					progress = 0;
+					break;
+
+				case autotune_attitude_control_status_s::STATE_ROLL:
+				case autotune_attitude_control_status_s::STATE_ROLL_PAUSE:
+					progress = 20;
+					break;
+
+				case autotune_attitude_control_status_s::STATE_PITCH:
+				case autotune_attitude_control_status_s::STATE_PITCH_PAUSE:
+					progress = 40;
+					break;
+
+				case autotune_attitude_control_status_s::STATE_YAW:
+				case autotune_attitude_control_status_s::STATE_YAW_PAUSE:
+					progress = 60;
+					break;
+
+				case autotune_attitude_control_status_s::STATE_VERIFICATION:
+					progress = 80;
+					break;
+
+				case autotune_attitude_control_status_s::STATE_APPLY:
+					progress = 85;
+					break;
+
+				case autotune_attitude_control_status_s::STATE_TEST:
+					progress = 90;
+					break;
+
+				case autotune_attitude_control_status_s::STATE_WAIT_FOR_DISARM:
+					progress = 95;
+					break;
+
+				case autotune_attitude_control_status_s::STATE_COMPLETE:
+					progress = 100;
+					// ack it properly with an ACCEPTED once we're done
+					result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+					break;
+
+				case autotune_attitude_control_status_s::STATE_FAIL:
+					progress = 0;
+					result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+					break;
+				}
+
+				acknowledge(msg->sysid, msg->compid, command, result, progress);
+
+			} else {
+				acknowledge(msg->sysid, msg->compid, command, vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED);
+			}
+		}
+
+		return;
+
+	default:
+		// publish the command
+		_cmd_pub.publish(vehicle_command);
+		return;
 	}
 }
 

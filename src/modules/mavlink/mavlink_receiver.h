@@ -139,12 +139,8 @@ private:
 
 	void acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result, uint8_t progress = 0);
 
-	/**
-	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
-	 */
-	template<class T>
-	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
-					 const vehicle_command_s &vehicle_command);
+	// Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
+	void handle_message_command_both(mavlink_message_t *msg, uint16_t command, const vehicle_command_s &vehicle_command);
 
 	uint8_t handle_request_message_command(uint16_t message_id, float param2 = 0.0f, float param3 = 0.0f,
 					       float param4 = 0.0f, float param5 = 0.0f, float param6 = 0.0f, float param7 = 0.0f);
@@ -401,7 +397,8 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
-		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr
+		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
+		(ParamBool<px4::params::SYS_CTRL_ALLOC>)    _param_sys_ctrl_alloc
 	);
 
 	// Disallow copy construction and move assignment.
