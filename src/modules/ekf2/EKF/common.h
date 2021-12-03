@@ -491,6 +491,8 @@ union filter_control_status_u {
 		uint32_t vehicle_at_rest : 1; ///< 26 - true when the vehicle is at rest
 		uint32_t gps_yaw_fault : 1; ///< 27 - true when the GNSS heading has been declared faulty and is no longer being used
 		uint32_t rng_fault : 1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
+		uint32_t inertial_dead_reckoning : 1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
+		uint32_t wind_dead_reckoning     : 1; ///< 30 - true if we are navigationg reliant on wind relative measurements
 	} flags;
 	uint32_t value;
 };

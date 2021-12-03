@@ -180,9 +180,6 @@ public:
 
 	int getNumberOfActiveHorizontalAidingSources() const;
 
-	// return true if the EKF is dead reckoning the position using inertial data only
-	bool inertial_dead_reckoning() const { return _is_dead_reckoning; }
-
 	const matrix::Quatf &getQuaternion() const { return _output_new.quat_nominal; }
 
 	// get the velocity of the body frame origin in local NED earth frame
@@ -345,9 +342,7 @@ protected:
 	Vector2f _drag_test_ratio{};		// drag innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 
-	bool _is_dead_reckoning{false};		// true if we are no longer fusing measurements that constrain horizontal velocity drift
 	bool _deadreckon_time_exceeded{true};	// true if the horizontal nav solution has been deadreckoning for too long and is invalid
-	bool _is_wind_dead_reckoning{false};	// true if we are navigationg reliant on wind relative measurements
 
 	float _gps_horizontal_position_drift_rate_m_s{0}; // Horizontal position drift rate (m/s)
 	float _gps_vertical_position_drift_rate_m_s{0};   // Vertical position drift rate (m/s)
