@@ -110,6 +110,10 @@
                         "6": {
                             "name": "no_rc_and_no_datalink",
                             "description": "No RC and no datalink"
+                        },
+                        "7": {
+                            "name": "no_gps",
+                            "description": "No valid GPS"
                         }
                     }
                 },

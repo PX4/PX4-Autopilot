@@ -766,11 +766,14 @@ void Ekf::get_ekf_gpos_accuracy(float *ekf_eph, float *ekf_epv) const
 	// If we are dead-reckoning, use the innovations as a conservative alternate measure of the horizontal position error
 	// The reason is that complete rejection of measurements is often caused by heading misalignment or inertial sensing errors
 	// and using state variances for accuracy reporting is overly optimistic in these situations
-	if (_is_dead_reckoning && (_control_status.flags.gps)) {
-		hpos_err = math::max(hpos_err, sqrtf(sq(_gps_pos_innov(0)) + sq(_gps_pos_innov(1))));
+	if (_control_status.flags.inertial_dead_reckoning) {
+		if (_control_status.flags.gps) {
+			hpos_err = math::max(hpos_err, sqrtf(sq(_gps_pos_innov(0)) + sq(_gps_pos_innov(1))));
+		}
 
-	} else if (_is_dead_reckoning && (_control_status.flags.ev_pos)) {
-		hpos_err = math::max(hpos_err, sqrtf(sq(_ev_pos_innov(0)) + sq(_ev_pos_innov(1))));
+		if (_control_status.flags.ev_pos) {
+			hpos_err = math::max(hpos_err, sqrtf(sq(_ev_pos_innov(0)) + sq(_ev_pos_innov(1))));
+		}
 	}
 
 	*ekf_eph = hpos_err;
@@ -1044,10 +1047,10 @@ void Ekf::update_deadreckoning_status()
 				   isRecent(_time_last_arsp_fuse, _params.no_aid_timeout_max) &&
 				   isRecent(_time_last_beta_fuse, _params.no_aid_timeout_max);
 
-	_is_wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
-	_is_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
+	_control_status.flags.wind_dead_reckoning = !velPosAiding && !optFlowAiding && airDataAiding;
+	_control_status.flags.inertial_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
 
-	if (!_is_dead_reckoning) {
+	if (!_control_status.flags.inertial_dead_reckoning) {
 		_time_last_aiding = _time_last_imu - _params.no_aid_timeout_max;
 	}
 

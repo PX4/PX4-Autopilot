@@ -32,6 +32,8 @@ bool cs_ev_vel                # 24 - true when local frame velocity data fusion 
 bool cs_synthetic_mag_z       # 25 - true when we are using a synthesized measurement for the magnetometer Z component
 bool cs_vehicle_at_rest       # 26 - true when the vehicle is at rest
 bool cs_gps_yaw_fault         # 27 - true when the GNSS heading has been declared faulty and is no longer being used
+bool cs_inertial_dead_reckoning # 28 - true if we are no longer fusing measurements that constrain horizontal velocity drift
+bool cs_wind_dead_reckoning     # 29 - true if we are navigationg reliant on wind relative measurements
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes
@@ -53,7 +55,6 @@ bool fs_bad_pos_d             # 14 - true if fusion of the Down position has enc
 bool fs_bad_acc_bias          # 15 - true if bad delta velocity bias estimates have been detected
 bool fs_bad_acc_vertical      # 16 - true if bad vertical accelerometer data has been detected
 bool fs_bad_acc_clipping      # 17 - true if delta velocity data contains clipping (asymmetric railing)
-
 
 # innovation test failures
 uint32 innovation_fault_status_changes    # number of innovation fault status (reject) changes

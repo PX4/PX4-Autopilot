@@ -422,7 +422,7 @@ void Ekf::controlOpticalFlowFusion()
 
 		// Check if we are in-air and require optical flow to control position drift
 		const bool is_flow_required = _control_status.flags.in_air
-					      && (_is_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
+					      && (_control_status.flags.inertial_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
 						  || isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)
 						  || (_control_status.flags.gps && (_gps_error_norm > gps_err_norm_lim))); // is using GPS, but GPS is bad
 

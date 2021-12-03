@@ -69,6 +69,7 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -84,6 +85,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
@@ -313,6 +315,10 @@ private:
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
+	static constexpr hrt_abstime GPS_VALID_TIME{3_s};
+	Hysteresis _vehicle_gps_position_valid{false};
+	hrt_abstime _vehicle_gps_position_timestamp_last{0};
+
 	bool		_geofence_loiter_on{false};
 	bool		_geofence_rtl_on{false};
 	bool		_geofence_land_on{false};
@@ -404,6 +410,7 @@ private:
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription					_estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription					_estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
@@ -413,6 +420,7 @@ private:
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription					_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription					_vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 	uORB::Subscription					_wind_sub{ORB_ID(wind)};
 
@@ -426,8 +434,7 @@ private:
 	uORB::Subscription					_power_button_state_sub {ORB_ID(power_button_state)};
 #endif // BOARD_HAS_POWER_CONTROL
 
-	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
-	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
+	uORB::SubscriptionData<estimator_status_flags_s>	_estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};

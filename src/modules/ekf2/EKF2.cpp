@@ -742,7 +742,8 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 			global_pos.terrain_alt_valid = false;
 		}
 
-		global_pos.dead_reckoning = _ekf.inertial_dead_reckoning(); // True if this position is estimated through dead-reckoning
+		global_pos.dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning
+					    || _ekf.control_status_flags().wind_dead_reckoning;
 		global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_global_position_pub.publish(global_pos);
 	}
@@ -1230,6 +1231,8 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_synthetic_mag_z       = _ekf.control_status_flags().synthetic_mag_z;
 		status_flags.cs_vehicle_at_rest       = _ekf.control_status_flags().vehicle_at_rest;
 		status_flags.cs_gps_yaw_fault         = _ekf.control_status_flags().gps_yaw_fault;
+		status_flags.cs_inertial_dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning;
+		status_flags.cs_wind_dead_reckoning     = _ekf.control_status_flags().wind_dead_reckoning;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
