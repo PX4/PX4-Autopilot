@@ -87,7 +87,10 @@ private:
 	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
 	 */
 	void calcMagInconsistency();
-	void MagCalibrationUpdate();
+
+	void UpdateMagBiasEstimate();
+	void UpdateMagCalibration();
+	void UpdatePowerCompensation();
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -111,13 +114,12 @@ private:
 	uORB::SubscriptionMultiArray<estimator_sensor_bias_s> _estimator_sensor_bias_subs{ORB_ID::estimator_sensor_bias};
 
 	bool _in_flight_mag_cal_available{false}; ///< from navigation filter
-	bool _on_ground_mag_bias_estimate_available{false}; ///< from pre-takeoff mag_bias_estimator
-	bool _should_save_on_disarm{false};
 
 	struct MagCal {
 		uint32_t device_id{0};
-		matrix::Vector3f mag_offset{};
-		matrix::Vector3f mag_bias_variance{};
+		matrix::Vector3f offset{};
+		matrix::Vector3f variance{};
+		float temperature{NAN};
 	} _mag_cal[ORB_MULTI_MAX_INSTANCES] {};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
@@ -126,6 +128,8 @@ private:
 		{this, ORB_ID(sensor_mag), 2},
 		{this, ORB_ID(sensor_mag), 3}
 	};
+
+	hrt_abstime _last_calibration_update{0};
 
 	matrix::Vector3f _calibration_estimator_bias[MAX_SENSOR_COUNT] {};
 
@@ -148,7 +152,7 @@ private:
 	DataValidatorGroup _voter{1};
 	unsigned _last_failover_count{0};
 
-	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT] {0};
+	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT] {};
 	matrix::Vector3f _mag_sum[MAX_SENSOR_COUNT] {};
 	int _mag_sum_count[MAX_SENSOR_COUNT] {};
 	hrt_abstime _last_publication_timestamp[MAX_SENSOR_COUNT] {};
@@ -167,7 +171,8 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::CAL_MAG_COMP_TYP>) _param_mag_comp_typ,
 		(ParamBool<px4::params::SENS_MAG_MODE>) _param_sens_mag_mode,
-		(ParamFloat<px4::params::SENS_MAG_RATE>) _param_sens_mag_rate
+		(ParamFloat<px4::params::SENS_MAG_RATE>) _param_sens_mag_rate,
+		(ParamBool<px4::params::SENS_MAG_AUTOCAL>) _param_sens_mag_autocal
 	)
 };
 }; // namespace sensors
