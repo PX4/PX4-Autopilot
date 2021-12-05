@@ -875,6 +875,7 @@ dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void
 
 	/* get a work item and queue up a write request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_write create_work_item failed");
 		perf_end(_dm_write_perf);
 		return -1;
 	}
@@ -907,6 +908,7 @@ dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 
 	/* get a work item and queue up a read request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_read create_work_item failed");
 		perf_end(_dm_read_perf);
 		return -1;
 	}
@@ -936,6 +938,7 @@ dm_clear(dm_item_t item)
 
 	/* get a work item and queue up a clear request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_clear create_work_item failed");
 		return -1;
 	}
 
@@ -1021,6 +1024,7 @@ dm_restart(dm_reset_reason reason)
 
 	/* get a work item and queue up a restart request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_restart create_work_item failed");
 		return -1;
 	}
 
