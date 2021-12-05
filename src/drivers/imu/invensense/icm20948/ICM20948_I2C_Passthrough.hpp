@@ -76,7 +76,7 @@ private:
 
 	bool Configure();
 
-	void SelectRegisterBank(enum REG_BANK_SEL_BIT bank);
+	void SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force = false);
 	void SelectRegisterBank(Register::BANK_0 reg) { SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0); }
 
 	template <typename T> bool RegisterCheck(const T &reg_cfg);
