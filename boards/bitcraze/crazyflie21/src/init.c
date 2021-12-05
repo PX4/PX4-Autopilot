@@ -150,12 +150,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #ifdef CONFIG_SPI
-	int ret = stm32_spi_bus_initialize();
-
-	if (ret != OK) {
-		return ret;
-	}
-
+	stm32_spi_bus_initialize();
 #endif
 
 	return OK;

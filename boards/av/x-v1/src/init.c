@@ -175,7 +175,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		syslog(LOG_ERR, "[boot] SDIO init failed\n");
-		return ret;
 	}
 
 #endif /* CONFIG_MMCSD */

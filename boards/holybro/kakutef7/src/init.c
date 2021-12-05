@@ -222,7 +222,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi_dev) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
 		led_on(LED_BLUE);
-		return -ENODEV;
 	}
 
 	/* Now bind the SPI interface to the MMCSD driver */
@@ -231,7 +230,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (result != OK) {
 		led_on(LED_BLUE);
 		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
-		return -ENODEV;
 	}
 
 	up_udelay(20);
@@ -250,7 +248,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (result != OK) {
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 		led_on(LED_AMBER);
-		return -ENODEV;
 	}
 
 #endif
