@@ -225,7 +225,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		led_on(LED_RED);
-		return ret;
 	}
 
 #endif
@@ -273,7 +272,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (result != OK) {
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 		led_on(LED_AMBER);
-		return -ENODEV;
 	}
 
 #endif
