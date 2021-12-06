@@ -106,6 +106,7 @@ px4_add_module(
 		conversion
 		geo
 		mavlink_c
+		tunes
 		version
 	UNITY_BUILD
 	)
