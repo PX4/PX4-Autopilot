@@ -157,7 +157,7 @@ public:
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
 	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
-	bool setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude);
+	void setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude);
 
 	float getEkfGlobalOriginAltitude() const { return _gps_alt_ref; }
 	bool setEkfGlobalOriginAltitude(const float altitude);

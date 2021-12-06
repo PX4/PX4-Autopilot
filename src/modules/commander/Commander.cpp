@@ -979,11 +979,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						home.manual_home = true;
 
 						// update local projection reference including altitude
-						struct map_projection_reference_s ref_pos;
-						map_projection_init(&ref_pos, local_pos.ref_lat, local_pos.ref_lon);
+						MapProjection ref_pos{local_pos.ref_lat, local_pos.ref_lon};
 						float home_x;
 						float home_y;
-						map_projection_project(&ref_pos, lat, lon, &home_x, &home_y);
+						ref_pos.project(lat, lon, home_x, home_y);
 						const float home_z = -(alt - local_pos.ref_alt);
 						fillLocalHomePos(home, home_x, home_y, home_z, yaw);
 
@@ -1688,11 +1687,10 @@ Commander::set_in_air_home_position()
 			if (_home_pub.get().valid_lpos) {
 				// Back-compute lon, lat and alt of home position given the home
 				// and current positions in local frame
-				map_projection_reference_s ref_pos;
+				MapProjection ref_pos{gpos.lat, gpos.lon};
 				double home_lat;
 				double home_lon;
-				map_projection_init(&ref_pos, gpos.lat, gpos.lon);
-				map_projection_reproject(&ref_pos, home.x - lpos.x, home.y - lpos.y, &home_lat, &home_lon);
+				ref_pos.reproject(home.x - lpos.x, home.y - lpos.y, home_lat, home_lon);
 				const float home_alt = gpos.alt + home.z;
 				fillGlobalHomePos(home, home_lat, home_lon, home_alt);
 

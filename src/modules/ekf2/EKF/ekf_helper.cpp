@@ -700,13 +700,13 @@ matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 bool Ekf::getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const
 {
 	origin_time = _last_gps_origin_time_us;
-	latitude    = math::degrees(_pos_ref.lat_rad);
-	longitude   = math::degrees(_pos_ref.lon_rad);
+	latitude = _pos_ref.getProjectionReferenceLat();
+	longitude = _pos_ref.getProjectionReferenceLon();
 	origin_alt  = _gps_alt_ref;
 	return _NED_origin_initialised;
 }
 
-bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude)
+void Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude)
 {
 	bool current_pos_available = false;
 	double current_lat = static_cast<double>(NAN);
@@ -714,33 +714,27 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 	float current_alt  = 0.f;
 
 	// if we are already doing aiding, correct for the change in position since the EKF started navigating
-	if (map_projection_initialized(&_pos_ref) && isHorizontalAidingActive()) {
-		map_projection_reproject(&_pos_ref, _state.pos(0), _state.pos(1), &current_lat, &current_lon);
+	if (_pos_ref.isInitialized() && isHorizontalAidingActive()) {
+		_pos_ref.reproject(_state.pos(0), _state.pos(1), current_lat, current_lon);
 		current_alt = -_state.pos(2) + _gps_alt_ref;
 		current_pos_available = true;
 	}
 
 	// reinitialize map projection to latitude, longitude, altitude, and reset position
-	if (map_projection_init_timestamped(&_pos_ref, latitude, longitude, _time_last_imu) == 0) {
-		if (current_pos_available) {
-			// reset horizontal position
-			Vector2f position;
-			map_projection_project(&_pos_ref, current_lat, current_lon, &position(0), &position(1));
-			resetHorizontalPositionTo(position);
+	_pos_ref.initReference(latitude, longitude, _time_last_imu);
+	if (current_pos_available) {
+		// reset horizontal position
+		Vector2f position = _pos_ref.project(current_lat, current_lon);
+		resetHorizontalPositionTo(position);
 
-			// reset altitude
-			_gps_alt_ref = altitude;
-			resetVerticalPositionTo(_gps_alt_ref - current_alt);
+		// reset altitude
+		_gps_alt_ref = altitude;
+		resetVerticalPositionTo(_gps_alt_ref - current_alt);
 
-		} else {
-			// reset altitude
-			_gps_alt_ref = altitude;
-		}
-
-		return true;
+	} else {
+		// reset altitude
+		_gps_alt_ref = altitude;
 	}
-
-	return false;
 }
 
 /*
