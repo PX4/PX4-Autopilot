@@ -69,6 +69,12 @@ constexpr _Tp max(_Tp a, _Tp b)
 }
 
 template<typename _Tp>
+constexpr _Tp max(_Tp a, _Tp b, _Tp c)
+{
+	return max(max(a, b), c);
+}
+
+template<typename _Tp>
 constexpr _Tp constrain(_Tp val, _Tp min_val, _Tp max_val)
 {
 	return (val < min_val) ? min_val : ((val > max_val) ? max_val : val);
