@@ -94,7 +94,16 @@ void Ekf::controlFusionModes()
 
 	// check for arrival of new sensor data at the fusion time horizon
 	_time_prev_gps_us = _gps_sample_delayed.time_us;
+
+	const uint64_t delta_time_prev_gps_us = _gps_sample_delayed.time_us;
 	_gps_data_ready = _gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
+
+	// if we have a new sample save the delta time between this sample and the last sample which is used for height offset calculations
+	if (_gps_data_ready && (delta_time_prev_gps_us != 0)) {
+		_delta_time_gps_us = _gps_sample_delayed.time_us - delta_time_prev_gps_us;
+	}
+
+
 	_mag_data_ready = _mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed);
 
 	if (_mag_data_ready) {
@@ -114,19 +123,27 @@ void Ekf::controlFusionModes()
 		}
 	}
 
-	_delta_time_baro_us = _baro_sample_delayed.time_us;
+
+	const uint64_t delta_time_prev_baro_us = _baro_sample_delayed.time_us;
 	_baro_data_ready = _baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
 
 	// if we have a new baro sample save the delta time between this sample and the last sample which is
 	// used below for baro offset calculations
-	if (_baro_data_ready) {
-		_delta_time_baro_us = _baro_sample_delayed.time_us - _delta_time_baro_us;
+	if (_baro_data_ready && (delta_time_prev_baro_us != 0)) {
+		_delta_time_baro_us = _baro_sample_delayed.time_us - delta_time_prev_baro_us;
 	}
+
 
 	{
 		// Get range data from buffer and check validity
+		const uint64_t delta_time_prev_rng_us = _range_sensor.sample().time_us;
 		const bool is_rng_data_ready = _range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, _range_sensor.getSampleAddress());
 		_range_sensor.setDataReadiness(is_rng_data_ready);
+
+		// if we have a new sample save the delta time between this sample and the last sample which is used for height offset calculations
+		if (is_rng_data_ready && (delta_time_prev_rng_us != 0)) {
+			_delta_time_rng_us = _range_sensor.sample().time_us - delta_time_prev_rng_us;
+		}
 
 		// update range sensor angle parameters in case they have changed
 		_range_sensor.setPitchOffset(_params.rng_sens_pitch);
@@ -160,7 +177,16 @@ void Ekf::controlFusionModes()
 		_flow_for_terrain_data_ready &= (!_control_status.flags.opt_flow && _control_status.flags.gps);
 	}
 
+
+	const uint64_t delta_time_prev_ev_us = _ev_sample_delayed.time_us;
 	_ev_data_ready = _ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed);
+
+	// if we have a new EV sample save the delta time between this sample and the last sample which is used for height offset calculations
+	if (_ev_data_ready && (delta_time_prev_ev_us != 0)) {
+		_delta_time_ev_us = _ev_sample_delayed.time_us - delta_time_prev_ev_us;
+	}
+
+
 	_tas_data_ready = _airspeed_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed);
 
 	// check for height sensor timeouts and reset and change sensor if necessary
@@ -664,9 +690,7 @@ void Ekf::controlHeightSensorTimeouts()
 			const bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
 
 			// check the baro height source for consistency and freshness
-			const baroSample &baro_init = _baro_buffer.get_newest();
-			const float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
-			const bool baro_data_consistent = fabsf(baro_innov) < (sq(_params.baro_noise) + P(9, 9)) * sq(_params.baro_innov_gate);
+			const bool baro_data_consistent = (_baro_hgt_test_ratio(1) < 1.f); // TODO: review
 
 			// if baro data is acceptable and GPS data is inaccurate, reset height to baro
 			const bool reset_to_baro = !_baro_hgt_faulty &&
@@ -819,18 +843,11 @@ void Ekf::controlHeightFusion()
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurement matches our current height estimate
 			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				_hgt_sensor_offset = _terrain_vpos;
+				_rng_hgt_offset = _terrain_vpos;
 			}
 
 		} else if (!do_range_aid && _baro_data_ready && !_baro_hgt_faulty) {
 			startBaroHgtFusion();
-
-		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_intermittent) {
-			// we have just switched to using gps height, calculate height sensor offset such that current
-			// measurement matches our current height estimate
-			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
-				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
-			}
 		}
 
 		break;
@@ -844,13 +861,13 @@ void Ekf::controlHeightFusion()
 				// measurement matches our current height estimate
 				// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
 				if (_control_status.flags.in_air && isTerrainEstimateValid()) {
-					_hgt_sensor_offset = _terrain_vpos;
+					_rng_hgt_offset = _terrain_vpos;
 
 				} else if (_control_status.flags.in_air) {
-					_hgt_sensor_offset = _range_sensor.getDistBottom() + _state.pos(2);
+					_rng_hgt_offset = _range_sensor.getDistBottom() + _state.pos(2);
 
 				} else {
-					_hgt_sensor_offset = _params.rng_gnd_clearance;
+					_rng_hgt_offset = _params.rng_gnd_clearance;
 				}
 			}
 		}
@@ -869,7 +886,7 @@ void Ekf::controlHeightFusion()
 
 				// we have just switched to using range finder, calculate height sensor offset such that current
 				// measurement matches our current height estimate
-				_hgt_sensor_offset = _terrain_vpos;
+				_rng_hgt_offset = _terrain_vpos;
 			}
 
 		} else {
@@ -907,43 +924,38 @@ void Ekf::controlHeightFusion()
 	}
 
 	updateBaroHgtBias();
-	updateBaroHgtOffset();
 
-	if (_control_status.flags.baro_hgt) {
+	// baro
+	if (_baro_data_ready && !_baro_hgt_faulty) {
+		fuseBaroHgt();
+	}
 
-		if (_baro_data_ready && !_baro_hgt_faulty) {
-			fuseBaroHgt();
-		}
+	// GPS
+	if (_gps_data_ready) {
+		fuseGpsHgt();
+	}
 
-	} else if (_control_status.flags.gps_hgt) {
+	// range
+	if (_range_sensor.isDataHealthy()) {
+		fuseRngHgt();
 
-		if (_gps_data_ready) {
-			fuseGpsHgt();
-		}
+	} else if (_control_status.flags.rng_hgt
+			&&!_control_status.flags.in_air
+			&& _range_sensor.isRegularlySendingData()
+			&& isTimedOut(_time_last_hgt_fuse, 2 * RNG_MAX_INTERVAL)) {
 
-	} else if (_control_status.flags.rng_hgt) {
+		// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
+		// and are on the ground, then synthesise a measurement at the expected on ground value
+		_range_sensor.setRange(_params.rng_gnd_clearance);
+		_range_sensor.setDataReadiness(true);
+		_range_sensor.setValidity(true); // bypass the checks
 
-		if (_range_sensor.isDataHealthy()) {
-			fuseRngHgt();
+		fuseRngHgt();
+	}
 
-		} else if (!_control_status.flags.in_air
-			   && _range_sensor.isRegularlySendingData()
-			   && isTimedOut(_time_last_hgt_fuse, 2 * RNG_MAX_INTERVAL)) {
-
-			// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
-			// and are on the ground, then synthesise a measurement at the expected on ground value
-			_range_sensor.setRange(_params.rng_gnd_clearance);
-			_range_sensor.setDataReadiness(true);
-			_range_sensor.setValidity(true); // bypass the checks
-
-			fuseRngHgt();
-		}
-
-	} else if (_control_status.flags.ev_hgt) {
-
-		if (_control_status.flags.ev_hgt && _ev_data_ready) {
-			fuseEvHgt();
-		}
+	// vision
+	if (_control_status.flags.ev_hgt && _ev_data_ready) {
+		fuseEvHgt();
 	}
 }
 

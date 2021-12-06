@@ -89,16 +89,17 @@ bool Ekf::update()
 {
 	bool updated = false;
 
-	if (!_filter_initialised) {
-		_filter_initialised = initialiseFilter();
-
-		if (!_filter_initialised) {
-			return false;
-		}
-	}
-
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
+
+		if (!_filter_initialised) {
+			_filter_initialised = initialiseFilter();
+
+			if (!_filter_initialised) {
+				return false;
+			}
+		}
+
 		// perform state and covariance prediction for the main filter
 		predictState();
 		predictCovariance();
@@ -115,59 +116,30 @@ bool Ekf::update()
 		runYawEKFGSF();
 	}
 
-	// the output observer always runs
-	// Use full rate IMU data at the current time horizon
-	calculateOutputStates(_newest_high_rate_imu_sample);
+	if (_filter_initialised) {
+		// the output observer always runs
+		// Use full rate IMU data at the current time horizon
+		calculateOutputStates(_newest_high_rate_imu_sample);
+	}
 
 	return updated;
 }
 
 bool Ekf::initialiseFilter()
 {
-	// Filter accel for tilt initialization
-	const imuSample &imu_init = _imu_buffer.get_newest();
-
 	// protect against zero data
-	if (imu_init.delta_vel_dt < 1e-4f || imu_init.delta_ang_dt < 1e-4f) {
+	if (_imu_sample_delayed.delta_vel_dt < 1e-4f || _imu_sample_delayed.delta_ang_dt < 1e-4f) {
 		return false;
 	}
 
 	if (_is_first_imu_sample) {
-		_accel_lpf.reset(imu_init.delta_vel / imu_init.delta_vel_dt);
-		_gyro_lpf.reset(imu_init.delta_ang / imu_init.delta_ang_dt);
+		_accel_lpf.reset(_imu_sample_delayed.delta_vel / _imu_sample_delayed.delta_vel_dt);
+		_gyro_lpf.reset(_imu_sample_delayed.delta_ang / _imu_sample_delayed.delta_ang_dt);
 		_is_first_imu_sample = false;
 
 	} else {
-		_accel_lpf.update(imu_init.delta_vel / imu_init.delta_vel_dt);
-		_gyro_lpf.update(imu_init.delta_ang / imu_init.delta_ang_dt);
-	}
-
-	// Sum the magnetometer measurements
-	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		if (_mag_sample_delayed.time_us != 0) {
-			if (_mag_counter == 0) {
-				_mag_lpf.reset(_mag_sample_delayed.mag);
-
-			} else {
-				_mag_lpf.update(_mag_sample_delayed.mag);
-			}
-
-			_mag_counter++;
-		}
-	}
-
-	// accumulate enough height measurements to be confident in the quality of the data
-	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
-		if (_baro_sample_delayed.time_us != 0) {
-			if (_baro_counter == 0) {
-				_baro_hgt_offset = _baro_sample_delayed.hgt;
-
-			} else {
-				_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
-			}
-
-			_baro_counter++;
-		}
+		_accel_lpf.update(_imu_sample_delayed.delta_vel / _imu_sample_delayed.delta_vel_dt);
+		_gyro_lpf.update(_imu_sample_delayed.delta_ang / _imu_sample_delayed.delta_ang_dt);
 	}
 
 	if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
@@ -177,13 +149,62 @@ bool Ekf::initialiseFilter()
 		}
 	}
 
-	if (_baro_counter < _obs_buffer_length) {
-		// not enough baro samples accumulated
-		return false;
+	if (_baro_hgt_counter > 0) {
+		_baro_hgt_offset = _baro_hgt_lpf.getState();
 	}
 
-	// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
-	setControlBaroHeight();
+	if (_gps_hgt_counter > 0) {
+		_gps_hgt_offset = _gps_hgt_lpf.getState();
+	}
+
+	if (_rng_hgt_counter >= _rng_hgt_filter.window_size()) {
+		_rng_hgt_offset = _rng_hgt_filter.median();
+	}
+
+	if (_ev_hgt_counter > 0) {
+		_ev_hgt_offset = _ev_hgt_lpf.getState();
+	}
+
+	switch (_params.vdist_sensor_type) {
+	default:
+
+	// FALLTHROUGH
+	case VDIST_SENSOR_BARO:
+		if (_baro_hgt_counter < _obs_buffer_length) {
+			// not enough samples accumulated
+			return false;
+		}
+
+		setControlBaroHeight();
+		break;
+
+	case VDIST_SENSOR_GPS:
+		if (_gps_hgt_counter < _obs_buffer_length) {
+			// not enough samples accumulated
+			return false;
+		}
+
+		setControlGPSHeight();
+		break;
+
+	case VDIST_SENSOR_RANGE:
+		if (_rng_hgt_counter < _obs_buffer_length) {
+			// not enough samples accumulated
+			return false;
+		}
+
+		setControlRangeHeight();
+		break;
+
+	case VDIST_SENSOR_EV:
+		if (_ev_hgt_counter < _obs_buffer_length) {
+			// not enough samples accumulated
+			return false;
+		}
+
+		setControlEVHeight();
+		break;
+	}
 
 	if (!initialiseTilt()) {
 		return false;

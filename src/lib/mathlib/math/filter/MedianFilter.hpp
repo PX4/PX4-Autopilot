@@ -78,6 +78,8 @@ public:
 		return median();
 	}
 
+	size_t window_size() const { return WINDOW; }
+
 private:
 
 	static int cmp(const void *a, const void *b)

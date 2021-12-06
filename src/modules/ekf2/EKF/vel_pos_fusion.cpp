@@ -147,9 +147,8 @@ bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_ga
 }
 
 bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
-			       Vector3f &innov_var, Vector2f &test_ratio)
+			       Vector3f &innov_var, Vector2f &test_ratio, bool fuse)
 {
-
 	innov_var(2) = P(9, 9) + obs_var(2);
 	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
 	_vert_pos_innov_ratio = innov(2) / sqrtf(innov_var(2));
@@ -170,16 +169,21 @@ bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate
 	}
 
 	if (innov_check_pass) {
-		_time_last_hgt_fuse = _time_last_imu;
-		_innov_check_fail_status.flags.reject_ver_pos = false;
-		fuseVelPosHeight(innovation, innov_var(2), 5);
+		if (fuse) {
+			_time_last_hgt_fuse = _time_last_imu;
+			_innov_check_fail_status.flags.reject_ver_pos = false;
+			fuseVelPosHeight(innovation, innov_var(2), 5);
+		}
 
 		return true;
 
-	} else {
-		_innov_check_fail_status.flags.reject_ver_pos = true;
-		return false;
 	}
+
+	if (fuse) {
+		_innov_check_fail_status.flags.reject_ver_pos = true;
+	}
+
+	return false;
 }
 
 // Helper function that fuses a single velocity or position measurement
