@@ -625,6 +625,11 @@ private:
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag();
 
+	void fuseBaroHgt();
+	void fuseGpsHgt();
+	void fuseRngHgt();
+	void fuseEvHgt();
+
 	// fuse single velocity and position measurement
 	void fuseVelPosHeight(const float innov, const float innov_var, const int obs_index);
 
