@@ -92,7 +92,7 @@ def do_nsh_cmd(port, baudrate, cmd):
 
 
     timeout_start = time.time()
-    timeout = 180 # 3 minutes
+    timeout = 240 # 4 minutes
 
     return_code = 0
 
