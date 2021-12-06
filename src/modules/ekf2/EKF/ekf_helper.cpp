@@ -953,12 +953,12 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 
 	if (_control_status.flags.ev_vel) {
 		float ev_vel = sqrtf(math::max(_ev_vel_test_ratio(0), _ev_vel_test_ratio(1)));
-		vel = math::max(math::max(vel, ev_vel), FLT_MIN);
+		vel = math::max(vel, ev_vel, FLT_MIN);
 	}
 
 	if (_control_status.flags.ev_pos) {
 		float ev_pos = sqrtf(_ev_pos_test_ratio(0));
-		pos = math::max(math::max(pos, ev_pos), FLT_MIN);
+		pos = math::max(pos, ev_pos, FLT_MIN);
 	}
 
 	if (isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow)) {

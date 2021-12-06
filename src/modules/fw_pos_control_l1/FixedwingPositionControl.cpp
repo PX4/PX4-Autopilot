@@ -1059,7 +1059,7 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const Ve
 
 			// Save distance to waypoint if it is the smallest ever achieved, however make sure that
 			// _min_current_sp_distance_xy is never larger than the distance between the current and the previous wp
-			_min_current_sp_distance_xy = math::min(math::min(d_curr, _min_current_sp_distance_xy), d_curr_prev);
+			_min_current_sp_distance_xy = math::min(d_curr, _min_current_sp_distance_xy, d_curr_prev);
 
 			// if the minimal distance is smaller than the acceptance radius, we should be at waypoint alt
 			// navigator will soon switch to the next waypoint item (if there is one) as soon as we reach this altitude
