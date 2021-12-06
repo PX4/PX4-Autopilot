@@ -906,50 +906,42 @@ void Ekf::controlHeightFusion()
 		break;
 	}
 
-	bool fuse_height = false;
-
-	if (_control_status.flags.gps_hgt && _gps_data_ready) {
-		fuse_height = true;
-
-	} else if (_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-		fuse_height = true;
-
-	} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
-		fuse_height = true;
-
-	} else if (_control_status.flags.ev_hgt && _ev_data_ready) {
-		fuse_height = true;
-	}
-
 	updateBaroHgtBias();
 	updateBaroHgtOffset();
 
-	if (_control_status.flags.rng_hgt
-	    && isTimedOut(_time_last_hgt_fuse, 2 * RNG_MAX_INTERVAL)
-	    && !_range_sensor.isDataHealthy()
-	    && _range_sensor.isRegularlySendingData()
-	    && !_control_status.flags.in_air) {
+	if (_control_status.flags.baro_hgt) {
 
-		// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
-		// and are on the ground, then synthesise a measurement at the expected on ground value
-		_range_sensor.setRange(_params.rng_gnd_clearance);
-		_range_sensor.setDataReadiness(true);
-		_range_sensor.setValidity(true); // bypass the checks
-
-		fuse_height = true;
-	}
-
-	if (fuse_height) {
-		if (_control_status.flags.baro_hgt) {
+		if (_baro_data_ready && !_baro_hgt_faulty) {
 			fuseBaroHgt();
+		}
 
-		} else if (_control_status.flags.gps_hgt) {
+	} else if (_control_status.flags.gps_hgt) {
+
+		if (_gps_data_ready) {
 			fuseGpsHgt();
+		}
 
-		} else if (_control_status.flags.rng_hgt) {
+	} else if (_control_status.flags.rng_hgt) {
+
+		if (_range_sensor.isDataHealthy()) {
 			fuseRngHgt();
 
-		} else if (_control_status.flags.ev_hgt) {
+		} else if (!_control_status.flags.in_air
+			   && _range_sensor.isRegularlySendingData()
+			   && isTimedOut(_time_last_hgt_fuse, 2 * RNG_MAX_INTERVAL)) {
+
+			// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
+			// and are on the ground, then synthesise a measurement at the expected on ground value
+			_range_sensor.setRange(_params.rng_gnd_clearance);
+			_range_sensor.setDataReadiness(true);
+			_range_sensor.setValidity(true); // bypass the checks
+
+			fuseRngHgt();
+		}
+
+	} else if (_control_status.flags.ev_hgt) {
+
+		if (_control_status.flags.ev_hgt && _ev_data_ready) {
 			fuseEvHgt();
 		}
 	}
