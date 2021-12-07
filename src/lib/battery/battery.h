@@ -150,7 +150,7 @@ private:
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	bool _connected{false};
-	const uint8_t _source{};
+	const uint8_t _source;
 	uint8_t _priority{0};
 	bool _battery_initialized{false};
 	float _voltage_v{0.f};
