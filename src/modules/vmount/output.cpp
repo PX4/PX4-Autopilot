@@ -193,10 +193,6 @@ void OutputBase::_handle_position_update(bool force_update)
 
 void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 {
-	//get the output angles and stabilize if necessary
-	vehicle_attitude_s vehicle_attitude{};
-	matrix::Eulerf euler_vehicle;
-
 	// We only need to apply additional compensation if the required angle is
 	// absolute (world frame) as well as the gimbal is not capable of doing that
 	// calculation. (Most gimbals stabilize at least roll and pitch
@@ -207,18 +203,30 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 		compensate[i] = _stabilize[i] && _absolute_angle[i];
 	}
 
+	// get the output angles and stabilize if necessary
+	matrix::Eulerf euler_vehicle{};
+
 	if (compensate[0] || compensate[1] || compensate[2]) {
-		_vehicle_attitude_sub.copy(&vehicle_attitude);
-		euler_vehicle = matrix::Quatf(vehicle_attitude.q);
+		vehicle_attitude_s vehicle_attitude{};
+
+		if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+			euler_vehicle = matrix::Quatf(vehicle_attitude.q);
+		}
 	}
 
-	float dt = (t - _last_update) / 1.e6f;
+	float dt = math::constrain((t - _last_update) * 1.e-6f, 0.001f, 1.f);
 
-	matrix::Eulerf euler_gimbal = matrix::Quatf(_q_setpoint);
+	const bool q_setpoint_valid = PX4_ISFINITE(_q_setpoint[0]) && PX4_ISFINITE(_q_setpoint[1])
+				      && PX4_ISFINITE(_q_setpoint[2]) && PX4_ISFINITE(_q_setpoint[3]);
+	matrix::Eulerf euler_gimbal{};
+
+	if (q_setpoint_valid) {
+		euler_gimbal = matrix::Quatf{_q_setpoint};
+	}
 
 	for (int i = 0; i < 3; ++i) {
 
-		if (PX4_ISFINITE(euler_gimbal(i))) {
+		if (q_setpoint_valid && PX4_ISFINITE(euler_gimbal(i))) {
 			_angle_outputs[i] = euler_gimbal(i);
 		}
 
@@ -226,12 +234,12 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 			_angle_outputs[i] += dt * _angle_velocity[i];
 		}
 
-		if (compensate[i]) {
+		if (compensate[i] && PX4_ISFINITE(euler_vehicle(i))) {
 			_angle_outputs[i] -= euler_vehicle(i);
 		}
 
 		if (PX4_ISFINITE(_angle_outputs[i])) {
-			//bring angles into proper range [-pi, pi]
+			// bring angles into proper range [-pi, pi]
 			_angle_outputs[i] = matrix::wrap_pi(_angle_outputs[i]);
 		}
 	}
