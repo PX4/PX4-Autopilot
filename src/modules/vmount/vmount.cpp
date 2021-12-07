@@ -377,7 +377,7 @@ static int vmount_thread_main(int argc, char *argv[])
 				bool already_active = (last_active == i);
 
 				ControlData *control_data_to_check = nullptr;
-				unsigned int poll_timeout = already_active ? 50 : 0; // poll only on active input to reduce latency
+				unsigned int poll_timeout = already_active ? 20 : 0; // poll only on active input to reduce latency
 				int ret = thread_data.input_objs[i]->update(poll_timeout, &control_data_to_check, already_active);
 
 				if (ret) {
