@@ -46,12 +46,12 @@
 /**
  * L1 period
  *
- * This is the L1 distance and defines the tracking
- * point ahead of the aircraft its following.
- * A value of 18-25 meters works for most aircraft. Shorten
+ * Used to determine the L1 gain and controller time constant. This parameter is
+ * proportional to the L1 distance (which points ahead of the aircraft on the path
+ * it is following). A value of 18-25 seconds works for most aircraft. Shorten
  * slowly during tuning until response is sharp without oscillation.
  *
- * @unit m
+ * @unit s
  * @min 12.0
  * @max 50.0
  * @decimal 1
