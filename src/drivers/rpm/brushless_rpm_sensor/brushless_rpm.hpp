@@ -71,8 +71,6 @@ public:
 	void print_info();
 
 protected:
-
-	int collect();
 	int measure();
 
 	void Run() override;
@@ -85,8 +83,6 @@ private:
 
 
 	uORB::Subscription _sub_pwm_input{ORB_ID(pwm_input)};
-
-	pwm_input_s 	_pwm{};
 
 	uORB::Publication<rpm_s> _rpm_pub{ORB_ID(rpm)};
 

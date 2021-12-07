@@ -95,12 +95,15 @@ BrushlessRPMPWM::measure()
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	uint32_t rpm;
+	pwm_input_s pwm_input;
 
-	if((collect() == PX4_OK) && (_pwm.period != 0)) {
+
+
+	if(_sub_pwm_input.update(&pwm_input) && (pwm_input.period != 0)) {
 		// when the motor isn't turning, noise on the line causes spurious readings.
 		// Get a grouping consecutive non zero readings before starting to report RPM.
 		if(_consecutive_non_zero_readings++ > 5) {
-			rpm = (60 * 1000000) / _pwm.period / _param_rpm_pole_pairs.get();
+			rpm = (60 * 1000000) / pwm_input.period / _param_rpm_pole_pairs.get();
 		} else {
 			rpm = 0;
 		}
@@ -123,21 +126,6 @@ BrushlessRPMPWM::measure()
 
 	perf_end(_sample_perf);
 	return PX4_OK;
-}
-
-int
-BrushlessRPMPWM::collect()
-{
-	pwm_input_s pwm_input;
-
-	if (_sub_pwm_input.update(&pwm_input)) {
-
-		_pwm = pwm_input;
-
-		return PX4_OK;
-	}
-
-	return EAGAIN;
 }
 
 void
