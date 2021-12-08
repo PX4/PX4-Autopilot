@@ -66,33 +66,36 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 		//got new command
 		_set_angle_setpoints(control_data);
 
-#if !defined(ALT_MANTIS_GIMBAL_HACKS)
-		// Don't send this command to ATL Mantis as it just spams the vehicle_command queue and the
-		// Mantis ignores it anyway.
-		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
-		vehicle_command.timestamp = hrt_absolute_time();
+		const bool configuration_changed =
+			(control_data->type != _previous_control_data_type);
+		_previous_control_data_type = control_data->type;
 
-		if (control_data->type == ControlData::Type::Neutral) {
-			vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
+		if (configuration_changed) {
 
-			vehicle_command.param5 = 0.0;
-			vehicle_command.param6 = 0.0;
-			vehicle_command.param7 = 0.0f;
+			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
+			vehicle_command.timestamp = hrt_absolute_time();
 
-		} else {
-			vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+			if (control_data->type == ControlData::Type::Neutral) {
+				vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
 
-			vehicle_command.param5 = static_cast<double>(control_data->type_data.angle.frames[0]);
-			vehicle_command.param6 = static_cast<double>(control_data->type_data.angle.frames[1]);
-			vehicle_command.param7 = static_cast<float>(control_data->type_data.angle.frames[2]);
+				vehicle_command.param5 = 0.0;
+				vehicle_command.param6 = 0.0;
+				vehicle_command.param7 = 0.0f;
+
+			} else {
+				vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+
+				vehicle_command.param5 = static_cast<double>(control_data->type_data.angle.frames[0]);
+				vehicle_command.param6 = static_cast<double>(control_data->type_data.angle.frames[1]);
+				vehicle_command.param7 = static_cast<float>(control_data->type_data.angle.frames[2]);
+			}
+
+			vehicle_command.param2 = _stabilize[0] ? 1.0f : 0.0f;
+			vehicle_command.param3 = _stabilize[1] ? 1.0f : 0.0f;
+			vehicle_command.param4 = _stabilize[2] ? 1.0f : 0.0f;
+
+			_vehicle_command_pub.publish(vehicle_command);
 		}
-
-		vehicle_command.param2 = _stabilize[0] ? 1.0f : 0.0f;
-		vehicle_command.param3 = _stabilize[1] ? 1.0f : 0.0f;
-		vehicle_command.param4 = _stabilize[2] ? 1.0f : 0.0f;
-
-		_vehicle_command_pub.publish(vehicle_command);
-#endif
 	}
 
 	_handle_position_update();
