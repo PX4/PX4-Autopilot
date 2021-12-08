@@ -9,7 +9,7 @@
 param set-default CBRK_AIRSPD_CHK 162128
 
 param set-default SYS_CTRL_ALLOC 1
-param set-default CA_AIRFRAME 6
+param set-default CA_AIRFRAME 7
 
 param set-default CA_ROTOR_COUNT 8
 param set-default CA_R_REV 255

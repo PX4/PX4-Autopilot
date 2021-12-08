@@ -215,6 +215,10 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessTiltrotorVTOL(this);
 			break;
 
+		case EffectivenessSource::TAILSITTER_VTOL:
+			tmp = new ActuatorEffectivenessTailsitterVTOL(this);
+			break;
+
 		case EffectivenessSource::ROVER_ACKERMANN:
 			tmp = new ActuatorEffectivenessRoverAckermann();
 			break;

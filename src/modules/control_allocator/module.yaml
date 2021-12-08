@@ -16,12 +16,13 @@ parameters:
             type: enum
             values:
                 0: Multirotor
-                1: Standard VTOL (WIP)
-                2: Tiltrotor VTOL (WIP)
-                3: Rover (Ackermann)
-                4: Rover (Differential)
-                5: Fixed Wing
-                5: Motors (6DOF)
+                1: Fixed-wing
+                2: Standard VTOL
+                3: Tiltrotor VTOL
+                4: Tailsitter VTOL
+                5: Rover (Ackermann)
+                6: Rover (Differential)
+                7: Motors (6DOF)
             default: 0
 
         CA_METHOD:
@@ -449,7 +450,36 @@ mixer:
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
 
-            1: # Standard VTOL
+            1: # Fixed Wing
+                actuators:
+                  - actuator_type: 'motor'
+                    group_label: 'Motors'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                  - actuator_type: 'servo'
+                    group_label: 'Control Surfaces'
+                    count: 'CA_SV_CS_COUNT'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_CS${i}_TYPE'
+                            label: 'Type'
+                            function: 'type'
+                            identifier: 'servo-type'
+                          - name: 'CA_SV_CS${i}_TRQ_R'
+                            label: 'Roll Torque'
+                            identifier: 'servo-torque-roll'
+                          - name: 'CA_SV_CS${i}_TRQ_P'
+                            label: 'Pitch Torque'
+                            identifier: 'servo-torque-pitch'
+                          - name: 'CA_SV_CS${i}_TRQ_Y'
+                            label: 'Yaw Torque'
+                            identifier: 'servo-torque-yaw'
+                          - name: 'CA_SV_CS${i}_TRIM'
+                            label: 'Trim'
+
+            2: # Standard VTOL
                 actuators:
                   - actuator_type: 'motor'
                     group_label: 'MC Motors'
@@ -487,7 +517,7 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
 
-            2: # Tiltrotor VTOL
+            3: # Tiltrotor VTOL
                 actuators:
                   - actuator_type: 'motor'
                     group_label: 'MC Motors'
@@ -509,13 +539,13 @@ mixer:
                             function: 'type'
                             identifier: 'servo-type'
                           - name: 'CA_SV_CS${i}_TRQ_R'
-                            label: 'Roll Torque'
+                            label: 'Roll Scale'
                             identifier: 'servo-torque-roll'
                           - name: 'CA_SV_CS${i}_TRQ_P'
-                            label: 'Pitch Torque'
+                            label: 'Pitch Scale'
                             identifier: 'servo-torque-pitch'
                           - name: 'CA_SV_CS${i}_TRQ_Y'
-                            label: 'Yaw Torque'
+                            label: 'Yaw Scale'
                             identifier: 'servo-torque-yaw'
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
@@ -534,7 +564,37 @@ mixer:
                           - name: 'CA_SV_TL${i}_CT'
                             label: 'Use for Control'
 
-            3: # Rover (Ackermann)
+            4: # Tailsitter VTOL
+                actuators:
+                  - actuator_type: 'motor'
+                    group_label: 'MC Motors'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                  - actuator_type: 'servo'
+                    group_label: 'Control Surfaces'
+                    count: 'CA_SV_CS_COUNT'
+                    item_label_prefix: 'Surface ${i}'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_CS${i}_TYPE'
+                            label: 'Type'
+                            function: 'type'
+                            identifier: 'servo-type'
+                          - name: 'CA_SV_CS${i}_TRQ_R'
+                            label: 'Roll Scale'
+                            identifier: 'servo-torque-roll'
+                          - name: 'CA_SV_CS${i}_TRQ_P'
+                            label: 'Pitch Scale'
+                            identifier: 'servo-torque-pitch'
+                          - name: 'CA_SV_CS${i}_TRQ_Y'
+                            label: 'Yaw Scale'
+                            identifier: 'servo-torque-yaw'
+                          - name: 'CA_SV_CS${i}_TRIM'
+                            label: 'Trim'
+
+            5: # Rover (Ackermann)
                 actuators:
                   - actuator_type: 'motor'
                     instances:
@@ -545,7 +605,7 @@ mixer:
                       - name: 'Steering'
                         position: [ 1., 0, 0 ]
 
-            4: # Rover (Differential)
+            6: # Rover (Differential)
                 actuators:
                   - actuator_type: 'motor'
                     instances:
@@ -554,36 +614,7 @@ mixer:
                       - name: 'Right Motor'
                         position: [ 0, 1., 0 ]
 
-            5: # Fixed Wing
-                actuators:
-                  - actuator_type: 'motor'
-                    group_label: 'Motors'
-                    count: 'CA_ROTOR_COUNT'
-                    per_item_parameters:
-                        standard:
-                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
-                  - actuator_type: 'servo'
-                    group_label: 'Control Surfaces'
-                    count: 'CA_SV_CS_COUNT'
-                    per_item_parameters:
-                        extra:
-                          - name: 'CA_SV_CS${i}_TYPE'
-                            label: 'Type'
-                            function: 'type'
-                            identifier: 'servo-type'
-                          - name: 'CA_SV_CS${i}_TRQ_R'
-                            label: 'Roll Torque'
-                            identifier: 'servo-torque-roll'
-                          - name: 'CA_SV_CS${i}_TRQ_P'
-                            label: 'Pitch Torque'
-                            identifier: 'servo-torque-pitch'
-                          - name: 'CA_SV_CS${i}_TRQ_Y'
-                            label: 'Yaw Torque'
-                            identifier: 'servo-torque-yaw'
-                          - name: 'CA_SV_CS${i}_TRIM'
-                            label: 'Trim'
-
-            6: # Motors (6DOF)
+            7: # Motors (6DOF)
                 actuators:
                   - actuator_type: 'motor'
                     count: 'CA_ROTOR_COUNT'

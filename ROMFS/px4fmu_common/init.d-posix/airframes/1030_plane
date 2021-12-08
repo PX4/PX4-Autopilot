@@ -44,7 +44,7 @@ param set-default NAV_DLL_ACT 2
 param set-default RWTO_TKOFF 1
 
 #param set-default SYS_CTRL_ALLOC 1
-param set-default CA_AIRFRAME 5
+param set-default CA_AIRFRAME 1
 
 param set-default CA_ROTOR_COUNT 1
 param set-default CA_ROTOR0_PX 0.3
