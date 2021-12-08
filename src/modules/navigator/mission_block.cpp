@@ -393,13 +393,13 @@ MissionBlock::is_mission_item_reached()
 							  (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
 
 			// can only enforce exit heading if next waypoint is not within loiter radius of current waypoint
-			const bool exit_heading_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
+			const bool exit_heading_is_reachable = dist_current_next >= curr_sp_new->loiter_radius;
 
 			if (enforce_exit_heading && exit_heading_is_reachable) {
 
 				float yaw_err = 0.0f;
 
-				if (dist_current_next >  1.2f * _navigator->get_loiter_radius()) {
+				if (dist_current_next >= _navigator->get_loiter_radius()) {
 					// set required yaw from bearing to the next mission item
 					_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
 							    _navigator->get_global_position()->lon,
