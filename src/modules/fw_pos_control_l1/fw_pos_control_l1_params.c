@@ -52,7 +52,7 @@
  * slowly during tuning until response is sharp without oscillation.
  *
  * @unit s
- * @min 12.0
+ * @min 7.0
  * @max 50.0
  * @decimal 1
  * @increment 0.5
