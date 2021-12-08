@@ -3035,13 +3035,24 @@ Mavlink::stop_command(int argc, char *argv[])
 		if (inst != nullptr) {
 			/* set flag to stop thread and wait for all threads to finish */
 			if (inst->running() && !inst->should_exit()) {
-				inst->request_stop();
+				int iterations = 0;
+
+				while ((iterations < 1000) && inst->running()) {
+					inst->request_stop();
+					iterations++;
+					px4_usleep(1000);
+				}
+
+				if (inst->running()) {
+					PX4_ERR("unable to stop instance %d", inst->get_instance_id());
+					return PX4_ERROR;
+				}
 
 				LockGuard lg{mavlink_module_mutex};
 
 				for (int mavlink_instance = 0; mavlink_instance < MAVLINK_COMM_NUM_BUFFERS; mavlink_instance++) {
 					if (mavlink_module_instances[mavlink_instance] == inst) {
-						delete mavlink_module_instances[mavlink_instance];
+						delete inst;
 						mavlink_module_instances[mavlink_instance] = nullptr;
 						return PX4_OK;
 					}
