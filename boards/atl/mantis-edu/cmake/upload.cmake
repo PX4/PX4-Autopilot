@@ -39,7 +39,7 @@ set(UPLOAD_NAME autopilot.px4)
 
 add_custom_target(upload_wifi
 	COMMAND ${CMAKE_COMMAND} -E copy ${PX4_FW_NAME} ${UPLOAD_NAME}
-	COMMAND ${PX4_SOURCE_DIR}/Tools/atl/upload.sh ${UPLOAD_NAME}
+	COMMAND ${PX4_SOURCE_DIR}/boards/atl/mantis-edu/upload.sh ${UPLOAD_NAME}
 	DEPENDS ${PX4_FW_NAME}
 	COMMENT "uploading autopilot.px4 file"
 	USES_TERMINAL
