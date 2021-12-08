@@ -68,6 +68,8 @@ private:
 	void _stream_device_attitude_status();
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
+
+	ControlData::Type _previous_control_data_type {ControlData::Type::Neutral};
 };
 
 class OutputMavlinkV2 : public OutputBase
