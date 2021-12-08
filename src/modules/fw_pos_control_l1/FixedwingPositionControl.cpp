@@ -957,12 +957,12 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 			float target_airspeed = calculate_target_airspeed(mission_airspeed, ground_speed);
 
 			if (_param_fw_use_npfg.get()) {
-				_npfg.setAirspeedNom(target_airspeed);
-				_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+				_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+				_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 				_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
 				_att_sp.roll_body = _npfg.getRollSetpoint();
 				_att_sp.yaw_body = _npfg.getBearing();
-				target_airspeed = _npfg.getAirspeedRef();
+				target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 			} else {
 				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, nav_speed_2d);
@@ -1009,12 +1009,12 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 			float target_airspeed = calculate_target_airspeed(mission_airspeed, ground_speed);
 
 			if (_param_fw_use_npfg.get()) {
-				_npfg.setAirspeedNom(target_airspeed);
-				_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+				_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+				_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 				_npfg.navigateLoiter(curr_wp, curr_pos, loiter_radius, loiter_direction, ground_speed, _wind_vel);
 				_att_sp.roll_body = _npfg.getRollSetpoint();
 				_att_sp.yaw_body = _npfg.getBearing();
-				target_airspeed = _npfg.getAirspeedRef();
+				target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 			} else {
 				_l1_control.navigate_loiter(curr_wp, curr_pos, loiter_radius, loiter_direction, nav_speed_2d);
@@ -1167,12 +1167,14 @@ FixedwingPositionControl::control_position(const hrt_abstime &now, const Vector2
 
 				if (_param_fw_use_npfg.get()) {
 					_npfg.enableWindExcessRegulation(false); // disable as we are not letting npfg control airspeed anyway
-					_npfg.setAirspeedNom(altctrl_airspeed);
-					_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+					_npfg.setAirspeedNom(altctrl_airspeed * _eas2tas);
+					_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 					_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
 					_att_sp.roll_body = _npfg.getRollSetpoint();
 					_att_sp.yaw_body = _npfg.getBearing();
 					_npfg.enableWindExcessRegulation(_param_npfg_en_wind_reg.get()); // reset to user defined value in case we switch modes
+
+					altctrl_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 				} else {
 					/* populate l1 control setpoint */
@@ -1375,11 +1377,13 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2d
 					ground_speed);
 
 		if (_param_fw_use_npfg.get()) {
-			_npfg.setAirspeedNom(target_airspeed);
-			_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 			_npfg.navigateWaypoints(_runway_takeoff.getStartWP(), curr_wp, curr_pos, ground_speed, _wind_vel);
 			_att_sp.roll_body = _runway_takeoff.getRoll(_npfg.getRollSetpoint());
 			_att_sp.yaw_body = _runway_takeoff.getYaw(_npfg.getBearing());
+
+			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 		} else {
 			/*
@@ -1463,12 +1467,12 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2d
 				float target_airspeed = _param_fw_airspd_trim.get();
 
 				if (_param_fw_use_npfg.get()) {
-					_npfg.setAirspeedNom(target_airspeed);
-					_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+					_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+					_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 					_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
 					_att_sp.roll_body = _npfg.getRollSetpoint();
 					_att_sp.yaw_body = _npfg.getBearing();
-					target_airspeed = _npfg.getAirspeedRef();
+					target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 				} else {
 					_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
@@ -1495,12 +1499,12 @@ FixedwingPositionControl::control_takeoff(const hrt_abstime &now, const Vector2d
 				float target_airspeed = calculate_target_airspeed(_param_fw_airspd_trim.get(), ground_speed);
 
 				if (_param_fw_use_npfg.get()) {
-					_npfg.setAirspeedNom(target_airspeed);
-					_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+					_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+					_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 					_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
 					_att_sp.roll_body = _npfg.getRollSetpoint();
 					_att_sp.yaw_body = _npfg.getBearing();
-					target_airspeed = _npfg.getAirspeedRef();
+					target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 				} else {
 					_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
@@ -1676,8 +1680,8 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 		float target_airspeed = calculate_target_airspeed(airspeed_land, ground_speed);
 
 		if (_param_fw_use_npfg.get()) {
-			_npfg.setAirspeedNom(target_airspeed);
-			_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 
 			if (_land_noreturn_horizontal) {
 				// heading hold
@@ -1690,7 +1694,7 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 			_att_sp.yaw_body = _npfg.getBearing();
-			target_airspeed = _npfg.getAirspeedRef();
+			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 		} else {
 			if (_land_noreturn_horizontal) {
@@ -1816,8 +1820,8 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 		float target_airspeed = calculate_target_airspeed(airspeed_approach, ground_speed);
 
 		if (_param_fw_use_npfg.get()) {
-			_npfg.setAirspeedNom(target_airspeed);
-			_npfg.setAirspeedMax(_param_fw_airspd_max.get());
+			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 
 			if (_land_noreturn_horizontal) {
 				// heading hold
@@ -1830,7 +1834,7 @@ FixedwingPositionControl::control_landing(const hrt_abstime &now, const Vector2d
 
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 			_att_sp.yaw_body = _npfg.getBearing();
-			target_airspeed = _npfg.getAirspeedRef();
+			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 		} else {
 			if (_land_noreturn_horizontal) {
