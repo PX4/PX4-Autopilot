@@ -77,6 +77,7 @@
 #include <matrix/math.hpp>
 
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/tune_control.h>
 
 typedef enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
@@ -91,6 +92,24 @@ typedef enum VEHICLE_MODE_FLAG {
 } VEHICLE_MODE_FLAG;
 
 #if defined(BOARD_HAS_POWER_CONTROL)
+static orb_advert_t tune_control_pub = nullptr;
+static void play_power_button_down_tune()
+{
+	tune_control_s tune_control{};
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT - 20;
+	tune_control.tune_id = tune_control_s::TUNE_ID_POWER_OFF;
+	tune_control.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
+}
+
+static void stop_tune()
+{
+	tune_control_s tune_control{};
+	tune_control.tune_override = true;
+	tune_control.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
+}
+
 static orb_advert_t power_button_state_pub = nullptr;
 static int power_button_state_notification_cb(board_power_button_state_notification_e request)
 {
@@ -107,10 +126,12 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 
 	case PWR_BUTTON_DOWN:
 		button_state.event = power_button_state_s::PWR_BUTTON_STATE_DOWN;
+		play_power_button_down_tune();
 		break;
 
 	case PWR_BUTTON_UP:
 		button_state.event = power_button_state_s::PWR_BUTTON_STATE_UP;
+		stop_tune();
 		break;
 
 	case PWR_BUTTON_REQUEST_SHUT_DOWN:
@@ -1837,6 +1858,10 @@ Commander::run()
 		power_button_state_pub = orb_advertise(ORB_ID(power_button_state), &button_state);
 
 		_power_button_state_sub.copy(&button_state);
+
+		tune_control_s tune_control{};
+		button_state.timestamp = hrt_absolute_time();
+		tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
 	}
 
 	if (board_register_power_state_notification_cb(power_button_state_notification_cb) != 0) {
