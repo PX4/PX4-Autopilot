@@ -45,6 +45,7 @@
 #include <ActuatorEffectivenessRotors.hpp>
 #include <ActuatorEffectivenessStandardVTOL.hpp>
 #include <ActuatorEffectivenessTiltrotorVTOL.hpp>
+#include <ActuatorEffectivenessTailsitterVTOL.hpp>
 #include <ActuatorEffectivenessRoverAckermann.hpp>
 #include <ActuatorEffectivenessRoverDifferential.hpp>
 #include <ActuatorEffectivenessFixedWing.hpp>
@@ -136,12 +137,13 @@ private:
 	enum class EffectivenessSource {
 		NONE = -1,
 		MULTIROTOR = 0,
-		STANDARD_VTOL = 1,
-		TILTROTOR_VTOL = 2,
-		ROVER_ACKERMANN = 3,
-		ROVER_DIFFERENTIAL = 4,
-		FIXED_WING = 5,
-		MOTORS_6DOF = 6,
+		FIXED_WING = 1,
+		STANDARD_VTOL = 2,
+		TILTROTOR_VTOL = 3,
+		TAILSITTER_VTOL = 4,
+		ROVER_ACKERMANN = 5,
+		ROVER_DIFFERENTIAL = 6,
+		MOTORS_6DOF = 7,
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
