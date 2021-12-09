@@ -235,7 +235,16 @@ else
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
-	dataman start
+	if param compare SYS_DM_BACKEND 1
+	then
+		dataman start -r
+	else
+		if param compare SYS_DM_BACKEND 0
+		then
+			# dataman start default
+			dataman start
+		fi
+	fi
 
 	#
 	# Start the socket communication send_event handler.
