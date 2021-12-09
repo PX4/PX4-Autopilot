@@ -734,8 +734,6 @@ void Ekf::controlHeightSensorTimeouts()
 		// Reset vertical position and velocity states to the last measurement
 		if (request_height_reset) {
 			resetHeight();
-			// Reset the timout timer
-			_time_last_hgt_fuse = _time_last_imu;
 		}
 	}
 }
