@@ -69,6 +69,7 @@ public:
 private:
 	void Run() override;
 
+	int _channel{-1};
 	uint32_t _pps_capture_gpio{0};
 	uORB::Publication<pps_capture_s>	_pps_capture_pub{ORB_ID(pps_capture)};
 	uORB::Subscription								_sensor_gps_sub{ORB_ID(sensor_gps)};
