@@ -813,23 +813,14 @@ void Ekf::controlHeightFusion()
 
 	// FALLTHROUGH
 	case VDIST_SENSOR_BARO:
-		if (do_range_aid && _range_sensor.isDataHealthy()) {
-			setControlRangeHeight();
-
-			// we have just switched to using range finder, calculate height sensor offset such that current
-			// measurement matches our current height estimate
-			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				_hgt_sensor_offset = _terrain_vpos;
+		if (do_range_aid) {
+			if (!_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
+				startRngAidHgtFusion();
 			}
 
-		} else if (!do_range_aid && _baro_data_ready && !_baro_hgt_faulty) {
-			startBaroHgtFusion();
-
-		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_intermittent) {
-			// we have just switched to using gps height, calculate height sensor offset such that current
-			// measurement matches our current height estimate
-			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
-				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+		} else {
+			if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
+				startBaroHgtFusion();
 			}
 		}
 
@@ -858,49 +849,34 @@ void Ekf::controlHeightFusion()
 		break;
 
 	case VDIST_SENSOR_GPS:
-
 		// NOTE: emergency fallback due to extended loss of currently selected sensor data or failure
 		// to pass innovation cinsistency checks is handled elsewhere in Ekf::controlHeightSensorTimeouts.
 		// Do switching between GPS and rangefinder if using range finder as a height source when close
 		// to ground and moving slowly. Also handle switch back from emergency Baro sensor when GPS recovers.
 		if (do_range_aid) {
 			if (!_control_status_prev.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-				setControlRangeHeight();
-
-				// we have just switched to using range finder, calculate height sensor offset such that current
-				// measurement matches our current height estimate
-				_hgt_sensor_offset = _terrain_vpos;
+				startRngAidHgtFusion();
 			}
 
 		} else {
-			if (_control_status_prev.flags.rng_hgt) {
-				// must stop using range finder so find another sensor now
+			if (!_control_status.flags.gps_hgt) {
 				if (!_gps_hgt_intermittent && _gps_checks_passed) {
-					// GPS quality OK
+					// In fallback mode and GPS has recovered so start using it
 					startGpsHgtFusion();
 
-				} else if (!_baro_hgt_faulty) {
+				} else if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
 					// Use baro as a fallback
 					startBaroHgtFusion();
 				}
-
-			} else if (_control_status.flags.baro_hgt && !_gps_hgt_intermittent && _gps_checks_passed) {
-				// In baro fallback mode and GPS has recovered so start using it
-				startGpsHgtFusion();
 			}
 		}
 
 		break;
 
 	case VDIST_SENSOR_EV:
-
-		// don't start using EV data unless data is arriving frequently, do not reset if pref mode was height
+		// don't start using EV data unless data is arriving frequently
 		if (!_control_status.flags.ev_hgt && isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
-			setControlEVHeight();
-
-			if (!_control_status_prev.flags.rng_hgt) {
-				resetHeight();
-			}
+			startEvHgtFusion();
 		}
 
 		break;
@@ -908,6 +884,7 @@ void Ekf::controlHeightFusion()
 
 	updateBaroHgtBias();
 	updateBaroHgtOffset();
+	checkGroundEffectTimeout();
 
 	if (_control_status.flags.baro_hgt) {
 
