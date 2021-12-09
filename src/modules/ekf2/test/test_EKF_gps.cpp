@@ -152,6 +152,7 @@ TEST_F(EkfGpsTest, gpsHgtToBaroFallback)
 	_sensor_simulator.runSeconds(1);
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
 
 	// WHEN: stopping GPS fusion
 	_sensor_simulator.stopGps();

@@ -1284,24 +1284,55 @@ void Ekf::startBaroHgtFusion()
 	// We don't need to set a height sensor offset
 	// since we track a separate _baro_hgt_offset
 	_hgt_sensor_offset = 0.0f;
-
-	// Turn off ground effect compensation if it times out
-	if (_control_status.flags.gnd_effect) {
-		if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
-
-			_control_status.flags.gnd_effect = false;
-		}
-	}
 }
 
 void Ekf::startGpsHgtFusion()
 {
-	setControlGPSHeight();
+	if (!_control_status.flags.gps_hgt) {
+		setControlGPSHeight();
 
-	// we have just switched to using gps height, calculate height sensor offset such that current
-	// measurement matches our current height estimate
-	if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
+		// calculate height sensor offset such that current
+		// measurement matches our current height estimate
 		_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+	}
+}
+
+void Ekf::startRngHgtFusion()
+{
+	if (!_control_status.flags.rng_hgt) {
+		setControlRangeHeight();
+
+		// Range finder is the primary height source, the ground is now the datum used
+		// to compute the local vertical position
+		_hgt_sensor_offset = 0.f;
+
+		if (!_control_status_prev.flags.ev_hgt) {
+			// EV and range finders are using the same height datum
+			resetHeight();
+		}
+	}
+}
+
+void Ekf::startRngAidHgtFusion()
+{
+	if (!_control_status.flags.rng_hgt) {
+		setControlRangeHeight();
+
+		// calculate height sensor offset such that current
+		// measurement matches our current height estimate
+		_hgt_sensor_offset = _terrain_vpos;
+	}
+}
+
+void Ekf::startEvHgtFusion()
+{
+	if (!_control_status.flags.ev_hgt) {
+		setControlEVHeight();
+
+		if (!_control_status_prev.flags.rng_hgt) {
+			// EV and range finders are using the same height datum
+			resetHeight();
+		}
 	}
 }
 
@@ -1348,6 +1379,17 @@ void Ekf::updateBaroHgtBias()
 					- (_gps_sample_delayed.hgt - _gps_alt_ref);
 		const float baro_bias_var = getGpsHeightVariance() + sq(_params.baro_noise);
 		_baro_b_est.fuseBias(baro_bias, baro_bias_var);
+	}
+}
+
+void Ekf::checkGroundEffectTimeout()
+{
+	// Turn off ground effect compensation if it times out
+	if (_control_status.flags.gnd_effect) {
+		if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
+
+			_control_status.flags.gnd_effect = false;
+		}
 	}
 }
 

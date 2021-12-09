@@ -915,9 +915,14 @@ private:
 
 	void startBaroHgtFusion();
 	void startGpsHgtFusion();
+	void startRngHgtFusion();
+	void startRngAidHgtFusion();
+	void startEvHgtFusion();
 
 	void updateBaroHgtOffset();
 	void updateBaroHgtBias();
+
+	void checkGroundEffectTimeout();
 
 	// return an estimation of the GPS altitude variance
 	float getGpsHeightVariance();
