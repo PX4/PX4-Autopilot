@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+#set -e
 
 # PX4 commands need the 'px4-' prefix in bash.
 # (px4-alias.sh is expected to be in the PATH)
@@ -212,6 +212,7 @@ elif ! replay tryapplyparams
 then
   . px4-rc.simulator
 fi
+
 load_mon start
 battery_simulator start
 tone_alarm start

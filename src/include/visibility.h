@@ -81,7 +81,7 @@
 /* We should include cstdlib or stdlib.h but this doesn't
  * compile because many C++ files include stdlib.h and would
  * need to get changed. */
-#pragma GCC poison exit
+//#pragma GCC poison exit
 #endif // !defined(__PX4_NUTTX)
 
 

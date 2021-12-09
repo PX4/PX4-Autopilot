@@ -1,0 +1,5 @@
+menuconfig MODULES_IGNITION_SIMULATOR
+	bool "ignition_simulator"
+	default n
+	---help---
+		Enable support for ignition_simulator
