@@ -516,6 +516,9 @@ mixer:
                             identifier: 'servo-torque-yaw'
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
+                    parameters:
+                      - label: 'Lock elevons in MC mode'
+                        name: VT_ELEV_MC_LOCK
 
             3: # Tiltrotor VTOL
                 actuators:
@@ -549,6 +552,9 @@ mixer:
                             identifier: 'servo-torque-yaw'
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
+                    parameters:
+                      - label: 'Lock elevons in MC mode'
+                        name: VT_ELEV_MC_LOCK
                   - actuator_type: 'servo'
                     group_label: 'Tilt Servos'
                     count: 'CA_SV_TL_COUNT'
@@ -593,6 +599,9 @@ mixer:
                             identifier: 'servo-torque-yaw'
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
+                    parameters:
+                      - label: 'Lock elevons in MC mode'
+                        name: VT_ELEV_MC_LOCK
 
             5: # Rover (Ackermann)
                 actuators:
