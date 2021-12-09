@@ -53,4 +53,5 @@ private:
 	uint64_t _timeout{0};
 	int32_t _rc_in_mode{0};
 	int _instance{-1};
+	uint8_t _first_valid_source{manual_control_setpoint_s::SOURCE_UNKNOWN};
 };
