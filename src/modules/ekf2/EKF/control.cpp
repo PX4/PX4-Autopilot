@@ -825,6 +825,17 @@ void Ekf::controlHeightFusion()
 		break;
 
 	case VDIST_SENSOR_RANGE:
+		// If we are supposed to be using range finder data as the primary height sensor, have bad range measurements
+		// and are on the ground, then synthesise a measurement at the expected on ground value
+		if (!_control_status.flags.in_air
+		    && !_range_sensor.isDataHealthy()
+		    && _range_sensor.isRegularlySendingData()
+		    && _range_sensor.isDataReady()) {
+
+			_range_sensor.setRange(_params.rng_gnd_clearance);
+			_range_sensor.setValidity(true); // bypass the checks
+		}
+
 		if (!_control_status.flags.rng_hgt) {
 			if (_range_sensor.isDataHealthy()) {
 				startRngHgtFusion();
@@ -886,18 +897,6 @@ void Ekf::controlHeightFusion()
 	} else if (_control_status.flags.rng_hgt) {
 
 		if (_range_sensor.isDataHealthy()) {
-			fuseRngHgt();
-
-		} else if (!_control_status.flags.in_air
-			   && _range_sensor.isRegularlySendingData()
-			   && isTimedOut(_time_last_hgt_fuse, 2 * RNG_MAX_INTERVAL)) {
-
-			// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
-			// and are on the ground, then synthesise a measurement at the expected on ground value
-			_range_sensor.setRange(_params.rng_gnd_clearance);
-			_range_sensor.setDataReadiness(true);
-			_range_sensor.setValidity(true); // bypass the checks
-
 			fuseRngHgt();
 		}
 
