@@ -948,47 +948,12 @@ Commander::handle_command(const vehicle_command_s &cmd)
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_HOME: {
-			bool use_current = cmd.param1 > 0.5f;
+			if (_param_com_home_en.get()) {
+				bool use_current = cmd.param1 > 0.5f;
 
-			if (use_current) {
-				/* use current position */
-				if (set_home_position()) {
-					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-
-				} else {
-					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
-				}
-
-			} else {
-				float yaw = matrix::wrap_2pi(math::radians(cmd.param4));
-				yaw = PX4_ISFINITE(yaw) ? yaw : (float)NAN;
-				const double lat = cmd.param5;
-				const double lon = cmd.param6;
-				const float alt = cmd.param7;
-
-				if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt)) {
-					const vehicle_local_position_s &local_pos = _local_position_sub.get();
-
-					if (local_pos.xy_global && local_pos.z_global) {
-						/* use specified position */
-						home_position_s home{};
-						home.timestamp = hrt_absolute_time();
-
-						fillGlobalHomePos(home, lat, lon, alt);
-
-						home.manual_home = true;
-
-						// update local projection reference including altitude
-						MapProjection ref_pos{local_pos.ref_lat, local_pos.ref_lon};
-						float home_x;
-						float home_y;
-						ref_pos.project(lat, lon, home_x, home_y);
-						const float home_z = -(alt - local_pos.ref_alt);
-						fillLocalHomePos(home, home_x, home_y, home_z, yaw);
-
-						/* mark home position as set */
-						_status_flags.condition_home_position_valid = _home_pub.update(home);
-
+				if (use_current) {
+					/* use current position */
+					if (set_home_position()) {
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 					} else {
@@ -996,8 +961,49 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					}
 
 				} else {
-					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+					float yaw = matrix::wrap_2pi(math::radians(cmd.param4));
+					yaw = PX4_ISFINITE(yaw) ? yaw : (float)NAN;
+					const double lat = cmd.param5;
+					const double lon = cmd.param6;
+					const float alt = cmd.param7;
+
+					if (PX4_ISFINITE(lat) && PX4_ISFINITE(lon) && PX4_ISFINITE(alt)) {
+						const vehicle_local_position_s &local_pos = _local_position_sub.get();
+
+						if (local_pos.xy_global && local_pos.z_global) {
+							/* use specified position */
+							home_position_s home{};
+							home.timestamp = hrt_absolute_time();
+
+							fillGlobalHomePos(home, lat, lon, alt);
+
+							home.manual_home = true;
+
+							// update local projection reference including altitude
+							MapProjection ref_pos{local_pos.ref_lat, local_pos.ref_lon};
+							float home_x;
+							float home_y;
+							ref_pos.project(lat, lon, home_x, home_y);
+							const float home_z = -(alt - local_pos.ref_alt);
+							fillLocalHomePos(home, home_x, home_y, home_z, yaw);
+
+							/* mark home position as set */
+							_status_flags.condition_home_position_valid = _home_pub.update(home);
+
+							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+						} else {
+							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+						}
+
+					} else {
+						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+					}
 				}
+
+			} else {
+				// COM_HOME_EN disabled
+				cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 			}
 		}
 		break;
@@ -1672,7 +1678,8 @@ Commander::set_home_position()
 bool
 Commander::set_in_air_home_position()
 {
-	if (_status_flags.condition_local_position_valid
+	if (_param_com_home_en.get()
+	    && _status_flags.condition_local_position_valid
 	    && _status_flags.condition_global_position_valid) {
 
 		const vehicle_global_position_s &gpos = _global_position_sub.get();
@@ -1763,7 +1770,7 @@ Commander::set_home_position_alt_only()
 {
 	const vehicle_local_position_s &lpos = _local_position_sub.get();
 
-	if (!_home_pub.get().valid_alt && lpos.z_global) {
+	if (_param_com_home_en.get() && !_home_pub.get().valid_alt && lpos.z_global) {
 		// handle special case where we are setting only altitude using local position reference
 		home_position_s home{};
 		home.alt = lpos.ref_alt;
@@ -1780,12 +1787,14 @@ Commander::set_home_position_alt_only()
 void
 Commander::updateHomePositionYaw(float yaw)
 {
-	home_position_s home = _home_pub.get();
+	if (_param_com_home_en.get()) {
+		home_position_s home = _home_pub.get();
 
-	home.yaw = yaw;
-	home.timestamp = hrt_absolute_time();
+		home.yaw = yaw;
+		home.timestamp = hrt_absolute_time();
 
-	_home_pub.update(home);
+		_home_pub.update(home);
+	}
 }
 
 void
@@ -2023,7 +2032,7 @@ Commander::run()
 				}
 
 				// automatically set or update home position
-				if (!_home_pub.get().manual_home) {
+				if (_param_com_home_en.get() && !_home_pub.get().manual_home) {
 					// set the home position when taking off, but only if we were previously disarmed
 					// and at least 500 ms from commander start spent to avoid setting home on in-air restart
 					if (_should_set_home_on_takeoff && !_land_detector.landed &&
@@ -2666,7 +2675,7 @@ Commander::run()
 		const hrt_abstime now = hrt_absolute_time();
 
 		// automatically set or update home position
-		if (!_home_pub.get().manual_home) {
+		if (_param_com_home_en.get() && !_home_pub.get().manual_home) {
 			const vehicle_local_position_s &local_position = _local_position_sub.get();
 
 			if (!_armed.armed) {

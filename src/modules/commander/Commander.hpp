@@ -199,6 +199,7 @@ private:
 		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
 		(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 
+		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en,
 		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>) _param_com_home_in_air,
