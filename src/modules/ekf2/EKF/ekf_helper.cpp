@@ -345,6 +345,9 @@ void Ekf::resetHeight()
 		// that does not destabilise the filter
 		P.uncorrelateCovarianceSetVariance<1>(6, 10.0f);
 	}
+
+	// Reset the timout timer
+	_time_last_hgt_fuse = _time_last_imu;
 }
 
 // align output filter states to match EKF states at the fusion time horizon
