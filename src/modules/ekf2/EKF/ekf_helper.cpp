@@ -260,24 +260,18 @@ void Ekf::resetHeight()
 
 	// reset the vertical position
 	if (_control_status.flags.rng_hgt) {
+		float dist_bottom;
 
-		// a fallback from any other height source to rangefinder happened
-		if (!_control_status_prev.flags.rng_hgt) {
+		if (_control_status.flags.in_air) {
+			dist_bottom = _range_sensor.getDistBottom();
 
-			if (_control_status.flags.in_air && isTerrainEstimateValid()) {
-				_hgt_sensor_offset = _terrain_vpos;
-
-			} else if (_control_status.flags.in_air) {
-				_hgt_sensor_offset = _range_sensor.getDistBottom() + _state.pos(2);
-
-			} else {
-				_hgt_sensor_offset = _params.rng_gnd_clearance;
-			}
-
+		} else {
+			// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
+			dist_bottom = _params.rng_gnd_clearance;
 		}
 
 		// update the state and associated variance
-		resetVerticalPositionTo(_hgt_sensor_offset - _range_sensor.getDistBottom());
+		resetVerticalPositionTo(-dist_bottom + _hgt_sensor_offset);
 
 		// the state variance is the same as the observation
 		P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.range_noise));
