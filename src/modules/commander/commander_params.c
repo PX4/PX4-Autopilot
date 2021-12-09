@@ -252,12 +252,13 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  *
  * @group Commander
  * @min 0
- * @max 2
+ * @max 3
  * @value 0 RC Transmitter only
- * @value 1 Joystick only/No RC Checks
- * @value 2 RC and Joystick are accepted
+ * @value 1 Joystick only
+ * @value 2 RC and Joystick with fallback
+ * @value 3 RC or Joystick keep first
  */
-PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
+PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
 
 /**
  * RC input arm/disarm command duration
