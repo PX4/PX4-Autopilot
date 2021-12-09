@@ -219,6 +219,34 @@ TEST(ManualControlSelector, FirstInput)
 	EXPECT_EQ(selector.instance(), 0);
 }
 
+TEST(ManualControlSelector, DisabledInput)
+{
+	ManualControlSelector selector;
+	selector.setRcInMode(4);
+	selector.setTimeout(500_ms);
+
+	uint64_t timestamp = some_time;
+
+	manual_control_setpoint_s input {};
+	// Reject MAVLink stick input
+	input.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 0);
+
+	EXPECT_FALSE(selector.setpoint().valid);
+	EXPECT_EQ(selector.instance(), -1);
+
+	timestamp += 100_ms;
+
+	// Reject RC stick input
+	input.data_source = manual_control_setpoint_s::SOURCE_RC;
+	input.timestamp_sample = timestamp;
+	selector.updateWithNewInputSample(timestamp, input, 1);
+
+	EXPECT_FALSE(selector.setpoint().valid);
+	EXPECT_EQ(selector.instance(), -1);
+}
+
 TEST(ManualControlSelector, RcTimeout)
 {
 	ManualControlSelector selector;
