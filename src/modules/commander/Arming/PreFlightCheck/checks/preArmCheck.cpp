@@ -176,6 +176,14 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		prearm_ok = false;
 	}
 
+	if (arm_requirements.geofence && status.geofence_too_close_on_ground) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Arming denied, vehicle is too close to geofence");
+		}
+
+		prearm_ok = false;
+	}
+
 	// Arm Requirements: authorization
 	// check last, and only if everything else has passed
 	if (arm_requirements.arm_authorization && prearm_ok) {

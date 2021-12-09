@@ -7,6 +7,7 @@ uint8 GF_ACTION_TERMINATE = 4               # flight termination
 uint8 GF_ACTION_LAND = 5		    # switch to AUTO|LAND
 
 bool geofence_violated		# true if the geofence is violated
+bool geofence_too_close_on_ground	# true if vehicle close than GF_MINDIST_GND while landed or disarmed
 uint8 geofence_action       	# action to take when geofence is violated
 
 bool home_required		# true if the geofence requires a valid home position

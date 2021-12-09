@@ -291,7 +291,9 @@ public:
 
 	bool		abort_landing();
 
-	void geofence_breach_check(bool &have_geofence_position_data);
+	bool geofence_breach_check(bool &have_geofence_position_data);
+
+	bool geofence_breach_check_while_on_ground(bool &have_geofence_position_data);
 
 	// Param access
 	float		get_loiter_min_alt() const { return _param_mis_ltrmin_alt.get(); }
@@ -421,6 +423,8 @@ private:
 
 	bool _mission_landing_in_progress{false};	// this flag gets set if the mission is currently executing on a landing pattern
 	// if mission mode is inactive, this flag will be cleared after 2 seconds
+
+	float _fence_proximity_search_bearing{0.0f};	// bearing at which a fence proximity check is conducted while vehicle is on ground
 
 	traffic_buffer_s _traffic_buffer{};
 

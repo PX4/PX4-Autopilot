@@ -2301,6 +2301,7 @@ Commander::run()
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
 		_status.geofence_violated = _geofence_result.geofence_violated;
+		_status.geofence_too_close_on_ground = _geofence_result.geofence_too_close_on_ground;
 
 		const bool in_low_battery_failsafe = _battery_warning > battery_status_s::BATTERY_WARNING_LOW;
 

@@ -549,7 +549,21 @@ Navigator::run()
 		check_traffic();
 
 		/* Check geofence violation */
-		geofence_breach_check(have_geofence_position_data);
+		bool publish_geofence_result = false;
+
+		if (get_land_detected()->landed || !(_vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED)) {
+			publish_geofence_result = geofence_breach_check_while_on_ground(have_geofence_position_data);
+
+		} else {
+			publish_geofence_result = geofence_breach_check(have_geofence_position_data);
+		}
+
+		if (publish_geofence_result) {
+			_geofence_result.timestamp = hrt_absolute_time();
+			_geofence_result.geofence_action = _geofence.getGeofenceAction();
+			_geofence_result.home_required = _geofence.isHomeRequired();
+			_geofence_result_pub.publish(_geofence_result);
+		}
 
 		/* Do stuff according to navigation state set by commander */
 		NavigatorMode *navigation_mode_new{nullptr};
@@ -774,7 +788,37 @@ Navigator::run()
 	}
 }
 
-void Navigator::geofence_breach_check(bool &have_geofence_position_data)
+bool Navigator::geofence_breach_check_while_on_ground(bool &have_geofence_position_data)
+{
+	if (have_geofence_position_data &&
+	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
+
+		have_geofence_position_data = false;
+
+		if (!_geofence_result.geofence_too_close_on_ground) {
+			// the last point did not violate the fence, let's try other directions
+			_fence_proximity_search_bearing = matrix::wrap_2pi(_fence_proximity_search_bearing + math::radians(30.0f));
+		}
+
+
+		double lat, lon;
+		waypoint_from_heading_and_distance(_global_pos.lat, _global_pos.lon, _fence_proximity_search_bearing,
+						   _geofence.getMinimumDistanceToFenceWhileOnGround(), &lat,
+						   &lon);
+
+		_geofence_result.geofence_too_close_on_ground = !_geofence.isInsidePolygonOrCircle(lat, lon, _global_pos.alt);
+		_geofence_result.geofence_violated =  !_geofence.isInsidePolygonOrCircle(_global_pos.lat, _global_pos.lon,
+						      _global_pos.alt);
+
+		return true;
+	}
+
+	return false;
+
+}
+
+bool Navigator::geofence_breach_check(bool &have_geofence_position_data)
 {
 
 	if (have_geofence_position_data &&
@@ -833,12 +877,10 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 				fence_violation_test_point(1),
 				_global_pos.alt);
 
+
+
 		_last_geofence_check = hrt_absolute_time();
 		have_geofence_position_data = false;
-
-		_geofence_result.timestamp = hrt_absolute_time();
-		_geofence_result.geofence_action = _geofence.getGeofenceAction();
-		_geofence_result.home_required = _geofence.isHomeRequired();
 
 		if (gf_violation_type.value) {
 			/* inform other apps via the mission result */
@@ -902,8 +944,10 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 			_geofence_violation_warning_sent = false;
 		}
 
-		_geofence_result_pub.publish(_geofence_result);
+		return true;
 	}
+
+	return false;
 }
 
 int Navigator::task_spawn(int argc, char *argv[])
