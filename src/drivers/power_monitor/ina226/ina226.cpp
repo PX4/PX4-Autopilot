@@ -133,7 +133,7 @@ INA226::init()
 
 	write(INA226_REG_CONFIGURATION, INA226_RST);
 
-	_cal = INA226_CONST / (_current_lsb * INA226_SHUNT);
+	_cal = INA226_CONST / (_current_lsb * _rshunt);
 
 	if (write(INA226_REG_CALIBRATION, _cal) < 0) {
 		return -3;
