@@ -71,8 +71,8 @@ parameters:
             unit: Ohm
             min: -1.0
             max: 0.2
-            decimal: 2
-            increment: 0.01
+            decimal: 4
+            increment: 0.0005
             reboot_required: true
             num_instances: *max_num_config_instances
             instance_start: 1
