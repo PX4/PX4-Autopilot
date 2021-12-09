@@ -712,7 +712,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 			} else if (_range_sensor.isHealthy()) {
 				// Fallback to rangefinder data if available
-				setControlRangeHeight();
+				startRngHgtFusion();
 				request_height_reset = true;
 				failing_height_source = "ev";
 				new_height_source = "rng";
@@ -825,22 +825,9 @@ void Ekf::controlHeightFusion()
 		break;
 
 	case VDIST_SENSOR_RANGE:
-		if (_range_sensor.isDataHealthy()) {
-			setControlRangeHeight();
-
-			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				// we have just switched to using range finder, calculate height sensor offset such that current
-				// measurement matches our current height estimate
-				// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
-				if (_control_status.flags.in_air && isTerrainEstimateValid()) {
-					_hgt_sensor_offset = _terrain_vpos;
-
-				} else if (_control_status.flags.in_air) {
-					_hgt_sensor_offset = _range_sensor.getDistBottom() + _state.pos(2);
-
-				} else {
-					_hgt_sensor_offset = _params.rng_gnd_clearance;
-				}
+		if (!_control_status.flags.rng_hgt) {
+			if (_range_sensor.isDataHealthy()) {
+				startRngHgtFusion();
 			}
 		}
 
