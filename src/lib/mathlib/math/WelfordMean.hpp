@@ -49,10 +49,6 @@ public:
 	// For a new value, compute the new count, new mean, the new M2.
 	void update(const T &new_value)
 	{
-		if (_count == 0) {
-			_mean = new_value;
-		}
-
 		_count++;
 
 		// mean accumulates the mean of the entire dataset
