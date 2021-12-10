@@ -86,7 +86,7 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 	// but limit innovation to prevent spikes that could destabilise the filter
 	float innovation;
 
-	if (_bad_vert_accel_detected && !innov_check_pass) {
+	if (_fault_status.flags.bad_acc_vertical && !innov_check_pass) {
 		const float innov_limit = innov_gate(1) * sqrtf(innov_var(2));
 		innovation = math::constrain(innov(2), -innov_limit, innov_limit);
 		innov_check_pass = true;
@@ -160,7 +160,7 @@ bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate
 	// but limit innovation to prevent spikes that could destabilise the filter
 	float innovation;
 
-	if (_bad_vert_accel_detected && !innov_check_pass) {
+	if (_fault_status.flags.bad_acc_vertical && !innov_check_pass) {
 		const float innov_limit = innov_gate(1) * sqrtf(innov_var(2));
 		innovation = math::constrain(innov(2), -innov_limit, innov_limit);
 		innov_check_pass = true;
