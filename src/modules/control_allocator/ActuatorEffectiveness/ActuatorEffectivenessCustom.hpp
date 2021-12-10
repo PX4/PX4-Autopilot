@@ -35,65 +35,19 @@
 
 #include "ActuatorEffectiveness.hpp"
 #include "ActuatorEffectivenessRotors.hpp"
+#include "ActuatorEffectivenessControlSurfaces.hpp"
 
-#include <px4_platform_common/module_params.h>
-
-class ActuatorEffectivenessTilts : public ModuleParams, public ActuatorEffectiveness
+class ActuatorEffectivenessCustom : public ModuleParams, public ActuatorEffectiveness
 {
 public:
-
-	static constexpr int MAX_COUNT = 4;
-
-	enum class Control : int32_t {
-		// This matches with the parameter
-		None = 0,
-		Yaw = 1,
-		Pitch = 2,
-		YawAndPitch = 3,
-	};
-	enum class TiltDirection : int32_t {
-		// This matches with the parameter
-		TowardsFront = 0,
-		TowardsRight = 90,
-	};
-
-	struct Params {
-		Control control;
-		float min_angle;
-		float max_angle;
-		TiltDirection tilt_direction;
-	};
-
-	ActuatorEffectivenessTilts(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessTilts() = default;
+	ActuatorEffectivenessCustom(ModuleParams *parent);
+	virtual ~ActuatorEffectivenessCustom() = default;
 
 	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
 
-	const char *name() const override { return "Tilts"; }
+	const char *name() const override { return "Custom"; }
 
-	int count() const { return _count; }
-
-	const Params &config(int idx) const { return _params[idx]; }
-
-	void updateTorqueSign(const ActuatorEffectivenessRotors::Geometry &geometry, bool disable_pitch = false);
-
-	bool hasYawControl() const;
-
-private:
-	void updateParams() override;
-
-	struct ParamHandles {
-		param_t control;
-		param_t min_angle;
-		param_t max_angle;
-		param_t tilt_direction;
-	};
-
-	ParamHandles _param_handles[MAX_COUNT];
-	param_t _count_handle;
-
-	Params _params[MAX_COUNT] {};
-	int _count{0};
-
-	matrix::Vector3f _torque[MAX_COUNT] {};
+protected:
+	ActuatorEffectivenessRotors _motors;
+	ActuatorEffectivenessControlSurfaces _torque;
 };

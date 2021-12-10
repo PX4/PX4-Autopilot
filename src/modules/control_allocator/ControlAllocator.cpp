@@ -235,6 +235,14 @@ ControlAllocator::update_effectiveness_source()
 			tmp = new ActuatorEffectivenessRotors(this);
 			break;
 
+		case EffectivenessSource::MULTIROTOR_WITH_TILT:
+			tmp = new ActuatorEffectivenessMCTilt(this);
+			break;
+
+		case EffectivenessSource::CUSTOM:
+			tmp = new ActuatorEffectivenessCustom(this);
+			break;
+
 		default:
 			PX4_ERR("Unknown airframe");
 			break;

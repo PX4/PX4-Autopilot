@@ -31,69 +31,53 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "ActuatorEffectivenessMCTilt.hpp"
 
-#include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
+using namespace matrix;
 
-#include <px4_platform_common/module_params.h>
-
-class ActuatorEffectivenessTilts : public ModuleParams, public ActuatorEffectiveness
+ActuatorEffectivenessMCTilt::ActuatorEffectivenessMCTilt(ModuleParams *parent)
+	: ModuleParams(parent),
+	  _mc_rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedUpwards, true),
+	  _tilts(this)
 {
-public:
+}
 
-	static constexpr int MAX_COUNT = 4;
+bool
+ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration, bool force)
+{
+	if (!force) {
+		return false;
+	}
 
-	enum class Control : int32_t {
-		// This matches with the parameter
-		None = 0,
-		Yaw = 1,
-		Pitch = 2,
-		YawAndPitch = 3,
-	};
-	enum class TiltDirection : int32_t {
-		// This matches with the parameter
-		TowardsFront = 0,
-		TowardsRight = 90,
-	};
+	// MC motors
+	_mc_rotors.enableYawControl(!_tilts.hasYawControl());
+	_mc_rotors.getEffectivenessMatrix(configuration, true);
 
-	struct Params {
-		Control control;
-		float min_angle;
-		float max_angle;
-		TiltDirection tilt_direction;
-	};
+	// Tilts
+	int first_tilt_idx = configuration.num_actuators_matrix[0];
+	_tilts.updateTorqueSign(_mc_rotors.geometry());
+	_tilts.getEffectivenessMatrix(configuration, true);
 
-	ActuatorEffectivenessTilts(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessTilts() = default;
+	// Set offset such that tilts point upwards when control input == 0 (trim is 0 if min_angle == -max_angle).
+	// Note that we don't set configuration.trim here, because in the case of trim == +-1, yaw is always saturated
+	// and reduced to 0 with the sequential desaturation method. Instead we add it after.
+	_tilt_offsets.setZero();
 
-	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+	for (int i = 0; i < _tilts.count(); ++i) {
+		float delta_angle = _tilts.config(i).max_angle - _tilts.config(i).min_angle;
 
-	const char *name() const override { return "Tilts"; }
+		if (delta_angle > FLT_EPSILON) {
+			float trim = -1.f - 2.f * _tilts.config(i).min_angle / delta_angle;
+			_tilt_offsets(first_tilt_idx + i) = trim;
+		}
+	}
 
-	int count() const { return _count; }
+	return true;
+}
 
-	const Params &config(int idx) const { return _params[idx]; }
-
-	void updateTorqueSign(const ActuatorEffectivenessRotors::Geometry &geometry, bool disable_pitch = false);
-
-	bool hasYawControl() const;
-
-private:
-	void updateParams() override;
-
-	struct ParamHandles {
-		param_t control;
-		param_t min_angle;
-		param_t max_angle;
-		param_t tilt_direction;
-	};
-
-	ParamHandles _param_handles[MAX_COUNT];
-	param_t _count_handle;
-
-	Params _params[MAX_COUNT] {};
-	int _count{0};
-
-	matrix::Vector3f _torque[MAX_COUNT] {};
-};
+void ActuatorEffectivenessMCTilt::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+		int matrix_index, ActuatorVector &actuator_sp)
+{
+	actuator_sp += _tilt_offsets;
+	// TODO: dynamic matrix update
+}
