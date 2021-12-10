@@ -31,69 +31,29 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "ActuatorEffectivenessCustom.hpp"
 
-#include "ActuatorEffectiveness.hpp"
-#include "ActuatorEffectivenessRotors.hpp"
+using namespace matrix;
 
-#include <px4_platform_common/module_params.h>
-
-class ActuatorEffectivenessTilts : public ModuleParams, public ActuatorEffectiveness
+ActuatorEffectivenessCustom::ActuatorEffectivenessCustom(ModuleParams *parent)
+	: ModuleParams(parent), _motors(this), _torque(this)
 {
-public:
+}
 
-	static constexpr int MAX_COUNT = 4;
+bool
+ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration, bool force)
+{
+	if (!force) {
+		return false;
+	}
 
-	enum class Control : int32_t {
-		// This matches with the parameter
-		None = 0,
-		Yaw = 1,
-		Pitch = 2,
-		YawAndPitch = 3,
-	};
-	enum class TiltDirection : int32_t {
-		// This matches with the parameter
-		TowardsFront = 0,
-		TowardsRight = 90,
-	};
+	// motors
+	_motors.enableYawControl(false);
+	_motors.getEffectivenessMatrix(configuration, true);
 
-	struct Params {
-		Control control;
-		float min_angle;
-		float max_angle;
-		TiltDirection tilt_direction;
-	};
+	// Torque
+	_torque.getEffectivenessMatrix(configuration, true);
 
-	ActuatorEffectivenessTilts(ModuleParams *parent);
-	virtual ~ActuatorEffectivenessTilts() = default;
+	return true;
+}
 
-	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
-
-	const char *name() const override { return "Tilts"; }
-
-	int count() const { return _count; }
-
-	const Params &config(int idx) const { return _params[idx]; }
-
-	void updateTorqueSign(const ActuatorEffectivenessRotors::Geometry &geometry, bool disable_pitch = false);
-
-	bool hasYawControl() const;
-
-private:
-	void updateParams() override;
-
-	struct ParamHandles {
-		param_t control;
-		param_t min_angle;
-		param_t max_angle;
-		param_t tilt_direction;
-	};
-
-	ParamHandles _param_handles[MAX_COUNT];
-	param_t _count_handle;
-
-	Params _params[MAX_COUNT] {};
-	int _count{0};
-
-	matrix::Vector3f _torque[MAX_COUNT] {};
-};

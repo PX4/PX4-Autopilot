@@ -36,8 +36,12 @@ px4_add_library(ActuatorEffectiveness
 	ActuatorEffectiveness.hpp
 	ActuatorEffectivenessControlSurfaces.cpp
 	ActuatorEffectivenessControlSurfaces.hpp
+	ActuatorEffectivenessCustom.cpp
+	ActuatorEffectivenessCustom.hpp
 	ActuatorEffectivenessFixedWing.cpp
 	ActuatorEffectivenessFixedWing.hpp
+	ActuatorEffectivenessMCTilt.cpp
+	ActuatorEffectivenessMCTilt.hpp
 	ActuatorEffectivenessTilts.cpp
 	ActuatorEffectivenessTilts.hpp
 	ActuatorEffectivenessRotors.cpp

@@ -49,6 +49,8 @@
 #include <ActuatorEffectivenessRoverAckermann.hpp>
 #include <ActuatorEffectivenessRoverDifferential.hpp>
 #include <ActuatorEffectivenessFixedWing.hpp>
+#include <ActuatorEffectivenessMCTilt.hpp>
+#include <ActuatorEffectivenessCustom.hpp>
 
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
@@ -144,6 +146,8 @@ private:
 		ROVER_ACKERMANN = 5,
 		ROVER_DIFFERENTIAL = 6,
 		MOTORS_6DOF = 7,
+		MULTIROTOR_WITH_TILT = 8,
+		CUSTOM = 9,
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};

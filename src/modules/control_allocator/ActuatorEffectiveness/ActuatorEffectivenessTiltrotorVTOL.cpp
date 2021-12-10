@@ -72,7 +72,7 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 	// Tilts
 	configuration.selected_matrix = 0;
 	_first_tilt_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
-	_tilts.updateYawSign(_mc_rotors.geometry());
+	_tilts.updateTorqueSign(_mc_rotors.geometry(), true /* disable pitch to avoid configuration errors */);
 	_tilts.getEffectivenessMatrix(configuration, true);
 
 	_updated = false;
