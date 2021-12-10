@@ -89,6 +89,19 @@ __BEGIN_DECLS
 __EXPORT const px4_mft_s *board_get_manifest(void);
 
 /************************************************************************************
+ * Name: board_get_base_eeprom_mtd_manifest
+ *
+ * Description:
+ *   A board will provide this function to return the mtd with eeprom manifest
+ *
+ * Returned Value:
+ *   pointer to mtd manifest
+ *
+ ************************************************************************************/
+
+__EXPORT const px4_mtd_manifest_t *board_get_base_eeprom_mtd_manifest(void);
+
+/************************************************************************************
  * Name: px4_mft_configure
  *
  * Description:
