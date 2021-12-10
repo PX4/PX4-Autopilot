@@ -70,6 +70,7 @@
 #include <nuttx/mtd/mtd.h>
 
 #include <perf/perf_counter.h>
+#include <board_config.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -195,11 +196,8 @@ int at24c_nuke(void);
  * Private Data
  ************************************************************************************/
 
-/* At present, only a single AT24 part is supported.  In this case, a statically
- * allocated state structure may be used.
- */
-
-static struct at24c_dev_s g_at24c;
+static uint8_t number_of_instances = 0u;
+static struct at24c_dev_s g_at24c[BOARD_MTD_NUM_EEPROM];
 
 /************************************************************************************
  * Private Functions
@@ -262,7 +260,7 @@ void at24c_test(void)
 	unsigned errors = 0;
 
 	for (count = 0; count < 10000; count++) {
-		ssize_t result = at24c_bread(&g_at24c.mtd, 0, 1, buf);
+		ssize_t result = at24c_bread(&g_at24c[0].mtd, 0, 1, buf);
 
 		if (result == ERROR) {
 			if (errors++ > 2) {
@@ -538,13 +536,17 @@ static int at24c_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
  *   other functions (such as a block or character driver front end).
  *
  ************************************************************************************/
-FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
-		uint8_t address)
+int px4_at24c_initialize(FAR struct i2c_master_s *dev,
+			 uint8_t address, FAR struct mtd_dev_s **mtd_dev)
 
 {
+	if (number_of_instances >= BOARD_MTD_NUM_EEPROM) {
+		return -2;
+	}
+
 	FAR struct at24c_dev_s *priv;
 
-	finfo("dev: %p\n", dev);
+	finfo("dev: %p, mtd_dev %p\n", dev, mtd_dev);
 
 	/* Allocate a state structure (we allocate the structure instead of using
 	 * a fixed, static allocation so that we can handle multiple FLASH devices.
@@ -553,7 +555,7 @@ FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
 	 * to be extended to handle multiple FLASH parts on the same I2C bus.
 	 */
 
-	priv = &g_at24c;
+	priv = &g_at24c[number_of_instances];
 
 	if (priv) {
 		/* Initialize the allocated structure */
@@ -608,13 +610,13 @@ FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
 		priv->perf_resets_retries = NULL;
 		priv->perf_errors = NULL;
 
-		return NULL;
+		return -1;
 	}
 
-	/* Return the implementation-specific state structure as the MTD device */
+	*mtd_dev = (FAR struct mtd_dev_s *)priv;
+	++number_of_instances;
 
-	finfo("Return %p\n", priv);
-	return (FAR struct mtd_dev_s *)priv;
+	return 0;
 }
 
 /*
@@ -622,5 +624,5 @@ FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
  */
 int at24c_nuke(void)
 {
-	return at24c_eraseall(&g_at24c);
+	return at24c_eraseall(&g_at24c[0]);
 }

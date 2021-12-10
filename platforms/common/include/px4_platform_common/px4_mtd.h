@@ -75,7 +75,8 @@ __EXPORT int  px4_mtd_get_geometry(const mtd_instance_s *instance, unsigned long
  */
 __EXPORT ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, const char *partname);
 
-FAR struct mtd_dev_s *px4_at24c_initialize(FAR struct i2c_master_s *dev,
-		uint8_t address);
+int px4_at24c_initialize(FAR struct i2c_master_s *dev,
+			 uint8_t address, FAR struct mtd_dev_s **mtd_dev);
+
 
 __END_DECLS

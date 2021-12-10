@@ -82,6 +82,10 @@
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 1
 #endif
 
+#ifndef BOARD_MTD_NUM_EEPROM
+#define BOARD_MTD_NUM_EEPROM 1
+#endif
+
 /* ADC defining tools
  * We want to normalize the V5 Sensing to V = (adc_dn) * ADC_V5_V_FULL_SCALE/(2 ^ ADC_BITS) * ADC_V5_SCALE)
  */

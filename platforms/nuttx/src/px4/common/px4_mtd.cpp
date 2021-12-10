@@ -147,14 +147,18 @@ static int at24xxx_attach(mtd_instance_s &instance)
 
 	/* start the MTD driver, attempt 5 times */
 	for (int i = 0; i < 5; i++) {
-		instance.mtd_dev = px4_at24c_initialize(i2c, PX4_I2C_DEVID_ADDR(instance.devid));
+		int ret_val = px4_at24c_initialize(i2c, PX4_I2C_DEVID_ADDR(instance.devid), &(instance.mtd_dev));
 
-		if (instance.mtd_dev) {
+		if (ret_val == 0) {
 			/* abort on first valid result */
 			if (i > 0) {
 				PX4_WARN("EEPROM needed %d attempts to attach", i + 1);
 			}
 
+			break;
+
+		} else if (ret_val == -2) {
+			PX4_ERR("Number of at24c EEPROM instances reached the board limit of %d", BOARD_MTD_NUM_EEPROM);
 			break;
 		}
 	}
