@@ -239,7 +239,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi4) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 4\n");
 		board_autoled_on(LED_AMBER);
-		return -ENODEV;
 	}
 
 	/* Default SPI4 to 10MHz and de-assert the known chip selects. */
@@ -255,7 +254,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi1) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
 		board_autoled_on(LED_AMBER);
-		return -ENODEV;
 	}
 
 	/* Default SPI1 to 37.5 MHz (40 MHz rounded to nearest valid divider, F4 max)
@@ -279,9 +277,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
 
 	if (!sdio) {
-		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
-		       CONFIG_NSH_MMCSDSLOTNO);
-		return -ENODEV;
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", CONFIG_NSH_MMCSDSLOTNO);
 	}
 
 	/* Now bind the SDIO interface to the MMC/SD driver */
@@ -289,7 +285,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
-		return ret;
 	}
 
 	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */

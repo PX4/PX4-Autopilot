@@ -735,7 +735,7 @@ void FlightTaskAuto::_checkEmergencyBraking()
 							(factor * _param_mpc_z_vel_max_dn.get())
 							|| _position_smoothing.getCurrentVelocityZ() < -(factor * _param_mpc_z_vel_max_up.get());
 		const bool is_horizontal_speed_exceeded = _position_smoothing.getCurrentVelocityXY().longerThan(
-					factor * _param_mpc_xy_cruise.get());
+					factor * _param_mpc_xy_vel_max.get());
 
 		if (is_vertical_speed_exceeded || is_horizontal_speed_exceeded) {
 			_is_emergency_braking_active = true;

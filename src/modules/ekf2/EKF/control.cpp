@@ -712,7 +712,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 			} else if (_range_sensor.isHealthy()) {
 				// Fallback to rangefinder data if available
-				setControlRangeHeight();
+				startRngHgtFusion();
 				request_height_reset = true;
 				failing_height_source = "ev";
 				new_height_source = "rng";
@@ -734,8 +734,6 @@ void Ekf::controlHeightSensorTimeouts()
 		// Reset vertical position and velocity states to the last measurement
 		if (request_height_reset) {
 			resetHeight();
-			// Reset the timout timer
-			_time_last_hgt_fuse = _time_last_imu;
 		}
 	}
 }
@@ -807,129 +805,74 @@ void Ekf::controlHeightFusion()
 	checkRangeAidSuitability();
 	const bool do_range_aid = (_params.range_aid == 1) && isRangeAidSuitable();
 
-	bool fuse_height = false;
-
 	switch (_params.vdist_sensor_type) {
 	default:
 		ECL_ERR("Invalid hgt mode: %d", _params.vdist_sensor_type);
 
 	// FALLTHROUGH
 	case VDIST_SENSOR_BARO:
-		if (do_range_aid && _range_sensor.isDataHealthy()) {
-			setControlRangeHeight();
-			fuse_height = true;
-
-			// we have just switched to using range finder, calculate height sensor offset such that current
-			// measurement matches our current height estimate
-			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				_hgt_sensor_offset = _terrain_vpos;
+		if (do_range_aid) {
+			if (!_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
+				startRngAidHgtFusion();
 			}
 
-		} else if (!do_range_aid && _baro_data_ready && !_baro_hgt_faulty) {
-			startBaroHgtFusion();
-			fuse_height = true;
-
-		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_intermittent) {
-			// switch to gps if there was a reset to gps
-			fuse_height = true;
-
-			// we have just switched to using gps height, calculate height sensor offset such that current
-			// measurement matches our current height estimate
-			if (_control_status_prev.flags.gps_hgt != _control_status.flags.gps_hgt) {
-				_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+		} else {
+			if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
+				startBaroHgtFusion();
 			}
 		}
 
 		break;
 
 	case VDIST_SENSOR_RANGE:
-		if (_range_sensor.isDataHealthy()) {
-			setControlRangeHeight();
-			fuse_height = true;
+		// If we are supposed to be using range finder data as the primary height sensor, have bad range measurements
+		// and are on the ground, then synthesise a measurement at the expected on ground value
+		if (!_control_status.flags.in_air
+		    && !_range_sensor.isDataHealthy()
+		    && _range_sensor.isRegularlySendingData()
+		    && _range_sensor.isDataReady()) {
 
-			if (_control_status_prev.flags.rng_hgt != _control_status.flags.rng_hgt) {
-				// we have just switched to using range finder, calculate height sensor offset such that current
-				// measurement matches our current height estimate
-				// use the parameter rng_gnd_clearance if on ground to avoid a noisy offset initialization (e.g. sonar)
-				if (_control_status.flags.in_air && isTerrainEstimateValid()) {
-					_hgt_sensor_offset = _terrain_vpos;
+			_range_sensor.setRange(_params.rng_gnd_clearance);
+			_range_sensor.setValidity(true); // bypass the checks
+		}
 
-				} else if (_control_status.flags.in_air) {
-					_hgt_sensor_offset = _range_sensor.getDistBottom() + _state.pos(2);
-
-				} else {
-					_hgt_sensor_offset = _params.rng_gnd_clearance;
-				}
+		if (!_control_status.flags.rng_hgt) {
+			if (_range_sensor.isDataHealthy()) {
+				startRngHgtFusion();
 			}
-
-		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
-			// fuse baro data if there was a reset to baro
-			fuse_height = true;
 		}
 
 		break;
 
 	case VDIST_SENSOR_GPS:
-
 		// NOTE: emergency fallback due to extended loss of currently selected sensor data or failure
 		// to pass innovation cinsistency checks is handled elsewhere in Ekf::controlHeightSensorTimeouts.
 		// Do switching between GPS and rangefinder if using range finder as a height source when close
 		// to ground and moving slowly. Also handle switch back from emergency Baro sensor when GPS recovers.
-		if (!_control_status_prev.flags.rng_hgt && do_range_aid && _range_sensor.isDataHealthy()) {
-			setControlRangeHeight();
-
-			// we have just switched to using range finder, calculate height sensor offset such that current
-			// measurement matches our current height estimate
-			_hgt_sensor_offset = _terrain_vpos;
-
-		} else if (_control_status_prev.flags.rng_hgt && !do_range_aid) {
-			// must stop using range finder so find another sensor now
-			if (!_gps_hgt_intermittent && _gps_checks_passed) {
-				// GPS quality OK
-				startGpsHgtFusion();
-
-			} else if (!_baro_hgt_faulty) {
-				// Use baro as a fallback
-				startBaroHgtFusion();
+		if (do_range_aid) {
+			if (!_control_status_prev.flags.rng_hgt && _range_sensor.isDataHealthy()) {
+				startRngAidHgtFusion();
 			}
 
-		} else if (_control_status.flags.baro_hgt && !do_range_aid && !_gps_hgt_intermittent && _gps_checks_passed) {
-			// In baro fallback mode and GPS has recovered so start using it
-			startGpsHgtFusion();
-		}
+		} else {
+			if (!_control_status.flags.gps_hgt) {
+				if (!_gps_hgt_intermittent && _gps_checks_passed) {
+					// In fallback mode and GPS has recovered so start using it
+					startGpsHgtFusion();
 
-		if (_control_status.flags.gps_hgt && _gps_data_ready) {
-			fuse_height = true;
-
-		} else if (_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-			fuse_height = true;
-
-		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
-			fuse_height = true;
+				} else if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
+					// Use baro as a fallback
+					startBaroHgtFusion();
+				}
+			}
 		}
 
 		break;
 
 	case VDIST_SENSOR_EV:
-
-		// don't start using EV data unless data is arriving frequently, do not reset if pref mode was height
+		// don't start using EV data unless data is arriving frequently
 		if (!_control_status.flags.ev_hgt && isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
-			fuse_height = true;
-			setControlEVHeight();
-
-			if (!_control_status_prev.flags.rng_hgt) {
-				resetHeight();
-			}
-		}
-
-		if (_control_status.flags.ev_hgt && _ev_data_ready) {
-			fuse_height = true;
-
-		} else if (_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-			fuse_height = true;
-
-		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
-			fuse_height = true;
+			startEvHgtFusion();
 		}
 
 		break;
@@ -937,94 +880,30 @@ void Ekf::controlHeightFusion()
 
 	updateBaroHgtBias();
 	updateBaroHgtOffset();
+	checkGroundEffectTimeout();
 
-	if (_control_status.flags.rng_hgt
-	    && isTimedOut(_time_last_hgt_fuse, 2 * RNG_MAX_INTERVAL)
-	    && !_range_sensor.isDataHealthy()
-	    && _range_sensor.isRegularlySendingData()
-	    && !_control_status.flags.in_air) {
+	if (_control_status.flags.baro_hgt) {
 
-		// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
-		// and are on the ground, then synthesise a measurement at the expected on ground value
-		_range_sensor.setRange(_params.rng_gnd_clearance);
-		_range_sensor.setDataReadiness(true);
-		_range_sensor.setValidity(true); // bypass the checks
+		if (_baro_data_ready && !_baro_hgt_faulty) {
+			fuseBaroHgt();
+		}
 
-		fuse_height = true;
-	}
+	} else if (_control_status.flags.gps_hgt) {
 
-	if (fuse_height) {
-		if (_control_status.flags.baro_hgt) {
-			Vector2f baro_hgt_innov_gate;
-			Vector3f baro_hgt_obs_var;
+		if (_gps_data_ready) {
+			fuseGpsHgt();
+		}
 
-			// vertical position innovation - baro measurement has opposite sign to earth z axis
-			const float unbiased_baro = _baro_sample_delayed.hgt - _baro_b_est.getBias();
-			_baro_hgt_innov(2) = _state.pos(2) + unbiased_baro - _baro_hgt_offset;
-			// observation variance - user parameter defined
-			baro_hgt_obs_var(2) = sq(fmaxf(_params.baro_noise, 0.01f));
-			// innovation gate size
-			baro_hgt_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
+	} else if (_control_status.flags.rng_hgt) {
 
-			// Compensate for positive static pressure transients (negative vertical position innovations)
-			// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
-			const float deadzone_start = 0.0f;
-			const float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
+		if (_range_sensor.isDataHealthy()) {
+			fuseRngHgt();
+		}
 
-			if (_control_status.flags.gnd_effect) {
-				if (_baro_hgt_innov(2) < -deadzone_start) {
-					if (_baro_hgt_innov(2) <= -deadzone_end) {
-						_baro_hgt_innov(2) += deadzone_end;
+	} else if (_control_status.flags.ev_hgt) {
 
-					} else {
-						_baro_hgt_innov(2) = -deadzone_start;
-					}
-				}
-			}
-
-			// fuse height information
-			fuseVerticalPosition(_baro_hgt_innov, baro_hgt_innov_gate,
-					     baro_hgt_obs_var, _baro_hgt_innov_var, _baro_hgt_test_ratio);
-
-		} else if (_control_status.flags.gps_hgt) {
-			Vector2f gps_hgt_innov_gate;
-			Vector3f gps_hgt_obs_var;
-			// vertical position innovation - gps measurement has opposite sign to earth z axis
-			_gps_pos_innov(2) = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
-			gps_hgt_obs_var(2) = getGpsHeightVariance();
-			// innovation gate size
-			gps_hgt_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
-			// fuse height information
-			fuseVerticalPosition(_gps_pos_innov, gps_hgt_innov_gate,
-					     gps_hgt_obs_var, _gps_pos_innov_var, _gps_pos_test_ratio);
-
-		} else if (_control_status.flags.rng_hgt) {
-			Vector2f rng_hgt_innov_gate;
-			Vector3f rng_hgt_obs_var;
-			// use range finder with tilt correction
-			_rng_hgt_innov(2) = _state.pos(2) - (-math::max(_range_sensor.getDistBottom(),
-							     _params.rng_gnd_clearance)) - _hgt_sensor_offset;
-			// observation variance - user parameter defined
-			rng_hgt_obs_var(2) = fmaxf(sq(_params.range_noise)
-						   + sq(_params.range_noise_scaler * _range_sensor.getDistBottom()), 0.01f);
-			// innovation gate size
-			rng_hgt_innov_gate(1) = fmaxf(_params.range_innov_gate, 1.0f);
-			// fuse height information
-			fuseVerticalPosition(_rng_hgt_innov, rng_hgt_innov_gate,
-					     rng_hgt_obs_var, _rng_hgt_innov_var, _rng_hgt_test_ratio);
-
-		} else if (_control_status.flags.ev_hgt) {
-			Vector2f ev_hgt_innov_gate;
-			Vector3f ev_hgt_obs_var;
-			// calculate the innovation assuming the external vision observation is in local NED frame
-			_ev_pos_innov(2) = _state.pos(2) - _ev_sample_delayed.pos(2);
-			// observation variance - defined externally
-			ev_hgt_obs_var(2) = fmaxf(_ev_sample_delayed.posVar(2), sq(0.01f));
-			// innovation gate size
-			ev_hgt_innov_gate(1) = fmaxf(_params.ev_pos_innov_gate, 1.0f);
-			// fuse height information
-			fuseVerticalPosition(_ev_pos_innov, ev_hgt_innov_gate,
-					     ev_hgt_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
+		if (_control_status.flags.ev_hgt && _ev_data_ready) {
+			fuseEvHgt();
 		}
 	}
 }

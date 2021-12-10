@@ -270,7 +270,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		board_autoled_on(LED_RED);
-		return ret;
 	}
 
 #ifdef HAVE_AUTOMOUNTER
@@ -286,7 +285,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		board_autoled_on(LED_RED);
-		return ret;
 	}
 
 #endif
