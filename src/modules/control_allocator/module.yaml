@@ -5,7 +5,7 @@ __max_num_tilts: &max_num_tilts 4
 module_name: Control Allocation
 
 parameters:
-    - group: Control Allocation
+    - group: Geometry
       definitions:
         CA_AIRFRAME:
             description:
@@ -13,6 +13,8 @@ parameters:
                 long: |
                   Defines which mixer implementation to use.
                   Some are generic, while others are specifically fit to a certain vehicle with a fixed set of actuators.
+
+                  'Custom' should only be used if noting else can be used.
             type: enum
             values:
                 0: Multirotor
@@ -23,6 +25,8 @@ parameters:
                 5: Rover (Ackermann)
                 6: Rover (Differential)
                 7: Motors (6DOF)
+                8: Multirotor with Tilt
+                9: Custom
             default: 0
 
         CA_METHOD:
@@ -312,10 +316,12 @@ parameters:
             description:
                 short: Tilt ${i} is used for control
                 long: Define if this servo is used for additional control.
-            type: enum
+            type: enum # This could be a bitset, but the enum shows up nicer in the UI
             values:
                 0: 'None'
                 1: 'Yaw'
+                2: 'Pitch'
+                3: 'Yaw and Pitch'
             num_instances: *max_num_tilts
             instance_start: 0
             default: 1
@@ -358,6 +364,8 @@ parameters:
             values:
                 0: 'Towards Front'
                 90: 'Towards Right'
+            min: 0
+            max: 359
             num_instances: *max_num_tilts
             instance_start: 0
             default: 0
@@ -642,4 +650,70 @@ mixer:
                             function: 'axisz'
                           - name: 'CA_ROTOR${i}_KM'
                             label: "Moment\nCoefficient"
+
+            8: # Multirotor with Tilt
+                actuators:
+                  - actuator_type: 'motor'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_KM'
+                            label: 'Direction CCW'
+                            function: 'spin-dir'
+                            show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_TILT'
+                            label: 'Tilted by'
+                  - actuator_type: 'servo'
+                    group_label: 'Tilt Servos'
+                    count: 'CA_SV_TL_COUNT'
+                    item_label_prefix: 'Tilt ${i}'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_TL${i}_MINA'
+                            label: "Angle at Min\nTilt"
+                          - name: 'CA_SV_TL${i}_MAXA'
+                            label: "Angle at Max\nTilt"
+                          - name: 'CA_SV_TL${i}_TD'
+                            label: 'Tilt Direction'
+                          - name: 'CA_SV_TL${i}_CT'
+                            label: 'Use for Control'
+
+            9: # Custom
+                actuators:
+                  - actuator_type: 'motor'
+                    group_label: 'Thrust/Motors'
+                    count: 'CA_ROTOR_COUNT'
+                    per_item_parameters:
+                        standard:
+                            position: [ 'CA_ROTOR${i}_PX', 'CA_ROTOR${i}_PY', 'CA_ROTOR${i}_PZ' ]
+                        extra:
+                          - name: 'CA_ROTOR${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                          - name: 'CA_ROTOR${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                          - name: 'CA_ROTOR${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
+                          - name: 'CA_ROTOR${i}_CT'
+                            label: "Thrust\nCoefficient"
+                          - name: 'CA_ROTOR${i}_KM'
+                            label: "Moment\nCoefficient"
+                  - actuator_type: 'servo'
+                    group_label: 'Torque'
+                    count: 'CA_SV_CS_COUNT'
+                    item_label_prefix: 'Torque ${i}'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SV_CS${i}_TRQ_R'
+                            label: 'Roll Scale'
+                          - name: 'CA_SV_CS${i}_TRQ_P'
+                            label: 'Pitch Scale'
+                          - name: 'CA_SV_CS${i}_TRQ_Y'
+                            label: 'Yaw Scale'
+                          - name: 'CA_SV_CS${i}_TRIM'
+                            label: 'Trim'
 
