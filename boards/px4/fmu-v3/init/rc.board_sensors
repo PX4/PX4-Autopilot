@@ -33,6 +33,12 @@ then
 		if mpu9250 -s -b 4 -R 10 start
 		then
 			set BOARD_FMUV3 21
+		else
+
+			# some boards have an internal hmc5883 or ist8310, make sure they
+			# are not detected as external
+			hmc5883 start -X -b 2 -i
+			ist8310 start -X -b 2 -i
 		fi
 	fi
 fi

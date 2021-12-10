@@ -45,7 +45,7 @@ IST8310::IST8310(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_mag(get_device_id(), config.rotation)
 {
-	_px4_mag.set_external(external());
+	_px4_mag.set_external(config.custom2 != 1 && external());
 }
 
 IST8310::~IST8310()

@@ -96,6 +96,7 @@ void HMC5883::print_usage()
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('T', "Enable temperature compensation", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('i', "Force as internal", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -107,7 +108,7 @@ extern "C" int hmc5883_main(int argc, char *argv[])
 	cli.default_i2c_frequency = 400000;
 	cli.default_spi_frequency = 11 * 1000 * 1000;
 
-	while ((ch = cli.getOpt(argc, argv, "R:T")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "R:Ti")) != EOF) {
 		switch (ch) {
 		case 'R':
 			cli.rotation = (enum Rotation)atoi(cli.optArg());
@@ -115,6 +116,10 @@ extern "C" int hmc5883_main(int argc, char *argv[])
 
 		case 'T':
 			cli.custom1 = 1;
+			break;
+
+		case 'i':
+			cli.custom2 = 1;
 			break;
 		}
 	}
