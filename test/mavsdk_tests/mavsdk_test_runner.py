@@ -457,19 +457,9 @@ class Tester:
             runner.set_log_filename(
                 self.determine_logfile_path(log_dir, runner.name))
 
-            runner.start()
-
-            if runner.has_started_ok():
-                continue
-
-            else:
+            if not self.try_to_run_several_times(runner):
                 abort = True
-                print("A timeout happened for runner: {}"
-                      .format(runner.name))
                 break
-
-                runner.stop
-                time.sleep(1)
 
         if abort:
             print("Could not start runner: {}".format(runner.name))
@@ -477,6 +467,19 @@ class Tester:
             self.stop_combined_log()
             self.stop_runners()
             sys.exit(1)
+
+    def try_to_run_several_times(self, runner: ph.Runner) -> bool:
+        for _ in range(3):
+            runner.start()
+
+            if runner.has_started_ok():
+                return True
+
+            else:
+                runner.stop()
+                time.sleep(1)
+
+        return False
 
     def stop_runners(self) -> None:
         for runner in self.active_runners:
