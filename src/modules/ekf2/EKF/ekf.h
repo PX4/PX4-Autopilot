@@ -550,7 +550,6 @@ private:
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
 	uint64_t _time_good_vert_accel{0};	///< last time a good vertical accel was detected (uSec)
-	bool _bad_vert_accel_detected{false};	///< true when bad vertical accelerometer data has been detected
 	uint16_t _clip_counter{0};		///< counter that increments when clipping ad decrements when not
 
 	// variables used to control range aid functionality
