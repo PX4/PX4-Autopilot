@@ -40,7 +40,7 @@ def print_line(line):
 def do_nsh_cmd(port, baudrate, cmd):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
 
-    timeout_start = time.time()
+    timeout_start = time.monotonic()
     timeout = 30  # 30 seconds
 
     # wait for nsh prompt
@@ -56,7 +56,7 @@ def do_nsh_cmd(port, baudrate, cmd):
             if len(serial_line) > 0:
                 print_line(serial_line)
 
-        if time.time() > timeout_start + timeout:
+        if time.monotonic() > timeout_start + timeout:
             print("Error, timeout waiting for prompt")
             sys.exit(1)
 
@@ -64,12 +64,13 @@ def do_nsh_cmd(port, baudrate, cmd):
     ser.readlines()
 
     # run command
-    timeout_start = time.time()
+    timeout_start = time.monotonic()
     timeout = 1  # 1 second
 
     success_cmd = "cmd succeeded!"
 
     # wait for command echo
+    print("Running command: \'{0}\'".format(cmd))
     serial_cmd = '{0}; echo "{1}"; echo "{2}";\r\n'.format(cmd, success_cmd, success_cmd)
     ser.write(serial_cmd.encode("ascii"))
     ser.flush()
@@ -86,12 +87,12 @@ def do_nsh_cmd(port, baudrate, cmd):
             if len(serial_line) > 0:
                 print_line(serial_line)
 
-        if time.time() > timeout_start + timeout:
+        if (len(serial_line) <= 0) and (time.monotonic() > timeout_start + timeout):
             print("Error, timeout waiting for command echo")
             break
 
 
-    timeout_start = time.time()
+    timeout_start = time.monotonic()
     timeout = 240 # 4 minutes
 
     return_code = 0
@@ -114,13 +115,14 @@ def do_nsh_cmd(port, baudrate, cmd):
             elif "NuttShell (NSH)" in serial_line:
                 sys.exit(1) # error, command didn't complete successfully
 
+        if (len(serial_line) <= 0) and (time.monotonic() > timeout_start + timeout):
+            print("Error, timeout")
+            sys.exit(-1)
+
         if len(serial_line) <= 0:
             ser.write("\r\n".encode("ascii"))
             ser.flush()
-
-        if time.time() > timeout_start + timeout:
-            print("Error, timeout")
-            sys.exit(-1)
+            time.sleep(0.2)
 
     ser.close()
 
