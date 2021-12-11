@@ -34,7 +34,7 @@ def print_line(line):
 def do_param_set_cmd(port, baudrate, param_name, param_value):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.1, xonxoff=True, rtscts=False, dsrdtr=False)
 
-    timeout_start = time.time()
+    timeout_start = time.monotonic()
     timeout = 30  # 30 seconds
 
     # wait for nsh prompt
@@ -50,7 +50,7 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
             if len(serial_line) > 0:
                 print_line(serial_line)
 
-        if time.time() > timeout_start + timeout:
+        if time.monotonic() > timeout_start + timeout:
             print("Error, timeout waiting for prompt")
             sys.exit(1)
 
@@ -58,12 +58,13 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
     ser.readlines()
 
     # run command
-    timeout_start = time.time()
+    timeout_start = time.monotonic()
     timeout = 10  # 10 seconds
 
     cmd = "param set " + param_name + " " + param_value
 
     # write command (param set) and wait for command echo
+    print("Running command: \'{0}\'".format(cmd))
     serial_cmd = '{0}\r\n'.format(cmd)
     ser.write(serial_cmd.encode("ascii"))
     ser.flush()
@@ -77,7 +78,7 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
             if len(serial_line) > 0:
                 print_line(serial_line)
 
-        if time.time() > timeout_start + timeout:
+        if time.monotonic() > timeout_start + timeout:
             print("Error, timeout waiting for command echo")
             break
 
@@ -89,8 +90,8 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
 
     param_show_response = param_name + " ["
 
-    timeout_start = time.time()
-    timeout = 2  # 2 seconds
+    timeout_start = time.monotonic()
+    timeout = 3  # 3 seconds
 
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
@@ -107,19 +108,20 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
             if len(serial_line) > 0:
                 print_line(serial_line)
 
-            if time.time() > timeout_start + timeout:
+            if time.monotonic() > timeout_start + timeout:
                 if "nsh>" in serial_line:
                     sys.exit(1) # error, command didn't complete successfully
                 elif "NuttShell (NSH)" in serial_line:
                     sys.exit(1) # error, command didn't complete successfully
 
+        if time.monotonic() > timeout_start + timeout:
+            print("Error, timeout")
+            sys.exit(-1)
+
         if len(serial_line) <= 0:
             ser.write("\r\n".encode("ascii"))
             ser.flush()
-
-        if time.time() > timeout_start + timeout:
-            print("Error, timeout")
-            sys.exit(-1)
+            time.sleep(0.2)
 
     ser.close()
 
