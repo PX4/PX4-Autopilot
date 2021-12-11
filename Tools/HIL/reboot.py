@@ -47,14 +47,14 @@ def monitor_firmware_upload(port, baudrate):
 
     timeout_reboot_cmd = 30
     timeout = 300  # 5 minutes
-    timeout_start = time.time()
-    timeout_newline = time.time()
+    timeout_start = time.monotonic()
+    timeout_newline = time.monotonic()
     time_success = 0
 
     return_code = 0
 
     while True:
-        if time.time() > timeout_start + timeout_reboot_cmd:
+        if time.monotonic() > timeout_start + timeout_reboot_cmd:
             ser.write("reboot\n".encode("ascii"))
 
         serial_line = ser.readline().decode("ascii", errors='ignore')
@@ -66,13 +66,13 @@ def monitor_firmware_upload(port, baudrate):
             print_line(serial_line)
 
         if "NuttShell (NSH)" in serial_line:
-            time_success = time.time()
+            time_success = time.monotonic()
 
         # wait at least 2 seconds after seeing prompt to catch potential errors
-        if time_success > 0 and time.time() > time_success + 2:
+        if time_success > 0 and time.monotonic() > time_success + 2:
             sys.exit(return_code)
 
-        if time.time() > timeout_start + timeout:
+        if time.monotonic() > timeout_start + timeout:
             print("Error, timeout")
             sys.exit(-1)
 
