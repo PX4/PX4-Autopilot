@@ -31,33 +31,32 @@
  *
  ****************************************************************************/
 
-#include "SensorMagSim.hpp"
+#include "SensorGpsSim.hpp"
 
 #include <drivers/drv_sensor.h>
-#include <lib/world_magnetic_model/geo_mag_declination.h>
+#include <lib/drivers/device/Device.hpp>
+#include <lib/geo/geo.h>
 
 using namespace matrix;
 
-SensorMagSim::SensorMagSim() :
+SensorGpsSim::SensorGpsSim() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
-	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MAGSIM);
-	_px4_mag.set_external(false);
 }
 
-SensorMagSim::~SensorMagSim()
+SensorGpsSim::~SensorGpsSim()
 {
 	perf_free(_loop_perf);
 }
 
-bool SensorMagSim::init()
+bool SensorGpsSim::init()
 {
-	ScheduleOnInterval(20_ms); // 50 Hz
+	ScheduleOnInterval(125_ms); // 8 Hz
 	return true;
 }
 
-float SensorMagSim::generate_wgn()
+float SensorGpsSim::generate_wgn()
 {
 	// generate white Gaussian noise sample with std=1
 
@@ -88,7 +87,7 @@ float SensorMagSim::generate_wgn()
 	return X;
 }
 
-void SensorMagSim::Run()
+void SensorGpsSim::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
@@ -107,45 +106,84 @@ void SensorMagSim::Run()
 		updateParams();
 	}
 
-	if (_vehicle_global_position_sub.updated()) {
-		vehicle_global_position_s gpos;
+	if (_vehicle_local_position_sub.updated() && _vehicle_global_position_sub.updated()) {
 
-		if (_vehicle_global_position_sub.copy(&gpos)) {
-			if (gpos.eph < 1000) {
+		vehicle_local_position_s lpos{};
+		_vehicle_local_position_sub.copy(&lpos);
 
-				// magnetic field data returned by the geo library using the current GPS position
-				const float mag_declination_gps = get_mag_declination_radians(gpos.lat, gpos.lon);
-				const float mag_inclination_gps = get_mag_inclination_radians(gpos.lat, gpos.lon);
-				const float mag_strength_gps = get_mag_strength_gauss(gpos.lat, gpos.lon);
+		vehicle_global_position_s gpos{};
+		_vehicle_global_position_sub.copy(&gpos);
 
-				_mag_earth_pred = Dcmf(Eulerf(0, -mag_inclination_gps, mag_declination_gps)) * Vector3f(mag_strength_gps, 0, 0);
+		double latitude = gpos.lat + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+		double longitude = gpos.lon + math::degrees((double)generate_wgn() * 0.2 / CONSTANTS_RADIUS_OF_EARTH);
+		float altitude = gpos.alt + (generate_wgn() * 0.5f);
 
-				_mag_earth_available = true;
-			}
+		Vector3f gps_vel = Vector3f{lpos.vx, lpos.vy, lpos.vz} + noiseGauss3f(0.06f, 0.077f, 0.158f);
+
+		// device id
+		device::Device::DeviceId device_id;
+		device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_SIMULATION;
+		device_id.devid_s.bus = 0;
+		device_id.devid_s.address = 0;
+		device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+
+		sensor_gps_s sensor_gps{};
+
+		if (_sim_gps_used.get() >= 4) {
+			// fix
+			sensor_gps.fix_type = 3; // 3D fix
+			sensor_gps.s_variance_m_s = 0.5f;
+			sensor_gps.c_variance_rad = 0.1f;
+			sensor_gps.eph = 0.9f;
+			sensor_gps.epv = 1.78f;
+			sensor_gps.hdop = 0.7f;
+			sensor_gps.vdop = 1.1f;
+
+		} else {
+			// no fix
+			sensor_gps.fix_type = 0; // No fix
+			sensor_gps.s_variance_m_s = 100.f;
+			sensor_gps.c_variance_rad = 100.f;
+			sensor_gps.eph = 100.f;
+			sensor_gps.epv = 100.f;
+			sensor_gps.hdop = 100.f;
+			sensor_gps.vdop = 100.f;
 		}
-	}
 
-	if (_mag_earth_available) {
-		vehicle_attitude_s attitude;
+		// sensor_gps.timestamp_sample = gpos.timestamp;
+		sensor_gps.time_utc_usec = 0;
+		sensor_gps.device_id = device_id.devid;
+		sensor_gps.lat = roundf(latitude * 1e7); // Latitude in 1E-7 degrees
+		sensor_gps.lon = roundf(longitude * 1e7); // Longitude in 1E-7 degrees
+		sensor_gps.alt = roundf(altitude * 1000.f); // Altitude in 1E-3 meters above MSL, (millimetres)
+		sensor_gps.alt_ellipsoid = sensor_gps.alt;
+		sensor_gps.noise_per_ms = 0;
+		sensor_gps.jamming_indicator = 0;
+		sensor_gps.vel_m_s = sqrtf(gps_vel(0) * gps_vel(0) + gps_vel(1) * gps_vel(1)); // GPS ground speed, (metres/sec)
+		sensor_gps.vel_n_m_s = gps_vel(0);
+		sensor_gps.vel_e_m_s = gps_vel(1);
+		sensor_gps.vel_d_m_s = gps_vel(2);
+		sensor_gps.cog_rad = atan2(gps_vel(1),
+					   gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
+		sensor_gps.timestamp_time_relative = 0;
+		sensor_gps.heading = NAN;
+		sensor_gps.heading_offset = NAN;
+		sensor_gps.heading_accuracy = 0;
+		sensor_gps.automatic_gain_control = 0;
+		sensor_gps.jamming_state = 0;
+		sensor_gps.vel_ned_valid = true;
+		sensor_gps.satellites_used = _sim_gps_used.get();
 
-		if (_vehicle_attitude_sub.update(&attitude)) {
-			Vector3f expected_field = Dcmf{Quatf{attitude.q}} .transpose() * _mag_earth_pred;
-
-			expected_field += noiseGauss3f(0.02f, 0.02f, 0.03f);
-
-			_px4_mag.update(attitude.timestamp,
-					expected_field(0) + _sim_mag_offset_x.get(),
-					expected_field(1) + _sim_mag_offset_y.get(),
-					expected_field(2) + _sim_mag_offset_z.get());
-		}
+		sensor_gps.timestamp = hrt_absolute_time();
+		_sensor_gps_pub.publish(sensor_gps);
 	}
 
 	perf_end(_loop_perf);
 }
 
-int SensorMagSim::task_spawn(int argc, char *argv[])
+int SensorGpsSim::task_spawn(int argc, char *argv[])
 {
-	SensorMagSim *instance = new SensorMagSim();
+	SensorGpsSim *instance = new SensorGpsSim();
 
 	if (instance) {
 		_object.store(instance);
@@ -166,12 +204,12 @@ int SensorMagSim::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int SensorMagSim::custom_command(int argc, char *argv[])
+int SensorGpsSim::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
 }
 
-int SensorMagSim::print_usage(const char *reason)
+int SensorGpsSim::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -184,14 +222,14 @@ int SensorMagSim::print_usage(const char *reason)
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("sensor_mag_sim", "system");
+	PRINT_MODULE_USAGE_NAME("sensor_gps_sim", "system");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-extern "C" __EXPORT int sensor_mag_sim_main(int argc, char *argv[])
+extern "C" __EXPORT int sensor_gps_sim_main(int argc, char *argv[])
 {
-	return SensorMagSim::main(argc, argv);
+	return SensorGpsSim::main(argc, argv);
 }
