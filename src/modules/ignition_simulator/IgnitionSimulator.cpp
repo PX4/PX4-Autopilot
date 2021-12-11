@@ -87,6 +87,33 @@ void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 			// position.x(), position.y(), position.z()
 			// orientation. wxyz
 
+			static const auto q_FLU_to_FRD = ignition::math::Quaterniond(0, 1, 0, 0);
+
+			/**
+			 * @brief Quaternion for rotation between ENU and NED frames
+			 *
+			 * NED to ENU: +PI/2 rotation about Z (Down) followed by a +PI rotation around X (old North/new East)
+			 * ENU to NED: +PI/2 rotation about Z (Up) followed by a +PI rotation about X (old East/new North)
+			 * This rotation is symmetric, so q_ENU_to_NED == q_NED_to_ENU.
+			 */
+			static const auto q_ENU_to_NED = ignition::math::Quaterniond(0, 0.70711, 0.70711, 0);
+
+
+			// ground truth
+			ignition::math::Quaterniond q_gr = ignition::math::Quaterniond(
+					last_imu_message_.orientation().w(),
+					last_imu_message_.orientation().x(),
+					last_imu_message_.orientation().y(),
+					last_imu_message_.orientation().z());
+
+			ignition::math::Quaterniond q_gb = q_gr * q_FLU_to_FRD.Inverse();
+			ignition::math::Quaterniond q_nb = q_ENU_to_NED * q_gb;
+
+			hil_state_quat.attitude_quaternion[0] = q_nb.W();
+			hil_state_quat.attitude_quaternion[1] = q_nb.X();
+			hil_state_quat.attitude_quaternion[2] = q_nb.Y();
+			hil_state_quat.attitude_quaternion[3] = q_nb.Z();
+
 			//PX4_INFO("matched, position [%.6f, %.6f, %.6f]", (double)position.x(), (double)position.y(), (double)position.z());
 
 			vehicle_local_position_s local_position_groundtruth{};
@@ -96,6 +123,11 @@ void IgnitionSimulator::PoseInfoCallback(const ignition::msgs::Pose_V &pose)
 			local_position_groundtruth.timestamp = hrt_absolute_time();
 
 			_lpos_ground_truth_pub.publish(local_position_groundtruth);
+
+
+			// _param_sim_home_lat.get()
+			//  reproject
+
 		}
 	}
 
@@ -182,7 +214,7 @@ void IgnitionSimulator::run()
 
 int IgnitionSimulator::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("module",
+	_task_id = px4_task_spawn_cmd("ignition_simulator",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_DEFAULT,
 				      1024,

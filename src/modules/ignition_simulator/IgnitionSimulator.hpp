@@ -93,8 +93,9 @@ private:
 	void PoseInfoCallback(const ignition::msgs::Pose_V &pose);
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
+		(ParamFloat<px4::params::SIM_HOME_LAT>) _param_sim_home_lat,
+		(ParamFloat<px4::params::SIM_HOME_LON>) _param_sim_home_lon,
+		(ParamFloat<px4::params::SIM_HOME_ALT>) _param_sim_home_alt
 	)
 
 	// Subscriptions
@@ -107,8 +108,4 @@ private:
 
 	PX4Accelerometer _px4_accel;
 	PX4Gyroscope _px4_gyro;
-
-	hrt_abstime _time_start_us{0};
-
-	uint32_t _sensor_interval_us{1250};
 };
