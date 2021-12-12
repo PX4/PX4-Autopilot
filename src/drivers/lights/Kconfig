@@ -1,0 +1,10 @@
+menu "Lights"
+    menuconfig COMMON_LIGHT
+        bool "Common Light's"
+        default n
+        select DRIVERS_LIGHTS_RGBLED
+        select DRIVERS_LIGHTS_RGBLED_NCP5623C
+        ---help---
+            Enable default set of light drivers
+    rsource "*/Kconfig"
+endmenu

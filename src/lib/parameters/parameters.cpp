@@ -71,21 +71,20 @@ using namespace time_literals;
 
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
-static const char *param_default_file = nullptr; // nullptr means to store to FLASH
 #else
 inline static int flash_param_save(bool only_unsaved, param_filter_func filter) { return -1; }
 inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
-static const char *param_default_file = PX4_ROOTFSDIR"/eeprom/parameters";
 #endif
 
-static char *param_user_file = nullptr;
+static char *param_default_file = nullptr;
+static char *param_backup_file = nullptr;
 
 #include <px4_platform_common/workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
 static struct work_s autosave_work {};
-static px4::atomic<bool> autosave_scheduled{false};
+static px4::atomic_bool autosave_scheduled{false};
 static bool autosave_disabled = false;
 
 static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
@@ -1080,19 +1079,24 @@ param_reset_specific(const char *resets[], int num_resets)
 int
 param_set_default_file(const char *filename)
 {
+	if ((param_backup_file && strcmp(filename, param_backup_file) == 0)) {
+		PX4_ERR("default file can't be the same as the backup file %s", filename);
+		return PX4_ERROR;
+	}
+
 #ifdef FLASH_BASED_PARAMS
 	// the default for flash-based params is always the FLASH
 	(void)filename;
 #else
 
-	if (param_user_file != nullptr) {
+	if (param_default_file != nullptr) {
 		// we assume this is not in use by some other thread
-		free(param_user_file);
-		param_user_file = nullptr;
+		free(param_default_file);
+		param_default_file = nullptr;
 	}
 
 	if (filename) {
-		param_user_file = strdup(filename);
+		param_default_file = strdup(filename);
 	}
 
 #endif /* FLASH_BASED_PARAMS */
@@ -1100,27 +1104,42 @@ param_set_default_file(const char *filename)
 	return 0;
 }
 
-const char *
-param_get_default_file()
+const char *param_get_default_file()
 {
-	return (param_user_file != nullptr) ? param_user_file : param_default_file;
+	return param_default_file;
 }
 
-int param_save_default()
+int param_set_backup_file(const char *filename)
 {
-	int res = PX4_ERROR;
-
-	const char *filename = param_get_default_file();
-
-	if (!filename) {
-		param_lock_writer();
-		perf_begin(param_export_perf);
-		res = flash_param_save(false, nullptr);
-		perf_end(param_export_perf);
-		param_unlock_writer();
-		return res;
+	if (param_default_file && strcmp(filename, param_default_file) == 0) {
+		PX4_ERR("backup file can't be the same as the default file %s", filename);
+		return PX4_ERROR;
 	}
 
+	if (param_backup_file != nullptr) {
+		// we assume this is not in use by some other thread
+		free(param_backup_file);
+		param_backup_file = nullptr;
+	}
+
+	if (filename) {
+		param_backup_file = strdup(filename);
+
+	} else {
+		param_backup_file = nullptr; // backup disabled
+	}
+
+	return 0;
+}
+
+const char *param_get_backup_file()
+{
+	return param_backup_file;
+}
+
+static int param_save_file_internal(const char *filename)
+{
+	int res = PX4_ERROR;
 	int attempts = 5;
 
 	while (res != OK && attempts > 0) {
@@ -1131,8 +1150,12 @@ int param_save_default()
 			res = param_export(fd, false, nullptr);
 			::close(fd);
 
-			if (res != PX4_OK) {
+			if (res == PX4_OK) {
+				return PX4_OK;
+
+			} else {
 				PX4_ERR("param_export failed, retrying %d", attempts);
+				px4_usleep(10000); // wait at least 10 milliseconds before trying again
 			}
 
 		} else {
@@ -1144,6 +1167,30 @@ int param_save_default()
 
 	if (res != OK) {
 		PX4_ERR("failed to write parameters to file: %s", filename);
+	}
+
+	return PX4_ERROR;
+}
+
+int param_save_default()
+{
+	int res = PX4_ERROR;
+	const char *filename = param_get_default_file();
+
+	if (filename) {
+		res = param_save_file_internal(filename);
+
+	} else {
+		param_lock_writer();
+		perf_begin(param_export_perf);
+		res = flash_param_save(false, nullptr);
+		perf_end(param_export_perf);
+		param_unlock_writer();
+	}
+
+	// backup file
+	if (param_backup_file) {
+		param_save_file_internal(param_backup_file);
 	}
 
 	return res;
@@ -1201,7 +1248,7 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 	}
 
 	param_wbuf_s *s = nullptr;
-	struct bson_encoder_s encoder;
+	bson_encoder_s encoder{};
 
 	int shutdown_lock_ret = px4_shutdown_lock();
 
@@ -1366,7 +1413,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 				goto out;
 			}
 
-			i = node->i;
+			i = node->i32;
 			v = &i;
 
 			PX4_DEBUG("Imported %s with value %d", param_name(param), i);
@@ -1388,7 +1435,8 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		break;
 
 	default:
-		PX4_DEBUG("unrecognised node type");
+		PX4_ERR("%s unrecognised node type %d", node->name, node->type);
+		result = 1; // just skip this entry
 		goto out;
 	}
 
@@ -1405,10 +1453,42 @@ out:
 }
 
 static int
+param_dump_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
+{
+	switch (node->type) {
+	case BSON_EOO:
+		PX4_INFO_RAW("BSON_EOO\n");
+		return 0;
+
+	case BSON_DOUBLE:
+		PX4_INFO_RAW("BSON_DOUBLE: %s = %.6f\n", node->name, node->d);
+		return 1;
+
+	case BSON_BOOL:
+		PX4_INFO_RAW("BSON_BOOL:   %s = %d\n", node->name, node->b);
+		return 1;
+
+	case BSON_INT32:
+		PX4_INFO_RAW("BSON_INT32:  %s = %" PRIi32 "\n", node->name, node->i32);
+		return 1;
+
+	case BSON_INT64:
+		PX4_INFO_RAW("BSON_INT64:  %s = %" PRIi64 "\n", node->name, node->i64);
+		return 1;
+
+	default:
+		PX4_INFO_RAW("ERROR %s unhandled bson type %d\n", node->name, node->type);
+		return 1; // just skip this entry
+	}
+
+	return -1;
+}
+
+static int
 param_import_internal(int fd, bool mark_saved)
 {
 	for (int attempt = 1; attempt < 5; attempt++) {
-		bson_decoder_s decoder;
+		bson_decoder_s decoder{};
 		param_import_state state;
 
 		if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state) == 0) {
@@ -1422,8 +1502,14 @@ param_import_internal(int fd, bool mark_saved)
 			} while (result > 0);
 
 			if (result == 0) {
-				PX4_INFO("BSON document size %" PRId32 " bytes, decoded %" PRId32 " bytes", decoder.total_document_size,
-					 decoder.total_decoded_size);
+				PX4_INFO("BSON document size %" PRId32 " bytes, decoded %" PRId32 " bytes (INT32:%" PRIu16 ", FLOAT:%" PRIu16 ")",
+					 decoder.total_document_size, decoder.total_decoded_size,
+					 decoder.count_node_int32, decoder.count_node_double);
+
+				return 0;
+
+			} else if (result == -ENODATA) {
+				PX4_DEBUG("BSON: no data");
 				return 0;
 
 			} else {
@@ -1435,6 +1521,7 @@ param_import_internal(int fd, bool mark_saved)
 		}
 
 		lseek(fd, 0, SEEK_SET);
+		px4_usleep(10000); // wait at least 10 milliseconds before trying again
 	}
 
 	return -1;
@@ -1459,6 +1546,43 @@ param_load(int fd)
 
 	param_reset_all_internal(false);
 	return param_import_internal(fd, true);
+}
+
+int
+param_dump(int fd)
+{
+	bson_decoder_s decoder{};
+	param_import_state state;
+
+	if (bson_decoder_init_file(&decoder, fd, param_dump_callback, &state) == 0) {
+		PX4_INFO_RAW("BSON document size %" PRId32 "\n", decoder.total_document_size);
+
+		int result = -1;
+
+		do {
+			result = bson_decoder_next(&decoder);
+
+		} while (result > 0);
+
+		if (result == 0) {
+			PX4_INFO_RAW("BSON decoded %" PRId32 " bytes (double:%" PRIu16 ", string:%" PRIu16 ", bin:%" PRIu16 ", bool:%" PRIu16
+				     ", int32:%" PRIu16 ", int64:%" PRIu16 ")\n",
+				     decoder.total_decoded_size,
+				     decoder.count_node_double, decoder.count_node_string, decoder.count_node_bindata, decoder.count_node_bool,
+				     decoder.count_node_int32, decoder.count_node_int64);
+
+			return 0;
+
+		} else if (result == -ENODATA) {
+			PX4_WARN("BSON: no data");
+			return 0;
+
+		} else {
+			PX4_ERR("param dump failed (%d)", result);
+		}
+	}
+
+	return -1;
 }
 
 void
@@ -1513,6 +1637,10 @@ void param_print_status()
 
 	if (filename != nullptr) {
 		PX4_INFO("file: %s", param_get_default_file());
+	}
+
+	if (param_backup_file) {
+		PX4_INFO("backup file: %s", param_backup_file);
 	}
 
 #endif /* FLASH_BASED_PARAMS */

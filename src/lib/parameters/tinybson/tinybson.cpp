@@ -51,8 +51,8 @@
 # define debug(fmt, args...)		do { } while(0)
 #endif
 
-#define CODER_CHECK(_c)		do { if (_c->dead) { debug("coder dead"); return -1; }} while(0)
-#define CODER_KILL(_c, _reason)	do { debug("killed: %s", _reason); _c->dead = true; return -1; } while(0)
+#define CODER_CHECK(_c)		do { if (_c->dead) { PX4_ERR("coder dead"); return -1; }} while(0)
+#define CODER_KILL(_c, _reason)	do { PX4_ERR("killed: %s", _reason); _c->dead = true; return -1; } while(0)
 
 static int
 read_x(bson_decoder_t decoder, void *p, size_t s)
@@ -118,23 +118,17 @@ int
 bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *priv)
 {
 	decoder->fd = fd;
-	decoder->buf = nullptr;
-	decoder->dead = false;
 	decoder->callback = callback;
 	decoder->priv = priv;
 	decoder->nesting = 1;
-	decoder->pending = 0;
 	decoder->node.type = BSON_UNDEFINED;
-	decoder->total_decoded_size = 0;
 
 	// read document size
-	decoder->total_document_size = 0;
-
 	if (read_int32(decoder, &decoder->total_document_size)) {
 		CODER_KILL(decoder, "failed reading length");
 	}
 
-	debug("total document size = %d", decoder->total_document_size);
+	debug("total document size = %" PRIi32, decoder->total_document_size);
 
 	/* ready for decoding */
 	return 0;
@@ -176,7 +170,7 @@ bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_
 		CODER_KILL(decoder, "failed reading length");
 	}
 
-	debug("total document size = %d", decoder->total_document_size);
+	debug("total document size = %" PRIi32, decoder->total_document_size);
 
 	if ((decoder->total_document_size > 0) && (decoder->total_document_size > (int)decoder->bufsize)) {
 		CODER_KILL(decoder, "document length larger than buffer");
@@ -190,7 +184,6 @@ int
 bson_decoder_next(bson_decoder_t decoder)
 {
 	int8_t	tbyte;
-	int32_t tint;
 	unsigned nlen;
 
 	CODER_CHECK(decoder);
@@ -235,6 +228,10 @@ bson_decoder_next(bson_decoder_t decoder)
 	if (decoder->node.type == BSON_EOO) {
 		decoder->node.name[0] = '\0';
 
+	} else if ((int)decoder->node.type == 0xff) { // indicates erased FLASH
+		decoder->dead = true;
+		return -ENODATA;
+
 	} else {
 
 		/* get the node name */
@@ -259,34 +256,12 @@ bson_decoder_next(bson_decoder_t decoder)
 		debug("got name '%s'", decoder->node.name);
 
 		switch (decoder->node.type) {
-		case BSON_BOOL:
-			if (read_int8(decoder, &tbyte)) {
-				CODER_KILL(decoder, "read error on BSON_BOOL");
-			}
-
-			decoder->node.b = (tbyte != 0);
-			break;
-
-		case BSON_INT32:
-			if (read_int32(decoder, &tint)) {
-				CODER_KILL(decoder, "read error on BSON_INT");
-			}
-
-			decoder->node.i = tint;
-			break;
-
-		case BSON_INT64:
-			if (read_int64(decoder, &decoder->node.i)) {
-				CODER_KILL(decoder, "read error on BSON_INT");
-			}
-
-			break;
-
 		case BSON_DOUBLE:
 			if (read_double(decoder, &decoder->node.d)) {
 				CODER_KILL(decoder, "read error on BSON_DOUBLE");
 			}
 
+			decoder->count_node_double++;
 			break;
 
 		case BSON_STRING:
@@ -294,6 +269,7 @@ bson_decoder_next(bson_decoder_t decoder)
 				CODER_KILL(decoder, "read error on BSON_STRING length");
 			}
 
+			decoder->count_node_string++;
 			break;
 
 		case BSON_BINDATA:
@@ -306,6 +282,32 @@ bson_decoder_next(bson_decoder_t decoder)
 			}
 
 			decoder->node.subtype = (bson_binary_subtype_t)tbyte;
+			decoder->count_node_bindata++;
+			break;
+
+		case BSON_BOOL:
+			if (read_int8(decoder, &tbyte)) {
+				CODER_KILL(decoder, "read error on BSON_BOOL");
+			}
+
+			decoder->node.b = (tbyte != 0);
+			decoder->count_node_bool++;
+			break;
+
+		case BSON_INT32:
+			if (read_int32(decoder, &decoder->node.i32)) {
+				CODER_KILL(decoder, "read error on BSON_INT");
+			}
+
+			decoder->count_node_int32++;
+			break;
+
+		case BSON_INT64:
+			if (read_int64(decoder, &decoder->node.i64)) {
+				CODER_KILL(decoder, "read error on BSON_INT");
+			}
+
+			decoder->count_node_int64++;
 			break;
 
 		/* XXX currently not supporting other types */
@@ -479,21 +481,14 @@ bson_encoder_init_buf_file(bson_encoder_t encoder, int fd, void *buf, unsigned b
 int
 bson_encoder_init_buf(bson_encoder_t encoder, void *buf, unsigned bufsize)
 {
-	encoder->fd = -1;
 	encoder->buf = (uint8_t *)buf;
-	encoder->bufpos = 0;
-	encoder->dead = false;
 
 	if (encoder->buf == nullptr) {
-		encoder->bufsize = 0;
 		encoder->realloc_ok = true;
 
 	} else {
 		encoder->bufsize = bufsize;
-		encoder->realloc_ok = false;
 	}
-
-	encoder->total_document_size = 0;
 
 	if (write_int32(encoder, 0)) {
 		CODER_KILL(encoder, "write error on document length");
@@ -526,7 +521,7 @@ bson_encoder_fini(bson_encoder_t encoder)
 	// record document size
 	if (encoder->fd > -1) {
 		if (lseek(encoder->fd, 0, SEEK_SET) == 0) {
-			debug("writing document size %d to beginning of file", encoder->total_document_size);
+			debug("writing document size %" PRIi32 " to beginning of file", encoder->total_document_size);
 
 			if (::write(encoder->fd, &encoder->total_document_size,
 				    sizeof(encoder->total_document_size)) != sizeof(encoder->total_document_size)) {

@@ -48,6 +48,14 @@ fi
 #                        End Estimator Group Selection                        #
 ###############################################################################
 
+if param compare SYS_CTRL_ALLOC 1
+then
+	#
+	# Start Control Allocator
+	#
+	control_allocator start
+fi
+
 #
 # Start Multicopter Rate Controller.
 #
@@ -57,7 +65,11 @@ mc_rate_control start
 # Start Multicopter Attitude Controller.
 #
 mc_att_control start
-mc_autotune_attitude_control start
+
+if param greater -s MC_AT_EN 0
+then
+	mc_autotune_attitude_control start
+fi
 
 #
 # Start Multicopter Position Controller.

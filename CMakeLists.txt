@@ -40,7 +40,7 @@
 # * Common functions should be included in px_base.cmake.
 #
 # * OS/ board specific fucntions should be include in
-#	px_impl_${PX4_PLATFORM}.cmake or px4_impl_${PX4_PLATFORM}_${PX4_BOARD}.cmake.
+#	px_impl_${PX4_PLATFORM}.cmake
 #
 # Formatting
 # ---------------------------------------------------------------------------
@@ -101,8 +101,8 @@
 
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
-set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE FILEPATH "PX4 source directory" FORCE)
+set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE FILEPATH "PX4 binary directory" FORCE)
 
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
 include(px4_parse_function_args)
@@ -143,11 +143,32 @@ set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 include(px4_add_module)
 set(config_module_list)
 
+# Find Python
+# If using catkin, Python 2 is found since it points
+# to the Python libs installed with the ROS distro
+if (NOT CATKIN_DEVEL_PREFIX)
+	find_package(PythonInterp 3)
+	# We have a custom error message to tell users how to install python3.
+	if (NOT PYTHONINTERP_FOUND)
+		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
+			"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
+			"    macOS: brew install python")
+	endif()
+else()
+	find_package(PythonInterp REQUIRED)
+endif()
+
+option(PYTHON_COVERAGE "Python code coverage" OFF)
+if(PYTHON_COVERAGE)
+	message(STATUS "python coverage enabled")
+	set(PYTHON_EXECUTABLE coverage run -p)
+endif()
+
 include(px4_config)
-include(px4_add_board)
-include(${PX4_CONFIG_FILE})
+include(kconfig)
 message(STATUS "PX4 config: ${PX4_CONFIG}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
+
 
 if(${PX4_PLATFORM} STREQUAL "posix")
 	if(ENABLE_LOCKSTEP_SCHEDULER)
@@ -283,27 +304,6 @@ if (CATKIN_DEVEL_PREFIX)
 	endif()
 endif()
 
-# Python
-# If using catkin, Python 2 is found since it points
-# to the Python libs installed with the ROS distro
-if (NOT CATKIN_DEVEL_PREFIX)
-	find_package(PythonInterp 3)
-	# We have a custom error message to tell users how to install python3.
-	if (NOT PYTHONINTERP_FOUND)
-		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-			"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
-			"    macOS: brew install python")
-	endif()
-else()
-	find_package(PythonInterp REQUIRED)
-endif()
-
-option(PYTHON_COVERAGE "Python code coverage" OFF)
-if(PYTHON_COVERAGE)
-	message(STATUS "python coverage enabled")
-	set(PYTHON_EXECUTABLE coverage run -p)
-endif()
-
 #=============================================================================
 # get chip and chip manufacturer
 #
@@ -423,6 +423,8 @@ endforeach()
 
 # add events lib after modules and libs as it needs to know all source files (PX4_SRC_FILES)
 add_subdirectory(src/lib/events EXCLUDE_FROM_ALL)
+# metadata needs PX4_MODULE_CONFIG_FILES
+add_subdirectory(src/lib/metadata EXCLUDE_FROM_ALL)
 
 # must be the last module before firmware
 add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)

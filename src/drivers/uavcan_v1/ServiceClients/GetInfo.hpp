@@ -55,7 +55,7 @@ class UavcanGetInfoResponse : public UavcanBaseSubscriber
 {
 public:
 	UavcanGetInfoResponse(CanardInstance &ins) :
-		UavcanBaseSubscriber(ins, "GetInfo", 0) { };
+		UavcanBaseSubscriber(ins, "", "GetInfo", 0) { };
 
 	void subscribe() override
 	{
@@ -112,7 +112,7 @@ public:
 			.transfer_kind  = CanardTransferKindResponse,
 			.port_id        = uavcan_node_GetInfo_1_0_FIXED_PORT_ID_, // This is the subject-ID.
 			.remote_node_id = receive.remote_node_id,       // Send back to request Node
-			.transfer_id    = getinfo_response_transfer_id,
+			.transfer_id    = receive.transfer_id,
 			.payload_size   = uavcan_node_GetInfo_Response_1_0_SERIALIZATION_BUFFER_SIZE_BYTES_,
 			.payload        = &response_payload_buffer,
 		};
@@ -122,7 +122,6 @@ public:
 
 		if (result == 0) {
 			// set the data ready in the buffer and chop if needed
-			++getinfo_response_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
 			result = canardTxPush(&_canard_instance, &response);
 		}
 
@@ -135,8 +134,5 @@ public:
 		}
 
 	};
-
-private:
-	CanardTransferID getinfo_response_transfer_id = 0;
 
 };

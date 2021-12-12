@@ -141,16 +141,21 @@ void Standard::update_vtol_state()
 			_reverse_output = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
-			// transition to MC mode if transition time has passed or forward velocity drops below MPC cruise speed
+			// speed exit condition: use ground if valid, otherwise airspeed
+			bool exit_backtransition_speed_condition = false;
 
-			const Dcmf R_to_body(Quatf(_v_att->q).inversed());
-			const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
+			if (_local_pos->v_xy_valid) {
+				const Dcmf R_to_body(Quatf(_v_att->q).inversed());
+				const Vector3f vel = R_to_body * Vector3f(_local_pos->vx, _local_pos->vy, _local_pos->vz);
+				exit_backtransition_speed_condition = vel(0) < _params->mpc_xy_cruise;
 
-			float x_vel = vel(0);
+			} else if (PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) {
+				exit_backtransition_speed_condition = _airspeed_validated->calibrated_airspeed_m_s < _params->mpc_xy_cruise;
+			}
 
-			if (time_since_trans_start > _params->back_trans_duration ||
-			    (_local_pos->v_xy_valid && x_vel <= _params->mpc_xy_cruise) ||
-			    can_transition_on_ground()) {
+			const bool exit_backtransition_time_condition = time_since_trans_start > _params->back_trans_duration;
+
+			if (can_transition_on_ground() || exit_backtransition_speed_condition || exit_backtransition_time_condition) {
 				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			}
 		}
@@ -230,8 +235,16 @@ void Standard::update_transition_state()
 
 	VtolType::update_transition_state();
 
-	// copy virtual attitude setpoint to real attitude setpoint
-	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+	// we get attitude setpoint from a multirotor flighttask if altitude is controlled.
+	// in any other case the fixed wing attitude controller publishes attitude setpoint from manual stick input.
+	if (_v_control_mode->flag_control_climb_rate_enabled) {
+		memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
+
+	} else {
+		memcpy(_v_att_sp, _fw_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
+		_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
+	}
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 		if (_params_standard.pusher_ramp_dt <= 0.0f) {
@@ -263,13 +276,6 @@ void Standard::update_transition_state()
 		// ramp up FW_PSP_OFF
 		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset * (1.0f - mc_weight);
 
-		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
-
-		// in stabilized, acro or manual mode, set the MC thrust to the throttle stick position (coming from the FW attitude setpoint)
-		if (!_v_control_mode->flag_control_climb_rate_enabled) {
-			_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
-		}
-
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
 
@@ -283,16 +289,9 @@ void Standard::update_transition_state()
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 
-		_v_att_sp->roll_body = _fw_virtual_att_sp->roll_body;
-
 		if (_v_control_mode->flag_control_climb_rate_enabled) {
 			// control backtransition deceleration using pitch.
 			_v_att_sp->pitch_body = update_and_get_backtransition_pitch_sp();
-		}
-
-		// in stabilized, acro or manual mode, set the MC thrust to the throttle stick position (coming from the FW attitude setpoint)
-		if (!_v_control_mode->flag_control_climb_rate_enabled) {
-			_v_att_sp->thrust_body[2] = -_fw_virtual_att_sp->thrust_body[0];
 		}
 
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
@@ -342,7 +341,7 @@ void Standard::update_fw_state()
 }
 
 /**
- * Prepare message to acutators with data from mc and fw attitude controllers. An mc attitude weighting will determine
+ * Prepare message to actuators with data from mc and fw attitude controllers. An mc attitude weighting will determine
  * what proportion of control should be applied to each of the control groups (mc and fw).
  */
 void Standard::fill_actuator_outputs()
@@ -426,3 +425,9 @@ Standard::waiting_on_tecs()
 	// keep thrust from transition
 	_v_att_sp->thrust_body[0] = _pusher_throttle;
 };
+
+void Standard::blendThrottleAfterFrontTransition(float scale)
+{
+	const float tecs_throttle = _v_att_sp->thrust_body[0];
+	_v_att_sp->thrust_body[0] = scale * tecs_throttle + (1.0f - scale) * _pusher_throttle;
+}

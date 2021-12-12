@@ -33,6 +33,8 @@
 
 #include "DShot.h"
 
+#include <px4_arch/io_timer.h>
+
 char DShot::_telemetry_device[] {};
 px4::atomic_bool DShot::_request_telemetry_init{false};
 
@@ -43,7 +45,7 @@ DShot::DShot() :
 	_mixing_output.setAllDisarmedValues(DSHOT_DISARM_VALUE);
 	_mixing_output.setAllMinValues(DSHOT_MIN_THROTTLE);
 	_mixing_output.setAllMaxValues(DSHOT_MAX_THROTTLE);
-
+	_mixing_output.setAllFailsafeValues(UINT16_MAX);
 }
 
 DShot::~DShot()
@@ -114,39 +116,112 @@ int DShot::task_spawn(int argc, char *argv[])
 void DShot::enable_dshot_outputs(const bool enabled)
 {
 	if (enabled && !_outputs_initialized) {
-		DShotConfig config = (DShotConfig)_param_dshot_config.get();
+		if (_mixing_output.useDynamicMixing()) {
 
-		unsigned int dshot_frequency = DSHOT600;
+			unsigned int dshot_frequency = 0;
+			uint32_t dshot_frequency_param = 0;
 
-		switch (config) {
-		case DShotConfig::DShot150:
-			dshot_frequency = DSHOT150;
-			break;
+			for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+				uint32_t channels = io_timer_get_group(timer);
 
-		case DShotConfig::DShot300:
-			dshot_frequency = DSHOT300;
-			break;
+				if (channels == 0) {
+					continue;
+				}
 
-		case DShotConfig::DShot600:
-			dshot_frequency = DSHOT600;
-			break;
+				char param_name[17];
+				snprintf(param_name, sizeof(param_name), "%s_TIM%u", _mixing_output.paramPrefix(), timer);
 
-		case DShotConfig::DShot1200:
-			dshot_frequency = DSHOT1200;
-			break;
+				int32_t tim_config = 0;
+				param_t handle = param_find(param_name);
+				param_get(handle, &tim_config);
+				unsigned int dshot_frequency_request = 0;
 
-		default:
-			break;
+				if (tim_config == -5) {
+					dshot_frequency_request = DSHOT150;
+
+				} else if (tim_config == -4) {
+					dshot_frequency_request = DSHOT300;
+
+				} else if (tim_config == -3) {
+					dshot_frequency_request = DSHOT600;
+
+				} else if (tim_config == -2) {
+					dshot_frequency_request = DSHOT1200;
+
+				} else {
+					_output_mask &= ~channels; // don't use for dshot
+				}
+
+				if (dshot_frequency_request != 0) {
+					if (dshot_frequency != 0 && dshot_frequency != dshot_frequency_request) {
+						PX4_WARN("Only supporting a single frequency, adjusting param %s", param_name);
+						param_set_no_notification(handle, &dshot_frequency_param);
+
+					} else {
+						dshot_frequency = dshot_frequency_request;
+						dshot_frequency_param = tim_config;
+					}
+				}
+			}
+
+			int ret = up_dshot_init(_output_mask, dshot_frequency);
+
+			if (ret < 0) {
+				PX4_ERR("up_dshot_init failed (%i)", ret);
+				return;
+			}
+
+			_output_mask = ret;
+
+			// disable unused functions
+			for (unsigned i = 0; i < _num_outputs; ++i) {
+				if (((1 << i) & _output_mask) == 0) {
+					_mixing_output.disableFunction(i);
+				}
+			}
+
+			if (_output_mask == 0) {
+				// exit the module if no outputs used
+				request_stop();
+				return;
+			}
+
+		} else {
+			DShotConfig config = (DShotConfig)_param_dshot_config.get();
+
+			unsigned int dshot_frequency = DSHOT600;
+
+			switch (config) {
+			case DShotConfig::DShot150:
+				dshot_frequency = DSHOT150;
+				break;
+
+			case DShotConfig::DShot300:
+				dshot_frequency = DSHOT300;
+				break;
+
+			case DShotConfig::DShot600:
+				dshot_frequency = DSHOT600;
+				break;
+
+			case DShotConfig::DShot1200:
+				dshot_frequency = DSHOT1200;
+				break;
+
+			default:
+				break;
+			}
+
+			int ret = up_dshot_init(_output_mask, dshot_frequency);
+
+			if (ret < 0) {
+				PX4_ERR("up_dshot_init failed (%i)", ret);
+				return;
+			}
+
+			_output_mask = ret;
 		}
 
-		int ret = up_dshot_init(_output_mask, dshot_frequency);
-
-		if (ret < 0) {
-			PX4_ERR("up_dshot_init failed (%i)", ret);
-			return;
-		}
-
-		_output_mask = ret;
 		_outputs_initialized = true;
 	}
 
@@ -164,8 +239,15 @@ void DShot::update_telemetry_num_motors()
 
 	int motor_count = 0;
 
-	if (_mixing_output.mixers()) {
-		motor_count = _mixing_output.mixers()->get_multirotor_count();
+	if (_mixing_output.useDynamicMixing()) {
+		for (unsigned i = 0; i < _num_outputs; ++i) {
+			motor_count += _mixing_output.isFunctionSet(i);
+		}
+
+	} else {
+		if (_mixing_output.mixers()) {
+			motor_count = _mixing_output.mixers()->get_multirotor_count();
+		}
 	}
 
 	_telemetry->handler.setNumMotors(motor_count);
@@ -181,6 +263,8 @@ void DShot::init_telemetry(const char *device)
 			return;
 		}
 	}
+
+	_telemetry->esc_status_pub.advertise();
 
 	int ret = _telemetry->handler.init(device);
 
@@ -299,6 +383,7 @@ int DShot::request_esc_info()
 	_current_command.motor_mask = 1 << motor_index;
 	_current_command.num_repetitions = 1;
 	_current_command.command = DShot_cmd_esc_info;
+	_current_command.save = false;
 
 	PX4_DEBUG("Requesting ESC info for motor %i", motor_index);
 	return motor_index;
@@ -331,6 +416,8 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 	if (stop_motors) {
 
+		int telemetry_index = 0;
+
 		// when motors are stopped we check if we have other commands to send
 		for (int i = 0; i < (int)num_outputs; i++) {
 			if (_current_command.valid() && (_current_command.motor_mask & (1 << i))) {
@@ -338,15 +425,25 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				up_dshot_motor_command(i, _current_command.command, true);
 
 			} else {
-				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
+				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
 			}
+
+			telemetry_index += _mixing_output.isFunctionSet(i);
 		}
 
 		if (_current_command.valid()) {
 			--_current_command.num_repetitions;
+
+			if (_current_command.num_repetitions == 0 && _current_command.save) {
+				_current_command.save = false;
+				_current_command.num_repetitions = 10;
+				_current_command.command = dshot_command_t::DShot_cmd_save_settings;
+			}
 		}
 
 	} else {
+		int telemetry_index = 0;
+
 		for (int i = 0; i < (int)num_outputs; i++) {
 
 			uint16_t output = outputs[i];
@@ -365,12 +462,14 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			}
 
 			if (output == DSHOT_DISARM_VALUE) {
-				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
+				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
 
 			} else {
 				up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
-							i == requested_telemetry_index);
+							telemetry_index == requested_telemetry_index);
 			}
+
+			telemetry_index += _mixing_output.isFunctionSet(i);
 		}
 
 		// clear commands when motors are running
@@ -399,7 +498,7 @@ void DShot::Run()
 	_mixing_output.update();
 
 	// update output status if armed or if mixer is loaded
-	bool outputs_on = _mixing_output.armed().armed || _mixing_output.mixers();
+	bool outputs_on = _mixing_output.armed().armed || _mixing_output.initialized();
 
 	if (_outputs_on != outputs_on) {
 		enable_dshot_outputs(outputs_on);
@@ -440,10 +539,88 @@ void DShot::Run()
 		}
 	}
 
+	handle_vehicle_commands();
+
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
 	_mixing_output.updateSubscriptions(true);
 
 	perf_end(_cycle_perf);
+}
+
+void DShot::handle_vehicle_commands()
+{
+	vehicle_command_s vehicle_command;
+
+	while (!_current_command.valid() && _vehicle_command_sub.update(&vehicle_command)) {
+
+		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_CONFIGURE_ACTUATOR) {
+			int function = (int)(vehicle_command.param5 + 0.5);
+
+			if (function < 1000) {
+				const int first_motor_function = 1; // from MAVLink ACTUATOR_OUTPUT_FUNCTION
+				const int first_servo_function = 33;
+
+				if (function >= first_motor_function && function < first_motor_function + actuator_test_s::MAX_NUM_MOTORS) {
+					function = function - first_motor_function + actuator_test_s::FUNCTION_MOTOR1;
+
+				} else if (function >= first_servo_function && function < first_servo_function + actuator_test_s::MAX_NUM_SERVOS) {
+					function = function - first_servo_function + actuator_test_s::FUNCTION_SERVO1;
+
+				} else {
+					function = INT32_MAX;
+				}
+
+			} else {
+				function -= 1000;
+			}
+
+			int type = (int)(vehicle_command.param1 + 0.5f);
+			int index = -1;
+
+			for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
+				if ((int)_mixing_output.outputFunction(i) == function) {
+					index = i;
+				}
+			}
+
+			vehicle_command_ack_s command_ack{};
+			command_ack.command = vehicle_command.command;
+			command_ack.target_system = vehicle_command.source_system;
+			command_ack.target_component = vehicle_command.source_component;
+			command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+
+			if (index != -1) {
+				PX4_DEBUG("setting command: index: %i type: %i", index, type);
+				_current_command.command = dshot_command_t::DShot_cmd_motor_stop;
+
+				switch (type) {
+				case 1: _current_command.command = dshot_command_t::DShot_cmd_beacon1; break;
+
+				case 2: _current_command.command = dshot_command_t::DShot_cmd_3d_mode_on; break;
+
+				case 3: _current_command.command = dshot_command_t::DShot_cmd_3d_mode_off; break;
+
+				case 4: _current_command.command = dshot_command_t::DShot_cmd_spin_direction_1; break;
+
+				case 5: _current_command.command = dshot_command_t::DShot_cmd_spin_direction_2; break;
+				}
+
+				if (_current_command.command == dshot_command_t::DShot_cmd_motor_stop) {
+					PX4_WARN("unknown command: %i", type);
+
+				} else {
+					command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+					_current_command.motor_mask = 1 << index;
+					_current_command.num_repetitions = 10;
+					_current_command.save = true;
+				}
+
+			}
+
+			command_ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(command_ack);
+		}
+	}
 }
 
 void DShot::update_params()

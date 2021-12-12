@@ -115,11 +115,11 @@ task_main(int argc, char *argv[])
 
 	for (unsigned i = 0; i < NUM_MISSIONS_TEST; i++) {
 		unsigned hash = i ^ my_id;
-		unsigned len2 = dm_read(DM_KEY_WAYPOINTS_OFFBOARD_1, hash, buffer, sizeof(buffer));
-		unsigned len = (hash % (DM_MAX_DATA_SIZE / 2)) + 2;
+		ssize_t len2 = dm_read(DM_KEY_WAYPOINTS_OFFBOARD_1, hash, buffer, sizeof(buffer));
+		ssize_t len = (hash % (DM_MAX_DATA_SIZE / 2)) + 2;
 
 		if (len2 != len) {
-			PX4_WARN("task %d: read failed length test, index %d, ret=%d, len=%d", my_id, hash, len2, len);
+			PX4_WARN("task %d: read failed length test, index %d, ret=%zu, len=%zu", my_id, hash, len2, len);
 			goto fail;
 		}
 
@@ -127,7 +127,7 @@ task_main(int argc, char *argv[])
 			hit++;
 
 			if (len2 != len) {
-				PX4_WARN("task %d: read failed length test, index %d, wanted %d, got %d", my_id, hash, len, len2);
+				PX4_WARN("task %d: read failed length test, index %d, wanted %zu, got %zu", my_id, hash, len, len2);
 				goto fail;
 			}
 

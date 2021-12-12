@@ -30,11 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+if (${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL} STREQUAL "px4_sitl")
+	set(module_config "module_sim.yaml")
+else()
+	set(module_config "module_hil.yaml")
+endif()
+
 px4_add_module(
 	MODULE drivers__pwm_out_sim
 	MAIN pwm_out_sim
 	SRCS
 		PWMSim.cpp
+	MODULE_CONFIG
+		${module_config}
 	DEPENDS
 		mixer
 		mixer_module

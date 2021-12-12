@@ -12,21 +12,12 @@
 
 . ${R}etc/init.d/rc.fw_defaults
 
-param set-default EKF2_ARSP_THR 8
-param set-default EKF2_FUSE_BETA 1
-
 param set-default FW_AIRSPD_STALL 8
 
 param set-default FW_P_RMAX_NEG 20.0
-param set-default FW_P_RMAX_POS 60.0
 param set-default FW_W_RMAX 10
 param set-default FW_W_EN 1
 
-param set-default FW_PR_IMAX 0.4
-param set-default FW_R_TC 0.4
-param set-default FW_RR_FF 0.5
-param set-default FW_RR_I 0.1
-param set-default FW_RR_IMAX 0.2
 param set-default FW_RR_P 0.08
 
 param set-default MIS_LTRMIN_ALT 50
@@ -42,7 +33,6 @@ param set-default FW_ARSP_SCALE_EN 0
 
 param set-default FW_AIRSPD_MAX 35
 param set-default FW_AIRSPD_MIN 7
-param set-default FW_AIRSPD_TRIM 15
 
 param set-default FW_P_LIM_MAX 25
 param set-default FW_P_LIM_MIN -5

@@ -16,6 +16,12 @@ ekf2 start &
 fw_att_control start
 fw_pos_control_l1 start
 airspeed_selector start
+
+#
+# Start attitude control auto-tuner
+#
+fw_autotune_attitude_control start
+
 #
 # Start Land Detector.
 #

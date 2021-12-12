@@ -51,17 +51,17 @@
 function(px4_os_add_flags)
 
 	include_directories(BEFORE SYSTEM
-		${PX4_BINARY_DIR}/NuttX/nuttx/include
-		${PX4_BINARY_DIR}/NuttX/nuttx/include/cxx
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/include/cxx
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/include/cxx	# custom new
 	)
 
 	include_directories(
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/${CONFIG_ARCH_FAMILY}
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/chip
-		${PX4_BINARY_DIR}/NuttX/nuttx/arch/${CONFIG_ARCH}/src/common
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/${CONFIG_ARCH_FAMILY}
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/chip
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/common
 
-		${PX4_BINARY_DIR}/NuttX/apps/include
+		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps/include
 	)
 
 	# prevent using the toolchain's std c++ library
@@ -83,6 +83,13 @@ function(px4_os_add_flags)
 			-finstrument-functions
 			# instrumenting PX4 Matrix and Param methods is too burdensome
 			-finstrument-functions-exclude-file-list=matrix/Matrix.hpp,px4_platform_common/param.h
+		)
+	endif()
+
+	if("${CONFIG_BOARD_FORCE_ALIGNMENT}" STREQUAL "y")
+		message(STATUS "Board forcing alignment")
+		add_compile_options(
+			-mno-unaligned-access
 		)
 	endif()
 
@@ -124,6 +131,9 @@ function(px4_os_determine_build_chip)
 	elseif(CONFIG_ARCH_CHIP_S32K146)
 		set(CHIP_MANUFACTURER "nxp")
 		set(CHIP "s32k14x")
+	elseif(CONFIG_ARCH_CHIP_RP2040)
+		set(CHIP_MANUFACTURER "rpi")
+		set(CHIP "rp2040")
 	else()
 		message(FATAL_ERROR "Could not determine chip architecture from NuttX config. You may have to add it.")
 	endif()
@@ -168,6 +178,6 @@ function(px4_os_prebuild_targets)
 
 	add_library(prebuild_targets INTERFACE)
 	target_link_libraries(prebuild_targets INTERFACE nuttx_xx nuttx_c nuttx_fs nuttx_mm nuttx_sched m gcc)
-	add_dependencies(prebuild_targets DEPENDS nuttx_build uorb_headers)
+	add_dependencies(prebuild_targets DEPENDS nuttx_context uorb_headers)
 
 endfunction()

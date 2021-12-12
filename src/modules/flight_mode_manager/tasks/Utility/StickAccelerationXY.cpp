@@ -54,6 +54,11 @@ void StickAccelerationXY::resetPosition()
 	_position_setpoint.setNaN();
 }
 
+void StickAccelerationXY::resetPosition(const matrix::Vector2f &position)
+{
+	_position_setpoint = position;
+}
+
 void StickAccelerationXY::resetVelocity(const matrix::Vector2f &velocity)
 {
 	_velocity_setpoint = velocity;

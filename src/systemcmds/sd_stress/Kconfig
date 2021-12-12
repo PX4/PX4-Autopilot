@@ -1,0 +1,5 @@
+menuconfig SYSTEMCMDS_SD_STRESS
+	bool "sd_stress"
+	default n
+	---help---
+		Enable support for sd_stress

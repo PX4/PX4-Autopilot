@@ -42,7 +42,10 @@ add_library(ecl_EKF
 	EKFGSF_yaw.cpp
 	estimator_interface.cpp
 	gps_checks.cpp
+	gps_control.cpp
+	gps_fusion.cpp
 	gps_yaw_fusion.cpp
+	height_fusion.cpp
 	imu_down_sampler.cpp
 	mag_control.cpp
 	mag_fusion.cpp

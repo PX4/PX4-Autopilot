@@ -57,9 +57,12 @@
 class UavcanEscController
 {
 public:
-	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
+	static constexpr int MAX_ACTUATORS = esc_status_s::CONNECTED_ESC_MAX;
 	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr uint16_t DISARMED_OUTPUT_VALUE = UINT16_MAX;
+
+	static_assert(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize >= MAX_ACTUATORS, "Too many actuators");
+
 
 	UavcanEscController(uavcan::INode &node);
 	~UavcanEscController();
@@ -69,9 +72,9 @@ public:
 	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
 
 	/**
-	 * Sets the number of rotors
+	 * Sets the number of rotors and enable timer
 	 */
-	void set_rotor_count(uint8_t count) { _rotor_count = count; }
+	void set_rotor_count(uint8_t count);
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
 

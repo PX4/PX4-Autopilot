@@ -41,6 +41,33 @@
 
 #pragma once
 
+#ifndef CONFIG_UAVCAN_V1_ESC_SUBSCRIBER
+#define CONFIG_UAVCAN_V1_ESC_SUBSCRIBER 0
+#endif
+
+#ifndef CONFIG_UAVCAN_V1_GNSS_SUBSCRIBER_0
+#define CONFIG_UAVCAN_V1_GNSS_SUBSCRIBER_0 0
+#endif
+
+#ifndef CONFIG_UAVCAN_V1_GNSS_SUBSCRIBER_1
+#define CONFIG_UAVCAN_V1_GNSS_SUBSCRIBER_1 0
+#endif
+
+#ifndef CONFIG_UAVCAN_V1_BMS_SUBSCRIBER
+#define CONFIG_UAVCAN_V1_BMS_SUBSCRIBER 0
+#endif
+
+#ifndef CONFIG_UAVCAN_V1_UORB_SENSOR_GPS_SUBSCRIBER
+#define CONFIG_UAVCAN_V1_UORB_SENSOR_GPS_SUBSCRIBER 0
+#endif
+
+/* Preprocessor calculation of Subscribers count */
+
+#define UAVCAN_SUB_COUNT CONFIG_UAVCAN_V1_ESC_SUBSCRIBER + \
+	CONFIG_UAVCAN_V1_GNSS_SUBSCRIBER_0 + \
+	CONFIG_UAVCAN_V1_GNSS_SUBSCRIBER_1 + \
+	CONFIG_UAVCAN_V1_BMS_SUBSCRIBER + \
+	CONFIG_UAVCAN_V1_UORB_SENSOR_GPS_SUBSCRIBER
 
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
@@ -49,13 +76,14 @@
 
 #include "ServiceClients/GetInfo.hpp"
 #include "ServiceClients/Access.hpp"
+#include "ServiceClients/List.hpp"
 #include "Subscribers/BaseSubscriber.hpp"
 #include "Subscribers/Heartbeat.hpp"
 #include "Subscribers/DS-015/Battery.hpp"
 #include "Subscribers/DS-015/Esc.hpp"
 #include "Subscribers/DS-015/Gnss.hpp"
 #include "Subscribers/legacy/LegacyBatteryInfo.hpp"
-#include "Subscribers/uORB/sensor_gps.hpp"
+#include "Subscribers/uORB/uorb_subscriber.hpp"
 
 typedef struct {
 	UavcanDynamicPortSubscriber *(*create_sub)(CanardInstance &ins, UavcanParamManager &pmgr) {};
@@ -82,13 +110,17 @@ private:
 
 	UavcanHeartbeatSubscriber _heartbeat_sub {_canard_instance};
 
+#if CONFIG_UAVCAN_V1_GETINFO_RESPONDER
 	// GetInfo response
 	UavcanGetInfoResponse _getinfo_rsp {_canard_instance};
+#endif
 
 	// Process register requests
 	UavcanAccessResponse  _access_rsp {_canard_instance, _param_manager};
+	UavcanListResponse  _list_rsp {_canard_instance, _param_manager};
 
-	const UavcanDynSubBinder _uavcan_subs[6] {
+	const UavcanDynSubBinder _uavcan_subs[UAVCAN_SUB_COUNT] {
+#if CONFIG_UAVCAN_V1_ESC_SUBSCRIBER
 		{
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
@@ -97,6 +129,8 @@ private:
 			"esc",
 			0
 		},
+#endif
+#if CONFIG_UAVCAN_V1_GNSS_SUBSCRIBER_0
 		{
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
@@ -105,6 +139,8 @@ private:
 			"gps",
 			0
 		},
+#endif
+#if CONFIG_UAVCAN_V1_GNSS_SUBSCRIBER_1 //FIXME decouple instanceing
 		{
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
@@ -113,6 +149,8 @@ private:
 			"gps",
 			1
 		},
+#endif
+#if CONFIG_UAVCAN_V1_BMS_SUBSCRIBER
 		{
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
@@ -121,6 +159,8 @@ private:
 			"energy_source",
 			0
 		},
+#endif
+#if 0 //Obsolete to be removed
 		{
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
@@ -129,13 +169,16 @@ private:
 			"legacy_bms",
 			0
 		},
+#endif
+#if CONFIG_UAVCAN_V1_UORB_SENSOR_GPS_SUBSCRIBER
 		{
 			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
-				return new UORB_over_UAVCAN_sensor_gps_Subscriber(ins, pmgr, 0);
+				return new uORB_over_UAVCAN_Subscriber<sensor_gps_s>(ins, pmgr, ORB_ID(sensor_gps));
 			},
 			"uorb.sensor_gps",
 			0
 		},
+#endif
 	};
 };

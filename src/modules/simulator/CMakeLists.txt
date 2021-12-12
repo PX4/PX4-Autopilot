@@ -55,12 +55,13 @@ px4_add_module(
 		-Wno-cast-align
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 	INCLUDES
-		${PX4_SOURCE_DIR}/mavlink/include/mavlink
+		${CMAKE_BINARY_DIR}/mavlink
+		${CMAKE_BINARY_DIR}/mavlink/development
 	SRCS
 		simulator.cpp
 		simulator_mavlink.cpp
 	DEPENDS
-		git_mavlink_v2
+		mavlink_c_generate
 		conversion
 		geo
 		drivers_accelerometer
@@ -68,6 +69,9 @@ px4_add_module(
 		drivers_gyroscope
 		drivers_magnetometer
 	)
-target_include_directories(modules__simulator INTERFACE ${PX4_SOURCE_DIR}/mavlink/include/mavlink)
+target_include_directories(modules__simulator INTERFACE ${CMAKE_BINARY_DIR}/mavlink)
 
 add_subdirectory(battery_simulator)
+add_subdirectory(sensor_baro_sim)
+add_subdirectory(sensor_gps_sim)
+add_subdirectory(sensor_mag_sim)

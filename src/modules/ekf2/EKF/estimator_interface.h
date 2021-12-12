@@ -253,7 +253,7 @@ public:
 	const baroSample &get_baro_sample_delayed() const { return _baro_sample_delayed; }
 
 	const bool &global_origin_valid() const { return _NED_origin_initialised; }
-	const map_projection_reference_s &global_origin() const { return _pos_ref; }
+	const MapProjection &global_origin() const { return _pos_ref; }
 
 	void print_status();
 
@@ -324,8 +324,8 @@ protected:
 	bool _gps_speed_valid{false};
 	float _gps_origin_eph{0.0f}; // horizontal position uncertainty of the GPS origin
 	float _gps_origin_epv{0.0f}; // vertical position uncertainty of the GPS origin
-	struct map_projection_reference_s _pos_ref {};   // Contains WGS-84 position latitude and longitude (radians) of the EKF origin
-	struct map_projection_reference_s _gps_pos_prev {};   // Contains WGS-84 position latitude and longitude (radians) of the previous GPS message
+	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
+	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
 	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
 	float _gps_yaw_offset{0.0f};	// Yaw offset angle for dual GPS antennas used for yaw estimation (radians).
 

@@ -49,25 +49,14 @@ bool Subscription::subscribe()
 		return true;
 	}
 
-	if ((_orb_id != ORB_ID::INVALID) && uORB::Manager::get_instance()) {
-		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
+	if (_orb_id != ORB_ID::INVALID && uORB::Manager::get_instance()) {
+		unsigned initial_generation;
+		void *node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &initial_generation);
 
-		if (device_master != nullptr) {
-
-			if (!device_master->deviceNodeExists(_orb_id, _instance)) {
-				return false;
-			}
-
-			uORB::DeviceNode *node = device_master->getDeviceNode(get_topic(), _instance);
-
-			if (node != nullptr) {
-				_node = node;
-				_node->add_internal_subscriber();
-
-				_last_generation = _node->get_initial_generation();
-
-				return true;
-			}
+		if (node) {
+			_node = node;
+			_last_generation = initial_generation;
+			return true;
 		}
 	}
 
@@ -77,7 +66,7 @@ bool Subscription::subscribe()
 void Subscription::unsubscribe()
 {
 	if (_node != nullptr) {
-		_node->remove_internal_subscriber();
+		uORB::Manager::orb_remove_internal_subscriber(_node);
 	}
 
 	_node = nullptr;
@@ -87,13 +76,7 @@ void Subscription::unsubscribe()
 bool Subscription::ChangeInstance(uint8_t instance)
 {
 	if (instance != _instance) {
-		DeviceMaster *device_master = uORB::Manager::get_instance()->get_device_master();
-
-		if (device_master != nullptr) {
-			if (!device_master->deviceNodeExists(_orb_id, instance)) {
-				return false;
-			}
-
+		if (uORB::Manager::orb_device_node_exists(_orb_id, _instance)) {
 			// if desired new instance exists, unsubscribe from current
 			unsubscribe();
 			_instance = instance;

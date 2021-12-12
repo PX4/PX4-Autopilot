@@ -36,27 +36,6 @@ jobs:
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
 
-    - name: Prepare ccache timestamp
-      id: ccache_cache_timestamp
-      shell: cmake -P {0}
-      run: |
-        string(TIMESTAMP current_date "%Y-%m-%d-%H;%M;%S" UTC)
-        message("::set-output name=timestamp::${current_date}")
-    - name: ccache cache files
-      uses: actions/cache@v2
-      with:
-        path: ~/.ccache
-        key: tests_${{matrix.ubuntu_release}}-ccache-${{steps.ccache_cache_timestamp.outputs.timestamp}}
-        restore-keys: tests_${{matrix.ubuntu_release}}-ccache-
-    - name: setup ccache
-      run: |
-          mkdir -p ~/.ccache
-          echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
-          echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 5" >> ~/.ccache/ccache.conf
-          echo "max_size = 100M" >> ~/.ccache/ccache.conf
-          ccache -s
-          ccache -z
     - name: check environment
       run: |
           export

@@ -35,7 +35,7 @@ set MIXER_AUX none
 set MIXER_FILE none
 set MIXER_EXTRA none
 set OUTPUT_MODE none
-set PARAM_FILE /fs/microsd/params
+set PARAM_FILE ""
 set PWM_OUT none
 set PWM_MAIN_RATE p:PWM_MAIN_RATE
 set PWM_AUX_OUT none
@@ -44,6 +44,9 @@ set PWM_EXTRA_OUT none
 set PWM_EXTRA_RATE p:PWM_EXTRA_RATE
 set EXTRA_MIXER_MODE none
 set RC_INPUT_ARGS ""
+set SDCARD_AVAILABLE no
+set SDCARD_EXT_PATH /fs/microsd/ext_autostart
+set SDCARD_FORMAT no
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set STARTUP_TUNE 1
 set USE_IO no
@@ -57,55 +60,78 @@ ver all
 #
 # Try to mount the microSD card.
 #
-set SDCARD_AVAILABLE no
-# REBOOTWORK this needs to start after the flight control loop.
-if mount -t vfat /dev/mmcsd0 /fs/microsd
+if [ -b "/dev/mmcsd0" ]
 then
-	set PX4_INIT_TEST_FILE "/fs/microsd/.px4_init_test_file"
-	date >> $PX4_INIT_TEST_FILE
-
-	if [ -f $PX4_INIT_TEST_FILE ]
+	if mount -t vfat /dev/mmcsd0 /fs/microsd
 	then
-		cat $PX4_INIT_TEST_FILE
-		rm $PX4_INIT_TEST_FILE
-
-		if [ ! -f $PX4_INIT_TEST_FILE ]
+		if [ -f "/fs/microsd/.format" ]
 		then
-			set SDCARD_AVAILABLE yes
-		fi
-	fi
-fi
-
-if [ $SDCARD_AVAILABLE = no ]
-then
-	set STARTUP_TUNE 14 # tune 14 = SD_INIT
-	if mkfatfs -F 32 /dev/mmcsd0
-	then
-		if mount -t vfat /dev/mmcsd0 /fs/microsd
-		then
-			set SDCARD_AVAILABLE yes
-			echo "INFO [init] card formatted"
+			echo "INFO [init] format /dev/mmcsd0 requested (/fs/microsd/.format)"
+			set SDCARD_FORMAT yes
+			rm /fs/microsd/.format
+			umount /fs/microsd
 
 		else
-			set STARTUP_TUNE 15 # tune 15 = SD_ERROR
+			# very basic I/O test
+			set PX4_INIT_TEST_FILE "/fs/microsd/.px4_init_test_file"
+			date >> $PX4_INIT_TEST_FILE
+
+			if [ $? -eq 0 -a -f $PX4_INIT_TEST_FILE ]
+			then
+				cat $PX4_INIT_TEST_FILE
+				rm $PX4_INIT_TEST_FILE
+
+				if [ $? -eq 0 -a ! -f $PX4_INIT_TEST_FILE ]
+				then
+					set SDCARD_AVAILABLE yes
+				fi
+			fi
+			unset PX4_INIT_TEST_FILE
+
+			if [ $SDCARD_AVAILABLE = no ]
+			then
+				echo "ERROR [init] card I/O failure, formatting"
+				set SDCARD_FORMAT yes
+				umount /fs/microsd
+			fi
+		fi
+	fi
+
+	if [ $SDCARD_AVAILABLE = no -o $SDCARD_FORMAT = yes ]
+	then
+		echo "INFO [init] formatting /dev/mmcsd0"
+		set STARTUP_TUNE 15 # tune 15 = SD_ERROR (overridden to SD_INIT if format + mount succeeds)
+
+		if mkfatfs -F 32 /dev/mmcsd0
+		then
+			echo "INFO [init] card formatted"
+
+			if mount -t vfat /dev/mmcsd0 /fs/microsd
+			then
+				set SDCARD_AVAILABLE yes
+				set STARTUP_TUNE 14 # tune 14 = SD_INIT
+			else
+				echo "ERROR [init] card mount failed"
+			fi
+		else
 			echo "ERROR [init] format failed"
 		fi
 	fi
-fi
 
-if [ $SDCARD_AVAILABLE = yes ]
-then
-	if hardfault_log check
+	if [ $SDCARD_AVAILABLE = yes ]
 	then
-		# Error tune.
-		set STARTUP_TUNE 2
-		if hardfault_log commit
+		if hardfault_log check
 		then
-			hardfault_log reset
+			set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+			if hardfault_log commit
+			then
+				hardfault_log reset
+			fi
 		fi
 	fi
+
+	set PARAM_FILE /fs/microsd/params
 fi
-unset SDCARD_AVAILABLE
 
 #
 # Look for an init script on the microSD card.
@@ -137,8 +163,31 @@ else
 	param select $PARAM_FILE
 	if ! param import
 	then
-		param reset_all
+		echo "ERROR [init] param import failed"
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+
+		param dump $PARAM_FILE
+
+		if [ -d "/fs/microsd" ]
+		then
+			dmesg >> /fs/microsd/param_import_fail.txt &
+
+			# try to make a backup copy
+			cp $PARAM_FILE /fs/microsd/param_import_fail.bson &
+		fi
+
+		# try importing from backup file
+		if [ -f "/fs/microsd/parameters_backup.bson" ]
+		then
+			param import /fs/microsd/parameters_backup.bson
+		fi
 	fi
+
+	if [ $SDCARD_AVAILABLE = yes ]
+	then
+		param select-backup /fs/microsd/parameters_backup.bson
+	fi
+
 	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X
 	then
 		netman update -i eth0
@@ -183,19 +232,19 @@ else
 	tone_alarm start
 
 	#
-	# Play the startup tune (if not disabled or there is an error)
-	#
-	param compare CBRK_BUZZER 782090
-	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
-	then
-		tune_control play -t $STARTUP_TUNE
-	fi
-
-	#
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
-	dataman start
+	if param compare SYS_DM_BACKEND 1
+	then
+		dataman start -r
+	else
+		if param compare SYS_DM_BACKEND 0
+		then
+			# dataman start default
+			dataman start
+		fi
+	fi
 
 	#
 	# Start the socket communication send_event handler.
@@ -216,10 +265,22 @@ else
 	#
 	# Set parameters and env variables for selected AUTOSTART.
 	#
+	set AUTOSTART_PATH etc/init.d/rc.autostart
 	if ! param compare SYS_AUTOSTART 0
 	then
-		. ${R}etc/init.d/rc.autostart
+		if param greater SYS_AUTOSTART 1000000
+		then
+			# Use external startup file
+			if [ $SDCARD_AVAILABLE = yes ]
+			then
+				set AUTOSTART_PATH etc/init.d/rc.autostart_ext
+			else
+				echo "ERROR [init] SD card not mounted - trying to load airframe from ROMFS"
+			fi
+		fi
+		. ${R}$AUTOSTART_PATH
 	fi
+	unset AUTOSTART_PATH
 
 	#
 	# Override parameters from user configuration file.
@@ -250,7 +311,7 @@ else
 			then
 				# Start UAVCAN firmware update server and dynamic node ID allocation server.
 				uavcan start fw
-				tune_control play -t 1
+
 				if param greater UAVCAN_ENABLE 2
 				then
 					set OUTPUT_MODE uavcan_esc
@@ -315,7 +376,7 @@ else
 	if [ $USE_IO = yes -a $IO_PRESENT = no ]
 	then
 		echo "PX4IO not found"
-		tune_control play error
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
 	fi
 
 	#
@@ -323,6 +384,7 @@ else
 	#  start before commander
 	#
 	rc_update start
+	manual_control start
 
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
@@ -368,6 +430,17 @@ else
 
 		commander start
 	fi
+
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
+	then
+		tune_control play -t $STARTUP_TUNE
+	fi
+
 
 	# Pre-takeoff continuous magnetometer calibration
 	if param compare -s MBE_ENABLE 1
@@ -493,21 +566,13 @@ else
 		. ${R}etc/init.d/rc.autostart.post
 	fi
 
-	#
-	# Bootloader upgrade
-	#
-	if param compare -s SYS_BL_UPDATE 1
+
+	set BOARD_BOOTLOADER_UPGRADE ${R}etc/init.d/rc.board_bootloader_upgrade
+	if [ -f $BOARD_BOOTLOADER_UPGRADE ]
 	then
-		if [ -f "/etc/extras/bootloader.bin" ]
-		then
-			param set SYS_BL_UPDATE 0
-			param save
-			echo "bootloader update..."
-			bl_update "/etc/extras/bootloader.bin"
-			echo "bootloader update done, rebooting"
-			reboot
-		fi
+		sh $BOARD_BOOTLOADER_UPGRADE
 	fi
+	unset BOARD_BOOTLOADER_UPGRADE
 
 #
 # End of autostart.
@@ -539,6 +604,9 @@ unset PWM_OUT
 unset PWM_EXTRA_OUT
 unset PWM_EXTRA_RATE
 unset RC_INPUT_ARGS
+unset SDCARD_AVAILABLE
+unset SDCARD_EXT_PATH
+unset SDCARD_FORMAT
 unset SDCARD_MIXERS_PATH
 unset STARTUP_TUNE
 unset USE_IO

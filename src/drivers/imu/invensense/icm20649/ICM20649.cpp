@@ -107,14 +107,27 @@ void ICM20649::print_status()
 
 int ICM20649::probe()
 {
-	const uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
+	for (int i = 0; i < 3; i++) {
+		uint8_t whoami = RegisterRead(Register::BANK_0::WHO_AM_I);
 
-	if (whoami != WHOAMI) {
-		DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
-		return PX4_ERROR;
+		if (whoami == WHOAMI) {
+			return PX4_OK;
+
+		} else {
+			DEVICE_DEBUG("unexpected WHO_AM_I 0x%02x", whoami);
+
+			uint8_t reg_bank_sel = RegisterRead(Register::BANK_0::REG_BANK_SEL);
+			int bank = reg_bank_sel >> 4;
+
+			if (bank >= 1 && bank <= 3) {
+				DEVICE_DEBUG("incorrect register bank for WHO_AM_I REG_BANK_SEL:0x%02x, bank:%d", reg_bank_sel, bank);
+				// force bank selection and retry
+				SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0, true);
+			}
+		}
 	}
 
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void ICM20649::RunImpl()
@@ -153,8 +166,8 @@ void ICM20649::RunImpl()
 				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				PX4_DEBUG("Reset not complete, check again in 100 ms");
+				ScheduleDelayed(100_ms);
 			}
 		}
 
@@ -229,15 +242,21 @@ void ICM20649::RunImpl()
 				if (samples > _fifo_gyro_samples) {
 					// grab desired number of samples, but reschedule next cycle sooner
 					int extra_samples = samples - _fifo_gyro_samples;
-					timestamp_sample -= extra_samples * FIFO_SAMPLE_DT;
 					samples = _fifo_gyro_samples;
 
-					ScheduleOnInterval(_fifo_empty_interval_us,
-							   _fifo_empty_interval_us - (extra_samples * FIFO_SAMPLE_DT));
+					if (_fifo_gyro_samples > extra_samples) {
+						// reschedule to run when a total of _fifo_gyro_samples should be available in the FIFO
+						const uint32_t reschedule_delay_us = (_fifo_gyro_samples - extra_samples) * static_cast<int>(FIFO_SAMPLE_DT);
+						ScheduleOnInterval(_fifo_empty_interval_us, reschedule_delay_us);
+
+					} else {
+						// otherwise reschedule to run immediately
+						ScheduleOnInterval(_fifo_empty_interval_us);
+					}
 
 				} else if (samples < _fifo_gyro_samples) {
 					// reschedule next cycle to catch the desired number of samples
-					ScheduleOnInterval(_fifo_empty_interval_us, (_fifo_gyro_samples - samples) * FIFO_SAMPLE_DT);
+					ScheduleOnInterval(_fifo_empty_interval_us, (_fifo_gyro_samples - samples) * static_cast<int>(FIFO_SAMPLE_DT));
 				}
 
 				if (samples == _fifo_gyro_samples) {
@@ -356,9 +375,9 @@ void ICM20649::ConfigureSampleRate(int sample_rate)
 	_fifo_empty_interval_us = _fifo_gyro_samples * (1e6f / GYRO_RATE);
 }
 
-void ICM20649::SelectRegisterBank(enum REG_BANK_SEL_BIT bank)
+void ICM20649::SelectRegisterBank(enum REG_BANK_SEL_BIT bank, bool force)
 {
-	if (bank != _last_register_bank) {
+	if (bank != _last_register_bank || force) {
 		// select BANK_0
 		uint8_t cmd_bank_sel[2] {};
 		cmd_bank_sel[0] = static_cast<uint8_t>(Register::BANK_0::REG_BANK_SEL);

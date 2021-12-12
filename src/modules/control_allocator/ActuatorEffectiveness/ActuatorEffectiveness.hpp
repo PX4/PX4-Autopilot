@@ -44,7 +44,6 @@
 #include <ControlAllocation/ControlAllocation.hpp>
 
 #include <matrix/matrix/math.hpp>
-#include <uORB/topics/vehicle_actuator_setpoint.h>
 
 class ActuatorEffectiveness
 {
@@ -77,7 +76,7 @@ public:
 	 *
 	 * @return true if updated and matrix is set
 	 */
-	virtual bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force = false) = 0;
+	virtual bool getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix, bool force) = 0;
 
 	/**
 	 * Get the actuator trims

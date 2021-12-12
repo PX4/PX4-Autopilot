@@ -44,6 +44,8 @@
 #include <px4_platform_common/defines.h>
 #include <matrix/matrix/math.hpp>
 
+using math::constrain;
+
 namespace vmount
 {
 
@@ -65,16 +67,16 @@ int OutputRC::update(const ControlData *control_data)
 	hrt_abstime t = hrt_absolute_time();
 	_calculate_angle_output(t);
 
-	actuator_controls_s actuator_controls{};
-	actuator_controls.timestamp = hrt_absolute_time();
-	// _angle_outputs are in radians, actuator_controls are in [-1, 1]
-	actuator_controls.control[0] = (_angle_outputs[0] + _config.roll_offset) * _config.roll_scale;
-	actuator_controls.control[1] = (_angle_outputs[1] + _config.pitch_offset) * _config.pitch_scale;
-	actuator_controls.control[2] = (_angle_outputs[2] + _config.yaw_offset) * _config.yaw_scale;
-	actuator_controls.control[3] = _retract_gimbal ? _config.gimbal_retracted_mode_value : _config.gimbal_normal_mode_value;
-
 	_stream_device_attitude_status();
 
+	// _angle_outputs are in radians, actuator_controls are in [-1, 1]
+	actuator_controls_s actuator_controls{};
+	actuator_controls.control[0] = constrain((_angle_outputs[0] + _config.roll_offset) * _config.roll_scale, -1.f, 1.f);
+	actuator_controls.control[1] = constrain((_angle_outputs[1] + _config.pitch_offset) * _config.pitch_scale, -1.f, 1.f);
+	actuator_controls.control[2] = constrain((_angle_outputs[2] + _config.yaw_offset) * _config.yaw_scale, -1.f, 1.f);
+	actuator_controls.control[3] = constrain(_retract_gimbal ? _config.gimbal_retracted_mode_value :
+				       _config.gimbal_normal_mode_value, -1.f, 1.f);
+	actuator_controls.timestamp = hrt_absolute_time();
 	_actuator_controls_pub.publish(actuator_controls);
 
 	_last_update = t;

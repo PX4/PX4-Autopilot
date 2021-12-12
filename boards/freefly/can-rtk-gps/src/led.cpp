@@ -43,7 +43,6 @@
 
 #include <hardware/stm32_tim.h>
 #include <drivers/device/i2c.h>
-#include <lib/led/led.h>
 
 __BEGIN_DECLS
 #include "cxx_init.h"

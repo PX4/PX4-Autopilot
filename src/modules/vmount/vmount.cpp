@@ -106,6 +106,7 @@ struct Parameters {
 	int32_t mav_comp_id;
 	float mnt_rate_pitch;
 	float mnt_rate_yaw;
+	int32_t mnt_rc_in_mode;
 
 	bool operator!=(const Parameters &p)
 	{
@@ -128,7 +129,8 @@ struct Parameters {
 		       mnt_off_roll != p.mnt_off_roll ||
 		       mnt_off_yaw != p.mnt_off_yaw ||
 		       mav_sys_id != p.mav_sys_id ||
-		       mav_comp_id != p.mav_comp_id;
+		       mav_comp_id != p.mav_comp_id ||
+		       mnt_rc_in_mode != p.mnt_rc_in_mode;
 #pragma GCC diagnostic pop
 
 	}
@@ -155,6 +157,7 @@ struct ParameterHandles {
 	param_t mav_comp_id;
 	param_t mnt_rate_pitch;
 	param_t mnt_rate_yaw;
+	param_t mnt_rc_in_mode;
 };
 
 
@@ -261,7 +264,10 @@ static int vmount_thread_main(int argc, char *argv[])
 					// This logic is done further below while update() is called.
 					thread_data.input_objs[2] = new InputRC(params.mnt_man_roll,
 										params.mnt_man_pitch,
-										params.mnt_man_yaw);
+										params.mnt_man_yaw,
+										params.mnt_rate_pitch,
+										params.mnt_rate_yaw,
+										params.mnt_rc_in_mode);
 					thread_data.input_objs_len = 3;
 
 					break;
@@ -269,7 +275,10 @@ static int vmount_thread_main(int argc, char *argv[])
 				case 1: //RC
 					thread_data.input_objs[0] = new InputRC(params.mnt_man_roll,
 										params.mnt_man_pitch,
-										params.mnt_man_yaw);
+										params.mnt_man_yaw,
+										params.mnt_rate_pitch,
+										params.mnt_rate_yaw,
+										params.mnt_rc_in_mode);
 					break;
 
 				case 2: //MAVLINK_ROI
@@ -368,7 +377,7 @@ static int vmount_thread_main(int argc, char *argv[])
 				bool already_active = (last_active == i);
 
 				ControlData *control_data_to_check = nullptr;
-				unsigned int poll_timeout = already_active ? 50 : 0; // poll only on active input to reduce latency
+				unsigned int poll_timeout = already_active ? 20 : 0; // poll only on active input to reduce latency
 				int ret = thread_data.input_objs[i]->update(poll_timeout, &control_data_to_check, already_active);
 
 				if (ret) {
@@ -583,6 +592,7 @@ void update_params(ParameterHandles &param_handles, Parameters &params, bool &go
 	param_get(param_handles.mav_comp_id, &params.mav_comp_id);
 	param_get(param_handles.mnt_rate_pitch, &params.mnt_rate_pitch);
 	param_get(param_handles.mnt_rate_yaw, &params.mnt_rate_yaw);
+	param_get(param_handles.mnt_rc_in_mode, &params.mnt_rc_in_mode);
 
 	got_changes = prev_params != params;
 }
@@ -609,6 +619,7 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mav_comp_id = param_find("MAV_COMP_ID");
 	param_handles.mnt_rate_pitch = param_find("MNT_RATE_PITCH");
 	param_handles.mnt_rate_yaw = param_find("MNT_RATE_YAW");
+	param_handles.mnt_rc_in_mode = param_find("MNT_RC_IN_MODE");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
@@ -629,7 +640,8 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mav_sys_id == PARAM_INVALID ||
 	    param_handles.mav_comp_id == PARAM_INVALID ||
 	    param_handles.mnt_rate_pitch == PARAM_INVALID ||
-	    param_handles.mnt_rate_yaw == PARAM_INVALID
+	    param_handles.mnt_rate_yaw == PARAM_INVALID ||
+	    param_handles.mnt_rc_in_mode == PARAM_INVALID
 	   ) {
 		return false;
 	}

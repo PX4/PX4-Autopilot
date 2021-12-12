@@ -55,6 +55,7 @@
 
 #include <stm32.h>
 #include "board_config.h"
+#include "led.h"
 #include <stm32_uart.h>
 
 #include <arch/board/board.h>
@@ -92,6 +93,21 @@ __EXPORT void stm32_boardinitialize(void)
 
 	// Configure SPI all interfaces GPIO & enable power.
 	stm32_spiinitialize();
+
+	// Check if button is held. If so go into gps passthrough mode
+	if (stm32_gpioread(GPIO_BTN_SAFETY)) {
+		rgb_led(128, 128, 128, 10);
+		stm32_configgpio(GPIO_USART1_TX_GPIO);
+		stm32_configgpio(GPIO_USART1_RX_GPIO);
+		stm32_configgpio(GPIO_USART2_TX_GPIO);
+		stm32_configgpio(GPIO_USART2_RX_GPIO);
+
+		while (1) {
+			watchdog_pet();
+			stm32_gpiowrite(GPIO_USART2_TX_GPIO, stm32_gpioread(GPIO_USART1_RX_GPIO));
+			stm32_gpiowrite(GPIO_USART1_TX_GPIO, stm32_gpioread(GPIO_USART2_RX_GPIO));
+		}
+	}
 }
 
 /****************************************************************************
@@ -123,6 +139,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	px4_platform_init();
 
+#if defined(SERIAL_HAVE_RXDMA)
+	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
+	static struct hrt_call serial_dma_call;
+	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
+#endif
+
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {
 		{2, 16 * 1024, 0x08008000},
@@ -135,7 +157,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (result != OK) {
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
-		return -ENODEV;
 	}
 
 #endif // FLASH_BASED_PARAMS

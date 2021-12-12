@@ -115,12 +115,12 @@ TEST_F(EkfFusionLogicTest, doGpsFusion)
 	EXPECT_TRUE(_ekf->local_position_is_valid());
 	EXPECT_TRUE(_ekf->global_position_is_valid());
 
-	// // WHEN: clients decides to stop GPS fusion
-	// _ekf_wrapper.disableGpsFusion();
-	// // THEN: EKF should stop to intend to fuse GPS immediately
-	// _sensor_simulator.runMicroseconds(1000);
-	// EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
-	// THIS is not happening at the moment
+	// WHEN: clients decides to stop GPS fusion
+	_ekf_wrapper.disableGpsFusion();
+
+	// THEN: EKF should stop to intend to fuse GPS immediately
+	_sensor_simulator.runSeconds(0.01);
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
 }
 
 TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
@@ -138,11 +138,11 @@ TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
 	const Vector3f pos_old = _ekf->getPosition();
 	const Vector3f vel_old = _ekf->getVelocity();
 	const Vector3f accel_bias_old = _ekf->getAccelBias();
-	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f{20.0f, 0.0f});
+	const Vector3f pos_step{20.0f, 0.0f, 0.f};
+	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f(pos_step));
 	_sensor_simulator.runSeconds(2);
 
 	// THEN: The estimate should not change much in the short run
-	//       and GPS fusion should be stopped after a while.
 	Vector3f pos_new = _ekf->getPosition();
 	Vector3f vel_new = _ekf->getVelocity();
 	Vector3f accel_bias_new = _ekf->getAccelBias();
@@ -150,14 +150,54 @@ TEST_F(EkfFusionLogicTest, rejectGpsSignalJump)
 	EXPECT_TRUE(matrix::isEqual(vel_new, vel_old, 0.01f));
 	EXPECT_TRUE(matrix::isEqual(accel_bias_new, accel_bias_old, 0.01f));
 
-	_sensor_simulator.runSeconds(10);
+	// BUT THEN: GPS fusion should reset after a while
+	// (it takes some time beacuse vel fusion is still good)
+	_sensor_simulator.runSeconds(14);
 	pos_new = _ekf->getPosition();
 	vel_new = _ekf->getVelocity();
 	accel_bias_new = _ekf->getAccelBias();
-	EXPECT_TRUE(matrix::isEqual(pos_new, pos_old, 0.01f));
+	EXPECT_TRUE(matrix::isEqual(pos_new, pos_old + pos_step, 0.01f));
 	EXPECT_TRUE(matrix::isEqual(vel_new, vel_old, 0.01f));
 	EXPECT_TRUE(matrix::isEqual(accel_bias_new, accel_bias_old, 0.01f));
-	// EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion()); // What do we expect here?
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+}
+
+TEST_F(EkfFusionLogicTest, fallbackFromGpsToFlow)
+{
+	// GIVEN: GPS and flow setup up and with valid data
+	_ekf_wrapper.enableGpsFusion();
+	_sensor_simulator.startGps();
+
+	const float max_flow_rate = 5.f;
+	const float min_ground_distance = 0.f;
+	const float max_ground_distance = 50.f;
+	_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
+	_sensor_simulator.startFlow();
+	_sensor_simulator.startFlow();
+	_ekf_wrapper.enableFlowFusion();
+
+	_ekf->set_in_air_status(true);
+	_sensor_simulator.runSeconds(15);
+
+	// THEN: both should be fused
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
+
+	// WHEN: GPS data stops
+	_sensor_simulator.stopGps();
+	_sensor_simulator.runSeconds(2);
+
+	// THEN: immediately switch to flow only
+	EXPECT_FALSE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
+
+	// BUT WHEN: GPS starts again
+	_sensor_simulator.startGps();
+	_sensor_simulator.runSeconds(1);
+
+	// THEN: use it again
+	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingFlowFusion());
 }
 
 TEST_F(EkfFusionLogicTest, doFlowFusion)

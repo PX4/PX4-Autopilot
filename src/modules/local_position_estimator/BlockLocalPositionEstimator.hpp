@@ -294,10 +294,10 @@ private:
 	uORB::PublicationData<estimator_innovations_s> _pub_innov_var{ORB_ID(estimator_innovation_variances)};
 
 	// map projection
-	struct map_projection_reference_s _map_ref;
+	MapProjection _map_ref;
 
-	map_projection_reference_s _global_local_proj_ref{};
-	float                      _global_local_alt0{NAN};
+	MapProjection _global_local_proj_ref{};
+	float _global_local_alt0{NAN};
 
 	// target mode paramters from landing_target_estimator module
 	enum TargetMode {

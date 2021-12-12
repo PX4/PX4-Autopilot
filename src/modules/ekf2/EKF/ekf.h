@@ -134,7 +134,7 @@ public:
 	Vector2f getWindVelocityVariance() const { return P.slice<2, 2>(22, 22).diag(); }
 
 	// get the true airspeed in m/s
-	void get_true_airspeed(float *tas) const;
+	float getTrueAirspeed() const;
 
 	// get the full covariance matrix
 	const matrix::SquareMatrix<float, 24> &covariances() const { return P; }
@@ -157,7 +157,7 @@ public:
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
 	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
-	bool setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude);
+	void setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude);
 
 	float getEkfGlobalOriginAltitude() const { return _gps_alt_ref; }
 	bool setEkfGlobalOriginAltitude(const float altitude);
@@ -214,6 +214,16 @@ public:
 	}
 
 	bool isTerrainEstimateValid() const { return _hagl_valid; };
+
+	bool isYawFinalAlignComplete() const
+	{
+		const bool is_using_mag = (_control_status.flags.mag_3D || _control_status.flags.mag_hdg);
+		const bool is_mag_alignment_in_flight_complete = is_using_mag
+		                                                 && _control_status.flags.mag_aligned_in_flight
+		                                                 && ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)1e6);
+		return _control_status.flags.yaw_align
+		       && (is_mag_alignment_in_flight_complete || !is_using_mag);
+	}
 
 	uint8_t getTerrainEstimateSensorBitfield() const { return _hagl_sensor_status.value; }
 
@@ -615,6 +625,11 @@ private:
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag();
 
+	void fuseBaroHgt();
+	void fuseGpsHgt();
+	void fuseRngHgt();
+	void fuseEvHgt();
+
 	// fuse single velocity and position measurement
 	void fuseVelPosHeight(const float innov, const float innov_var, const int obs_index);
 
@@ -660,6 +675,8 @@ private:
 
 	bool fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
 				  Vector3f &innov_var, Vector2f &test_ratio);
+
+	void fuseGpsVelPos();
 
 	// calculate optical flow body angular rate compensation
 	// returns false if bias corrected body rate data is unavailable
@@ -802,6 +819,12 @@ private:
 
 	// control fusion of GPS observations
 	void controlGpsFusion();
+	bool shouldResetGpsFusion() const;
+	bool hasHorizontalAidingTimedOut() const;
+	bool isVelStateAlignedWithObs() const;
+	void processYawEstimatorResetRequest();
+	void processVelPosResetRequest();
+
 	void controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing);
 
 	// control fusion of magnetometer observations
@@ -892,9 +915,14 @@ private:
 
 	void startBaroHgtFusion();
 	void startGpsHgtFusion();
+	void startRngHgtFusion();
+	void startRngAidHgtFusion();
+	void startEvHgtFusion();
 
 	void updateBaroHgtOffset();
 	void updateBaroHgtBias();
+
+	void checkGroundEffectTimeout();
 
 	// return an estimation of the GPS altitude variance
 	float getGpsHeightVariance();
@@ -917,10 +945,12 @@ private:
 	void resetMagCov();
 
 	// perform a limited reset of the wind state covariances
-	void resetWindCovariance();
+	void resetWindCovarianceUsingAirspeed();
 
-	// perform a reset of the wind states
-	void resetWindStates();
+	// perform a reset of the wind states and related covariances
+	void resetWind();
+	void resetWindUsingAirspeed();
+	void resetWindToZero();
 
 	// check that the range finder data is continuous
 	void updateRangeDataContinuity();
@@ -953,6 +983,9 @@ private:
 	{
 		return sensor_timestamp + acceptance_interval > _time_last_imu;
 	}
+
+	void startAirspeedFusion();
+	void stopAirspeedFusion();
 
 	void startGpsFusion();
 	void stopGpsFusion();

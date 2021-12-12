@@ -6,6 +6,11 @@ CONFIG:
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
+    px4_sitl_rtps:
+      short: px4_sitl_rtps
+      buildType: RelWithDebInfo
+      settings:
+        CONFIG: px4_sitl_rtps
     px4_sitl_asan:
       short: px4_sitl (AddressSanitizer)
       buildType: AddressSanitizer
@@ -56,6 +61,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v5_default
+    px4_fmu-v5_debug:
+      short: px4_fmu-v5_debug
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v5_debug
     px4_fmu-v5x_default:
       short: px4_fmu-v5x
       buildType: MinSizeRel
@@ -101,6 +111,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: ark_can-rtk-gps_default
+    ark_can-rtk-gps_debug:
+      short: ark_can-rtk-gps_debug
+      buildType: MinSizeRel
+      settings:
+        CONFIG: ark_can-rtk-gps_debug
     ark_can-rtk-gps_canbootloader:
       short: ark_can-rtk-gps_canbootloader
       buildType: MinSizeRel
@@ -176,6 +191,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: holybro_durandal-v1_default
+    matek_h743-slim_default:
+      short: matek_h743-slim
+      buildType: MinSizeRel
+      settings:
+        CONFIG: matek_h743-slim_default
     modalai_fc-v1_default:
       short: modalai_fc-v1
       buildType: MinSizeRel
@@ -211,3 +231,8 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_fmuk66-v3_default
+    raspberrypi_pico_default:
+      short: raspberrypi_pico
+      buildType: MinSizeRel
+      settings:
+        CONFIG: raspberrypi_pico_default

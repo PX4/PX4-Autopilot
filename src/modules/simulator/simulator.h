@@ -76,8 +76,8 @@
 
 #include <random>
 
-#include <v2.0/common/mavlink.h>
-#include <v2.0/mavlink_types.h>
+#include <mavlink.h>
+#include <mavlink_types.h>
 
 using namespace time_literals;
 
@@ -264,8 +264,8 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 
 	// hil map_ref data
-	map_projection_reference_s	_global_local_proj_ref{};
-	float						_global_local_alt0{NAN};
+	MapProjection _global_local_proj_ref{};
+	float _global_local_alt0{NAN};
 
 	vehicle_status_s _vehicle_status{};
 

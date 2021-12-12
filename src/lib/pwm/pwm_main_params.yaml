@@ -63,63 +63,6 @@ parameters:
             max: 2200
             default: 900
 
-        PWM_MAIN_MIN${i}:
-            description:
-                short: PWM main ${i} minimum value
-                long: |
-                    This is the minimum PWM pulse the autopilot is allowed to output.
-                    When set to -1 the value for PWM_MAIN_MIN will be used
-            type: int32
-            unit: us
-            min: -1
-            max: 1600
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: -1
-
-        PWM_MAIN_MAX${i}:
-            description:
-                short: PWM main ${i} maximum value
-                long: |
-                    This is the maximum PWM pulse the autopilot is allowed to output.
-                    When set to -1 the value for PWM_MAIN_MAX will be used
-            type: int32
-            unit: us
-            min: -1
-            max: 2150
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: -1
-
-        PWM_MAIN_FAIL${i}:
-            description:
-                short: PWM main ${i} failsafe value
-                long: |
-                    This is the PWM pulse the autopilot is outputting if in failsafe mode.
-                    When set to -1 the value is set automatically depending if the actuator
-                    is a motor (900us) or a servo (1500us)
-            type: int32
-            unit: us
-            min: -1
-            max: 2150
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: -1
-
-        PWM_MAIN_DIS${i}:
-            description:
-                short: PWM main ${i} disarmed value
-                long: |
-                    This is the PWM pulse the autopilot is outputting if not armed.
-                    When set to -1 the value for PWM_MAIN_DISARM will be used
-            type: int32
-            unit: us
-            min: -1
-            max: 2150
-            num_instances: *max_num_config_instances
-            instance_start: 1
-            default: -1
-
         PWM_MAIN_TRIM${i}:
             description:
                 short: PWM main ${i} trim value

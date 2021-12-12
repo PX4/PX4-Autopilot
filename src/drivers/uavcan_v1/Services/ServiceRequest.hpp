@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file List.hpp
+ * @file ServiceRequest.hpp
  *
- * Defines a List Service invoker and process List responses
+ * Defines a Service invoker base class and process responses
  *
  * @author Peter van der Perk <peter.vanderperk@nxp.com>
  */
@@ -44,8 +44,6 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
 #include <version/version.h>
-
-#include "../NodeManager.hpp"
 
 #include <uavcan/_register/List_1_0.h>
 
@@ -61,8 +59,9 @@ public:
 class UavcanServiceRequest : public UavcanBaseSubscriber
 {
 public:
-	UavcanServiceRequest(CanardInstance &ins, const char *subject_name, CanardPortID portID, size_t extent) :
-		UavcanBaseSubscriber(ins, subject_name, 0), _portID(portID), _extent(extent) { };
+	UavcanServiceRequest(CanardInstance &ins, const char *prefix_name, const char *subject_name, CanardPortID portID,
+			     size_t extent) :
+		UavcanBaseSubscriber(ins, prefix_name, subject_name, 0), _portID(portID), _extent(extent) { };
 
 
 	void subscribe() override
@@ -79,6 +78,7 @@ public:
 	bool request(CanardTransfer *transfer, UavcanServiceRequestInterface *handler)
 	{
 		_response_callback = handler;
+		remote_node_id = transfer->remote_node_id;
 		++request_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
 		return canardTxPush(&_canard_instance, transfer) > 0;
 	}
@@ -87,7 +87,9 @@ public:
 	{
 		PX4_INFO("Response");
 
-		if (_response_callback != nullptr) {
+		if (_response_callback != nullptr &&
+		    receive.transfer_id == (request_transfer_id - 1) &&
+		    receive.remote_node_id == remote_node_id) {
 			_response_callback->response_callback(receive);
 		}
 	};
@@ -96,6 +98,7 @@ public:
 
 protected:
 	CanardTransferID request_transfer_id = 0;
+	CanardNodeID remote_node_id = CANARD_NODE_ID_UNSET;
 
 	const CanardPortID _portID;
 	const size_t _extent;

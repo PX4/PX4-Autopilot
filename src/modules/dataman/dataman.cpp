@@ -454,11 +454,39 @@ _file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 
 	count += DM_SECTOR_HDR_SIZE;
 
-	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
-		return -1;
+	bool write_success = false;
+
+	for (int i = 0; i < 2; i++) {
+		int ret_seek = lseek(dm_operations_data.file.fd, offset, SEEK_SET);
+
+		if (ret_seek < 0) {
+			PX4_ERR("file write lseek failed %d", errno);
+			continue;
+		}
+
+		if (ret_seek != offset) {
+			PX4_ERR("file write lseek failed, incorrect offset %d vs %d", ret_seek, offset);
+			continue;
+		}
+
+		int ret_write = write(dm_operations_data.file.fd, buffer, count);
+
+		if (ret_write < 0) {
+			PX4_ERR("file write failed %d", errno);
+			continue;
+		}
+
+		if (ret_write != (ssize_t)count) {
+			PX4_ERR("file write failed, wrote %d bytes, expected %zu", ret_write, count);
+			continue;
+
+		} else {
+			write_success = true;
+			break;
+		}
 	}
 
-	if ((write(dm_operations_data.file.fd, buffer, count)) != (ssize_t)count) {
+	if (!write_success) {
 		return -1;
 	}
 
@@ -531,16 +559,37 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 		return -E2BIG;
 	}
 
-	/* Read the prefix and data */
 	int len = -1;
+	bool read_success = false;
 
-	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) == offset) {
+	for (int i = 0; i < 2; i++) {
+		int ret_seek = lseek(dm_operations_data.file.fd, offset, SEEK_SET);
+
+		if (ret_seek < 0) {
+			PX4_ERR("file read lseek failed %d", errno);
+			continue;
+		}
+
+		if (ret_seek != offset) {
+			PX4_ERR("file read lseek failed, incorrect offset %d vs %d", ret_seek, offset);
+			continue;
+		}
+
+		/* Read the prefix and data */
 		len = read(dm_operations_data.file.fd, buffer, count + DM_SECTOR_HDR_SIZE);
+
+		/* Check for read error */
+		if (len >= 0) {
+			read_success = true;
+			break;
+
+		} else {
+			PX4_ERR("file read failed %d", errno);
+		}
 	}
 
-	/* Check for read error */
-	if (len < 0) {
-		return -errno;
+	if (!read_success) {
+		return -1;
 	}
 
 	/* A zero length entry is a empty entry */
@@ -747,6 +796,7 @@ dm_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 
 	/* get a work item and queue up a write request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_write create_work_item failed");
 		perf_end(_dm_write_perf);
 		return -1;
 	}
@@ -778,6 +828,7 @@ dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 
 	/* get a work item and queue up a read request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_read create_work_item failed");
 		perf_end(_dm_read_perf);
 		return -1;
 	}
@@ -807,6 +858,7 @@ dm_clear(dm_item_t item)
 
 	/* get a work item and queue up a clear request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_clear create_work_item failed");
 		return -1;
 	}
 

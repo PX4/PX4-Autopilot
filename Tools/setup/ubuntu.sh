@@ -86,6 +86,8 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	gdb \
 	git \
 	lcov \
+	libxml2-dev \
+	libxml2-utils \
 	make \
 	ninja-build \
 	python3 \
@@ -108,7 +110,13 @@ fi
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
-python3 -m pip install --user -r ${DIR}/requirements.txt
+if [ -n "$VIRTUAL_ENV" ]; then
+	# virtual envrionments don't allow --user option
+	python -m pip install -r ${DIR}/requirements.txt
+else
+	# older versions of Ubuntu require --user option
+	python3 -m pip install --user -r ${DIR}/requirements.txt
+fi
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -128,13 +136,13 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		genromfs \
 		gettext \
 		gperf \
-		kconfig-frontends \
 		libelf-dev \
 		libexpat-dev \
 		libgmp-dev \
 		libisl-dev \
 		libmpc-dev \
 		libmpfr-dev \
+		libncurses5 \
 		libncurses5-dev \
 		libncursesw5-dev \
 		libtool \
@@ -145,6 +153,12 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		util-linux \
 		vim-common \
 		;
+	if [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		kconfig-frontends \
+		;
+	fi
+
 
 	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)

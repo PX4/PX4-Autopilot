@@ -133,6 +133,7 @@ Mavlink::Mavlink() :
 	}
 
 	_event_sub.subscribe();
+	_telemetry_status_pub.advertise();
 }
 
 Mavlink::~Mavlink()
@@ -337,31 +338,46 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 int
 Mavlink::destroy_all_instances()
 {
-	LockGuard lg{mavlink_module_mutex};
-	unsigned iterations = 0;
-
 	PX4_INFO("waiting for instances to stop");
 
-	for (Mavlink *inst_to_del : mavlink_module_instances) {
-		if (inst_to_del != nullptr) {
-			/* set flag to stop thread and wait for all threads to finish */
-			inst_to_del->request_stop();
+	unsigned iterations = 0;
 
-			while (inst_to_del->running()) {
-				printf(".");
-				fflush(stdout);
-				px4_usleep(10000);
-				iterations++;
+	while (iterations < 1000) {
+		int running = 0;
 
-				if (iterations > 1000) {
-					PX4_ERR("Couldn't stop all mavlink instances.");
-					return PX4_ERROR;
+		pthread_mutex_lock(&mavlink_module_mutex);
+
+		for (Mavlink *inst_to_del : mavlink_module_instances) {
+			if (inst_to_del != nullptr) {
+				if (inst_to_del->running()) {
+					running++;
+
+					// set flag to stop thread and wait for all threads to finish
+					inst_to_del->request_stop();
 				}
 			}
 		}
+
+		pthread_mutex_unlock(&mavlink_module_mutex);
+
+		if (running == 0) {
+			break;
+
+		} else if (iterations > 1000) {
+			PX4_ERR("Couldn't stop all mavlink instances.");
+			return PX4_ERROR;
+
+		} else {
+			iterations++;
+			printf(".");
+			fflush(stdout);
+			px4_usleep(10000);
+		}
 	}
 
-	//we know all threads have exited, so it's safe to delete objects.
+	LockGuard lg{mavlink_module_mutex};
+
+	// we know all threads have exited, so it's safe to delete objects.
 	for (Mavlink *inst_to_del : mavlink_module_instances) {
 		delete inst_to_del;
 	}
@@ -369,7 +385,6 @@ Mavlink::destroy_all_instances()
 	delete _event_buffer;
 	_event_buffer = nullptr;
 
-	printf("\n");
 	PX4_INFO("all instances stopped");
 	return OK;
 }
@@ -440,11 +455,11 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 	if (meta) {
 		// Extract target system and target component if set
 		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
-			target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
+			target_system_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_system_ofs]);
 		}
 
 		if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
-			target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
+			target_component_id = static_cast<uint8_t>((_MAV_PAYLOAD(msg))[meta->target_component_ofs]);
 		}
 	}
 
@@ -816,7 +831,6 @@ void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 #ifdef MAVLINK_UDP
 void Mavlink::find_broadcast_address()
 {
-#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
 	struct ifconf ifconf;
 	int ret;
 
@@ -866,7 +880,7 @@ void Mavlink::find_broadcast_address()
 	// The ugly `for` construct is used because it allows to use
 	// `continue` and `break`.
 	for (;
-	     offset < ifconf.ifc_len;
+	     offset < (int)ifconf.ifc_len;
 #if defined(__APPLE__) && defined(__MACH__)
 	     // On Mac, to get to next entry in buffer, jump by the size of
 	     // the interface name size plus whatever is greater, either the
@@ -927,49 +941,6 @@ void Mavlink::find_broadcast_address()
 		}
 	}
 
-#elif defined (CONFIG_NET) && defined (__PX4_NUTTX)
-	int ret;
-
-	PX4_INFO("using network interface");
-
-	struct in_addr eth_addr;
-	struct in_addr bc_addr;
-	struct in_addr netmask_addr;
-	ret = netlib_get_ipv4addr("eth0", &eth_addr);
-
-	if (ret != 0) {
-		PX4_ERR("getting network config failed");
-		return;
-	}
-
-	ret = netlib_get_ipv4netmask("eth0", &netmask_addr);
-
-	if (ret != 0) {
-		PX4_ERR("getting network config failed");
-		return;
-	}
-
-	PX4_INFO("ipv4addr IP: %s", inet_ntoa(eth_addr));
-	PX4_INFO("netmask_addr IP: %s", inet_ntoa(netmask_addr));
-
-	bc_addr.s_addr = eth_addr.s_addr | ~(netmask_addr.s_addr);
-
-	if (!_broadcast_address_found) {
-		PX4_INFO("using network interface %s, IP: %s", "eth0", inet_ntoa(eth_addr));
-
-		//struct in_addr &bc_addr = ((struct sockaddr_in *)&bc_ifreq.ifr_broadaddr)->sin_addr;
-		PX4_INFO("with broadcast IP: %s", inet_ntoa(bc_addr));
-
-		_bcast_addr.sin_family = AF_INET;
-		_bcast_addr.sin_addr = bc_addr;
-
-		_broadcast_address_found = true;
-	}
-
-#endif
-
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
-
 	if (_broadcast_address_found) {
 		_bcast_addr.sin_port = htons(_remote_port);
 
@@ -988,39 +959,27 @@ void Mavlink::find_broadcast_address()
 		}
 	}
 
-#if defined (__PX4_LINUX) || defined (__PX4_DARWIN)
 	delete[] ifconf.ifc_req;
-#endif
-
-#endif
 }
-#endif // MAVLINK_UDP
 
-#ifdef __PX4_POSIX
-const in_addr
-Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifreq)
+const in_addr Mavlink::query_netmask_addr(const int socket_fd, const ifreq &ifreq)
 {
-	struct ifreq netmask_ifreq;
-	memset(&netmask_ifreq, 0, sizeof(netmask_ifreq));
+	struct ifreq netmask_ifreq {};
 	strncpy(netmask_ifreq.ifr_name, ifreq.ifr_name, IF_NAMESIZE);
 	ioctl(socket_fd, SIOCGIFNETMASK, &netmask_ifreq);
 
 	return ((struct sockaddr_in *)&netmask_ifreq.ifr_addr)->sin_addr;
 }
 
-const in_addr
-Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr)
+const in_addr Mavlink::compute_broadcast_addr(const in_addr &host_addr, const in_addr &netmask_addr)
 {
 	struct in_addr broadcast_addr;
 	broadcast_addr.s_addr = ~netmask_addr.s_addr | host_addr.s_addr;
 
 	return broadcast_addr;
 }
-#endif
 
-#ifdef MAVLINK_UDP
-void
-Mavlink::init_udp()
+void Mavlink::init_udp()
 {
 	PX4_DEBUG("Setting up UDP with port %hu", _network_port);
 
@@ -1749,6 +1708,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("GPS_STATUS", 1.0f);
 		configure_stream_local("HIGHRES_IMU", 50.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
+		configure_stream_local("MAG_CAL_REPORT", 1.0f);
 		configure_stream_local("MANUAL_CONTROL", 5.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 10.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 10.0f);
@@ -2313,8 +2273,6 @@ Mavlink::task_main(int argc, char *argv[])
 			if (_vehicle_status_sub.copy(&vehicle_status)) {
 				/* switch HIL mode if required */
 				set_hil_enabled(vehicle_status.hil_state == vehicle_status_s::HIL_STATE_ON);
-
-				set_generate_virtual_rc_input(vehicle_status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
 
 				if (_mode == MAVLINK_MODE_IRIDIUM) {
 
@@ -3077,13 +3035,24 @@ Mavlink::stop_command(int argc, char *argv[])
 		if (inst != nullptr) {
 			/* set flag to stop thread and wait for all threads to finish */
 			if (inst->running() && !inst->should_exit()) {
-				inst->request_stop();
+				int iterations = 0;
+
+				while ((iterations < 1000) && inst->running()) {
+					inst->request_stop();
+					iterations++;
+					px4_usleep(1000);
+				}
+
+				if (inst->running()) {
+					PX4_ERR("unable to stop instance %d", inst->get_instance_id());
+					return PX4_ERROR;
+				}
 
 				LockGuard lg{mavlink_module_mutex};
 
 				for (int mavlink_instance = 0; mavlink_instance < MAVLINK_COMM_NUM_BUFFERS; mavlink_instance++) {
 					if (mavlink_module_instances[mavlink_instance] == inst) {
-						delete mavlink_module_instances[mavlink_instance];
+						delete inst;
 						mavlink_module_instances[mavlink_instance] = nullptr;
 						return PX4_OK;
 					}

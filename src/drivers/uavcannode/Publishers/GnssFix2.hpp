@@ -53,7 +53,9 @@ public:
 		UavcanPublisherBase(uavcan::equipment::gnss::Fix2::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gps)),
 		uavcan::Publisher<uavcan::equipment::gnss::Fix2>(node)
-	{}
+	{
+		this->setPriority(uavcan::TransferPriority::OneLowerThanHighest);
+	}
 
 	void PrintInfo() override
 	{
@@ -67,6 +69,8 @@ public:
 
 	void BroadcastAnyUpdates() override
 	{
+		using uavcan::equipment::gnss::Fix2;
+
 		// sensor_gps -> uavcan::equipment::gnss::Fix2
 		sensor_gps_s gps;
 
@@ -87,6 +91,25 @@ public:
 				    gps.vdop; // Use pdop for both hdop and vdop since uavcan v0 spec does not support them
 			fix2.sats_used = gps.satellites_used;
 
+			fix2.mode = Fix2::MODE_SINGLE;
+			fix2.sub_mode = 0;
+
+			switch (fix2.status) {
+			case 4:
+				fix2.mode = Fix2::MODE_DGPS;
+				break;
+
+			case 5:
+				fix2.mode = Fix2::MODE_RTK;
+				fix2.sub_mode = Fix2::SUB_MODE_RTK_FLOAT;
+				break;
+
+			case 6:
+				fix2.mode = Fix2::MODE_RTK;
+				fix2.sub_mode = Fix2::SUB_MODE_RTK_FIXED;
+				break;
+			}
+
 			// Diagonal matrix
 			// position variances -- Xx, Yy, Zz
 			fix2.covariance.push_back(gps.eph);
@@ -96,6 +119,26 @@ public:
 			fix2.covariance.push_back(gps.s_variance_m_s);
 			fix2.covariance.push_back(gps.s_variance_m_s);
 			fix2.covariance.push_back(gps.s_variance_m_s);
+
+			uavcan::equipment::gnss::ECEFPositionVelocity ecefpositionvelocity{};
+			ecefpositionvelocity.velocity_xyz[0] = NAN;
+			ecefpositionvelocity.velocity_xyz[1] = NAN;
+			ecefpositionvelocity.velocity_xyz[2] = NAN;
+
+			// Use ecef_position_velocity for now... There is no heading field
+			if (!isnan(gps.heading)) {
+				ecefpositionvelocity.velocity_xyz[0] = gps.heading;
+
+				if (!isnan(gps.heading_offset)) {
+					ecefpositionvelocity.velocity_xyz[1] = gps.heading_offset;
+				}
+
+				if (!isnan(gps.heading_accuracy)) {
+					ecefpositionvelocity.velocity_xyz[2] = gps.heading_accuracy;
+				}
+
+				fix2.ecef_position_velocity.push_back(ecefpositionvelocity);
+			}
 
 			uavcan::Publisher<uavcan::equipment::gnss::Fix2>::broadcast(fix2);
 

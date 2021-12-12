@@ -165,22 +165,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #if defined(SERIAL_HAVE_RXDMA)
-	/* set up the serial DMA polling */
+	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
 	static struct hrt_call serial_dma_call;
-
-	/*
-	 * Poll at 1ms intervals for received bytes that have not triggered
-	 * a DMA event.
-	 */
-	struct timespec ts;
-	ts.tv_sec = 0;
-	ts.tv_nsec = 1000000;
-
-	hrt_call_every(&serial_dma_call,
-		       ts_to_abstime(&ts),
-		       ts_to_abstime(&ts),
-		       (hrt_callout)stm32_serial_dma_poll,
-		       NULL);
+	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
 #endif
 
 	/* initial LED state */
@@ -198,12 +185,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!sdio_dev) {
 		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", 0);
-		return ERROR;
 	}
 
 	if (mmcsd_slotinitialize(0, sdio_dev) != OK) {
 		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver\n");
-		return ERROR;
 	}
 
 	/* Assume that the SD card is inserted.  What choice do we have? */

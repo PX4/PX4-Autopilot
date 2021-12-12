@@ -18,8 +18,17 @@ set OUTPUT_AUX_DEV /dev/pwm_output1
 set OUTPUT_EXTRA_DEV /dev/pwm_output0
 
 # set these before starting the modules
-param set PWM_AUX_OUT ${PWM_AUX_OUT}
-param set PWM_MAIN_OUT ${PWM_OUT}
+if [ $PWM_AUX_OUT != none ]
+then
+
+	param set PWM_AUX_OUT ${PWM_AUX_OUT}
+fi
+
+
+if [ $PWM_OUT != none ]
+then
+	param set PWM_MAIN_OUT ${PWM_OUT}
+fi
 
 #
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
@@ -96,10 +105,16 @@ then
 
 	if [ $OUTPUT_MODE = $OUTPUT_CMD -o $OUTPUT_MODE = io ]
 	then
-		if ! $OUTPUT_CMD start
+		if param compare SYS_CTRL_ALLOC 1
 		then
-			echo "$OUTPUT_CMD start failed"
-			tune_control play error
+			pwm_out start
+			dshot start
+		else
+			if ! $OUTPUT_CMD start
+			then
+				echo "$OUTPUT_CMD start failed"
+				tune_control play error
+			fi
 		fi
 	fi
 fi
@@ -214,10 +229,10 @@ fi
 
 if [ $OUTPUT_MODE = pwm_out -o $OUTPUT_MODE = io ]
 then
-	if [ $PWM_OUT != none ]
+	if [ $PWM_OUT != none -a $PWM_MAIN_RATE != none ]
 	then
 		# Set PWM output frequency.
-		if [ $PWM_MAIN_RATE != none ]
+		if ! param compare SYS_CTRL_ALLOC 1
 		then
 			pwm rate -c ${PWM_OUT} -r ${PWM_MAIN_RATE}
 		fi

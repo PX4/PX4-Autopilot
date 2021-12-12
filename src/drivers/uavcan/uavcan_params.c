@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -195,18 +195,131 @@ PARAM_DEFINE_INT32(UAVCAN_LGT_NAV, 3);
 PARAM_DEFINE_INT32(UAVCAN_LGT_LAND, 0);
 
 /**
- * UAVCAN BATTERY_MONITOR battery monitor selection
+ * subscription airspeed
  *
- * This parameter defines that the system will select the battery monitor under the following conditions
+ * Enable UAVCAN airspeed subscriptions.
+ *  uavcan::equipment::air_data::IndicatedAirspeed
+ *  uavcan::equipment::air_data::TrueAirspeed
+ *  uavcan::equipment::air_data::StaticTemperature
  *
- *  0 - default battery monitor
- *  1 - CUAV battery monitor
- *
- * @min 0
- * @max 1
- * @value 0 default battery monitor
- * @value 1 CUAV battery monitor
+ * @boolean
  * @reboot_required true
  * @group UAVCAN
  */
-PARAM_DEFINE_INT32(UAVCAN_BAT_MON, 0);
+PARAM_DEFINE_INT32(UAVCAN_SUB_ASPD, 0);
+
+/**
+ * subscription barometer
+ *
+ * Enable UAVCAN barometer subscription.
+ *  uavcan::equipment::air_data::StaticPressure
+ *  uavcan::equipment::air_data::StaticTemperature
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_BARO, 0);
+
+/**
+ * subscription battery
+ *
+ * Enable UAVCAN battery subscription.
+ *  1) uavcan::equipment::power::BatteryInfo
+ *  2) cuav::equipment::power::CBAT
+ *
+ * @min 0
+ * @max 2
+ * @value 0 disabled
+ * @value 1 default
+ * @value 2 CUAV battery monitor
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_BAT, 0);
+
+/**
+ * subscription differential pressure
+ *
+ * Enable UAVCAN differential pressure subscription.
+ *  uavcan::equipment::air_data::RawAirData
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_DPRES, 0);
+
+/**
+ * subscription flow
+ *
+ * Enable UAVCAN optical flow subscription.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_FLOW, 0);
+
+/**
+ * subscription GPS
+ *
+ * Enable UAVCAN GPS subscriptions.
+ *  uavcan::equipment::gnss::Fix
+ *  uavcan::equipment::gnss::Fix2
+ *  uavcan::equipment::gnss::Auxiliary
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_GPS, 1);
+
+/**
+ * subscription ICE
+ *
+ * Enable UAVCAN internal combusion engine (ICE) subscription.
+ *  uavcan::equipment::ice::reciprocating::Status
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_ICE, 0);
+
+/**
+ * subscription IMU
+ *
+ * Enable UAVCAN IMU subscription.
+ *  uavcan::equipment::ahrs::RawIMU
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_IMU, 0);
+
+/**
+ * subscription magnetometer
+ *
+ * Enable UAVCAN GPS subscription.
+ *  uavcan::equipment::ahrs::MagneticFieldStrength
+ *  uavcan::equipment::ahrs::MagneticFieldStrength2
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 1);
+
+/**
+ * subscription range finder
+ *
+ * Enable UAVCAN GPS subscription.
+ *  uavcan::equipment::range_sensor::Measurement
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);

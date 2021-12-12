@@ -43,6 +43,9 @@
 #pragma once
 
 #include <float.h>
+#include <mathlib/math/Functions.hpp>
+
+using namespace math;
 
 template <typename T>
 class AlphaFilter
@@ -68,6 +71,20 @@ public:
 		if (denominator > FLT_EPSILON) {
 			setAlpha(sample_interval / denominator);
 		}
+	}
+
+	bool setCutoffFreq(float sample_freq, float cutoff_freq)
+	{
+		if ((sample_freq <= 0.f) || (cutoff_freq <= 0.f) || (cutoff_freq >= sample_freq / 2.f)
+		    || !isFinite(sample_freq) || !isFinite(cutoff_freq)) {
+
+			// Invalid parameters
+			return false;
+		}
+
+		setParameters(1.f / sample_freq, 1.f / (2.f * M_PI_F * cutoff_freq));
+		_cutoff_freq = cutoff_freq;
+		return true;
 	}
 
 	/**
@@ -96,10 +113,12 @@ public:
 	}
 
 	const T &getState() const { return _filter_state; }
+	float getCutoffFreq() const { return _cutoff_freq; }
 
 protected:
 	T updateCalculation(const T &sample) { return (1.f - _alpha) * _filter_state + _alpha * sample; }
 
+	float _cutoff_freq{0.f};
 	float _alpha{0.f};
 	T _filter_state{};
 };

@@ -79,7 +79,7 @@ static int
 param_export_internal(bool only_unsaved, param_filter_func filter)
 {
 	struct param_wbuf_s *s = nullptr;
-	struct bson_encoder_s encoder;
+	bson_encoder_s encoder{};
 	int     result = -1;
 
 	/* Use realloc */
@@ -245,7 +245,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 			goto out;
 		}
 
-		i = node->i;
+		i = node->i32;
 		v = &i;
 		break;
 
@@ -261,7 +261,8 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		break;
 
 	default:
-		debug("unrecognised node type");
+		PX4_ERR("%s unrecognised node type %d", node->name, node->type);
+		result = 1; // just skip this entry
 		goto out;
 	}
 
@@ -280,7 +281,7 @@ out:
 static int
 param_import_internal(bool mark_saved)
 {
-	struct bson_decoder_s decoder;
+	bson_decoder_s decoder{};
 	int result = -1;
 	struct param_import_state state;
 

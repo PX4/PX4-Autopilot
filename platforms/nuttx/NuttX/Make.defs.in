@@ -109,12 +109,18 @@ FLAGS = $(MAXOPTIMIZATION) -g2 \
 	-Wno-format-truncation \
 	-Wno-maybe-uninitialized \
 	-Wno-missing-field-initializers \
+	-Wno-stringop-truncation \
 	-Wno-sign-compare \
 	-Wno-type-limits \
 	-Wno-unused-parameter \
 	-Wpointer-arith
 
 FLAGS += $(EXTRAFLAGS)
+
+# force alignment
+ifeq ($(CONFIG_BOARD_FORCE_ALIGNMENT),y)
+	FLAGS += -mno-unaligned-access
+endif
 
 # enable precise stack overflow tracking
 ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)

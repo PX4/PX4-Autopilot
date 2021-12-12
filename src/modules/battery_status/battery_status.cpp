@@ -56,10 +56,9 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/battery/battery.h>
 #include <lib/conversion/rotation.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/adc_report.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -100,7 +99,6 @@ public:
 private:
 	void Run() override;
 
-	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};				/**< notification of parameter updates */
 	uORB::SubscriptionCallbackWorkItem _adc_report_sub{this, ORB_ID(adc_report)};
 
@@ -139,9 +137,9 @@ private:
 BatteryStatus::BatteryStatus() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_battery1(1, this, SAMPLE_INTERVAL_US),
+	_battery1(1, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE, 0),
 #if BOARD_NUMBER_BRICKS > 1
-	_battery2(2, this, SAMPLE_INTERVAL_US),
+	_battery2(2, this, SAMPLE_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE, 1),
 #endif
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME))
 {
@@ -172,7 +170,7 @@ BatteryStatus::adc_poll()
 {
 	/* For legacy support we publish the battery_status for the Battery that is
 	* associated with the Brick that is the selected source for VDD_5V_IN
-	* Selection is done in HW ala a LTC4417 or similar, or may be hard coded
+	* Selection is done in HW ala a LTC4417 or similar, or maybe hard coded
 	* Like in the FMUv4
 	*/
 
@@ -220,16 +218,10 @@ BatteryStatus::adc_poll()
 
 		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
-			actuator_controls_s ctrl{};
-			_actuator_ctrl_0_sub.copy(&ctrl);
-
 			_analogBatteries[b]->updateBatteryStatusADC(
 				hrt_absolute_time(),
 				bat_voltage_adc_readings[b],
-				bat_current_adc_readings[b],
-				battery_status_s::BATTERY_SOURCE_POWER_MODULE,
-				b,
-				ctrl.control[actuator_controls_s::INDEX_THROTTLE]
+				bat_current_adc_readings[b]
 			);
 		}
 	}

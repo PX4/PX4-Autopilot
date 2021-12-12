@@ -10,7 +10,6 @@
 param set-default FW_L1_PERIOD 12
 param set-default FW_MAN_P_MAX 30
 param set-default FW_PR_FF 0.2
-param set-default FW_PR_I 0.4
 param set-default FW_PR_P 0.9
 param set-default FW_PSP_OFF 2
 param set-default FW_P_LIM_MAX 32
@@ -20,12 +19,9 @@ param set-default FW_RR_P 0.3
 param set-default FW_THR_CRUISE 0.38
 param set-default FW_THR_MAX 0.6
 param set-default FW_THR_MIN 0.05
-param set-default FW_T_ALT_TC 2
 param set-default FW_T_CLMB_MAX 8
-param set-default FW_T_HRATE_FF 0.5
 param set-default FW_T_SINK_MAX 2.7
 param set-default FW_T_SINK_MIN 2.2
-param set-default FW_T_TAS_TC 2
 
 param set-default MC_YAW_P 1.6
 

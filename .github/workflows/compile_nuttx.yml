@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     container: px4io/px4-dev-nuttx-focal:2021-09-08
     strategy:
+      fail-fast: false
       matrix:
         config: [
           airmind_mindpx-v2,
@@ -33,6 +34,7 @@ jobs:
           holybro_durandal-v1,
           holybro_kakutef7,
           holybro_pix32v5,
+          matek_h743-slim,
           modalai_fc-v1,
           modalai_fc-v2,
           mro_ctrl-zero-f7,
@@ -47,6 +49,7 @@ jobs:
           nxp_fmurt1062-v1,
           nxp_ucans32k146,
           omnibus_f4sd,
+          raspberrypi_pico,
           px4_fmu-v2,
           px4_fmu-v3,
           px4_fmu-v4,
@@ -80,13 +83,15 @@ jobs:
           mkdir -p ~/.ccache
           echo "base_dir = ${GITHUB_WORKSPACE}" > ~/.ccache/ccache.conf
           echo "compression = true" >> ~/.ccache/ccache.conf
-          echo "compression_level = 5" >> ~/.ccache/ccache.conf
-          echo "max_size = 100M" >> ~/.ccache/ccache.conf
+          echo "compression_level = 6" >> ~/.ccache/ccache.conf
+          echo "max_size = 120M" >> ~/.ccache/ccache.conf
+          echo "hash_dir = false" >> ~/.ccache/ccache.conf
           ccache -s
           ccache -z
 
     - name: make all_variants_${{matrix.config}}
       run: make all_variants_${{matrix.config}}
+      timeout-minutes: 45
     - name: make ${{matrix.config}} bloaty_compileunits
       run: make ${{matrix.config}} bloaty_compileunits || true
     - name: make ${{matrix.config}} bloaty_inlines
@@ -108,4 +113,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: px4_package_${{matrix.config}}
-        path: build/**/*.px4
+        path: |
+          build/**/*.px4
+          build/**/*.bin

@@ -37,6 +37,7 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
+#include <px4_platform_common/events.h>
 
 using namespace matrix;
 using namespace time_literals;
@@ -51,6 +52,7 @@ MulticopterRateControl::MulticopterRateControl(bool vtol) :
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	parameters_updated();
+	_controller_status_pub.advertise();
 }
 
 MulticopterRateControl::~MulticopterRateControl()
@@ -154,7 +156,15 @@ MulticopterRateControl::Run()
 
 			if (_landing_gear_sub.copy(&landing_gear)) {
 				if (landing_gear.landing_gear != landing_gear_s::GEAR_KEEP) {
-					_landing_gear = landing_gear.landing_gear;
+					if (landing_gear.landing_gear == landing_gear_s::GEAR_UP && (_landed || _maybe_landed)) {
+						mavlink_log_critical(&_mavlink_log_pub, "Landed, unable to retract landing gear\t");
+						events::send(events::ID("mc_rate_control_not_retract_landing_gear_landed"),
+						{events::Log::Error, events::LogInternal::Info},
+						"Landed, unable to retract landing gear");
+
+					} else {
+						_landing_gear = landing_gear.landing_gear;
+					}
 				}
 			}
 		}
@@ -206,16 +216,26 @@ MulticopterRateControl::Run()
 				_rate_control.resetIntegral();
 			}
 
-			// update saturation status from mixer feedback
-			if (_motor_limits_sub.updated()) {
-				multirotor_motor_limits_s motor_limits;
+			// update saturation status from control allocation feedback
+			control_allocator_status_s control_allocator_status;
 
-				if (_motor_limits_sub.copy(&motor_limits)) {
-					MultirotorMixer::saturation_status saturation_status;
-					saturation_status.value = motor_limits.saturation_status;
+			if (_control_allocator_status_sub.update(&control_allocator_status)) {
+				Vector<bool, 3> saturation_positive;
+				Vector<bool, 3> saturation_negative;
 
-					_rate_control.setSaturationStatus(saturation_status);
+				if (!control_allocator_status.torque_setpoint_achieved) {
+					for (size_t i = 0; i < 3; i++) {
+						if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
+							saturation_positive(i) = true;
+
+						} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
+							saturation_negative(i) = true;
+						}
+					}
 				}
+
+				// TODO: send the unallocated value directly for better anti-windup
+				_rate_control.setSaturationStatus(saturation_positive, saturation_negative);
 			}
 
 			// run rate controller
@@ -235,6 +255,9 @@ MulticopterRateControl::Run()
 			actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_thrust_sp) ? _thrust_sp : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _landing_gear;
 			actuators.timestamp_sample = angular_velocity.timestamp_sample;
+
+			publishTorqueSetpoint(att_control, angular_velocity.timestamp_sample);
+			publishThrustSetpoint(angular_velocity.timestamp_sample);
 
 			// scale effort by battery status if enabled
 			if (_param_mc_bat_scale_en.get()) {
@@ -269,6 +292,30 @@ MulticopterRateControl::Run()
 	}
 
 	perf_end(_loop_perf);
+}
+
+void MulticopterRateControl::publishTorqueSetpoint(const Vector3f &torque_sp, const hrt_abstime &timestamp_sample)
+{
+	vehicle_torque_setpoint_s v_torque_sp = {};
+	v_torque_sp.timestamp = hrt_absolute_time();
+	v_torque_sp.timestamp_sample = timestamp_sample;
+	v_torque_sp.xyz[0] = (PX4_ISFINITE(torque_sp(0))) ? torque_sp(0) : 0.0f;
+	v_torque_sp.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
+	v_torque_sp.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
+
+	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+}
+
+void MulticopterRateControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
+{
+	vehicle_thrust_setpoint_s v_thrust_sp = {};
+	v_thrust_sp.timestamp = hrt_absolute_time();
+	v_thrust_sp.timestamp_sample = timestamp_sample;
+	v_thrust_sp.xyz[0] = 0.0f;
+	v_thrust_sp.xyz[1] = 0.0f;
+	v_thrust_sp.xyz[2] = PX4_ISFINITE(_thrust_sp) ? -_thrust_sp : 0.0f; // Z is Down
+
+	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 }
 
 void MulticopterRateControl::updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt)

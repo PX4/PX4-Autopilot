@@ -98,7 +98,7 @@ UavcanGnssBridge::init()
 		return res;
 	}
 
-	_pub_rtcm.setPriority(uavcan::TransferPriority::OneHigherThanLowest);
+	_pub_rtcm.setPriority(uavcan::TransferPriority::NumericallyMax);
 
 	return res;
 }
@@ -134,7 +134,7 @@ UavcanGnssBridge::gnss_fix_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 	float vel_cov[9];
 	msg.velocity_covariance.unpackSquareMatrix(vel_cov);
 
-	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov);
+	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_pos_cov, valid_vel_cov, NAN, NAN, NAN);
 }
 
 void
@@ -274,14 +274,34 @@ UavcanGnssBridge::gnss_fix2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 		}
 	}
 
-	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances);
+	float heading = NAN;
+	float heading_offset = NAN;
+	float heading_accuracy = NAN;
+
+	// Use ecef_position_velocity for now... There is no heading field
+	if (!msg.ecef_position_velocity.empty()) {
+		heading = msg.ecef_position_velocity[0].velocity_xyz[0];
+
+		if (!isnan(msg.ecef_position_velocity[0].velocity_xyz[1])) {
+			heading_offset = msg.ecef_position_velocity[0].velocity_xyz[1];
+		}
+
+		if (!isnan(msg.ecef_position_velocity[0].velocity_xyz[2])) {
+			heading_accuracy = msg.ecef_position_velocity[0].velocity_xyz[2];
+		}
+	}
+
+	process_fixx(msg, fix_type, pos_cov, vel_cov, valid_covariances, valid_covariances, heading, heading_offset,
+		     heading_accuracy);
 }
 
 template <typename FixType>
 void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType> &msg,
 				    uint8_t fix_type,
 				    const float (&pos_cov)[9], const float (&vel_cov)[9],
-				    const bool valid_pos_cov, const bool valid_vel_cov)
+				    const bool valid_pos_cov, const bool valid_vel_cov,
+				    const float heading, const float heading_offset,
+				    const float heading_accuracy)
 {
 	sensor_gps_s report{};
 	report.device_id = get_device_id();
@@ -315,7 +335,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 	}
 
 	if (valid_vel_cov) {
-		report.s_variance_m_s = math::max(math::max(vel_cov[0], vel_cov[4]), vel_cov[8]);
+		report.s_variance_m_s = math::max(vel_cov[0], vel_cov[4], vel_cov[8]);
 
 		/* There is a nonlinear relationship between the velocity vector and the heading.
 		 * Use Jacobian to transform velocity covariance to heading covariance
@@ -407,8 +427,9 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		report.vdop = msg.pdop;
 	}
 
-	report.heading = NAN;
-	report.heading_offset = NAN;
+	report.heading = heading;
+	report.heading_offset = heading_offset;
+	report.heading_accuracy = heading_accuracy;
 
 	publish(msg.getSrcNodeID().get(), &report);
 }
@@ -455,12 +476,11 @@ void UavcanGnssBridge::handleInjectDataTopic()
 
 bool UavcanGnssBridge::injectData(const uint8_t *const data, const size_t data_len)
 {
-	using uavcan::equipment::gnss::RTCMStream;
+	using ardupilot::gnss::MovingBaselineData;
 
 	perf_count(_rtcm_perf);
 
-	RTCMStream msg;
-	msg.protocol_id = RTCMStream::PROTOCOL_ID_RTCM3;
+	MovingBaselineData msg;
 
 	const size_t capacity = msg.data.capacity();
 	size_t written = 0;

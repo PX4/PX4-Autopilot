@@ -45,12 +45,16 @@ I2CSPIDriverBase *MS5611::instantiate(const I2CSPIDriverConfig &config, int runt
 	ms5611::prom_u prom_buf;
 	device::Device *interface = nullptr;
 
+#if defined(CONFIG_I2C)
+
 	if (config.bus_type == BOARD_I2C_BUS) {
 		interface = MS5611_i2c_interface(prom_buf, config.spi_devid, config.bus, config.bus_frequency);
 
-	} else if (config.bus_type == BOARD_SPI_BUS) {
-		interface = MS5611_spi_interface(prom_buf, config.spi_devid, config.bus, config.bus_frequency, config.spi_mode);
-	}
+	} else
+#endif // CONFIG_I2C
+		if (config.bus_type == BOARD_SPI_BUS) {
+			interface = MS5611_spi_interface(prom_buf, config.spi_devid, config.bus, config.bus_frequency, config.spi_mode);
+		}
 
 	if (interface == nullptr) {
 		PX4_ERR("alloc failed");
@@ -83,7 +87,11 @@ void MS5611::print_usage()
 	PRINT_MODULE_USAGE_NAME("ms5611", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
+#if defined(CONFIG_I2C)
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
+#else
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+#endif
 	PRINT_MODULE_USAGE_PARAM_STRING('T', "5611", "5607|5611", "Device type", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
@@ -92,9 +100,14 @@ extern "C" int ms5611_main(int argc, char *argv[])
 {
 	using ThisDriver = MS5611;
 	int ch;
-	BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
+	BusCLIArguments cli {true, true};
 	cli.default_i2c_frequency = 400000;
-	cli.default_spi_frequency = 20 * 1000 * 1000;
+	cli.i2c_address = MS5611_ADDRESS_1;
+#else
+	BusCLIArguments cli {false, true};
+#endif
+	cli.default_spi_frequency = 16 * 1000 * 1000;
 	uint16_t dev_type_driver = DRV_BARO_DEVTYPE_MS5611;
 
 	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {
@@ -119,8 +132,6 @@ extern "C" int ms5611_main(int argc, char *argv[])
 		ThisDriver::print_usage();
 		return -1;
 	}
-
-	cli.i2c_address = MS5611_ADDRESS_1;
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, dev_type_driver);
 

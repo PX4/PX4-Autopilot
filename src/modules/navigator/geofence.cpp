@@ -447,13 +447,13 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 		return false;
 	}
 
-	if (!map_projection_initialized(&_projection_reference)) {
-		map_projection_init(&_projection_reference, lat, lon);
+	if (!_projection_reference.isInitialized()) {
+		_projection_reference.initReference(lat, lon);
 	}
 
 	float x1, y1, x2, y2;
-	map_projection_project(&_projection_reference, lat, lon, &x1, &y1);
-	map_projection_project(&_projection_reference, circle_point.lat, circle_point.lon, &x2, &y2);
+	_projection_reference.project(lat, lon, x1, y1);
+	_projection_reference.project(circle_point.lat, circle_point.lon, x2, y2);
 	float dx = x1 - x2, dy = y1 - y2;
 	return dx * dx + dy * dy < circle_point.circle_radius * circle_point.circle_radius;
 }

@@ -220,11 +220,6 @@ private:
 	int set_message_interval(int msgId, float interval, int data_rate = -1);
 	void get_message_interval(int msgId);
 
-	/**
-	 * Decode a switch position from a bitfield and state.
-	 */
-	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
-
 	bool evaluate_target_ok(int command, int target_system, int target_component);
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
@@ -253,7 +248,7 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	static constexpr unsigned MAX_REMOTE_COMPONENTS{8};
+	static constexpr unsigned MAX_REMOTE_COMPONENTS{16};
 	struct ComponentState {
 		uint32_t received_messages{0};
 		uint32_t missed_messages{0};
@@ -331,7 +326,7 @@ private:
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc)};
-	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
+	uORB::PublicationMulti<manual_control_setpoint_s>		_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 
@@ -366,12 +361,8 @@ private:
 	PX4Gyroscope *_px4_gyro{nullptr};
 	PX4Magnetometer *_px4_mag{nullptr};
 
-	static constexpr unsigned int	MOM_SWITCH_COUNT{8};
-	uint8_t				_mom_switch_pos[MOM_SWITCH_COUNT] {};
-	uint16_t			_mom_switch_state{0};
-
-	map_projection_reference_s _global_local_proj_ref{};
 	float _global_local_alt0{NAN};
+	MapProjection _global_local_proj_ref{};
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
@@ -386,6 +377,7 @@ private:
 	hrt_abstime _heartbeat_type_gimbal{0};
 	hrt_abstime _heartbeat_type_adsb{0};
 	hrt_abstime _heartbeat_type_camera{0};
+	hrt_abstime _heartbeat_type_parachute{0};
 
 	hrt_abstime _heartbeat_component_telemetry_radio{0};
 	hrt_abstime _heartbeat_component_log{0};
@@ -404,7 +396,7 @@ private:
 	float _param_sens_flow_maxhgt{-1.0f};
 	float _param_sens_flow_maxr{-1.0f};
 	float _param_sens_flow_minhgt{-1.0f};
-	float _param_sens_flow_rot{-1.0f};
+	int32_t _param_sens_flow_rot{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

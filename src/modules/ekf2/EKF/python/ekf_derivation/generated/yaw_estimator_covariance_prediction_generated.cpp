@@ -17,5 +17,3 @@ _ekf_gsf[model_index].P(1,1) = P(1,1) + P(1,2)*S6 + S1*dvyVar + S3*dvxVar + S6*S
 _ekf_gsf[model_index].P(0,2) = S5;
 _ekf_gsf[model_index].P(1,2) = S9;
 _ekf_gsf[model_index].P(2,2) = P(2,2) + dazVar;
-
-

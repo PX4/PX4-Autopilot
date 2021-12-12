@@ -200,23 +200,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
-	/* set up the serial DMA polling */
+#if defined(SERIAL_HAVE_RXDMA)
+	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
 	static struct hrt_call serial_dma_call;
-	struct timespec ts;
-
-	/*
-	 * Poll at 1ms intervals for received bytes that have not triggered
-	 * a DMA event.
-	 */
-	ts.tv_sec = 0;
-	ts.tv_nsec = 1000000;
-
-	hrt_call_every(&serial_dma_call,
-		       ts_to_abstime(&ts),
-		       ts_to_abstime(&ts),
-		       (hrt_callout)stm32_serial_dma_poll,
-		       NULL);
-
+	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
+#endif
 
 	/* initial LED state */
 	drv_led_start();
@@ -234,7 +222,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi_dev) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", CONFIG_NSH_MMCSDSPIPORTNO);
 		led_on(LED_BLUE);
-		return -ENODEV;
 	}
 
 	/* Now bind the SPI interface to the MMCSD driver */
@@ -243,7 +230,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (result != OK) {
 		led_on(LED_BLUE);
 		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
-		return -ENODEV;
 	}
 
 	up_udelay(20);
@@ -262,7 +248,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (result != OK) {
 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
 		led_on(LED_AMBER);
-		return -ENODEV;
 	}
 
 #endif

@@ -1,0 +1,180 @@
+# PX4 Firmware Configuration
+
+
+mainmenu "PX4 Firmware Configuration"
+
+comment "Vendor: $(VENDOR)"
+comment "Model: $(MODEL)"
+comment "Label: $(LABEL)"
+
+menu "Toolchain"
+    choice
+        prompt "Platform"
+        default PLATFORM_NUTTX
+        config PLATFORM_NUTTX
+            bool "nuttx"
+        config PLATFORM_POSIX
+            bool "posix"
+        config PLATFORM_QURT
+            bool "qurt"
+    endchoice
+
+    config BOARD_PLATFORM
+        string
+        default "nuttx" if PLATFORM_NUTTX
+        default "posix" if PLATFORM_POSIX
+        default "qurt" if PLATFORM_QURT
+
+    config BOARD_LOCKSTEP
+        bool "Force enable lockstep"
+        depends on PLATFORM_POSIX
+        help
+            forces lockstep behaviour, despite REPLAY env variable
+
+    config BOARD_NOLOCKSTEP
+        bool "Force disable lockstep"
+        depends on PLATFORM_POSIX
+        help
+            forces nolockstep behaviour, despite REPLAY env variable
+
+    config BOARD_LINUX
+        bool "Linux OS"
+        depends on PLATFORM_POSIX
+        help
+            Board Platform is running the Linux operating system
+
+    config BOARD_TOOLCHAIN
+        string "Toolchain"
+        default ""
+
+    config BOARD_ARCHITECTURE
+        string "Architecture"
+        default ""
+
+    config BOARD_FULL_OPTIMIZATION
+        bool "Full optmization (O3)"
+        default n
+        help
+            Enables Cmake Release for -O3 optimization
+
+    config BOARD_ROMFSROOT
+        string "ROMFSROOT"
+        default "px4fmu_common"
+        help
+            relative path to the ROMFS root directory
+
+    config BOARD_IO
+        string "IO board name"
+        default "px4_io-v2_default"
+        depends on DRIVERS_PX4IO
+        help
+            name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
+
+    config BOARD_CONSTRAINED_FLASH
+        bool "Contrained flash"
+        help
+            flag to enable constrained flash options (eg limit init script status text)
+
+    config BOARD_NO_HELP
+        bool "No help"
+        help
+            optional condition flag to disable help text on constrained flash systems
+
+    config BOARD_CONSTRAINED_MEMORY
+        bool "Contrained memory"
+        help
+            flag to enable constrained memory options (eg limit maximum number of uORB publications)
+
+    config BOARD_EXTERNAL_METADATA
+        bool "External metadata"
+        help
+            flag to exclude metadata to reduce flash
+
+    config BOARD_LINKER_PREFIX
+        string "linker prefix"
+        help
+            optional to prefix on the Linker script.
+
+    config BOARD_COMPILE_DEFINITIONS
+        string "add custom compile definitions"
+        help
+            add custom compile defitions to this specific target
+endmenu #Toolchain
+
+config BOARD_TESTING
+    bool "Testing"
+    select SYSTEMCMDS_TESTS
+    help
+        flag to enable automatic inclusion of PX4 testing modules
+
+
+config BOARD_ETHERNET
+    bool "Ethernet"
+    help
+        flag to indicate that ethernet is enabled
+
+config BOARD_CRYPTO
+    bool "Crypto support"
+    help
+        Enable PX4 Crypto Support. Select the implementation under drivers
+
+menu "Serial ports"
+
+    config BOARD_SERIAL_URT6
+        string "URT6 tty port"
+
+    config BOARD_SERIAL_GPS1
+        string "GPS1 tty port"
+
+    config BOARD_SERIAL_GPS2
+        string "GPS2 tty port"
+
+    config BOARD_SERIAL_GPS3
+        string "GPS3 tty port"
+
+    config BOARD_SERIAL_GPS4
+        string "GPS4 tty port"
+
+    config BOARD_SERIAL_GPS5
+        string "GPS5 tty port"
+
+    config BOARD_SERIAL_TEL1
+        string "TEL1 tty port"
+
+    config BOARD_SERIAL_TEL2
+        string "TEL2 tty port"
+
+    config BOARD_SERIAL_TEL3
+        string "TEL3 tty port"
+
+    config BOARD_SERIAL_TEL4
+        string "TEL4 tty port"
+
+    config BOARD_SERIAL_TEL5
+        string "TEL5 tty port"
+
+    config BOARD_SERIAL_RC
+        string "RC tty port"
+
+    config BOARD_SERIAL_WIFI
+        string "WIFI tty port"
+
+    config BOARD_SERIAL_PPB
+        string "PPB (Pixhawk Payload Bus) tty port"
+endmenu
+
+menu "drivers"
+source "src/drivers/Kconfig"
+endmenu
+
+menu "modules"
+source "src/modules/Kconfig"
+endmenu
+
+menu "systemcmds"
+source "src/systemcmds/Kconfig"
+endmenu
+
+menu "examples"
+source "src/examples/Kconfig"
+endmenu

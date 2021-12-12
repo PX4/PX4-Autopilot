@@ -41,6 +41,7 @@ float32 az        # Down velocity derivative in NED earth-fixed frame, (metres/s
 float32 heading				# Euler yaw angle transforming the tangent plane relative to NED earth-fixed frame, -PI..+PI,  (radians)
 float32 delta_heading
 uint8 heading_reset_counter
+bool heading_good_for_control
 
 # Position of reference point (local NED frame origin) in global (GPS / WGS84) frame
 bool xy_global				# true if position (x, y) has a valid global reference (ref_lat, ref_lon)

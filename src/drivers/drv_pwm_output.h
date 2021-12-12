@@ -358,7 +358,7 @@ __EXPORT extern int	up_pwm_servo_set_rate_group_update(unsigned group, unsigned 
  * Nothing is done if not in oneshot mode.
  *
  */
-__EXPORT extern void up_pwm_update(void);
+__EXPORT extern void up_pwm_update(unsigned channel_mask);
 
 /**
  * Set the current output value for a channel.

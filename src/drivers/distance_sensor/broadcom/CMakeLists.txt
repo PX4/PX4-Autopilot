@@ -31,4 +31,4 @@
 #
 ############################################################################
 
-#add_subdirectory(afbrs50) # not suitable for general inclusion
+add_subdirectory(afbrs50)

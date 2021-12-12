@@ -20,8 +20,6 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-
-param set-default MC_ROLL_P 6.5
 param set-default MC_ROLLRATE_P 0.14
 param set-default MC_ROLLRATE_I 0.1
 param set-default MC_ROLLRATE_D 0.004
@@ -44,8 +42,4 @@ param set-default RTL_DESCEND_ALT 10
 
 set MIXER quad_h
 
-set PWM_OUT 1234
-
 set MIXER_AUX pass
-
-set PWM_AUX_OUT 1234

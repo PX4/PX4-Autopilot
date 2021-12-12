@@ -122,13 +122,10 @@ private:
 
 	bool _gf_boundary_is_20m_north(double lat, double lon, float alt)
 	{
-		struct map_projection_reference_s ref = {};
 		matrix::Vector2<double> home_global(42.1, 8.2);
-		map_projection_init(&ref, home_global(0), home_global(1));
 
-		float x, y;
-		map_projection_project(&ref, lat, lon, &x, &y);
-		matrix::Vector2f waypoint_local(x, y);
+		MapProjection projection{home_global(0), home_global(1)};
+		matrix::Vector2f waypoint_local = projection.project(lat, lon);
 
 		if (waypoint_local(0) >= 20.0f) {
 			return false;

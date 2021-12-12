@@ -1,11 +1,11 @@
-[submodule "mavlink/include/mavlink/v2.0"]
-	path = mavlink/include/mavlink/v2.0
-	url = https://github.com/mavlink/c_library_v2.git
+[submodule "src/modules/mavlink/mavlink"]
+	path = src/modules/mavlink/mavlink
+	url = https://github.com/mavlink/mavlink.git
 	branch = master
 [submodule "src/drivers/uavcan/libuavcan"]
 	path = src/drivers/uavcan/libuavcan
-	url = https://github.com/PX4/libuavcan.git
-	branch = px4
+	url = https://github.com/dronecan/libuavcan.git
+	branch = main
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
@@ -13,10 +13,6 @@
 [submodule "Tools/sitl_gazebo"]
 	path = Tools/sitl_gazebo
 	url = https://github.com/PX4/PX4-SITL_gazebo.git
-	branch = master
-[submodule "src/lib/matrix"]
-	path = src/lib/matrix
-	url = https://github.com/PX4/PX4-Matrix.git
 	branch = master
 [submodule "src/drivers/gps/devices"]
 	path = src/drivers/gps/devices
@@ -46,12 +42,6 @@
 [submodule "src/drivers/uavcan_v1/public_regulated_data_types"]
 	path = src/drivers/uavcan_v1/public_regulated_data_types
 	url = https://github.com/UAVCAN/public_regulated_data_types.git
-[submodule "src/drivers/uavcannode_gps_demo/public_regulated_data_types"]
-	path = src/drivers/uavcannode_gps_demo/public_regulated_data_types
-	url = https://github.com/UAVCAN/public_regulated_data_types.git
-[submodule "src/drivers/uavcannode_gps_demo/libcanard"]
-	path = src/drivers/uavcannode_gps_demo/libcanard
-	url = https://github.com/UAVCAN/libcanard.git
 [submodule "src/drivers/uavcan_v1/legacy_data_types"]
 	path = src/drivers/uavcan_v1/legacy_data_types
 	url = https://github.com/PX4/public_regulated_data_types.git
@@ -65,7 +55,7 @@
 	url = https://github.com/mavlink/libevents.git
 [submodule "Tools/simulation-ignition"]
 	path = Tools/simulation-ignition
-	url = https://github.com/Auterion/px4-simulation-ignition.git
+	url = https://github.com/PX4/px4-simulation-ignition.git
 [submodule "src/lib/crypto/libtomcrypt"]
 	path = src/lib/crypto/libtomcrypt
 	url = https://github.com/PX4/libtomcrypt.git

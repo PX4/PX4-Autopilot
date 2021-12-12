@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # PX4 commands need the 'px4-' prefix in bash.
 # (px4-alias.sh is expected to be in the PATH)
 # shellcheck disable=SC1091
@@ -144,6 +146,8 @@ param set-default SENS_MAG_MODE 0
 
 param set-default IMU_GYRO_FFT_EN 1
 
+param set-default -s MC_AT_EN 1
+
 # By default log from boot until first disarm.
 param set-default SDLOG_MODE 1
 # enable default, estimator replay and vision/avoidance logging profiles
@@ -217,6 +221,7 @@ load_mon start
 battery_simulator start
 tone_alarm start
 rc_update start
+manual_control start
 sensors start
 commander start
 navigator start

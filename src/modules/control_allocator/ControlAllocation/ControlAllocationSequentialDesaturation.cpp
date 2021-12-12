@@ -61,13 +61,8 @@ ControlAllocationSequentialDesaturation::allocate()
 		break;
 	}
 
-	// TODO: thrust model (THR_MDL_FAC)
-
 	// Clip
 	clipActuatorSetpoint(_actuator_sp);
-
-	// Compute achieved control
-	_control_allocated = _effectiveness * _actuator_sp;
 }
 
 void ControlAllocationSequentialDesaturation::desaturateActuators(

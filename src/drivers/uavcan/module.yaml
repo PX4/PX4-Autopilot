@@ -1,0 +1,27 @@
+module_name: UAVCAN
+actuator_output:
+  show_subgroups_if: 'UAVCAN_ENABLE>=3'
+  config_parameters:
+    - param: 'UAVCAN_ENABLE'
+      label: 'Configure'
+      function: 'enable'
+    - param: 'UAVCAN_BITRATE'
+      label: 'Bitrate'
+  output_groups:
+    - param_prefix: UAVCAN_EC
+      group_label: 'ESCs'
+      channel_label: 'ESC'
+      standard_params:
+        min: { min: 0, max: 8191, default: 1 }
+        max: { min: 0, max: 8191, default: 8191 }
+        failsafe: { min: 0, max: 8191 }
+      num_channels: 8
+    - param_prefix: UAVCAN_SV
+      group_label: 'Servos'
+      channel_label: 'Servo'
+      standard_params:
+        disarmed: { min: 0, max: 1000, default: 500 }
+        min: { min: 0, max: 1000, default: 0 }
+        max: { min: 0, max: 1000, default: 1000 }
+        failsafe: { min: 0, max: 1000 }
+      num_channels: 8

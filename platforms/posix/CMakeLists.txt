@@ -33,7 +33,7 @@ add_executable(px4
 target_link_libraries(px4
 	PRIVATE
 		${module_libraries}
-		pthread m
+		m
 
 		# horrible circular dependencies that need to be teased apart
 		px4_layer px4_platform
@@ -41,8 +41,12 @@ target_link_libraries(px4
 		parameters
 )
 
-if(NOT APPLE)
+if((NOT APPLE) AND (NOT ANDROID))
 	target_link_libraries(px4 PRIVATE rt)
+endif()
+
+if(NOT ANDROID)
+	target_link_libraries(px4 PRIVATE pthread)
 endif()
 
 target_link_libraries(px4 PRIVATE uORB)

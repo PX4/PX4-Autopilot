@@ -49,7 +49,6 @@ px4_add_module(
 		mission_feasibility_checker.cpp
 		geofence.cpp
 		enginefailure.cpp
-		gpsfailure.cpp
 		follow_target.cpp
 	DEPENDS
 		geo
@@ -57,5 +56,3 @@ px4_add_module(
 		geofence_breach_avoidance
 		motion_planning
 	)
-
-px4_add_functional_gtest(SRC RangeRTLTest.cpp LINKLIBS modules__navigator modules__dataman)

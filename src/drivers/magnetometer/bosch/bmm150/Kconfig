@@ -1,0 +1,5 @@
+menuconfig DRIVERS_MAGNETOMETER_BOSCH_BMM150
+	bool "bmm150"
+	default n
+	---help---
+		Enable support for bosch bmm150
