@@ -311,22 +311,7 @@ void Navigator::run()
 						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
-							// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
-							double lat, lon;
-							float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
-
-							// predict braking distance
-
-							const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
-
-							float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
-											    _param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
-
-							waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
-											   multirotor_braking_distance, &lat, &lon);
-							rep->current.lat = lat;
-							rep->current.lon = lon;
-							rep->current.yaw = get_local_position()->heading;
+							calculate_breaking_stop(rep->current.lat, rep->current.lon, rep->current.yaw);
 							rep->current.yaw_valid = true;
 
 						} else {
@@ -1576,6 +1561,25 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	}
 
 	return true;
+}
+
+void Navigator::calculate_breaking_stop(double &lat, double &lon, float &yaw)
+{
+	// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
+	float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
+
+	// predict braking distance
+
+	const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
+
+	float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
+					    _param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
+
+	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
+					   multirotor_braking_distance, &lat, &lon);
+	lat = lat;
+	lon = lon;
+	yaw = get_local_position()->heading;
 }
 
 int Navigator::print_usage(const char *reason)
