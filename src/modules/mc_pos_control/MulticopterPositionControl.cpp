@@ -455,11 +455,13 @@ void MulticopterPositionControl::Run()
 			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::flight);
 			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
-			// make sure takeoff ramp is not amended by acceleration feed-forward
 			if (!flying) {
-				_setpoint.acceleration[2] = NAN;
-				// hover_thrust maybe reset on takeoff
 				_control.setHoverThrust(_param_mpc_thr_hover.get());
+			}
+
+			// make sure takeoff ramp is not amended by acceleration feed-forward
+			if (_takeoff.getTakeoffState() == TakeoffState::rampup) {
+				_setpoint.acceleration[2] = NAN;
 			}
 
 			if (not_taken_off || flying_but_ground_contact) {
