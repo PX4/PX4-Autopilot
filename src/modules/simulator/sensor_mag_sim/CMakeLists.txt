@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,47 +31,15 @@
 #
 ############################################################################
 
-option(ENABLE_UART_RC_INPUT "Enable RC Input from UART mavlink connection" OFF)
-
-if(ENABLE_UART_RC_INPUT)
-	if (APPLE)
-		set(PIXHAWK_DEVICE "/dev/cu.usbmodem1")
-	elseif (UNIX AND NOT APPLE)
-		set(PIXHAWK_DEVICE "/dev/ttyACM0")
-	elseif (WIN32)
-		set(PIXHAWK_DEVICE "COM3")
-	endif()
-
-	set(PIXHAWK_DEVICE_BAUD 115200)
-endif()
-configure_file(simulator_config.h.in simulator_config.h @ONLY)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
 px4_add_module(
-	MODULE modules__simulator
-	MAIN simulator
+	MODULE modules__simulator__sensor_mag_sim
+	MAIN sensor_mag_sim
 	COMPILE_FLAGS
-		-Wno-double-promotion
-		-Wno-cast-align
-		-Wno-address-of-packed-member # TODO: fix in c_library_v2
-	INCLUDES
-		${CMAKE_BINARY_DIR}/mavlink
-		${CMAKE_BINARY_DIR}/mavlink/development
 	SRCS
-		simulator.cpp
-		simulator_mavlink.cpp
+		SensorMagSim.cpp
+		SensorMagSim.hpp
 	DEPENDS
-		mavlink_c_generate
-		conversion
-		geo
-		drivers_accelerometer
-		drivers_barometer
-		drivers_gyroscope
 		drivers_magnetometer
+		geo
+		px4_work_queue
 	)
-target_include_directories(modules__simulator INTERFACE ${CMAKE_BINARY_DIR}/mavlink)
-
-add_subdirectory(battery_simulator)
-add_subdirectory(sensor_baro_sim)
-add_subdirectory(sensor_gps_sim)
-add_subdirectory(sensor_mag_sim)

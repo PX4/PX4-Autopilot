@@ -30,64 +30,62 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file dataman_mocks.h
- * Provides a minimal dataman implementation to compile against for testing
- *
- * @author Roman Bapst
- * @author Julian Kent
- */
+
 #pragma once
 
-#include <dataman/dataman.h>
-extern "C" {
-	__EXPORT ssize_t
-	dm_read(
-		dm_item_t item,			/* The item type to retrieve */
-		unsigned index,			/* The index of the item */
-		void *buffer,			/* Pointer to caller data buffer */
-		size_t buflen			/* Length in bytes of data to retrieve */
-	) {return 0;};
+#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_global_position.h>
 
-	/** write to the data manager store */
-	__EXPORT ssize_t
-	dm_write(
-		dm_item_t  item,		/* The item type to store */
-		unsigned index,			/* The index of the item */
-		const void *buffer,		/* Pointer to caller data buffer */
-		size_t buflen			/* Length in bytes of data to retrieve */
-	) {return 0;};
+using namespace time_literals;
 
-	/**
-	 * Lock all items of a type. Can be used for atomic updates of multiple items (single items are always updated
-	 * atomically).
-	 * Note that this lock is independent from dm_read & dm_write calls.
-	 * @return 0 on success and lock taken, -1 on error (lock not taken, errno set)
-	 */
-	__EXPORT int
-	dm_lock(
-		dm_item_t item			/* The item type to lock */
-	) {return 0;};
+class SensorBaroSim : public ModuleBase<SensorBaroSim>, public ModuleParams, public px4::ScheduledWorkItem
+{
+public:
+	SensorBaroSim();
+	~SensorBaroSim() override;
 
-	/**
-	 * Try to lock all items of a type (@see sem_trywait()).
-	 * @return 0 if lock is taken, -1 otherwise (on error or if already locked. errno is set accordingly)
-	 */
-	__EXPORT int
-	dm_trylock(
-		dm_item_t item			/* The item type to lock */
-	) {return 0;};
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/** Unlock all items of a type */
-	__EXPORT void
-	dm_unlock(
-		dm_item_t item			/* The item type to unlock */
-	) {};
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	/** Erase all items of this type */
-	__EXPORT int
-	dm_clear(
-		dm_item_t item			/* The item type to clear */
-	) {return 0;};
-}
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
+	bool init();
+
+private:
+	void Run() override;
+
+	// generate white Gaussian noise sample with std=1
+	static float generate_wgn();
+
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position_groundtruth)};
+
+	bool _baro_rnd_use_last{false};
+	double _baro_rnd_y2{0.0};
+	float _baro_drift_pa_per_sec{0.0};
+	float _baro_drift_pa{0.0};
+
+	hrt_abstime _last_update_time{0};
+
+	PX4Barometer _px4_baro{6620172}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SIM_BARO_OFF_P>) _sim_baro_off_p,
+		(ParamFloat<px4::params::SIM_BARO_OFF_P>) _sim_baro_off_t
+	)
+};

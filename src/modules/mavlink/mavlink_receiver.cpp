@@ -2569,6 +2569,7 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 	transponder_report_s t{};
 	t.timestamp = hrt_absolute_time();
 	mav_array_memcpy(t.uas_id, utm_pos.uas_id, PX4_GUID_BYTE_LENGTH);
+	t.icao_address = msg->sysid;
 	t.lat = utm_pos.lat * 1e-7;
 	t.lon = utm_pos.lon * 1e-7;
 	t.altitude = utm_pos.alt / 1000.0f;
