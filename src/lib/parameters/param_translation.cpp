@@ -150,13 +150,15 @@ bool param_modify_on_import(bson_node_t node)
 	{
 		if (strcmp("NAV_GPSF_LT", node->name) == 0) {
 			strcpy(node->name, "FW_GPSF_LT");
-			PX4_INFO("copying  %s -> %s", "NAV_GPSF_LT", "FW_GPSF_LT");
+			node->i32 = static_cast<int32_t>(node->d);
+			node->type = BSON_INT32;
+			PX4_INFO("copying %s -> %s", "NAV_GPSF_LT", "FW_GPSF_LT");
 			return true;
 		}
 
 		if (strcmp("NAV_GPSF_R", node->name) == 0) {
 			strcpy(node->name, "FW_GPSF_R");
-			PX4_INFO("copying and inverting sign %s -> %s", "NAV_GPSF_R", "FW_GPSF_R");
+			PX4_INFO("copying %s -> %s", "NAV_GPSF_R", "FW_GPSF_R");
 			return true;
 		}
 	}
