@@ -110,7 +110,7 @@ Loiter::set_loiter_position()
 			setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
 
 		} else {
-			setLoiterItemFromCurrentPosition(&_mission_item);
+			setLoiterItemFromCurrentPositionWithBreaking(&_mission_item);
 		}
 
 	}
