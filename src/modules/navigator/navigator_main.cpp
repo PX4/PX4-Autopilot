@@ -1577,8 +1577,6 @@ void Navigator::calculate_breaking_stop(double &lat, double &lon, float &yaw)
 
 	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
 					   multirotor_braking_distance, &lat, &lon);
-	lat = lat;
-	lon = lon;
 	yaw = get_local_position()->heading;
 }
 
