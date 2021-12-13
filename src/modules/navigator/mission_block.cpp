@@ -705,6 +705,17 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 }
 
 void
+MissionBlock::setLoiterItemFromCurrentPositionWithBreaking(struct mission_item_s *item)
+{
+	setLoiterItemCommonFields(item);
+
+	_navigator->calculate_breaking_stop(item->lat, item->lon, item->yaw);
+
+	item->altitude = _navigator->get_global_position()->alt;
+	item->loiter_radius = _navigator->get_loiter_radius();
+}
+
+void
 MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
 {
 	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
