@@ -76,7 +76,7 @@
  */
 class __EXPORT UavcanServers
 {
-	static constexpr unsigned NumIfaces = 1;  // UAVCAN_STM32_NUM_IFACES
+	static constexpr unsigned NumIfaces = 2;  // UAVCAN_STM32_NUM_IFACES
 
 	static constexpr unsigned StackSize  = 6000;
 	static constexpr unsigned Priority  =  120;

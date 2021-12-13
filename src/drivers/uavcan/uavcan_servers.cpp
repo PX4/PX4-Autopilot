@@ -291,7 +291,6 @@ UavcanServers::run(pthread_addr_t)
 
 	/* the subscribe call needs to happen in the same thread,
 	 * so not in the constructor */
-	uORB::Subscription armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription vcmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription param_request_sub{ORB_ID(uavcan_parameter_request)};
 
@@ -564,18 +563,6 @@ UavcanServers::run(pthread_addr_t)
 				ack.target_component = cmd.source_component;
 				ack.timestamp = hrt_absolute_time();
 				_command_ack_pub.publish(ack);
-			}
-		}
-
-		// Shut down once armed
-		// TODO (elsewhere): start up again once disarmed?
-		if (armed_sub.updated()) {
-			actuator_armed_s armed;
-
-			if (armed_sub.copy(&armed)) {
-				if (armed.armed) {
-					_subnode_thread_should_exit.store(true);
-				}
 			}
 		}
 	}
