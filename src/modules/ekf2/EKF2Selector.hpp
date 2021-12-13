@@ -39,6 +39,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/time.h>
+#include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
@@ -107,7 +108,9 @@ private:
 			estimator_odometry_sub{ORB_ID(estimator_odometry), i},
 			estimator_wind_sub{ORB_ID(estimator_wind), i},
 			instance(i)
-		{}
+		{
+			healthy.set_hysteresis_time_from(false, 1_s);
+		}
 
 		uORB::SubscriptionCallbackWorkItem estimator_attitude_sub;
 		uORB::SubscriptionCallbackWorkItem estimator_status_sub;
@@ -130,7 +133,8 @@ private:
 		float combined_test_ratio{NAN};
 		float relative_test_ratio{NAN};
 
-		bool healthy{false};
+		systemlib::Hysteresis healthy{false};
+
 		bool warning{false};
 		bool filter_fault{false};
 		bool timeout{false};

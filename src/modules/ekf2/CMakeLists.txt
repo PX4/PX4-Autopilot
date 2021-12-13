@@ -75,6 +75,7 @@ px4_add_module(
 
 	DEPENDS
 		geo
+		hysteresis
 		perf
 		EKF2Utility
 		px4_work_queue
