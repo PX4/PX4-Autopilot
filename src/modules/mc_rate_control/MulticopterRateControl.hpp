@@ -94,7 +94,7 @@ private:
 	void updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt);
 
 	void publishTorqueSetpoint(const matrix::Vector3f &torque_sp, const hrt_abstime &timestamp_sample);
-	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
+	void publishThrustSetpoint(const float thrust_setpoint, const hrt_abstime &timestamp_sample);
 
 	RateControl _rate_control; ///< class for rate control calculations
 
@@ -103,7 +103,7 @@ private:
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _control_allocator_status_sub{ORB_ID(control_allocator_status)};
 	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _v_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Subscription _v_rates_setpoint_sub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -115,7 +115,7 @@ private:
 	uORB::Publication<actuator_controls_s>		_actuators_0_pub;
 	uORB::Publication<actuator_controls_status_s>	_actuator_controls_status_0_pub{ORB_ID(actuator_controls_status_0)};
 	uORB::PublicationMulti<rate_ctrl_status_s>	_controller_status_pub{ORB_ID(rate_ctrl_status)};
-	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_setpoint_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
@@ -132,9 +132,9 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
-	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
-
-	float		_thrust_sp{0.0f};		/**< thrust setpoint */
+	// keep setpoint values between updates
+	matrix::Vector3f _rates_setpoint{};
+	float _thrust_setpoint{0.0f};
 
 	hrt_abstime _last_run{0};
 
