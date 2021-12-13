@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,53 +31,36 @@
  *
  ****************************************************************************/
 
-/**
- * @file WelfordMean.hpp
- *
- * Welford's online algorithm for computing mean and variance.
- */
+#include <gtest/gtest.h>
+#include <random>
+#include <lib/matrix/matrix/math.hpp>
+#include "WelfordMean.hpp"
 
-#pragma once
+using namespace math;
+using matrix::Vector3f;
 
-namespace math
+TEST(WelfordMeanTest, NoisySignal)
 {
+	const float std_dev = 3.f;
+	std::normal_distribution<float> standard_normal_distribution{0.f, std_dev};
+	std::default_random_engine random_generator{}; // Pseudo-random generator with constant seed
+	random_generator.seed(42);
+	WelfordMean<Vector3f> welford{};
 
-template<typename T>
-class WelfordMean
-{
-public:
-	// For a new value, compute the new count, new mean, the new M2.
-	void update(const T &new_value)
-	{
-		_count++;
-
-		// mean accumulates the mean of the entire dataset
-		const T delta{new_value - _mean};
-		_mean += delta / _count;
-
-		// M2 aggregates the squared distance from the mean
-		// count aggregates the number of samples seen so far
-		_M2 += delta.emult(new_value - _mean);
+	for (int i = 0; i < 50; i++) {
+		const float noisy_value = standard_normal_distribution(random_generator);
+		welford.update(Vector3f(noisy_value, noisy_value - 1.f, noisy_value + 1.f));
 	}
 
-	bool valid() const { return _count > 2; }
-	unsigned count() const { return _count; }
+	EXPECT_TRUE(welford.valid());
+	const Vector3f mean = welford.mean();
+	const Vector3f var = welford.variance();
+	const float var_real = std_dev * std_dev;
 
-	void reset()
-	{
-		_count = 0;
-		_mean = {};
-		_M2 = {};
-	}
-
-	// Retrieve the mean, variance and sample variance
-	T mean() const { return _mean; }
-	T variance() const { return _M2 / _count; }
-	T sample_variance() const { return _M2 / (_count - 1); }
-private:
-	T _mean{};
-	T _M2{};
-	unsigned _count{0};
-};
-
-} // namespace math
+	EXPECT_NEAR(mean(0), 0.f, 0.7f);
+	EXPECT_NEAR(mean(1), -1.f, 0.7f);
+	EXPECT_NEAR(mean(2), 1.f, 0.7f);
+	EXPECT_NEAR(var(0), var_real, 0.1f);
+	EXPECT_NEAR(var(1), var_real, 0.1f);
+	EXPECT_NEAR(var(2), var_real, 0.1f);
+}
