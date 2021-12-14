@@ -915,14 +915,6 @@ Mission::set_mission_items()
 					mission_item_next_position = _mission_item;
 					has_next_position_item = true;
 
-					float altitude = _navigator->get_global_position()->alt;
-
-					if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-						altitude = pos_sp_triplet->current.alt;
-					}
-
-					_mission_item.altitude = altitude;
-					_mission_item.altitude_is_relative = false;
 					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
@@ -959,22 +951,6 @@ Mission::set_mission_items()
 					mission_item_next_position = _mission_item;
 					has_next_position_item = true;
 
-					/*
-					 * Ignoring waypoint altitude:
-					 * Set altitude to the same as we have now to prevent descending too fast into
-					 * the ground. Actual landing will descend anyway until it touches down.
-					 * XXX: We might want to change that at some point if it is clear to the user
-					 * what the altitude means on this waypoint type.
-					 */
-					float altitude = _navigator->get_global_position()->alt;
-
-					if (pos_sp_triplet->current.valid
-					    && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
-						altitude = pos_sp_triplet->current.alt;
-					}
-
-					_mission_item.altitude = altitude;
-					_mission_item.altitude_is_relative = false;
 					_mission_item.nav_cmd = NAV_CMD_WAYPOINT;
 					_mission_item.autocontinue = true;
 					_mission_item.time_inside = 0.0f;
