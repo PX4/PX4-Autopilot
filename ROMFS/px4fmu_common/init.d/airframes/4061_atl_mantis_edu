@@ -19,8 +19,6 @@
 set MIXER none
 set MIXER_AUX none
 
-param set-default SYS_DM_BACKEND 1
-
 # Battery settings
 param set-default BAT_CRIT_THR 0.20
 param set-default BAT_LOW_THR 0.25
