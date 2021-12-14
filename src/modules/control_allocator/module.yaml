@@ -525,7 +525,7 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
                     parameters:
-                      - label: 'Lock elevons in MC mode'
+                      - label: 'Lock control surfaces in hover'
                         name: VT_ELEV_MC_LOCK
 
             3: # Tiltrotor VTOL
@@ -565,7 +565,7 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
                     parameters:
-                      - label: 'Lock elevons in MC mode'
+                      - label: 'Lock control surfaces in hover'
                         name: VT_ELEV_MC_LOCK
                   - actuator_type: 'servo'
                     group_label: 'Tilt Servos'
@@ -617,7 +617,7 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
                     parameters:
-                      - label: 'Lock elevons in MC mode'
+                      - label: 'Lock control surfaces in hover'
                         name: VT_ELEV_MC_LOCK
 
             5: # Rover (Ackermann)
