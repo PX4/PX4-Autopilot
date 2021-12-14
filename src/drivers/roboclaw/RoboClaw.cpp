@@ -55,6 +55,7 @@
 #include <uORB/Publication.hpp>
 #include <drivers/drv_hrt.h>
 #include <math.h>
+#include <mathlib/mathlib.h>
 
 // The RoboClaw has a serial communication timeout of 10ms.
 // Add a little extra to account for timing inaccuracy
@@ -75,6 +76,8 @@
 
 bool RoboClaw::taskShouldExit = false;
 
+using namespace time_literals;
+
 RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
 	_uart(0),
 	_uart_set(),
@@ -88,6 +91,7 @@ RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
 	_param_handles.actuator_write_period_ms = 	param_find("RBCLW_WRITE_PER");
 	_param_handles.encoder_read_period_ms = 	param_find("RBCLW_READ_PER");
 	_param_handles.counts_per_rev = 			param_find("RBCLW_COUNTS_REV");
+	printf("Baudrate parameter: %s\n", baudRateParam);
 	_param_handles.serial_baud_rate = 			param_find(baudRateParam);
 	_param_handles.address = 					param_find("RBCLW_ADDRESS");
 
@@ -105,6 +109,7 @@ RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
 	if (ret < 0) { err(1, "failed to get attr"); }
 
 	uart_config.c_oflag &= ~ONLCR; // no CR for every LF
+	uart_config.c_cflag &= ~CRTSCTS;
 	ret = cfsetispeed(&uart_config, _parameters.serial_baud_rate);
 
 	if (ret < 0) { err(1, "failed to set input speed"); }
@@ -118,15 +123,16 @@ RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
 	if (ret < 0) { err(1, "failed to set attr"); }
 
 	FD_ZERO(&_uart_set);
+	FD_SET(_uart, &_uart_set);
 
 	// setup default settings, reset encoders
-	resetEncoders();
+	//resetEncoders();
 }
 
 RoboClaw::~RoboClaw()
 {
-	setMotorDutyCycle(MOTOR_1, 0.0);
-	setMotorDutyCycle(MOTOR_2, 0.0);
+	// setMotorDutyCycle(MOTOR_1, 0.0);
+	// setMotorDutyCycle(MOTOR_2, 0.0);
 	close(_uart);
 }
 
@@ -149,10 +155,7 @@ void RoboClaw::taskMain()
 	// It is updated at the end of every loop. Sometimes, if the actuator_controls_0 message came in right before
 	// I should have read the encoders, waitTime will be 0. This is fine. When waitTime is 0, poll() will return
 	// immediately with a timeout. (Or possibly with a message, if one happened to be available at that exact moment)
-	uint64_t encoderTaskLastRun = 0;
-	int waitTime = 0;
-
-	uint64_t actuatorsLastWritten = 0;
+	int waitTime = 100_ms;
 
 	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
 	orb_set_interval(_actuatorsSub, _parameters.actuator_write_period_ms);
@@ -168,15 +171,9 @@ void RoboClaw::taskMain()
 	fds[2].fd = _armedSub;
 	fds[2].events = POLLIN;
 
-	memset((void *) &_wheelEncoderMsg[0], 0, sizeof(_wheelEncoderMsg));
-	_wheelEncoderMsg[0].pulses_per_rev = _parameters.counts_per_rev;
-	_wheelEncoderMsg[1].pulses_per_rev = _parameters.counts_per_rev;
-
 	while (!taskShouldExit) {
 
 		int pret = poll(fds, sizeof(fds) / sizeof(pollfd), waitTime / 1000);
-
-		bool actuators_timeout = int(hrt_absolute_time() - actuatorsLastWritten) > 2000 * _parameters.actuator_write_period_ms;
 
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_update), _paramSub, &_paramUpdate);
@@ -184,58 +181,25 @@ void RoboClaw::taskMain()
 		}
 
 		// No timeout, update on either the actuator controls or the armed state
-		if (pret > 0 && (fds[1].revents & POLLIN || fds[2].revents & POLLIN || actuators_timeout)) {
+		if (pret > 0 && (fds[1].revents & POLLIN || fds[2].revents & POLLIN)) {
 			orb_copy(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuatorControls);
 			orb_copy(ORB_ID(actuator_armed), _armedSub, &_actuatorArmed);
 
-			int drive_ret = 0, turn_ret = 0;
-
 			const bool disarmed = !_actuatorArmed.armed || _actuatorArmed.lockdown || _actuatorArmed.manual_lockdown
-					      || _actuatorArmed.force_failsafe || actuators_timeout;
+					      || _actuatorArmed.force_failsafe;
 
 			if (disarmed) {
-				// If disarmed, I want to be certain that the stop command gets through.
-				int tries = 0;
-
-				while (tries < STOP_RETRIES && ((drive_ret = drive(0.0)) <= 0 || (turn_ret = turn(0.0)) <= 0)) {
-					PX4_ERR("Error trying to stop: Drive: %d, Turn: %d", drive_ret, turn_ret);
-					tries++;
-					px4_usleep(TIMEOUT_US);
-				}
+				setMotorDutyCycle(MOTOR_1, 0.f);
+				setMotorDutyCycle(MOTOR_2, 0.f);
 
 			} else {
-				drive_ret = drive(_actuatorControls.control[actuator_controls_s::INDEX_THROTTLE]);
-				turn_ret = turn(_actuatorControls.control[actuator_controls_s::INDEX_YAW]);
-
-				if (drive_ret <= 0 || turn_ret <= 0) {
-					PX4_ERR("Error controlling RoboClaw. Drive err: %d. Turn err: %d", drive_ret, turn_ret);
-				}
-			}
-
-			actuatorsLastWritten = hrt_absolute_time();
-
-		} else {
-			// A timeout occurred, which means that it's time to update the encoders
-			encoderTaskLastRun = hrt_absolute_time();
-
-			if (readEncoder() > 0) {
-
-				for (int i = 0; i < 2; i++) {
-					_wheelEncoderMsg[i].timestamp = encoderTaskLastRun;
-
-					_wheelEncoderMsg[i].encoder_position = _encoderCounts[i];
-					_wheelEncoderMsg[i].speed = _motorSpeeds[i];
-
-					_wheelEncodersAdv[i].publish(_wheelEncoderMsg[i]);
-				}
-
-			} else {
-				PX4_ERR("Error reading encoders");
+				const float throttle = _actuatorControls.control[actuator_controls_s::INDEX_THROTTLE];
+				const float yaw = _actuatorControls.control[actuator_controls_s::INDEX_YAW];
+				const float scale = 0.3f;
+				setMotorDutyCycle(MOTOR_1, (throttle - yaw) * scale);
+				setMotorDutyCycle(MOTOR_2, (throttle + yaw) * scale);
 			}
 		}
-
-		waitTime = _parameters.encoder_read_period_ms * 1000 - (hrt_absolute_time() - encoderTaskLastRun);
-		waitTime = waitTime < 0 ? 0 : waitTime;
 	}
 
 	orb_unsubscribe(_actuatorsSub);
@@ -426,16 +390,12 @@ int RoboClaw::_sendUnsigned7Bit(e_command command, float data)
 
 int RoboClaw::_sendSigned16Bit(e_command command, float data)
 {
-	if (data > 1.0f) {
-		data = 1.0f;
-
-	} else if (data < -1.0f) {
-		data = -1.0f;
-	}
-
-	auto buff = (uint16_t)(data * INT16_MAX);
+	int16_t duty = math::constrain(data, -1.f, 1.f) * INT16_MAX;
+	uint8_t buff[2];
+	buff[0] = (duty >> 8) & 0xFF; // High byte
+	buff[1] = duty & 0xFF; // Low byte
 	uint8_t recv_buff;
-	return _transaction(command, (uint8_t *) &buff, 2, &recv_buff, 1);
+	return _transaction(command, (uint8_t *) &buff, 2, &recv_buff, 2);
 }
 
 int RoboClaw::_sendNothing(e_command command)
@@ -488,6 +448,14 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 		buf[wbytes - 1] = sum & 0xFFu;
 	}
 
+	// printf("Write: ");
+
+	// for (size_t i = 0; i < wbytes; i++) {
+	// 	printf("%X ", buf[i]);
+	// }
+
+	// printf("\n");
+
 	int count = write(_uart, buf, wbytes);
 
 	if (count < (int) wbytes) { // Did not successfully send all bytes.
@@ -495,30 +463,37 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 		return -1;
 	}
 
+	// else {
+	// 	printf("Successfully wrote %d of %zu bytes\n", count, wbytes);
+	// }
+
 	// READ
 
-	FD_ZERO(&_uart_set);
-	FD_SET(_uart, &_uart_set);
 
 	uint8_t *rbuff_curr = rbuff;
 	size_t bytes_read = 0;
 
 	// select(...) returns as soon as even 1 byte is available. read(...) returns immediately, no matter how many
 	// bytes are available. I need to keep reading until I get the number of bytes I expect.
+	//printf("Read: \n");
 	while (bytes_read < rbytes) {
 		// select(...) may change this timeout struct (because it is not const). So I reset it every time.
 		_uart_timeout.tv_sec = 0;
 		_uart_timeout.tv_usec = TIMEOUT_US;
 		err_code = select(_uart + 1, &_uart_set, nullptr, nullptr, &_uart_timeout);
+		//printf("Select: %d\n", err_code);
 
 		// An error code of 0 means that select timed out, which is how the Roboclaw indicates an error.
 		if (err_code <= 0) {
+			printf("select error: %d\n", err_code);
 			return err_code;
 		}
 
 		err_code = read(_uart, rbuff_curr, rbytes - bytes_read);
+		//printf("Read: %d\n", err_code);
 
 		if (err_code <= 0) {
+			printf("read error: %d\n", err_code);
 			return err_code;
 
 		} else {
@@ -526,6 +501,14 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 			rbuff_curr += err_code;
 		}
 	}
+
+	// printf("Read: ");
+
+	// for (size_t i = 0; i < bytes_read; i++) {
+	// 	printf("%X ", rbuff[i]);
+	// }
+
+	// printf("\n");
 
 	//TODO: Clean up this mess of IFs and returns
 
@@ -540,6 +523,7 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 		checksum_calc = _calcCRC(rbuff, bytes_read - 2, checksum_calc);
 		uint16_t checksum_recv = (rbuff[bytes_read - 2] << 8) + rbuff[bytes_read - 1];
 
+		//printf("crc calc: %X crc rec: %X\n", checksum_calc, checksum_recv);
 		if (checksum_calc == checksum_recv) {
 			return bytes_read;
 
