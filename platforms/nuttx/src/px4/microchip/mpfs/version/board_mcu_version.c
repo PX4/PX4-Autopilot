@@ -185,11 +185,22 @@ void determine_hw(void)
 	px4_arch_configgpio(GPIO_HW_VERSION_PIN1);
 	px4_arch_configgpio(GPIO_HW_VERSION_PIN2);
 	px4_arch_configgpio(GPIO_HW_VERSION_PIN3);
+
+	/* wait pins to set */
+	usleep(5);
+
 	pin1 = px4_arch_gpioread(GPIO_HW_VERSION_PIN1);
 	pin2 = px4_arch_gpioread(GPIO_HW_VERSION_PIN2);
 	pin3 = px4_arch_gpioread(GPIO_HW_VERSION_PIN3);
 
 	hw_version = (pin3 << 2) | (pin2 << 1) | pin1;
+
+#ifdef BOARD_HAS_MULTIPURPOSE_VERSION_PINS
+	/* NOTE: utilizes same GPIOs as LEDs. Restore GPIO pin configuration */
+	px4_arch_configgpio(GPIO_nLED_RED);
+	px4_arch_configgpio(GPIO_nLED_GREEN);
+	px4_arch_configgpio(GPIO_nLED_BLUE);
+#endif
 
 }
 
