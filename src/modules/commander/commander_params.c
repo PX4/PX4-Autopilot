@@ -648,7 +648,7 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 45);
  *
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
+PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
 
 /**
  * Rearming grace period
