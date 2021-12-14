@@ -65,12 +65,19 @@ jobs:
         run: |
           set -exu
           pkg=$(find bin -name 'px4_fmu-v5_ssrc*.px4')
+          saluki_pkg=$(find bin -name 'ssrc_saluki-*.px4')
           pkg_name=$(basename $pkg)
+          saluki_pkg_name=$(basename $saluki_pkg)
           jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
                      --build-name "$BUILD_NAME_PX4" \
                      --build-number "$GITHUB_SHA" \
                      "$pkg" \
                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/$pkg_name"
+          jfrog rt u --target-props COMMIT="$GITHUB_SHA" \
+                     --build-name "$BUILD_NAME_PX4" \
+                     --build-number "$GITHUB_SHA" \
+                     "$saluki_pkg" \
+                     "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_pkg_name"
           jfrog rt build-publish "$BUILD_NAME_PX4" "$GITHUB_SHA"
           jfrog rt bpr "$BUILD_NAME_PX4" "$GITHUB_SHA" "$ARTIFACTORY_GEN_REPO" \
                        --status dev \
@@ -78,6 +85,9 @@ jobs:
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/$pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/pixhawk/latest/px4_fmu-v5_ssrc-LATEST.px4"
+          jfrog rt cp --flat \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_pkg_name" \
+                      "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_default.px4"
 
       - name: Upload px4-fwupdater build to Artifactory
         env:
