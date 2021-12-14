@@ -82,11 +82,11 @@ static void usage()
 	PRINT_MODULE_DESCRIPTION(R"DESCR_STR(
 ### Description
 
-This driver communicates over UART with the [Roboclaw motor driver](http://downloads.basicmicro.com/docs/roboclaw_user_manual.pdf).
+This driver communicates over UART with the [Roboclaw motor driver](https://www.basicmicro.com/motor-controller).
 It performs two tasks:
 
- - Control the motors based on the `actuator_controls_0` UOrb topic.
- - Read the wheel encoders and publish the raw data in the `wheel_encoders` UOrb topic
+ - Control the motors based on the `actuator_controls_0` uORB topic.
+ - Read the wheel encoders and publish the raw data in the `wheel_encoders` uORB topic
 
 In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
 your flight controller's UART port should be connected to the Roboclaw as shown in the documentation. For Pixhawk 4,
@@ -132,12 +132,7 @@ All available commands are:
  */
 int roboclaw_main(int argc, char *argv[])
 {
-
-	if (argc < 4) {
-		usage();
-	}
-
-	if (!strcmp(argv[1], "start")) {
+	if (!strcmp(argv[1], "start") && (argc >= 4)) {
 
 		if (thread_running) {
 			printf("roboclaw already running\n");
