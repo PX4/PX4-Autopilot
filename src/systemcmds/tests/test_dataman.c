@@ -119,7 +119,7 @@ task_main(int argc, char *argv[])
 		ssize_t len = (hash % (DM_MAX_DATA_SIZE / 2)) + 2;
 
 		if (len2 != len) {
-			PX4_WARN("task %d: read failed length test, index %d, ret=%zu, len=%zu", my_id, hash, len2, len);
+			PX4_WARN("task %d: read failed length test, index %d, ret=%zd, len=%zd", my_id, hash, len2, len);
 			goto fail;
 		}
 
@@ -127,7 +127,7 @@ task_main(int argc, char *argv[])
 			hit++;
 
 			if (len2 != len) {
-				PX4_WARN("task %d: read failed length test, index %d, wanted %zu, got %zu", my_id, hash, len, len2);
+				PX4_WARN("task %d: read failed length test, index %d, wanted %zd, got %zd", my_id, hash, len, len2);
 				goto fail;
 			}
 
