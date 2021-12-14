@@ -51,7 +51,6 @@ set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
-set DATAMAN_ARGS ""
 
 #
 # Print full system version.
@@ -600,7 +599,6 @@ unset SDCARD_MIXERS_PATH
 unset STARTUP_TUNE
 unset USE_IO
 unset VEHICLE_TYPE
-unset DATAMAN_ARGS
 
 #
 # Boot is complete, inform MAVLink app(s) that the system is now fully up and running.
