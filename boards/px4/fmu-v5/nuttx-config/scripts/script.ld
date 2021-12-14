@@ -82,7 +82,7 @@ MEMORY
 
 OUTPUT_ARCH(arm)
 EXTERN(_vectors)
-ENTRY(_stext)
+ENTRY(_vectors)
 
 /*
  * Ensure that abort() is present in the final object.  The exception handling
@@ -91,12 +91,32 @@ ENTRY(_stext)
 EXTERN(abort)
 EXTERN(_bootdelay_signature)
 EXTERN(_main_toc)
+EXTERN(_main_toc_sig)
 
 SECTIONS
 {
-	.text : {
+	/* Provide dummy relocation symbols for the dummy ToC */
+	PROVIDE(_toc_start = 0);
+	PROVIDE(_toc_end = 0);
+	PROVIDE(_toc_signature = 0);
+	PROVIDE(_app_start = 0);
+	PROVIDE(_app_end = 0);
+	PROVIDE(_boot_signature = 0);
+
+	/* Make a hole for the ToC and signature */
+	toc (NOLOAD) : {
+		*(.main_toc)
+		*(.main_toc_sig)
+		FILL(0xff);
+		. = ALIGN(8);
+	} > FLASH_AXIM
+
+	.vectors : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
+	} > FLASH_AXIM
+
+	.text : {
 		. = ALIGN(32);
 		/*
 		This signature provides the bootloader with a way to delay booting
@@ -104,7 +124,6 @@ SECTIONS
 		_bootdelay_signature = ABSOLUTE(.);
 		FILL(0xffecc2925d7d05c5)
 		. += 8;
-		*(.main_toc)
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
@@ -180,11 +199,4 @@ SECTIONS
 	} > ITCM_RAM AT > FLASH_AXIM
 
 	_framfuncs = LOADADDR(.ramfunc);
-
-    /* Start of the image signature. This
-     *  has to be in the end of the image
-     */
-	.signature : {
-		_boot_signature = ALIGN(4);
-	} > FLASH_AXIM
 }
