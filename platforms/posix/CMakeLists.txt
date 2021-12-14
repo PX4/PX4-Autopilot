@@ -99,6 +99,18 @@ elseif("${PX4_BOARD}" MATCHES "emlid_navio2")
 
 elseif("${PX4_BOARD}" MATCHES "sitl")
 
+	include(ExternalProject)
+	ExternalProject_Add(mavsdk_tests
+		SOURCE_DIR ${PX4_SOURCE_DIR}/test/mavsdk_tests
+		CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+		BINARY_DIR ${PX4_BINARY_DIR}/mavsdk_tests
+		INSTALL_COMMAND ""
+		USES_TERMINAL_CONFIGURE true
+		USES_TERMINAL_BUILD true
+		EXCLUDE_FROM_ALL true
+		BUILD_ALWAYS 1
+	)
+
 	# vscode launch.json
 	if(${PX4_BOARD_LABEL} MATCHES "replay")
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_replay.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
@@ -106,7 +118,28 @@ elseif("${PX4_BOARD}" MATCHES "sitl")
 		configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch_sim.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)
 	endif()
 
+
+	set(SITL_WORKING_DIR ${PX4_BINARY_DIR}/tmp)
+	file(MAKE_DIRECTORY ${SITL_WORKING_DIR})
+	file(MAKE_DIRECTORY ${SITL_WORKING_DIR}/rootfs)
+
+	# add a symlink to the logs dir to make it easier to find them
+	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/logs
+		COMMAND ${CMAKE_COMMAND} -E create_symlink ${SITL_WORKING_DIR}/rootfs/log logs
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	)
+	add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
+	add_dependencies(px4 logs_symlink)
+
+
 	include(sitl_target)
+
+	include(sitl_target_flightgear)
+	include(sitl_target_gazebo)
+	include(sitl_target_ignition)
+	include(sitl_target_jmavsim)
+	include(sitl_target_jsbsim)
+
 	if(BUILD_TESTING)
 		include(sitl_tests)
 	endif()

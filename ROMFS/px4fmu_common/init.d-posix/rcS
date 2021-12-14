@@ -39,9 +39,10 @@ set LOGGER_BUF                  1000
 
 set RUN_MINIMAL_SHELL           no
 
-# Use the variable set by sitl_run.sh to choose the model settings.
-if [ "$PX4_SIM_MODEL" = "shell" ]; then
+if [ -z ${PX4_SIM_MODEL+x} ]; then
+	# no model set
 	set RUN_MINIMAL_SHELL yes
+	set REQUESTED_AUTOSTART 0
 else
 	# Find the matching Autostart ID (file name has the form: [0-9]+_${PX4_SIM_MODEL})
 	# TODO: unify with rc.autostart generation
