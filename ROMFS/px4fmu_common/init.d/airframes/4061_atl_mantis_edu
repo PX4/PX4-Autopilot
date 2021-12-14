@@ -16,8 +16,10 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER none
-set MIXER_AUX none
+# We set the mixer and ESC manually.
+set MIXER skip
+set MIXER_AUX skip
+set MIXER_FILE ""
 
 # Battery settings
 param set-default BAT_CRIT_THR 0.20

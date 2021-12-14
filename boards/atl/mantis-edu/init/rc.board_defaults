@@ -24,8 +24,3 @@ set LOGGER_ARGS "-m mavlink -c 0.5"
 # Save missions RAM
 set DATAMAN_ARGS "-r"
 
-# We set the mixer and ESC manually.
-set MIXER_FILE ""
-set MIXER "skip"
-set OUTPUT_MODE "skip"
-
