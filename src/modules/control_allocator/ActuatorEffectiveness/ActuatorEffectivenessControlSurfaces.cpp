@@ -82,8 +82,15 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 
 		param_get(_param_handles[i].trim, &_params[i].trim);
 
-		// TODO: enforce limits?
+		// TODO: enforce limits (note that tailsitter uses different limits)?
 		switch (_params[i].type) {
+
+		case Type::LeftAileron:
+			break;
+
+		case Type::RightAileron:
+			break;
+
 		case Type::Elevator:
 			break;
 
@@ -105,12 +112,6 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 		case Type::LeftFlaps:
 		case Type::RightFlaps:
 			torque.setZero();
-			break;
-
-		case Type::LeftAileron:
-			break;
-
-		case Type::RightAileron:
 			break;
 
 		case Type::Airbrakes:
