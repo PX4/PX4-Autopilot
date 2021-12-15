@@ -105,7 +105,6 @@ static const px4_mtd_manifest_t board_mtd_config = {
 	.nconfigs   = 3,
 	.entries = {
 		&fmum_fram,
-		&base_eeprom,
 		&imu_eeprom
 	}
 };
@@ -117,7 +116,9 @@ static const px4_mft_entry_s mtd_mft = {
 
 static const px4_mft_s mft = {
 	.nmft = 1,
-	.mfts = &mtd_mft
+	.mfts = {
+		&mtd_mft
+	}
 };
 
 const px4_mft_s *board_get_manifest(void)
