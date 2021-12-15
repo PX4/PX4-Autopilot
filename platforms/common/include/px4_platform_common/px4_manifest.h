@@ -65,7 +65,7 @@ typedef struct {
 
 typedef struct {
 	const uint32_t        nmft;
-	const px4_mft_entry_s *mfts;
+	const px4_mft_entry_s *mfts[];
 } px4_mft_s;
 
 #include "px4_platform_common/mtd_manifest.h"
