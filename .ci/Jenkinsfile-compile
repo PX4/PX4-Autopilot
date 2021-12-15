@@ -82,6 +82,7 @@ pipeline {
                      "nxp_fmurt1062-v1_default",
                      "nxp_ucans32k146_canbootloader",
                      "nxp_ucans32k146_default",
+                     "qiotek_zealotf427_default",
                      "omnibus_f4sd_default",
                      "raspberrypi_pico_default",
                      "px4_fmu-v2_default",

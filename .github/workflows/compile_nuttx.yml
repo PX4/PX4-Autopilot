@@ -48,6 +48,7 @@ jobs:
           nxp_fmuk66-v3,
           nxp_fmurt1062-v1,
           nxp_ucans32k146,
+          qiotek_zealotf427,
           omnibus_f4sd,
           raspberrypi_pico,
           px4_fmu-v2,

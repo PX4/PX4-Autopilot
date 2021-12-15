@@ -1,0 +1,17 @@
+#!/bin/sh
+#
+# board specific sensors init
+#------------------------------------------------------------------------------
+
+board_adc start
+
+dps310 -s start
+ms5611 -I start
+
+ist8310 -I start -b 1 -a 0x0E
+qmc5883l -I start -b 1 -a 0x0D
+
+icm20602 -s start
+icm20689 -s start
+bmi055 -A -s start
+bmi055 -G -s start
