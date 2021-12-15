@@ -1502,6 +1502,10 @@ Commander::handle_command_actuator_test(const vehicle_command_s &cmd)
 		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 
+	if (_param_com_mot_test_en.get() != 1) {
+		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+	}
+
 	actuator_test_s actuator_test{};
 	actuator_test.timestamp = hrt_absolute_time();
 	actuator_test.function = (int)(cmd.param5 + 0.5);
