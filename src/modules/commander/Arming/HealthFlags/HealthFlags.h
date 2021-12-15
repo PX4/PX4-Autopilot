@@ -76,6 +76,7 @@ struct subsystem_info_s {
 	static constexpr uint64_t SUBSYSTEM_TYPE_SATCOM = 1 << 27;
 	static constexpr uint64_t SUBSYSTEM_TYPE_PREARM_CHECK = 1 << 28;
 	static constexpr uint64_t SUBSYSTEM_TYPE_OBSTACLE_AVOIDANCE = 1 << 29;
+	static constexpr uint64_t SUBSYSTEM_TYPE_PARACHUTE = 1ULL << 32;
 };
 
 void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status);
