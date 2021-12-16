@@ -52,6 +52,7 @@
 PPSCapture::PPSCapture() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	_pps_capture_pub.advertise();
 }
 
 PPSCapture::~PPSCapture()
