@@ -146,11 +146,6 @@ private:
 
 	void handle_vehicle_commands();
 
-#ifdef BOARD_WITH_IO
-# define PARAM_PREFIX "PWM_AUX"
-#else
-# define PARAM_PREFIX "PWM_MAIN"
-#endif
 	MixingOutput _mixing_output {PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	Telemetry *_telemetry{nullptr};

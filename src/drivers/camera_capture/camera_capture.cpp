@@ -43,12 +43,6 @@
 
 #include <board_config.h>
 
-#ifdef BOARD_WITH_IO
-# define PARAM_PREFIX "PWM_AUX"
-#else
-# define PARAM_PREFIX "PWM_MAIN"
-#endif
-
 #define commandParamToInt(n) static_cast<int>(n >= 0 ? n + 0.5f : n - 0.5f)
 
 namespace camera_capture
