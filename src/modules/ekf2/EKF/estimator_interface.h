@@ -136,9 +136,9 @@ public:
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
 	// flag will clear after GNDEFFECT_TIMEOUT uSec
-	void set_gnd_effect_flag(bool gnd_effect)
+	void set_gnd_effect()
 	{
-		_control_status.flags.gnd_effect = gnd_effect;
+		_control_status.flags.gnd_effect = true;
 		_time_last_gnd_effect_on = _time_last_imu;
 	}
 
