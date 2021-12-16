@@ -632,7 +632,7 @@ class Tester:
         else:
             return text_to_format.format(str(n) + " ")
 
-    def sigint_handler(self, sig: signal.Signals, frame: FrameType) \
+    def sigint_handler(self, sig: int, frame: Optional[FrameType]) \
             -> NoReturn:
         print("Received SIGINT")
         print("Stopping all processes ...")
