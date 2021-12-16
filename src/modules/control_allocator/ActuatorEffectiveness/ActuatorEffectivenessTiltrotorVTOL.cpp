@@ -100,8 +100,13 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
 			float control_tilt = actuator_controls_1.control[4] * 2.f - 1.f;
 
-			if (fabsf(control_tilt - _last_tilt_control) > 0.01f && PX4_ISFINITE(_last_tilt_control)) {
+			// initialize _last_tilt_control
+			if (!PX4_ISFINITE(_last_tilt_control)) {
+				_last_tilt_control = control_tilt;
+
+			} else if (fabsf(control_tilt - _last_tilt_control) > 0.01f) {
 				_updated = true;
+				_last_tilt_control = control_tilt;
 			}
 
 			for (int i = 0; i < _tilts.count(); ++i) {
@@ -109,8 +114,6 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 					actuator_sp(i + _first_tilt_idx) += control_tilt;
 				}
 			}
-
-			_last_tilt_control = control_tilt;
 		}
 	}
 }
