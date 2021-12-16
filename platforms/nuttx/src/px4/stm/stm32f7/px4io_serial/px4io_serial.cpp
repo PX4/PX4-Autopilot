@@ -68,13 +68,7 @@ ArchPX4IOSerial::ArchPX4IOSerial() :
 	_current_packet(nullptr),
 	_rx_dma_status(_dma_status_inactive),
 	_completion_semaphore(SEM_INITIALIZER(0)),
-#if 0
-	_pc_dmasetup(perf_alloc(PC_ELAPSED,	"io_dmasetup ")),
-	_pc_dmaerrs(perf_alloc(PC_COUNT,	"io_dmaerrs  "))
-#else
-	_pc_dmasetup(nullptr),
-	_pc_dmaerrs(nullptr)
-#endif
+	_pc_dmaerrs(perf_alloc(PC_COUNT, MODULE_NAME": DMA errors"))
 {
 }
 
@@ -109,7 +103,6 @@ ArchPX4IOSerial::~ArchPX4IOSerial()
 	/* and kill our semaphores */
 	px4_sem_destroy(&_completion_semaphore);
 
-	perf_free(_pc_dmasetup);
 	perf_free(_pc_dmaerrs);
 }
 
@@ -214,7 +207,6 @@ ArchPX4IOSerial::ioctl(unsigned operation, unsigned &arg)
 					if (count >= 5000) {
 						syslog(LOG_INFO, "==== test 1 : %u failures ====\n", fails);
 						perf_print_counter(_pc_txns);
-						perf_print_counter(_pc_dmasetup);
 						perf_print_counter(_pc_retries);
 						perf_print_counter(_pc_timeouts);
 						perf_print_counter(_pc_crcerrs);
@@ -256,7 +248,6 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 
 	/* start RX DMA */
 	perf_begin(_pc_txns);
-	perf_begin(_pc_dmasetup);
 
 	/* DMA setup time ~3µs */
 	_rx_dma_status = _dma_status_waiting;
@@ -307,8 +298,6 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 	//rCR1 &= ~USART_CR1_TE;
 	//rCR1 |= USART_CR1_TE;
 
-	perf_end(_pc_dmasetup);
-
 	/* compute the deadline for a 10ms timeout */
 	struct timespec abstime;
 	clock_gettime(CLOCK_REALTIME, &abstime);
@@ -329,7 +318,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 			/* check for DMA errors */
 			if (_rx_dma_status & DMA_STATUS_TEIF) {
 				// stream transfer error, ensure TX DMA is also stopped before exiting early
-				stm32_dmastop(_tx_dma);
+				_abort_dma();
 				perf_count(_pc_dmaerrs);
 				ret = -EIO;
 				break;
@@ -340,6 +329,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 			_current_packet->crc = 0;
 
 			if ((crc != crc_packet(_current_packet)) || (PKT_CODE(*_current_packet) == PKT_CODE_CORRUPT)) {
+				_abort_dma();
 				perf_count(_pc_crcerrs);
 				ret = -EIO;
 				break;

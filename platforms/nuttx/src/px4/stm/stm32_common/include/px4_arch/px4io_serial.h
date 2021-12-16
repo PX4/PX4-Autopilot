@@ -159,7 +159,6 @@ private:
 	/**
 	 * Performance counters.
 	 */
-	perf_counter_t		_pc_dmasetup;
 	perf_counter_t		_pc_dmaerrs;
 
 	/**
