@@ -68,4 +68,9 @@ set MAV_TYPE 21
 
 set MIXER vtol_convergence
 
-set PWM_OUT 1234
+if ! ver hwcmp MATEK_H743
+then
+	set PWM_OUT 1234
+else
+	set PWM_OUT 3456
+fi	
