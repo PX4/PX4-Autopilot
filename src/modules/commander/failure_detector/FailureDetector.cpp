@@ -191,6 +191,8 @@ void FailureDetector::updateImbalancedPropStatus()
 			if ((imu_status.accel_device_id != 0)
 			    && (imu_status.accel_device_id == _selected_accel_device_id)) {
 				const float dt = math::constrain((float)(imu_status.timestamp - _imu_status_timestamp_prev), 0.01f, 1.f);
+				_imu_status_timestamp_prev = imu_status.timestamp;
+
 				_imbalanced_prop_lpf.setParameters(dt, _imbalanced_prop_lpf_time_constant);
 
 				const float var_x = imu_status.var_accel[0];
