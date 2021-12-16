@@ -36,8 +36,6 @@ param set-default EKF2_OF_POS_Z 0.065
 param set-default EKF2_REQ_HDRIFT 0.3
 param set-default EKF2_REQ_SACC 1
 param set-default EKF2_REQ_VDRIFT 0.3
-param set-default EKF2_RNG_A_HMAX 8
-param set-default EKF2_RNG_A_VMAX 2
 param set-default EKF2_RNG_POS_X 0.055
 param set-default EKF2_RNG_POS_Y -0.01
 param set-default EKF2_RNG_POS_Z 0.065

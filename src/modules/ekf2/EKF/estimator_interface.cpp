@@ -468,8 +468,8 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		max_time_delay_ms = math::max(_params.mag_delay_ms, max_time_delay_ms);
 	}
 
-	// range aid or range height
-	if (_params.range_aid || (_params.vdist_sensor_type == VDIST_SENSOR_RANGE)) {
+	// range height
+	if (_params.vdist_sensor_type == VDIST_SENSOR_RANGE) {
 		max_time_delay_ms = math::max(_params.range_delay_ms, max_time_delay_ms);
 	}
 

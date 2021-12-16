@@ -1045,65 +1045,6 @@ PARAM_DEFINE_FLOAT(EKF2_ANGERR_INIT, 0.1f);
 PARAM_DEFINE_FLOAT(EKF2_RNG_PITCH, 0.0f);
 
 /**
- * Range sensor aid.
- *
- * If this parameter is enabled then the estimator will make use of the range finder measurements
- * to estimate it's height even if range sensor is not the primary height source. It will only do so if conditions
- * for range measurement fusion are met. This enables the range finder to be used during low speed and low altitude
- * operation, eg takeoff and landing, where baro interference from rotor wash is excessive and can corrupt EKF state
- * estimates. It is intended to be used where a vertical takeoff and landing is performed, and horizontal flight does
- * not occur until above EKF2_RNG_A_HMAX. If vehicle motion causes repeated switching between the primary height
- * sensor and range finder, an offset in the local position origin can accumulate. Also range finder measurements
- * are less reliable and can experience unexpected errors. For these reasons, if accurate control of height
- * relative to ground is required, it is recommended to use the MPC_ALT_MODE parameter instead, unless baro errors
- * are severe enough to cause problems with landing and takeoff.
- *
- * @group EKF2
- * @value 0 Range aid disabled
- * @value 1 Range aid enabled
- */
-PARAM_DEFINE_INT32(EKF2_RNG_AID, 1);
-
-/**
- * Maximum horizontal velocity allowed for range aid mode.
- *
- * If the vehicle horizontal speed exceeds this value then the estimator will not fuse range measurements
- * to estimate it's height. This only applies when range aid mode is activated (EKF2_RNG_AID = enabled).
- *
- * @group EKF2
- * @min 0.1
- * @max 2
- * @unit m/s
- */
-PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
-
-/**
- * Maximum absolute altitude (height above ground level) allowed for range aid mode.
- *
- * If the vehicle absolute altitude exceeds this value then the estimator will not fuse range measurements
- * to estimate it's height. This only applies when range aid mode is activated (EKF2_RNG_AID = enabled).
- *
- * @group EKF2
- * @min 1.0
- * @max 10.0
- * @unit m
- */
-PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
-
-/**
- * Gate size used for innovation consistency checks for range aid fusion
- *
- * A lower value means HAGL needs to be more stable in order to use range finder for height estimation
- * in range aid mode
- *
- * @group EKF2
- * @unit SD
- * @min 0.1
- * @max 5.0
- */
-PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
-
-/**
  * Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
  *
  *

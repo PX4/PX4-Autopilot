@@ -552,9 +552,6 @@ private:
 	uint64_t _time_good_vert_accel{0};	///< last time a good vertical accel was detected (uSec)
 	uint16_t _clip_counter{0};		///< counter that increments when clipping ad decrements when not
 
-	// variables used to control range aid functionality
-	bool _is_range_aid_suitable{false};	///< true when range finder can be used in flight as the height reference instead of the primary height sensor
-
 	float _height_rate_lpf{0.0f};
 
 	// update the real time complementary filter states. This includes the prediction
@@ -890,10 +887,6 @@ private:
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion();
 
-	// determine if flight condition is suitable to use range finder instead of the primary height sensor
-	void checkRangeAidSuitability();
-	bool isRangeAidSuitable() const { return _is_range_aid_suitable; }
-
 	// set control flags to use baro height
 	void setControlBaroHeight();
 
@@ -915,7 +908,6 @@ private:
 	void startBaroHgtFusion();
 	void startGpsHgtFusion();
 	void startRngHgtFusion();
-	void startRngAidHgtFusion();
 	void startEvHgtFusion();
 
 	void updateBaroHgtOffset();

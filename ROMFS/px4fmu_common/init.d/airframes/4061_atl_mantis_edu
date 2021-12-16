@@ -74,8 +74,6 @@ param set-default EKF2_PCOEF_XP -0.4
 param set-default EKF2_PCOEF_YN -0.4
 param set-default EKF2_PCOEF_YP -0.4
 
-param set-default EKF2_RNG_A_VMAX 1.0
-param set-default EKF2_RNG_AID 0
 param set-default EKF2_RNG_DELAY 55
 param set-default EKF2_RNG_POS_X -0.035
 param set-default EKF2_RNG_POS_Y 0.0

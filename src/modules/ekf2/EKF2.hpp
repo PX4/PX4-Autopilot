@@ -428,14 +428,6 @@ private:
 		_param_ekf2_rng_gate,	///< range finder fusion innovation consistency gate size (STD)
 		(ParamExtFloat<px4::params::EKF2_MIN_RNG>) _param_ekf2_min_rng,	///< minimum valid value for range when on ground (m)
 		(ParamExtFloat<px4::params::EKF2_RNG_PITCH>) _param_ekf2_rng_pitch,	///< range sensor pitch offset (rad)
-		(ParamExtInt<px4::params::EKF2_RNG_AID>)
-		_param_ekf2_rng_aid,		///< enables use of a range finder even if primary height source is not range finder
-		(ParamExtFloat<px4::params::EKF2_RNG_A_VMAX>)
-		_param_ekf2_rng_a_vmax,	///< maximum allowed horizontal velocity for range aid (m/s)
-		(ParamExtFloat<px4::params::EKF2_RNG_A_HMAX>)
-		_param_ekf2_rng_a_hmax,	///< maximum allowed absolute altitude (AGL) for range aid (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_A_IGATE>)
-		_param_ekf2_rng_a_igate,	///< gate size used for innovation consistency checks for range aid fusion (STD)
 		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>)
 		_param_ekf2_rng_qlty_t, ///< Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 

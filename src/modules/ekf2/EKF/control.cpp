@@ -802,24 +802,14 @@ void Ekf::checkVerticalAccelerationHealth()
 
 void Ekf::controlHeightFusion()
 {
-	checkRangeAidSuitability();
-	const bool do_range_aid = (_params.range_aid == 1) && isRangeAidSuitable();
-
 	switch (_params.vdist_sensor_type) {
 	default:
 		ECL_ERR("Invalid hgt mode: %d", _params.vdist_sensor_type);
 
 	// FALLTHROUGH
 	case VDIST_SENSOR_BARO:
-		if (do_range_aid) {
-			if (!_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-				startRngAidHgtFusion();
-			}
-
-		} else {
-			if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
-				startBaroHgtFusion();
-			}
+		if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
+			startBaroHgtFusion();
 		}
 
 		break;
@@ -849,21 +839,14 @@ void Ekf::controlHeightFusion()
 		// to pass innovation cinsistency checks is handled elsewhere in Ekf::controlHeightSensorTimeouts.
 		// Do switching between GPS and rangefinder if using range finder as a height source when close
 		// to ground and moving slowly. Also handle switch back from emergency Baro sensor when GPS recovers.
-		if (do_range_aid) {
-			if (!_control_status_prev.flags.rng_hgt && _range_sensor.isDataHealthy()) {
-				startRngAidHgtFusion();
-			}
+		if (!_control_status.flags.gps_hgt) {
+			if (!_gps_hgt_intermittent && _gps_checks_passed) {
+				// In fallback mode and GPS has recovered so start using it
+				startGpsHgtFusion();
 
-		} else {
-			if (!_control_status.flags.gps_hgt) {
-				if (!_gps_hgt_intermittent && _gps_checks_passed) {
-					// In fallback mode and GPS has recovered so start using it
-					startGpsHgtFusion();
-
-				} else if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
-					// Use baro as a fallback
-					startBaroHgtFusion();
-				}
+			} else if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
+				// Use baro as a fallback
+				startBaroHgtFusion();
 			}
 		}
 
@@ -905,35 +888,6 @@ void Ekf::controlHeightFusion()
 		if (_control_status.flags.ev_hgt && _ev_data_ready) {
 			fuseEvHgt();
 		}
-	}
-}
-
-void Ekf::checkRangeAidSuitability()
-{
-	if (_control_status.flags.in_air
-	    && _range_sensor.isHealthy()
-	    && isTerrainEstimateValid()) {
-		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
-		// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
-		const float range_hagl = _terrain_vpos - _state.pos(2);
-		const float range_hagl_max = _is_range_aid_suitable ? _params.max_hagl_for_range_aid : (_params.max_hagl_for_range_aid * 0.7f);
-		const bool is_in_range = range_hagl < range_hagl_max;
-
-		const float hagl_test_ratio = (_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var));
-		const bool is_hagl_stable = _is_range_aid_suitable ? (hagl_test_ratio < 1.f) : (hagl_test_ratio < 0.01f);
-
-		if (isHorizontalAidingActive()) {
-			const float max_vel = _is_range_aid_suitable ? _params.max_vel_for_range_aid : (_params.max_vel_for_range_aid * 0.7f);
-			const bool is_below_max_speed = !_state.vel.xy().longerThan(max_vel);
-
-			_is_range_aid_suitable = is_in_range && is_hagl_stable && is_below_max_speed;
-
-		} else {
-			_is_range_aid_suitable = is_in_range && is_hagl_stable;
-		}
-
-	} else {
-		_is_range_aid_suitable = false;
 	}
 }
 

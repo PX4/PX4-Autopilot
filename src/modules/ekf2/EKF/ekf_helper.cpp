@@ -850,7 +850,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 
 	// TODO : calculate visual odometry limits
 
-	const bool relying_on_rangefinder = _control_status.flags.rng_hgt && !_params.range_aid;
+	const bool relying_on_rangefinder = _control_status.flags.rng_hgt;
 
 	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
 
@@ -1307,17 +1307,6 @@ void Ekf::startRngHgtFusion()
 			// EV and range finders are using the same height datum
 			resetHeight();
 		}
-	}
-}
-
-void Ekf::startRngAidHgtFusion()
-{
-	if (!_control_status.flags.rng_hgt) {
-		setControlRangeHeight();
-
-		// calculate height sensor offset such that current
-		// measurement matches our current height estimate
-		_hgt_sensor_offset = _terrain_vpos;
 	}
 }
 
