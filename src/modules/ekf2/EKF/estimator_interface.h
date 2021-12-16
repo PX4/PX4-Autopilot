@@ -135,15 +135,6 @@ public:
 	// set flag if synthetic sideslip measurement should be fused
 	void set_fuse_beta_flag(bool fuse_beta) { _control_status.flags.fuse_beta = (fuse_beta && _control_status.flags.in_air); }
 
-	// set flag if static pressure rise due to ground effect is expected
-	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
-	// flag will clear after GNDEFFECT_TIMEOUT uSec
-	void set_gnd_effect_flag(bool gnd_effect)
-	{
-		_control_status.flags.gnd_effect = gnd_effect;
-		_time_last_gnd_effect_on = _time_last_imu;
-	}
-
 	// set air density used by the multi-rotor specific drag force fusion
 	void set_air_density(float air_density) { _air_density = air_density; }
 

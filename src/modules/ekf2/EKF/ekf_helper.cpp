@@ -1379,14 +1379,23 @@ void Ekf::updateBaroHgtBias()
 	}
 }
 
-void Ekf::checkGroundEffectTimeout()
+void Ekf::updateGroundEffect()
 {
-	// Turn off ground effect compensation if it times out
-	if (_control_status.flags.gnd_effect) {
-		if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
+	if (_control_status.flags.in_air && !_control_status.flags.fixed_wing) {
+		if (isTerrainEstimateValid()) {
+			// automatically set ground effect if terrain is valid
+			float height = _terrain_vpos - _state.pos(2);
+			_control_status.flags.gnd_effect = (height < _params.gnd_effect_max_hgt);
 
-			_control_status.flags.gnd_effect = false;
+		} else if (_control_status.flags.gnd_effect) {
+			// Turn off ground effect compensation if it times out
+			if (isTimedOut(_time_last_gnd_effect_on, GNDEFFECT_TIMEOUT)) {
+				_control_status.flags.gnd_effect = false;
+			}
 		}
+
+	} else {
+		_control_status.flags.gnd_effect = false;
 	}
 }
 

@@ -301,6 +301,20 @@ public:
 	// use the latest IMU data at the current time horizon.
 	Quatf calculate_quaternion() const;
 
+	// set flag if static pressure rise due to ground effect is expected
+	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
+	// flag will clear after GNDEFFECT_TIMEOUT uSec
+	void set_gnd_effect_flag(bool gnd_effect)
+	{
+		if (!isTerrainEstimateValid()) {
+			_control_status.flags.gnd_effect = gnd_effect;
+
+			if (gnd_effect) {
+				_time_last_gnd_effect_on = _time_last_imu;
+			}
+		}
+	}
+
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
 
@@ -921,7 +935,7 @@ private:
 	void updateBaroHgtOffset();
 	void updateBaroHgtBias();
 
-	void checkGroundEffectTimeout();
+	void updateGroundEffect();
 
 	// return an estimation of the GPS altitude variance
 	float getGpsHeightVariance();

@@ -491,24 +491,23 @@ void EKF2::Run()
 
 			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 				const bool was_in_air = _ekf.control_status_flags().in_air;
-				_ekf.set_in_air_status(!vehicle_land_detected.landed);
+				const bool in_air = !vehicle_land_detected.landed;
 
-				if (_armed && (_param_ekf2_gnd_eff_dz.get() > 0.f)) {
-					if (!_had_valid_terrain) {
-						// update ground effect flag based on land detector state if we've never had valid terrain data
-						_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
-					}
+				if (!was_in_air && in_air) {
+					// takeoff
+					_ekf.set_in_air_status(true);
 
-				} else {
-					_ekf.set_gnd_effect_flag(false);
-				}
-
-				// reset learned sensor calibrations on takeoff
-				if (_ekf.control_status_flags().in_air && !was_in_air) {
+					// reset learned sensor calibrations on takeoff
 					_accel_cal = {};
 					_gyro_cal = {};
 					_mag_cal = {};
+
+				} else if (was_in_air && !in_air) {
+					// landing
+					_ekf.set_in_air_status(false);
 				}
+
+				_ekf.set_gnd_effect_flag(vehicle_land_detected.in_ground_effect);
 			}
 		}
 
@@ -895,20 +894,6 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.dist_bottom = math::max(_ekf.getTerrainVertPos() - lpos.z, _param_ekf2_min_rng.get());
 	lpos.dist_bottom_valid = _ekf.isTerrainEstimateValid();
 	lpos.dist_bottom_sensor_bitfield = _ekf.getTerrainEstimateSensorBitfield();
-
-	if (!_had_valid_terrain) {
-		_had_valid_terrain = lpos.dist_bottom_valid;
-	}
-
-	// only consider ground effect if compensation is configured and the vehicle is armed (props spinning)
-	if ((_param_ekf2_gnd_eff_dz.get() > 0.0f) && _armed && lpos.dist_bottom_valid) {
-		// set ground effect flag if vehicle is closer than a specified distance to the ground
-		_ekf.set_gnd_effect_flag(lpos.dist_bottom < _param_ekf2_gnd_max_hgt.get());
-
-		// if we have no valid terrain estimate and never had one then use ground effect flag from land detector
-		// _had_valid_terrain is used to make sure that we don't fall back to using this option
-		// if we temporarily lose terrain data due to the distance sensor getting out of range
-	}
 
 	_ekf.get_ekf_lpos_accuracy(&lpos.eph, &lpos.epv);
 	_ekf.get_ekf_vel_accuracy(&lpos.evh, &lpos.evv);

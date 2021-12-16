@@ -53,10 +53,11 @@ void Ekf::fuseBaroHgt()
 
 	// Compensate for positive static pressure transients (negative vertical position innovations)
 	// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
-	const float deadzone_start = 0.0f;
-	const float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
+	if (_control_status.flags.gnd_effect && _control_status.flags.in_air && _params.gnd_effect_deadzone > 0.f) {
 
-	if (_control_status.flags.gnd_effect) {
+		const float deadzone_start = 0.0f;
+		const float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
+
 		if (_baro_hgt_innov(2) < -deadzone_start) {
 			if (_baro_hgt_innov(2) <= -deadzone_end) {
 				_baro_hgt_innov(2) += deadzone_end;
