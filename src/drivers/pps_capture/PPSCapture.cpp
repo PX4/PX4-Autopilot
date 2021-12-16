@@ -43,12 +43,6 @@
 #include <board_config.h>
 #include <parameters/param.h>
 
-#ifdef BOARD_WITH_IO
-# define PARAM_PREFIX "PWM_AUX"
-#else
-# define PARAM_PREFIX "PWM_MAIN"
-#endif
-
 PPSCapture::PPSCapture() :
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {

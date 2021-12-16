@@ -30,9 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+set(PARAM_PREFIX PWM_MAIN)
+
+if(CONFIG_BOARD_IO)
+	set(PARAM_PREFIX PWM_AUX)
+endif()
+
 px4_add_module(
 	MODULE drivers__pps_capture
 	MAIN pps_capture
+	COMPILE_FLAGS
+		-DPARAM_PREFIX="${PARAM_PREFIX}"
 	SRCS
 		PPSCapture.cpp
 	)
