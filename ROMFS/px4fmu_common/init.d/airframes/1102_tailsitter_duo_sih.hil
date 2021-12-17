@@ -27,7 +27,7 @@ param set-default MPC_MAN_Y_MAX 90
 
 param set-default MAV_TYPE 19
 set MAV_TYPE 19
-set MIXER vtol_tailsitter_duo
+set MIXER vtol_tailsitter_duo_sat
 
 set PWM_OUT 1234
 
