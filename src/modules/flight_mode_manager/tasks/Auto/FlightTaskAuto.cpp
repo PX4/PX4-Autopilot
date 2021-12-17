@@ -231,7 +231,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	// Slow down automatic descend close to ground
 	float land_speed = math::gradual(_dist_to_ground,
 					 _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-					 _param_mpc_land_speed.get(), _constraints.speed_down);
+					 _param_mpc_land_speed.get(), _param_mpc_z_v_auto_dn.get());
 
 	if (_type_previous != WaypointType::land) {
 		// initialize xy-position and yaw to waypoint such that home is reached exactly without user input
@@ -802,12 +802,12 @@ void FlightTaskAuto::_updateTrajConstraints()
 		// If the current velocity is beyond the usual constraints, tell
 		// the controller to exceptionally increase its saturations to avoid
 		// cutting out the feedforward
-		_constraints.speed_down = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _param_mpc_z_vel_max_dn.get());
-		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _param_mpc_z_vel_max_up.get());
+		_constraints.speed_down = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_down);
+		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_up);
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
-		float z_vel_constraint = _param_mpc_z_vel_max_up.get();
+		float z_vel_constraint = _param_mpc_z_v_auto_up.get();
 
 		// The constraints are broken because they are used as hard limits by the position controller, so put this here
 		// until the constraints don't do things like cause controller integrators to saturate. Once the controller
@@ -828,7 +828,7 @@ void FlightTaskAuto::_updateTrajConstraints()
 
 	} else { // down
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
-		_position_smoothing.setMaxVelocityZ(_param_mpc_z_vel_max_dn.get());
+		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
 	}
 }
 
