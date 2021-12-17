@@ -184,7 +184,6 @@ void Geofence::_updateFence()
 	}
 
 	perf_end(_gf_update_perf);
-	perf_print_counter(_gf_update_perf);
 
 }
 
@@ -393,7 +392,6 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 
 	dm_unlock(DM_KEY_FENCE_POINTS);
 	perf_end(_gf_check_all_perf);
-	perf_print_counter(_gf_check_all_perf);
 
 	return (!had_inclusion_areas || inside_inclusion) && outside_exclusion;
 }
