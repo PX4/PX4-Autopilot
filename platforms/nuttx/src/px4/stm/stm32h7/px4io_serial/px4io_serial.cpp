@@ -34,17 +34,19 @@
 /**
  * @file px4io_serial.cpp
  *
- * Serial interface for PX4IO on STM32F7
+ * Serial interface for PX4IO on STM32H7
  */
 
 #include <syslog.h>
 
 #include <px4_arch/px4io_serial.h>
+
 #include "stm32_uart.h"
 #include <nuttx/cache.h>
 
 /* serial register accessors */
-#define REG(_x)   (*(volatile uint32_t *)(PX4IO_SERIAL_BASE + (_x)))
+#define REG(_x) (*(volatile uint32_t *)(PX4IO_SERIAL_BASE + (_x)))
+
 #define rISR    REG(STM32_USART_ISR_OFFSET)
 #define rISR_ERR_FLAGS_MASK (0x1f)
 #define rICR    REG(STM32_USART_ICR_OFFSET)
@@ -179,7 +181,7 @@ ArchPX4IOSerial::init()
 		(void)rRDR;
 	}
 
-	rICR = rISR & rISR_ERR_FLAGS_MASK;  /* clear the flags */
+	rICR = rISR & rISR_ERR_FLAGS_MASK; /* clear the flags */
 
 	/* configure line speed */
 	uint32_t usartdiv32 = (PX4IO_SERIAL_CLOCK + (PX4IO_SERIAL_BITRATE) / 2) / (PX4IO_SERIAL_BITRATE);
@@ -213,7 +215,7 @@ ArchPX4IOSerial::ioctl(unsigned operation, unsigned &arg)
 {
 	switch (operation) {
 
-	case 1:   /* XXX magic number - test operation */
+	case 1:		/* XXX magic number - test operation */
 		switch (arg) {
 		case 0:
 			syslog(LOG_INFO, "test 0\n");
@@ -282,7 +284,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 		(void)rRDR;
 	}
 
-	rICR = rISR & rISR_ERR_FLAGS_MASK;  /* clear the flags */
+	rICR = rISR & rISR_ERR_FLAGS_MASK; /* clear the flags */
 
 	/* start RX DMA */
 	perf_begin(_pc_txns);
@@ -303,7 +305,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 	rxdmacfg.paddr = PX4IO_SERIAL_BASE + STM32_USART_RDR_OFFSET;
 	rxdmacfg.maddr = reinterpret_cast<uint32_t>(_current_packet);
 	rxdmacfg.ndata = sizeof(*_current_packet);
-	rxdmacfg.cfg1  = (DMA_SCR_CIRC        |
+	rxdmacfg.cfg1  = (DMA_SCR_CIRC         |
 			  DMA_SCR_DIR_P2M       |
 			  DMA_SCR_MINC          |
 			  DMA_SCR_PSIZE_8BITS   |
@@ -313,9 +315,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 			  DMA_SCR_TRBUFF);
 	rxdmacfg.cfg2  = 0;
 
-
 	stm32_dmasetup(_rx_dma, &rxdmacfg);
-
 	rCR3 |= USART_CR3_DMAR;
 	stm32_dmastart(_rx_dma, _dma_callback, this, false);
 
@@ -325,7 +325,6 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 
 	/* start TX DMA - no callback if we also expect a reply */
 	/* DMA setup time ~3µs */
-
 	stm32_dmacfg_t txdmacfg;
 	txdmacfg.paddr = PX4IO_SERIAL_BASE + STM32_USART_TDR_OFFSET;
 	txdmacfg.maddr = reinterpret_cast<uint32_t>(_current_packet);
@@ -390,7 +389,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 			/* something has broken - clear out any partial DMA state and reconfigure */
 			_abort_dma();
 			perf_count(_pc_timeouts);
-			perf_cancel(_pc_txns);    /* don't count this as a transaction */
+			perf_cancel(_pc_txns); /* don't count this as a transaction */
 			break;
 		}
 
@@ -464,11 +463,11 @@ ArchPX4IOSerial::_do_interrupt()
 		(void)rRDR; /* read DR to clear RXNE */
 	}
 
-	rICR = sr & rISR_ERR_FLAGS_MASK;  /* clear flags */
+	rICR = sr & rISR_ERR_FLAGS_MASK; /* clear flags */
 
-	if (sr & (USART_ISR_ORE |   /* overrun error - packet was too big for DMA or DMA was too slow */
-		  USART_ISR_NE |          /* noise error - we have lost a byte due to noise */
-		  USART_ISR_FE)) {        /* framing error - start/stop bit lost or line break */
+	if (sr & (USART_ISR_ORE |  /* overrun error - packet was too big for DMA or DMA was too slow */
+		  USART_ISR_NE |   /* noise error - we have lost a byte due to noise */
+		  USART_ISR_FE)) { /* framing error - start/stop bit lost or line break */
 
 		/*
 		 * If we are in the process of listening for something, these are all fatal;
@@ -538,5 +537,6 @@ ArchPX4IOSerial::_abort_dma()
 		(void)rRDR;
 	}
 
-	rICR = rISR & rISR_ERR_FLAGS_MASK;  /* clear the flags */
+	/* clear the flags */
+	rICR = rISR & rISR_ERR_FLAGS_MASK;
 }

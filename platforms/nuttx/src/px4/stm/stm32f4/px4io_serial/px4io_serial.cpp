@@ -36,19 +36,21 @@
  *
  * Serial interface for PX4IO on STM32F4
  */
+
 #include <syslog.h>
 
 #include <px4_arch/px4io_serial.h>
 
 /* serial register accessors */
-#define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + _x))
-#define rSR		REG(STM32_USART_SR_OFFSET)
-#define rDR		REG(STM32_USART_DR_OFFSET)
-#define rBRR		REG(STM32_USART_BRR_OFFSET)
-#define rCR1		REG(STM32_USART_CR1_OFFSET)
-#define rCR2		REG(STM32_USART_CR2_OFFSET)
-#define rCR3		REG(STM32_USART_CR3_OFFSET)
-#define rGTPR		REG(STM32_USART_GTPR_OFFSET)
+#define REG(_x) (*(volatile uint32_t *)(PX4IO_SERIAL_BASE + _x))
+
+#define rSR     REG(STM32_USART_SR_OFFSET)
+#define rDR     REG(STM32_USART_DR_OFFSET)
+#define rBRR    REG(STM32_USART_BRR_OFFSET)
+#define rCR1    REG(STM32_USART_CR1_OFFSET)
+#define rCR2    REG(STM32_USART_CR2_OFFSET)
+#define rCR3    REG(STM32_USART_CR3_OFFSET)
+#define rGTPR   REG(STM32_USART_GTPR_OFFSET)
 
 uint8_t ArchPX4IOSerial::_io_buffer_storage[sizeof(IOPacket)];
 
@@ -100,9 +102,9 @@ int
 ArchPX4IOSerial::init()
 {
 	/* initialize base implementation */
-	int r;
+	int r = PX4IO_serial::init((IOPacket *)&_io_buffer_storage[0]);
 
-	if ((r = PX4IO_serial::init((IOPacket *)&_io_buffer_storage[0])) != 0) {
+	if (r != 0) {
 		return r;
 	}
 
@@ -251,12 +253,12 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
 		reinterpret_cast<uint32_t>(_current_packet),
 		sizeof(*_current_packet),
-		DMA_SCR_CIRC		|	/* XXX see note above */
-		DMA_SCR_DIR_P2M		|
-		DMA_SCR_MINC		|
-		DMA_SCR_PSIZE_8BITS	|
-		DMA_SCR_MSIZE_8BITS	|
-		DMA_SCR_PBURST_SINGLE	|
+		DMA_SCR_CIRC           | /* XXX see note above */
+		DMA_SCR_DIR_P2M        |
+		DMA_SCR_MINC           |
+		DMA_SCR_PSIZE_8BITS    |
+		DMA_SCR_MSIZE_8BITS    |
+		DMA_SCR_PBURST_SINGLE  |
 		DMA_SCR_MBURST_SINGLE);
 	stm32_dmastart(_rx_dma, _dma_callback, this, false);
 	rCR3 |= USART_CR3_DMAR;
@@ -268,11 +270,11 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
 		reinterpret_cast<uint32_t>(_current_packet),
 		PKT_SIZE(*_current_packet),
-		DMA_SCR_DIR_M2P		|
-		DMA_SCR_MINC		|
-		DMA_SCR_PSIZE_8BITS	|
-		DMA_SCR_MSIZE_8BITS	|
-		DMA_SCR_PBURST_SINGLE	|
+		DMA_SCR_DIR_M2P        |
+		DMA_SCR_MINC           |
+		DMA_SCR_PSIZE_8BITS    |
+		DMA_SCR_MSIZE_8BITS    |
+		DMA_SCR_PBURST_SINGLE  |
 		DMA_SCR_MBURST_SINGLE);
 	stm32_dmastart(_tx_dma, nullptr, nullptr, false);
 	//rCR1 &= ~USART_CR1_TE;
@@ -298,6 +300,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 		if (ret == OK) {
 			/* check for DMA errors */
 			if (_rx_dma_status & DMA_STATUS_TEIF) {
+				// stream transfer error, ensure TX DMA is also stopped before exiting early
 				_abort_dma();
 				perf_count(_pc_dmaerrs);
 				ret = -EIO;
@@ -344,7 +347,7 @@ void
 ArchPX4IOSerial::_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
 	if (arg != nullptr) {
-		ArchPX4IOSerial *ps = static_cast<ArchPX4IOSerial *>(arg);
+		ArchPX4IOSerial *ps = reinterpret_cast<ArchPX4IOSerial *>(arg);
 
 		ps->_do_rx_dma_callback(status);
 	}
@@ -379,7 +382,7 @@ int
 ArchPX4IOSerial::_interrupt(int irq, void *context, void *arg)
 {
 	if (arg != nullptr) {
-		ArchPX4IOSerial *instance = static_cast<ArchPX4IOSerial *>(arg);
+		ArchPX4IOSerial *instance = reinterpret_cast<ArchPX4IOSerial *>(arg);
 
 		instance->_do_interrupt();
 	}
@@ -390,12 +393,12 @@ ArchPX4IOSerial::_interrupt(int irq, void *context, void *arg)
 void
 ArchPX4IOSerial::_do_interrupt()
 {
-	uint32_t sr = rSR;	/* get UART status register */
-	(void)rDR;		/* read DR to clear status */
+	uint32_t sr = rSR;        /* get UART status register */
+	(void)rDR;                /* read DR to clear status */
 
-	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
-		  USART_SR_NE |		/* noise error - we have lost a byte due to noise */
-		  USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
+	if (sr & (USART_SR_ORE |  /* overrun error - packet was too big for DMA or DMA was too slow */
+		  USART_SR_NE |   /* noise error - we have lost a byte due to noise */
+		  USART_SR_FE)) { /* framing error - start/stop bit lost or line break */
 
 		/*
 		 * If we are in the process of listening for something, these are all fatal;
@@ -450,14 +453,14 @@ ArchPX4IOSerial::_do_interrupt()
 void
 ArchPX4IOSerial::_abort_dma()
 {
-	/* disable UART DMA */
-	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
-	(void)rSR;
-	(void)rDR;
-	(void)rDR;
-
 	/* stop DMA */
 	stm32_dmastop(_tx_dma);
 	stm32_dmastop(_rx_dma);
-}
 
+	/* disable UART DMA */
+	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
+
+	/* clear data that may be in the RDR and clear overrun error: */
+	(void)rSR;
+	(void)rDR;
+}

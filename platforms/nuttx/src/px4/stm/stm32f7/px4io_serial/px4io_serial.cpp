@@ -45,17 +45,18 @@
 #include <nuttx/cache.h>
 
 /* serial register accessors */
-#define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + (_x)))
-#define rISR		REG(STM32_USART_ISR_OFFSET)
+#define REG(_x) (*(volatile uint32_t *)(PX4IO_SERIAL_BASE + (_x)))
+
+#define rISR    REG(STM32_USART_ISR_OFFSET)
 #define rISR_ERR_FLAGS_MASK (0x1f)
-#define rICR		REG(STM32_USART_ICR_OFFSET)
-#define rRDR		REG(STM32_USART_RDR_OFFSET)
-#define rTDR		REG(STM32_USART_TDR_OFFSET)
-#define rBRR		REG(STM32_USART_BRR_OFFSET)
-#define rCR1		REG(STM32_USART_CR1_OFFSET)
-#define rCR2		REG(STM32_USART_CR2_OFFSET)
-#define rCR3		REG(STM32_USART_CR3_OFFSET)
-#define rGTPR		REG(STM32_USART_GTPR_OFFSET)
+#define rICR    REG(STM32_USART_ICR_OFFSET)
+#define rRDR    REG(STM32_USART_RDR_OFFSET)
+#define rTDR    REG(STM32_USART_TDR_OFFSET)
+#define rBRR    REG(STM32_USART_BRR_OFFSET)
+#define rCR1    REG(STM32_USART_CR1_OFFSET)
+#define rCR2    REG(STM32_USART_CR2_OFFSET)
+#define rCR3    REG(STM32_USART_CR3_OFFSET)
+#define rGTPR   REG(STM32_USART_GTPR_OFFSET)
 
 #define DMA_BUFFER_MASK    (ARMV7M_DCACHE_LINESIZE - 1)
 #define DMA_ALIGN_UP(n)    (((n) + DMA_BUFFER_MASK) & ~DMA_BUFFER_MASK)
@@ -141,7 +142,7 @@ ArchPX4IOSerial::init()
 		(void)rRDR;
 	}
 
-	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
+	rICR = rISR & rISR_ERR_FLAGS_MASK; /* clear the flags */
 
 	/* configure line speed */
 	uint32_t usartdiv32 = (PX4IO_SERIAL_CLOCK + (PX4IO_SERIAL_BITRATE) / 2) / (PX4IO_SERIAL_BITRATE);
@@ -244,7 +245,7 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 		(void)rRDR;
 	}
 
-	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
+	rICR = rISR & rISR_ERR_FLAGS_MASK; /* clear the flags */
 
 	/* start RX DMA */
 	perf_begin(_pc_txns);
@@ -266,12 +267,12 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 		PX4IO_SERIAL_BASE + STM32_USART_RDR_OFFSET,
 		reinterpret_cast<uint32_t>(_current_packet),
 		sizeof(*_current_packet),
-		DMA_SCR_CIRC		|	/* XXX see note above */
-		DMA_SCR_DIR_P2M		|
-		DMA_SCR_MINC		|
-		DMA_SCR_PSIZE_8BITS	|
-		DMA_SCR_MSIZE_8BITS	|
-		DMA_SCR_PBURST_SINGLE	|
+		DMA_SCR_CIRC           | /* XXX see note above */
+		DMA_SCR_DIR_P2M        |
+		DMA_SCR_MINC           |
+		DMA_SCR_PSIZE_8BITS    |
+		DMA_SCR_MSIZE_8BITS    |
+		DMA_SCR_PBURST_SINGLE  |
 		DMA_SCR_MBURST_SINGLE);
 	rCR3 |= USART_CR3_DMAR;
 	stm32_dmastart(_rx_dma, _dma_callback, this, false);
@@ -287,12 +288,13 @@ ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 		PX4IO_SERIAL_BASE + STM32_USART_TDR_OFFSET,
 		reinterpret_cast<uint32_t>(_current_packet),
 		PKT_SIZE(*_current_packet),
-		DMA_SCR_DIR_M2P		|
-		DMA_SCR_MINC		|
-		DMA_SCR_PSIZE_8BITS	|
-		DMA_SCR_MSIZE_8BITS	|
-		DMA_SCR_PBURST_SINGLE	|
+		DMA_SCR_DIR_M2P        |
+		DMA_SCR_MINC           |
+		DMA_SCR_PSIZE_8BITS    |
+		DMA_SCR_MSIZE_8BITS    |
+		DMA_SCR_PBURST_SINGLE  |
 		DMA_SCR_MBURST_SINGLE);
+
 	rCR3 |= USART_CR3_DMAT;
 	stm32_dmastart(_tx_dma, nullptr, nullptr, false);
 	//rCR1 &= ~USART_CR1_TE;
@@ -411,17 +413,17 @@ ArchPX4IOSerial::_interrupt(int irq, void *context, void *arg)
 void
 ArchPX4IOSerial::_do_interrupt()
 {
-	uint32_t sr = rISR;	/* get UART status register */
+	uint32_t sr = rISR; /* get UART status register */
 
 	if (sr & USART_ISR_RXNE) {
-		(void)rRDR;	/* read DR to clear RXNE */
+		(void)rRDR; /* read DR to clear RXNE */
 	}
 
-	rICR = sr & rISR_ERR_FLAGS_MASK;	/* clear flags */
+	rICR = sr & rISR_ERR_FLAGS_MASK; /* clear flags */
 
-	if (sr & (USART_ISR_ORE |		/* overrun error - packet was too big for DMA or DMA was too slow */
-		  USART_ISR_NF |		/* noise error - we have lost a byte due to noise */
-		  USART_ISR_FE)) {		/* framing error - start/stop bit lost or line break */
+	if (sr & (USART_ISR_ORE |  /* overrun error - packet was too big for DMA or DMA was too slow */
+		  USART_ISR_NF |   /* noise error - we have lost a byte due to noise */
+		  USART_ISR_FE)) { /* framing error - start/stop bit lost or line break */
 
 		/*
 		 * If we are in the process of listening for something, these are all fatal;
@@ -491,6 +493,6 @@ ArchPX4IOSerial::_abort_dma()
 		(void)rRDR;
 	}
 
-	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
+	/* clear the flags */
+	rICR = rISR & rISR_ERR_FLAGS_MASK;
 }
-
