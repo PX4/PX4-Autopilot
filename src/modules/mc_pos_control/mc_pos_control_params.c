@@ -200,29 +200,64 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_I_ACC, 2.0f);
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_D_ACC, 0.0f);
 
 /**
- * Maximum vertical ascent velocity
+ * Automatic ascent velocity
  *
- * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
+ * Ascent velocity in auto modes.
+ * For manual modes and offboard, see MPC_Z_VEL_MAX_UP
  *
  * @unit m/s
  * @min 0.5
  * @max 8.0
+ * @increment 0.1
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_UP, 3.f);
 
 /**
- * Maximum vertical descent velocity
+ * Maximum ascent velocity
  *
- * Maximum vertical velocity in AUTO mode and endpoint for stabilized modes (ALTCTRL, POSCTRL).
+ * Ascent velocity in manual modes and offboard.
+ * For auto modes, see MPC_Z_V_AUTO_UP
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 8.0
+ * @increment 0.1
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_UP, 3.f);
+
+/**
+ * Automatic descent velocity
+ *
+ * Descent velocity in auto modes.
+ * For manual modes and offboard, see MPC_Z_VEL_MAX_DN
  *
  * @unit m/s
  * @min 0.5
  * @max 4.0
+ * @increment 0.1
+ * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_V_AUTO_DN, 1.f);
+
+/**
+ * Maximum descent velocity
+ *
+ * Descent velocity in manual modes and offboard.
+ * For auto modes, see MPC_Z_V_AUTO_DN
+ *
+ * @unit m/s
+ * @min 0.5
+ * @max 4.0
+ * @increment 0.1
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_MAX_DN, 1.f);
 
 /**
  * Proportional gain for horizontal position error
@@ -664,7 +699,7 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
  * Altitude for 1. step of slow landing (descend)
  *
  * Below this altitude descending velocity gets limited to a value
- * between "MPC_Z_VEL_MAX_DN" and "MPC_LAND_SPEED"
+ * between "MPC_Z_VEL_MAX_DN" (or "MPC_Z_V_AUTO_DN") and "MPC_LAND_SPEED"
  * Value needs to be higher than "MPC_LAND_ALT2"
  *
  * @unit m
