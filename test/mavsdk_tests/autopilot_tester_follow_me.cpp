@@ -223,7 +223,7 @@ void AutopilotTesterFollowMe::connect(const std::string uri)
 void AutopilotTesterFollowMe::straight_line_test(const float altitude_m, const bool stream_velocity)
 {
 	const unsigned location_update_rate = 1;
-	const float position_tolerance = 4.0f;
+	const float position_tolerance = 6.0f;
 
 	// Start with simulated target on the same plane as drone's home position
 	std::array<float, 3> start_location_ned = get_current_position_ned();
