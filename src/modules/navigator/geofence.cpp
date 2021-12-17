@@ -56,7 +56,9 @@
 Geofence::Geofence(Navigator *navigator) :
 	ModuleParams(navigator),
 	_navigator(navigator),
-	_sub_airdata(ORB_ID(vehicle_air_data))
+	_sub_airdata(ORB_ID(vehicle_air_data)),
+	_gf_check_all_perf(perf_alloc(PC_ELAPSED, "gf: checkAll")),
+	_gf_update_perf(perf_alloc(PC_ELAPSED, "gf: updateFence"))
 {
 	// we assume there's no concurrent fence update on startup
 	if (_navigator != nullptr) {
@@ -69,6 +71,9 @@ Geofence::~Geofence()
 	if (_polygons) {
 		delete[](_polygons);
 	}
+
+	perf_free(_gf_check_all_perf);
+	perf_free(_gf_update_perf);
 }
 
 void Geofence::updateFence()
@@ -88,7 +93,7 @@ void Geofence::updateFence()
 
 void Geofence::_updateFence()
 {
-
+	perf_begin(_gf_update_perf);
 	// initialize fence points count
 	mission_stats_entry_s stats;
 	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
@@ -177,6 +182,9 @@ void Geofence::_updateFence()
 		}
 
 	}
+
+	perf_end(_gf_update_perf);
+	perf_print_counter(_gf_update_perf);
 
 }
 
@@ -312,6 +320,8 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 {
+	perf_begin(_gf_check_all_perf);
+
 	// the following uses dm_read, so first we try to lock all items. If that fails, it (most likely) means
 	// the data is currently being updated (via a mavlink geofence transfer), and we do not check for a violation now
 	if (dm_trylock(DM_KEY_FENCE_POINTS) != 0) {
@@ -382,6 +392,8 @@ bool Geofence::isInsidePolygonOrCircle(double lat, double lon, float altitude)
 	}
 
 	dm_unlock(DM_KEY_FENCE_POINTS);
+	perf_end(_gf_check_all_perf);
+	perf_print_counter(_gf_check_all_perf);
 
 	return (!had_inclusion_areas || inside_inclusion) && outside_exclusion;
 }
@@ -634,4 +646,7 @@ void Geofence::printStatus()
 	PX4_INFO("Geofence: %i inclusion, %i exclusion polygons, %i inclusion, %i exclusion circles, %i total vertices",
 		 num_inclusion_polygons, num_exclusion_polygons, num_inclusion_circles, num_exclusion_circles,
 		 total_num_vertices);
+
+	perf_print_counter(_gf_update_perf);
+	perf_print_counter(_gf_check_all_perf);
 }
