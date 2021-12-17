@@ -33,7 +33,6 @@
 
 px4_add_romfs_files(
 	autogyro_sitl.main.mix
-	boat_sitl.main.mix
 	delta_wing_sitl.main.mix
 	package_drop.aux.mix
 	plane_sitl.main.mix
