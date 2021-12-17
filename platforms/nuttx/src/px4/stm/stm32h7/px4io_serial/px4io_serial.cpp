@@ -100,7 +100,7 @@
 #define DMA_BUFFER_MASK    (ARMV7M_DCACHE_LINESIZE - 1)
 #define DMA_ALIGN_UP(n)    (((n) + DMA_BUFFER_MASK) & ~DMA_BUFFER_MASK)
 
-uint8_t ArchPX4IOSerial::_io_buffer_storage[DMA_ALIGN_UP(sizeof(IOPacket))];
+IOPacket ArchPX4IOSerial::_io_buffer_storage;
 
 ArchPX4IOSerial::ArchPX4IOSerial() :
 	_tx_dma(nullptr),
@@ -110,6 +110,7 @@ ArchPX4IOSerial::ArchPX4IOSerial() :
 	_completion_semaphore(SEM_INITIALIZER(0)),
 	_pc_dmaerrs(perf_alloc(PC_COUNT, MODULE_NAME": DMA errors"))
 {
+	static_assert(sizeof(_io_buffer_storage) == DMA_ALIGN_UP(sizeof(IOPacket)));
 }
 
 ArchPX4IOSerial::~ArchPX4IOSerial()
@@ -150,7 +151,7 @@ int
 ArchPX4IOSerial::init()
 {
 	/* initialize base implementation */
-	int r = PX4IO_serial::init((IOPacket *)&_io_buffer_storage[0]);
+	int r = PX4IO_serial::init(&_io_buffer_storage);
 
 	if (r != 0) {
 		return r;

@@ -52,7 +52,7 @@
 #define rCR3    REG(STM32_USART_CR3_OFFSET)
 #define rGTPR   REG(STM32_USART_GTPR_OFFSET)
 
-uint8_t ArchPX4IOSerial::_io_buffer_storage[sizeof(IOPacket)];
+IOPacket ArchPX4IOSerial::_io_buffer_storage;
 
 ArchPX4IOSerial::ArchPX4IOSerial() :
 	_tx_dma(nullptr),
@@ -102,7 +102,7 @@ int
 ArchPX4IOSerial::init()
 {
 	/* initialize base implementation */
-	int r = PX4IO_serial::init((IOPacket *)&_io_buffer_storage[0]);
+	int r = PX4IO_serial::init(&_io_buffer_storage);
 
 	if (r != 0) {
 		return r;

@@ -218,9 +218,8 @@ enum {							/* DSM bind states */
 /**
  * Serial protocol encapsulation.
  */
-#define PKT_MAX_REGS	32 // by agreement w/FMU
+#define PKT_MAX_REGS	30 // by agreement w/FMU
 
-#pragma pack(push, 1)
 struct IOPacket {
 	uint8_t 	count_code;
 	uint8_t 	crc;
@@ -228,9 +227,8 @@ struct IOPacket {
 	uint8_t 	offset;
 	uint16_t	regs[PKT_MAX_REGS];
 };
-#pragma pack(pop)
 
-#if (PX4IO_MAX_TRANSFER_LEN > PKT_MAX_REGS * 2)
+#if (PX4IO_MAX_TRANSFER_LEN > PKT_MAX_REGS * 2 + 4)
 #error The max transfer length of the IO protocol must not be larger than the IO packet size
 #endif
 

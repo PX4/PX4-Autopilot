@@ -164,6 +164,6 @@ private:
 	/**
 	 * IO Buffer storage
 	 */
-	static uint8_t _io_buffer_storage[] px4_cache_aligned_data();
+	static IOPacket _io_buffer_storage px4_cache_aligned_data();
 };
 
