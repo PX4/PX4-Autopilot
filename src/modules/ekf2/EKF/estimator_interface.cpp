@@ -144,6 +144,15 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 		_mag_data_sum.setZero();
 		_mag_timestamp_sum = 0;
 	}
+
+	if (_mag_counter == 0) {
+		_mag_lpf.reset(mag_sample.mag);
+
+	} else {
+		_mag_lpf.update(mag_sample.mag);
+	}
+
+	_mag_counter++;
 }
 
 void EstimatorInterface::setGpsData(const gps_message &gps)
@@ -204,6 +213,20 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 
 		_gps_buffer.push(gps_sample_new);
 	}
+
+	if (gps.fix_type > 2) {
+		// accumulate enough height measurements to be confident in the quality of the data
+		const float hgt = gps.alt * 1e-3f;
+
+		if (_gps_hgt_counter == 0) {
+			_gps_hgt_lpf.reset(hgt);
+
+		} else {
+			_gps_hgt_lpf.update(hgt);
+		}
+
+		_gps_hgt_counter++;
+	}
 }
 
 void EstimatorInterface::setBaroData(const baroSample &baro_sample)
@@ -249,6 +272,16 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 		_baro_alt_sum = 0.0f;
 		_baro_timestamp_sum = 0;
 	}
+
+	// accumulate enough height measurements to be confident in the quality of the data
+	if (_baro_hgt_counter == 0) {
+		_baro_hgt_lpf.reset(baro_sample.hgt);
+
+	} else {
+		_baro_hgt_lpf.update(baro_sample.hgt);
+	}
+
+	_baro_hgt_counter++;
 }
 
 void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
@@ -308,6 +341,8 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 
 		_range_buffer.push(range_sample_new);
 	}
+
+	_rng_hgt_filter.insert(range_sample.rng);
 }
 
 void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
@@ -369,6 +404,16 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 
 		_ext_vision_buffer.push(ev_sample_new);
 	}
+
+	// accumulate enough height measurements to be confident in the quality of the data
+	if (_ev_hgt_counter == 0) {
+		_ev_hgt_lpf.reset(evdata.pos(2));
+
+	} else {
+		_ev_hgt_lpf.update(evdata.pos(2));
+	}
+
+	_ev_hgt_counter++;
 }
 
 void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)

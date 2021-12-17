@@ -435,9 +435,12 @@ union innovation_fault_status_u {
 		bool reject_hagl: 1;		///< 10 - true if the height above ground observation has been rejected
 		bool reject_optflow_X: 1;	///< 11 - true if the X optical flow observation has been rejected
 		bool reject_optflow_Y: 1;	///< 12 - true if the Y optical flow observation has been rejected
+		bool reject_ver_pos_baro: 1;	///< 13 - true if true if baro vertical position observations have been rejected
+		bool reject_ver_pos_gps: 1;	///< 14 - true if true if gps vertical position observations have been rejected
+		bool reject_ver_pos_rng: 1;	///< 15 - true if true if rng vertical position observations have been rejected
+		bool reject_ver_pos_ev: 1;	///< 16 - true if true if ev vertical position observations have been rejected
 	} flags;
-	uint16_t value;
-
+	uint32_t value;
 };
 
 // publish the status of various GPS quality checks

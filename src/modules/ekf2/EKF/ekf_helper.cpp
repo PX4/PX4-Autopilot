@@ -271,7 +271,7 @@ void Ekf::resetHeight()
 		}
 
 		// update the state and associated variance
-		resetVerticalPositionTo(-dist_bottom + _hgt_sensor_offset);
+		resetVerticalPositionTo(-dist_bottom + _rng_hgt_offset);
 
 		// the state variance is the same as the observation
 		P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.range_noise));
@@ -297,7 +297,7 @@ void Ekf::resetHeight()
 	} else if (_control_status.flags.gps_hgt) {
 		// initialize vertical position and velocity with newest gps measurement
 		if (!_gps_hgt_intermittent) {
-			resetVerticalPositionTo(_hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref);
+			resetVerticalPositionTo(_gps_hgt_offset - gps_newest.hgt + _gps_alt_ref);
 
 			// the state variance is the same as the observation
 			P.uncorrelateCovarianceSetVariance<1>(9, sq(gps_newest.vacc));
@@ -965,13 +965,13 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 
 	// return the vertical position innovation test ratio
 	if (_control_status.flags.baro_hgt) {
-		hgt = math::max(sqrtf(_baro_hgt_test_ratio(1)), FLT_MIN);
+		hgt = math::max(sqrtf(_baro_hgt_test_ratio), FLT_MIN);
 
 	} else if (_control_status.flags.gps_hgt) {
 		hgt = math::max(sqrtf(_gps_pos_test_ratio(1)), FLT_MIN);
 
 	} else if (_control_status.flags.rng_hgt) {
-		hgt = math::max(sqrtf(_rng_hgt_test_ratio(1)), FLT_MIN);
+		hgt = math::max(sqrtf(_rng_hgt_test_ratio), FLT_MIN);
 
 	} else if (_control_status.flags.ev_hgt) {
 		hgt = math::max(sqrtf(_ev_pos_test_ratio(1)), FLT_MIN);
@@ -1276,11 +1276,12 @@ void Ekf::startMag3DFusion()
 
 void Ekf::startBaroHgtFusion()
 {
-	setControlBaroHeight();
+	if (!_control_status.flags.baro_hgt) {
+		setControlBaroHeight();
 
-	// We don't need to set a height sensor offset
-	// since we track a separate _baro_hgt_offset
-	_hgt_sensor_offset = 0.0f;
+		// We don't need to set a height sensor offset
+		// since we track a separate _baro_hgt_offset
+	}
 }
 
 void Ekf::startGpsHgtFusion()
@@ -1290,7 +1291,7 @@ void Ekf::startGpsHgtFusion()
 
 		// calculate height sensor offset such that current
 		// measurement matches our current height estimate
-		_hgt_sensor_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
+		_gps_hgt_offset = _gps_sample_delayed.hgt - _gps_alt_ref + _state.pos(2);
 	}
 }
 
@@ -1301,7 +1302,7 @@ void Ekf::startRngHgtFusion()
 
 		// Range finder is the primary height source, the ground is now the datum used
 		// to compute the local vertical position
-		_hgt_sensor_offset = 0.f;
+		_rng_hgt_offset = 0.f;
 
 		if (!_control_status_prev.flags.ev_hgt) {
 			// EV and range finders are using the same height datum
@@ -1315,9 +1316,8 @@ void Ekf::startRngAidHgtFusion()
 	if (!_control_status.flags.rng_hgt) {
 		setControlRangeHeight();
 
-		// calculate height sensor offset such that current
-		// measurement matches our current height estimate
-		_hgt_sensor_offset = _terrain_vpos;
+		// We don't need to set a height sensor offset
+		// since we track a separate _rng_hgt_offset
 	}
 }
 
@@ -1326,25 +1326,12 @@ void Ekf::startEvHgtFusion()
 	if (!_control_status.flags.ev_hgt) {
 		setControlEVHeight();
 
+		_ev_hgt_offset = 0.f;
+
 		if (!_control_status_prev.flags.rng_hgt) {
 			// EV and range finders are using the same height datum
 			resetHeight();
 		}
-	}
-}
-
-void Ekf::updateBaroHgtOffset()
-{
-	// calculate a filtered offset between the baro origin and local NED origin if we are not
-	// using the baro as a height reference
-	if (!_control_status.flags.baro_hgt && _baro_data_ready) {
-		const float local_time_step = math::constrain(1e-6f * _delta_time_baro_us, 0.0f, 1.0f);
-
-		// apply a 10 second first order low pass filter to baro offset
-		const float unbiased_baro = _baro_sample_delayed.hgt - _baro_b_est.getBias();
-
-		const float offset_rate_correction = 0.1f * (unbiased_baro + _state.pos(2) - _baro_hgt_offset);
-		_baro_hgt_offset += local_time_step * math::constrain(offset_rate_correction, -0.1f, 0.1f);
 	}
 }
 
@@ -1568,7 +1555,7 @@ void Ekf::stopGpsFusion()
 
 	// We do not need to know the true North anymore
 	// EV yaw can start again
-	_inhibit_ev_yaw_use = false;;
+	_inhibit_ev_yaw_use = false;
 }
 
 void Ekf::stopGpsPosFusion()

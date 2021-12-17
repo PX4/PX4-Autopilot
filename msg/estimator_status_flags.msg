@@ -70,3 +70,7 @@ bool reject_sideslip                      #  9 - true if the synthetic sideslip 
 bool reject_hagl                          # 10 - true if the height above ground observation has been rejected
 bool reject_optflow_x                     # 11 - true if the X optical flow observation has been rejected
 bool reject_optflow_y                     # 12 - true if the Y optical flow observation has been rejected
+bool reject_ver_pos_baro                  # 13 - true if true if baro vertical position observations have been rejected
+bool reject_ver_pos_gps                   # 14 - true if true if gps vertical position observations have been rejected
+bool reject_ver_pos_rng                   # 15 - true if true if rng vertical position observations have been rejected
+bool reject_ver_pos_ev                    # 16 - true if true if ev vertical position observations have been rejected

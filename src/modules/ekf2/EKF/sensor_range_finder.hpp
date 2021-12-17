@@ -106,6 +106,8 @@ public:
 	float getValidMinVal() const { return _rng_valid_min_val; }
 	float getValidMaxVal() const { return _rng_valid_max_val; }
 
+	const rangeSample &sample() const { return _sample; }
+
 private:
 	void updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth);
 
