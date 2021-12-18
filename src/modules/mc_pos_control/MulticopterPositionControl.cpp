@@ -303,6 +303,8 @@ void MulticopterPositionControl::Run()
 
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+		_mount_orientation_sub.update(&_mount_orientation);
+		_vehicle_status_sub.update(&_vehicle_status);
 
 		if (_param_mpc_use_hte.get()) {
 			hover_thrust_estimate_s hte;
@@ -430,6 +432,16 @@ void MulticopterPositionControl::Run()
 				_param_mpc_xy_vel_max.get(),
 				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
 				math::max(speed_down, 0.f));
+
+
+			if (_param_mpc_yaw_mode.get() == 5 &&
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LAND &&
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_TAKEOFF &&
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_PRECLAND &&
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LANDENGFAIL &&
+			    _vehicle_status.nav_state != _vehicle_status.NAVIGATION_STATE_AUTO_LANDGPSFAIL) {
+				_setpoint.yaw = _mount_orientation.attitude_euler_angle[2];
+			}
 
 			_control.setInputSetpoint(_setpoint);
 

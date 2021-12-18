@@ -198,3 +198,16 @@ PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
+
+/**
+* Navigator Ignore Yaw
+*
+* If enabled the mission block will ignore yaw in mission item reached.
+*
+* @value 0 Disabled
+* @value 1 Enabled
+* @min 0
+* @max 1
+* @group Mount
+*/
+PARAM_DEFINE_INT32(NAV_IGNORE_YAW, 0);
