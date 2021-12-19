@@ -52,4 +52,11 @@ px4_add_module(
 		mixer_module
 	MODULE_CONFIG
 		module.yaml
+	PUBLICATIONS
+		"px4::msg::ActuatorOutputs /actuator_outputs"
+		"px4::msg::EscStatus /esc_status"
+	SUBSCRIPTIONS
+		"px4::msg::ActuatorControls /actuator_controls_0"
+		"px4::msg::ActuatorControls /actuator_controls_1"
+		"px4::msg::ActuatorControls /actuator_controls_2"
 	)

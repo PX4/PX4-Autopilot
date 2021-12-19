@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -251,10 +251,16 @@ void orb_print_message_internal(const struct orb_metadata *meta, const void *dat
 __END_DECLS
 
 /* Diverse uORB header defines */ //XXX: move to better location
-#define ORB_ID_VEHICLE_ATTITUDE_CONTROLS    ORB_ID(actuator_controls_0)
 typedef uint8_t arming_state_t;
 typedef uint8_t main_state_t;
 typedef uint8_t hil_state_t;
 typedef uint8_t navigation_state_t;
 typedef uint8_t switch_pos_t;
 
+
+
+#ifdef __cplusplus
+
+#include <uORBTopics.hpp>
+
+#endif // __cplusplus

@@ -307,7 +307,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	 * Advertise that this controller will publish actuator
 	 * control values and the rate setpoint
 	 */
-	orb_advert_t actuator_pub = orb_advertise(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, &actuators);
+	orb_advert_t actuator_pub = orb_advertise(ORB_ID(actuator_controls_0), &actuators);
 	orb_advert_t rates_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &rates_sp);
 
 	/* subscribe to topics. */
@@ -404,7 +404,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 				    PX4_ISFINITE(actuators.control[1]) &&
 				    PX4_ISFINITE(actuators.control[2]) &&
 				    PX4_ISFINITE(actuators.control[3])) {
-					orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+					orb_publish(ORB_ID(actuator_controls_0), actuator_pub, &actuators);
 
 					if (verbose) {
 						warnx("published");
@@ -422,7 +422,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 		actuators.control[i] = 0.0f;
 	}
 
-	orb_publish(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, actuator_pub, &actuators);
+	orb_publish(ORB_ID(actuator_controls_0), actuator_pub, &actuators);
 
 	fflush(stdout);
 

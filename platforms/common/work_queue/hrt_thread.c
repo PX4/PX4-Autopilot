@@ -96,7 +96,7 @@ static void _sighandler(int sig_num);
  ****************************************************************************/
 static void _sighandler(int sig_num)
 {
-	PX4_DEBUG("RECEIVED SIGNAL %d", sig_num);
+	//PX4_DEBUG("RECEIVED SIGNAL %d", sig_num);
 }
 
 /****************************************************************************
@@ -176,7 +176,7 @@ static void hrt_work_process()
 			hrt_work_unlock();
 
 			if (!worker) {
-				PX4_ERR("MESSED UP: worker = 0");
+				//PX4_ERR("MESSED UP: worker = 0");
 
 			} else {
 				worker(arg);

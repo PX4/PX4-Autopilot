@@ -36,4 +36,6 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		heater.cpp
+	PUBLICATIONS
+		"px4::msg::HeaterStatus /heater_status"
 	)

@@ -45,7 +45,7 @@
 
 #include "boot_alt_app_shared.h"
 
-#include <lib/systemlib/crc.h>
+#include <lib/crc/crc.h>
 
 /****************************************************************************
  * Name: bootloader_alt_app_shared_read

@@ -38,7 +38,7 @@
 #include "uORBCommon.hpp"
 #include "uORBDeviceMaster.hpp"
 
-#include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
+#include <uORBTopics.hpp> // For ORB_ID enum
 #include <stdint.h>
 
 #ifdef __PX4_NUTTX

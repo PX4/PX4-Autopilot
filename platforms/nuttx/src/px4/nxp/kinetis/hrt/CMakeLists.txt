@@ -31,8 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(arch_hrt
+add_library(arch_hrt
 	hrt.c
 )
-target_compile_options(arch_hrt PRIVATE -Wno-cast-align) # TODO: fix and enable
-
+add_dependencies(arch_hrt prebuild_targets)
+target_compile_options(arch_hrt PRIVATE -Wno-cast-align ${MAX_CUSTOM_OPT_LEVEL}) # TODO: fix and enable

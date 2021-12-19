@@ -47,7 +47,6 @@ import glob
 import json
 import math
 import os
-from px4tools import ulog
 import sys
 from mavros import mavlink
 from mavros_msgs.msg import Mavlink, Waypoint, WaypointReached
@@ -295,17 +294,6 @@ class MavrosMissionTest(MavrosTestCommon):
         rospy.loginfo("mission done, calculating performance metrics")
         last_log = get_last_log()
         rospy.loginfo("log file {0}".format(last_log))
-        data = ulog.read_ulog(last_log).concat(dt=0.1)
-        data = ulog.compute_data(data)
-        res = ulog.estimator_analysis(data, False)
-
-        # enforce performance
-        self.assertTrue(abs(res['roll_error_mean']) < 5.0, str(res))
-        self.assertTrue(abs(res['pitch_error_mean']) < 5.0, str(res))
-        self.assertTrue(abs(res['yaw_error_mean']) < 5.0, str(res))
-        self.assertTrue(res['roll_error_std'] < 5.0, str(res))
-        self.assertTrue(res['pitch_error_std'] < 5.0, str(res))
-        self.assertTrue(res['yaw_error_std'] < 5.0, str(res))
 
 
 if __name__ == '__main__':

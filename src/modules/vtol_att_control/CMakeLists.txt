@@ -39,5 +39,12 @@ px4_add_module(
 		vtol_type.cpp
 		tailsitter.cpp
 		standard.cpp
+	PUBLICATIONS
+		"px4::msg::ActuatorControls /actuator_controls_0"
+		"px4::msg::ActuatorControls /actuator_controls_1"
+		"px4::msg::VtolVehicleStatus /vtol_vehicle_status"
+		"px4::msg::VehicleAttitudeSetpoint /vehicle_attitude_setpoint"
+		"px4::msg::VehicleTorqueSetpoint /vehicle_torque_setpoint"
+		"px4::msg::VehicleThrustSetpoint /vehicle_thrust_setpoint"
 	)
 

@@ -44,4 +44,15 @@ px4_add_module(
 		ecl_yaw_controller.cpp
 	DEPENDS
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::ActuatorControls /actuator_controls_0"
+		"px4::msg::ActuatorControls /actuator_controls_virtual_fw" # VTOL
+		"px4::msg::ActuatorControlsStatus /actuator_controls_status_0"
+		"px4::msg::ActuatorControlsStatus /actuator_controls_status_1" # VTOL
+		"px4::msg::VehicleAttitudeSetpoint /vehicle_attitude_setpoint"
+		"px4::msg::VehicleAttitudeSetpoint /fw_virtual_attitude_setpoint" # VTOL
+		"px4::msg::VehicleRatesSetpoint /vehicle_rates_setpoint"
+		"px4::msg::RateCtrlStatus /rate_ctrl_status"
+		"px4::msg::VehicleTorqueSetpoint /vehicle_torque_setpoint"
+		"px4::msg::VehicleThrustSetpoint /vehicle_thrust_setpoint"
 	)

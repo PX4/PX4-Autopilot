@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,6 +37,11 @@ add_subdirectory(Takeoff)
 px4_add_module(
 	MODULE modules__mc_pos_control
 	MAIN mc_pos_control
+	PUBLICATIONS
+		"px4::msg::TakeoffStatus /takeoff_status"
+		"px4::msg::VehicleAttitudeSetpoint /vehicle_attitude_setpoint"
+		"px4::msg::VehicleAttitudeSetpoint /mc_virtual_attitude_setpoint" # VTOL
+		"px4::msg::VehicleLocalPositionSetpoint /vehicle_local_position_setpoint"
 	COMPILE_FLAGS
 	SRCS
 		MulticopterPositionControl.cpp

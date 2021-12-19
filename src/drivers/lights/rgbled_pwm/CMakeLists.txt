@@ -40,4 +40,6 @@ px4_add_module(
 		led
 		arch_io_pins
 		arch_led_pwm
+	SUBSCRIPTIONS
+		"px4::msg::LedControl /led_control"
 	)

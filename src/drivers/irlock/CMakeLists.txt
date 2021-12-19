@@ -37,4 +37,6 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		irlock.cpp
+	PUBLICATIONS
+		"px4::msg::IrlockReport /irlock_report"
 	)

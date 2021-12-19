@@ -71,11 +71,11 @@ function(px4_add_common_flags)
 		-Werror
 
 		-Warray-bounds
-		-Wcast-align
+		#-Wcast-align # TODO
 		-Wdisabled-optimization
 		-Wdouble-promotion
 		-Wfatal-errors
-		-Wfloat-equal
+		#-Wfloat-equal
 		-Wformat-security
 		-Winit-self
 		-Wlogical-op
@@ -156,9 +156,6 @@ function(px4_add_common_flags)
 	# CXX only flags
 	set(cxx_flags)
 	list(APPEND cxx_flags
-		-fno-exceptions
-		-fno-threadsafe-statics
-
 		-Wreorder
 
 		# disabled warnings
@@ -175,15 +172,18 @@ function(px4_add_common_flags)
 		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${flag}>)
 	endforeach()
 
+	if(NOT (${PX4_PLATFORM} MATCHES "ros2")) # TODO: fix
+		include_directories(
+			${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP}/include
+			${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include
+			${PX4_SOURCE_DIR}/platforms/common
+			${PX4_SOURCE_DIR}/platforms/common/include
+		)
+	endif()
 
 	include_directories(
 		${PX4_BINARY_DIR}
 		${PX4_BINARY_DIR}/src/lib
-
-		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP}/include
-		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include
-		${PX4_SOURCE_DIR}/platforms/common
-		${PX4_SOURCE_DIR}/platforms/common/include
 
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/include

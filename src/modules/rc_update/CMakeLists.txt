@@ -40,4 +40,9 @@ px4_add_module(
 	DEPENDS
 		mathlib
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::RcChannels /rc_channels"
+		"px4::msg::ManualControlSetpoint /manual_control_input"
+		"px4::msg::ManualControlSwitches /manual_control_switches"
+		"px4::msg::ActuatorControls /actuator_controls_3"
 	)

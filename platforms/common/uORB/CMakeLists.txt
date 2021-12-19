@@ -34,8 +34,6 @@
 # this includes the generated topics directory
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-set(SRCS)
-
 set(SRCS_COMMON
 	ORBSet.hpp
 	Publication.hpp
@@ -49,22 +47,22 @@ set(SRCS_COMMON
 	uORB.h
 	uORBCommon.hpp
 	uORBCommunicator.hpp
-	uORBManager.hpp
 	uORBUtils.cpp
 	uORBUtils.hpp
-	uORBDeviceMaster.hpp
-	uORBDeviceNode.hpp
-	)
+)
 
 set(SRCS_KERNEL
 	uORBDeviceMaster.cpp
+	uORBDeviceMaster.hpp
 	uORBDeviceNode.cpp
+	uORBDeviceNode.hpp
 	uORBManager.cpp
-	)
+	uORBManager.hpp
+)
 
 set(SRCS_USER
 	uORBManagerUsr.cpp
-	)
+)
 
 if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
 	# Kernel side library in nuttx kernel/protected build

@@ -40,5 +40,8 @@ px4_add_module(
 		LandingTargetEstimator.cpp
 		KalmanFilter.cpp
 	DEPENDS
+	PUBLICATIONS
+		"px4::msg::LandingTargetPose /landing_target_pose"
+		"px4::msg::LandingTargetInnovations /landing_target_innovations"
 	)
 

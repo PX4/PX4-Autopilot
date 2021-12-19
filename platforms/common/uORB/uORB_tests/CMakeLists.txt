@@ -38,4 +38,13 @@ px4_add_module(
 	SRCS
 		uORB_tests_main.cpp
 		uORBTest_UnitTest.cpp
+	PUBLICATIONS
+		"px4::msg::OrbTest /orb_test"
+		"px4::msg::OrbTest /orb_multitest"
+		"px4::msg::OrbTestMedium /orb_test_medium"
+		"px4::msg::OrbTestMedium /orb_test_medium_multi"
+		"px4::msg::OrbTestMedium /orb_test_medium_queue"
+		"px4::msg::OrbTestMedium /orb_test_medium_queue_poll"
+		"px4::msg::OrbTestMedium /orb_test_medium_wrap_around"
+		"px4::msg::OrbTestLarge /orb_test_large"
 	)

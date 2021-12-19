@@ -44,4 +44,6 @@ px4_add_module(
 		-DPARAM_PREFIX="${PARAM_PREFIX}"
 	SRCS
 		PPSCapture.cpp
+	PUBLICATIONS
+		"px4::msg::PpsCapture /pps_capture"
 	)

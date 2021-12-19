@@ -39,4 +39,10 @@ px4_add_module(
 	DEPENDS
 		l1
 		pid
+	PUBLICATIONS
+		"px4::msg::VehicleAttitudeSetpoint /vehicle_attitude_setpoint"
+		"px4::msg::PositionControllerStatus /position_controller_status"
+		"px4::msg::ActuatorControls /actuator_controls_0"
+		"px4::msg::VehicleTorqueSetpoint /vehicle_torque_setpoint"
+		"px4::msg::VehicleThrustSetpoint /vehicle_thrust_setpoint"
 	)

@@ -8,7 +8,6 @@ if [ $# -gt 0 ]; then
 fi
 
 exec find boards msg src platforms test \
-    -path msg/templates/urtps -prune -o \
     -path platforms/nuttx/NuttX -prune -o \
     -path platforms/qurt/dspal -prune -o \
     -path src/drivers/uavcan/libuavcan -prune -o \
@@ -21,8 +20,6 @@ exec find boards msg src platforms test \
     -path src/modules/ekf2/EKF -prune -o \
     -path src/modules/gyro_fft/CMSIS_5 -prune -o \
     -path src/modules/mavlink/mavlink -prune -o \
-    -path src/modules/micrortps_bridge/micro-CDR -prune -o \
-    -path src/modules/micrortps_bridge/microRTPS_client -prune -o \
     -path test/mavsdk_tests/catch2 -prune -o \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/crypto/libtomcrypt -prune -o \

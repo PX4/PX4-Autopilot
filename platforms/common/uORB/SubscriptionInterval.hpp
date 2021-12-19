@@ -140,6 +140,9 @@ public:
 	unsigned	get_last_generation() const { return _subscription.get_last_generation(); }
 	orb_id_t	get_topic() const { return _subscription.get_topic(); }
 
+	ORB_ID get_topic_enum() const { return _subscription.get_topic_enum(); }
+	size_t get_topic_size() const { return _subscription.get_topic_size(); }
+
 	/**
 	 * Set the interval in microseconds
 	 * @param interval The interval in microseconds.

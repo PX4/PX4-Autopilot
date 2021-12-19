@@ -136,4 +136,16 @@ px4_add_module(
 		git_legacy_data_types
 		version
 		${DPNDS}
+	PUBLICATIONS
+		"px4::msg::BatteryStatus /battery_status"
+		#"px4::msg::OutputControl /output_control_mc"
+	SUBSCRIPTIONS
+		"px4::msg::ActuatorArmed /actuator_armed"
+		"px4::msg::ActuatorOutputs /actuator_outputs"
+		"px4::msg::ParameterUpdate /parameter_update"
+		"px4::msg::SensorGps /sensor_gps"
+
+		"px4::msg::Event /event"
+		"px4::msg::LogMessage /log_message"
+		"px4::msg::MavlinkLog /mavlink_log"
 	)

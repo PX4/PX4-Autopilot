@@ -66,7 +66,7 @@ if __name__ == "__main__":
         with open(msg_filename, 'r') as source_file:
             msg_contents = source_file.read()
 
-        #Format markdown using msg name, comment, url, contents.  
+        #Format markdown using msg name, comment, url, contents.
         markdown_output="""# %s (UORB message)
 
 %s
@@ -92,9 +92,6 @@ if __name__ == "__main__":
 :::note
 This list is [auto-generated](https://github.com/PX4/PX4-Autopilot/blob/master/msg/tools/generate_msg_docs.py) from the source code.
 :::
-
-This topic lists the UORB messages available in PX4 (some of which may be may be shared by the [PX4-ROS 2 Bridge](../ros/ros2_comm.md)).
-Graphs showing how these are used [can be found here](../middleware/uorb_graph.md).
 
 %s
     """ % (filelist_in_markdown)

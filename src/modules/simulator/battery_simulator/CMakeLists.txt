@@ -42,4 +42,6 @@ px4_add_module(
 		battery
 		mathlib
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::BatteryStatus /battery_status"
 	)

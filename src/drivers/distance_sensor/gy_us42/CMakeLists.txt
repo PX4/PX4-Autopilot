@@ -40,4 +40,6 @@ px4_add_module(
 	DEPENDS
 		drivers_rangefinder
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::DistanceSensor /distance_sensor"
 	)

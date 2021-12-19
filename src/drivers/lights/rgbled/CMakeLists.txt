@@ -39,4 +39,6 @@ px4_add_module(
 	DEPENDS
 		drivers__device
 		led
+	SUBSCRIPTIONS
+		"px4::msg::LedControl /led_control"
 	)

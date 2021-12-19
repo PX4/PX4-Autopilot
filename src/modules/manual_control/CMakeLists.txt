@@ -43,6 +43,11 @@ px4_add_module(
 		ManualControlSelector.cpp
 	DEPENDS
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::ActionRequest /action_request"
+		"px4::msg::LandingGear /landing_gear"
+		"px4::msg::ManualControlSetpoint /manual_control_input"
+		"px4::msg::ManualControlSetpoint /manual_control_setpoint"
 	)
 
 px4_add_unit_gtest(SRC ManualControlSelectorTest.cpp LINKLIBS module__manual_control)

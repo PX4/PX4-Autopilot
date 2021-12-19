@@ -44,6 +44,8 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 			nuttx_arch
 			nuttx_drivers
 			canbootloader
+			drivers__device
+			px4_platform
 	)
 	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/canbootloader)
 

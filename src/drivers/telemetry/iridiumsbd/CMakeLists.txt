@@ -40,4 +40,6 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
+	PUBLICATIONS
+		"px4::msg::IridiumsbdStatus /iridiumsbd_status"
 	)

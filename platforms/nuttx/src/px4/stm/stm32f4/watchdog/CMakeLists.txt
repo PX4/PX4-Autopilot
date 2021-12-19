@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(arch_watchdog_iwdg
+add_library(arch_watchdog_iwdg
 	iwdg.c
 )
+add_dependencies(arch_watchdog_iwdg prebuild_targets)

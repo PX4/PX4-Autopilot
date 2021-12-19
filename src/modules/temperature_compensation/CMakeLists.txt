@@ -43,4 +43,7 @@ px4_add_module(
 		temperature_calibration/task.cpp
 	DEPENDS
 		mathlib
+	PUBLICATIONS
+		"px4::msg::SensorCorrection /sensor_correction"
+		"px4::msg::LedControl /led_control"
 	)

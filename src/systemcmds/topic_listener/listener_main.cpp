@@ -42,7 +42,7 @@
 
 #include <poll.h>
 
-#include <uORB/topics/uORBTopics.hpp>
+#include <uORBTopics.hpp>
 #include "topic_listener.hpp"
 
 // Amount of time to wait when listening for a message, before giving up.

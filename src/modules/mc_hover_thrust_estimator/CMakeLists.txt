@@ -49,6 +49,8 @@ px4_add_module(
 		mathlib
 		px4_work_queue
 		zero_order_hover_thrust_ekf
+	PUBLICATIONS
+		"px4::msg::HoverThrustEstimate /hover_thrust_estimate"
 )
 
 px4_add_unit_gtest(SRC zero_order_hover_thrust_ekf_test.cpp LINKLIBS zero_order_hover_thrust_ekf)

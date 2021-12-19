@@ -186,4 +186,10 @@ px4_add_module(
 
 		# within libuavcan
 		uavcan
+
+	PUBLICATIONS
+		"px4::msg::EscStatus /esc_status"
+		"px4::msg::GpsInjectData /gps_inject_data"
+		"px4::msg::UavcanParameterValue /uavcan_parameter_value" # TODO: srv
+		"px4::msg::InternalCombustionEngineStatus /internal_combustion_engine_status"
 	)

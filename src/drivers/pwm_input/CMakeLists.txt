@@ -38,4 +38,6 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		pwm_input.cpp
+	PUBLICATIONS
+		"px4::msg::PwmInput /pwm_input"
 	)

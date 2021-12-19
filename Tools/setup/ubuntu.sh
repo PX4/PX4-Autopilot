@@ -10,8 +10,6 @@ set -e
 ## - NuttX toolchain (omit with arg: --no-nuttx)
 ## - jMAVSim and Gazebo9 simulator (omit with arg: --no-sim-tools)
 ##
-## Not Installs:
-## - FastRTPS and FastCDR
 
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
@@ -208,7 +206,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		java_version=14
 		gazebo_version=11
 	fi
-	# Java (jmavsim or fastrtps)
+	# Java (jmavsim)
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 		ant \
 		openjdk-$java_version-jre \

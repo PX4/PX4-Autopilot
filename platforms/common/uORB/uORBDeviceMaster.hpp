@@ -36,7 +36,7 @@
 #include <stdint.h>
 
 #include "uORBCommon.hpp"
-#include <uORB/topics/uORBTopics.hpp>
+#include <uORBTopics.hpp>
 
 #include <px4_platform_common/posix.h>
 

@@ -36,6 +36,14 @@ add_subdirectory(RateControl)
 px4_add_module(
 	MODULE modules__mc_rate_control
 	MAIN mc_rate_control
+	PUBLICATIONS
+		"px4::msg::ActuatorControls /actuator_controls_0"
+		"px4::msg::VehicleAttitudeSetpoint /actuator_controls_virtual_mc" # VTOL
+		"px4::msg::ActuatorControlsStatus /actuator_controls_status_0"
+		"px4::msg::RateCtrlStatus /rate_ctrl_status"
+		"px4::msg::VehicleRatesSetpoint /vehicle_rates_setpoint"
+		"px4::msg::VehicleTorqueSetpoint /vehicle_torque_setpoint"
+		"px4::msg::VehicleThrustSetpoint /vehicle_thrust_setpoint"
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS

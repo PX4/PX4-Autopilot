@@ -170,11 +170,6 @@ ifdef PYTHON_EXECUTABLE
 	CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
 endif
 
-# Check if the microRTPS agent is to be built
-ifdef BUILD_MICRORTPS_AGENT
-  CMAKE_ARGS += -DBUILD_MICRORTPS_AGENT=ON
-endif
-
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
@@ -251,7 +246,7 @@ endef
 # Other targets
 # --------------------------------------------------------------------
 
-.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware check_rtps
+.PHONY: qgc_firmware px4fmu_firmware misc_qgc_extra_firmware
 
 # QGroundControl flashable NuttX firmware
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware
@@ -276,15 +271,7 @@ misc_qgc_extra_firmware: \
 	check_airmind_mindpx-v2_default \
 	sizes
 
-# builds with RTPS
-check_rtps: \
-	check_px4_fmu-v3_rtps \
-	check_px4_fmu-v4_rtps \
-	check_px4_fmu-v4pro_rtps \
-	check_px4_sitl_rtps \
-	sizes
-
-.PHONY: sizes check quick_check check_rtps uorb_graphs
+.PHONY: sizes check quick_check uorb_graphs
 
 sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
@@ -479,7 +466,7 @@ clang-tidy-quiet: px4_sitl_default-clang
 # TODO: Fix cppcheck errors then try --enable=warning,performance,portability,style,unusedFunction or --enable=all
 cppcheck: px4_sitl_default
 	@mkdir -p "$(SRC_DIR)"/build/cppcheck
-	@cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++14 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_sitl_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml > /dev/null
+	@cppcheck -i"$(SRC_DIR)"/src/examples --enable=performance --std=c++17 --std=c99 --std=posix --project="$(SRC_DIR)"/build/px4_sitl_default/compile_commands.json --xml-version=2 2> "$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml > /dev/null
 	@cppcheck-htmlreport --source-encoding=ascii --file="$(SRC_DIR)"/build/cppcheck/cppcheck-result.xml --report-dir="$(SRC_DIR)"/build/cppcheck --source-dir="$(SRC_DIR)"/src/
 
 shellcheck_all:
@@ -559,12 +546,3 @@ ifneq ($(ROS2_WS_DIR),)
 else
   ROS2_WS_DIR := ~/colcon_ws
 endif
-
-update_ros2_bridge:
-	@Tools/update_px4_ros2_bridge.sh --ws_dir ${ROS2_WS_DIR} --all
-
-update_px4_ros_com:
-	@Tools/update_px4_ros2_bridge.sh --ws_dir ${ROS2_WS_DIR} --px4_ros_com
-
-update_px4_msgs:
-	@Tools/update_px4_ros2_bridge.sh --ws_dir ${ROS2_WS_DIR} --px4_msgs

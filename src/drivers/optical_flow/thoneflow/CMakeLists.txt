@@ -38,4 +38,6 @@ px4_add_module(
 		thoneflow_parser.cpp
 	MODULE_CONFIG
 		module.yaml
+	PUBLICATIONS
+		"px4::msg::OpticalFlow /optical_flow"
 	)

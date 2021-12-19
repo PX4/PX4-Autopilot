@@ -44,4 +44,6 @@ px4_add_module(
 		mathlib
 		px4_work_queue
 		SystemIdentification
+	PUBLICATIONS
+		"px4::msg::AutotuneAttitudeControlStatus /autotune_attitude_control_status"
 )

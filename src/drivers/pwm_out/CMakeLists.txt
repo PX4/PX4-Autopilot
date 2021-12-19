@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -51,4 +51,21 @@ px4_add_module(
 		arch_io_pins
 		mixer
 		mixer_module
+	PUBLICATIONS
+		"px4::msg::ActuatorOutputs /actuator_outputs"
+	SUBSCRIPTIONS
+		"px4::msg::ActuatorControls /actuator_controls_0"
+		"px4::msg::ActuatorControls /actuator_controls_1"
+		"px4::msg::ActuatorControls /actuator_controls_2"
+		"px4::msg::ActuatorControls /actuator_controls_3"
+
+		# TODO: mixer_module
+		"px4::msg::ActuatorArmed /actuator_armed"
+		"px4::msg::ActuatorMotors /actuator_motors"
+		"px4::msg::ActuatorServosTrim /actuator_servos_trim"
+		"px4::msg::ActuatorTest /actuator_test"
+		"px4::msg::LandingGear /landing_gear"
+		"px4::msg::ManualControlSetpoint /manual_control_setpoint"
+		"px4::msg::TestMotor /test_motor"
+		"px4::msg::VehicleCommand /vehicle_command"
 	)

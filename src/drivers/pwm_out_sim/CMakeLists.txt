@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -47,4 +47,10 @@ px4_add_module(
 	DEPENDS
 		mixer
 		mixer_module
+	PUBLICATIONS
+		"px4::msg::ActuatorOutputs /actuator_outputs_sim"
+	SUBSCRIPTIONS
+		"px4::msg::ActuatorControls /actuator_controls_0"
+		"px4::msg::ActuatorControls /actuator_controls_1"
+		"px4::msg::ActuatorControls /actuator_controls_2"
 	)

@@ -45,6 +45,8 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 
+#include <uORB/uORB.h>
+
 // publications
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
@@ -410,7 +412,7 @@ private:
 
 	// Subscriptions
 	uORB::Subscription					_action_request_sub {ORB_ID(action_request)};
-	uORB::Subscription					_actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
+	uORB::Subscription					_actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription					_cmd_sub {ORB_ID(vehicle_command)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};

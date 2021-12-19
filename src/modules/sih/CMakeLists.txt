@@ -47,4 +47,9 @@ px4_add_module(
 		drivers_gyroscope
 		drivers_magnetometer
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::VehicleAngularVelocity /vehicle_angular_velocity_groundtruth"
+		"px4::msg::VehicleAttitude /vehicle_attitude_groundtruth"
+		"px4::msg::VehicleGlobalPosition /vehicle_global_position_groundtruth"
+		"px4::msg::VehicleLocalPosition /vehicle_local_position_groundtruth"
 	)

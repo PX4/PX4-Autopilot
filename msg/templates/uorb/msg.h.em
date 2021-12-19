@@ -13,7 +13,7 @@
 @#  - file_name_in (String) Source file
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @#  - search_path (dict) search paths for genmsg
-@#  - topics (List of String) multi-topic names
+@#  - topics (List of String) topic names
 @###############################################
 /****************************************************************************
  *
@@ -52,12 +52,17 @@
 
 @{
 import genmsg.msgs
+import re
 
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
-uorb_struct = '%s_s'%spec.short_name
-uorb_struct_upper = spec.short_name.upper()
-topic_name = spec.short_name
+px4_struct = '%s'%name_snake_case
+uorb_struct = '%s_s'%name_snake_case
+uorb_struct_upper = name_snake_case.upper()
+
+sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
+struct_size, padding_end_size = add_padding_bytes(sorted_fields, search_path)
+topic_fields = ["%s %s" % (convert_type(field.type, True), field.name) for field in sorted_fields]
 }@
 
 #pragma once
@@ -67,6 +72,7 @@ topic_name = spec.short_name
 @##############################
 
 #include <uORB/uORB.h>
+#include <stdio.h>
 
 @##############################
 @# Includes for dependencies
@@ -77,8 +83,15 @@ for field in spec.parsed_fields():
         if (not field.is_header):
             (package, name) = genmsg.names.package_resource_name(field.base_type)
             package = package or spec.package # convert '' to package
+
+            name = re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
             print('#include <uORB/topics/%s.h>'%(name))
 }@
+
+
+#ifdef __PX4_ROS2
+namespace px4_embedded {
+#endif // __PX4_ROS2
 
 @# Constants c style
 #ifndef __cplusplus
@@ -124,14 +137,70 @@ for constant in spec.constants:
 
     print('\tstatic constexpr %s %s = %s;'%(type_px4, constant.name, int(constant.val)))
 }
+
+    static constexpr char FIELDS[] = "@( ";".join(topic_fields) );";
+    static constexpr size_t SIZE_NO_PADDING = @(struct_size-padding_end_size);
+
 #endif
 };
 
-/* register this as object request broker structure */
-@[for multi_topic in topics]@
-ORB_DECLARE(@multi_topic);
-@[end for]
+
+#if defined(__PX4_ROS2)
+} // namespace px4_embedded
+
+#include "px4/msg/@(px4_struct).hpp"
+using @(uorb_struct) = px4::msg::@(spec.short_name);
+
+inline px4::msg::@(spec.short_name) px4_embedded_to_ros2(const px4_embedded::@(uorb_struct)& msg_in)
+{
+	px4::msg::@(spec.short_name) msg_out;
+@{
+for field in spec.parsed_fields():
+
+	#print(field, field.is_builtin, field.base_type, field.is_array, field.array_len)
+
+	if field.is_builtin and not field.is_array:
+		print("	msg_out.%s = msg_in.%s;" % (field.name, field.name))
+	elif field.is_builtin and field.is_array:
+		print("	std::copy(std::begin(msg_in.%s), std::end(msg_in.%s), msg_out.%s.begin());" % (field.name, field.name, field.name))
+	elif not field.is_builtin:
+		#print("	msg_out.%s = px4_embedded_to_ros2(msg_in.%s);" % (field.name, field.name))
+		print("	// %s.%s not printed" % (name_snake_case, field.name))
+	else:
+		print("	#error %s.%s not printed" % (name_snake_case, field.name))
+
+}@
+
+	return msg_out;
+}
+
+
+#else
+
+# ifdef __cplusplus
+namespace px4 {
+	namespace msg {
+		using @(spec.short_name) = @(uorb_struct);
+	} // namespace msg
+} // namespace px4
+
+namespace px4_embedded {
+    using @(uorb_struct) = @(uorb_struct);
+}
+
+# endif
+
+#endif // PX4_ROS2
 
 #ifdef __cplusplus
-void print_message(const orb_metadata *meta, const @uorb_struct& message);
+
+inline void print_message(const orb_metadata *meta, const @uorb_struct& message)
+{
+	if (sizeof(message) != meta->o_size) {
+		printf("unexpected message size for %s: %zu != %i\n", meta->o_name, sizeof(message), meta->o_size);
+		return;
+	}
+	orb_print_message_internal(meta, &message, true);
+}
+
 #endif

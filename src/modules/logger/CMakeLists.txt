@@ -48,4 +48,7 @@ px4_add_module(
 		watchdog.cpp
 	DEPENDS
 		version
+	PUBLICATIONS
+		"px4::msg::LoggerStatus /logger_status"
+		"px4::msg::UlogStream /ulog_stream"
 	)

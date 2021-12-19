@@ -83,6 +83,37 @@ px4_add_module(
 		px4_work_queue
 		world_magnetic_model
 	UNITY_BUILD
+	PUBLICATIONS
+		"px4::msg::Ekf2Timestamps /ekf2_timestamps"
+		"px4::msg::EstimatorBaroBias /estimator_baro_bias"
+		"px4::msg::EstimatorGpsStatus /estimator_gps_status"
+		"px4::msg::EstimatorInnovations /estimator_innovations"
+		"px4::msg::EstimatorInnovations /estimator_innovation_test_ratios"
+		"px4::msg::EstimatorInnovations /estimator_innovation_variances"
+		"px4::msg::EstimatorOpticalFlowVel /estimator_optical_flow_vel"
+		"px4::msg::EstimatorSensorBias /estimator_sensor_bias"
+		"px4::msg::EstimatorStates /estimator_states"
+		"px4::msg::EstimatorStatus /estimator_status"
+		"px4::msg::EstimatorStatusFlags /estimator_status_flags"
+		"px4::msg::EstimatorEventFlags /estimator_event_flags"
+		"px4::msg::VehicleOdometry /estimator_visual_odometry_aligned"
+		"px4::msg::YawEstimatorStatus /yaw_estimator_status"
+
+		"px4::msg::VehicleAttitude /vehicle_attitude"
+		"px4::msg::VehicleLocalPosition /vehicle_local_position"
+		"px4::msg::VehicleGlobalPosition /vehicle_global_position"
+		"px4::msg::VehicleOdometry /vehicle_odometry"
+		"px4::msg::Wind /wind"
+
+		# multi-EKF
+		"px4::msg::EstimatorSelectorStatus /estimator_selector_status"
+		"px4::msg::VehicleAttitude /estimator_attitude"
+		"px4::msg::VehicleLocalPosition /estimator_local_position"
+		"px4::msg::VehicleGlobalPosition /estimator_global_position"
+		"px4::msg::VehicleOdometry /estimator_odometry"
+		"px4::msg::Wind /estimator_wind"
+	SUBSCRIPTIONS
+		"px4::msg::OpticalFlow /optical_flow"
 	)
 
 if(BUILD_TESTING)

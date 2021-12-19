@@ -829,7 +829,6 @@ RECURSIVE              = YES
 # run.
 
 EXCLUDE                = @CMAKE_SOURCE_DIR@/src/modules/uavcan/libuavcan \
-                         @CMAKE_SOURCE_DIR@/src/modules/micrortps_bridge/micro-CDR \
                          @CMAKE_SOURCE_DIR@/src/examples \
                          @CMAKE_SOURCE_DIR@/src/templates
 

@@ -52,4 +52,11 @@ px4_add_module(
 		module.yaml
 	DEPENDS
 		git_gps_devices
+	SUBSCRIPTIONS
+		"px4::msg::GpsInjectData /gps_inject_data"
+	PUBLICATIONS
+		"px4::msg::SensorGps /sensor_gps0"
+		"px4::msg::SensorGps /sensor_gps1"
+		"px4::msg::SatelliteInfo /satellite_info"
+		"px4::msg::GpsDump /gps_dump"
 	)

@@ -44,4 +44,6 @@ px4_add_module(
 		syslink.c
 	DEPENDS
 		battery
+	SUBSCRIPTIONS
+		"px4::msg::BatteryStatus /battery_status"
 	)

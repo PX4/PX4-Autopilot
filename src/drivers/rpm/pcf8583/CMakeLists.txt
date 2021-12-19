@@ -41,4 +41,6 @@ px4_add_module(
 	DEPENDS
 		drivers__device
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::Rpm /rpm"
 )
