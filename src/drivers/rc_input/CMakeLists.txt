@@ -42,4 +42,6 @@ px4_add_module(
 		module.yaml
 	DEPENDS
 		rc
+	PUBLICATIONS
+		"px4::msg::InputRc /input_rc"
 	)

@@ -100,8 +100,6 @@ public:
 
 	virtual int16_t add_subscription(const char *messageName, int32_t msgRateInHz) = 0;
 
-
-
 	/**
 	 * @brief Interface to notify the remote entity of removal of a subscription
 	 *
@@ -116,12 +114,10 @@ public:
 
 	virtual int16_t remove_subscription(const char *messageName) = 0;
 
-
 	/**
 	 * Register Message Handler.  This is internal for the IChannel implementer*
 	 */
 	virtual int16_t register_handler(uORBCommunicator::IChannelRxHandler *handler) = 0;
-
 
 	//=========================================================================
 	//     INTERFACES FOR Data messages
@@ -143,7 +139,6 @@ public:
 	 */
 
 	virtual int16_t send_message(const char *messageName, int32_t length, uint8_t *data) = 0;
-
 };
 
 /**
@@ -153,7 +148,6 @@ public:
 class uORBCommunicator::IChannelRxHandler
 {
 public:
-
 	/**
 	 * Interface to process a received topic from remote.
 	 * @param topic_name
@@ -184,7 +178,6 @@ public:
 
 	virtual int16_t process_add_subscription(const char *messageName, int32_t msgRateInHz) = 0;
 
-
 	/**
 	 * Interface to process a received control msg to remove subscription
 	 * @param messageName
@@ -197,7 +190,6 @@ public:
 	 */
 
 	virtual int16_t process_remove_subscription(const char *messageName) = 0;
-
 
 	/**
 	 * Interface to process the received data message.
@@ -215,7 +207,6 @@ public:
 	 */
 
 	virtual int16_t process_received_message(const char *messageName, int32_t length, uint8_t *data) = 0;
-
 };
 
 #endif /* _uORBCommunicator_hpp_ */

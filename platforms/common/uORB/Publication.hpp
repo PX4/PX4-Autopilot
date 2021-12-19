@@ -43,7 +43,7 @@
 
 #include <uORB/uORB.h>
 #include "uORBManager.hpp"
-#include <uORB/topics/uORBTopics.hpp>
+#include <uORBTopics.hpp>
 
 namespace uORB
 {

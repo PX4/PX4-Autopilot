@@ -42,4 +42,6 @@ px4_add_module(
 	DEPENDS
 		drivers_barometer
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::SensorBaro /sensor_baro"
 	)

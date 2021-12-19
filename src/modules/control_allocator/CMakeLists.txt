@@ -53,4 +53,16 @@ px4_add_module(
 		ControlAllocation
 		mixer
 		px4_work_queue
+	PUBLICATIONS
+
+		"px4::msg::ActuatorMotors /actuator_motors"
+		"px4::msg::ActuatorServos /actuator_servos"
+		"px4::msg::ActuatorServosTrim /actuator_servos_trim"
+		"px4::msg::ControlAllocatorStatus /control_allocator_status"
+	SUBSCRIPTIONS
+		"px4::msg::ActuatorControls /actuator_controls_0"
+		"px4::msg::ActuatorControls /actuator_controls_1"
+		"px4::msg::ActuatorControls /actuator_controls_2"
+		"px4::msg::VehicleTorqueSetpoint /vehicle_torque_setpoint"
+		"px4::msg::VehicleThrustSetpoint /vehicle_thrust_setpoint"
 )

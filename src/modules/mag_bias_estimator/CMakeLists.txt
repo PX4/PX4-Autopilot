@@ -40,4 +40,6 @@ px4_add_module(
 		MagBiasEstimator.hpp
 	DEPENDS
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::MagnetometerBiasEstimate /magnetometer_bias_estimate"
 )

@@ -55,4 +55,16 @@ px4_add_module(
 		landing_slope
 		geofence_breach_avoidance
 		motion_planning
+	PUBLICATIONS
+		"px4::msg::GeofenceResult /geofence_result"
+		"px4::msg::MissionResult /mission_result"
+		"px4::msg::NavigatorMissionItem /navigator_mission_item"
+		"px4::msg::PositionSetpointTriplet /position_setpoint_triplet"
+		"px4::msg::RtlTimeEstimate /rtl_time_estimate"
+		"px4::msg::TransponderReport /transponder_report"
+		"px4::msg::VehicleRoi /vehicle_roi"
+		"px4::msg::ActuatorControls /actuator_controls_2"
+	SUBSCRIPTIONS
+		"px4::msg::PositionControllerStatus /position_controller_status"
+		"px4::msg::PositionControllerLandingStatus /position_controller_landing_status"
 	)

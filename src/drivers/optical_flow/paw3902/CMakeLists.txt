@@ -43,4 +43,6 @@ px4_add_module(
 		conversion
 		drivers__device
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::OpticalFlow /optical_flow"
 	)

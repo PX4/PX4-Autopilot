@@ -32,17 +32,17 @@
 ############################################################################
 
 set(SRCS
-	conversions.c
-	conversions.h
-	crc.c
-	crc.h
+	err.h
 	mavlink_log.cpp
 	mavlink_log.h
+	px4_macros.h
 )
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
 	list(APPEND SRCS
 		otp.c
+		otp.h
+		ppm_decode.h
 	)
 endif()
 

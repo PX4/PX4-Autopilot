@@ -32,8 +32,11 @@
 ############################################################################
 
 include_directories(../../../include)
-px4_add_library(arch_canbootloader
+
+add_library(arch_canbootloader
 	board_identity.c
 	drivers/can/driver.c
 	drivers/flash/driver.c
 )
+target_link_libraries(arch_canbootloader PRIVATE crc)
+add_dependencies(arch_canbootloader prebuild_targets)

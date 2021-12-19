@@ -53,7 +53,7 @@
 #include <arch/board/board.h>
 #include "flexcan.h"
 
-#include <lib/systemlib/crc.h>
+#include <lib/crc/crc.h>
 
 
 #define CAN_TX_TIMEOUT_MS     (200 /(1000/(1000000/CONFIG_USEC_PER_TICK)))

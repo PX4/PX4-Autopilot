@@ -45,5 +45,11 @@ px4_add_module(
 		vmount.cpp
 	DEPENDS
 		geo
+	PUBLICATIONS
+		"px4::msg::GimbalManagerInformation /gimbal_manager_information"
+		"px4::msg::GimbalManagerStatus /gimbal_manager_status"
+		"px4::msg::GimbalDeviceSetAttitude /gimbal_device_set_attitude"
+		"px4::msg::GimbalDeviceAttitudeStatus /gimbal_device_attitude_status"
+		"px4::msg::MountOrientation /mount_orientation"
 	)
 

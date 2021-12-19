@@ -111,6 +111,74 @@ px4_add_module(
 		tunes
 		version
 	UNITY_BUILD
+	PUBLICATIONS
+		"px4::msg::Mission /mission"
+		"px4::msg::RcParameterMap /rc_parameter_map"
+		"px4::msg::TelemetryStatus /telemetry_status"
+		"px4::msg::TimesyncStatus /timesync_status"
+		"px4::msg::UavcanParameterRequest /uavcan_parameter_request" # TODO: srv
+		"px4::msg::UavcanParameterValue /uavcan_parameter_value" # TODO: srv
+		"px4::msg::UlogStreamAck /ulog_stream_ack" # TODO: srv
+
+		"px4::msg::InternalCombustionEngineStatus /internal_combustion_engine_status" # TODO: SITL
+
+		# TODO: mavlink receiver
+		"px4::msg::CollisionReport /collision_report"
+		"px4::msg::VehicleOdometry /vehicle_visual_odometry"
+		"px4::msg::VehicleOdometry /vehicle_mocap_odometry"
+		"px4::msg::OffboardControlMode /offboard_control_mode"
+		"px4::msg::CameraStatus /camera_status"
+		"px4::msg::CellularStatus /cellular_status"
+		"px4::msg::FollowTarget /follow_target"
+		"px4::msg::GimbalManagerSetAttitude /gimbal_manager_set_attitude"
+		"px4::msg::GimbalManagerSetManualControl /gimbal_manager_set_manual_control"
+		"px4::msg::GimbalDeviceInformation /gimbal_device_information"
+		"px4::msg::LandingTargetPose /landing_target_pose"
+		"px4::msg::OnboardComputerStatus /onboard_computer_status"
+		"px4::msg::Ping /ping"
+		"px4::msg::GpsInjectData /gps_inject_data"
+		"px4::msg::RadioStatus /radio_status"
+		"px4::msg::TransponderReport /transponder_report"
+		"px4::msg::GeneratorStatus /generator_status"
+		"px4::msg::InputRc /input_rc"
+		"px4::msg::OpticalFlow /optical_flow"
+		"px4::msg::SensorGps /sensor_gps"
+		"px4::msg::VehicleOdometry /vehicle_odometry"
+		"px4::msg::ObstacleDistance /obstacle_distance"
+		"px4::msg::VehicleRatesSetpoint /vehicle_rates_setpoint"
+
+		"px4::msg::DebugArray /debug_array"
+		"px4::msg::DebugKeyValue /debug_key_value"
+		"px4::msg::DebugValue /debug_value"
+		"px4::msg::DebugVect /debug_vect"
+	SUBSCRIPTIONS
+		"px4::msg::ActuatorOutputs /actuator_outputs"
+		"px4::msg::AutotuneAttitudeControlStatus /autotune_attitude_control_status"
+		"px4::msg::CameraCapture /camera_capture"
+		"px4::msg::CameraTrigger /camera_trigger"
+		"px4::msg::MountOrientation /mount_orientation"
+		"px4::msg::SensorHygrometer /sensor_hygrometer"
+		"px4::msg::SatelliteInfo /satellite_info"
+		"px4::msg::TecsStatus /tecs_status"
+		"px4::msg::VehicleAttitudeSetpoint /fw_virtual_attitude_setpoint" # VTOL
+		"px4::msg::VehicleAttitudeSetpoint /mc_virtual_attitude_setpoint" # VTOL
+		"px4::msg::GimbalDeviceAttitudeStatus /gimbal_device_attitude_status"
+		"px4::msg::GimbalDeviceSetAttitude /gimbal_device_set_attitude"
+		"px4::msg::GimbalManagerInformation /gimbal_manager_information"
+		"px4::msg::GimbalManagerStatus /gimbal_manager_status"
+		"px4::msg::VehicleAttitudeSetpoint /vehicle_attitude_setpoint"
+		"px4::msg::VehicleTrajectoryBezier /vehicle_trajectory_bezier"
+		"px4::msg::VehicleTrajectoryWaypoint /vehicle_trajectory_waypoint"
+		"px4::msg::VehicleTrajectoryWaypoint /vehicle_trajectory_waypoint_desired"
+
+		"px4::msg::ObstacleDistance /obstacle_distance_fused"
+		"px4::msg::OrbitStatus /orbit_status"
+		"px4::msg::VehicleLocalPositionSetpoint /vehicle_local_position_setpoint"
+
+		"px4::msg::VehicleAngularVelocity /vehicle_angular_velocity_groundtruth"
+		"px4::msg::VehicleAttitude /vehicle_attitude_groundtruth"
+		"px4::msg::VehicleGlobalPosition /vehicle_global_position_groundtruth"
+		"px4::msg::VehicleLocalPosition /vehicle_local_position_groundtruth"
 	)
 
 if(PX4_TESTING)

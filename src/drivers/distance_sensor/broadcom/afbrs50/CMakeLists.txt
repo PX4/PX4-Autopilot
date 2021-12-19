@@ -54,6 +54,8 @@ px4_add_module(
 		px4_work_queue
 		drivers_rangefinder
 		afbrs50_m4_fpu
+	PUBLICATIONS
+		"px4::msg::DistanceSensor /distance_sensor"
 	)
 
 target_link_libraries(afbrs50_m4_fpu INTERFACE drivers__distance_sensor__afbrs50)

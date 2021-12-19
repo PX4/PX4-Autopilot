@@ -45,6 +45,14 @@ px4_add_module(
 		arch_px4io_serial
 		circuit_breaker
 		mixer_module
+	PUBLICATIONS
+		"px4::msg::InputRc /input_rc"
+		"px4::msg::Px4ioStatus /px4io_status"
+		"px4::msg::Safety /safety"
+	SUBSCRIPTIONS
+		"px4::msg::ActuatorControls /actuator_controls_0"
+		"px4::msg::ActuatorControls /actuator_controls_1"
+		"px4::msg::ActuatorControls /actuator_controls_2"
 	)
 
 # include the px4io binary in ROMFS

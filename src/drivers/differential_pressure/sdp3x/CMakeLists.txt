@@ -40,4 +40,6 @@ px4_add_module(
 	DEPENDS
 		drivers__airspeed
 		mathlib
+	PUBLICATIONS
+		"px4::msg::DifferentialPressure /differential_pressure"
 	)

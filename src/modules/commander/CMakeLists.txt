@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,7 +37,42 @@ add_subdirectory(Arming)
 px4_add_module(
 	MODULE modules__commander
 	MAIN commander
-	COMPILE_FLAGS
+	PUBLICATIONS
+		"px4::msg::ActuatorArmed /actuator_armed"
+		"px4::msg::ActuatorTest /actuator_test"
+		"px4::msg::CommanderState /commander_state"
+		"px4::msg::FailureDetectorStatus /failure_detector_status"
+		"px4::msg::LedControl /led_control"
+		"px4::msg::HomePosition /home_position"
+		"px4::msg::MavlinkLog /mavlink_log"
+		"px4::msg::LogMessage /log_message"
+		"px4::msg::MagWorkerData /mag_worker_data"
+		"px4::msg::Event /event"
+		"px4::msg::Mission /mission"
+		"px4::msg::TestMotor /test_motor"
+		"px4::msg::TuneControl /tune_control"
+		"px4::msg::VehicleCommand /vehicle_command"        # TODO: srv
+		"px4::msg::VehicleCommandAck /vehicle_command_ack" # TODO: srv
+		"px4::msg::VehicleControlMode /vehicle_control_mode"
+		"px4::msg::VehicleStatus /vehicle_status"
+		"px4::msg::VehicleStatusFlags /vehicle_status_flags"
+	SUBSCRIPTIONS
+		"px4::msg::ParameterUpdate /parameter_update" # TODO: parameter server
+
+		"px4::msg::AirspeedValidated /airspeed_validated"
+		"px4::msg::Cpuload /cpuload"
+		"px4::msg::DifferentialPressure /differential_pressure" # airspeed calibration
+		"px4::msg::EscStatus /esc_status"
+		"px4::msg::EstimatorSelectorStatus /estimator_selector_status"
+		"px4::msg::EstimatorStatus /estimator_status"
+		"px4::msg::EstimatorSensorBias /estimator_sensor_bias"
+		"px4::msg::PwmInput /pwm_input" # TODO:
+		"px4::msg::IridiumsbdStatus /iridiumsbd_status" # TODO:
+		"px4::msg::Safety /safety" # TODO: SITL
+		"px4::msg::SystemPower /system_power" # TODO: SITL
+		"px4::msg::PowerButtonState /power_button_state" # TODO: SITL
+		"px4::msg::VtolVehicleStatus /vtol_vehicle_status"
+		"px4::msg::Wind /wind"
 	SRCS
 		accelerometer_calibration.cpp
 		airspeed_calibration.cpp

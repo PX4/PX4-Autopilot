@@ -44,4 +44,9 @@ px4_add_module(
 		drivers_accelerometer
 		drivers_gyroscope
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::SensorAccel /sensor_accel"
+		"px4::msg::SensorGyro /sensor_gyro"
+		"px4::msg::SensorAccelFifo /sensor_accel_fifo"
+		"px4::msg::SensorGyroFifo /sensor_gyro_fifo"
 	)

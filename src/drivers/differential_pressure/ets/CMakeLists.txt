@@ -38,4 +38,6 @@ px4_add_module(
 		ets_airspeed.cpp
 	DEPENDS
 		drivers__airspeed
+	PUBLICATIONS
+		"px4::msg::DifferentialPressure /differential_pressure"
 	)

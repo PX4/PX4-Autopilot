@@ -39,4 +39,7 @@ px4_add_module(
 		LoadMon.hpp
 	DEPENDS
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::Cpuload /cpuload"
+		"px4::msg::TaskStackInfo /task_stack_info"
 )

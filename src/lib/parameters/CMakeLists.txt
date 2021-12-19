@@ -146,9 +146,9 @@ add_custom_command(OUTPUT px4_parameters.hpp
 		px_generate_params.py
 		templates/px4_parameters.hpp.jinja
 	)
+add_custom_target(generate_parameters DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/px4_parameters.hpp)
 
 set(SRCS)
-
 list(APPEND SRCS parameters.cpp)
 if(BUILD_TESTING)
 	list(APPEND SRCS param_translation_unit_tests.cpp)
@@ -161,11 +161,9 @@ if(${PX4_PLATFORM} STREQUAL "nuttx")
 endif()
 
 # TODO: find a better way to do this
-if (NOT "${PX4_BOARD}" MATCHES "px4_io")
-	add_library(parameters
-		${SRCS}
-		px4_parameters.hpp
-	)
+if((NOT "${PX4_BOARD}" MATCHES "px4_io") AND (NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader"))
+
+	add_library(parameters STATIC EXCLUDE_FROM_ALL ${SRCS} px4_parameters.hpp)
 
 	target_link_libraries(parameters PRIVATE perf tinybson px4_layer)
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
@@ -176,7 +174,7 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 			-Wno-sign-compare	# TODO: fix and enable
 	)
 else()
-	add_library(parameters ${PX4_SOURCE_DIR}/platforms/common/empty.c)
+	add_library(parameters STATIC EXCLUDE_FROM_ALL ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 endif()
 add_dependencies(parameters prebuild_targets)
 

@@ -39,5 +39,7 @@ px4_add_module(
 		RoboClaw.cpp
 	MODULE_CONFIG
 		module.yaml
+	PUBLICATIONS
+		"px4::msg::WheelEncoders /wheel_encoders"
 	)
 

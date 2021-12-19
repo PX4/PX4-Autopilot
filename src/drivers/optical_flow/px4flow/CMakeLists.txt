@@ -37,4 +37,6 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		px4flow.cpp
+	PUBLICATIONS
+		"px4::msg::OpticalFlow /optical_flow"
 	)

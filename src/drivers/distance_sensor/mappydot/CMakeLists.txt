@@ -33,6 +33,8 @@
 px4_add_module(
 	MODULE drivers__mappydot
 	MAIN mappydot
+	PUBLICATIONS
+		"px4::msg::DistanceSensor /distance_sensor"
 	SRCS
 		MappyDot.cpp
 	DEPENDS

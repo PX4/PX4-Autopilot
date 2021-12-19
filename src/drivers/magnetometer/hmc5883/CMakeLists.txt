@@ -43,5 +43,7 @@ px4_add_module(
 	DEPENDS
 		drivers_magnetometer
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::SensorMag /sensor_mag"
 	)
 

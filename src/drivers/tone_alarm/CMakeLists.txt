@@ -43,4 +43,6 @@ px4_add_module(
 		circuit_breaker
 		arch_tone_alarm
 		tunes
+	PUBLICATIONS
+		"px4::msg::TuneControl /tune_control"
 	)

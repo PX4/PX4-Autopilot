@@ -38,4 +38,6 @@ px4_add_module(
 		pmw3901_main.cpp
 		PMW3901.cpp
 		PMW3901.hpp
+	PUBLICATIONS
+		"px4::msg::OpticalFlow /optical_flow"
 	)

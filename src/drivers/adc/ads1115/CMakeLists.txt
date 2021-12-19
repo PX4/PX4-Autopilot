@@ -37,5 +37,9 @@ px4_add_module(
 	SRCS
 		ads1115_main.cpp
 		ADS1115.cpp
+		ADS1115.h
 	DEPENDS
+		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::AdcReport /adc_report"
 	)

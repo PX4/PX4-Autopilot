@@ -36,4 +36,6 @@ px4_add_module(
 	SRCS
 		rpm_simulator.cpp
 	DEPENDS
+	PUBLICATIONS
+		"px4::msg::Rpm /rpm"
 	)

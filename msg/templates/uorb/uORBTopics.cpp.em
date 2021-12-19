@@ -1,18 +1,6 @@
-@###############################################
-@#
-@# EmPy template for generating uORBTopics.cpp file
-@# for logging purposes
-@#
-@###############################################
-@# Start of Template
-@#
-@# Context:
-@#  - msgs (List) list of all msg files
-@#  - multi_topics (List) list of all multi-topic names
-@###############################################
 /****************************************************************************
  *
- *   Copyright (C) 2013-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,23 +31,23 @@
  *
  ****************************************************************************/
 
-#include <uORB/topics/uORBTopics.hpp>
 #include <uORB/uORB.h>
-@{
-msg_names = [mn.replace(".msg", "") for mn in msgs]
-msgs_count = len(msg_names)
-msg_names_all = list(set(msg_names + multi_topics)) # set() filters duplicates
-msg_names_all.sort()
-msgs_count_all = len(msg_names_all)
-}@
-@[for msg_name in msg_names]@
-#include <uORB/topics/@(msg_name).h>
-@[end for]
+
+#include "uORBTopics.hpp"
+
+// ORB_DEFINE(action_request, px4::msg::ActionRequest, px4_embedded::action_request_s::SIZE_NO_PADDING, px4_embedded::action_request_s::FIELDS, static_cast<uint8_t>(ORB_ID::action_request));
+// ORB_DEFINE(actuator_armed, px4::msg::ActuatorArmed, px4_embedded::actuator_armed_s::SIZE_NO_PADDING, px4_embedded::actuator_armed_s::FIELDS, static_cast<uint8_t>(ORB_ID::actuator_armed));
+
+//const constexpr struct orb_metadata *const uorb_topics_list[ORB_TOPICS_COUNT] = {
+//	ORB_ID(action_request),
+//	ORB_ID(actuator_armed),
+
+
+
+@PX4_ORB_DEFINE_STR@
 
 const constexpr struct orb_metadata *const uorb_topics_list[ORB_TOPICS_COUNT] = {
-@[for idx, msg_name in enumerate(msg_names_all, 1)]@
-	ORB_ID(@(msg_name))@[if idx != msgs_count_all], @[end if]
-@[end for]
+@PX4_MSG_TOPIC_ORB_ID@
 };
 
 const struct orb_metadata *const *orb_get_topics()

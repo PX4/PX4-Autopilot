@@ -40,5 +40,7 @@ px4_add_module(
 		attitude_estimator_q_main.cpp
 	DEPENDS
 		world_magnetic_model
+	PUBLICATIONS
+		"px4::msg::VehicleAttitude /vehicle_attitude"
 	)
 

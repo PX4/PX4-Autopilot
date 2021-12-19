@@ -40,4 +40,7 @@ px4_add_module(
 	DEPENDS
 		arch_adc
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::AdcReport /adc_report"
+		"px4::msg::SystemPower /system_power"
 	)

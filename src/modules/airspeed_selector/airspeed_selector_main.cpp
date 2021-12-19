@@ -53,7 +53,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/position_setpoint.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
@@ -120,7 +120,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
-	uORB::Subscription _position_setpoint_sub{ORB_ID(position_setpoint)};
+	uORB::Subscription _position_setpoint_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::SubscriptionMultiArray<airspeed_s, MAX_NUM_AIRSPEED_SENSORS> _airspeed_subs{ORB_ID::airspeed};
 
 
@@ -132,7 +132,7 @@ private:
 	vehicle_local_position_s _vehicle_local_position {};
 	vehicle_status_s _vehicle_status {};
 	vtol_vehicle_status_s _vtol_vehicle_status {};
-	position_setpoint_s _position_setpoint {};
+	position_setpoint_s _position_setpoint{};
 
 	WindEstimator	_wind_estimator_sideslip; /**< wind estimator instance only fusing sideslip */
 	airspeed_wind_s _wind_estimate_sideslip {}; /**< wind estimate message for wind estimator instance only fusing sideslip */
@@ -499,7 +499,14 @@ void AirspeedModule::poll_topics()
 	_vehicle_status_sub.update(&_vehicle_status);
 	_vtol_vehicle_status_sub.update(&_vtol_vehicle_status);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
-	_position_setpoint_sub.update(&_position_setpoint);
+
+	if (_position_setpoint_triplet_sub.updated()) {
+		position_setpoint_triplet_s position_setpoint_triplet;
+
+		if (_position_setpoint_triplet_sub.update(&position_setpoint_triplet)) {
+			_position_setpoint = position_setpoint_triplet.current;
+		}
+	}
 
 
 	_vehicle_local_position_valid = (_time_now_usec - _vehicle_local_position.timestamp < 1_s)

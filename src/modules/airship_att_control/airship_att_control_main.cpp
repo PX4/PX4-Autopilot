@@ -190,7 +190,7 @@ int AirshipAttitudeControl::print_status()
 
 	perf_print_counter(_loop_perf);
 
-	print_message(ORB_ID(actuator_controls), _actuators);
+	print_message(ORB_ID(actuator_controls_0), _actuators);
 
 	return 0;
 }

@@ -46,4 +46,9 @@ px4_add_module(
 		mathlib
 		AngularVelocityControl
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::RateCtrlStatus /rate_ctrl_status"
+		"px4::msg::VehicleAngularAccelerationSetpoint /vehicle_angular_acceleration_setpoint"
+		"px4::msg::VehicleThrustSetpoint /vehicle_thrust_setpoint"
+		"px4::msg::VehicleTorqueSetpoint /vehicle_torque_setpoint"
 	)

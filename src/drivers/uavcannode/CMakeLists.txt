@@ -153,4 +153,23 @@ px4_add_module(
 
 		# within libuavcan
 		uavcan
+	PUBLICATIONS
+		"px4::msg::GpsInjectData /gps_inject_data"
+		"px4::msg::LedControl /led_control"
+		"px4::msg::TuneControl /tune_control"
+	SUBSCRIPTIONS
+		"px4::msg::ActuatorArmed /actuator_armed"
+		"px4::msg::BatteryStatus /battery_status"
+		"px4::msg::DifferentialPressure /differential_pressure"
+		"px4::msg::DistanceSensor /distance_sensor"
+		"px4::msg::Event /event"
+		"px4::msg::LedControl /led_control"
+		"px4::msg::LogMessage /log_message"
+		"px4::msg::MavlinkLog /mavlink_log"
+		"px4::msg::OpticalFlow /optical_flow"
+		"px4::msg::ParameterUpdate /parameter_update"
+		"px4::msg::Safety /safety"
+		"px4::msg::SensorBaro /sensor_baro"
+		"px4::msg::SensorGps /sensor_gps"
+		"px4::msg::SensorMag /sensor_mag"
 	)

@@ -48,6 +48,7 @@ include(px4_list_make_absolute)
 #			[ DEPENDS <string> ]
 #			[ SRCS <list> ]
 #			[ MODULE_CONFIG <list> ]
+#			[ PUBLICATIONS <list> ]
 #			[ EXTERNAL ]
 #			[ DYNAMIC ]
 #			)
@@ -64,6 +65,8 @@ include(px4_list_make_absolute)
 #		MODULE_CONFIG		: yaml config file(s)
 #		INCLUDES		: include directories
 #		DEPENDS			: targets which this module depends on
+#		PUBLICATIONS		: List of publications from this module
+#               SUBSCRIPTIONS		: List of subsriptions used by this module
 #		EXTERNAL		: flag to indicate that this module is out-of-tree
 #		DYNAMIC			: don't compile into the px4 binary, but build a separate dynamically loadable module (posix)
 #		UNITY_BUILD		: merge all source files and build this module as a single compilation unit
@@ -86,7 +89,7 @@ function(px4_add_module)
 	px4_parse_function_args(
 		NAME px4_add_module
 		ONE_VALUE MODULE MAIN STACK_MAIN STACK_MAX PRIORITY
-		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS MODULE_CONFIG
+		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS MODULE_CONFIG PUBLICATIONS SUBSCRIPTIONS
 		OPTIONS EXTERNAL DYNAMIC UNITY_BUILD
 		REQUIRED MODULE MAIN
 		ARGN ${ARGN})
@@ -165,7 +168,7 @@ function(px4_add_module)
 
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
-	set(STACK_MAIN_DEFAULT 2048)
+	set(STACK_MAIN_DEFAULT 4096)
 	set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
 
 	foreach(property MAIN STACK_MAIN PRIORITY)
@@ -214,7 +217,21 @@ function(px4_add_module)
 		endforeach()
 	endif()
 
-	foreach (prop LINK_FLAGS STACK_MAIN MAIN PRIORITY)
+	if(PUBLICATIONS)
+		foreach(publication ${PUBLICATIONS})
+			#message(STATUS "${MODULE} PUBLICATION: ${publication}")
+			set_property(GLOBAL APPEND PROPERTY PX4_PUBLICATIONS ${publication})
+		endforeach()
+	endif()
+
+	if(SUBSCRIPTIONS)
+		foreach(subscription ${SUBSCRIPTIONS})
+			#message(STATUS "${MODULE} SUBSCRIPTION: ${subscription}")
+			set_property(GLOBAL APPEND PROPERTY PX4_SUBSCRIPTIONS ${subscription})
+		endforeach()
+	endif()
+
+	foreach(prop LINK_FLAGS STACK_MAIN MAIN PRIORITY)
 		if (${prop})
 			set_target_properties(${MODULE} PROPERTIES ${prop} ${${prop}})
 		endif()

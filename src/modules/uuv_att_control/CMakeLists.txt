@@ -37,4 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		uuv_att_control.cpp
+	PUBLICATIONS
+		"px4::msg::VehicleTorqueSetpoint /vehicle_torque_setpoint"
+		"px4::msg::VehicleThrustSetpoint /vehicle_thrust_setpoint"
 	)

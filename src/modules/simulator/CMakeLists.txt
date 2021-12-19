@@ -68,6 +68,26 @@ px4_add_module(
 		drivers_barometer
 		drivers_gyroscope
 		drivers_magnetometer
+	PUBLICATIONS
+		"px4::msg::VehicleOdometry /vehicle_visual_odometry"
+		"px4::msg::VehicleAngularVelocity /vehicle_angular_velocity_groundtruth"
+		"px4::msg::VehicleAttitude /vehicle_attitude_groundtruth"
+		"px4::msg::VehicleGlobalPosition /vehicle_global_position_groundtruth"
+		"px4::msg::VehicleLocalPosition /vehicle_local_position_groundtruth"
+
+		"px4::msg::InputRc /input_rc"
+
+		"px4::msg::DistanceSensor /distance_sensor"
+		"px4::msg::DifferentialPressure /differential_pressure"
+		"px4::msg::OpticalFlow /optical_flow"
+		"px4::msg::IrlockReport /irlock_report"
+		"px4::msg::SensorBaro /sensor_baro"
+		"px4::msg::SensorGps /sensor_gps"
+		"px4::msg::SensorMag /sensor_mag"
+		"px4::msg::SensorAccel /sensor_accel"
+		"px4::msg::SensorGyro /sensor_gyro"
+		"px4::msg::SensorAccelFifo /sensor_accel_fifo"
+		"px4::msg::SensorGyroFifo /sensor_gyro_fifo"
 	)
 target_include_directories(modules__simulator INTERFACE ${CMAKE_BINARY_DIR}/mavlink)
 

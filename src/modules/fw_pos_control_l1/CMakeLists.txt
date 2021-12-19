@@ -48,4 +48,12 @@ px4_add_module(
 		runway_takeoff
 		SlewRate
 		tecs
+	PUBLICATIONS
+		"px4::msg::VehicleAttitudeSetpoint /vehicle_attitude_setpoint"
+		"px4::msg::VehicleAttitudeSetpoint /fw_virtual_attitude_setpoint" # VTOL
+		"px4::msg::PositionControllerStatus /position_controller_status"
+		"px4::msg::PositionControllerLandingStatus /position_controller_landing_status"
+		"px4::msg::NpfgStatus /npfg_status"
+		"px4::msg::OrbitStatus /orbit_status"
+		"px4::msg::TecsStatus /tecs_status"
 	)

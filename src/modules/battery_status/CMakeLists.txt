@@ -39,6 +39,8 @@ px4_add_module(
 		analog_battery.cpp
 	MODULE_CONFIG
 		module.yaml
+	PUBLICATIONS
+		"px4::msg::BatteryStatus /battery_status"
 	DEPENDS
 		battery
 		conversion

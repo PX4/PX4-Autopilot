@@ -52,4 +52,8 @@ px4_add_module(
 		module.yaml
 	DEPENDS
 		git_gps_devices
+	PUBLICATIONS
+		"px4::msg::SensorGps /sensor_gps"
+		"px4::msg::SatelliteInfo /satellite_info"
+		"px4::msg::GpsDump /gps_dump"
 	)

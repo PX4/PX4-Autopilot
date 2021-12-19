@@ -41,4 +41,6 @@ px4_add_module(
 		module.yaml
 	DEPENDS
 		drivers_rangefinder
+	PUBLICATIONS
+		"px4::msg::DistanceSensor /distance_sensor"
 	)

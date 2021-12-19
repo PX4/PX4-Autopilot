@@ -39,7 +39,7 @@
 #pragma once
 
 #include <uORB/uORB.h>
-#include <uORB/topics/uORBTopics.hpp>
+#include <uORBTopics.hpp>
 
 #include <px4_platform_common/defines.h>
 #include <lib/mathlib/mathlib.h>
@@ -159,6 +159,10 @@ public:
 	uint8_t  get_instance() const { return _instance; }
 	unsigned get_last_generation() const { return _last_generation; }
 	orb_id_t get_topic() const { return get_orb_meta(_orb_id); }
+
+	ORB_ID get_topic_enum() const { return _orb_id; }
+
+	size_t get_topic_size() const { return get_orb_meta(_orb_id)->o_size; }
 
 protected:
 

@@ -57,13 +57,31 @@ msgs_count_all = len(msg_names_all)
 
 #include <uORB/uORB.h>
 
-static constexpr size_t ORB_TOPICS_COUNT{@(msgs_count_all)};
+// TODO: ros2 friendly include paths
+//#include <uORB/topics/action_request.h>
+//#include <uORB/topics/actuator_armed.h>
+
+
+@PX4_ORB_HEADER_INCLUDE_STR@
+
+static constexpr size_t ORB_TOPICS_COUNT{@PX4_ORB_TOPIC_COUNT@};
 static constexpr size_t orb_topics_count() { return ORB_TOPICS_COUNT; }
+
+
+// ORB_DECLARE(action_request);
+// ORB_DECLARE(actuator_armed);
+
+@PX4_ORB_DECLARE_STR@
 
 /*
  * Returns array of topics metadata
  */
 extern const struct orb_metadata *const *orb_get_topics() __EXPORT;
+
+
+// enum class ORB_ID : uint8_t {
+// 	action_request,
+//	actuator_armed,
 
 enum class ORB_ID : uint8_t {
 @[for idx, msg_name in enumerate(msg_names_all)]@
@@ -73,3 +91,18 @@ enum class ORB_ID : uint8_t {
 };
 
 const struct orb_metadata *get_orb_meta(ORB_ID id);
+
+
+static constexpr const char *get_topic_string(ORB_ID orb_id)
+{
+	switch (orb_id) {
+	//case ORB_ID::action_request: return "action_request";
+	//case ORB_ID::actuator_armed: return "actuator_armed";
+
+@[for idx, msg_name in enumerate(msg_names_all)]@
+	case @(msg_name): return "@(msg_name)";
+@[end for]
+	}
+
+	return nullptr;
+}

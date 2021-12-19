@@ -36,7 +36,7 @@
 #include <stdint.h>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/uORBTopics.hpp>
+#include <uORBTopics.hpp>
 
 namespace px4
 {

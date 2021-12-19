@@ -46,7 +46,7 @@
 #include <time.h>
 
 #include <uORB/Publication.hpp>
-#include <uORB/topics/uORBTopics.hpp>
+#include <uORBTopics.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/battery_status.h>

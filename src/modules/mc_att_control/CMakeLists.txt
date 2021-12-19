@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -36,6 +36,10 @@ add_subdirectory(AttitudeControl)
 px4_add_module(
 	MODULE modules__mc_att_control
 	MAIN mc_att_control
+	PUBLICATIONS
+		"px4::msg::VehicleAttitudeSetpoint /vehicle_attitude_setpoint"
+		"px4::msg::VehicleAttitudeSetpoint /mc_virtual_attitude_setpoint" # VTOL
+		"px4::msg::VehicleRatesSetpoint /vehicle_rates_setpoint"
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS

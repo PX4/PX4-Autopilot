@@ -39,4 +39,7 @@ px4_add_module(
 		AirspeedValidator.hpp
 	DEPENDS
 		wind_estimator
+	PUBLICATIONS
+		"px4::msg::AirspeedValidated /airspeed_validated"
+		"px4::msg::AirspeedWind /airspeed_wind"
 )

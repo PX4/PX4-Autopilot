@@ -49,9 +49,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <string.h>  // memset
-#include "conversions.h"
 #include "otp.h"
-#include "err.h"   // warnx 
+#include "err.h"   // warnx
 #include <assert.h>
 
 

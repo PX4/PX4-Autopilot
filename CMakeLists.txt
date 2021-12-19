@@ -101,6 +101,8 @@
 
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
+cmake_policy(SET CMP0058 NEW)
+
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE FILEPATH "PX4 source directory" FORCE)
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE FILEPATH "PX4 binary directory" FORCE)
 
@@ -124,7 +126,6 @@ define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  BRIEF_DOCS "PX4 module libs"
                  FULL_DOCS "List of all PX4 module libraries"
                  )
-
 define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
                  BRIEF_DOCS "PX4 module paths"
                  FULL_DOCS "List of paths to all PX4 modules"
@@ -133,29 +134,40 @@ define_property(GLOBAL PROPERTY PX4_SRC_FILES
                  BRIEF_DOCS "src files from all PX4 modules & libs"
                  FULL_DOCS "SRC files from px4_add_{module,library}"
                  )
-
+define_property(GLOBAL PROPERTY PX4_PUBLICATIONS
+                 BRIEF_DOCS "PX4 publication topics"
+                 FULL_DOCS "List of topics published by PX4 modules"
+                 )
+define_property(GLOBAL PROPERTY PX4_SUBSCRIPTIONS
+                 BRIEF_DOCS "PX4 subscription topics"
+                 FULL_DOCS "List of topics subscribed by PX4 modules"
+                 )
 #=============================================================================
 # configuration
 #
 
-set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
+# default to px4_ros2_default if building within a ROS2 colcon environment
+if((DEFINED ENV{COLCON_PREFIX_PATH}) AND (DEFINED ENV{ROS_VERSION}))
+	if("$ENV{ROS_VERSION}" MATCHES "2")
+		message(STATUS "ROS_VERSION: $ENV{ROS_VERSION}")
+		set(CONFIG "px4_ros2_default" CACHE STRING "desired configuration") # TODO
+	endif()
+endif()
+
+if(NOT CONFIG)
+	set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
+endif()
 
 include(px4_add_module)
 set(config_module_list)
 
 # Find Python
-# If using catkin, Python 2 is found since it points
-# to the Python libs installed with the ROS distro
-if (NOT CATKIN_DEVEL_PREFIX)
-	find_package(PythonInterp 3)
-	# We have a custom error message to tell users how to install python3.
-	if (NOT PYTHONINTERP_FOUND)
-		message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
-			"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
-			"    macOS: brew install python")
-	endif()
-else()
-	find_package(PythonInterp REQUIRED)
+find_package(PythonInterp 3)
+# We have a custom error message to tell users how to install python3.
+if(NOT PYTHONINTERP_FOUND)
+	message(FATAL_ERROR "Python 3 not found. Please install Python 3:\n"
+		"    Ubuntu: sudo apt install python3 python3-dev python3-pip\n"
+		"    macOS: brew install python")
 endif()
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
@@ -190,10 +202,6 @@ set_property(GLOBAL PROPERTY PX4_MODULE_CONFIG_FILES)
 
 include(platforms/${PX4_PLATFORM}/cmake/px4_impl_os.cmake)
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
-
-if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
-	include(init)
-endif()
 
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
 if(NOT CMAKE_BUILD_TYPE)
@@ -230,7 +238,7 @@ project(px4 CXX C ASM)
 
 set(package-contact "px4users@googlegroups.com")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -244,6 +252,10 @@ if (NOT CATKIN_DEVEL_PREFIX)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PX4_BINARY_DIR})
 else()
 	SET(BUILD_SHARED_LIBS OFF)
+endif()
+
+if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
+	include(init)
 endif()
 
 #=============================================================================
@@ -316,18 +328,18 @@ if(NOT PX4_CHIP)
 endif()
 
 #=============================================================================
-# build flags
-#
-include(px4_add_common_flags)
-px4_add_common_flags()
-px4_os_add_flags()
-
-#=============================================================================
 # board cmake init (optional)
 #
 if(EXISTS ${PX4_BOARD_DIR}/cmake/init.cmake)
 	include(${PX4_BOARD_DIR}/cmake/init.cmake)
 endif()
+
+#=============================================================================
+# build flags
+#
+include(px4_add_common_flags)
+px4_add_common_flags()
+px4_os_add_flags()
 
 #=============================================================================
 # message, and airframe generation
@@ -410,8 +422,13 @@ add_library(parameters_interface INTERFACE)
 include(px4_add_library)
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
 
-add_subdirectory(platforms/${PX4_PLATFORM}/src/px4)
-add_subdirectory(platforms EXCLUDE_FROM_ALL)
+add_subdirectory(platforms/${PX4_PLATFORM}/src/px4 EXCLUDE_FROM_ALL)
+
+if(${PX4_PLATFORM} MATCHES "ros2") # TODO: fix
+	add_subdirectory(platforms/common/work_queue EXCLUDE_FROM_ALL)
+else()
+	add_subdirectory(platforms EXCLUDE_FROM_ALL)
+endif()
 
 if(EXISTS "${PX4_BOARD_DIR}/CMakeLists.txt")
 	add_subdirectory(${PX4_BOARD_DIR})
@@ -432,6 +449,126 @@ target_link_libraries(parameters_interface INTERFACE parameters)
 
 # firmware added last to generate the builtin for included modules
 add_subdirectory(platforms/${PX4_PLATFORM})
+
+
+set(PX4_ORB_TOPIC_COUNT 0)
+
+if(${PX4_PLATFORM} MATCHES "ros2") # TODO: fix
+
+	configure_file(${CMAKE_SOURCE_DIR}/build/px4_fmu-v5x_default/uORBTopics.cpp ${CMAKE_BINARY_DIR}/uORBTopics.cpp COPYONLY)
+	configure_file(${CMAKE_SOURCE_DIR}/build/px4_fmu-v5x_default/uORBTopics.hpp ${CMAKE_BINARY_DIR}/uORBTopics.hpp COPYONLY)
+
+	set(PX4_ORB_TOPIC_COUNT 1)
+
+else()
+
+	get_property(publications GLOBAL PROPERTY PX4_PUBLICATIONS)
+	get_property(subscriptions GLOBAL PROPERTY PX4_SUBSCRIPTIONS)
+
+	# TODO: for now combine subsriptions and publications for complete topic list
+	list(APPEND publications ${subscriptions})
+
+	list(SORT publications)
+	list(REMOVE_DUPLICATES publications)
+
+	set(pub_all_topics)
+	set(PX4_MSG_TYPE_ID)
+	set(PX4_MSG_TOPIC_ID)
+	set(PX4_MSG_TOPIC_ID_STRING)
+	set(PX4_MSG_TOPIC_ORB_ID)
+
+	set(PX4_ORB_DECLARE_STR)
+	set(PX4_ORB_DEFINE_STR)
+	set(PX4_ORB_HEADER_INCLUDE_STR)
+
+
+	foreach(pub ${publications})
+		#message(STATUS "pub: ${pub}")
+		string(REPLACE " /" ";" pub ${pub})
+
+		list(GET pub 0 pub_type)
+		list(GET pub 1 pub_topic)
+
+		string(REPLACE "::" ";" pub_type_split ${pub_type})
+		list(GET pub_type_split 2 pub_type_simple_lower)
+
+		# Pascal case to snake case (PubType -> pub_type)
+		string(REGEX REPLACE "(.)([A-Z][a-z]+)" "\\1_\\2" pub_type_simple_lower "${pub_type_simple_lower}")
+		string(REGEX REPLACE "([a-z0-9])([A-Z])" "\\1_\\2" pub_type_simple_lower "${pub_type_simple_lower}")
+		string(TOLOWER "${pub_type_simple_lower}" pub_type_simple_lower)
+
+		#message(STATUS "pub: Type: ${pub_type}, Topic: ${pub_topic} (${pub_type_simple_lower})")
+
+
+
+
+		# pub_type to include path (eg px4::msg::VehicleStatus => px4/msg/vehicle_status.hpp)
+		#  temporary create px4/msg/vehicle_status.hpp which simply includes <uORB/topics/vehicle_status.h>
+
+
+
+
+		list(APPEND pub_all_topics ${pub_topic})
+
+		list(APPEND PX4_MSG_TYPE_ID ${pub_type})
+
+		#list(APPEND PX4_MSG_TOPIC_ID ${pub_topic})
+		set(PX4_MSG_TOPIC_ID "${PX4_MSG_TOPIC_ID}\t${pub_topic},\n")
+		#set(PX4_MSG_TOPIC_ID_STRING "${PX4_MSG_TOPIC_ID_STRING}\t"case ORB_ID::${pub_topic}: return \"${pub_topic}\";"\n")
+		set(PX4_MSG_TOPIC_ORB_ID "${PX4_MSG_TOPIC_ORB_ID}\tORB_ID(${pub_topic}),\n")
+
+		list(APPEND PX4_MSG_TOPIC_ID_STRING
+			"case ORB_ID::${pub_topic}: return \"${pub_topic}\";\n"
+		)
+
+		# PX4_MSG_TYPE_ID
+		# PX4_MSG_TOPIC_ID
+
+		# .h  ORB_DECLARE(actuator_controls_0);
+		# .c  ORB_DEFINE(actuator_controls_0, struct actuator_controls_s, 48, __orb_actuator_controls_fields, static_cast<uint8_t>(ORB_ID::actuator_controls_0));
+
+
+		set(PX4_ORB_DECLARE_STR
+			"${PX4_ORB_DECLARE_STR}ORB_DECLARE(${pub_topic});\n")
+
+		# ORB_DEFINE(actuator_armed, struct actuator_armed_s, 16, __orb_actuator_armed_fields, static_cast<uint8_t>(ORB_ID::actuator_armed));
+		set(PX4_ORB_DEFINE_STR
+			"${PX4_ORB_DEFINE_STR}ORB_DEFINE(${pub_topic}, ${pub_type}, px4_embedded::${pub_type_simple_lower}_s::SIZE_NO_PADDING, px4_embedded::${pub_type_simple_lower}_s::FIELDS, static_cast<uint8_t>(ORB_ID::${pub_topic}));\n")
+
+		set(PX4_ORB_HEADER_INCLUDE_STR
+			"${PX4_ORB_HEADER_INCLUDE_STR}#include <uORB/topics/${pub_type_simple_lower}.h>\n")
+
+		math(EXPR PX4_ORB_TOPIC_COUNT "${PX4_ORB_TOPIC_COUNT}+1")
+
+	endforeach()
+	list(REMOVE_DUPLICATES PX4_MSG_TYPE_ID)
+	#list(REMOVE_DUPLICATES PX4_MSG_TOPIC_ID)
+
+	#message(STATUS "PX4_MSG_TYPE_ID: ${PX4_MSG_TYPE_ID}")
+	#message(STATUS "PX4_MSG_TOPIC_ID: ${PX4_MSG_TOPIC_ID}")
+
+	if(PX4_ORB_TOPIC_COUNT GREATER 0)
+		configure_file(uORBTopics.cpp.in ${CMAKE_BINARY_DIR}/uORBTopics.cpp)
+		configure_file(uORBTopics.hpp.in ${CMAKE_BINARY_DIR}/uORBTopics.hpp)
+	endif()
+
+	# .hpp enum ORB_ID
+	# .cpp struct orb_metadat ORB_ID() array
+
+	foreach(f ${msg_files})
+		#message(STATUS "MSG: ${f}")
+	endforeach()
+endif()
+
+if(PX4_ORB_TOPIC_COUNT GREATER 0)
+	add_library(uorb_msgs ${uorb_headers} ${CMAKE_BINARY_DIR}/uORBTopics.cpp ${CMAKE_BINARY_DIR}/uORBTopics.hpp)
+	add_dependencies(uorb_msgs prebuild_targets uorb_headers)
+endif()
+
+if(${PX4_PLATFORM} MATCHES "ros2") # TODO: fix
+	ament_target_dependencies(uorb_msgs rclcpp std_msgs)
+	rosidl_target_interfaces(uorb_msgs ${PROJECT_NAME} "rosidl_typesupport_cpp")
+endif()
 
 #=============================================================================
 # uORB graph generation: add a custom target 'uorb_graph'
@@ -460,17 +597,13 @@ include(doxygen)
 include(metadata)
 include(package)
 
-# print size
-add_custom_target(size
-	COMMAND size $<TARGET_FILE:px4>
-	DEPENDS px4
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-	USES_TERMINAL
-	)
-
 # install python requirements using configured python
 add_custom_target(install_python_requirements
 	COMMAND ${PYTHON_EXECUTABLE} -m pip install --requirement ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	DEPENDS ${PX4_SOURCE_DIR}/Tools/setup/requirements.txt
 	USES_TERMINAL
 )
+
+if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/finalize.cmake")
+	include(finalize)
+endif()

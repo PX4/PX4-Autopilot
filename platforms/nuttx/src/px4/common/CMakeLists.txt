@@ -32,9 +32,11 @@
 ############################################################################
 
 # skip for px4_layer support on an IO board
-if(NOT PX4_BOARD MATCHES "io-v2")
+if((NOT PX4_BOARD MATCHES "io-v2") AND (NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader"))
 
-	add_library(px4_layer
+	add_library(px4_layer STATIC
+		EXCLUDE_FROM_ALL
+
 		board_crashdump.c
 		board_dma_alloc.c
 		board_fat_dma_alloc.c
@@ -51,6 +53,7 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 		px4_24xxxx_mtd.c
 		px4_crypto.cpp
 	)
+
 	target_link_libraries(px4_layer
 		PRIVATE
 			arch_board_reset
@@ -62,14 +65,32 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 			uORB
 	)
 else()
-	add_library(px4_layer ${PX4_SOURCE_DIR}/platforms/common/empty.c)
+
+	add_library(px4_layer STATIC
+		EXCLUDE_FROM_ALL
+
+		${PX4_SOURCE_DIR}/platforms/common/empty.c
+
+		board_crashdump.c
+		gpio.c
+	)
+
+	target_link_libraries(px4_layer
+		PRIVATE
+			arch_board_reset
+			arch_board_critmon
+			arch_version
+			nuttx_sched
+	)
+
 endif()
+
 add_dependencies(px4_layer prebuild_targets)
 
 add_subdirectory(gpio)
 add_subdirectory(srgbled)
 
-if (DEFINED PX4_CRYPTO)
+if(DEFINED PX4_CRYPTO)
 	add_library(px4_random nuttx_random.c)
 	add_dependencies(px4_random nuttx_context)
 	target_link_libraries(px4_random PRIVATE nuttx_crypto)

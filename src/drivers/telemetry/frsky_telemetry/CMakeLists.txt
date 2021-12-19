@@ -40,5 +40,7 @@ px4_add_module(
 		frsky_telemetry.cpp
 	MODULE_CONFIG
 		module.yaml
+	SUBSCRIPTIONS
+		"px4::msg::VehicleGlobalPosition /vehicle_global_position"
 	)
 

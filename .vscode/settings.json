@@ -6,7 +6,7 @@
         "C_Cpp.autoAddFileAssociations": false,
         "C_Cpp.clang_format_fallbackStyle": "none",
         "C_Cpp.default.browse.limitSymbolsToIncludedHeaders": true,
-        "C_Cpp.default.cppStandard": "c++14",
+        "C_Cpp.default.cppStandard": "c++17",
         "C_Cpp.default.cStandard": "c11",
         "C_Cpp.formatting": "Disabled",
         "C_Cpp.intelliSenseEngine": "Default",
@@ -121,6 +121,7 @@
                 "variant": "cpp",
                 "vector": "cpp"
         },
+        "ros.distro": "foxy",
         "search.exclude": {
                 "${workspaceFolder}/build": true
         },
@@ -136,5 +137,7 @@
         "yaml.schemas": {
                 "${workspaceFolder}/validation/module_schema.yaml": "${workspaceFolder}/src/modules/*/module.yaml"
         },
-        "cortex-debug.openocdPath": "${env:PICO_SDK_PATH}/../openocd/src/openocd"       // Added for rp2040
+        "python.autoComplete.extraPaths": [
+                "/opt/ros/foxy/lib/python3.8/site-packages"
+        ]
 }

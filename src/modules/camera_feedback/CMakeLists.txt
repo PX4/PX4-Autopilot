@@ -38,4 +38,6 @@ px4_add_module(
 		CameraFeedback.hpp
 	DEPENDS
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::CameraCapture /camera_capture"
 	)

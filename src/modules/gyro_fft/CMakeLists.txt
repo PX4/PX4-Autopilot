@@ -77,4 +77,6 @@ px4_add_module(
 		${CMSIS_DSP}/Source/TransformFunctions/arm_rfft_q15.c
 	DEPENDS
 		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::SensorGyroFft /sensor_gyro_fft"
 )

@@ -17,6 +17,8 @@ menu "Toolchain"
             bool "posix"
         config PLATFORM_QURT
             bool "qurt"
+        config PLATFORM_ROS2
+            bool "ros2"
     endchoice
 
     config BOARD_PLATFORM
@@ -24,6 +26,7 @@ menu "Toolchain"
         default "nuttx" if PLATFORM_NUTTX
         default "posix" if PLATFORM_POSIX
         default "qurt" if PLATFORM_QURT
+        default "ros2" if PLATFORM_ROS2
 
     config BOARD_LOCKSTEP
         bool "Force enable lockstep"

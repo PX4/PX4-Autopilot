@@ -44,5 +44,12 @@ px4_add_module(
 		AirshipLandDetector.cpp
 	DEPENDS
 		hysteresis
+		px4_work_queue
+	PUBLICATIONS
+		"px4::msg::VehicleLandDetected /vehicle_land_detected"
+	SUBSCRIPTIONS
+		"px4::msg::HoverThrustEstimate /hover_thrust_estimate"
+		"px4::msg::TakeoffStatus /takeoff_status"
+		"px4::msg::VehicleLocalPositionSetpoint /trajectory_setpoint"
 	)
 

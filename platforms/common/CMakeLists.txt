@@ -31,33 +31,39 @@
 #
 ############################################################################
 
-set(SRCS)
+if(NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
 
-if(NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "bootloader")
-	list(APPEND SRCS
-		px4_log.cpp
+	set(SRCS)
+
+	if(NOT "${PX4_BOARD}" MATCHES "io-v2")
+		list(APPEND SRCS
+			events.cpp
+			px4_log.cpp
+		)
+	endif()
+
+	add_library(px4_platform STATIC
+		board_identity.c
+		external_reset_lockout.cpp
+		i2c.cpp
+		i2c_spi_buses.cpp
+		module.cpp
+		px4_getopt.c
+		px4_cli.cpp
+		shutdown.cpp
+		spi.cpp
+		${SRCS}
 	)
+	add_dependencies(px4_platform prebuild_targets)
+
+	if(NOT "${PX4_BOARD}" MATCHES "io-v2")
+		add_subdirectory(uORB)
+		target_link_libraries(px4_platform PRIVATE uORB)
+	endif()
+
+	add_subdirectory(px4_work_queue)
+	add_subdirectory(work_queue)
+else()
+	add_library(px4_platform STATIC ${PX4_SOURCE_DIR}/platforms/common/empty.c) # TODO
+	add_dependencies(px4_platform prebuild_targets)
 endif()
-
-add_library(px4_platform
-	board_identity.c
-	events.cpp
-	external_reset_lockout.cpp
-	i2c.cpp
-	i2c_spi_buses.cpp
-	module.cpp
-	px4_getopt.c
-	px4_cli.cpp
-	shutdown.cpp
-	spi.cpp
-	${SRCS}
-)
-add_dependencies(px4_platform prebuild_targets)
-
-if (NOT "${PX4_BOARD}" MATCHES "io-v2")
-	add_subdirectory(uORB)
-	target_link_libraries(px4_platform PRIVATE uORB)
-endif()
-
-add_subdirectory(px4_work_queue)
-add_subdirectory(work_queue)
