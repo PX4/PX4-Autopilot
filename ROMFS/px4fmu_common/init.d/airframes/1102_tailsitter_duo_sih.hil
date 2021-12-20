@@ -23,11 +23,12 @@ param set-default VT_MOT_COUNT 2
 param set-default VT_TYPE 0
 param set-default VT_FW_DIFTHR_EN 1
 param set-default VT_FW_DIFTHR_SC 0.3
-param set-default MPC_MAN_Y_MAX 90
+param set-default MPC_MAN_Y_MAX 60
+param set-default MC_PITCH_P 5
 
 param set-default MAV_TYPE 19
 set MAV_TYPE 19
-set MIXER vtol_tailsitter_duo
+set MIXER vtol_tailsitter_duo_sat
 
 set PWM_OUT 1234
 
