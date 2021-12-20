@@ -115,8 +115,6 @@ esc_calib_main(int argc, char *argv[])
 		return 1;
 	}
 
-	int arg_consumed = 0;
-
 	int myoptind = 1;
 	const char *myoptarg = NULL;
 
@@ -125,7 +123,6 @@ esc_calib_main(int argc, char *argv[])
 
 		case 'd':
 			dev = myoptarg;
-			arg_consumed += 2;
 			break;
 
 		case 'c':
