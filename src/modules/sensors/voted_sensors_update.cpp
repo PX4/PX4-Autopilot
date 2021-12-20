@@ -176,10 +176,10 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 			_last_accel_timestamp[uorb_index] = imu_report.timestamp_sample;
 
-			_accel.voter.put(uorb_index, imu_report.timestamp_sample, _last_sensor_data[uorb_index].accelerometer_m_s2,
+			_accel.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2,
 					 imu_status.accel_error_count, _accel.priority[uorb_index]);
 
-			_gyro.voter.put(uorb_index, imu_report.timestamp_sample, _last_sensor_data[uorb_index].gyro_rad,
+			_gyro.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].gyro_rad,
 					imu_status.gyro_error_count, _gyro.priority[uorb_index]);
 		}
 	}
