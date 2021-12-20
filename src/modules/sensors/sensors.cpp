@@ -576,7 +576,8 @@ void Sensors::InitializeVehicleIMU()
 				// if the sensors module is responsible for voting (SENS_IMU_MODE 1) then run every VehicleIMU in the same WQ
 				//   otherwise each VehicleIMU runs in a corresponding INSx WQ
 				const bool multi_mode = (_param_sens_imu_mode.get() == 0);
-				const px4::wq_config_t &wq_config = multi_mode ? px4::ins_instance_to_wq(i) : px4::wq_configurations::INS0;
+				const px4::wq_config_t &wq_config = multi_mode ? px4::ins_instance_to_wq(i) :
+								    px4::wq_configurations::nav_and_controllers;
 
 				VehicleIMU *imu = new VehicleIMU(i, i, i, wq_config);
 
