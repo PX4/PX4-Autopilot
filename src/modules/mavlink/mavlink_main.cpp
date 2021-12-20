@@ -338,31 +338,46 @@ Mavlink::get_instance_for_network_port(unsigned long port)
 int
 Mavlink::destroy_all_instances()
 {
-	LockGuard lg{mavlink_module_mutex};
-	unsigned iterations = 0;
-
 	PX4_INFO("waiting for instances to stop");
 
-	for (Mavlink *inst_to_del : mavlink_module_instances) {
-		if (inst_to_del != nullptr) {
-			/* set flag to stop thread and wait for all threads to finish */
-			inst_to_del->request_stop();
+	unsigned iterations = 0;
 
-			while (inst_to_del->running()) {
-				printf(".");
-				fflush(stdout);
-				px4_usleep(10000);
-				iterations++;
+	while (iterations < 1000) {
+		int running = 0;
 
-				if (iterations > 1000) {
-					PX4_ERR("Couldn't stop all mavlink instances.");
-					return PX4_ERROR;
+		pthread_mutex_lock(&mavlink_module_mutex);
+
+		for (Mavlink *inst_to_del : mavlink_module_instances) {
+			if (inst_to_del != nullptr) {
+				if (inst_to_del->running()) {
+					running++;
+
+					// set flag to stop thread and wait for all threads to finish
+					inst_to_del->request_stop();
 				}
 			}
 		}
+
+		pthread_mutex_unlock(&mavlink_module_mutex);
+
+		if (running == 0) {
+			break;
+
+		} else if (iterations > 1000) {
+			PX4_ERR("Couldn't stop all mavlink instances.");
+			return PX4_ERROR;
+
+		} else {
+			iterations++;
+			printf(".");
+			fflush(stdout);
+			px4_usleep(10000);
+		}
 	}
 
-	//we know all threads have exited, so it's safe to delete objects.
+	LockGuard lg{mavlink_module_mutex};
+
+	// we know all threads have exited, so it's safe to delete objects.
 	for (Mavlink *inst_to_del : mavlink_module_instances) {
 		delete inst_to_del;
 	}
@@ -370,7 +385,6 @@ Mavlink::destroy_all_instances()
 	delete _event_buffer;
 	_event_buffer = nullptr;
 
-	printf("\n");
 	PX4_INFO("all instances stopped");
 	return OK;
 }
@@ -3021,13 +3035,24 @@ Mavlink::stop_command(int argc, char *argv[])
 		if (inst != nullptr) {
 			/* set flag to stop thread and wait for all threads to finish */
 			if (inst->running() && !inst->should_exit()) {
-				inst->request_stop();
+				int iterations = 0;
+
+				while ((iterations < 1000) && inst->running()) {
+					inst->request_stop();
+					iterations++;
+					px4_usleep(1000);
+				}
+
+				if (inst->running()) {
+					PX4_ERR("unable to stop instance %d", inst->get_instance_id());
+					return PX4_ERROR;
+				}
 
 				LockGuard lg{mavlink_module_mutex};
 
 				for (int mavlink_instance = 0; mavlink_instance < MAVLINK_COMM_NUM_BUFFERS; mavlink_instance++) {
 					if (mavlink_module_instances[mavlink_instance] == inst) {
-						delete mavlink_module_instances[mavlink_instance];
+						delete inst;
 						mavlink_module_instances[mavlink_instance] = nullptr;
 						return PX4_OK;
 					}

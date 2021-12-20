@@ -6,7 +6,7 @@ uint64 timestamp_sample                 # the timestamp of the raw data (microse
 
 bool xy_valid				# true if x and y are valid
 bool z_valid				# true if z is valid
-bool v_xy_valid				# true if vy and vy are valid
+bool v_xy_valid				# true if vx and vy are valid
 bool v_z_valid				# true if vz is valid
 
 # Position in local NED frame

@@ -705,17 +705,14 @@ Commander::Commander() :
 
 	// default for vtol is rotary wing
 	_vtol_status.vtol_in_rw_mode = true;
-
-	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	mission_init();
 }
 
 bool
 Commander::handle_command(const vehicle_command_s &cmd)
 {
-	/* only handle commands that are meant to be handled by this system and component */
-	if (cmd.target_system != _status.system_id || ((cmd.target_component != _status.component_id)
-			&& (cmd.target_component != 0))) { // component_id 0: valid for all components
+	/* only handle commands that are meant to be handled by this system and component, or broadcast */
+	if (((cmd.target_system != _status.system_id) && (cmd.target_system != 0))
+	    || ((cmd.target_component != _status.component_id) && (cmd.target_component != 0))) {
 		return false;
 	}
 
@@ -979,11 +976,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						home.manual_home = true;
 
 						// update local projection reference including altitude
-						struct map_projection_reference_s ref_pos;
-						map_projection_init(&ref_pos, local_pos.ref_lat, local_pos.ref_lon);
+						MapProjection ref_pos{local_pos.ref_lat, local_pos.ref_lon};
 						float home_x;
 						float home_y;
-						map_projection_project(&ref_pos, lat, lon, &home_x, &home_y);
+						ref_pos.project(lat, lon, home_x, home_y);
 						const float home_z = -(alt - local_pos.ref_alt);
 						fillLocalHomePos(home, home_x, home_y, home_z, yaw);
 
@@ -1688,11 +1684,10 @@ Commander::set_in_air_home_position()
 			if (_home_pub.get().valid_lpos) {
 				// Back-compute lon, lat and alt of home position given the home
 				// and current positions in local frame
-				map_projection_reference_s ref_pos;
+				MapProjection ref_pos{gpos.lat, gpos.lon};
 				double home_lat;
 				double home_lon;
-				map_projection_init(&ref_pos, gpos.lat, gpos.lon);
-				map_projection_reproject(&ref_pos, home.x - lpos.x, home.y - lpos.y, &home_lat, &home_lon);
+				ref_pos.reproject(home.x - lpos.x, home.y - lpos.y, home_lat, home_lon);
 				const float home_alt = gpos.alt + home.z;
 				fillGlobalHomePos(home, home_lat, home_lon, home_alt);
 
@@ -3403,31 +3398,6 @@ void Commander::enable_hil()
 	_status.hil_state = vehicle_status_s::HIL_STATE_ON;
 }
 
-void Commander::mission_init()
-{
-	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
-	mission_s mission;
-
-	if (dm_read(DM_KEY_MISSION_STATE, 0, &mission, sizeof(mission_s)) == sizeof(mission_s)) {
-		if (mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_0 || mission.dataman_id == DM_KEY_WAYPOINTS_OFFBOARD_1) {
-			if (mission.count > 0) {
-				PX4_INFO("Mission #%" PRIu8 " loaded, %" PRIu16 " WPs, curr: %" PRId32, mission.dataman_id, mission.count,
-					 mission.current_seq);
-			}
-
-		} else {
-			PX4_ERR("reading mission state failed");
-
-			/* initialize mission state in dataman */
-			mission.timestamp = hrt_absolute_time();
-			mission.dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
-			dm_write(DM_KEY_MISSION_STATE, 0, DM_PERSIST_POWER_ON_RESET, &mission, sizeof(mission_s));
-		}
-
-		_mission_pub.publish(mission);
-	}
-}
-
 void Commander::data_link_check()
 {
 	for (auto &telemetry_status :  _telemetry_status_subs) {
@@ -3511,9 +3481,12 @@ void Commander::data_link_check()
 					}
 				}
 
+				bool healthy = telemetry.parachute_system_healthy;
+
 				_datalink_last_heartbeat_parachute_system = telemetry.timestamp;
 				_status_flags.parachute_system_present = true;
-				_status_flags.parachute_system_healthy = telemetry.parachute_system_healthy;
+				_status_flags.parachute_system_healthy = healthy;
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PARACHUTE, true, true, healthy, _status);
 			}
 
 			if (telemetry.heartbeat_component_obstacle_avoidance) {
@@ -3564,6 +3537,7 @@ void Commander::data_link_check()
 		_status_flags.parachute_system_healthy = false;
 		_parachute_system_lost = true;
 		_status_changed = true;
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PARACHUTE, false, true, false, _status);
 	}
 
 	// AVOIDANCE SYSTEM state check (only if it is enabled)

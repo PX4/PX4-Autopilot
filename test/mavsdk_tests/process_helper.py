@@ -8,6 +8,7 @@ import subprocess
 import shutil
 import threading
 import errno
+import select
 from typing import Any, Dict, List, TextIO, Optional
 
 
@@ -62,18 +63,27 @@ class Runner:
         self.thread = threading.Thread(target=self.process_output)
         self.thread.start()
 
+    def has_started_ok(self) -> bool:
+        return True
+
     def process_output(self) -> None:
         assert self.process.stdout is not None
-        while True:
-            line = self.process.stdout.readline()
-            if not line and \
-                    (self.stop_thread.is_set() or self.poll is not None):
-                break
-            if not line or line == "\n":
-                continue
-            self.output_queue.put(line)
-            self.log_fd.write(line)
-            self.log_fd.flush()
+
+        poll_obj = select.poll()
+        poll_obj.register(self.process.stdout, select.POLLIN)
+
+        while not self.stop_thread.is_set():
+            poll_result = poll_obj.poll(0)
+            if poll_result:
+                line = self.process.stdout.readline()
+                if not line and \
+                        (self.stop_thread.is_set() or self.poll is not None):
+                    break
+                if not line or line == "\n":
+                    continue
+                self.output_queue.put(line)
+                self.log_fd.write(line)
+                self.log_fd.flush()
 
     def poll(self) -> Optional[int]:
         return self.process.poll()
@@ -105,7 +115,7 @@ class Runner:
         if returncode is None:
 
             if self.verbose:
-                print("Terminating {}".format(self.cmd))
+                print("Terminating {}".format(self.name))
             self.process.terminate()
 
             try:
@@ -115,13 +125,13 @@ class Runner:
 
             if returncode is None:
                 if self.verbose:
-                    print("Killing {}".format(self.cmd))
+                    print("Killing {}".format(self.name))
                 self.process.kill()
                 returncode = self.process.poll()
 
         if self.verbose:
             print("{} exited with {}".format(
-                self.cmd, self.process.returncode))
+                self.name, self.process.returncode))
 
         self.stop_thread.set()
         self.thread.join()
@@ -213,11 +223,26 @@ class GzserverRunner(Runner):
         self.env["GAZEBO_MODEL_PATH"] = \
             workspace_dir + "/Tools/sitl_gazebo/models"
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
-        self.cmd = "nice"
-        self.args = ["-n 1",
-                     "gzserver", "--verbose",
-                     workspace_dir + "/Tools/sitl_gazebo/worlds/" +
-                     "empty.world"]
+        self.cmd = "stdbuf"
+        self.args = ["-o0", "-e0", "gzserver", "--verbose",
+                     os.path.join(workspace_dir,
+                                  "Tools/sitl_gazebo/worlds",
+                                  "empty.world")]
+
+    def has_started_ok(self) -> bool:
+        # Wait until gzerver has started and connected to gazebo master.
+        timeout_s = 20
+        steps = 10
+        for step in range(steps):
+            with open(self.log_filename, 'r') as f:
+                for line in f.readlines():
+                    if 'Connected to gazebo master' in line:
+                        return True
+            time.sleep(float(timeout_s)/float(steps))
+
+        print("gzserver did not connect within {}s"
+              .format(timeout_s))
+        return False
 
 
 class GzmodelspawnRunner(Runner):
@@ -251,9 +276,39 @@ class GzmodelspawnRunner(Runner):
         else:
             raise Exception("Model not found")
 
-        self.args = ["model", "--spawn-file", model_path,
+        self.cmd = "stdbuf"
+        self.args = ["-o0", "-e0",
+                     "gz", "model",
+                     "--verbose",
+                     "--spawn-file", model_path,
                      "--model-name", self.model,
                      "-x", "1.01", "-y", "0.98", "-z", "0.83"]
+
+    def has_started_ok(self) -> bool:
+        # The problem is that sometimes gzserver does not seem to start
+        # quickly enough and gz model spawn fails with the error:
+        # "An instance of Gazebo is not running." but still returns 0
+        # as a result.
+        # We work around this by trying to start and then check whether
+        # using has_started_ok() whether it was successful or not.
+        timeout_s = 20
+        steps = 10
+        for _ in range(steps):
+            returncode = self.process.poll()
+            if returncode is None:
+                time.sleep(float(timeout_s)/float(steps))
+                continue
+
+            with open(self.log_filename, 'r') as f:
+                for line in f.readlines():
+                    if 'An instance of Gazebo is not running' in line:
+                        return False
+                else:
+                    return True
+
+        print("gzmodelspawn did not return within {}s"
+              .format(timeout_s))
+        return False
 
 
 class GzclientRunner(Runner):

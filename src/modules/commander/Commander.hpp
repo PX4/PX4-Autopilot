@@ -72,7 +72,6 @@
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -153,8 +152,6 @@ private:
 	unsigned handle_command_actuator_test(const vehicle_command_s &cmd);
 
 	void executeActionRequest(const action_request_s &action_request);
-
-	void mission_init();
 
 	void offboard_control_update();
 
@@ -444,7 +441,6 @@ private:
 	uORB::Publication<vehicle_control_mode_s>		_control_mode_pub{ORB_ID(vehicle_control_mode)};
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
-	uORB::Publication<mission_s>				_mission_pub{ORB_ID(mission)};
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 

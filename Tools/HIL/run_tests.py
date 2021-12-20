@@ -41,7 +41,7 @@ def print_line(line):
 def do_test(port, baudrate, test_name):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
 
-    timeout_start = time.time()
+    timeout_start = time.monotonic()
     timeout = 30  # 30 seconds
 
     # wait for nsh prompt
@@ -57,7 +57,7 @@ def do_test(port, baudrate, test_name):
             if len(serial_line) > 0:
                 print(serial_line, end='')
 
-        if time.time() > timeout_start + timeout:
+        if time.monotonic() > timeout_start + timeout:
             print("Error, timeout waiting for prompt")
             return False
 
@@ -72,10 +72,11 @@ def do_test(port, baudrate, test_name):
     print("| Running:", cmd)
     print('|======================================================================')
 
-    timeout_start = time.time()
+    timeout_start = time.monotonic()
     timeout = 2  # 2 seconds
 
     # wait for command echo
+    print("Running command: \'{0}\'".format(cmd))
     serial_cmd = '{0}\n'.format(cmd)
     ser.write(serial_cmd.encode("ascii"))
     ser.flush()
@@ -88,14 +89,14 @@ def do_test(port, baudrate, test_name):
             if len(serial_line) > 0:
                 print_line(serial_line)
 
-        if time.time() > timeout_start + timeout:
+        if time.monotonic() > timeout_start + timeout:
             print("Error, timeout waiting for command echo")
             break
 
 
     # print results, wait for final result (PASSED or FAILED)
     timeout = 300  # 5 minutes
-    timeout_start = time.time()
+    timeout_start = time.monotonic()
     timeout_newline = timeout_start
 
     while True:
@@ -111,16 +112,16 @@ def do_test(port, baudrate, test_name):
             success = False
             break
 
-        if time.time() > timeout_start + timeout:
+        if time.monotonic() > timeout_start + timeout:
             print("Error, timeout")
             print(test_name + f" {COLOR_RED}FAILED{COLOR_RESET}")
             success = False
             break
 
         # newline every 10 seconds if still running
-        if time.time() - timeout_newline > 10:
+        if (len(serial_line) <= 0) and (time.monotonic() - timeout_newline > 10):
             ser.write("\n".encode("ascii"))
-            timeout_newline = time.time()
+            timeout_newline = time.monotonic()
 
     ser.close()
 

@@ -10,7 +10,7 @@ float32 remaining			# From 1 to 0, -1 if unknown
 float32 scale				# Power scaling factor, >= 1, or -1 if unknown
 float32 time_remaining_s	# predicted time in seconds remaining until battery is empty under previous averaged load, NAN if unknown
 float32 temperature			# temperature of the battery. NaN if unknown
-int32 cell_count			# Number of cells
+uint8 cell_count			# Number of cells, 0 if unknown
 
 uint8 BATTERY_SOURCE_POWER_MODULE = 0
 uint8 BATTERY_SOURCE_EXTERNAL = 1
@@ -27,7 +27,7 @@ uint16 max_error			# max error, expected margin of error in % in the state-of-ch
 uint8 id					# ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed.
 uint16 interface_error		# interface error counter
 
-float32[14] voltage_cell_v		# Battery individual cell voltages
+float32[14] voltage_cell_v		# Battery individual cell voltages, 0 if unknown
 float32 max_cell_voltage_delta	# Max difference between individual cell voltages
 
 bool is_powering_off			# Power off event imminent indication, false if unknown

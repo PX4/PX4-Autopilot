@@ -227,7 +227,14 @@ constexpr T negate(T value)
 template<>
 constexpr int16_t negate<int16_t>(int16_t value)
 {
-	return (value == INT16_MIN) ? INT16_MAX : -value;
+	if (value == INT16_MAX) {
+		return INT16_MIN;
+
+	} else if (value == INT16_MIN) {
+		return INT16_MAX;
+	}
+
+	return -value;
 }
 
 inline bool isFinite(const float &value)

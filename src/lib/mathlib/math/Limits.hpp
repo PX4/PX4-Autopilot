@@ -57,9 +57,21 @@ constexpr _Tp min(_Tp a, _Tp b)
 }
 
 template<typename _Tp>
+constexpr _Tp min(_Tp a, _Tp b, _Tp c)
+{
+	return min(min(a, b), c);
+}
+
+template<typename _Tp>
 constexpr _Tp max(_Tp a, _Tp b)
 {
 	return (a > b) ? a : b;
+}
+
+template<typename _Tp>
+constexpr _Tp max(_Tp a, _Tp b, _Tp c)
+{
+	return max(max(a, b), c);
 }
 
 template<typename _Tp>

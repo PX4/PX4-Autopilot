@@ -350,6 +350,17 @@ __EXPORT int		param_import(int fd, bool mark_saved);
 __EXPORT int		param_load(int fd);
 
 /**
+ * Read saved parameters from file and dump to console.
+ *
+ * This function reads the file and dumps all contents to console
+ * values from a file.
+ *
+ * @param fd		File descriptor to read from.
+ * @return		Zero on success, nonzero if an error occurred during import.
+ */
+__EXPORT int		param_dump(int fd);
+
+/**
  * Apply a function to each parameter.
  *
  * Note that the parameter set is not locked during the traversal. It also does
@@ -383,6 +394,22 @@ __EXPORT int 		param_set_default_file(const char *filename);
  *			built-in default.
  */
 __EXPORT const char	*param_get_default_file(void);
+
+/**
+ * Set the backup parameter file name.
+ *
+ * @param filename	Path to the backup parameter file. The file is not required to
+ *			exist.
+ * @return		Zero on success.
+ */
+__EXPORT int 		param_set_backup_file(const char *filename);
+
+/**
+ * Get the backup parameter file name.
+ *
+ * @return		The path to the backup parameter file
+ */
+__EXPORT const char	*param_get_backup_file(void);
 
 /**
  * Save parameters to the default file.

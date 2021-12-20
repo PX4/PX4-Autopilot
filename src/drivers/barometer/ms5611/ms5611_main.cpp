@@ -107,7 +107,7 @@ extern "C" int ms5611_main(int argc, char *argv[])
 #else
 	BusCLIArguments cli {false, true};
 #endif
-	cli.default_spi_frequency = 20 * 1000 * 1000;
+	cli.default_spi_frequency = 16 * 1000 * 1000;
 	uint16_t dev_type_driver = DRV_BARO_DEVTYPE_MS5611;
 
 	while ((ch = cli.getOpt(argc, argv, "T:")) != EOF) {

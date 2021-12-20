@@ -42,6 +42,10 @@
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
+#if defined(__PX4_NUTTX)
+#include <nuttx/mm/mm.h>
+#endif
+
 static uORB::SubscriptionInterval *filp_to_subscription(cdev::file_t *filp) { return static_cast<uORB::SubscriptionInterval *>(filp->f_priv); }
 
 // round up to nearest power of two
@@ -71,7 +75,7 @@ static inline uint8_t round_pow_of_two_8(uint8_t n)
 
 uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path,
 			     uint8_t queue_size) :
-	CDev(path),
+	CDev(strdup(path)), // success is checked in CDev::init
 	_meta(meta),
 	_instance(instance),
 	_queue_size(round_pow_of_two_8(queue_size))
@@ -82,7 +86,15 @@ uORB::DeviceNode::~DeviceNode()
 {
 	delete[] _data;
 
-	CDev::unregister_driver_and_memory();
+	const char *devname = get_devname();
+
+	if (devname) {
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+		kmm_free((void *)devname);
+#else
+		free((void *)devname);
+#endif
+	}
 }
 
 int

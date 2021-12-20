@@ -129,11 +129,6 @@ private:
 
 	static const int MAX_PER_INSTANCE{8};
 
-#ifdef BOARD_WITH_IO
-# define PARAM_PREFIX "PWM_AUX"
-#else
-# define PARAM_PREFIX "PWM_MAIN"
-#endif
 	MixingOutput _mixing_output {PARAM_PREFIX, FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	uint32_t	_backup_schedule_interval_us{1_s};

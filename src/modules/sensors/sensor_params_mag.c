@@ -105,3 +105,15 @@ PARAM_DEFINE_FLOAT(SENS_MAG_RATE, 50.0f);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_MAG_MODE, 1);
+
+/**
+ * Magnetometer auto calibration
+ *
+ * Automatically initialize magnetometer calibration from bias estimate if available.
+ *
+ * @boolean
+ *
+ * @category system
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_MAG_AUTOCAL, 0);

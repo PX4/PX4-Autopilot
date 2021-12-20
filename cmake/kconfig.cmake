@@ -31,7 +31,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
     # Depend on BOARD_DEFCONFIG so that we reconfigure on config change
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOARD_DEFCONFIG})
 
-    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
+    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "recovery" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
         # Generate boardconfig from saved defconfig
         execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
                         ${DEFCONFIG_PATH} ${BOARD_DEFCONFIG}

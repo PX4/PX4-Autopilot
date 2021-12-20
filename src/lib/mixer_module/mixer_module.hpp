@@ -103,7 +103,7 @@ public:
 	};
 
 	/**
-	 * Contructor
+	 * Constructor
 	 * @param param_prefix for min/max/etc. params, e.g. "PWM_MAIN". This needs to match 'param_prefix' in the module.yaml
 	 * @param max_num_outputs maximum number of supported outputs
 	 * @param interface Parent module for scheduling, parameter updates and callbacks

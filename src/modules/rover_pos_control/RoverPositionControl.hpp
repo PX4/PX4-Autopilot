@@ -134,7 +134,7 @@ private:
 	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
 	hrt_abstime _manual_setpoint_last_called{0};
 
-	map_projection_reference_s _global_local_proj_ref{};
+	MapProjection _global_local_proj_ref{};
 	float                      _global_local_alt0{NAN};
 
 	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on

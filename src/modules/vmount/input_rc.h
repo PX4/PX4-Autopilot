@@ -61,7 +61,8 @@ public:
 	 * @param aux_channel_pitch
 	 * @param aux_channel_yaw
 	 */
-	InputRC(int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw);
+	InputRC(int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw, float mnt_rate_pitch, float mnt_rate_yaw,
+		int rc_in_mode);
 	virtual ~InputRC();
 
 	virtual void print_status();
@@ -75,16 +76,20 @@ protected:
 	 */
 	virtual bool _read_control_data_from_subscription(ControlData &control_data, bool already_active);
 
-	int _get_subscription_fd() const { return _manual_control_setpoint_sub; }
-
 	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
 
 private:
-	int _aux_channels[3];
-	int _manual_control_setpoint_sub = -1;
+	int _aux_channels[3] {};
 
-	bool _first_time = true;
-	float _last_set_aux_values[3] = {};
+	float _mnt_rate_pitch{0.f};
+	float _mnt_rate_yaw{0.f};
+
+	int _rc_in_mode{0};
+
+	int _manual_control_setpoint_sub{-1};
+
+	bool _first_time{true};
+	float _last_set_aux_values[3] {};
 };
 
 

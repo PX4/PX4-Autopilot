@@ -21,7 +21,7 @@ pipeline {
                 sh 'make cubepilot_cubeorange_bootloader'
                 sh 'make cubepilot_cubeorange_test'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*, build/cubepilot_cubeorange_test/etc/init.d/airframes/*', name: 'cubepilot_cubeorange_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*, build/cubepilot_cubeorange_test/etc/init.d/airframes/*', name: 'cubepilot_cubeorange_test'
               }
               post {
                 always {
@@ -74,7 +74,7 @@ pipeline {
               }
               post {
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf || true'
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf || true'
                 }
               }
             } // stage test
@@ -95,7 +95,7 @@ pipeline {
                 sh 'make cuav_x7pro_bootloader'
                 sh 'make cuav_x7pro_test'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*', name: 'cuav_x7pro_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'cuav_x7pro_test'
               }
               post {
                 always {
@@ -143,7 +143,7 @@ pipeline {
               }
               post {
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/cuav_x7pro_test/cuav_x7pro_test.elf || true'
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cuav_x7pro_test/cuav_x7pro_test.elf || true'
                 }
               }
             } // stage test
@@ -164,7 +164,7 @@ pipeline {
                 sh 'make px4_fmu-v3_test'
                 sh 'make px4_fmu-v3_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*', name: 'px4_fmu-v3_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v3_test'
               }
               post {
                 always {
@@ -212,7 +212,7 @@ pipeline {
               }
               post {
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf || true'
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf || true'
                 }
               }
             } // stage test
@@ -233,7 +233,7 @@ pipeline {
                 sh 'make px4_fmu-v4_test'
                 sh 'make px4_fmu-v4_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*', name: 'px4_fmu-v4_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v4_test'
               }
               post {
                 always {
@@ -280,7 +280,7 @@ pipeline {
               }
               post {
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf || true'
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf || true'
                 }
               }
             } // stage test
@@ -301,7 +301,7 @@ pipeline {
                 sh 'make px4_fmu-v4pro_test'
                 sh 'make px4_fmu-v4pro_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*', name: 'px4_fmu-v4pro_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v4pro_test'
               }
               post {
                 always {
@@ -349,7 +349,7 @@ pipeline {
               }
               post {
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf || true'
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf || true'
                 }
               }
             } // stage test
@@ -370,7 +370,7 @@ pipeline {
                 sh 'make px4_fmu-v5_debug'
                 sh 'make px4_fmu-v5_debug bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*', name: 'px4_fmu-v5_debug'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v5_debug'
               }
               post {
                 always {
@@ -409,7 +409,12 @@ pipeline {
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_bench -v"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_bench -u -v"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_stress"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests dataman"'
+
+                    // test dataman (stop mavlink & navigator first)
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mavlink stop-all"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "navigator stop"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests dataman" || true'
+
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests file" || true'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests"'
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests latency_test" || true'
@@ -436,7 +441,7 @@ pipeline {
               }
               post {
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf || true'
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf || true'
                 }
               }
             } // stage test
@@ -457,7 +462,7 @@ pipeline {
                 sh 'make px4_fmu-v5_stackcheck'
                 sh 'make px4_fmu-v5_stackcheck bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*', name: 'px4_fmu-v5_stackcheck'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v5_stackcheck'
               }
               post {
                 always {
@@ -515,7 +520,7 @@ pipeline {
               }
               post {
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf || true'
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf || true'
                 }
               }
             } // stage test
@@ -536,7 +541,7 @@ pipeline {
                 sh 'make px4_fmu-v5_test'
                 sh 'make px4_fmu-v5_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*', name: 'px4_fmu-v5_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v5_test'
               }
               post {
                 always {
@@ -584,7 +589,7 @@ pipeline {
               }
               post {
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf || true'
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf || true'
                 }
               }
             } // stage test
@@ -605,7 +610,7 @@ pipeline {
                 sh 'make nxp_fmuk66-v3_test'
                 //sh 'make nxp_fmuk66-v3_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, Tools/HIL/*', name: 'nxp_fmuk66-v3_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'nxp_fmuk66-v3_test'
               }
               post {
                 always {
@@ -653,7 +658,7 @@ pipeline {
               }
               post {
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf || true'
+                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf || true'
                 }
               }
             } // stage test
@@ -788,13 +793,15 @@ void runTests() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests latency_test" || true'
 
-  sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-*`'
-
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests file" || true'
 
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump /fs/mtd_params"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mtd readtest"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump /fs/mtd_params"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mtd rwtest"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump /fs/mtd_params"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mtd erase"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump /fs/mtd_params"'
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_bench"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_bench -v"'
@@ -802,13 +809,22 @@ void runTests() {
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_stress"'
 
+  // tests (stop modules first)
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander stop"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mavlink stop-all"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "navigator stop"'
+  sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-*`'
+
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sensors stop"' // ignore irrelevant sensor timeouts during microbenchmarks
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "microbench all"'
 
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "calib_udelay"'
+
   // test rebooting multiple times
   resetParameters()
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 4001" || true'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
   sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
@@ -818,6 +834,8 @@ void runTests() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
   sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump /fs/microsd/parameters_backup.bson" || true'
 }
 
 void printTopics() {

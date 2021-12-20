@@ -18,8 +18,17 @@ set OUTPUT_AUX_DEV /dev/pwm_output1
 set OUTPUT_EXTRA_DEV /dev/pwm_output0
 
 # set these before starting the modules
-param set PWM_AUX_OUT ${PWM_AUX_OUT}
-param set PWM_MAIN_OUT ${PWM_OUT}
+if [ $PWM_AUX_OUT != none ]
+then
+
+	param set PWM_AUX_OUT ${PWM_AUX_OUT}
+fi
+
+
+if [ $PWM_OUT != none ]
+then
+	param set PWM_MAIN_OUT ${PWM_OUT}
+fi
 
 #
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux

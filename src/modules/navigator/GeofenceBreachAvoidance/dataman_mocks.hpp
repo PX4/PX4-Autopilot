@@ -54,7 +54,6 @@ extern "C" {
 	dm_write(
 		dm_item_t  item,		/* The item type to store */
 		unsigned index,			/* The index of the item */
-		dm_persitence_t persistence,	/* The persistence level of this item */
 		const void *buffer,		/* Pointer to caller data buffer */
 		size_t buflen			/* Length in bytes of data to retrieve */
 	) {return 0;};
@@ -89,12 +88,6 @@ extern "C" {
 	__EXPORT int
 	dm_clear(
 		dm_item_t item			/* The item type to clear */
-	) {return 0;};
-
-	/** Tell the data manager about the type of the last reset */
-	__EXPORT int
-	dm_restart(
-		dm_reset_reason restart_type	/* The last reset type */
 	) {return 0;};
 }
 
