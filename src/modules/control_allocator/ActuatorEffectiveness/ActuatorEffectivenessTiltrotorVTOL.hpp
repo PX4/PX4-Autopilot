@@ -66,6 +66,12 @@ public:
 		allocation_method_out[1] = AllocationMethod::PSEUDO_INVERSE;
 	}
 
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	{
+		normalize[0] = true;
+		normalize[1] = false;
+	}
+
 	void setFlightPhase(const FlightPhase &flight_phase) override;
 
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,

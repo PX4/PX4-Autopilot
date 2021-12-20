@@ -216,6 +216,8 @@ public:
 
 	int numConfiguredActuators() const { return _num_actuators; }
 
+	void setNormalizeRPY(bool normalize_rpy) { _normalize_rpy = normalize_rpy; }
+
 protected:
 	friend class ControlAllocator; // for _actuator_sp
 
@@ -230,4 +232,5 @@ protected:
 	matrix::Vector<float, NUM_AXES> _control_sp;   		///< Control setpoint
 	matrix::Vector<float, NUM_AXES> _control_trim; 		///< Control at trim actuator values
 	int _num_actuators{0};
+	bool _normalize_rpy{false};				///< if true, normalize roll, pitch and yaw columns
 };
