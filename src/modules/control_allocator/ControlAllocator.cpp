@@ -157,6 +157,9 @@ ControlAllocator::update_allocation_method(bool force)
 		AllocationMethod desired_methods[ActuatorEffectiveness::MAX_NUM_MATRICES];
 		_actuator_effectiveness->getDesiredAllocationMethod(desired_methods);
 
+		bool normalize_rpy[ActuatorEffectiveness::MAX_NUM_MATRICES];
+		_actuator_effectiveness->getNormalizeRPY(normalize_rpy);
+
 		for (int i = 0; i < _num_control_allocation; ++i) {
 			AllocationMethod method = configured_method;
 
@@ -183,6 +186,7 @@ ControlAllocator::update_allocation_method(bool force)
 				_num_control_allocation = 0;
 
 			} else {
+				_control_allocation[i]->setNormalizeRPY(normalize_rpy[i]);
 				_control_allocation[i]->setActuatorSetpoint(actuator_sp[i]);
 			}
 		}

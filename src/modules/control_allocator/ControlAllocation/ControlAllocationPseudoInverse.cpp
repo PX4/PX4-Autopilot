@@ -63,45 +63,59 @@ ControlAllocationPseudoInverse::updatePseudoInverse()
 void
 ControlAllocationPseudoInverse::normalizeControlAllocationMatrix()
 {
-	// Same scale on roll and pitch
-	const float roll_norm_sq = _mix.col(0).norm_squared();
-	const float pitch_norm_sq = _mix.col(1).norm_squared();
-	_control_allocation_scale(0) = sqrtf(fmaxf(roll_norm_sq, pitch_norm_sq) / (_num_actuators / 2.f));
-	_control_allocation_scale(1) = _control_allocation_scale(0);
+	if (_normalize_rpy) {
+		// Same scale on roll and pitch
+		const float roll_norm_sq = _mix.col(0).norm_squared();
+		const float pitch_norm_sq = _mix.col(1).norm_squared();
+		_control_allocation_scale(0) = sqrtf(fmaxf(roll_norm_sq, pitch_norm_sq) / (_num_actuators / 2.f));
+		_control_allocation_scale(1) = _control_allocation_scale(0);
 
-	if (_control_allocation_scale(0) > FLT_EPSILON) {
-		_mix.col(0) /= _control_allocation_scale(0);
-		_mix.col(1) /= _control_allocation_scale(1);
+		if (_control_allocation_scale(0) > FLT_EPSILON) {
+			_mix.col(0) /= _control_allocation_scale(0);
+			_mix.col(1) /= _control_allocation_scale(1);
+		}
+
+		// Scale yaw separately
+		_control_allocation_scale(2) = _mix.col(2).max();
+
+		if (_control_allocation_scale(2) > FLT_EPSILON) {
+			_mix.col(2) /= _control_allocation_scale(2);
+		}
+
+	} else {
+		_control_allocation_scale(0) = 1.f;
+		_control_allocation_scale(1) = 1.f;
+		_control_allocation_scale(2) = 1.f;
 	}
 
-	// Scale yaw separately
-	_control_allocation_scale(2) = _mix.col(2).max();
-
-	if (_control_allocation_scale(2) > FLT_EPSILON) {
-		_mix.col(2) /= _control_allocation_scale(2);
-	}
-
-	// Same scale on X and Y
-	_control_allocation_scale(3) = fmaxf(_mix.col(3).max(), _mix.col(4).max());
-	_control_allocation_scale(4) = _control_allocation_scale(3);
-
-	if (_control_allocation_scale(3) > FLT_EPSILON) {
-		_mix.col(3) /= _control_allocation_scale(3);
-		_mix.col(4) /= _control_allocation_scale(4);
-	}
-
-	// Scale Z thrust separately
-	float z_sum = 0.f;
-	auto z_col = _mix.col(5);
+	// Scale thrust by the sum of the norm of the thrust vectors (which is invariant to rotation)
+	int num_non_zero_thrust = 0;
+	float norm_sum = 0.f;
 
 	for (int i = 0; i < _num_actuators; i++) {
-		z_sum += z_col(i, 0);
+		float norm = _mix.slice<1, 3>(i, 3).norm();
+		norm_sum += norm;
+
+		if (norm > FLT_EPSILON) {
+			++num_non_zero_thrust;
+		}
 	}
 
-	if ((-z_sum > FLT_EPSILON) && (_num_actuators > 0)) {
-		_control_allocation_scale(5) = -z_sum / _num_actuators;
+	if (num_non_zero_thrust > 0) {
+		norm_sum /= num_non_zero_thrust;
+		_control_allocation_scale(3) = norm_sum;
+		_control_allocation_scale(4) = norm_sum;
+		_control_allocation_scale(5) = norm_sum;
+		_mix.col(3) /= _control_allocation_scale(3);
+		_mix.col(4) /= _control_allocation_scale(4);
 		_mix.col(5) /= _control_allocation_scale(5);
+
+	} else {
+		_control_allocation_scale(3) = 1.f;
+		_control_allocation_scale(4) = 1.f;
+		_control_allocation_scale(5) = 1.f;
 	}
+
 
 	// Set all the small elements to 0 to avoid issues
 	// in the control allocation algorithms

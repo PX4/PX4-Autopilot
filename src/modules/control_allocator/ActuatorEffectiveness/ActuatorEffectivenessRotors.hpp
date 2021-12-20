@@ -85,6 +85,11 @@ public:
 		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 	}
 
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	{
+		normalize[0] = true;
+	}
+
 	static int computeEffectivenessMatrix(const Geometry &geometry,
 					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
 
