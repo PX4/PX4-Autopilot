@@ -50,6 +50,11 @@ public:
 		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
 	}
 
+	void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const override
+	{
+		normalize[0] = true;
+	}
+
 	void updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp, int matrix_index,
 			    ActuatorVector &actuator_sp) override;
 

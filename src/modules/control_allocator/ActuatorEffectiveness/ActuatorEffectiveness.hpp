@@ -133,6 +133,16 @@ public:
 	}
 
 	/**
+	 * Query if the roll, pitch and yaw columns of the mixing matrix should be normalized
+	 */
+	virtual void getNormalizeRPY(bool normalize[MAX_NUM_MATRICES]) const
+	{
+		for (int i = 0; i < MAX_NUM_MATRICES; ++i) {
+			normalize[i] = false;
+		}
+	}
+
+	/**
 	 * Get the control effectiveness matrix if updated
 	 *
 	 * @return true if updated and matrix is set
