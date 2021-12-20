@@ -513,6 +513,7 @@ void Tiltrotor::fill_actuator_outputs()
 
 		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
+		_thrust_setpoint_0->xyz[0] = -_thrust_setpoint_0->xyz[2] * sinf(_tilt_control * M_PI_2_F);
 	}
 
 	// Fixed wing output
