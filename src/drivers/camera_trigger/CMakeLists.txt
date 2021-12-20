@@ -30,10 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+set(PARAM_PREFIX PWM_MAIN)
+
+if(CONFIG_BOARD_IO)
+	set(PARAM_PREFIX PWM_AUX)
+endif()
+
 px4_add_module(
 	MODULE drivers__camera_trigger
 	MAIN camera_trigger
 	COMPILE_FLAGS
+		-DPARAM_PREFIX="${PARAM_PREFIX}"
 	SRCS
 		camera_trigger.cpp
 		interfaces/src/camera_interface.cpp

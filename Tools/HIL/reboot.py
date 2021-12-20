@@ -36,26 +36,29 @@ def print_line(line):
     else:
         print('{0}'.format(line), end='')
 
-def monitor_firmware_upload(port, baudrate):
+def reboot(port, baudrate):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
 
     # clear
     ser.readlines()
 
+    time_start = time.monotonic()
     ser.write("\nreboot\n".encode("ascii"))
     ser.flush()
+    time_reboot_cmd = time_start
 
-    timeout_reboot_cmd = 30
+    timeout_reboot_cmd = 90
     timeout = 300  # 5 minutes
-    timeout_start = time.time()
-    timeout_newline = time.time()
-    time_success = 0
 
     return_code = 0
 
     while True:
-        if time.time() > timeout_start + timeout_reboot_cmd:
+        if time.monotonic() > time_reboot_cmd + timeout_reboot_cmd:
+            time_reboot_cmd = time.monotonic()
+            print("sending reboot cmd again")
             ser.write("reboot\n".encode("ascii"))
+            ser.flush()
+            time.sleep(0.2)
 
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
@@ -66,13 +69,9 @@ def monitor_firmware_upload(port, baudrate):
             print_line(serial_line)
 
         if "NuttShell (NSH)" in serial_line:
-            time_success = time.time()
-
-        # wait at least 2 seconds after seeing prompt to catch potential errors
-        if time_success > 0 and time.time() > time_success + 2:
             sys.exit(return_code)
 
-        if time.time() > timeout_start + timeout:
+        if time.monotonic() > time_start + timeout:
             print("Error, timeout")
             sys.exit(-1)
 
@@ -82,7 +81,7 @@ def main():
     parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
     args = parser.parse_args()
 
-    monitor_firmware_upload(args.device, args.baudrate)
+    reboot(args.device, args.baudrate)
 
 if __name__ == "__main__":
    main()

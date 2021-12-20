@@ -40,8 +40,8 @@ def monitor_firmware_upload(port, baudrate):
     ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
 
     timeout = 180  # 3 minutes
-    timeout_start = time.time()
-    timeout_newline = time.time()
+    timeout_start = time.monotonic()
+    timeout_newline = time.monotonic()
 
     return_code = 0
 
@@ -59,13 +59,13 @@ def monitor_firmware_upload(port, baudrate):
         elif "nsh>" in serial_line:
             sys.exit(return_code)
 
-        if time.time() > timeout_start + timeout:
+        if time.monotonic() > timeout_start + timeout:
             print("Error, timeout")
             sys.exit(-1)
 
         # newline every 10 seconds if still running
-        if time.time() - timeout_newline > 10:
-            timeout_newline = time.time()
+        if time.monotonic() - timeout_newline > 10:
+            timeout_newline = time.monotonic()
             ser.write("\n".encode("ascii"))
             ser.flush()
 

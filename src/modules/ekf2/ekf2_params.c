@@ -1358,7 +1358,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
  * @group EKF2
  * @boolean
  */
-PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 0);
+PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 1);
 
 /**
  * Enable synthetic magnetometer Z component measurement.

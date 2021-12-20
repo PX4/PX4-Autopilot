@@ -340,10 +340,10 @@ class Tester:
     def run_test_case(self, test: Dict[str, Any],
                       case: str, log_dir: str) -> bool:
 
-        self.start_runners(log_dir, test, case)
-
         logfile_path = self.determine_logfile_path(log_dir, 'combined')
         self.start_combined_log(logfile_path)
+
+        self.start_runners(log_dir, test, case)
 
         test_timeout_s = test['timeout_min']*60
         while self.active_runners[-1].time_elapsed_s() < test_timeout_s:
@@ -445,29 +445,24 @@ class Tester:
             runner.set_log_filename(
                 self.determine_logfile_path(log_dir, runner.name))
 
-            # Some runners need to be started a couple of times
-            # until they succeed.
-            for _ in range(10):
-                try:
-                    runner.start()
-                except TimeoutError:
-                    abort = True
-                    print("A timeout happened for runner: {}"
-                          .format(runner.name))
-                    break
+            runner.start()
 
-                if runner.has_started_ok():
-                    break
+            if runner.has_started_ok():
+                continue
+
+            else:
+                abort = True
+                print("A timeout happened for runner: {}"
+                      .format(runner.name))
+                break
 
                 runner.stop
                 time.sleep(1)
 
-            else:
-                abort = True
-                print("Could not start runner: {}".format(runner.name))
-                break
-
         if abort:
+            print("Could not start runner: {}".format(runner.name))
+            self.collect_runner_output()
+            self.stop_combined_log()
             self.stop_runners()
             sys.exit(1)
 
@@ -637,7 +632,7 @@ class Tester:
         else:
             return text_to_format.format(str(n) + " ")
 
-    def sigint_handler(self, sig: signal.Signals, frame: FrameType) \
+    def sigint_handler(self, sig: int, frame: Optional[FrameType]) \
             -> NoReturn:
         print("Received SIGINT")
         print("Stopping all processes ...")

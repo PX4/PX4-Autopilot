@@ -252,12 +252,14 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
  *
  * @group Commander
  * @min 0
- * @max 2
+ * @max 4
  * @value 0 RC Transmitter only
- * @value 1 Joystick only/No RC Checks
- * @value 2 RC and Joystick are accepted
+ * @value 1 Joystick only
+ * @value 2 RC and Joystick with fallback
+ * @value 3 RC or Joystick keep first
+ * @value 4 Stick input disabled
  */
-PARAM_DEFINE_INT32(COM_RC_IN_MODE, 0);
+PARAM_DEFINE_INT32(COM_RC_IN_MODE, 3);
 
 /**
  * RC input arm/disarm command duration
@@ -646,7 +648,7 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 45);
  *
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
+PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
 
 /**
  * Rearming grace period

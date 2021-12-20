@@ -42,16 +42,11 @@ class GeoTest : public ::testing::Test
 public:
 	void SetUp() override
 	{
-		origin.timestamp = 0;
-		origin.lat_rad = math::radians(473566094 / 1e7);
-		origin.lon_rad = math::radians(85190237 / 1e7);
-		origin.sin_lat = sin(origin.lat_rad);
-		origin.cos_lat = cos(origin.lat_rad);
-		origin.init_done = true;
+		proj.initReference(math::radians(473566094 / 1e7), math::radians(85190237 / 1e7), 0);
 	}
 
 protected:
-	map_projection_reference_s origin;
+	MapProjection proj;
 
 };
 
@@ -63,13 +58,13 @@ TEST_F(GeoTest, reprojectProject)
 	float y = 1;
 	double lat;
 	double lon;
-	map_projection_reproject(&origin, x, y, &lat, &lon);
+	proj.reproject(x, y, lat, lon);
 	float x_new;
 	float y_new;
-	map_projection_project(&origin, lat, lon, &x_new, &y_new);
+	proj.project(lat, lon, x_new, y_new);
 	double lat_new;
 	double lon_new;
-	map_projection_reproject(&origin, x_new, y_new, &lat_new, &lon_new);
+	proj.reproject(x_new, y_new, lat_new, lon_new);
 	EXPECT_FLOAT_EQ(x, x_new);
 	EXPECT_FLOAT_EQ(y, y_new);
 	EXPECT_FLOAT_EQ(lat, lat_new);
@@ -83,13 +78,13 @@ TEST_F(GeoTest, projectReproject)
 	double lon = 8.5190505981445313;
 	float x;
 	float y;
-	map_projection_project(&origin, lat, lon, &x, &y);
+	proj.project(lat, lon, x, y);
 	double lat_new;
 	double lon_new;
-	map_projection_reproject(&origin, x, y, &lat_new, &lon_new);
+	proj.reproject(x, y, lat_new, lon_new);
 	float x_new;
 	float y_new;
-	map_projection_project(&origin, lat_new, lon_new, &x_new, &y_new);
+	proj.project(lat_new, lon_new, x_new, y_new);
 	// WHEN: apply the mapping and its inverse the output should stay the same
 	EXPECT_FLOAT_EQ(x, x_new);
 	EXPECT_FLOAT_EQ(y, y_new);

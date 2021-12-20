@@ -49,18 +49,19 @@
 
 /** subset of the BSON node types we might care about */
 typedef enum {
-	BSON_EOO = 0,
-	BSON_DOUBLE = 1,
-	BSON_STRING = 2,
-	BSON_OBJECT = 3,
-	BSON_ARRAY = 4,
-	BSON_BINDATA = 5,
+	BSON_EOO       = 0,
+	BSON_DOUBLE    = 1,
+	BSON_STRING    = 2,
+	BSON_OBJECT    = 3,
+	BSON_ARRAY     = 4,
+	BSON_BINDATA   = 5,
 	BSON_UNDEFINED = 6,
-	BSON_BOOL = 8,
-	BSON_DATE = 9,
-	BSON_nullptr = 10,
-	BSON_INT32 = 16,
-	BSON_INT64 = 18
+	BSON_BOOL      = 8,
+	BSON_DATE      = 9,
+	BSON_nullptr   = 10,
+	BSON_INT32     = 16,
+	BSON_TIMESTAMP = 17,
+	BSON_INT64     = 18
 } bson_type_t;
 
 typedef enum bson_binary_subtype {
@@ -86,9 +87,10 @@ typedef struct bson_node_s {
 	bson_type_t		type;
 	bson_binary_subtype_t	subtype;
 	union {
-		int64_t		i;
-		double		d;
-		bool		b;
+		double  d;   // bson type 1
+		bool    b;   // bson type 8
+		int32_t i32; // bson type 16
+		int64_t i64; // bson type 18
 	};
 } *bson_node_t;
 
@@ -103,22 +105,29 @@ typedef int	(* bson_decoder_callback)(bson_decoder_t decoder, void *priv, bson_n
 
 struct bson_decoder_s {
 	/* file reader state */
-	int			fd;
+	int			fd{-1};
 
 	/* buffer reader state */
-	uint8_t			*buf;
-	size_t			bufsize;
-	unsigned		bufpos;
+	uint8_t			*buf{nullptr};
+	size_t			bufsize{0};
+	unsigned		bufpos{0};
 
-	bool			dead;
+	bool			dead{false};
 	bson_decoder_callback	callback;
-	void			*priv;
-	unsigned		nesting;
-	struct bson_node_s	node;
-	int32_t			pending;
+	void			*priv{nullptr};
+	unsigned		nesting{0};
+	struct bson_node_s	node {};
+	int32_t			pending{0};
 
-	int32_t                 total_document_size;
-	int32_t                 total_decoded_size;
+	int32_t                 total_document_size{0};
+	int32_t                 total_decoded_size{0};
+
+	uint16_t                count_node_double{0};
+	uint16_t                count_node_string{0};
+	uint16_t                count_node_bindata{0};
+	uint16_t                count_node_bool{0};
+	uint16_t                count_node_int32{0};
+	uint16_t                count_node_int64{0};
 };
 
 /**
@@ -175,17 +184,17 @@ __EXPORT size_t bson_decoder_data_pending(bson_decoder_t decoder);
  */
 typedef struct bson_encoder_s {
 	/* file writer state */
-	int		fd;
+	int		fd{-1};
 
 	/* buffer writer state */
-	uint8_t		*buf;
-	unsigned	bufsize;
-	unsigned	bufpos;
+	uint8_t		*buf{nullptr};
+	unsigned	bufsize{0};
+	unsigned	bufpos{0};
 
-	bool		realloc_ok;
-	bool		dead;
+	bool		realloc_ok{false};
+	bool		dead{false};
 
-	int32_t        total_document_size;
+	int32_t        total_document_size{0};
 
 } *bson_encoder_t;
 

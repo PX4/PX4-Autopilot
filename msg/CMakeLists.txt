@@ -118,6 +118,7 @@ set(msg_files
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
+	pps_capture.msg
 	position_controller_landing_status.msg
 	position_controller_status.msg
 	position_setpoint.msg

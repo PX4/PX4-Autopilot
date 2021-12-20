@@ -128,6 +128,9 @@ CDev::init()
 		if (ret == PX4_OK) {
 			_registered = true;
 		}
+
+	} else {
+		ret = -ENODEV;
 	}
 
 	return ret;
@@ -371,29 +374,6 @@ CDev::remove_poll_waiter(px4_pollfd_struct_t *fds)
 
 	PX4_DEBUG("poll: bad fd state");
 	return -EINVAL;
-}
-
-int CDev::unregister_driver_and_memory()
-{
-	int retval = PX4_OK;
-
-	if (_registered) {
-		unregister_driver(_devname);
-		_registered = false;
-
-	} else {
-		retval = -ENODEV;
-	}
-
-	if (_devname != nullptr) {
-		free((void *)_devname);
-		_devname = nullptr;
-
-	} else {
-		retval = -ENODEV;
-	}
-
-	return retval;
 }
 
 } // namespace cdev

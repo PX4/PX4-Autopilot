@@ -45,7 +45,7 @@ UavcanBeep::UavcanBeep(uavcan::INode &node) :
 	_beep_pub(node),
 	_timer(node)
 {
-	_beep_pub.setPriority(uavcan::TransferPriority::Default);
+	_beep_pub.setPriority(uavcan::TransferPriority::MiddleLower);
 }
 
 int UavcanBeep::init()
@@ -73,7 +73,10 @@ void UavcanBeep::periodic_update(const uavcan::TimerEvent &)
 
 		if (_tune.timestamp > 0) {
 			Tunes::ControlResult result = _tunes.set_control(_tune);
-			_play_tone = (result == Tunes::ControlResult::Success) || (result == Tunes::ControlResult::AlreadyPlaying);
+
+			if (result == Tunes::ControlResult::Success) {
+				_play_tone = true;
+			}
 		}
 	}
 
@@ -89,23 +92,13 @@ void UavcanBeep::periodic_update(const uavcan::TimerEvent &)
 		_duration = _silence_length;
 		_silence_length = 0;
 
-	} else if (_play_tone) {
-		Tunes::Status parse_ret_val = _tunes.get_next_note(_frequency, _duration, _silence_length);
+	} else if (_play_tone && (_tunes.get_next_note(_frequency, _duration, _silence_length) == Tunes::Status::Continue)) {
 
-		if (parse_ret_val == Tunes::Status::Continue) {
-			// Continue playing.
-			_play_tone = true;
-
-			if (_frequency > 0) {
-				// Start playing the note.
-				uavcan::equipment::indication::BeepCommand cmd{};
-				cmd.frequency = _frequency;
-				cmd.duration = _duration / 1000000.f;
-				_beep_pub.broadcast(cmd);
-			}
-
-		} else {
-			_play_tone = false;
-		}
+		// Start playing the note.
+		// A frequency of 0 corresponds to ToneAlarmInterface::stop_note()
+		uavcan::equipment::indication::BeepCommand cmd{};
+		cmd.frequency = _frequency;
+		cmd.duration = _duration / 1000000.f;
+		_beep_pub.broadcast(cmd);
 	}
 }

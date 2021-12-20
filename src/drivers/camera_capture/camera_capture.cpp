@@ -43,12 +43,6 @@
 
 #include <board_config.h>
 
-#ifdef BOARD_WITH_IO
-# define PARAM_PREFIX "PWM_AUX"
-#else
-# define PARAM_PREFIX "PWM_MAIN"
-#endif
-
 #define commandParamToInt(n) static_cast<int>(n >= 0 ? n + 0.5f : n - 0.5f)
 
 namespace camera_capture
@@ -111,7 +105,7 @@ void
 CameraCapture::capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
 	_trigger.chan_index = chan_index;
-	_trigger.edge_time = edge_time;
+	_trigger.hrt_edge_time = edge_time;
 	_trigger.edge_state = edge_state;
 	_trigger.overflow = overflow;
 
@@ -124,7 +118,7 @@ CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
 	CameraCapture *dev = static_cast<CameraCapture *>(arg);
 
 	dev->_trigger.chan_index = 0;
-	dev->_trigger.edge_time = hrt_absolute_time();
+	dev->_trigger.hrt_edge_time = hrt_absolute_time();
 	dev->_trigger.edge_state = 0;
 	dev->_trigger.overflow = 0;
 
@@ -150,19 +144,20 @@ CameraCapture::publish_trigger()
 
 	// MODES 1 and 2 are not fully tested
 	if (_camera_capture_mode == 0 || _gpio_capture) {
-		trigger.timestamp = _trigger.edge_time - uint64_t(1000 * _strobe_delay);
+		trigger.timestamp = _trigger.hrt_edge_time - uint64_t(1000 * _strobe_delay);
 		trigger.seq = _capture_seq++;
 		_last_trig_time = trigger.timestamp;
+
 		publish = true;
 
 	} else if (_camera_capture_mode == 1) { // Get timestamp of mid-exposure (active high)
 		if (_trigger.edge_state == 1) {
-			_last_trig_begin_time = _trigger.edge_time - uint64_t(1000 * _strobe_delay);
+			_last_trig_begin_time = _trigger.hrt_edge_time - uint64_t(1000 * _strobe_delay);
 
 		} else if (_trigger.edge_state == 0 && _last_trig_begin_time > 0) {
-			trigger.timestamp = _trigger.edge_time - ((_trigger.edge_time - _last_trig_begin_time) / 2);
+			trigger.timestamp = _trigger.hrt_edge_time - ((_trigger.hrt_edge_time - _last_trig_begin_time) / 2);
 			trigger.seq = _capture_seq++;
-			_last_exposure_time = _trigger.edge_time - _last_trig_begin_time;
+			_last_exposure_time = _trigger.hrt_edge_time - _last_trig_begin_time;
 			_last_trig_time = trigger.timestamp;
 			publish = true;
 			_capture_seq++;
@@ -170,12 +165,12 @@ CameraCapture::publish_trigger()
 
 	} else { // Get timestamp of mid-exposure (active low)
 		if (_trigger.edge_state == 0) {
-			_last_trig_begin_time = _trigger.edge_time - uint64_t(1000 * _strobe_delay);
+			_last_trig_begin_time = _trigger.hrt_edge_time - uint64_t(1000 * _strobe_delay);
 
 		} else if (_trigger.edge_state == 1 && _last_trig_begin_time > 0) {
-			trigger.timestamp = _trigger.edge_time - ((_trigger.edge_time - _last_trig_begin_time) / 2);
+			trigger.timestamp = _trigger.hrt_edge_time - ((_trigger.hrt_edge_time - _last_trig_begin_time) / 2);
 			trigger.seq = _capture_seq++;
-			_last_exposure_time = _trigger.edge_time - _last_trig_begin_time;
+			_last_exposure_time = _trigger.hrt_edge_time - _last_trig_begin_time;
 			_last_trig_time = trigger.timestamp;
 			publish = true;
 		}
@@ -187,6 +182,25 @@ CameraCapture::publish_trigger()
 
 	if (!publish) {
 		return;
+	}
+
+	pps_capture_s pps_capture;
+
+	if (_pps_capture_sub.update(&pps_capture)) {
+		_pps_hrt_timestamp = pps_capture.timestamp;
+		_pps_rtc_timestamp = pps_capture.rtc_timestamp;
+	}
+
+
+	if (_pps_hrt_timestamp > 0) {
+		// Last PPS RTC time + elapsed time to the camera capture interrupt
+		trigger.timestamp_utc = _pps_rtc_timestamp + (trigger.timestamp - _pps_hrt_timestamp);
+
+	} else {
+		// No PPS capture received, use RTC clock as fallback
+		timespec tv{};
+		px4_clock_gettime(CLOCK_REALTIME, &tv);
+		trigger.timestamp_utc = ts_to_abstime(&tv) - hrt_elapsed_time(&trigger.timestamp);
 	}
 
 	_trigger_pub.publish(trigger);

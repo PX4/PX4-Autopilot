@@ -91,9 +91,19 @@ private:
 
 			mavlink_sys_status_t msg{};
 
-			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
-			msg.onboard_control_sensors_enabled = status.onboard_control_sensors_enabled;
-			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
+			msg.onboard_control_sensors_present = static_cast<uint32_t>(status.onboard_control_sensors_present & 0xFFFFFFFF) |
+							      MAV_SYS_STATUS_EXTENSION_USED;
+			msg.onboard_control_sensors_enabled = static_cast<uint32_t>(status.onboard_control_sensors_enabled & 0xFFFFFFFF) |
+							      MAV_SYS_STATUS_EXTENSION_USED;
+			msg.onboard_control_sensors_health = static_cast<uint32_t>(status.onboard_control_sensors_health & 0xFFFFFFFF) |
+							     MAV_SYS_STATUS_EXTENSION_USED;
+
+			msg.onboard_control_sensors_present_extended = static_cast<uint32_t>((status.onboard_control_sensors_present >> 32u) &
+					0xFFFFFFFF);
+			msg.onboard_control_sensors_enabled_extended = static_cast<uint32_t>((status.onboard_control_sensors_enabled >> 32u) &
+					0xFFFFFFFF);
+			msg.onboard_control_sensors_health_extended = static_cast<uint32_t>((status.onboard_control_sensors_health >> 32u) &
+					0xFFFFFFFF);
 
 			msg.load = cpuload.load * 1000.0f;
 
