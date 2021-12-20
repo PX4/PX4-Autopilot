@@ -35,7 +35,7 @@ px4_add_module(
 	MAIN sd_bench
 	COMPILE_FLAGS
 	SRCS
-		sd_bench.c
+		sd_bench.cpp
 	DEPENDS
 	)
 

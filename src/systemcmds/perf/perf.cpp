@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 Andrew Tridgell. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,39 +31,45 @@
  *
  ****************************************************************************/
 
-/**
- * @file usb_connected.c
- *
- * @author Andrew Tridgell
- */
+
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/module.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <string.h>
 
-#include <board_config.h>
+#include <lib/perf/perf_counter.h>
 
-__EXPORT int usb_connected_main(int argc, char *argv[]);
-
-static void print_usage(void)
+static void print_usage()
 {
+	PRINT_MODULE_DESCRIPTION("Tool to print performance counters");
 
-	PRINT_MODULE_DESCRIPTION("Utility to check if USB is connected. Was previously used in startup scripts.\n"
-				 "A return value of 0 means USB is connected, 1 otherwise."
-				);
+	PRINT_MODULE_USAGE_NAME_SIMPLE("perf", "command");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset all counters");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("latency", "Print HRT timer latency histogram");
 
-	PRINT_MODULE_USAGE_NAME_SIMPLE("usb_connected", "command");
+	PRINT_MODULE_USAGE_PARAM_COMMENT("Prints all performance counters if no arguments given");
 }
 
-int
-usb_connected_main(int argc, char *argv[])
+extern "C" __EXPORT int perf_main(int argc, char *argv[])
 {
 	if (argc > 1) {
+		if (strcmp(argv[1], "reset") == 0) {
+			perf_reset_all();
+			return 0;
+
+		} else if (strcmp(argv[1], "latency") == 0) {
+			perf_print_latency(1 /* stdout */);
+			fflush(stdout);
+			return 0;
+		}
+
 		print_usage();
-		return 0;
+		return -1;
 	}
 
-	return board_read_VBUS_state();
+	perf_print_all(1 /* stdout */);
+	fflush(stdout);
+	return 0;
 }

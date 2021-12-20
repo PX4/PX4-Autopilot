@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Author: Andrew Tridgell
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,96 +33,78 @@
  ****************************************************************************/
 
 /**
- * @file dumpfile.c
- *
- * @author Anton Babushkin <anton.babushkin@me.com>
+ * @file nshterm.c
  */
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <fcntl.h>
 #include <termios.h>
-
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdarg.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <nshlib/nshlib.h>
+#include <fcntl.h>
 #include <systemlib/err.h>
+#include <drivers/drv_hrt.h>
 
-__EXPORT int dumpfile_main(int argc, char *argv[]);
-
-static void print_usage(void)
+static void print_usage()
 {
-	PRINT_MODULE_DESCRIPTION("Dump file utility. Prints file size and contents in binary mode (don't replace LF with CR LF) to stdout.");
+	PRINT_MODULE_DESCRIPTION("Start an NSH shell on a given port.\n"
+				 "\n"
+				 "This was previously used to start a shell on the USB serial port.\n"
+				 "Now there runs mavlink, and it is possible to use a shell over mavlink.\n"
+				);
 
-	PRINT_MODULE_USAGE_NAME_SIMPLE("dumpfile", "command");
-	PRINT_MODULE_USAGE_ARG("<file>", "File to dump", false);
-
+	PRINT_MODULE_USAGE_NAME_SIMPLE("nshterm", "command");
+	PRINT_MODULE_USAGE_ARG("<file:dev>", "Device on which to start the shell (eg. /dev/ttyACM0)", false);
 }
 
-int
-dumpfile_main(int argc, char *argv[])
+extern "C" __EXPORT int nshterm_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		print_usage();
 		return 1;
 	}
 
-	/* open input file */
-	FILE *f;
-	f = fopen(argv[1], "r");
+	/* set up the serial port with output processing */
+	int fd = open(argv[1], O_RDWR);
 
-	if (f == NULL) {
-		PX4_ERR("Failed to open file (%i)", errno);
-		return 1;
+	/* Try to set baud rate */
+	struct termios uart_config;
+	int termios_state;
+
+	/* Back up the original uart configuration to restore it after exit */
+	if ((termios_state = tcgetattr(fd, &uart_config)) < 0) {
+		PX4_ERR("get config %s: %d\n", argv[1], termios_state);
+		close(fd);
+		return -1;
 	}
 
-	/* get file size */
-	fseek(f, 0L, SEEK_END);
-	int size = ftell(f);
-	fseek(f, 0L, SEEK_SET);
+	/* Set ONLCR flag (which appends a CR for every LF) */
+	uart_config.c_oflag |= (ONLCR | OPOST);
 
-	printf("File size: %d bytes\n", size);
-
-	/* configure stdout */
-	int out = fileno(stdout);
-
-	struct termios tc;
-	struct termios tc_old;
-	tcgetattr(out, &tc);
-
-	/* save old terminal attributes to restore it later on exit */
-	memcpy(&tc_old, &tc, sizeof(tc));
-
-	/* don't add CR on each LF*/
-	tc.c_oflag &= ~ONLCR;
-
-	if (tcsetattr(out, TCSANOW, &tc) < 0) {
-		PX4_ERR("failed setting stdout attributes");
-		fclose(f);
-		return 1;
+	if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
+		PX4_ERR("set config %s\n", argv[1]);
+		close(fd);
+		return -1;
 	}
 
-	char buf[512];
-	int nread;
+	/* setup standard file descriptors */
+	close(0);
+	close(1);
+	close(2);
+	dup2(fd, 0);
+	dup2(fd, 1);
+	dup2(fd, 2);
 
-	/* dump file */
-	while ((nread = fread(buf, 1, sizeof(buf), f)) > 0) {
-		if (write(out, buf, nread) <= 0) {
-			PX4_ERR("write failed");
-			break;
-		}
-	}
+	nsh_consolemain(0, nullptr);
 
-	fsync(out);
-	fclose(f);
+	close(fd);
 
-	/* restore old terminal attributes */
-	if (tcsetattr(out, TCSANOW, &tc_old) < 0) {
-		PX4_ERR("failed to restore stdout attributes");
-		return 1;
-	}
+	PX4_INFO("exiting");
 
 	return 0;
 }

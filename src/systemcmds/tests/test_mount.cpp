@@ -80,7 +80,7 @@ int test_mount(int argc, char *argv[])
 
 	if (d) {
 
-		while ((dir = readdir(d)) != NULL) {
+		while ((dir = readdir(d)) != nullptr) {
 			//printf("%s\n", dir->d_name);
 		}
 

@@ -66,8 +66,6 @@
 #  define STM_RAM_BASE        STM32_SRAM_BASE
 #endif
 
-__EXPORT int bl_update_main(int argc, char *argv[]);
-
 #if defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7) || \
     defined (CONFIG_ARCH_CHIP_STM32H7)
 
@@ -90,8 +88,7 @@ static void print_usage(const char *reason)
 #endif // defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7)
 
 
-int
-bl_update_main(int argc, char *argv[])
+extern "C" __EXPORT int bl_update_main(int argc, char *argv[])
 {
 #if !(defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7) \
     || defined (CONFIG_ARCH_CHIP_STM32H7))
@@ -144,9 +141,9 @@ bl_update_main(int argc, char *argv[])
 	image_size = (file_size + page_size) & ~page_size;
 #endif
 
-	uint8_t *buf = malloc(image_size);
+	uint8_t *buf = (uint8_t *)malloc(image_size);
 
-	if (buf == NULL)
+	if (buf == nullptr)
 	{
 		PX4_ERR("failed to allocate %jd bytes for firmware buffer", (intmax_t) file_size);
 		close(fd);

@@ -135,7 +135,7 @@ static int mtd_status(void)
 	return ret;
 }
 
-static void	print_usage(void)
+static void print_usage()
 {
 #if !defined(CONSTRAINED_FLASH)
 
@@ -304,7 +304,7 @@ int mtd_rwtest(const mtd_instance_s &instance)
 int mtd_main(int argc, char *argv[])
 {
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 	int ch;
 	int instance = 0;
 
