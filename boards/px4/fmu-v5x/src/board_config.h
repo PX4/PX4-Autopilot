@@ -111,6 +111,8 @@
  *
  * Note that these are unshifted addresses.
  */
+
+#define BOARD_MTD_NUM_EEPROM        2 /* MTD: base_eeprom, imu_eeprom*/
 #define PX4_I2C_OBDEV_SE050         0x48
 
 #define GPIO_I2C4_DRDY1_BMP388      /* PG5  */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTG|GPIO_PIN5)
