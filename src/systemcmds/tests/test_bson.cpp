@@ -123,8 +123,8 @@ decode_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 			return 1;
 		}
 
-		if (node->i != sample_small_int) {
-			PX4_ERR("FAIL: decoder: int1 value %" PRIu64 ", expected %" PRIi32 "", node->i, sample_small_int);
+		if (node->i32 != sample_small_int) {
+			PX4_ERR("FAIL: decoder: int1 value %" PRIi32 ", expected %" PRIi32 "", node->i32, sample_small_int);
 			return 1;
 		}
 
@@ -138,8 +138,8 @@ decode_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 			return 1;
 		}
 
-		if (node->i != sample_big_int) {
-			PX4_ERR("FAIL: decoder: int2 value %" PRIu64 ", expected %" PRIu64, node->i, sample_big_int);
+		if (node->i64 != sample_big_int) {
+			PX4_ERR("FAIL: decoder: int2 value %" PRIi64 ", expected %" PRIu64, node->i64, sample_big_int);
 			return 1;
 		}
 
@@ -260,8 +260,8 @@ decode(bson_decoder_t decoder)
 int
 test_bson(int argc, char *argv[])
 {
-	struct bson_encoder_s encoder;
-	struct bson_decoder_s decoder;
+	bson_encoder_s encoder{};
+	bson_decoder_s decoder{};
 	void *buf;
 	int len;
 

@@ -51,6 +51,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/pps_capture.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
@@ -103,11 +104,12 @@ private:
 
 	// Subscribers
 	uORB::Subscription				_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription				_pps_capture_sub{ORB_ID(pps_capture)};
 
 	// Trigger Buffer
 	struct _trig_s {
 		uint32_t chan_index;
-		hrt_abstime edge_time;
+		hrt_abstime hrt_edge_time;
 		uint32_t edge_state;
 		uint32_t overflow;
 	} _trigger{};
@@ -129,6 +131,9 @@ private:
 	hrt_abstime		_last_exposure_time{0};
 	hrt_abstime		_last_trig_time{0};
 	uint32_t 		_capture_overflows{0};
+
+	hrt_abstime	_pps_hrt_timestamp{0};
+	uint64_t		_pps_rtc_timestamp{0};
 
 	// Signal capture callback
 	void			capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);

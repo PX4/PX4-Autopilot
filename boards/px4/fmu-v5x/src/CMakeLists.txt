@@ -47,6 +47,7 @@ add_dependencies(drivers_board arch_board_hw_info platform_gpio_mcp23009)
 
 target_link_libraries(drivers_board
 	PRIVATE
+		arch_io_pins
 		arch_spi
 		arch_board_hw_info
 		drivers__led # drv_led_start

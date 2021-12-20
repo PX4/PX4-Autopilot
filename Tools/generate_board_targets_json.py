@@ -41,7 +41,9 @@ def process_target(px4board_file, target_name):
     platform = None
     toolchain = None
 
-    if px4board_file.endswith("default.px4board"):
+    if px4board_file.endswith("default.px4board") or \
+        px4board_file.endswith("recovery.px4board") or \
+        px4board_file.endswith("bootloader.px4board"):
         kconf.load_config(px4board_file, replace=True)
     else: # Merge config with default.px4board
         default_kconfig = re.sub(r'[a-zA-Z\d_]+\.px4board', 'default.px4board', px4board_file)

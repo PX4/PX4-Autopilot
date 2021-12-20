@@ -133,6 +133,16 @@ UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUA
 }
 
 void
+UavcanEscController::set_rotor_count(uint8_t count)
+{
+	_rotor_count = count;
+
+	if (_rotor_count != 0u) {
+		_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ESC_STATUS_UPDATE_RATE_HZ));
+	}
+}
+
+void
 UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {

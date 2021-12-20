@@ -195,11 +195,7 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 
 		// Only calculate the relative position if the WGS-84 location of the origin is set
 		if (collect_gps(gps)) {
-			float lpos_x = 0.0f;
-			float lpos_y = 0.0f;
-			map_projection_project(&_pos_ref, (gps.lat / 1.0e7), (gps.lon / 1.0e7), &lpos_x, &lpos_y);
-			gps_sample_new.pos(0) = lpos_x;
-			gps_sample_new.pos(1) = lpos_y;
+			gps_sample_new.pos = _pos_ref.project((gps.lat / 1.0e7), (gps.lon / 1.0e7));
 
 		} else {
 			gps_sample_new.pos(0) = 0.0f;

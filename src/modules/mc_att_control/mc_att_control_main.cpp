@@ -263,8 +263,8 @@ MulticopterAttitudeControl::Run()
 		}
 
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-		const float dt = math::constrain(((v_att.timestamp - _last_run) * 1e-6f), 0.0002f, 0.02f);
-		_last_run = v_att.timestamp;
+		const float dt = math::constrain(((v_att.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
+		_last_run = v_att.timestamp_sample;
 
 		/* check for updates in other topics */
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);

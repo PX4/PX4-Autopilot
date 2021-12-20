@@ -104,8 +104,10 @@ px4_add_module(
 		drivers_gyroscope
 		drivers_magnetometer
 		conversion
+		sensor_calibration
 		geo
 		mavlink_c
+		tunes
 		version
 	UNITY_BUILD
 	)
