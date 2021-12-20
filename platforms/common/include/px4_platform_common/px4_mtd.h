@@ -35,6 +35,8 @@
 
 __BEGIN_DECLS
 
+#define MAX_MTD_INSTANCES 5u
+
 // The data needed to interface with mtd device's
 
 typedef struct {
@@ -60,7 +62,7 @@ typedef struct {
  *            This can be  Null if there are no mtd instances.
  *
  */
-__EXPORT mtd_instance_s *px4_mtd_get_instances(unsigned int *count);
+__EXPORT mtd_instance_s **px4_mtd_get_instances(unsigned int *count);
 
 /*
   Get device complete geometry or a device
@@ -78,5 +80,6 @@ __EXPORT ssize_t px4_mtd_get_partition_size(const mtd_instance_s *instance, cons
 int px4_at24c_initialize(FAR struct i2c_master_s *dev,
 			 uint8_t address, FAR struct mtd_dev_s **mtd_dev);
 
+void px4_at24c_deinitialize(void);
 
 __END_DECLS
