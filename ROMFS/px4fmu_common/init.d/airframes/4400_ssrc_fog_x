@@ -36,15 +36,15 @@ then
 
 	# RTPS/MAV on TELEMETRY 1
 	param set-default MAV_0_CONFIG 0
-	param set-default RTPS_MAV_CONFIG 101
-	param set-default SER_TEL1_BAUD 1000000
+	param set-default RTPS_MAV_CONFIG 102
+	param set-default SER_TEL2_BAUD 1000000
 
 	# Enable LL40LS in i2c
 	param set-default SENS_EN_LL40LS 2
 
 	# LEDs on TELEMETRY 2
-	param set-default SER_TEL2_BAUD 57600
-	param set-default MAV_1_CONFIG 102
+	param set-default SER_TEL1_BAUD 57600
+	param set-default MAV_1_CONFIG 101
 	param set-default MAV_1_MODE 7
 	param set-default MAV_1_RATE 1000
 
