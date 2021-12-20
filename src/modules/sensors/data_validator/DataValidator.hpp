@@ -166,7 +166,7 @@ public:
 private:
 	uint32_t _error_mask{ERROR_FLAG_NO_ERROR}; /**< sensor error state */
 
-	uint32_t _timeout_interval{40000}; /**< interval in which the datastream times out in us */
+	uint32_t _timeout_interval{50000}; /**< interval in which the datastream times out in us */
 
 	uint64_t _time_last{0};   /**< last timestamp */
 	uint64_t _event_count{0}; /**< total data counter */
