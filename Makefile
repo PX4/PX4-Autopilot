@@ -160,8 +160,6 @@ else
 
 	# Fuzz Testing
 	ifdef PX4_FUZZ
-		export CC=clang
-		export CXX=clang++
 		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=FuzzTesting
 	endif
 
