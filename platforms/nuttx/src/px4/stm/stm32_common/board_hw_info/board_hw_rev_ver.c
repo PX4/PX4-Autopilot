@@ -42,9 +42,12 @@
 #include <px4_platform_common/micro_hal.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform/board_determine_hw_info.h>
+#include <px4_platform/board_hw_eeprom_rev_ver.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <board_config.h>
 
+#include <systemlib/crc.h>
 #include <systemlib/px4_macros.h>
 
 #if defined(BOARD_HAS_HW_VERSIONING)
@@ -59,6 +62,9 @@
 static int hw_version = 0;
 static int hw_revision = 0;
 static char hw_info[] = HW_INFO_INIT;
+
+static const uint16_t mtd_mft_version = MTD_MFT_v0;	//< Current version of structure in EEPROM
+static const char *mtd_mft_path = "/fs/mtd_mft";
 
 /****************************************************************************
  * Protected Functions
@@ -451,4 +457,143 @@ int board_determine_hw_info()
 
 	return rv;
 }
+
+/************************************************************************************
+  * Name: board_set_eeprom_hw_info
+ *
+ * Description:
+ * Function for writing hardware info to EEPROM
+ *
+ * Input Parameters:
+ *   *mtd_mft - pointer to mtd_mft to write hw_info
+ *
+ * Returned Value:
+ *    0    - Successful storing to EEPROM
+ *   -1    - Error while storing to EEPROM
+ *
+ ************************************************************************************/
+
+__EXPORT int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft)
+{
+	if (mtd_mft == NULL) {
+		return -1;
+	}
+
+	if (mtd_mft->hw_extended_ver < HW_EEPROM_VERSION_MIN) {
+		printf("hardware version for EEPROM must be greater than %x\n", HW_EEPROM_VERSION_MIN);
+		return -EINVAL;
+	}
+
+	int fd = open(mtd_mft_path, O_WRONLY);
+
+	if (fd < 0) {
+		return -errno;
+	}
+
+	int ret_val = OK;
+
+	mtd_mft_v0_t mtd_mft_v0 = {
+		.format_version = mtd_mft_version,
+		.hw_extended_ver = mtd_mft->hw_extended_ver
+	};
+
+	mtd_mft_v0.crc = crc16_signature(CRC16_INITIAL, sizeof(mtd_mft_v0) - sizeof(mtd_mft_v0.crc), (uint8_t *)&mtd_mft_v0);
+
+	if (
+		(MTD_MFT_OFFSET != lseek(fd, MTD_MFT_OFFSET, SEEK_SET)) ||
+		(sizeof(mtd_mft_v0) != write(fd, &mtd_mft_v0, sizeof(mtd_mft_v0)))
+	) {
+		ret_val = -errno;
+	}
+
+	if (fd >= 0) {
+		close(fd);
+		fd = -1;
+	}
+
+	return ret_val;
+}
+
+/************************************************************************************
+  * Name: board_get_eeprom_hw_info
+ *
+ * Description:
+ * Function for reading hardware info from EEPROM
+ *
+ * Output Parameters:
+ *   *mtd_mft - pointer to mtd_mft to read hw_info
+ *
+ * Returned Value:
+ *    0    - Successful reading from EEPROM
+ *   -1    - Error while reading from EEPROM
+ *
+ ************************************************************************************/
+__EXPORT int board_get_eeprom_hw_info(mtd_mft_t *mtd_mft)
+{
+	int fd = open(mtd_mft_path, O_RDONLY);
+
+	if ((fd < 0) || (mtd_mft == NULL)) {
+		return -errno;
+	}
+
+	int ret_val = OK;
+	uint16_t format_version = 0;
+
+	if (
+		(MTD_MFT_OFFSET != lseek(fd, MTD_MFT_OFFSET, SEEK_SET)) ||
+		(sizeof(format_version) != read(fd, &format_version, sizeof(format_version)))
+	) {
+		ret_val = -errno;
+
+	} else {
+
+		uint16_t buffer_size = 0;
+
+		if (MTD_MFT_v0 == format_version) {
+			buffer_size = sizeof(mtd_mft_v0_t);
+
+		} else if (MTD_MFT_v1 == format_version) {
+			buffer_size = sizeof(mtd_mft_v1_t);
+
+		} else {
+			printf("[boot] Error, unknown version %d of mtd_mft in EEPROM\n", format_version);
+			ret_val = -1;
+		}
+
+		if (ret_val == OK) {
+
+			uint8_t buffer[buffer_size];
+			memset(buffer, 0u, buffer_size);
+
+			if (
+				(MTD_MFT_OFFSET != lseek(fd, MTD_MFT_OFFSET, SEEK_SET)) ||
+				(buffer_size != read(fd, buffer, buffer_size))
+			) {
+				ret_val = -errno;
+
+			} else {
+
+				uint16_t crc = 0, eeprom_crc = 0;
+				crc = crc16_signature(CRC16_INITIAL, buffer_size - sizeof(crc), buffer);
+
+				eeprom_crc = (uint16_t)((buffer[buffer_size - 1] << 8)  | buffer[buffer_size - 2]);
+
+				if (crc == eeprom_crc) {
+					memcpy(mtd_mft, &buffer[sizeof(format_version)], buffer_size - sizeof(format_version) - sizeof(crc));
+
+				} else {
+					ret_val = -1;
+				}
+			}
+		}
+	}
+
+	if (fd >= 0) {
+		close(fd);
+		fd = -1;
+	}
+
+	return ret_val;
+}
+
 #endif
