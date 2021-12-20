@@ -70,8 +70,8 @@ float SensorGpsSim::generate_wgn()
 
 	if (phase) {
 		do {
-			float U1 = (float)rand() / RAND_MAX;
-			float U2 = (float)rand() / RAND_MAX;
+			float U1 = (float)rand() / (float)RAND_MAX;
+			float U2 = (float)rand() / (float)RAND_MAX;
 			V1 = 2.0f * U1 - 1.0f;
 			V2 = 2.0f * U2 - 1.0f;
 			S = V1 * V1 + V2 * V2;

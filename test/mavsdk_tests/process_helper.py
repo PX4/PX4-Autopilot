@@ -8,7 +8,6 @@ import subprocess
 import shutil
 import threading
 import errno
-import select
 from typing import Any, Dict, List, TextIO, Optional
 
 
@@ -68,22 +67,16 @@ class Runner:
 
     def process_output(self) -> None:
         assert self.process.stdout is not None
-
-        poll_obj = select.poll()
-        poll_obj.register(self.process.stdout, select.POLLIN)
-
-        while not self.stop_thread.is_set():
-            poll_result = poll_obj.poll(0)
-            if poll_result:
-                line = self.process.stdout.readline()
-                if not line and \
-                        (self.stop_thread.is_set() or self.poll is not None):
-                    break
-                if not line or line == "\n":
-                    continue
-                self.output_queue.put(line)
-                self.log_fd.write(line)
-                self.log_fd.flush()
+        while True:
+            line = self.process.stdout.readline()
+            if not line and \
+                    (self.stop_thread.is_set() or self.poll is not None):
+                break
+            if not line or line == "\n":
+                continue
+            self.output_queue.put(line)
+            self.log_fd.write(line)
+            self.log_fd.flush()
 
     def poll(self) -> Optional[int]:
         return self.process.poll()
@@ -146,18 +139,18 @@ class Runner:
 class Px4Runner(Runner):
     def __init__(self, workspace_dir: str, log_dir: str,
                  model: str, case: str, speed_factor: float,
-                 debugger: str, verbose: bool):
+                 debugger: str, verbose: bool, build_dir: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "px4"
-        self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
-        self.cwd = workspace_dir + \
-            "/build/px4_sitl_default/tmp_mavsdk_tests/rootfs"
+        self.cmd = os.path.join(workspace_dir, build_dir, "bin/px4")
+        self.cwd = os.path.join(workspace_dir, build_dir,
+                                "tmp_mavsdk_tests/rootfs")
         self.args = [
-                workspace_dir + "/build/px4_sitl_default/etc",
+                os.path.join(workspace_dir, build_dir, "etc"),
                 "-s",
                 "etc/init.d-posix/rcS",
                 "-t",
-                workspace_dir + "/test_data",
+                os.path.join(workspace_dir, "test_data"),
                 "-d"
             ]
         self.env["PX4_SIM_MODEL"] = self.model
@@ -214,14 +207,15 @@ class GzserverRunner(Runner):
                  model: str,
                  case: str,
                  speed_factor: float,
-                 verbose: bool):
+                 verbose: bool,
+                 build_dir: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzserver"
         self.cwd = workspace_dir
         self.env["GAZEBO_PLUGIN_PATH"] = \
-            workspace_dir + "/build/px4_sitl_default/build_gazebo"
+            os.path.join(workspace_dir, build_dir, "build_gazebo")
         self.env["GAZEBO_MODEL_PATH"] = \
-            workspace_dir + "/Tools/sitl_gazebo/models"
+            os.path.join(workspace_dir, "Tools/sitl_gazebo/models")
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
         self.cmd = "stdbuf"
         self.args = ["-o0", "-e0", "gzserver", "--verbose",
@@ -251,28 +245,29 @@ class GzmodelspawnRunner(Runner):
                  log_dir: str,
                  model: str,
                  case: str,
-                 verbose: bool):
+                 verbose: bool,
+                 build_dir: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzmodelspawn"
         self.cwd = workspace_dir
         self.env["GAZEBO_PLUGIN_PATH"] = \
-            workspace_dir + "/build/px4_sitl_default/build_gazebo"
+            os.path.join(workspace_dir, build_dir, "build_gazebo")
         self.env["GAZEBO_MODEL_PATH"] = \
-            workspace_dir + "/Tools/sitl_gazebo/models"
+            os.path.join(workspace_dir, "Tools/sitl_gazebo/models")
         self.cmd = "gz"
 
-        if os.path.isfile(workspace_dir +
-                          "/Tools/sitl_gazebo/models/" +
-                          self.model + "/" + self.model + ".sdf"):
-            model_path = workspace_dir + \
-                "/Tools/sitl_gazebo/models/" + \
-                self.model + "/" + self.model + ".sdf"
-        elif os.path.isfile(workspace_dir +
-                            "/Tools/sitl_gazebo/models/" +
-                            self.model + "/" + self.model + "-gen.sdf"):
-            model_path = workspace_dir + \
-                "/Tools/sitl_gazebo/models/" + \
-                self.model + "/" + self.model + "-gen.sdf"
+        if os.path.isfile(os.path.join(workspace_dir,
+                                       "Tools/sitl_gazebo/models",
+                                       self.model, self.model + ".sdf")):
+            model_path = os.path.join(workspace_dir,
+                                      "Tools/sitl_gazebo/models",
+                                      self.model, self.model + ".sdf")
+        elif os.path.isfile(os.path.join(workspace_dir,
+                                         "Tools/sitl_gazebo/models",
+                                         self.model, self.model + "-gen.sdf")):
+            model_path = os.path.join(workspace_dir,
+                                      "Tools/sitl_gazebo/models",
+                                      self.model, self.model + "-gen.sdf")
         else:
             raise Exception("Model not found")
 
@@ -322,7 +317,8 @@ class GzclientRunner(Runner):
         self.name = "gzclient"
         self.cwd = workspace_dir
         self.env = dict(os.environ, **{
-            "GAZEBO_MODEL_PATH": workspace_dir + "/Tools/sitl_gazebo/models"})
+            "GAZEBO_MODEL_PATH": os.path.join(workspace_dir,
+                                              "Tools/sitl_gazebo/models")})
         self.cmd = "gzclient"
         self.args = ["--verbose"]
 
@@ -335,12 +331,13 @@ class TestRunner(Runner):
                  case: str,
                  mavlink_connection: str,
                  speed_factor: float,
-                 verbose: bool):
+                 verbose: bool,
+                 build_dir: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
         self.cwd = workspace_dir
-        self.cmd = workspace_dir + \
-            "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
+        self.cmd = os.path.join(workspace_dir, build_dir,
+                                "mavsdk_tests/mavsdk_tests")
         self.args = ["--url", mavlink_connection,
                      "--speed-factor", str(speed_factor),
                      case]
