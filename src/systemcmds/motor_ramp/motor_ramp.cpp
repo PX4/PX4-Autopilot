@@ -313,10 +313,10 @@ int prepare(int fd, unsigned long *max_channels)
 {
 	/* make sure no other source is publishing control values now */
 	struct actuator_controls_s actuators;
-	int act_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	int act_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
 	/* clear changed flag */
-	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, act_sub, &actuators);
+	orb_copy(ORB_ID(actuator_controls_0), act_sub, &actuators);
 
 	/* wait 50 ms */
 	px4_usleep(50000);

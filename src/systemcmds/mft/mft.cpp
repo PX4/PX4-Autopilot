@@ -71,14 +71,12 @@
 
 #include <board_config.h>
 
-extern "C" __EXPORT int mft_main(int argc, char *argv[]);
-
 static int mft_status(void)
 {
 	return 0;
 }
 
-static void print_usage(void)
+static void print_usage()
 {
 	PRINT_MODULE_DESCRIPTION("Utility interact with the manifest");
 
@@ -86,9 +84,7 @@ static void print_usage(void)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("query", "Returns true if not existed");
 }
 
-
-
-int mft_main(int argc, char *argv[])
+extern "C" __EXPORT int mft_main(int argc, char *argv[])
 {
 	static const char *keys[] = PX4_MFT_STR_TYPES;
 	static const px4_manifest_types_e types[] = PX4_MFT_TYPES;

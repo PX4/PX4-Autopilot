@@ -58,8 +58,6 @@ typedef struct sdb_config {
 	unsigned int total_blocks_written;
 } sdb_config_t;
 
-static void	usage(void);
-
 /** sequential write speed test */
 static void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size);
 /** sequential read speed test */
@@ -72,12 +70,9 @@ static int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size);
  */
 static inline unsigned int time_fsync(int fd);
 
-__EXPORT int	sd_bench_main(int argc, char *argv[]);
-
 static const char *BENCHMARK_FILE = PX4_STORAGEDIR"/benchmark.tmp";
 
-static void
-usage()
+static void usage()
 {
 	PRINT_MODULE_DESCRIPTION("Test the speed of an SD Card");
 
@@ -91,34 +86,33 @@ usage()
 	PRINT_MODULE_USAGE_PARAM_FLAG('v', "Verify data and block number", true);
 }
 
-int
-sd_bench_main(int argc, char *argv[])
+extern "C" __EXPORT int sd_bench_main(int argc, char *argv[])
 {
 	int block_size = 4096;
 	bool verify = false;
 	bool keep = false;
 	int myoptind = 1;
 	int ch;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 	sdb_config_t cfg;
 	cfg.synchronized = false;
 	cfg.num_runs = 5;
 	cfg.run_duration = 2000;
 	cfg.aligned = true;
-	uint8_t *block =  NULL;
+	uint8_t *block = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "b:r:d:ksuv", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
-			block_size = strtol(myoptarg, NULL, 0);
+			block_size = strtol(myoptarg, nullptr, 0);
 			break;
 
 		case 'r':
-			cfg.num_runs = strtol(myoptarg, NULL, 0);
+			cfg.num_runs = strtol(myoptarg, nullptr, 0);
 			break;
 
 		case 'd':
-			cfg.run_duration = strtol(myoptarg, NULL, 0);
+			cfg.run_duration = strtol(myoptarg, nullptr, 0);
 			break;
 
 		case 'k':
@@ -259,7 +253,7 @@ void write_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 
 int read_test(int fd, sdb_config_t *cfg, uint8_t *block, int block_size)
 {
-	uint8_t *read_block =  NULL;
+	uint8_t *read_block = nullptr;
 
 	PX4_INFO("");
 	PX4_INFO("Testing Sequential Read Speed of %d blocks", cfg->total_blocks_written);
