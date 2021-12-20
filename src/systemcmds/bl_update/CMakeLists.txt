@@ -37,5 +37,5 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		bl_update.c
+		bl_update.cpp
 )

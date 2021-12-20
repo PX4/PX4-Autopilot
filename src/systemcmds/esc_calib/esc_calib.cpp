@@ -53,19 +53,13 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 
-
-
 #include "drivers/drv_pwm_output.h"
 
 #include <uORB/topics/actuator_controls.h>
 
-static void	usage(const char *reason);
-__EXPORT int	esc_calib_main(int argc, char *argv[]);
-
-static void
-usage(const char *reason)
+static void usage(const char *reason)
 {
-	if (reason != NULL) {
+	if (reason != nullptr) {
 		PX4_ERR("%s", reason);
 	}
 
@@ -82,14 +76,13 @@ usage(const char *reason)
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/pwm_output0", "<file:dev>", "Select PWM output device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('l', 1000, 0, 3000, "Low PWM value in us", true);
 	PRINT_MODULE_USAGE_PARAM_INT('h', 2000, 0, 3000, "High PWM value in us", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('c', NULL, NULL, "select channels in the form: 1234 (1 digit per channel, 1=first)",
-					true);
+	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, nullptr,
+					"select channels in the form: 1234 (1 digit per channel, 1=first)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Select all channels", true);
 }
 
-int
-esc_calib_main(int argc, char *argv[])
+extern "C" __EXPORT int esc_calib_main(int argc, char *argv[])
 {
 	const char *dev = PWM_OUTPUT0_DEVICE_PATH;
 	char *ep;
@@ -116,7 +109,7 @@ esc_calib_main(int argc, char *argv[])
 	}
 
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "d:c:m:al:h:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -184,7 +177,7 @@ esc_calib_main(int argc, char *argv[])
 			break;
 
 		default:
-			usage(NULL);
+			usage(nullptr);
 			return 1;
 		}
 	}
@@ -201,10 +194,10 @@ esc_calib_main(int argc, char *argv[])
 
 	/* make sure no other source is publishing control values now */
 	struct actuator_controls_s actuators;
-	int act_sub = orb_subscribe(ORB_ID_VEHICLE_ATTITUDE_CONTROLS);
+	int act_sub = orb_subscribe(ORB_ID(actuator_controls_0));
 
 	/* clear changed flag */
-	orb_copy(ORB_ID_VEHICLE_ATTITUDE_CONTROLS, act_sub, &actuators);
+	orb_copy(ORB_ID(actuator_controls_0), act_sub, &actuators);
 
 	/* wait 50 ms */
 	px4_usleep(50000);

@@ -35,7 +35,7 @@ px4_add_module(
 	MAIN perf
 	COMPILE_FLAGS
 	SRCS
-		perf.c
+		perf.cpp
 	DEPENDS
 		perf
 	)

@@ -36,7 +36,7 @@ px4_add_module(
 	STACK_MAIN 4096
 	COMPILE_FLAGS
 	SRCS
-		esc_calib.c
+		esc_calib.cpp
 	DEPENDS
 	)
 
