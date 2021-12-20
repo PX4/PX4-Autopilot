@@ -8,7 +8,6 @@ import subprocess
 import shutil
 import threading
 import errno
-import select
 from typing import Any, Dict, List, TextIO, Optional
 
 
@@ -68,22 +67,16 @@ class Runner:
 
     def process_output(self) -> None:
         assert self.process.stdout is not None
-
-        poll_obj = select.poll()
-        poll_obj.register(self.process.stdout, select.POLLIN)
-
-        while not self.stop_thread.is_set():
-            poll_result = poll_obj.poll(0)
-            if poll_result:
-                line = self.process.stdout.readline()
-                if not line and \
-                        (self.stop_thread.is_set() or self.poll is not None):
-                    break
-                if not line or line == "\n":
-                    continue
-                self.output_queue.put(line)
-                self.log_fd.write(line)
-                self.log_fd.flush()
+        while True:
+            line = self.process.stdout.readline()
+            if not line and \
+                    (self.stop_thread.is_set() or self.poll is not None):
+                break
+            if not line or line == "\n":
+                continue
+            self.output_queue.put(line)
+            self.log_fd.write(line)
+            self.log_fd.flush()
 
     def poll(self) -> Optional[int]:
         return self.process.poll()
