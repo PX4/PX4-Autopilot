@@ -37,8 +37,9 @@
 #define LM_MAX_SIZE 9
 enum class FIT_TYPE {
 
-	SPHERE = 0,
-	ELLIPSOID = 1
+	SPHERE = 0,  // fit sphere center and radius
+	ORTHOGONAL_ELLIPSOID = 1, // fit sphere center and each axis scales
+	ELLIPSOID = 2 // fit an ellipsoid on a sphere (center, scales and cross axis)
 };
 
 struct iteration_result {
@@ -71,6 +72,18 @@ void compute_jacob(FIT_TYPE type, const float x, const float y, const float z,
 			jacob[2] = (p.offdiag(0) * A + p.diag(1)    * B + p.offdiag(2) * C) / length;
 			jacob[3] = (p.offdiag(1) * A + p.offdiag(2) * B + p.diag(2)    * C) / length;
 			break;
+
+		case FIT_TYPE::ORTHOGONAL_ELLIPSOID:
+			// 0-2: partial derivative (offsets wrt fitness fn) fn operated on sample
+			jacob[0] = (p.diag(0)    * A + p.offdiag(0) * B + p.offdiag(1) * C) / length;
+			jacob[1] = (p.offdiag(0) * A + p.diag(1)    * B + p.offdiag(2) * C) / length;
+			jacob[2] = (p.offdiag(1) * A + p.offdiag(2) * B + p.diag(2)    * C) / length;
+			// 3-5: partial derivative (diag offset wrt fitness fn) fn operated on sample
+			jacob[3] = -x_unbiased * A / length;
+			jacob[4] = -y_unbiased * B / length;
+			jacob[5] = -z_unbiased * C / length;
+			break;
+
 		case FIT_TYPE::ELLIPSOID:
 		default:
 			// 0-2: partial derivative (offsets wrt fitness fn) fn operated on sample
@@ -95,6 +108,9 @@ int lm_size(FIT_TYPE type) {
 	case FIT_TYPE::SPHERE:
 		size = 4;
 		break;
+	case FIT_TYPE::ORTHOGONAL_ELLIPSOID:
+		size = 6;
+		break;
 	case FIT_TYPE::ELLIPSOID:
 	default:
 		size = 9;
@@ -110,6 +126,14 @@ void lm_param_to_array(FIT_TYPE type, const sphere_params &params, float param_a
 		param_array[1] = params.offset(0);
 		param_array[2] = params.offset(1);
 		param_array[3] = params.offset(2);
+		break;
+	case FIT_TYPE::ORTHOGONAL_ELLIPSOID:
+		param_array[0] = params.offset(0);
+		param_array[1] = params.offset(1);
+		param_array[2] = params.offset(2);
+		param_array[3] = params.diag(0);
+		param_array[4] = params.diag(1);
+		param_array[5] = params.diag(2);
 		break;
 	case FIT_TYPE::ELLIPSOID:
 	default:
@@ -133,6 +157,14 @@ void lm_array_to_param(FIT_TYPE type, const float param_array[], sphere_params &
 		params.offset(0) = param_array[1];
 		params.offset(1) = param_array[2];
 		params.offset(2) = param_array[3];
+		break;
+	case FIT_TYPE::ORTHOGONAL_ELLIPSOID:
+		params.offset(0) = param_array[0];
+		params.offset(1) = param_array[1];
+		params.offset(2) = param_array[2];
+		params.diag(0) = param_array[3];
+		params.diag(1) = param_array[4];
+		params.diag(2) = param_array[5];
 		break;
 	case FIT_TYPE::ELLIPSOID:
 	default:
