@@ -287,7 +287,11 @@ void Tiltrotor::update_mc_state()
 		// normal operation
 		_tilt_control = VtolType::pusher_assist() + _params_tiltrotor.tilt_mc;
 		_mc_yaw_weight = 1.0f;
-		_v_att_sp->thrust_body[2] = Tiltrotor::thrust_compensation_for_tilt();
+
+		// do thrust compensation only for legacy (static) allocation
+		if (_params->ctrl_alloc != 1) {
+			_v_att_sp->thrust_body[2] = Tiltrotor::thrust_compensation_for_tilt();
+		}
 	}
 
 }
