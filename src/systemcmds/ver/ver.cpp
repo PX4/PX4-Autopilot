@@ -61,7 +61,7 @@ static const char px4_guid_str[]         = "px4guid";
 
 static void usage(const char *reason)
 {
-	if (reason != NULL) {
+	if (reason != nullptr) {
 		printf("%s\n\n", reason);
 	}
 
@@ -86,19 +86,17 @@ static void usage(const char *reason)
 			       "Hardware type to compare against (eg. V2). An OR comparison is used if multiple are specified", false);
 }
 
-__EXPORT int ver_main(int argc, char *argv[]);
-
-int ver_main(int argc, char *argv[])
+extern "C" __EXPORT int ver_main(int argc, char *argv[])
 {
 	/* defaults to an error */
 	int ret = 1;
 
 	/* first check if there are at least 2 params */
 	if (argc >= 2) {
-		if (argv[1] != NULL) {
+		if (argv[1] != nullptr) {
 
 			if (!strncmp(argv[1], sz_ver_hwcmp_str, sizeof(sz_ver_hwcmp_str))) {
-				if (argc >= 3 && argv[2] != NULL) {
+				if (argc >= 3 && argv[2] != nullptr) {
 					const char *board_name = px4_board_name();
 
 					for (int i = 2; i < argc; ++i) {
@@ -115,7 +113,7 @@ int ver_main(int argc, char *argv[])
 			}
 
 			if (!strncmp(argv[1], sz_ver_hwtypecmp_str, sizeof(sz_ver_hwtypecmp_str))) {
-				if (argc >= 3 && argv[2] != NULL) {
+				if (argc >= 3 && argv[2] != nullptr) {
 					const char *board_type = px4_board_sub_type();
 
 					for (int i = 2; i < argc; ++i) {
@@ -238,8 +236,8 @@ int ver_main(int argc, char *argv[])
 			if (show_all || !strncmp(argv[1], mcu_ver_str, sizeof(mcu_ver_str))) {
 
 				char rev = ' ';
-				const char *revstr = NULL;
-				const char *errata = NULL;
+				const char *revstr = nullptr;
+				const char *errata = nullptr;
 
 				int chip_version = board_mcu_version(&rev, &revstr, &errata);
 
@@ -249,7 +247,7 @@ int ver_main(int argc, char *argv[])
 				} else {
 					printf("MCU: %s, rev. %c\n", revstr, rev);
 
-					if (errata != NULL) {
+					if (errata != nullptr) {
 						printf("\nWARNING   WARNING   WARNING!\n"
 						       "Revision %c has a silicon errata:\n"
 						       "%s"

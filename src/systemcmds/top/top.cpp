@@ -52,7 +52,7 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/module.h>
 
-static void print_usage(void)
+static void print_usage()
 {
 	PRINT_MODULE_DESCRIPTION("Monitor running processes and their CPU, stack usage, priority and state");
 
