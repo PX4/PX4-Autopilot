@@ -86,11 +86,11 @@ private:
 	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
 
-	void ResetFilters();
+	void ResetFilters(const hrt_abstime &time_now_us);
 	void SensorBiasUpdate(bool force = false);
-	bool SensorSelectionUpdate(bool force = false);
-	void UpdateDynamicNotchEscRpm(bool force = false);
-	void UpdateDynamicNotchFFT(bool force = false);
+	bool SensorSelectionUpdate(const hrt_abstime &time_now_us, bool force = false);
+	void UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force = false);
+	void UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force = false);
 	bool UpdateSampleRate();
 
 	// scaled appropriately for current sensor
