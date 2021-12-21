@@ -136,7 +136,7 @@ void LandingTargetEstimator::update()
 		// z component of measurement unsafe, don't use this measurement
 		return;
 	}
-    
+
 	float dist = _vehicleLocalPosition.dist_bottom - _params.offset_z;
 
 	// scale the ray s.t. the z component has length of dist
@@ -144,7 +144,7 @@ void LandingTargetEstimator::update()
 	_rel_pos(1) = sensor_ray(1) / sensor_ray(2) * dist;
 
 	// Adjust relative position according to sensor offset if centered approach
-	if(_params.appr_mode == ApproachMode::Centered){
+	if (_params.appr_mode == ApproachMode::Centered) {
 		_rel_pos(0) += _params.offset_x;
 		_rel_pos(1) += _params.offset_y;
 	}
@@ -265,7 +265,7 @@ void LandingTargetEstimator::_update_params()
 
 	param_get(_paramHandle.scale_x, &_params.scale_x);
 	param_get(_paramHandle.scale_y, &_params.scale_y);
-	
+
 	int32_t appr_mode = 0;
 	param_get(_paramHandle.appr_mode, &appr_mode);
 	_params.appr_mode = (ApproachMode)appr_mode;

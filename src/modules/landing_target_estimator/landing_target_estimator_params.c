@@ -134,13 +134,13 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
 PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
 
 /**
- * Landing Approach Mode 
- * 
+ * Landing Approach Mode
+ *
  * Configure the mode of the landing approach. Depending on the mode, the aircraft positions itself relative to the beacon differently.
- * 
+ *
  * Mode Centered: The aircraft aligns its center (body frame) with the beacon according to LTEST_SENS_POS_X and LTEST_SENS_POS_Y
  * Mode Aligned: The aircraft aligns the sensor with the beacon
- * 
+ *
  * @min 0
  * @max 1
  * @value 0 Centered
@@ -152,9 +152,9 @@ PARAM_DEFINE_INT32(LTEST_APPR_MODE, 0);
 
 /**
  * Rotation of IRLOCK sensor relative to airframe
- * 
+ *
  * Default orientation of Yaw 90°
- * 
+ *
  * @value 0 No rotation
  * @value 1 Yaw 45°
  * @value 2 Yaw 90°
@@ -163,7 +163,7 @@ PARAM_DEFINE_INT32(LTEST_APPR_MODE, 0);
  * @value 5 Yaw 225°
  * @value 6 Yaw 270°
  * @value 7 Yaw 315°
- * 
+ *
  * @min -1
  * @max 40
  * @reboot_required true
@@ -173,33 +173,33 @@ PARAM_DEFINE_INT32(LTEST_SENS_ROT, 2);
 
 /**
  * X Position of IRLOCK in body frame (forward)
- * 
+ *
  * @reboot_required true
  * @unit m
  * @decimal 3
  * @group Landing Target Estimator
- * 
+ *
  */
 PARAM_DEFINE_FLOAT(LTEST_SENS_POS_X, 0.0f);
 
 /**
  * Y Position of IRLOCK in body frame (right)
- * 
+ *
  * @reboot_required true
  * @unit m
  * @decimal 3
  * @group Landing Target Estimator
- * 
+ *
  */
 PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Y, 0.0f);
 
 /**
  * Z Position of IRLOCK in body frame (downward)
- * 
+ *
  * @reboot_required true
  * @unit m
  * @decimal 3
  * @group Landing Target Estimator
- * 
+ *
  */
 PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Z, 0.0f);
