@@ -59,7 +59,6 @@ LandingTargetEstimator::LandingTargetEstimator()
 	_paramHandle.mode = param_find("LTEST_MODE");
 	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
 	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
-	_paramHandle.appr_mode = param_find("LTEST_APPR_MODE");
 	_paramHandle.sensor_yaw = param_find("LTEST_SENS_ROT");
 	_paramHandle.offset_x = param_find("LTEST_SENS_POS_X");
 	_paramHandle.offset_y = param_find("LTEST_SENS_POS_Y");
@@ -143,11 +142,9 @@ void LandingTargetEstimator::update()
 	_rel_pos(0) = sensor_ray(0) / sensor_ray(2) * dist;
 	_rel_pos(1) = sensor_ray(1) / sensor_ray(2) * dist;
 
-	// Adjust relative position according to sensor offset if centered approach
-	if (_params.appr_mode == ApproachMode::Centered) {
-		_rel_pos(0) += _params.offset_x;
-		_rel_pos(1) += _params.offset_y;
-	}
+	// Adjust relative position according to sensor offset
+	_rel_pos(0) += _params.offset_x;
+	_rel_pos(1) += _params.offset_y;
 
 	if (!_estimator_initialized) {
 		PX4_INFO("Init");
@@ -265,10 +262,6 @@ void LandingTargetEstimator::_update_params()
 
 	param_get(_paramHandle.scale_x, &_params.scale_x);
 	param_get(_paramHandle.scale_y, &_params.scale_y);
-
-	int32_t appr_mode = 0;
-	param_get(_paramHandle.appr_mode, &appr_mode);
-	_params.appr_mode = (ApproachMode)appr_mode;
 
 	int32_t sensor_yaw = 0;
 	param_get(_paramHandle.sensor_yaw, &sensor_yaw);

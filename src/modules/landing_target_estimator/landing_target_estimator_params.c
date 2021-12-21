@@ -133,22 +133,6 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_X, 1.0f);
  */
 PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
 
-/**
- * Landing Approach Mode
- *
- * Configure the mode of the landing approach. Depending on the mode, the aircraft positions itself relative to the beacon differently.
- *
- * Mode Centered: The aircraft aligns its center (body frame) with the beacon according to LTEST_SENS_POS_X and LTEST_SENS_POS_Y
- * Mode Aligned: The aircraft aligns the sensor with the beacon
- *
- * @min 0
- * @max 1
- * @value 0 Centered
- * @value 1 Aligned
- * @group Landing Target Estimator
- */
-PARAM_DEFINE_INT32(LTEST_APPR_MODE, 0);
-
 
 /**
  * Rotation of IRLOCK sensor relative to airframe

@@ -108,11 +108,6 @@ private:
 		Stationary
 	};
 
-	enum class ApproachMode {
-		Centered = 0,
-		Aligned
-	};
-
 	/**
 	* Handles for parameters
 	**/
@@ -124,7 +119,6 @@ private:
 		param_t mode;
 		param_t scale_x;
 		param_t scale_y;
-		param_t appr_mode;
 		param_t offset_x;
 		param_t offset_y;
 		param_t offset_z;
@@ -139,7 +133,6 @@ private:
 		TargetMode mode;
 		float scale_x;
 		float scale_y;
-		ApproachMode appr_mode;
 		float offset_x;
 		float offset_y;
 		float offset_z;
