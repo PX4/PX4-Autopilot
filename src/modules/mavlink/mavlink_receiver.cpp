@@ -780,7 +780,7 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 	_cmd_ack_pub.publish(command_ack);
 
 	// TODO: move it to the same place that sent the command
-	if (ack.result != MAV_RESULT_ACCEPTED && ack.result != MAV_RESULT_IN_PROGRESS) {
+	if (ack.result == MAV_RESULT_FAILED) {
 		if (msg->compid == MAV_COMP_ID_CAMERA) {
 			PX4_WARN("Got unsuccessful result %" PRIu8 " from camera", ack.result);
 		}
