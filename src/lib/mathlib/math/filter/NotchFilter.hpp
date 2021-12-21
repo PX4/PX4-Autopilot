@@ -57,7 +57,7 @@ public:
 	NotchFilter() = default;
 	~NotchFilter() = default;
 
-	void setParameters(float sample_freq, float notch_freq, float bandwidth);
+	bool setParameters(float sample_freq, float notch_freq, float bandwidth);
 
 	/**
 	 * Add a new raw value to the filter using the Direct Form I
@@ -217,13 +217,13 @@ protected:
  * conserving the filter's history
  */
 template<typename T>
-void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float bandwidth)
+bool NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float bandwidth)
 {
 	if ((sample_freq <= 0.f) || (notch_freq <= 0.f) || (bandwidth <= 0.f) || (notch_freq >= sample_freq / 2)
 	    || !isFinite(sample_freq) || !isFinite(notch_freq) || !isFinite(bandwidth)) {
 
 		disable();
-		return;
+		return false;
 	}
 
 	const float freq_min = sample_freq * 0.001f;
@@ -231,11 +231,16 @@ void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float ba
 	const float notch_freq_new = math::max(notch_freq, freq_min);
 	const float bandwidth_new = math::max(bandwidth, freq_min);
 
-	bool sample_freq_change = (fabsf(sample_freq - _sample_freq) > FLT_EPSILON);
-	bool bandwidth_change = (fabsf(bandwidth_new - _bandwidth) > FLT_EPSILON);
+	const float sample_freq_diff = fabsf(sample_freq - _sample_freq);
+	const float bandwidth_diff = fabsf(bandwidth_new - _bandwidth);
+
+	const bool sample_freq_change = (sample_freq_diff > FLT_EPSILON);
+	const bool bandwidth_change = (bandwidth_diff > FLT_EPSILON);
 
 	if (!sample_freq_change && !bandwidth_change) {
-		if (fabsf(notch_freq_new - _notch_freq) > FLT_EPSILON) {
+		const float notch_freq_diff = fabsf(notch_freq_new - _notch_freq);
+
+		if (notch_freq_diff > FLT_EPSILON) {
 			// only notch frequency has changed
 			_notch_freq = notch_freq_new;
 
@@ -244,15 +249,21 @@ void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float ba
 			_b1 = 2.f * beta * _b0;
 			_a1 = _b1;
 
-			if (!isFinite(_b1)) {
-				disable();
+			if (notch_freq_diff > _bandwidth) {
+				// force reset
+				_initialized = false;
 			}
 
-			return;
+			if (!isFinite(_b1)) {
+				disable();
+				return false;
+			}
+
+			return true;
 
 		} else {
 			// no change, do nothing
-			return;
+			return true;
 		}
 	}
 
@@ -273,7 +284,18 @@ void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float ba
 
 	if (!isFinite(_b0) || !isFinite(_b1) || !isFinite(_b2) || !isFinite(_a2)) {
 		disable();
+		return false;
 	}
+
+	// force reset if bandwidth or sample frequency changed by more than 1%
+	if (bandwidth_diff > 0.01f * _bandwidth) {
+		_initialized = false;
+
+	} else if (sample_freq_diff > 0.01f * _sample_freq) {
+		_initialized = false;
+	}
+
+	return true;
 }
 
 } // namespace math
