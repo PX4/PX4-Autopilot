@@ -156,11 +156,9 @@ private:
 	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESC_RPM] {};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_esc_rpm_reset_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
 
 	perf_counter_t _dynamic_notch_filter_fft_disable_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_fft_reset_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
 
 	bool _dynamic_notch_esc_rpm_available{false};
