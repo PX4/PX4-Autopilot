@@ -42,7 +42,7 @@ add_library(mpfs_head
 
 set_target_properties(mpfs_head PROPERTIES LINKER_LANGUAGE ASM)
 
-if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 	add_library(drivers_board
 		bootloader_main.c
 		mpfs_emmcsd.c
