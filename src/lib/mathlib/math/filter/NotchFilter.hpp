@@ -128,6 +128,8 @@ public:
 		_b2 = b[2];
 	}
 
+	bool initialized() const { return _initialized; }
+
 	void reset() { _initialized = false; }
 
 	void reset(const T &sample)
@@ -150,11 +152,6 @@ public:
 		_notch_freq = 0.f;
 		_bandwidth = 0.f;
 		_sample_freq = 0.f;
-
-		_delay_element_1 = {};
-		_delay_element_2 = {};
-		_delay_element_output_1 = {};
-		_delay_element_output_2 = {};
 
 		_b0 = 1.f;
 		_b1 = 0.f;
