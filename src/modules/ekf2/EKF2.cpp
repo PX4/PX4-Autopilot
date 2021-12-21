@@ -325,61 +325,63 @@ void EKF2::Run()
 			perf_count(_msg_missed_imu_perf);
 		}
 
-		imu_sample_new.time_us = imu.timestamp_sample;
-		imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
-		imu_sample_new.delta_ang = Vector3f{imu.delta_angle};
-		imu_sample_new.delta_vel_dt = imu.delta_velocity_dt * 1.e-6f;
-		imu_sample_new.delta_vel = Vector3f{imu.delta_velocity};
+		if (imu_updated) {
+			imu_sample_new.time_us = imu.timestamp_sample;
+			imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
+			imu_sample_new.delta_ang = Vector3f{imu.delta_angle};
+			imu_sample_new.delta_vel_dt = imu.delta_velocity_dt * 1.e-6f;
+			imu_sample_new.delta_vel = Vector3f{imu.delta_velocity};
 
-		if (imu.delta_velocity_clipping > 0) {
-			imu_sample_new.delta_vel_clipping[0] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_X;
-			imu_sample_new.delta_vel_clipping[1] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Y;
-			imu_sample_new.delta_vel_clipping[2] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Z;
-		}
-
-		imu_dt = imu.delta_angle_dt;
-
-		if ((_device_id_accel == 0) || (_device_id_gyro == 0)) {
-			_device_id_accel = imu.accel_device_id;
-			_device_id_gyro = imu.gyro_device_id;
-			_accel_calibration_count = imu.accel_calibration_count;
-			_gyro_calibration_count = imu.gyro_calibration_count;
-
-		} else {
-			bool reset_actioned = false;
-
-			if ((imu.accel_calibration_count != _accel_calibration_count)
-			    || (imu.accel_device_id != _device_id_accel)) {
-
-				PX4_DEBUG("%d - resetting accelerometer bias", _instance);
-				_device_id_accel = imu.accel_device_id;
-
-				_ekf.resetAccelBias();
-				_accel_calibration_count = imu.accel_calibration_count;
-
-				// reset bias learning
-				_accel_cal = {};
-
-				reset_actioned = true;
+			if (imu.delta_velocity_clipping > 0) {
+				imu_sample_new.delta_vel_clipping[0] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_X;
+				imu_sample_new.delta_vel_clipping[1] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Y;
+				imu_sample_new.delta_vel_clipping[2] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Z;
 			}
 
-			if ((imu.gyro_calibration_count != _gyro_calibration_count)
-			    || (imu.gyro_device_id != _device_id_gyro)) {
+			imu_dt = imu.delta_angle_dt;
 
-				PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+			if ((_device_id_accel == 0) || (_device_id_gyro == 0)) {
+				_device_id_accel = imu.accel_device_id;
 				_device_id_gyro = imu.gyro_device_id;
-
-				_ekf.resetGyroBias();
+				_accel_calibration_count = imu.accel_calibration_count;
 				_gyro_calibration_count = imu.gyro_calibration_count;
 
-				// reset bias learning
-				_gyro_cal = {};
+			} else {
+				bool reset_actioned = false;
 
-				reset_actioned = true;
-			}
+				if ((imu.accel_calibration_count != _accel_calibration_count)
+				    || (imu.accel_device_id != _device_id_accel)) {
 
-			if (reset_actioned) {
-				SelectImuStatus();
+					PX4_DEBUG("%d - resetting accelerometer bias", _instance);
+					_device_id_accel = imu.accel_device_id;
+
+					_ekf.resetAccelBias();
+					_accel_calibration_count = imu.accel_calibration_count;
+
+					// reset bias learning
+					_accel_cal = {};
+
+					reset_actioned = true;
+				}
+
+				if ((imu.gyro_calibration_count != _gyro_calibration_count)
+				    || (imu.gyro_device_id != _device_id_gyro)) {
+
+					PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+					_device_id_gyro = imu.gyro_device_id;
+
+					_ekf.resetGyroBias();
+					_gyro_calibration_count = imu.gyro_calibration_count;
+
+					// reset bias learning
+					_gyro_cal = {};
+
+					reset_actioned = true;
+				}
+
+				if (reset_actioned) {
+					SelectImuStatus();
+				}
 			}
 		}
 
@@ -392,19 +394,21 @@ void EKF2::Run()
 			perf_count(_msg_missed_imu_perf);
 		}
 
-		imu_sample_new.time_us = sensor_combined.timestamp;
-		imu_sample_new.delta_ang_dt = sensor_combined.gyro_integral_dt * 1.e-6f;
-		imu_sample_new.delta_ang = Vector3f{sensor_combined.gyro_rad} * imu_sample_new.delta_ang_dt;
-		imu_sample_new.delta_vel_dt = sensor_combined.accelerometer_integral_dt * 1.e-6f;
-		imu_sample_new.delta_vel = Vector3f{sensor_combined.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
+		if (imu_updated) {
+			imu_sample_new.time_us = sensor_combined.timestamp;
+			imu_sample_new.delta_ang_dt = sensor_combined.gyro_integral_dt * 1.e-6f;
+			imu_sample_new.delta_ang = Vector3f{sensor_combined.gyro_rad} * imu_sample_new.delta_ang_dt;
+			imu_sample_new.delta_vel_dt = sensor_combined.accelerometer_integral_dt * 1.e-6f;
+			imu_sample_new.delta_vel = Vector3f{sensor_combined.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
 
-		if (sensor_combined.accelerometer_clipping > 0) {
-			imu_sample_new.delta_vel_clipping[0] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_X;
-			imu_sample_new.delta_vel_clipping[1] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Y;
-			imu_sample_new.delta_vel_clipping[2] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Z;
+			if (sensor_combined.accelerometer_clipping > 0) {
+				imu_sample_new.delta_vel_clipping[0] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_X;
+				imu_sample_new.delta_vel_clipping[1] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Y;
+				imu_sample_new.delta_vel_clipping[2] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Z;
+			}
+
+			imu_dt = sensor_combined.gyro_integral_dt;
 		}
-
-		imu_dt = sensor_combined.gyro_integral_dt;
 
 		if (_sensor_selection_sub.updated() || (_device_id_accel == 0 || _device_id_gyro == 0)) {
 			sensor_selection_s sensor_selection;
