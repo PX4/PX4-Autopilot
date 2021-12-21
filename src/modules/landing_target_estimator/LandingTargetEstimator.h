@@ -58,6 +58,7 @@
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
+#include <lib/conversion/rotation.h>
 #include "KalmanFilter.h"
 
 using namespace time_literals;
@@ -107,6 +108,11 @@ private:
 		Stationary
 	};
 
+	enum class ApproachMode {
+		Centered = 0,
+		Aligned
+	};
+
 	/**
 	* Handles for parameters
 	**/
@@ -118,6 +124,11 @@ private:
 		param_t mode;
 		param_t scale_x;
 		param_t scale_y;
+		param_t appr_mode;
+		param_t offset_x;
+		param_t offset_y;
+		param_t offset_z;
+		param_t sensor_yaw;
 	} _paramHandle;
 
 	struct {
@@ -128,6 +139,11 @@ private:
 		TargetMode mode;
 		float scale_x;
 		float scale_y;
+		ApproachMode appr_mode;
+		float offset_x;
+		float offset_y;
+		float offset_z;
+		enum Rotation sensor_yaw;
 	} _params;
 
 	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
@@ -149,7 +165,8 @@ private:
 	// keep track of whether last measurement was rejected
 	bool _faulty{false};
 
-	matrix::Dcmf _R_att;
+	matrix::Dcmf _R_att; //Orientation of the body frame
+	matrix::Dcmf _S_att; //Orientation of the sensor relative to body frame
 	matrix::Vector2f _rel_pos;
 	KalmanFilter _kalman_filter_x;
 	KalmanFilter _kalman_filter_y;
