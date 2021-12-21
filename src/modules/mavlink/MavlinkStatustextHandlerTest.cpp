@@ -220,3 +220,39 @@ TEST(MavlinkStatustextHandler, MiddleMissing)
 	EXPECT_EQ(handler.log_message().text[20], 'a');
 	EXPECT_EQ(handler.log_message().text[70], 'c');
 }
+
+TEST(MavlinkStatustextHandler, NoGarbageAfterZeroTermination)
+{
+	// It would be nicer not to publish garbage after the zero termination
+	// from previous publications but to zero it out nicely.
+	// Otherwise, someone looking at the raw bytes might get confused.
+
+	MavlinkStatustextHandler handler;
+
+	const auto long_text = "Some rather long text, ramble ramble";
+	const auto short_text = "Short short";
+
+	mavlink_statustext_t statustext1 {};
+	statustext1.severity = some_severity;
+	strncpy(statustext1.text, long_text, sizeof(statustext1.text));
+
+	EXPECT_FALSE(handler.should_publish_previous(statustext1));
+	EXPECT_TRUE(handler.should_publish_current(statustext1, some_time));
+	EXPECT_STREQ(handler.log_message().text, long_text);
+
+	for (unsigned i = strlen(handler.log_message().text); i < sizeof(log_message_s::text); ++i) {
+		EXPECT_EQ(handler.log_message().text[i], '\0');
+	}
+
+	mavlink_statustext_t statustext2 {};
+	statustext2.severity = some_other_severity;
+	strncpy(statustext2.text, short_text, sizeof(statustext2.text));
+
+	EXPECT_FALSE(handler.should_publish_previous(statustext2));
+	EXPECT_TRUE(handler.should_publish_current(statustext2, some_other_time));
+	EXPECT_STREQ(handler.log_message().text, short_text);
+
+	for (unsigned i = strlen(handler.log_message().text); i < sizeof(log_message_s::text); ++i) {
+		EXPECT_EQ(handler.log_message().text[i], '\0');
+	}
+}
