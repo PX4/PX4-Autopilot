@@ -171,7 +171,7 @@ void VehicleAngularVelocity::ResetFilters()
 			// angular velocity notch
 			_notch_filter_velocity[axis].setParameters(_filter_sample_rate_hz, _param_imu_gyro_nf_freq.get(),
 					_param_imu_gyro_nf_bw.get());
-			_notch_filter_velocity[axis].reset(angular_velocity_uncalibrated(axis));
+			_notch_filter_velocity[axis].reset();
 
 			// angular acceleration low pass
 			if ((_param_imu_dgyro_cutoff.get() > 0.f)
@@ -548,11 +548,9 @@ void VehicleAngularVelocity::UpdateDynamicNotchEscRpm(bool force)
 					}
 
 					if (reset) {
-						const Vector3f reset_angular_velocity{GetResetAngularVelocity()};
-
 						for (int axis = 0; axis < 3; axis++) {
 							for (int harmonic = 0; harmonic < MAX_NUM_ESC_RPM_HARMONICS; harmonic++) {
-								_dynamic_notch_filter_esc_rpm[axis][esc][harmonic].reset(reset_angular_velocity(axis));
+								_dynamic_notch_filter_esc_rpm[axis][esc][harmonic].reset();
 							}
 						}
 
@@ -633,8 +631,7 @@ void VehicleAngularVelocity::UpdateDynamicNotchFFT(bool force)
 
 						// force reset if the notch frequency jumps significantly
 						if (force || reset || (notch_freq_diff > bandwidth)) {
-							const Vector3f reset_angular_velocity{GetResetAngularVelocity()};
-							nf.reset(reset_angular_velocity(axis));
+							nf.reset();
 							perf_count(_dynamic_notch_filter_fft_reset_perf);
 						}
 
