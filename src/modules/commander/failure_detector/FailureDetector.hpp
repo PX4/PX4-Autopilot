@@ -71,7 +71,7 @@ union failure_detector_status_u {
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
 	} flags;
-	uint16_t value;
+	uint16_t value {0};
 };
 
 using uORB::SubscriptionData;
