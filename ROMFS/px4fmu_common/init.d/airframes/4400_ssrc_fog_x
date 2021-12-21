@@ -27,12 +27,13 @@ param set-default MC_ROLLRATE_D 0.004
 param set-default MC_PITCHRATE_D 0.004
 
 # Battery parameters
-param set-default BAT_N_CELLS 4
-param set-default BAT_V_CHARGED 4.2
-param set-default BAT_V_EMPTY 3.6
-param set-default BAT_V_DIV 18.1
+param set-default BAT1_N_CELLS 4
+param set-default BAT1_V_CHARGED 4.2
+param set-default BAT1_V_EMPTY 3.6
+param set-default BAT1_V_DIV 18.1
+param set-default BAT1_V_LOAD_DROP 0.1
 
-# RTPS/MAV on TELEMETRY 1
+# RTPS/MAV on TELEMETRY 2
 param set-default MAV_0_CONFIG 0
 param set-default RTPS_MAV_CONFIG 102
 param set-default SER_TEL2_BAUD 1000000
@@ -40,7 +41,7 @@ param set-default SER_TEL2_BAUD 1000000
 # Enable LL40LS in i2c
 param set-default SENS_EN_LL40LS 2
 
-# LEDs on TELEMETRY 2
+# LEDs on TELEMETRY 1
 param set-default SER_TEL1_BAUD 57600
 param set-default MAV_1_CONFIG 101
 param set-default MAV_1_MODE 7
@@ -51,10 +52,6 @@ param set-default EKF2_MULTI_IMU 0
 param set-default SENS_IMU_MODE 1
 param set-default EKF2_MULTI_MAG 0
 param set-default SENS_MAG_MODE 1
-
-# Set battery load drop value to match
-# the "default" battery used in this drone
-param set-default BAT_V_LOAD_DROP 0.1
 
 # Enable safety switch
 param set-default CBRK_IO_SAFETY 0
