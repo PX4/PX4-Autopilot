@@ -147,7 +147,7 @@ PARAM_DEFINE_FLOAT(LTEST_SCALE_Y, 1.0f);
  * @value 1 Aligned
  * @group Landing Target Estimator
  */
-PARAM_DEFINE_INT32(LTEST_APPR_MODE, 1);
+PARAM_DEFINE_INT32(LTEST_APPR_MODE, 0);
 
 
 /**
@@ -180,7 +180,7 @@ PARAM_DEFINE_INT32(LTEST_SENS_ROT, 2);
  * @group Landing Target Estimator
  * 
  */
-PARAM_DEFINE_FLOAT(LTEST_SENS_POS_X, 0.3);
+PARAM_DEFINE_FLOAT(LTEST_SENS_POS_X, 0.0f);
 
 /**
  * Y Position of IRLOCK in body frame (right)
@@ -191,7 +191,7 @@ PARAM_DEFINE_FLOAT(LTEST_SENS_POS_X, 0.3);
  * @group Landing Target Estimator
  * 
  */
-PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Y, 0.3);
+PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Y, 0.0f);
 
 /**
  * Z Position of IRLOCK in body frame (downward)
@@ -202,4 +202,4 @@ PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Y, 0.3);
  * @group Landing Target Estimator
  * 
  */
-PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Z, 0.3);
+PARAM_DEFINE_FLOAT(LTEST_SENS_POS_Z, 0.0f);
