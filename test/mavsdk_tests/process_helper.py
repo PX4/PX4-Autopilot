@@ -336,8 +336,12 @@ class TestRunner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
         self.cwd = workspace_dir
-        self.cmd = os.path.join(workspace_dir, build_dir,
-                                "mavsdk_tests/mavsdk_tests")
-        self.args = ["--url", mavlink_connection,
+        self.cmd = "nice"
+        self.args = ["-5",
+                     os.path.join(
+                         workspace_dir,
+                         build_dir,
+                         "mavsdk_tests/mavsdk_tests"),
+                     "--url", mavlink_connection,
                      "--speed-factor", str(speed_factor),
                      case]
