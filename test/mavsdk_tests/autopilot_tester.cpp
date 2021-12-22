@@ -702,7 +702,7 @@ void AutopilotTester::report_speed_factor()
 					std::cout << " (set: " << speed_factor.value() << ')';
 				}
 
-				std::cout << '\n';
+				std::cout << std::endl;
 			}
 		}
 
