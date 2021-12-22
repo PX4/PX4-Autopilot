@@ -299,34 +299,36 @@ ControlAllocator::Run()
 		return;
 	}
 
-	vehicle_status_s vehicle_status;
+	{
+		vehicle_status_s vehicle_status;
 
-	if (_vehicle_status_sub.update(&vehicle_status)) {
+		if (_vehicle_status_sub.update(&vehicle_status)) {
 
-		_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
+			_armed = vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED;
 
-		ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
+			ActuatorEffectiveness::FlightPhase flight_phase{ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT};
 
-		// Check if the current flight phase is HOVER or FIXED_WING
-		if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			flight_phase = ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT;
-
-		} else {
-			flight_phase = ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
-		}
-
-		// Special cases for VTOL in transition
-		if (vehicle_status.is_vtol && vehicle_status.in_transition_mode) {
-			if (vehicle_status.in_transition_to_fw) {
-				flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_HF_TO_FF;
+			// Check if the current flight phase is HOVER or FIXED_WING
+			if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+				flight_phase = ActuatorEffectiveness::FlightPhase::HOVER_FLIGHT;
 
 			} else {
-				flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_FF_TO_HF;
+				flight_phase = ActuatorEffectiveness::FlightPhase::FORWARD_FLIGHT;
 			}
-		}
 
-		// Forward to effectiveness source
-		_actuator_effectiveness->setFlightPhase(flight_phase);
+			// Special cases for VTOL in transition
+			if (vehicle_status.is_vtol && vehicle_status.in_transition_mode) {
+				if (vehicle_status.in_transition_to_fw) {
+					flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_HF_TO_FF;
+
+				} else {
+					flight_phase = ActuatorEffectiveness::FlightPhase::TRANSITION_FF_TO_HF;
+				}
+			}
+
+			// Forward to effectiveness source
+			_actuator_effectiveness->setFlightPhase(flight_phase);
+		}
 	}
 
 	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
