@@ -236,7 +236,9 @@ void AutopilotTester::execute_mission()
 	std::promise<void> prom;
 	auto fut = prom.get_future();
 
-	REQUIRE(_mission->start_mission() == Mission::Result::Success);
+
+	REQUIRE(poll_condition_with_timeout(
+	[this]() { return _mission->start_mission() == Mission::Result::Success; }, std::chrono::seconds(3)));
 
 	// TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
 

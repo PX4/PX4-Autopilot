@@ -45,6 +45,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/gimbal_device_set_attitude.h>
 #include <uORB/topics/gimbal_device_information.h>
+#include <uORB/topics/gimbal_device_attitude_status.h>
 
 
 namespace vmount
@@ -64,7 +65,9 @@ public:
 	virtual void print_status();
 
 private:
+	void _stream_device_attitude_status();
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
 };
 
 class OutputMavlinkV2 : public OutputBase
