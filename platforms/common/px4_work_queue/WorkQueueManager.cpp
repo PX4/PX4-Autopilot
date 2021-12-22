@@ -268,7 +268,7 @@ WorkQueueManagerRun(int, char **)
 			// On posix system , the desired stacksize round to the nearest multiplier of the system pagesize
 			// It is a requirement of the  pthread_attr_setstacksize* function
 			const unsigned int page_size = sysconf(_SC_PAGESIZE);
-			const size_t stacksize_adj = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
+			const size_t stacksize_adj = math::max((int)PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
 			const size_t stacksize = (stacksize_adj + page_size - (stacksize_adj % page_size));
 #endif
 
