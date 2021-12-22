@@ -953,12 +953,18 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 					   _current_latitude, _current_longitude, _current_altitude,
 					   &dist_xy, &dist_z);
 
+		float loiter_radius_abs = fabsf(_param_nav_loiter_rad.get());
+
+		if (fabsf(pos_sp_curr.loiter_radius) > FLT_EPSILON) {
+			loiter_radius_abs = fabsf(pos_sp_curr.loiter_radius);
+		}
+
 		if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION) {
 			// POSITION: achieve position setpoint altitude via loiter
 			// close to waypoint, but altitude error greater than twice acceptance
 			if ((!_vehicle_status.in_transition_mode) && (dist >= 0.f)
 			    && (dist_z > 2.f * _param_fw_clmbout_diff.get())
-			    && (dist_xy < 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)))) {
+			    && (dist_xy < 2.f * math::max(acc_rad, loiter_radius_abs))) {
 				// SETPOINT_TYPE_POSITION -> SETPOINT_TYPE_LOITER
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 			}
@@ -966,7 +972,7 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 			// LOITER: use SETPOINT_TYPE_POSITION to get to SETPOINT_TYPE_LOITER
 			if ((dist >= 0.f)
-			    && (dist_xy > 2.f * math::max(acc_rad, fabsf(pos_sp_curr.loiter_radius)))) {
+			    && (dist_xy > 2.f * math::max(acc_rad, loiter_radius_abs))) {
 				// SETPOINT_TYPE_LOITER -> SETPOINT_TYPE_POSITION
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 			}
