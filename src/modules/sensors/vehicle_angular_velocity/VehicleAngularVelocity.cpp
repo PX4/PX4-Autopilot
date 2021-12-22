@@ -52,18 +52,18 @@ VehicleAngularVelocity::~VehicleAngularVelocity()
 {
 	Stop();
 
+	perf_free(_cycle_perf);
 	perf_free(_filter_reset_perf);
 	perf_free(_selection_changed_perf);
+
 #if !defined(CONSTRAINED_FLASH)
 	perf_free(_dynamic_notch_filter_esc_rpm_disable_perf);
 	perf_free(_dynamic_notch_filter_esc_rpm_reset_perf);
 	perf_free(_dynamic_notch_filter_esc_rpm_update_perf);
-	perf_free(_dynamic_notch_filter_esc_rpm_perf);
 
 	perf_free(_dynamic_notch_filter_fft_disable_perf);
 	perf_free(_dynamic_notch_filter_fft_reset_perf);
 	perf_free(_dynamic_notch_filter_fft_update_perf);
-	perf_free(_dynamic_notch_filter_fft_perf);
 #endif // CONSTRAINED_FLASH
 }
 
@@ -395,7 +395,6 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 				_dynamic_notch_filter_esc_rpm_reset_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter ESC RPM reset");
 				_dynamic_notch_filter_esc_rpm_update_perf = perf_alloc(PC_COUNT,
 						MODULE_NAME": gyro dynamic notch filter ESC RPM update");
-				_dynamic_notch_filter_esc_rpm_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch filter ESC RPM elapsed");
 			}
 
 		} else {
@@ -407,7 +406,6 @@ void VehicleAngularVelocity::ParametersUpdate(bool force)
 				_dynamic_notch_filter_fft_disable_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT disable");
 				_dynamic_notch_filter_fft_reset_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT reset");
 				_dynamic_notch_filter_fft_update_perf = perf_alloc(PC_COUNT, MODULE_NAME": gyro dynamic notch filter FFT update");
-				_dynamic_notch_filter_fft_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": gyro dynamic notch filter FFT elapsed");
 			}
 
 		} else {
@@ -666,7 +664,6 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 
 	// Apply dynamic notch filter from ESC RPM
 	if (_dynamic_notch_esc_rpm_available) {
-		perf_begin(_dynamic_notch_filter_esc_rpm_perf);
 
 		for (int esc = 0; esc < MAX_NUM_ESC_RPM; esc++) {
 			if (_esc_available[esc]) {
@@ -676,21 +673,15 @@ float VehicleAngularVelocity::FilterAngularVelocity(int axis, float data[], int 
 				}
 			}
 		}
-
-		perf_end(_dynamic_notch_filter_esc_rpm_perf);
 	}
 
 	// Apply dynamic notch filter from FFT
 	if (_dynamic_notch_fft_available) {
-		perf_begin(_dynamic_notch_filter_fft_perf);
-
 		for (int peak = MAX_NUM_FFT_PEAKS - 1; peak >= 0; peak--) {
 			if (_dynamic_notch_filter_fft[axis][peak].getNotchFreq() > 0.f) {
 				_dynamic_notch_filter_fft[axis][peak].applyArray(data, N);
 			}
 		}
-
-		perf_end(_dynamic_notch_filter_fft_perf);
 	}
 
 #endif // !CONSTRAINED_FLASH
@@ -735,6 +726,8 @@ void VehicleAngularVelocity::Run()
 			return;
 		}
 	}
+
+	perf_begin(_cycle_perf);
 
 	ParametersUpdate();
 
@@ -785,6 +778,8 @@ void VehicleAngularVelocity::Run()
 				if (!_sensor_fifo_sub.updated()) {
 					if (CalibrateAndPublish(sensor_fifo_data.timestamp_sample,
 								angular_velocity_uncalibrated, angular_acceleration_uncalibrated)) {
+
+						perf_end(_cycle_perf);
 						return;
 					}
 				}
@@ -824,6 +819,8 @@ void VehicleAngularVelocity::Run()
 				if (!_sensor_sub.updated()) {
 					if (CalibrateAndPublish(sensor_data.timestamp_sample,
 								angular_velocity_uncalibrated, angular_acceleration_uncalibrated)) {
+
+						perf_end(_cycle_perf);
 						return;
 					}
 				}
@@ -835,6 +832,8 @@ void VehicleAngularVelocity::Run()
 	if (hrt_elapsed_time(&_last_publish) > 500_ms) {
 		SensorSelectionUpdate(true);
 	}
+
+	perf_end(_cycle_perf);
 }
 
 bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sample,
@@ -884,18 +883,17 @@ void VehicleAngularVelocity::PrintStatus()
 
 	_calibration.PrintStatus();
 
+	perf_print_counter(_cycle_perf);
 	perf_print_counter(_filter_reset_perf);
 	perf_print_counter(_selection_changed_perf);
 #if !defined(CONSTRAINED_FLASH)
 	perf_print_counter(_dynamic_notch_filter_esc_rpm_disable_perf);
 	perf_print_counter(_dynamic_notch_filter_esc_rpm_reset_perf);
 	perf_print_counter(_dynamic_notch_filter_esc_rpm_update_perf);
-	perf_print_counter(_dynamic_notch_filter_esc_rpm_perf);
 
 	perf_print_counter(_dynamic_notch_filter_fft_disable_perf);
 	perf_print_counter(_dynamic_notch_filter_fft_reset_perf);
 	perf_print_counter(_dynamic_notch_filter_fft_update_perf);
-	perf_print_counter(_dynamic_notch_filter_fft_perf);
 #endif // CONSTRAINED_FLASH
 }
 
