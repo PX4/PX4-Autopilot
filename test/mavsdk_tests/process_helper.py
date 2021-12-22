@@ -74,9 +74,17 @@ class Runner:
                 break
             if not line or line == "\n":
                 continue
+            line = self.add_prefix(10, self.name, line)
             self.output_queue.put(line)
             self.log_fd.write(line)
             self.log_fd.flush()
+
+    def add_prefix(self, width: int, name: str, text: str) -> str:
+        return "[" + self.seconds() + "|" + name.ljust(width) + "] " + text
+
+    def seconds(self) -> str:
+        dt = time.time() - self.start_time
+        return "{: 8.03f}".format(dt)
 
     def poll(self) -> Optional[int]:
         return self.process.poll()
