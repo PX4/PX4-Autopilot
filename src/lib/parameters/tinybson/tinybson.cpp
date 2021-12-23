@@ -517,23 +517,21 @@ bson_encoder_fini(bson_encoder_t encoder)
 	}
 
 	// record document size
+	debug("writing document size %" PRIi32, encoder->total_document_size);
+	const int32_t bson_doc_bytes = encoder->total_document_size;
+
 	if (encoder->fd > -1) {
-		if (lseek(encoder->fd, 0, SEEK_SET) == 0) {
-			debug("writing document size %" PRIi32 " to beginning of file", encoder->total_document_size);
+		if ((lseek(encoder->fd, 0, SEEK_SET) != 0)
+		    || (::write(encoder->fd, &bson_doc_bytes, sizeof(bson_doc_bytes)) != sizeof(bson_doc_bytes))) {
 
-			if (::write(encoder->fd, &encoder->total_document_size,
-				    sizeof(encoder->total_document_size)) != sizeof(encoder->total_document_size)) {
-
-				CODER_KILL(encoder, "write error on document length");
-			}
+			CODER_KILL(encoder, "write error on document length");
 		}
 
 		::fsync(encoder->fd);
 
 	} else if (encoder->buf != nullptr) {
 		/* update buffer length */
-		int32_t len = bson_encoder_buf_size(encoder);
-		memcpy(encoder->buf, &len, sizeof(len));
+		memcpy(encoder->buf, &bson_doc_bytes, sizeof(bson_doc_bytes));
 	}
 
 	return 0;
