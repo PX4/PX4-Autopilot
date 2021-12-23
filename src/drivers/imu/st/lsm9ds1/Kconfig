@@ -1,0 +1,5 @@
+menuconfig DRIVERS_IMU_ST_LSM9DS1
+	bool "lsm9ds1"
+	default n
+	---help---
+		Enable support for lsm9ds1
