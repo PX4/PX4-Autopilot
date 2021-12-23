@@ -49,7 +49,11 @@ add_custom_target(metadata_airframes
 set(generated_params_dir ${PX4_BINARY_DIR}/generated_params_metadata)
 file(GLOB_RECURSE yaml_config_files ${PX4_SOURCE_DIR}/src/modules/*.yaml
 	${PX4_SOURCE_DIR}/src/drivers/*.yaml ${PX4_SOURCE_DIR}/src/lib/*.yaml)
-list(FILTER yaml_config_files EXCLUDE REGEX ".*/pwm_out_sim/") # avoid param duplicates
+
+# avoid param duplicates
+list(FILTER yaml_config_files EXCLUDE REGEX ".*/pwm_out_sim/")
+list(FILTER yaml_config_files EXCLUDE REGEX ".*/linux_pwm_out/")
+
 add_custom_target(metadata_parameters
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${generated_params_dir}
