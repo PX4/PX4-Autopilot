@@ -4,6 +4,12 @@
 # Disable internal compass
 param set GPS_1_CONFIG 0
 
+# Disable magnetometer
+param set CAL_MAG0_PRIO 1
+param set CAL_MAG1_PRIO 0
+param set CAL_MAG2_PRIO 0
+param set CAL_MAG3_PRIO 0
+
 # Set waypoint acceptance radius to 0.5m
 param set NAV_ACC_RAD 0.5
 
