@@ -239,6 +239,7 @@ bson_decoder_next(bson_decoder_t decoder)
 
 		for (;;) {
 			if (nlen >= BSON_MAXNAME) {
+				PX4_ERR("node name overflow, type:0x%02x, name:%.32s", decoder->node.type, decoder->node.name);
 				CODER_KILL(decoder, "node name overflow");
 			}
 
