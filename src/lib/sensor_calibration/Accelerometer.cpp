@@ -203,9 +203,10 @@ void Accelerometer::ParametersUpdate()
 			if (_priority != -1) {
 				PX4_ERR("%s %" PRIu32 " (%" PRId8 ") invalid priority %" PRId32 ", resetting to %" PRId32, SensorString(), _device_id,
 					_calibration_index, _priority, new_priority);
+
+				SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
 			}
 
-			SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
 			_priority = new_priority;
 		}
 
