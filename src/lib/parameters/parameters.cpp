@@ -1598,7 +1598,9 @@ param_dump_callback(bson_decoder_t decoder, bson_node_t node)
 static int
 param_import_internal(int fd)
 {
-	for (int attempt = 1; attempt < 5; attempt++) {
+	static constexpr int MAX_ATTEMPTS = 3;
+
+	for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 		bson_decoder_s decoder{};
 
 		if (bson_decoder_init_file(&decoder, fd, param_import_callback) == 0) {
@@ -1617,8 +1619,11 @@ param_import_internal(int fd)
 				return 0;
 
 			} else if (result == -ENODATA) {
-				PX4_DEBUG("BSON: no data");
-				return 0;
+				// silently retry as a precaution unless this is our last attempt
+				if (attempt == MAX_ATTEMPTS) {
+					PX4_DEBUG("BSON: no data");
+					return 0;
+				}
 
 			} else {
 				PX4_ERR("param import failed (%d) attempt %d, retrying", result, attempt);
@@ -1628,7 +1633,10 @@ param_import_internal(int fd)
 			PX4_ERR("param import bson decoder init failed attempt %d, retrying", attempt);
 		}
 
-		lseek(fd, 0, SEEK_SET);
+		if (lseek(fd, 0, SEEK_SET) != 0) {
+			PX4_ERR("import lseek failed (%d)", errno);
+		}
+
 		px4_usleep(10000); // wait at least 10 milliseconds before trying again
 	}
 
