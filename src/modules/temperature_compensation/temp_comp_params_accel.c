@@ -38,4 +38,4 @@
  * @reboot_required true
  * @boolean
  */
-PARAM_DEFINE_INT32(TC_A_ENABLE, 0);
+PARAM_DEFINE_BOOL(TC_A_ENABLE, 0);

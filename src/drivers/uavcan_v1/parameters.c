@@ -41,7 +41,7 @@
  * @reboot_required true
  * @group UAVCAN v1
  */
-PARAM_DEFINE_INT32(UAVCAN_V1_ENABLE, 0);
+PARAM_DEFINE_BOOL(UAVCAN_V1_ENABLE, 0);
 
 /**
  * UAVCAN v1 Node ID.

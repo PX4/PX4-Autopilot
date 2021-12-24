@@ -99,7 +99,7 @@ PARAM_DEFINE_FLOAT(ATT_MAG_DECL, 0.0f);
  * @group Attitude Q estimator
  * @boolean
  */
-PARAM_DEFINE_INT32(ATT_MAG_DECL_A, 1);
+PARAM_DEFINE_BOOL(ATT_MAG_DECL_A, 1);
 
 /**
  * External heading usage mode (from Motion capture/Vision)
@@ -122,7 +122,7 @@ PARAM_DEFINE_INT32(ATT_EXT_HDG_M, 0);
  * @group Attitude Q estimator
  * @boolean
  */
-PARAM_DEFINE_INT32(ATT_ACC_COMP, 1);
+PARAM_DEFINE_BOOL(ATT_ACC_COMP, 1);
 
 /**
  * Gyro bias limit

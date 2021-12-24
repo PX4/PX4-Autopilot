@@ -41,7 +41,7 @@
  * @reboot_required true
  * @group Magnetometer Bias Estimator
  */
-PARAM_DEFINE_INT32(MBE_ENABLE, 1);
+PARAM_DEFINE_BOOL(MBE_ENABLE, 1);
 
 /**
  * Mag bias estimator learning gain

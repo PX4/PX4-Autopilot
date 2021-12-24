@@ -381,6 +381,7 @@ class SourceParser(object):
                 seenParamNames.append(name_plus_board)
                 # Validate values
                 default = param.GetDefault()
+                type = param.GetType()
                 min = param.GetFieldValue("min")
                 max = param.GetFieldValue("max")
                 units = param.GetFieldValue("unit")
@@ -388,9 +389,11 @@ class SourceParser(object):
                     sys.stderr.write("Invalid unit in {0}: {1}\n".format(name, units))
                     return False
                 #sys.stderr.write("{0} default:{1} min:{2} max:{3}\n".format(name, default, min, max))
-                if default != "" and not self.IsNumber(default):
+
+                if type != "BOOL" and default != "" and not self.IsNumber(default):
                     sys.stderr.write("Default value not number: {0} {1}\n".format(name, default))
                     return False
+
                 # if default != "" and "." not in default:
                 #     sys.stderr.write("Default value does not contain dot (e.g. 10 needs to be written as 10.0): {0} {1}\n".format(name, default))
                 #     return False

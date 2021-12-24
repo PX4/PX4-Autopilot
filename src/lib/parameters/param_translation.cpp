@@ -163,5 +163,13 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2021-11-15 migrate INT32 parameters that are now BOOL
+	if ((node->type == BSON_INT32) && (param_type(param_find(node->name)) == PARAM_TYPE_BOOL)) {
+		int32_t old_value = node->i32;
+
+		node->type = BSON_BOOL;
+		node->b = (old_value != 0);
+	}
+
 	return false;
 }

@@ -420,7 +420,7 @@ private:
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
 
-		(ParamBool<px4::params::FW_POSCTL_INV_ST>) _param_fw_posctl_inv_st,
+		(ParamInt<px4::params::FW_POSCTL_INV_ST>) _param_fw_posctl_inv_st,
 
 
 		(ParamInt<px4::params::FW_GPSF_LT>) _param_nav_gpsf_lt,

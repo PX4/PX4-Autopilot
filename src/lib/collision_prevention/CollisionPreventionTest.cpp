@@ -317,7 +317,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 		//at iteration 8 change the CP_GO_NO_DATA to True
 		if (i == 8) {
 			param_t param_allow = param_handle(px4::params::CP_GO_NO_DATA);
-			float value_allow = 1;
+			bool value_allow = true;
 			param_set(param_allow, &value_allow);
 			cp.paramsChanged();
 		}
@@ -555,7 +555,7 @@ TEST_F(CollisionPreventionTest, goNoData)
 
 	//WHEN: we change the parameter CP_GO_NO_DATA to allow flying ouside the FOV
 	param_t param_allow = param_handle(px4::params::CP_GO_NO_DATA);
-	float value_allow = 1;
+	bool value_allow = true;
 	param_set(param_allow, &value_allow);
 	cp.paramsChanged();
 

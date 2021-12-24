@@ -56,7 +56,7 @@
  * @boolean
  * @group Autotune
  */
-PARAM_DEFINE_INT32(FW_AT_START, 0);
+PARAM_DEFINE_BOOL(FW_AT_START, 0);
 
 /**
  * Amplitude of the injected signal

@@ -148,11 +148,11 @@ private:
 		(ParamFloat<px4::params::ATT_W_EXT_HDG>) _param_att_w_ext_hdg,
 		(ParamFloat<px4::params::ATT_W_GYRO_BIAS>) _param_att_w_gyro_bias,
 		(ParamFloat<px4::params::ATT_MAG_DECL>) _param_att_mag_decl,
-		(ParamInt<px4::params::ATT_MAG_DECL_A>) _param_att_mag_decl_a,
+		(ParamBool<px4::params::ATT_MAG_DECL_A>) _param_att_mag_decl_a,
 		(ParamInt<px4::params::ATT_EXT_HDG_M>) _param_att_ext_hdg_m,
-		(ParamInt<px4::params::ATT_ACC_COMP>) _param_att_acc_comp,
+		(ParamBool<px4::params::ATT_ACC_COMP>) _param_att_acc_comp,
 		(ParamFloat<px4::params::ATT_BIAS_MAX>) _param_att_bias_mas,
-		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
+		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
 	)
 };
 

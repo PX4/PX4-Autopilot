@@ -76,7 +76,7 @@ PARAM_DEFINE_INT32(CAL_MAG_COMP_TYP, 0);
  * @boolean
  * @group Sensors
  */
-PARAM_DEFINE_INT32(CAL_MAG_ROT_AUTO, 1);
+PARAM_DEFINE_BOOL(CAL_MAG_ROT_AUTO, 1);
 
 /**
  * Magnetometer max rate.

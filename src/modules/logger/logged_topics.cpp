@@ -193,10 +193,10 @@ void LoggedTopics::add_default_topics()
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 
 
-	int32_t sys_ctrl_alloc = 0;
+	bool sys_ctrl_alloc = false;
 	param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
 
-	if (sys_ctrl_alloc >= 1) {
+	if (sys_ctrl_alloc) {
 		add_topic("actuator_motors", 100);
 		add_topic("actuator_servos", 100);
 		add_topic("vehicle_angular_acceleration", 20);

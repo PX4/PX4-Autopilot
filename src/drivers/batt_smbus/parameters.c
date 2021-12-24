@@ -39,7 +39,7 @@
  * @boolean
  * @group Sensors
  */
-PARAM_DEFINE_INT32(SENS_EN_BATT, 0);
+PARAM_DEFINE_BOOL(SENS_EN_BATT, 0);
 
 /**
  * Capacity/current multiplier for high-current capable SMBUS battery

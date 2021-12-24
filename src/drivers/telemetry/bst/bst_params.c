@@ -40,4 +40,4 @@
  * @reboot_required true
  * @group Telemetry
  */
-PARAM_DEFINE_INT32(TEL_BST_EN, 0);
+PARAM_DEFINE_BOOL(TEL_BST_EN, 0);

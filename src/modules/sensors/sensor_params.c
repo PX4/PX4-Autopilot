@@ -208,7 +208,7 @@ PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
  * @category system
  * @group Sensors
  */
-PARAM_DEFINE_INT32(SENS_EXT_I2C_PRB, 1);
+PARAM_DEFINE_BOOL(SENS_EXT_I2C_PRB, 1);
 
 /**
  * Sensors hub IMU mode
@@ -232,4 +232,4 @@ PARAM_DEFINE_INT32(SENS_IMU_MODE, 1);
  * @category system
  * @group Sensors
  */
-PARAM_DEFINE_INT32(SENS_INT_BARO_EN, 1);
+PARAM_DEFINE_BOOL(SENS_INT_BARO_EN, 1);

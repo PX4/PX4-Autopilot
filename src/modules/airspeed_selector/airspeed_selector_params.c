@@ -169,7 +169,7 @@ PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 7);
  * @boolean
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_FALLBACK_GW, 0);
+PARAM_DEFINE_BOOL(ASPD_FALLBACK_GW, 0);
 
 /**
  * Airspeed failure innovation threshold

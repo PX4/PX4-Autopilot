@@ -902,7 +902,7 @@ void PX4IO::update_params()
 
 		for (unsigned i = 0; i < _max_actuators; i++) {
 			sprintf(str, "%s_REV%u", prefix, i + 1);
-			int32_t pwm_rev = -1;
+			bool pwm_rev = false;
 
 			if (param_get(param_find(str), &pwm_rev) == PX4_OK) {
 				if (pwm_rev >= 1) {

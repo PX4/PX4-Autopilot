@@ -117,7 +117,7 @@ PARAM_DEFINE_INT32(MAV_TYPE, 2);
  * @boolean
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
+PARAM_DEFINE_BOOL(MAV_USEHILGPS, 0);
 
 /**
  * Forward external setpoint messages
@@ -128,7 +128,7 @@ PARAM_DEFINE_INT32(MAV_USEHILGPS, 0);
  * @boolean
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
+PARAM_DEFINE_BOOL(MAV_FWDEXTSP, 1);
 
 /**
  * Parameter hash check.
@@ -139,7 +139,7 @@ PARAM_DEFINE_INT32(MAV_FWDEXTSP, 1);
  * @boolean
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_HASH_CHK_EN, 1);
+PARAM_DEFINE_BOOL(MAV_HASH_CHK_EN, 1);
 
 /**
  * Heartbeat message forwarding.
@@ -150,7 +150,7 @@ PARAM_DEFINE_INT32(MAV_HASH_CHK_EN, 1);
  * @boolean
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
+PARAM_DEFINE_BOOL(MAV_HB_FORW_EN, 1);
 
 /**
  * Activate ODOMETRY loopback.
@@ -161,7 +161,7 @@ PARAM_DEFINE_INT32(MAV_HB_FORW_EN, 1);
  * @boolean
  * @group MAVLink
  */
-PARAM_DEFINE_INT32(MAV_ODOM_LP, 0);
+PARAM_DEFINE_BOOL(MAV_ODOM_LP, 0);
 
 /**
  * Timeout in seconds for the RADIO_STATUS reports coming in

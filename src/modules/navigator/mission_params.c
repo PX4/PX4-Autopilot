@@ -65,7 +65,7 @@ PARAM_DEFINE_FLOAT(MIS_TAKEOFF_ALT, 2.5f);
  * @boolean
  * @group Mission
  */
-PARAM_DEFINE_INT32(MIS_TAKEOFF_REQ, 0);
+PARAM_DEFINE_BOOL(MIS_TAKEOFF_REQ, 0);
 
 /**
  * Minimum Loiter altitude

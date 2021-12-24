@@ -64,10 +64,10 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	float mag_test_ratio_limit = 1.f;
 	param_get(param_find("COM_ARM_EKF_YAW"), &mag_test_ratio_limit);
 
-	int32_t arm_without_gps = 0;
+	bool arm_without_gps = 0;
 	param_get(param_find("COM_ARM_WO_GPS"), &arm_without_gps);
 
-	int32_t sys_has_gps = 1;
+	bool sys_has_gps = 1;
 	param_get(param_find("SYS_HAS_GPS"), &sys_has_gps);
 
 	bool gps_success = false;

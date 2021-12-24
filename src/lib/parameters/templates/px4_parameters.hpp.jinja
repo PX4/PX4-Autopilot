@@ -24,10 +24,12 @@ static constexpr param_info_s parameters[] = {
 {% for param in params %}
 	{
 		"{{ param.attrib["name"] }}",
-	{%- if param.attrib["type"] == "FLOAT" %}
-		.val = {{ "{" }} .f = {{ param.attrib["default"] }} {{ "}" }},
+	{%- if param.attrib["type"] == "BOOL" %}
+		.val = {{ "{" }} .b = {{ param.attrib["default"] }}{{ "}" }},
 	{%- elif param.attrib["type"] == "INT32" %}
 		.val = {{ "{" }} .i = {{ param.attrib["default"] }}{{ "}" }},
+	{%- elif param.attrib["type"] == "FLOAT" %}
+		.val = {{ "{" }} .f = {{ param.attrib["default"] }} {{ "}" }},
 	{%- endif %}
 	},
 {% endfor %}

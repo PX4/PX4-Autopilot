@@ -45,7 +45,7 @@
  * @boolean
  * @group Runway Takeoff
  */
-PARAM_DEFINE_INT32(RWTO_TKOFF, 0);
+PARAM_DEFINE_BOOL(RWTO_TKOFF, 0);
 
 /**
  * Specifies which heading should be held during runnway takeoff.

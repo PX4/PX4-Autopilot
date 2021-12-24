@@ -43,14 +43,13 @@ void CameraInterface::get_pins()
 	}
 
 	param_t p_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
-	int32_t ctrl_alloc = 0;
+	bool ctrl_alloc = false;
 
 	if (p_ctrl_alloc != PARAM_INVALID) {
 		param_get(p_ctrl_alloc, &ctrl_alloc);
 	}
 
-	if (ctrl_alloc == 1) {
-
+	if (ctrl_alloc) {
 		unsigned pin_index = 0;
 
 		for (unsigned i = 0; i < 16 && pin_index < arraySize(_pins); ++i) {

@@ -187,7 +187,7 @@ PARAM_DEFINE_INT32(SYS_CAL_TMAX, 10);
  *
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_HAS_GPS, 1);
+PARAM_DEFINE_BOOL(SYS_HAS_GPS, 1);
 
 /**
  * Control if the vehicle has a magnetometer
@@ -201,7 +201,7 @@ PARAM_DEFINE_INT32(SYS_HAS_GPS, 1);
  *
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
+PARAM_DEFINE_BOOL(SYS_HAS_MAG, 1);
 
 /**
  * Control if the vehicle has a barometer
@@ -216,7 +216,7 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
  *
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
+PARAM_DEFINE_BOOL(SYS_HAS_BARO, 1);
 
 /**
  * Enable factory calibration mode
@@ -229,7 +229,7 @@ PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
  * @boolean
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_FAC_CAL_MODE, 0);
+PARAM_DEFINE_BOOL(SYS_FAC_CAL_MODE, 0);
 
 /**
  * Bootloader update
@@ -251,7 +251,7 @@ PARAM_DEFINE_INT32(SYS_FAC_CAL_MODE, 0);
  *
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
+PARAM_DEFINE_BOOL(SYS_BL_UPDATE, 0);
 
 /**
  * Enable failure injection
@@ -266,7 +266,6 @@ PARAM_DEFINE_INT32(SYS_BL_UPDATE, 0);
  */
 PARAM_DEFINE_INT32(SYS_FAILURE_EN, 0);
 
-
 /**
  * Enable Dynamic Control Allocation
  *
@@ -280,4 +279,4 @@ PARAM_DEFINE_INT32(SYS_FAILURE_EN, 0);
  * @reboot_required true
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_CTRL_ALLOC, 0);
+PARAM_DEFINE_BOOL(SYS_CTRL_ALLOC, 0);

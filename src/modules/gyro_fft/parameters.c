@@ -38,7 +38,7 @@
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_INT32(IMU_GYRO_FFT_EN, 0);
+PARAM_DEFINE_BOOL(IMU_GYRO_FFT_EN, 0);
 
 /**
 * IMU gyro FFT minimum frequency.

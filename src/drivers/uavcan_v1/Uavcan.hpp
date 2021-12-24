@@ -178,7 +178,7 @@ private:
 	CanardTransferID _uavcan_node_heartbeat_transfer_id{0};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::UAVCAN_V1_ENABLE>) _param_uavcan_v1_enable,
+		(ParamBool<px4::params::UAVCAN_V1_ENABLE>) _param_uavcan_v1_enable,
 		(ParamInt<px4::params::UAVCAN_V1_ID>) _param_uavcan_v1_id,
 		(ParamInt<px4::params::UAVCAN_V1_BAUD>) _param_uavcan_v1_baud
 	)

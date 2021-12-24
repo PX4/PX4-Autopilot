@@ -94,6 +94,7 @@ param_export_internal(bool only_unsaved, param_filter_func filter)
 
 	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != nullptr) {
 
+		bool b;
 		int32_t i;
 		float   f;
 
@@ -114,6 +115,16 @@ param_export_internal(bool only_unsaved, param_filter_func filter)
 		/* append the appropriate BSON type object */
 
 		switch (param_type(s->param)) {
+		case PARAM_TYPE_BOOL:
+			b = s->val.b;
+
+			if (bson_encoder_append_bool(&encoder, param_name(s->param), b)) {
+				debug("BSON append failed for '%s'", param_name(s->param));
+				goto out;
+			}
+
+			break;
+
 		case PARAM_TYPE_INT32:
 			i = s->val.i;
 
@@ -205,8 +216,10 @@ struct param_import_state {
 static int
 param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 {
-	float f;
+	bool b;
 	int32_t i;
+	float f;
+
 	void *v = nullptr;
 	int result = -1;
 	struct param_import_state *state = (struct param_import_state *)priv;
@@ -238,6 +251,17 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 	 */
 
 	switch (node->type) {
+	case BSON_BOOL:
+		if (param_type(param) != PARAM_TYPE_BOOL) {
+			PX4_WARN("unexpected type for %s", node->name);
+			result = 1; // just skip this entry
+			goto out;
+		}
+
+		b = node->b;
+		v = &b;
+		break;
+
 	case BSON_INT32:
 		if (param_type(param) != PARAM_TYPE_INT32) {
 			PX4_WARN("unexpected type for %s", node->name);

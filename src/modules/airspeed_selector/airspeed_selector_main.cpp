@@ -177,7 +177,7 @@ private:
 		(ParamFloat<px4::params::ASPD_SCALE_3>) _param_airspeed_scale_3,
 		(ParamInt<px4::params::ASPD_PRIMARY>) _param_airspeed_primary_index,
 		(ParamInt<px4::params::ASPD_DO_CHECKS>) _param_airspeed_checks_on,
-		(ParamInt<px4::params::ASPD_FALLBACK_GW>) _param_airspeed_fallback_gw,
+		(ParamBool<px4::params::ASPD_FALLBACK_GW>) _param_airspeed_fallback_gw,
 
 		(ParamFloat<px4::params::ASPD_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
 		(ParamFloat<px4::params::ASPD_FS_INTEG>) _tas_innov_integ_threshold, /**< innovation check integrator threshold */

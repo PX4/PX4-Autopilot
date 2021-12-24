@@ -40,7 +40,7 @@
  * @boolean
  * @reboot_required true
 */
-PARAM_DEFINE_INT32(SENS_EN_INA228, 0);
+PARAM_DEFINE_BOOL(SENS_EN_INA228, 0);
 
 /**
  * INA228 Power Monitor Config

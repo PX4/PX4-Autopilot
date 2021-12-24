@@ -1460,7 +1460,7 @@ Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 
-	if (_param_com_mot_test_en.get() != 1) {
+	if (!_param_com_mot_test_en.get()) {
 		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 

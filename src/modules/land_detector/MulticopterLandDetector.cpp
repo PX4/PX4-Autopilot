@@ -128,7 +128,7 @@ void MulticopterLandDetector::_update_params()
 		_param_lndmc_z_vel_max.commit_no_notification();
 	}
 
-	int32_t use_hover_thrust_estimate = 0;
+	bool use_hover_thrust_estimate = false;
 	param_get(_paramHandle.useHoverThrustEstimate, &use_hover_thrust_estimate);
 	_params.useHoverThrustEstimate = (use_hover_thrust_estimate == 1);
 

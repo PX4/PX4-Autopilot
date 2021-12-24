@@ -37,4 +37,4 @@
  * @boolean
  * @group System
  */
-PARAM_DEFINE_INT32(SYS_STCK_EN, 1);
+PARAM_DEFINE_BOOL(SYS_STCK_EN, 1);

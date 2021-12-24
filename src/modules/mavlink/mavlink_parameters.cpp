@@ -122,14 +122,31 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				if (param == PARAM_INVALID) {
 					PX4_ERR("unknown param: %s", name);
 
-				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
-					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
-					PX4_ERR("param types mismatch param: %s", name);
+				} else if (set.param_type >= MAV_PARAM_TYPE_ENUM_END) {
+					PX4_ERR("invalid param type: %s type: %d", name, set.param_type);
 
-				} else {
-					// According to the mavlink spec we should always acknowledge a write operation.
+				} else if ((param_type(param) == PARAM_TYPE_INT32) && (set.param_type == MAV_PARAM_TYPE_INT32)) {
+					int32_t param_value;
+					memcpy(&param_value, &set.param_value, sizeof(param_value));
 					param_set(param, &(set.param_value));
 					send_param(param);
+
+				} else if ((param_type(param) == PARAM_TYPE_FLOAT) && (set.param_type == MAV_PARAM_TYPE_REAL32)) {
+					float param_value;
+					memcpy(&param_value, &set.param_value, sizeof(param_value));
+					param_set(param, &(set.param_value));
+					send_param(param);
+
+				} else if ((param_type(param) == PARAM_TYPE_BOOL) && (set.param_type < MAV_PARAM_TYPE_ENUM_END)) {
+					// a zero value of any valid type is false
+					int32_t param_value;
+					memcpy(&param_value, &set.param_value, sizeof(param_value));
+					bool param_bool = (param_value != 0);
+					param_set(param, &param_bool);
+					send_param(param);
+
+				} else {
+					PX4_ERR("invalid param: %s", name);
 				}
 			}
 
@@ -428,14 +445,19 @@ MavlinkParametersManager::send_uavcan()
 #pragma GCC diagnostic pop
 #endif
 
-		if (value.param_type == MAV_PARAM_TYPE_REAL32) {
-			msg.param_type = MAVLINK_TYPE_FLOAT;
-			msg.param_value = value.real_value;
+		if (value.param_type == MAV_PARAM_TYPE_UINT8) {
+			bool val = (bool)value.int_value;
+			memcpy(&msg.param_value, &val, sizeof(bool));
+			msg.param_type = MAVLINK_TYPE_UINT8_T;
 
-		} else {
+		} else if (value.param_type == MAV_PARAM_TYPE_INT32) {
 			int32_t val = (int32_t)value.int_value;
 			memcpy(&msg.param_value, &val, sizeof(int32_t));
 			msg.param_type = MAVLINK_TYPE_INT32_T;
+
+		} else if (value.param_type == MAV_PARAM_TYPE_REAL32) {
+			msg.param_type = MAVLINK_TYPE_FLOAT;
+			msg.param_value = value.real_value;
 		}
 
 		// Re-pack the message with the UAVCAN node ID
@@ -516,29 +538,48 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 		return 1;
 	}
 
-	mavlink_param_value_t msg;
+	mavlink_param_value_t msg{};
 
 	/*
 	 * get param value, since MAVLink encodes float and int params in the same
 	 * space during transmission, copy param onto float val_buf
 	 */
-	if (param_type(param) == PARAM_TYPE_INT32) {
-		int32_t param_value;
+	switch (param_type(param)) {
+	case PARAM_TYPE_BOOL: {
+			bool param_value;
 
-		if (param_get(param, &param_value) != OK) {
-			return 2;
+			if (param_get(param, &param_value) != OK) {
+				return 2;
+			}
+
+			memcpy(&msg.param_value, &param_value, param_size(param));
 		}
+		break;
 
-		memcpy(&msg.param_value, &param_value, sizeof(param_value));
+	case PARAM_TYPE_INT32: {
+			int32_t param_value;
 
-	} else {
-		float param_value;
+			if (param_get(param, &param_value) != OK) {
+				return 2;
+			}
 
-		if (param_get(param, &param_value) != OK) {
-			return 2;
+			memcpy(&msg.param_value, &param_value, param_size(param));
 		}
+		break;
 
-		msg.param_value = param_value;
+	case PARAM_TYPE_FLOAT: {
+			float param_value;
+
+			if (param_get(param, &param_value) != OK) {
+				return 2;
+			}
+
+			memcpy(&msg.param_value, &param_value, param_size(param));
+		}
+		break;
+
+	default:
+		return 2;
 	}
 
 	msg.param_count = param_count_used();
@@ -567,7 +608,10 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 	 * Map onboard parameter type to MAVLink type,
 	 * endianess matches (both little endian)
 	 */
-	if (type == PARAM_TYPE_INT32) {
+	if (type == PARAM_TYPE_BOOL) {
+		msg.param_type = MAVLINK_TYPE_UINT8_T;
+
+	} else if (type == PARAM_TYPE_INT32) {
 		msg.param_type = MAVLINK_TYPE_INT32_T;
 
 	} else if (type == PARAM_TYPE_FLOAT) {

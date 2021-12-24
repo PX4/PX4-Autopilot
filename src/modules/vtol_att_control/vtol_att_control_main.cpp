@@ -261,6 +261,7 @@ VtolAttitudeControl::parameters_update()
 {
 	float v;
 	int32_t l;
+
 	/* idle pwm for mc mode */
 	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
 
@@ -269,15 +270,13 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
 
 	/* vtol fw permanent stabilization */
-	param_get(_params_handles.vtol_fw_permanent_stab, &l);
-	_vtol_vehicle_status.fw_permanent_stab = (l == 1);
+	param_get(_params_handles.vtol_fw_permanent_stab, &_vtol_vehicle_status.fw_permanent_stab);
 
 	param_get(_params_handles.vtol_type, &l);
 	_params.vtol_type = l;
 
 	/* vtol lock elevons in multicopter */
-	param_get(_params_handles.elevons_mc_lock, &l);
-	_params.elevons_mc_lock = (l == 1);
+	param_get(_params_handles.elevons_mc_lock, &_params.elevons_mc_lock);
 
 	/* minimum relative altitude for FW mode (QuadChute) */
 	param_get(_params_handles.fw_min_alt, &v);
@@ -351,8 +350,7 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.dec_to_pitch_ff, &_params.dec_to_pitch_ff);
 	param_get(_params_handles.dec_to_pitch_i, &_params.dec_to_pitch_i);
 
-	param_get(_params_handles.vt_mc_on_fmu, &l);
-	_params.vt_mc_on_fmu = l;
+	param_get(_params_handles.vt_mc_on_fmu, &_params.vt_mc_on_fmu);
 
 	param_get(_params_handles.vt_forward_thrust_enable_mode, &_params.vt_forward_thrust_enable_mode);
 	param_get(_params_handles.mpc_land_alt1, &_params.mpc_land_alt1);

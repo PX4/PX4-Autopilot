@@ -60,7 +60,7 @@ PARAM_DEFINE_INT32(VT_IDLE_PWM_MC, 900);
  * @boolean
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
+PARAM_DEFINE_BOOL(VT_FW_PERM_STAB, 0);
 
 /**
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
@@ -84,7 +84,7 @@ PARAM_DEFINE_INT32(VT_TYPE, 0);
  * @boolean
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
+PARAM_DEFINE_BOOL(VT_ELEV_MC_LOCK, 1);
 
 /**
  * Duration of a front transition
@@ -357,7 +357,7 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
  * @boolean
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_MC_ON_FMU, 0);
+PARAM_DEFINE_BOOL(VT_MC_ON_FMU, 0);
 
 /**
  * Minimum pitch angle during hover.

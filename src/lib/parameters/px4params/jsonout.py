@@ -25,7 +25,7 @@ class JsonOutput():
 			"reboot_required": ("rebootRequired", bool),
 			"decimal": ("decimalPlaces", int),
 			}
-        allowed_types = { "Uint8", "Int8", "Uint16", "Int16", "Uint32", "Int32", "Float"}
+        allowed_types = { "Bool", "Uint8", "Int8", "Uint16", "Int16", "Uint32", "Int32", "Float"}
 
         last_param_name = ""
         board_specific_param_set = False
@@ -33,8 +33,9 @@ class JsonOutput():
             group_name=group.GetName()
 
             def get_typed_value(value: str, type_name: str):
-                if type_name == 'Float': return float(value)
+                if type_name == 'Bool': return bool(value)
                 if type_name == 'Int32': return int(value)
+                if type_name == 'Float': return float(value)
                 return value
 
             for param in group.GetParams():

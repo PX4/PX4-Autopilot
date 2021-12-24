@@ -57,18 +57,18 @@
 void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list)
 {
 	// airspeed
-	int32_t uavcan_sub_aspd = 1;
+	bool uavcan_sub_aspd = true;
 	param_get(param_find("UAVCAN_SUB_ASPD"), &uavcan_sub_aspd);
 
-	if (uavcan_sub_aspd != 0) {
+	if (uavcan_sub_aspd) {
 		list.add(new UavcanAirspeedBridge(node));
 	}
 
 	// baro
-	int32_t uavcan_sub_baro = 1;
+	bool uavcan_sub_baro = true;
 	param_get(param_find("UAVCAN_SUB_BARO"), &uavcan_sub_baro);
 
-	if (uavcan_sub_baro != 0) {
+	if (uavcan_sub_baro) {
 		list.add(new UavcanBarometerBridge(node));
 	}
 
@@ -84,7 +84,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	}
 
 	// differential pressure
-	int32_t uavcan_sub_dpres = 1;
+	bool uavcan_sub_dpres = true;
 	param_get(param_find("UAVCAN_SUB_DPRES"), &uavcan_sub_dpres);
 
 	if (uavcan_sub_dpres != 0) {
@@ -92,7 +92,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	}
 
 	// flow
-	int32_t uavcan_sub_flow = 1;
+	bool uavcan_sub_flow = true;
 	param_get(param_find("UAVCAN_SUB_FLOW"), &uavcan_sub_flow);
 
 	if (uavcan_sub_flow != 0) {
@@ -100,7 +100,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	}
 
 	// GPS
-	int32_t uavcan_sub_gps = 1;
+	bool uavcan_sub_gps = true;
 	param_get(param_find("UAVCAN_SUB_GPS"), &uavcan_sub_gps);
 
 	if (uavcan_sub_gps != 0) {
@@ -108,7 +108,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	}
 
 	// ice (internal combustion engine)
-	int32_t uavcan_sub_ice = 1;
+	bool uavcan_sub_ice = true;
 	param_get(param_find("UAVCAN_SUB_ICE"), &uavcan_sub_ice);
 
 	if (uavcan_sub_ice != 0) {
@@ -116,7 +116,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	}
 
 	// IMU
-	int32_t uavcan_sub_imu = 1;
+	bool uavcan_sub_imu = true;
 	param_get(param_find("UAVCAN_SUB_IMU"), &uavcan_sub_imu);
 
 	if (uavcan_sub_imu != 0) {
@@ -125,7 +125,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	}
 
 	// magnetometer
-	int32_t uavcan_sub_mag = 1;
+	bool uavcan_sub_mag = true;
 	param_get(param_find("UAVCAN_SUB_MAG"), &uavcan_sub_mag);
 
 	if (uavcan_sub_mag != 0) {
@@ -133,7 +133,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	}
 
 	// range finder
-	int32_t uavcan_sub_rng = 1;
+	bool uavcan_sub_rng = true;
 	param_get(param_find("UAVCAN_SUB_RNG"), &uavcan_sub_rng);
 
 	if (uavcan_sub_rng != 0) {

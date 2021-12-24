@@ -70,13 +70,13 @@ CameraCapture::CameraCapture() :
 
 	// get the capture channel from function configuration params
 	param_t p_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
-	int32_t ctrl_alloc = 0;
+	bool ctrl_alloc = false;
 
 	if (p_ctrl_alloc != PARAM_INVALID) {
 		param_get(p_ctrl_alloc, &ctrl_alloc);
 	}
 
-	if (ctrl_alloc == 1) {
+	if (ctrl_alloc) {
 		_capture_channel = -1;
 
 		for (unsigned i = 0; i < 16 && _capture_channel == -1; ++i) {
