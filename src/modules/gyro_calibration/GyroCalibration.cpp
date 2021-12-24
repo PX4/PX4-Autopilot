@@ -200,21 +200,23 @@ void GyroCalibration::Run()
 	bool sufficient_samples = false;
 
 	for (int gyro = 0; gyro < _sensor_gyro_subs.size(); gyro++) {
-		if (_gyro_calibration[gyro].device_id() != 0) {
+		if ((_gyro_calibration[gyro].device_id() != 0) && _gyro_mean[gyro].valid()) {
 			// periodically check variance
-			if ((_gyro_mean[gyro].count() % 100 == 0)) {
+			if (_gyro_mean[gyro].count() % 100 == 0) {
 				PX4_DEBUG("gyro %d (%" PRIu32 ") variance, [%.9f, %.9f, %.9f] %.9f", gyro, _gyro_calibration[gyro].device_id(),
 					  (double)_gyro_mean[gyro].variance()(0), (double)_gyro_mean[gyro].variance()(1), (double)_gyro_mean[gyro].variance()(2),
 					  (double)_gyro_mean[gyro].variance().length());
 
 				if (_gyro_mean[gyro].variance().longerThan(0.001f)) {
 					// reset all
+					PX4_DEBUG("gyro %d variance longer than 0.001f (%.3f), resetting all",
+						  gyro, (double)_gyro_mean[gyro].variance().length());
 					Reset();
 					return;
 				}
 			}
 
-			if (_gyro_mean[gyro].count() > 3000) {
+			if (_gyro_mean[gyro].count() > 5000) {
 				sufficient_samples = true;
 
 			} else {
@@ -231,6 +233,16 @@ void GyroCalibration::Run()
 
 		for (int gyro = 0; gyro < _sensor_gyro_subs.size(); gyro++) {
 			if (_gyro_calibration[gyro].device_id() != 0) {
+
+				// check variance again before saving
+				if (_gyro_mean[gyro].variance().longerThan(0.001f)) {
+					// reset all
+					PX4_DEBUG("gyro %d variance longer than 0.001f (%.3f), resetting all",
+						  gyro, (double)_gyro_mean[gyro].variance().length());
+					Reset();
+					return;
+				}
+
 				_gyro_calibration[gyro].set_calibration_index(gyro);
 
 				const Vector3f old_offset{_gyro_calibration[gyro].offset()};
