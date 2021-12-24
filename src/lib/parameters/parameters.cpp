@@ -1371,11 +1371,6 @@ static int param_verify(int fd)
 int
 param_export(int fd, param_filter_func filter)
 {
-	/* no modified parameters -> we are done */
-	if (param_values == nullptr) {
-		return 0;
-	}
-
 	int result = -1;
 	perf_begin(param_export_perf);
 
@@ -1407,6 +1402,12 @@ param_export(int fd, param_filter_func filter)
 
 	if (bson_encoder_init_buf_file(&encoder, fd, &bson_buffer, sizeof(bson_buffer)) != 0) {
 		result = -1;
+		goto out;
+	}
+
+	// no modified parameters, export empty BSON document
+	if (param_values == nullptr) {
+		result = 0;
 		goto out;
 	}
 
