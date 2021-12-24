@@ -855,7 +855,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 				if (_geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 
-					matrix::Vector2<double> lointer_center_lat_lon;
+					matrix::Vector2<double> loiter_center_lat_lon;
 					matrix::Vector2<double> current_pos_lat_lon(_global_pos.lat, _global_pos.lon);
 					float loiter_altitude_amsl = _global_pos.alt;
 
@@ -863,22 +863,22 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						// the computation of the braking distance does not match the actual braking distance. Until we have a better model
 						// we set the loiter point to the current position, that will make sure that the vehicle will loiter inside the fence
-						lointer_center_lat_lon =  _gf_breach_avoidance.generateLoiterPointForMultirotor(gf_violation_type,
+						loiter_center_lat_lon =  _gf_breach_avoidance.generateLoiterPointForMultirotor(gf_violation_type,
 									  &_geofence);
 
 						loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForMulticopter(gf_violation_type);
 
 					} else {
 
-						lointer_center_lat_lon = _gf_breach_avoidance.generateLoiterPointForFixedWing(gf_violation_type, &_geofence);
+						loiter_center_lat_lon = _gf_breach_avoidance.generateLoiterPointForFixedWing(gf_violation_type, &_geofence);
 						loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForFixedWing(gf_violation_type);
 					}
 
 					rep->current.timestamp = hrt_absolute_time();
 					rep->current.yaw = get_local_position()->heading;
 					rep->current.yaw_valid = true;
-					rep->current.lat = lointer_center_lat_lon(0);
-					rep->current.lon = lointer_center_lat_lon(1);
+					rep->current.lat = loiter_center_lat_lon(0);
+					rep->current.lon = loiter_center_lat_lon(1);
 					rep->current.alt = loiter_altitude_amsl;
 					rep->current.valid = true;
 					rep->current.loiter_radius = get_loiter_radius();
