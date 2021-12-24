@@ -864,7 +864,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 						// the computation of the braking distance does not match the actual braking distance. Until we have a better model
 						// we set the loiter point to the current position, that will make sure that the vehicle will loiter inside the fence
 						loiter_center_lat_lon =  _gf_breach_avoidance.generateLoiterPointForMultirotor(gf_violation_type,
-									  &_geofence);
+									 &_geofence);
 
 						loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForMulticopter(gf_violation_type);
 
