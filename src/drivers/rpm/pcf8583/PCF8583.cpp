@@ -34,27 +34,27 @@
 #include "PCF8583.hpp"
 
 PCF8583::PCF8583(const I2CSPIDriverConfig &config) :
-    I2C(config),
-    ModuleParams(nullptr),
-    I2CSPIDriver(config)
+	I2C(config),
+	ModuleParams(nullptr),
+	I2CSPIDriver(config)
 {
 }
 
 int PCF8583::init()
 {
-    if (I2C::init() != PX4_OK) {
-        return PX4_ERROR;
-    }
+	if (I2C::init() != PX4_OK) {
+		return PX4_ERROR;
+	}
 
-    PX4_DEBUG("addr: %" PRId8 ", pool: %" PRId32 ", reset: %" PRId32 ", magenet: %" PRId32, get_device_address(),
-          _param_pcf8583_pool.get(),
-          _param_pcf8583_reset.get(),
-          _param_pcf8583_magnet.get());
+	PX4_DEBUG("addr: %" PRId8 ", pool: %" PRId32 ", reset: %" PRId32 ", magenet: %" PRId32, get_device_address(),
+		  _param_pcf8583_pool.get(),
+		  _param_pcf8583_reset.get(),
+		  _param_pcf8583_magnet.get());
 
-    
-    initCounter();
 
-    ScheduleOnInterval(_param_pcf8583_pool.get());
+	initCounter();
+
+	ScheduleOnInterval(_param_pcf8583_pool.get());
 
 	_rpm_pub.advertise();
 
@@ -65,109 +65,112 @@ int PCF8583::init()
 
 int PCF8583::probe()
 {
-    uint8_t s = readRegister(0x00);
-    PX4_INFO("status register: %" PRId8 " fail_count: %" PRId32, s,_tranfer_fail_count);
-    if(_tranfer_fail_count!=0 || (s!=0 && s!=32)) //extremly poor detection :-(
-        return PX4_ERROR;
+	uint8_t s = readRegister(0x00);
+	PX4_INFO("status register: %" PRId8 " fail_count: %" PRId8, s, _tranfer_fail_count);
 
-    return PX4_OK;
+	if (_tranfer_fail_count != 0 || (s != 0 && s != 32)) { //extremly poor detection :-(
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
 void PCF8583::initCounter()
 {
-    // set counter mode
-    _tranfer_fail_count=0;
-    setRegister(0x00, 0b00100000);
-    resetCounter();
+	// set counter mode
+	_tranfer_fail_count = 0;
+	setRegister(0x00, 0b00100000);
+	resetCounter();
 
 }
 
 uint32_t PCF8583::getCounter()
 {
-    uint8_t a = readRegister(0x01);
-    uint8_t b = readRegister(0x02);
-    uint8_t c = readRegister(0x03);
+	uint8_t a = readRegister(0x01);
+	uint8_t b = readRegister(0x02);
+	uint8_t c = readRegister(0x03);
 
-    return uint32_t(
-           loWord(a) * 1u + hiWord(a) * 10u 
-         + loWord(b) * 100u + hiWord(b) * 1000u
-         + loWord(c) * 10000u + hiWord(c) * 1000000u);
+	return uint32_t(
+		       loWord(a) * 1u + hiWord(a) * 10u
+		       + loWord(b) * 100u + hiWord(b) * 1000u
+		       + loWord(c) * 10000u + hiWord(c) * 1000000u);
 }
 
 void PCF8583::resetCounter()
 {
-    setRegister(0x01, 0x00);
-    setRegister(0x02, 0x00);
-    setRegister(0x03, 0x00);
-    _count = 0;
-    _last_measurement_time = hrt_absolute_time();
+	setRegister(0x01, 0x00);
+	setRegister(0x02, 0x00);
+	setRegister(0x03, 0x00);
+	_count = 0;
+	_last_measurement_time = hrt_absolute_time();
 }
 
 void PCF8583::setRegister(uint8_t reg, uint8_t value)
 {
-    uint8_t buff[2];
-    buff[0] = reg;
-    buff[1] = value;
-    int ret = transfer(buff, 2, nullptr, 0);
+	uint8_t buff[2];
+	buff[0] = reg;
+	buff[1] = value;
+	int ret = transfer(buff, 2, nullptr, 0);
 
-    if (PX4_OK != ret) {
-        PX4_DEBUG("setRegister : i2c::transfer returned %d", ret);
-        _tranfer_fail_count++;
-    }
+	if (PX4_OK != ret) {
+		PX4_DEBUG("setRegister : i2c::transfer returned %d", ret);
+		_tranfer_fail_count++;
+	}
 }
 
 uint8_t PCF8583::readRegister(uint8_t reg)
 {
-    uint8_t rcv{};
-    int ret = transfer(&reg, 1, &rcv, 1);
+	uint8_t rcv{};
+	int ret = transfer(&reg, 1, &rcv, 1);
 
-    if (PX4_OK != ret) {
-        PX4_DEBUG("readRegister : i2c::transfer returned %d", ret);
-        _tranfer_fail_count++;
-    }
+	if (PX4_OK != ret) {
+		PX4_DEBUG("readRegister : i2c::transfer returned %d", ret);
+		_tranfer_fail_count++;
+	}
 
-    return rcv;
+	return rcv;
 }
 
 void PCF8583::RunImpl()
 {
-    // read sensor and compute frequency
-    uint32_t oldcount = _count;
-    uint64_t oldtime = _last_measurement_time;
+	// read sensor and compute frequency
+	uint32_t oldcount = _count;
+	uint64_t oldtime = _last_measurement_time;
 
-    _count = getCounter();
-    _last_measurement_time = hrt_absolute_time();
+	_count = getCounter();
+	_last_measurement_time = hrt_absolute_time();
 
-    int diffCount = _count - oldcount;    
-    uint64_t diffTime = _last_measurement_time - oldtime;
+	int diffCount = _count - oldcount;
+	uint64_t diffTime = _last_measurement_time - oldtime;
 
-    //check if device failed or reset
-    uint8_t s=readRegister(0x00);
-    if(_tranfer_fail_count>0 || s!=0b00100000 || diffCount<0)
-    {
-        PX4_ERR("pcf8583 RPM sensor restart: fail count %" PRId32 ", status: %" PRId8 ", diffCount: %" PRId32,_tranfer_fail_count,s,diffCount );
-        initCounter();
-        return;
-    } 
+	//check if device failed or reset
+	uint8_t s = readRegister(0x00);
 
-    //check counter range
-    if (_param_pcf8583_reset.get() < diffCount + (int)_count ) {
-        resetCounter();        
-    }
+	if (_tranfer_fail_count > 0 || s != 0b00100000 || diffCount < 0) {
+		PX4_ERR("pcf8583 RPM sensor restart: fail count %" PRId8 ", status: %" PRId8 ", diffCount: %" PRId8,
+			_tranfer_fail_count, s, diffCount);
+		initCounter();
+		return;
+	}
 
-    float indicated_rpm = (float)diffCount / _param_pcf8583_magnet.get() / ((float)diffTime / 1000000) * 60.f;
-    float estimated_accurancy = 1 / (float)_param_pcf8583_magnet.get() / ((float)diffTime / 1000000) * 60.f;
+	//check counter range
+	if (_param_pcf8583_reset.get() < diffCount + (int)_count) {
+		resetCounter();
+	}
 
-    // publish
-    rpm_s msg{};
-    msg.indicated_frequency_rpm = indicated_rpm;
-    msg.estimated_accurancy_rpm = estimated_accurancy;
-    msg.timestamp = hrt_absolute_time();
-    _rpm_pub.publish(msg);
+	float indicated_rpm = (float)diffCount / _param_pcf8583_magnet.get() / ((float)diffTime / 1000000) * 60.f;
+	float estimated_accurancy = 1 / (float)_param_pcf8583_magnet.get() / ((float)diffTime / 1000000) * 60.f;
+
+	// publish
+	rpm_s msg{};
+	msg.indicated_frequency_rpm = indicated_rpm;
+	msg.estimated_accurancy_rpm = estimated_accurancy;
+	msg.timestamp = hrt_absolute_time();
+	_rpm_pub.publish(msg);
 }
 
 void PCF8583::print_status()
 {
-    I2CSPIDriverBase::print_status();
-    PX4_INFO("poll interval:  %" PRId32 " us", _param_pcf8583_pool.get());
+	I2CSPIDriverBase::print_status();
+	PX4_INFO("poll interval:  %" PRId32 " us", _param_pcf8583_pool.get());
 }
