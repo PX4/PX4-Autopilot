@@ -1,5 +1,6 @@
 module_name: UAVCAN
 actuator_output:
+  add_reverse_range_param: true
   show_subgroups_if: 'UAVCAN_ENABLE>=3'
   config_parameters:
     - param: 'UAVCAN_ENABLE'

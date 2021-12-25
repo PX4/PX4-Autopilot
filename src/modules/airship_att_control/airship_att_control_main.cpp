@@ -102,6 +102,30 @@ AirshipAttitudeControl::publish_actuator_controls()
 	_actuators_0_pub.publish(_actuators);
 }
 
+void AirshipAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample)
+{
+	vehicle_torque_setpoint_s v_torque_sp = {};
+	v_torque_sp.timestamp = hrt_absolute_time();
+	v_torque_sp.timestamp_sample = timestamp_sample;
+	v_torque_sp.xyz[0] = _actuators.control[0];
+	v_torque_sp.xyz[1] = _actuators.control[1];
+	v_torque_sp.xyz[2] = _actuators.control[2];
+
+	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+}
+
+void AirshipAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
+{
+	vehicle_thrust_setpoint_s v_thrust_sp = {};
+	v_thrust_sp.timestamp = hrt_absolute_time();
+	v_thrust_sp.timestamp_sample = timestamp_sample;
+	v_thrust_sp.xyz[0] = _actuators.control[3];
+	v_thrust_sp.xyz[1] = 0.0f;
+	v_thrust_sp.xyz[2] = 0.0f;
+
+	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
+}
+
 void
 AirshipAttitudeControl::Run()
 {
@@ -118,22 +142,18 @@ AirshipAttitudeControl::Run()
 
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 
-		const Vector3f rates{angular_velocity.xyz};
-
 		_actuators.timestamp_sample = angular_velocity.timestamp_sample;
 
 		/* run the rate controller immediately after a gyro update */
 		publish_actuator_controls();
+		publishTorqueSetpoint(angular_velocity.timestamp_sample);
+		publishThrustSetpoint(angular_velocity.timestamp_sample);
 
 		/* check for updates in manual control topic */
-		if (_manual_control_sp_sub.updated()) {
-			_manual_control_sp_sub.update(&_manual_control_sp);
-		}
+		_manual_control_sp_sub.update(&_manual_control_sp);
 
 		/* check for updates in vehicle status topic */
-		if (_vehicle_status_sub.updated()) {
-			_vehicle_status_sub.update(&_vehicle_status);
-		}
+		_vehicle_status_sub.update(&_vehicle_status);
 
 		parameter_update_poll();
 	}

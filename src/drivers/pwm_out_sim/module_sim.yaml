@@ -1,6 +1,7 @@
 
 module_name: SIM
 actuator_output:
+  add_reverse_range_param: true
   output_groups:
     - param_prefix: PWM_MAIN
       channel_label: Channel

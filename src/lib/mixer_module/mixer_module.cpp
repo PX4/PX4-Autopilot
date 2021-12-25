@@ -138,6 +138,9 @@ void MixingOutput::initParamHandles()
 		snprintf(param_name, sizeof(param_name), "%s_%s%d", _param_prefix, "FAIL", i + 1);
 		_param_handles[i].failsafe = param_find(param_name);
 	}
+
+	snprintf(param_name, sizeof(param_name), "%s_%s", _param_prefix, "REV");
+	_param_handle_rev_range = param_find(param_name);
 }
 
 void MixingOutput::printStatus() const
@@ -228,6 +231,12 @@ void MixingOutput::updateParams()
 			if (_param_handles[i].failsafe != PARAM_INVALID && param_get(_param_handles[i].failsafe, &val) == 0) {
 				_failsafe_value[i] = val;
 			}
+		}
+
+		int32_t rev_range_param;
+
+		if (_param_handle_rev_range != PARAM_INVALID && param_get(_param_handle_rev_range, &rev_range_param) == 0) {
+			_reverse_output_mask |= rev_range_param;
 		}
 
 		if (function_changed) {
@@ -385,7 +394,7 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 
 	cleanupFunctions();
 
-	const FunctionProviderBase::Context context{_interface, _reversible_motors, _param_thr_mdl_fac.reference()};
+	const FunctionProviderBase::Context context{_interface, _param_thr_mdl_fac.reference()};
 	int provider_indexes[MAX_ACTUATORS] {};
 	int next_provider = 0;
 	int subscription_callback_provider_index = INT_MAX;
@@ -776,11 +785,12 @@ bool MixingOutput::updateDynamicMixer()
 	}
 
 	// check for actuator test
-	_actuator_test.update(_max_num_outputs, _reversible_motors, _param_thr_mdl_fac.get());
+	_actuator_test.update(_max_num_outputs, _param_thr_mdl_fac.get());
 
 	// get output values
 	float outputs[MAX_ACTUATORS];
 	bool all_disabled = true;
+	_reversible_mask = 0;
 
 	for (int i = 0; i < _max_num_outputs; ++i) {
 		if (_functions[i]) {
@@ -792,6 +802,8 @@ bool MixingOutput::updateDynamicMixer()
 			} else {
 				outputs[i] = NAN;
 			}
+
+			_reversible_mask |= (uint32_t)_functions[i]->reversible(_function_assignment[i]) << i;
 
 		} else {
 			outputs[i] = NAN;

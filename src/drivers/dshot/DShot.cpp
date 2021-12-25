@@ -444,6 +444,8 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	} else {
 		int telemetry_index = 0;
 
+		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
+
 		for (int i = 0; i < (int)num_outputs; i++) {
 
 			uint16_t output = outputs[i];
@@ -452,7 +454,7 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			// This is in terms of DShot values, code below is in terms of actuator_output
 			// Direction 1) 48 is the slowest, 1047 is the fastest.
 			// Direction 2) 1049 is the slowest, 2047 is the fastest.
-			if (_param_dshot_3d_enable.get()) {
+			if (_param_dshot_3d_enable.get() || (reversible_outputs & (1u << i))) {
 				if (output >= _param_dshot_3d_dead_l.get() && output <= _param_dshot_3d_dead_h.get()) {
 					output = DSHOT_DISARM_VALUE;
 

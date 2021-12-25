@@ -7,6 +7,39 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+# param set-default SYS_CTRL_ALLOC 1
+param set-default CA_AIRFRAME 2
+
+param set-default CA_ROTOR_COUNT 4
+param set-default CA_ROTOR0_PX 0.1515
+param set-default CA_ROTOR0_PY 0.245
+param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR1_PX -0.1515
+param set-default CA_ROTOR1_PY -0.1875
+param set-default CA_ROTOR1_KM 0.05
+param set-default CA_ROTOR2_PX 0.1515
+param set-default CA_ROTOR2_PY -0.245
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.1515
+param set-default CA_ROTOR3_PY 0.1875
+param set-default CA_ROTOR3_KM -0.05
+
+param set-default CA_SV_CS_COUNT 3
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default PWM_MAIN_FUNC1 101
+param set-default PWM_MAIN_FUNC2 102
+param set-default PWM_MAIN_FUNC3 103
+param set-default PWM_MAIN_FUNC4 104
+param set-default PWM_MAIN_FUNC5 105
+param set-default PWM_MAIN_FUNC6 201
+param set-default PWM_MAIN_FUNC7 202
+param set-default PWM_MAIN_FUNC8 203
+
 param set-default FW_L1_PERIOD 12
 param set-default FW_MAN_P_MAX 30
 param set-default FW_PR_FF 0.2
