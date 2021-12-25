@@ -47,7 +47,6 @@
 
 #define SEC2USEC 1000000.0f
 
-
 namespace landing_target_estimator
 {
 
@@ -60,7 +59,10 @@ LandingTargetEstimator::LandingTargetEstimator()
 	_paramHandle.mode = param_find("LTEST_MODE");
 	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
 	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
-
+	_paramHandle.sensor_yaw = param_find("LTEST_SENS_ROT");
+	_paramHandle.offset_x = param_find("LTEST_SENS_POS_X");
+	_paramHandle.offset_y = param_find("LTEST_SENS_POS_Y");
+	_paramHandle.offset_z = param_find("LTEST_SENS_POS_Z");
 	_check_params(true);
 }
 
@@ -115,15 +117,16 @@ void LandingTargetEstimator::update()
 		return;
 	}
 
-	// TODO account for sensor orientation as set by parameter
-	// default orientation has camera x pointing in body y, camera y in body -x
-
 	matrix::Vector<float, 3> sensor_ray; // ray pointing towards target in body frame
-	sensor_ray(0) = -_irlockReport.pos_y * _params.scale_y; // forward
-	sensor_ray(1) = _irlockReport.pos_x * _params.scale_x; // right
+	sensor_ray(0) = _irlockReport.pos_x * _params.scale_x; // forward
+	sensor_ray(1) = _irlockReport.pos_y * _params.scale_y; // right
 	sensor_ray(2) = 1.0f;
 
-	// rotate the unit ray into the navigation frame, assume sensor frame = body frame
+	// rotate unit ray according to sensor orientation
+	_S_att = get_rot_matrix(_params.sensor_yaw);
+	sensor_ray = _S_att * sensor_ray;
+
+	// rotate the unit ray into the navigation frame
 	matrix::Quaternion<float> q_att(&_vehicleAttitude.q[0]);
 	_R_att = matrix::Dcm<float>(q_att);
 	sensor_ray = _R_att * sensor_ray;
@@ -133,11 +136,15 @@ void LandingTargetEstimator::update()
 		return;
 	}
 
-	float dist = _vehicleLocalPosition.dist_bottom;
+	float dist = _vehicleLocalPosition.dist_bottom - _params.offset_z;
 
 	// scale the ray s.t. the z component has length of dist
 	_rel_pos(0) = sensor_ray(0) / sensor_ray(2) * dist;
 	_rel_pos(1) = sensor_ray(1) / sensor_ray(2) * dist;
+
+	// Adjust relative position according to sensor offset
+	_rel_pos(0) += _params.offset_x;
+	_rel_pos(1) += _params.offset_y;
 
 	if (!_estimator_initialized) {
 		PX4_INFO("Init");
@@ -255,6 +262,14 @@ void LandingTargetEstimator::_update_params()
 
 	param_get(_paramHandle.scale_x, &_params.scale_x);
 	param_get(_paramHandle.scale_y, &_params.scale_y);
+
+	int32_t sensor_yaw = 0;
+	param_get(_paramHandle.sensor_yaw, &sensor_yaw);
+	_params.sensor_yaw = static_cast<enum Rotation>(sensor_yaw);
+
+	param_get(_paramHandle.offset_x, &_params.offset_x);
+	param_get(_paramHandle.offset_y, &_params.offset_y);
+	param_get(_paramHandle.offset_z, &_params.offset_z);
 }
 
 
