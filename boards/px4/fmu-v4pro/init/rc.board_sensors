@@ -4,7 +4,7 @@
 #------------------------------------------------------------------------------
 
 rgbled start -I
-rgbled_ncp5623c start -I
+rgbled_ncp5623c start -I -q
 
 board_adc start
 
