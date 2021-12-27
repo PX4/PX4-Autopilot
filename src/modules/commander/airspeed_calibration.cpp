@@ -49,11 +49,13 @@
 #include <fcntl.h>
 #include <math.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/SubscriptionBlocking.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/differential_pressure.h>
 #include <systemlib/mavlink_log.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
+
+using namespace time_literals;
 
 static const char *sensor_name = "airspeed";
 
@@ -69,7 +71,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	int result = PX4_OK;
 	unsigned calibration_counter = 0;
-	const unsigned maxcount = 2400;
+	const unsigned maxcount = 500;
 
 	/* give directions */
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
@@ -78,15 +80,10 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 
 	float diff_pres_offset = 0.0f;
 
-	if (param_set(param_find("SENS_DPRES_OFF"), &diff_pres_offset) != PX4_OK) {
-		calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
-		return PX4_ERROR;
-	}
-
 	calibration_log_critical(mavlink_log_pub, "[cal] Ensure sensor is not measuring wind");
 	px4_usleep(500 * 1000);
 
-	uORB::SubscriptionBlocking<differential_pressure_s> diff_pres_sub{ORB_ID(differential_pressure)};
+	uORB::SubscriptionData<differential_pressure_s> diff_pres_sub{ORB_ID(differential_pressure)};
 
 	while (calibration_counter < calibration_count) {
 
@@ -94,31 +91,24 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			return PX4_ERROR;
 		}
 
-		differential_pressure_s diff_pres;
+		if (diff_pres_sub.update()) {
 
-		if (diff_pres_sub.updateBlocking(diff_pres, 1000000)) {
+			const differential_pressure_s &diff_pres = diff_pres_sub.get();
 
 			diff_pres_offset += diff_pres.differential_pressure_pa;
 			calibration_counter++;
 
-			/* any differential pressure failure a reason to abort */
-			if (diff_pres.error_count != 0) {
-				calibration_log_critical(mavlink_log_pub, "[cal] Airspeed sensor is reporting errors (%" PRIu32 ")",
-							 diff_pres.error_count);
-				calibration_log_critical(mavlink_log_pub, "[cal] Check wiring, reboot vehicle, and try again");
-				feedback_calibration_failed(mavlink_log_pub);
-				return PX4_ERROR;
-			}
-
 			if (calibration_counter % (calibration_count / 20) == 0) {
 				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, (calibration_counter * 80) / calibration_count);
 			}
+		}
 
-		} else {
-			/* any poll failure for 1s is a reason to abort */
+		if (hrt_elapsed_time(&calibration_started) > 30_s) {
 			feedback_calibration_failed(mavlink_log_pub);
 			return PX4_ERROR;
 		}
+
+		px4_usleep(10000);
 	}
 
 	diff_pres_offset = diff_pres_offset / calibration_count;
@@ -132,7 +122,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			diff_pres_offset = 0.00000001f;
 		}
 
-		if (param_set(param_find("SENS_DPRES_OFF"), &(diff_pres_offset))) {
+		if (param_set(param_find("SENS_DPRES_OFF"), &diff_pres_offset)) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 			return PX4_ERROR;
 		}
@@ -161,9 +151,9 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			return PX4_ERROR;
 		}
 
-		differential_pressure_s diff_pres;
+		if (diff_pres_sub.update()) {
+			const differential_pressure_s &diff_pres = diff_pres_sub.get();
 
-		if (diff_pres_sub.updateBlocking(diff_pres, 1000000)) {
 			differential_pressure_sum += diff_pres.differential_pressure_pa;
 			differential_pressure_sum_count++;
 
@@ -197,7 +187,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 				}
 			}
 
-			if (calibration_counter % 500 == 0) {
+			if (calibration_counter % 300 == 0) {
 				calibration_log_info(mavlink_log_pub, "[cal] Create air pressure! (got %d, wanted: 50 Pa)",
 						     (int)differential_pressure_pa);
 				tune_neutral(true);
@@ -208,12 +198,14 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 			}
 
 			calibration_counter++;
+		}
 
-		} else {
-			/* any poll failure for 1s is a reason to abort */
+		if (hrt_elapsed_time(&calibration_started) > 90_s) {
 			feedback_calibration_failed(mavlink_log_pub);
 			return PX4_ERROR;
 		}
+
+		px4_usleep(10000);
 	}
 
 	if (calibration_counter == maxcount) {
@@ -227,7 +219,7 @@ int do_airspeed_calibration(orb_advert_t *mavlink_log_pub)
 	tune_neutral(true);
 
 	// This give a chance for the log messages to go out of the queue before someone else stomps on then
-	px4_sleep(1);
+	px4_usleep(200000);
 
 	return result;
 }

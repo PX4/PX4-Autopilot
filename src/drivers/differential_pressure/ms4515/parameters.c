@@ -32,10 +32,10 @@
  ****************************************************************************/
 
 /**
- * TE MS5525 differential pressure sensor (external I2C)
+ * TE MS4515 differential pressure sensor (external I2C)
  *
  * @reboot_required true
  * @group Sensors
  * @boolean
   */
-PARAM_DEFINE_INT32(SENS_EN_MS5525, 0);
+PARAM_DEFINE_INT32(SENS_EN_MS4515, 0);
