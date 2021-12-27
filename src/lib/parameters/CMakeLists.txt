@@ -171,6 +171,7 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
 	target_compile_options(parameters
 		PRIVATE
+			#-DDEBUG_BUILD
 			-Wno-cast-align		# TODO: fix and enable
 			-Wno-sign-compare	# TODO: fix and enable
 	)

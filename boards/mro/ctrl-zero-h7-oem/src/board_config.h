@@ -77,7 +77,6 @@
 
 /* CAN Silence: Silent mode control */
 #define GPIO_CAN1_SILENT_S0  /* PF5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN5)
-#define GPIO_CAN2_SILENT_S0  /* PF5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTF|GPIO_PIN5)
 
 /* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
@@ -169,7 +168,6 @@
 		GPIO_CAN2_TX,                     \
 		GPIO_CAN2_RX,                     \
 		GPIO_CAN1_SILENT_S0,              \
-		GPIO_CAN2_SILENT_S0,              \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_VDD_3V3_SPEKTRUM_POWER_EN,   \
 		GPIO_TONE_ALARM_IDLE,             \

@@ -1183,7 +1183,7 @@ static int param_save_file_internal(const char *filename)
 
 	while (res != OK && attempts > 0) {
 		// write parameters to file
-		int fd = ::open(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+		int fd = ::open(filename, O_RDWR | O_CREAT, PX4_O_MODE_666);
 
 		if (fd > -1) {
 			res = param_export(fd, nullptr);
@@ -1272,10 +1272,106 @@ param_load_default()
 	return res;
 }
 
+static int param_verify_callback(bson_decoder_t decoder, bson_node_t node)
+{
+	if (node->type == BSON_EOO) {
+		return 0;
+	}
+
+	// find the parameter this node represents
+	param_t param = param_find_no_notification(node->name);
+
+	if (param == PARAM_INVALID) {
+		PX4_ERR("verify: invalid parameter '%s'", node->name);
+		return -1;
+	}
+
+	// handle verifying the parameter from the node
+	switch (node->type) {
+	case BSON_INT32: {
+			if (param_type(param) != PARAM_TYPE_INT32) {
+				PX4_ERR("verify: invalid param type %d for '%s' (BSON_INT32)", param_type(param), node->name);
+				return -1;
+			}
+
+			int32_t value;
+
+			if (param_get(param, &value) == 0) {
+				if (value == node->i32) {
+					return 1; // valid
+
+				} else {
+					PX4_ERR("verify: '%s' invalid BSON value %" PRIi32 "(expected %" PRIi32 ")", node->name, node->i32, value);
+				}
+			}
+		}
+		break;
+
+	case BSON_DOUBLE: {
+			if (param_type(param) != PARAM_TYPE_FLOAT) {
+				PX4_ERR("verify: invalid param type %d for '%s' (BSON_DOUBLE)", param_type(param), node->name);
+				return -1;
+			}
+
+			float value;
+
+			if (param_get(param, &value) == 0) {
+				if (fabsf(value - (float)node->d) <= FLT_EPSILON) {
+					return 1; // valid
+
+				} else {
+					PX4_ERR("verify: '%s' invalid BSON value %.3f (expected %.3f)", node->name, node->d, (double)value);
+				}
+			}
+		}
+		break;
+
+	default:
+		PX4_ERR("verify: '%s' invalid node type %d", node->name, node->type);
+	}
+
+	return -1;
+}
+
+static int param_verify(int fd)
+{
+	if (fd < 0) {
+		return -1;
+	}
+
+	if (lseek(fd, 0, SEEK_SET) != 0) {
+		PX4_ERR("verify: seek failed");
+		return -1;
+	}
+
+	bson_decoder_s decoder{};
+
+	if (bson_decoder_init_file(&decoder, fd, param_verify_callback) == 0) {
+		int result = -1;
+
+		do {
+			result = bson_decoder_next(&decoder);
+
+		} while (result > 0);
+
+		if (result == 0) {
+			return 0;
+
+		} else if (result == -ENODATA) {
+			PX4_ERR("verify: no BSON data");
+
+		} else {
+			PX4_ERR("verify: failed (%d)", result);
+		}
+	}
+
+	return -1;
+}
+
 int
 param_export(int fd, param_filter_func filter)
 {
-	int	result = -1;
+	int result = -1;
 	perf_begin(param_export_perf);
 
 	if (fd < 0) {
@@ -1303,9 +1399,13 @@ param_export(int fd, param_filter_func filter)
 	param_lock_reader();
 
 	uint8_t bson_buffer[256];
-	bson_encoder_init_buf_file(&encoder, fd, &bson_buffer, sizeof(bson_buffer));
 
-	/* no modified parameters -> we are done */
+	if (bson_encoder_init_buf_file(&encoder, fd, &bson_buffer, sizeof(bson_buffer)) != 0) {
+		result = -1;
+		goto out;
+	}
+
+	// no modified parameters, export empty BSON document
 	if (param_values == nullptr) {
 		result = 0;
 		goto out;
@@ -1323,7 +1423,7 @@ param_export(int fd, param_filter_func filter)
 				param_get_default_value_internal(s->param, &default_value);
 
 				if (s->val.i == default_value) {
-					PX4_DEBUG("skipping %s %d export", param_name(s->param), default_value);
+					PX4_DEBUG("skipping %s %" PRIi32 " export", param_name(s->param), default_value);
 					continue;
 				}
 			}
@@ -1348,7 +1448,7 @@ param_export(int fd, param_filter_func filter)
 		switch (param_type(s->param)) {
 		case PARAM_TYPE_INT32: {
 				const int32_t i = s->val.i;
-				PX4_DEBUG("exporting: %s (%d) size: %lu val: %d", name, s->param, (long unsigned int)size, i);
+				PX4_DEBUG("exporting: %s (%d) size: %lu val: %" PRIi32, name, s->param, (long unsigned int)size, i);
 
 				if (bson_encoder_append_int(&encoder, name, i) != 0) {
 					PX4_ERR("BSON append failed for '%s'", name);
@@ -1379,12 +1479,18 @@ out:
 
 	if (result == 0) {
 		if (bson_encoder_fini(&encoder) == PX4_OK) {
-			if (!filter) {
-				params_unsaved.reset();
+			// verify exported bson
+			if (param_verify(fd) == 0) {
+				if (!filter) {
+					params_unsaved.reset();
+				}
+
+			} else {
+				result = -1;
 			}
 
 		} else {
-			PX4_ERR("BSON encoder finialize failed");
+			PX4_ERR("BSON encoder finalize failed");
 			result = -1;
 		}
 	}
@@ -1493,7 +1599,9 @@ param_dump_callback(bson_decoder_t decoder, bson_node_t node)
 static int
 param_import_internal(int fd)
 {
-	for (int attempt = 1; attempt < 5; attempt++) {
+	static constexpr int MAX_ATTEMPTS = 3;
+
+	for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 		bson_decoder_s decoder{};
 
 		if (bson_decoder_init_file(&decoder, fd, param_import_callback) == 0) {
@@ -1512,8 +1620,11 @@ param_import_internal(int fd)
 				return 0;
 
 			} else if (result == -ENODATA) {
-				PX4_DEBUG("BSON: no data");
-				return 0;
+				// silently retry as a precaution unless this is our last attempt
+				if (attempt == MAX_ATTEMPTS) {
+					PX4_DEBUG("BSON: no data");
+					return 0;
+				}
 
 			} else {
 				PX4_ERR("param import failed (%d) attempt %d, retrying", result, attempt);
@@ -1523,7 +1634,10 @@ param_import_internal(int fd)
 			PX4_ERR("param import bson decoder init failed attempt %d, retrying", attempt);
 		}
 
-		lseek(fd, 0, SEEK_SET);
+		if (lseek(fd, 0, SEEK_SET) != 0) {
+			PX4_ERR("import lseek failed (%d)", errno);
+		}
+
 		px4_usleep(10000); // wait at least 10 milliseconds before trying again
 	}
 
