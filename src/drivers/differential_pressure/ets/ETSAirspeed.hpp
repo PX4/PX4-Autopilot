@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,13 +32,12 @@
  ****************************************************************************/
 
 /**
- *
- * Driver for Sensirion SDP3X Differential Pressure Sensor
- *
- * Datasheet: https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/8_Differential_Pressure/Sensirion_Differential_Pressure_Sensors_SDP3x_Digital_Datasheet_V0.8.pdf
+ * Driver for the Eagle Tree Airspeed V3 connected via I2C.
  */
 
 #pragma once
+
+#include <float.h>
 
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/i2c.h>
@@ -47,68 +46,44 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/differential_pressure.h>
 
-#define I2C_ADDRESS_1_SDP3X 0x21
-#define I2C_ADDRESS_2_SDP3X 0x22
-#define I2C_ADDRESS_3_SDP3X 0x23
-
 static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x75; /* 7-bit address. 8-bit address is 0xEA */
 
-#define SDP3X_SCALE_TEMPERATURE		200.0f
-#define SDP3X_RESET_ADDR		0x00
-#define SDP3X_RESET_CMD			0x06
-#define SDP3X_CONT_MEAS_AVG_MODE	0x3615
-#define SDP3X_CONT_MODE_STOP		0x3FF9
+/* Register address */
+#define READ_CMD	0x07	/* Read the data */
 
-#define SDP3X_SCALE_PRESSURE_SDP31	60
-#define SDP3X_SCALE_PRESSURE_SDP32	240
-#define SDP3X_SCALE_PRESSURE_SDP33	20
+/**
+ * The Eagle Tree Airspeed V3 cannot provide accurate reading below speeds of 15km/h.
+ * You can set this value to 12 if you want a zero reading below 15km/h.
+ */
+#define MIN_ACCURATE_DIFF_PRES_PA 0
 
-// Measurement rate is 20Hz
-#define SPD3X_MEAS_RATE 100
-#define CONVERSION_INTERVAL	(1000000 / SPD3X_MEAS_RATE)	/* microseconds */
+/* Measurement rate is 100Hz */
+#define CONVERSION_INTERVAL	(1000000 / 100)	/* microseconds */
 
-class SDP3X : public device::I2C, public I2CSPIDriver<SDP3X>
+class ETSAirspeed : public device::I2C, public I2CSPIDriver<ETSAirspeed>
 {
 public:
-	SDP3X(const I2CSPIDriverConfig &config);
-	~SDP3X() override;
+	ETSAirspeed(const I2CSPIDriverConfig &config);
+	~ETSAirspeed() override;
 
 	static void print_usage();
 
 	void RunImpl();
 
 	int init() override;
-	void print_status() override;
 
 private:
 	int probe() override;
 
-	enum class State {
-		RequireConfig,
-		Configuring,
-		Running
-	};
-
+	int measure();
 	int collect();
 
-	int configure();
-	int read_scale();
+	uint32_t _measure_interval{CONVERSION_INTERVAL};
+	uint32_t _conversion_interval{CONVERSION_INTERVAL};
 
-	bool init_sdp3x();
-
-	/**
-	 * Calculate the CRC8 for the sensor payload data
-	 */
-	bool crc(const uint8_t data[], unsigned size, uint8_t checksum);
-
-	/**
-	 * Write a command in Sensirion specific logic
-	 */
-	int write_command(uint16_t command);
-
-	uint16_t _scale{0};
-	const bool _keep_retrying;
-	State _state{State::RequireConfig};
+	bool _sensor_ok{false};
+	bool _collect_phase{false};
 
 	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 

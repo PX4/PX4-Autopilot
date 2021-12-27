@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,11 +31,47 @@
  *
  ****************************************************************************/
 
-/**
- * TE MS4525 differential pressure sensor (external I2C)
- *
- * @reboot_required true
- * @group Sensors
- * @boolean
-  */
-PARAM_DEFINE_INT32(SENS_EN_MS4525, 0);
+#include "MS4515.hpp"
+
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+
+void MS4515::print_usage()
+{
+	PRINT_MODULE_USAGE_NAME("ms4515", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x46);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
+
+extern "C" int ms4515_main(int argc, char *argv[])
+{
+	using ThisDriver = MS4515;
+	BusCLIArguments cli{true, false};
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
+	cli.default_i2c_frequency = I2C_SPEED;
+
+	const char *verb = cli.parseDefaultArguments(argc, argv);
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIFF_PRESS_DEVTYPE_MS4515);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+
+	} else if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+
+	} else if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
+}

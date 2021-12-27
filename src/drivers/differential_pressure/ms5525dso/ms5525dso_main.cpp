@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
-#include "MS5525.hpp"
+#include "MS5525DSO.hpp"
 
-extern "C" __EXPORT int ms5525_airspeed_main(int argc, char *argv[]);
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-void
-MS5525::print_usage()
+void MS5525DSO::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("ms5525_airspeed", "driver");
+	PRINT_MODULE_USAGE_NAME("ms5525dso", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
@@ -46,13 +46,12 @@ MS5525::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-int
-ms5525_airspeed_main(int argc, char *argv[])
+extern "C" int ms5525dso_main(int argc, char *argv[])
 {
-	using ThisDriver = MS5525;
+	using ThisDriver = MS5525DSO;
 	BusCLIArguments cli{true, false};
-	cli.default_i2c_frequency = 100000;
-	cli.i2c_address = I2C_ADDRESS_1_MS5525DSO;
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
+	cli.default_i2c_frequency = I2C_SPEED;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
@@ -61,17 +60,15 @@ ms5525_airspeed_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIFF_PRESS_DEVTYPE_MS5525);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIFF_PRESS_DEVTYPE_MS5525DSO);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
-	}
 
-	if (!strcmp(verb, "stop")) {
+	} else if (!strcmp(verb, "stop")) {
 		return ThisDriver::module_stop(iterator);
-	}
 
-	if (!strcmp(verb, "status")) {
+	} else if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
 	}
 

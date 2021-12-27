@@ -16,15 +16,15 @@ if board_adc start
 then
 fi
 
-if sdp3x_airspeed start -X
+if sdp3x start -X
 then
 fi
 
-if ms5525_airspeed start -X
+if ms5525dso start -X
 then
 fi
 
-if ms4525_airspeed start -X
+if ms4525do start -X
 then
 fi
 

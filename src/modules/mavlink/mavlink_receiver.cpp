@@ -2312,7 +2312,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		sensor_baro_s sensor_baro{};
 		sensor_baro.timestamp_sample = timestamp;
 		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-		sensor_baro.pressure = hil_sensor.abs_pressure;
+		sensor_baro.pressure = hil_sensor.abs_pressure * 100.0f; // hPa to Pa
 		sensor_baro.temperature = hil_sensor.temperature;
 		sensor_baro.error_count = 0;
 		sensor_baro.timestamp = hrt_absolute_time();
@@ -2323,9 +2323,9 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	if ((hil_sensor.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS) {
 		differential_pressure_s report{};
 		report.timestamp_sample = timestamp;
-		report.device_id = 0; // TODO
+		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
 		report.temperature = hil_sensor.temperature;
-		report.differential_pressure_pa = hil_sensor.diff_pressure * 100.0f; // convert from millibar to bar;
+		report.differential_pressure_pa = hil_sensor.diff_pressure * 100.0f; // hPa to Pa
 		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
 	}
@@ -2653,6 +2653,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 	/* airspeed */
 	{
 		airspeed_s airspeed{};
+		airspeed.timestamp_sample = timestamp_sample;
 		airspeed.indicated_airspeed_m_s = hil_state.ind_airspeed * 1e-2f;
 		airspeed.true_airspeed_m_s = hil_state.true_airspeed * 1e-2f;
 		airspeed.air_temperature_celsius = 15.f;

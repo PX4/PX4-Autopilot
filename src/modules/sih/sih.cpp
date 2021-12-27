@@ -522,12 +522,13 @@ void Sih::send_gps()
 
 void Sih::send_airspeed()
 {
-	airspeed_s  airspeed{};
-	airspeed.timestamp = _now;
+	airspeed_s airspeed{};
+	airspeed.timestamp_sample = _now;
 	airspeed.true_airspeed_m_s	= fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.air_temperature_celsius = _baro_temp_c;
 	airspeed.confidence = 0.7f;
+	airspeed.timestamp = hrt_absolute_time();
 	_airspeed_pub.publish(airspeed);
 }
 

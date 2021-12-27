@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,67 @@
  *
  ****************************************************************************/
 
+/**
+ *
+ * Driver for the MEAS Spec series MS4515 connected via I2C.
+ *
+ * Supported sensors:
+ *
+ *    - MS4515DO
+ *
+ * Interface application notes:
+ *
+ *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
+ */
+
 #pragma once
 
-#include <string.h>
-#include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <perf/perf_counter.h>
-#include <uORB/topics/differential_pressure.h>
+#include <lib/drivers/device/i2c.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/differential_pressure.h>
 
-class __EXPORT Airspeed : public device::I2C
+static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x46;
+
+/* Register address */
+#define ADDR_READ_MR			0x00	/* write to this address to start conversion */
+
+/* Measurement rate is 100Hz */
+#define MEAS_RATE 100
+#define CONVERSION_INTERVAL	(1000000 / MEAS_RATE)	/* microseconds */
+
+class MS4515 : public device::I2C, public I2CSPIDriver<MS4515>
 {
 public:
-	Airspeed(int bus, int bus_frequency, int address, unsigned conversion_interval);
-	virtual ~Airspeed();
+	MS4515(const I2CSPIDriverConfig &config);
+	~MS4515() override;
 
-	int	init() override;
+	static void print_usage();
+
+	void RunImpl();
+
+	int init() override;
 
 private:
-	Airspeed(const Airspeed &) = delete;
-	Airspeed &operator=(const Airspeed &) = delete;
+	int probe() override;
 
-protected:
-	int	probe() override;
+	int measure();
+	int collect();
 
-	/**
-	* Perform a poll cycle; collect from the previous measurement
-	* and start a new one.
-	*/
-	virtual int	measure() = 0;
-	virtual int	collect() = 0;
+	uint32_t _measure_interval{CONVERSION_INTERVAL};
+	uint32_t _conversion_interval{CONVERSION_INTERVAL};
 
-	bool			_sensor_ok;
-	int				_measure_interval;
-	bool			_collect_phase;
+	int16_t _dp_raw_prev{0};
+	int16_t _dT_raw_prev{0};
 
-	uORB::PublicationMulti<differential_pressure_s>	_airspeed_pub{ORB_ID(differential_pressure)};
+	bool _sensor_ok{false};
+	bool _collect_phase{false};
 
-	unsigned		_conversion_interval;
+	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": communication errors")};
 };
-
-
