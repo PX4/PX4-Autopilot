@@ -439,7 +439,7 @@ void Sensors::diff_pres_poll()
 		_baro_pressure_sum += air_data.baro_pressure_pa;
 		_diff_pres_count++;
 
-		if ((_diff_pres_count > 0) && hrt_elapsed_time(&_airspeed_last_publish) >= 100_ms) {
+		if ((_diff_pres_count > 0) && hrt_elapsed_time(&_airspeed_last_publish) >= 50_ms) {
 
 			// average data and apply calibration offset (SENS_DPRES_OFF)
 			const uint64_t timestamp_sample = _diff_pres_timestamp_sum / _diff_pres_count;

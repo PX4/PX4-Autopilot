@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,40 +33,45 @@
 
 #pragma once
 
-#include <drivers/airspeed/airspeed.h>
 #include <math.h>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/i2c_spi_buses.h>
 
-/* The MS5525DSO address is 111011Cx, where C is the complementary value of the pin CSB */
-static constexpr uint8_t I2C_ADDRESS_1_MS5525DSO = 0x76;
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/device/i2c.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/differential_pressure.h>
+
+/* The MS5525DSODSO address is 111011Cx, where C is the complementary value of the pin CSB */
+static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x76;
 
 /* Measurement rate is 100Hz */
 static constexpr unsigned MEAS_RATE = 100;
 static constexpr int64_t CONVERSION_INTERVAL = (1000000 / MEAS_RATE); /* microseconds */
 
-class MS5525 : public Airspeed, public I2CSPIDriver<MS5525>
+class MS5525DSO : public device::I2C, public I2CSPIDriver<MS5525DSO>
 {
 public:
-	MS5525(const I2CSPIDriverConfig &config) :
-		Airspeed(config.bus, config.bus_frequency, config.i2c_address, CONVERSION_INTERVAL),
-		I2CSPIDriver(config)
-	{
-	}
-
-	virtual ~MS5525() = default;
+	MS5525DSO(const I2CSPIDriverConfig &config);
+	~MS5525DSO() override;
 
 	static void print_usage();
 
-	void	RunImpl();
+	void RunImpl();
 
 	int init() override;
+	void print_status() override;
 
 private:
+	int probe() override;
 
-	int measure() override;
-	int collect() override;
+	bool init_ms5525dso();
+
+	uint8_t prom_crc4(uint16_t n_prom[]) const;
+
+	int measure();
+	int collect();
 
 	static constexpr uint8_t CMD_RESET = 0x1E; // ADC reset command
 	static constexpr uint8_t CMD_ADC_READ = 0x00; // ADC read command
@@ -79,7 +84,7 @@ private:
 	// Convert D1 (OSR=1024) 0x44
 	// Convert D1 (OSR=2048) 0x46
 	// Convert D1 (OSR=4096) 0x48
-	static constexpr uint8_t CMD_CONVERT_PRES = 0x44;
+	static constexpr uint8_t CMD_CONVERT_PRES = 0x48;
 
 	// D2 - temperature convert commands
 	// Convert D2 (OSR=256)  0x50
@@ -87,7 +92,7 @@ private:
 	// Convert D2 (OSR=1024) 0x54
 	// Convert D2 (OSR=2048) 0x56
 	// Convert D2 (OSR=4096) 0x58
-	static constexpr uint8_t CMD_CONVERT_TEMP = 0x54;
+	static constexpr uint8_t CMD_CONVERT_TEMP = 0x58;
 
 	uint8_t _current_cmd{CMD_CONVERT_PRES};
 
@@ -116,9 +121,16 @@ private:
 	uint32_t D1{0};
 	uint32_t D2{0};
 
-	bool init_ms5525();
 	bool _inited{false};
 
-	uint8_t prom_crc4(uint16_t n_prom[]) const;
+	uint32_t _measure_interval{CONVERSION_INTERVAL};
+	uint32_t _conversion_interval{CONVERSION_INTERVAL};
 
+	bool _sensor_ok{false};
+	bool _collect_phase{false};
+
+	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
+
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": communication errors")};
 };

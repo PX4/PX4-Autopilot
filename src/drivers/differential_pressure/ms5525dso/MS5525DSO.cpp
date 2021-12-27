@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,11 +31,35 @@
  *
  ****************************************************************************/
 
-#include "MS5525.hpp"
+#include "MS5525DSO.hpp"
 
-int	MS5525::init()
+MS5525DSO::MS5525DSO(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config)
 {
-	int ret = Airspeed::init();
+}
+
+MS5525DSO::~MS5525DSO()
+{
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+}
+
+int MS5525DSO::probe()
+{
+	_retries = 1;
+
+	return init_ms5525dso() ? PX4_OK : PX4_ERROR;
+}
+
+int MS5525DSO::init()
+{
+	int ret = I2C::init();
+
+	if (ret != PX4_OK) {
+		DEVICE_DEBUG("I2C::init failed (%i)", ret);
+		return ret;
+	}
 
 	if (ret == PX4_OK) {
 		ScheduleNow();
@@ -44,8 +68,15 @@ int	MS5525::init()
 	return ret;
 }
 
-int
-MS5525::measure()
+void MS5525DSO::print_status()
+{
+	I2CSPIDriverBase::print_status();
+
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+}
+
+int MS5525DSO::measure()
 {
 	int ret = PX4_ERROR;
 
@@ -59,7 +90,7 @@ MS5525::measure()
 		}
 
 	} else {
-		_inited = init_ms5525();
+		_inited = init_ms5525dso();
 
 		if (_inited) {
 			ret = PX4_OK;
@@ -69,8 +100,7 @@ MS5525::measure()
 	return ret;
 }
 
-bool
-MS5525::init_ms5525()
+bool MS5525DSO::init_ms5525dso()
 {
 	// Step 1 - reset
 	uint8_t cmd = CMD_RESET;
@@ -89,7 +119,8 @@ MS5525::init_ms5525()
 	// 0 factory data and the setup
 	// 1-6 calibration coefficients
 	// 7 serial code and CRC
-	uint16_t prom[8];
+	uint16_t prom[8] {};
+	bool prom_all_zero = true;
 
 	for (uint8_t i = 0; i < 8; i++) {
 		cmd = CMD_PROM_START + i * 2;
@@ -109,10 +140,18 @@ MS5525::init_ms5525()
 		if (ret == PX4_OK) {
 			prom[i] = (val[0] << 8) | val[1];
 
+			if (prom[i] != 0) {
+				prom_all_zero = false;
+			}
+
 		} else {
 			perf_count(_comms_errors);
 			return false;
 		}
+	}
+
+	if (prom_all_zero) {
+		return false;
 	}
 
 	// Step 3 - check CRC
@@ -129,18 +168,17 @@ MS5525::init_ms5525()
 		C6 = prom[6];
 
 		Tref = int64_t(C5) * (1UL << Q5);
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_MS5525;
 
 		return true;
 
 	} else {
 		PX4_ERR("CRC mismatch");
-		return false;
 	}
+
+	return false;
 }
 
-uint8_t
-MS5525::prom_crc4(uint16_t n_prom[]) const
+uint8_t MS5525DSO::prom_crc4(uint16_t n_prom[]) const
 {
 	// see Measurement Specialties AN520
 
@@ -177,27 +215,29 @@ MS5525::prom_crc4(uint16_t n_prom[]) const
 	return (n_rem ^ 0x00);
 }
 
-int
-MS5525::collect()
+int MS5525DSO::collect()
 {
 	perf_begin(_sample_perf);
 
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+
 	// read ADC
 	uint8_t cmd = CMD_ADC_READ;
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	int ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
+		perf_end(_sample_perf);
 		return ret;
 	}
 
 	// read 24 bits from the sensor
-	uint8_t val[3];
+	uint8_t val[3] {};
 	ret = transfer(nullptr, 0, &val[0], 3);
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
+		perf_end(_sample_perf);
 		return ret;
 	}
 
@@ -209,7 +249,8 @@ MS5525::collect()
 	// incorrect result as well.
 	if (adc == 0) {
 		perf_count(_comms_errors);
-		return EAGAIN;
+		perf_end(_sample_perf);
+		return -EAGAIN;
 	}
 
 	if (_current_cmd == CMD_CONVERT_PRES) {
@@ -231,7 +272,8 @@ MS5525::collect()
 
 	// not ready yet
 	if (D1 == 0 || D2 == 0) {
-		return EAGAIN;
+		perf_end(_sample_perf);
+		return -EAGAIN;
 	}
 
 	// Difference between actual and reference temperature
@@ -262,24 +304,21 @@ MS5525::collect()
 
 	const float temperature_c = TEMP * 0.01f;
 
-	differential_pressure_s diff_pressure;
-	diff_pressure.timestamp_sample = timestamp_sample;
-	diff_pressure.device_id = get_device_id();
-	diff_pressure.differential_pressure_pa = diff_press_pa;
-	diff_pressure.temperature = temperature_c;
-	diff_pressure.error_count = perf_event_count(_comms_errors);
-	diff_pressure.timestamp = hrt_absolute_time();
-	_airspeed_pub.publish(diff_pressure);
-
-	ret = OK;
+	differential_pressure_s differential_pressure{};
+	differential_pressure.timestamp_sample = timestamp_sample;
+	differential_pressure.device_id = get_device_id();
+	differential_pressure.differential_pressure_pa = diff_press_pa;
+	differential_pressure.temperature = temperature_c;
+	differential_pressure.error_count = perf_event_count(_comms_errors);
+	differential_pressure.timestamp = hrt_absolute_time();
+	_differential_pressure_pub.publish(differential_pressure);
 
 	perf_end(_sample_perf);
 
-	return ret;
+	return PX4_OK;
 }
 
-void
-MS5525::RunImpl()
+void MS5525DSO::RunImpl()
 {
 	int ret = PX4_ERROR;
 
@@ -288,7 +327,8 @@ MS5525::RunImpl()
 		// perform collection
 		ret = collect();
 
-		if (OK != ret) {
+		if (PX4_OK != ret) {
+			perf_count(_comms_errors);
 			/* restart the measurement state machine */
 			_collect_phase = false;
 			_sensor_ok = false;
@@ -312,7 +352,7 @@ MS5525::RunImpl()
 	/* measurement phase */
 	ret = measure();
 
-	if (OK != ret) {
+	if (PX4_OK != ret) {
 		DEVICE_DEBUG("measure error");
 	}
 

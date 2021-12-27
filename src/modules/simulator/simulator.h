@@ -161,8 +161,6 @@ private:
 
 	static Simulator *_instance;
 
-	static constexpr float hPa2Pa = 100.0f; // hectopascal to pascal multiplier
-
 	// simulated sensor instances
 	static constexpr uint8_t ACCEL_COUNT_MAX = 3;
 	PX4Accelerometer _px4_accel[ACCEL_COUNT_MAX] {

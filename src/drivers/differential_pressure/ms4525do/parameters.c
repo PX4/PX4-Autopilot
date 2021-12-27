@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,52 +31,11 @@
  *
  ****************************************************************************/
 
-#include "SDP3X.hpp"
-
-extern "C" __EXPORT int sdp3x_airspeed_main(int argc, char *argv[]);
-
-void
-SDP3X::print_usage()
-{
-	PRINT_MODULE_USAGE_NAME("sdp3x_airspeed", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("airspeed_sensor");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x21);
-	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
-int
-sdp3x_airspeed_main(int argc, char *argv[])
-{
-	using ThisDriver = SDP3X;
-	BusCLIArguments cli{true, false};
-	cli.default_i2c_frequency = 100000;
-	cli.i2c_address = I2C_ADDRESS_1_SDP3X;
-	cli.support_keep_running = true;
-
-	const char *verb = cli.parseDefaultArguments(argc, argv);
-
-	if (!verb) {
-		ThisDriver::print_usage();
-		return -1;
-	}
-
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_DIFF_PRESS_DEVTYPE_SDP31);
-
-	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
-	}
-
-	if (!strcmp(verb, "stop")) {
-		return ThisDriver::module_stop(iterator);
-	}
-
-	if (!strcmp(verb, "status")) {
-		return ThisDriver::module_status(iterator);
-	}
-
-	ThisDriver::print_usage();
-	return -1;
-}
+/**
+ * TE MS4525DO differential pressure sensor (external I2C)
+ *
+ * @reboot_required true
+ * @group Sensors
+ * @boolean
+  */
+PARAM_DEFINE_INT32(SENS_EN_MS4525DO, 0);
