@@ -344,6 +344,11 @@ private:
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float		_battery_current{0.0f};
+	uint8_t		_last_connected_batteries{0};
+	uint32_t	_last_battery_custom_fault[battery_status_s::MAX_INSTANCES] {};
+	uint16_t	_last_battery_fault[battery_status_s::MAX_INSTANCES] {};
+	uint8_t		_last_battery_mode[battery_status_s::MAX_INSTANCES] {};
+
 
 	Hysteresis	_auto_disarm_landed{false};
 	Hysteresis	_auto_disarm_killed{false};
