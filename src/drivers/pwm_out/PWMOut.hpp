@@ -37,8 +37,8 @@
 #include <math.h>
 
 #include <board_config.h>
+
 #include <drivers/device/device.h>
-#include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
@@ -103,17 +103,15 @@ public:
 
 	static int test(const char *dev);
 
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
+	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
-	virtual int	init();
+	int init() override;
 
 	uint32_t	get_pwm_mask() const { return _pwm_mask; }
 	void		set_pwm_mask(uint32_t mask) { _pwm_mask = mask; }
 	uint32_t	get_alt_rate_channels() const { return _pwm_alt_rate_channels; }
 	unsigned	get_alt_rate() const { return _pwm_alt_rate; }
 	unsigned	get_default_rate() const { return _pwm_default_rate; }
-
-	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
@@ -158,14 +156,11 @@ private:
 
 	void		update_current_rate();
 	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
-	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
+	int			pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	bool		update_pwm_out_state(bool on);
 
 	void		update_params();
-
-	static void		sensor_reset(int ms);
-	static void		peripheral_reset(int ms);
 
 	PWMOut(const PWMOut &) = delete;
 	PWMOut operator=(const PWMOut &) = delete;
