@@ -169,13 +169,13 @@ public:
 	 *
 	 * This is used in the case of multi_pub/sub to check if it's valid to advertise
 	 * and publish to this node or if another node should be tried. */
-	bool is_advertised() const { return _publisher_count != 0; }
+	bool is_advertised() const { return _publisher_count.load() != 0; }
 
 	void add_publisher();
 
 	void remove_publisher();
 
-	int8_t publisher_count() const { return _publisher_count; }
+	uint8_t publisher_count() const { return _publisher_count.load(); }
 
 	/**
 	 * Try to change the size of the queue. This can only be done as long as nobody published yet.
@@ -293,7 +293,7 @@ private:
 
 	const uint8_t _instance; /**< orb multi instance identifier */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
-	uint8_t _publisher_count{0};
+	px4::atomic<uint8_t> _publisher_count{0};
 	int8_t _subscriber_count{0};
 
 

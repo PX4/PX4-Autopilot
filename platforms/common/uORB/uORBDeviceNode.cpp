@@ -384,14 +384,14 @@ uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t even
 bool
 uORB::DeviceNode::print_statistics(int max_topic_length)
 {
-	if (_publisher_count == 0) {
+	if (_publisher_count.load() == 0) {
 		return false;
 	}
 
 	lock();
 
 	const uint8_t instance = get_instance();
-	const int8_t pub_count = publisher_count();
+	const uint8_t pub_count = publisher_count();
 	const int8_t sub_count = subscriber_count();
 	const uint8_t queue_size = get_queue_size();
 
@@ -444,16 +444,12 @@ void uORB::DeviceNode::remove_internal_subscriber()
 
 void uORB::DeviceNode::add_publisher()
 {
-	lock();
-	_publisher_count++;
-	unlock();
+	_publisher_count.fetch_add(1);
 }
 
 void uORB::DeviceNode::remove_publisher()
 {
-	lock();
-	_publisher_count--;
-	unlock();
+	_publisher_count.fetch_sub(1);
 }
 
 #ifdef ORB_COMMUNICATOR
