@@ -82,6 +82,16 @@ static uintptr_t end_address = 0;
 static uintptr_t first_unwritten = 0;
 #endif
 
+static int loader_task = -1;
+typedef enum {
+	UNINITIALIZED = -1,
+	IN_PROGRESS,
+	DONE,
+	LOAD_FAIL
+} image_loading_status_t;
+
+image_loading_status_t loading_status = UNINITIALIZED;
+
 /* board definition */
 struct boardinfo board_info = {
 	.board_type	= BOARD_TYPE,
@@ -309,6 +319,10 @@ flash_func_erase_sector(unsigned sector)
 
 	unsigned ss = flash_func_sector_size(sector);
 
+	/* Break any loading process */
+
+	loading_status = UNINITIALIZED;
+
 #ifdef CONFIG_MTD_M25P
 	int ret = MTD_ERASE(mtd, sector, 1);
 
@@ -516,6 +530,100 @@ static size_t get_image_size(void)
 }
 #endif
 
+
+static int loader_main(int argc, char *argv[])
+{
+	ssize_t image_sz = 0;
+
+	loading_status = IN_PROGRESS;
+
+#ifdef CONFIG_MMCSD
+	/*
+	 * Mount the sdcard and check if the image is present
+	 */
+	int ret = mount("/dev/mmcsd0", "/sdcard/", "vfat", 0, NULL);
+
+	if (ret >= 0) {
+		int mmc_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
+
+		if (mmc_fd) {
+			ret = read(mmc_fd, (void *)APP_LOAD_ADDRESS, BOARD_FLASH_SIZE);
+			close(mmc_fd);
+
+			if (ret > 0) {
+				image_sz = get_image_size();
+
+				if (image_sz > 0) {
+					_alert("Loading from SD card\n");
+				}
+			}
+		}
+
+		umount("/sdcard");
+	}
+
+#endif
+
+#ifdef CONFIG_MTD_M25P
+	/* If loading from sdcard didn't succeed, use SPI-NOR (normal boot media) */
+
+	// Read first FLASH_RW_BLOCK size data, search if TOC exists
+
+	if (image_sz == 0) {
+		const unsigned pgs_per_block = FLASH_RW_BLOCK / geo.blocksize;
+		size_t pages = MTD_BREAD(mtd, 0, pgs_per_block, (uint8_t *)APP_LOAD_ADDRESS);
+
+		if (pages == pgs_per_block) {
+			image_sz = get_image_size();
+
+			if (image_sz > 0) {
+				_alert("Loading from NOR flash\n");
+				unsigned reads_left = image_sz / FLASH_RW_BLOCK - 1;
+
+				if (image_sz % FLASH_RW_BLOCK) {
+					reads_left += 1;
+				}
+
+				// read the rest in FLASH_RW_BLOCK blocks
+				for (unsigned i = 1; i < reads_left + 1; i++) {
+					if (loading_status != IN_PROGRESS) {
+						image_sz = -1;
+						break;
+					}
+
+					MTD_BREAD(mtd, i * pgs_per_block, pgs_per_block, ((uint8_t *)APP_LOAD_ADDRESS) + (i * FLASH_RW_BLOCK));
+				}
+			}
+		}
+	}
+
+#endif
+
+	/* image_sz < 0 means that the load was interrupted due to flashing in progress */
+	if (image_sz == 0) {
+		_alert("No boot image found\n");
+		loading_status = LOAD_FAIL;
+
+	} else if (loading_status == IN_PROGRESS) {
+		_alert("Image loaded succesfully, size %d\n", image_sz);
+		loading_status = DONE;
+
+	} else {
+		_alert("Image loading interrupted\n");
+	}
+
+	return 0;
+}
+
+int start_image_loading(void)
+{
+	/* create the task */
+	loader_task = task_create("laoder", SCHED_PRIORITY_MAX - 6, 2000, loader_main, (char *const *)0);
+
+	return 0;
+}
+
+
 int
 bootloader_main(void)
 {
@@ -563,68 +671,7 @@ bootloader_main(void)
 		board_set_rtc_signature(0);
 	}
 
-	size_t image_sz = 0;
-
-#ifdef CONFIG_MMCSD
-	/*
-	 * Mount the sdcard and check if the image is present
-	 */
-	int ret = mount("/dev/mmcsd0", "/sdcard/", "vfat", 0, NULL);
-
-	if (ret >= 0) {
-		int mmc_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
-
-		if (mmc_fd) {
-			ret = read(mmc_fd, (void *)APP_LOAD_ADDRESS, BOARD_FLASH_SIZE);
-			close(mmc_fd);
-
-			if (ret > 0) {
-				image_sz = get_image_size();
-
-				if (image_sz > 0) {
-					_alert("Booting from SD card\n");
-				}
-			}
-		}
-
-		umount("/sdcard");
-	}
-
-#endif
-
-#ifdef CONFIG_MTD_M25P
-	/* If loading from sdcard didn't succeed, use SPI-NOR (normal boot media) */
-
-	// Read first FLASH_RW_BLOCK size data, search if TOC exists
-
-	if (image_sz == 0) {
-		const unsigned pgs_per_block = FLASH_RW_BLOCK / geo.blocksize;
-		size_t pages = MTD_BREAD(mtd, 0, pgs_per_block, (uint8_t *)APP_LOAD_ADDRESS);
-
-		if (pages == pgs_per_block) {
-			image_sz = get_image_size();
-
-			if (image_sz > 0) {
-				_alert("Booting from NOR flash\n");
-				unsigned reads_left = image_sz / FLASH_RW_BLOCK - 1;
-
-				if (image_sz % FLASH_RW_BLOCK) {
-					reads_left += 1;
-				}
-
-				// read the rest in FLASH_RW_BLOCK blocks
-				for (unsigned i = 1; i < reads_left + 1; i++) {
-					MTD_BREAD(mtd, i * pgs_per_block, pgs_per_block, ((uint8_t *)APP_LOAD_ADDRESS) + (i * FLASH_RW_BLOCK));
-				}
-			}
-		}
-	}
-
-#endif
-
-	if (image_sz == 0) {
-		_alert("No boot image found\n");
-	}
+	start_image_loading();
 
 #ifdef BOOT_DELAY_ADDRESS
 	{
@@ -684,23 +731,6 @@ bootloader_main(void)
 #endif
 #endif
 
-	/* Try to boot the app if we think we should just go straight there */
-	if (try_boot) {
-		/* set the boot-to-bootloader flag so that if boot fails on reset we will stop here */
-#ifdef BOARD_BOOT_FAIL_DETECT
-		board_set_rtc_signature(BOOT_RTC_SIGNATURE);
-#endif
-		/* try to boot immediately */
-		jump_to_app();
-
-		// If it failed to boot, reset the boot signature and stay in bootloader
-		board_set_rtc_signature(BOOT_RTC_SIGNATURE);
-
-		/* booting failed, stay in the bootloader forever */
-		timeout = 0;
-	}
-
-
 	/* start the interface */
 #if INTERFACE_USART
 	cinit(BOARD_INTERFACE_CONFIG_USART, USART);
@@ -710,6 +740,15 @@ bootloader_main(void)
 #endif
 
 	while (1) {
+		/* look to see if we can boot the app */
+		if (try_boot && loading_status == DONE) {
+			jump_to_app();
+		}
+
+		if (!board_test_force_pin()) {
+			try_boot = true;
+		}
+
 		/* run the bootloader, come back after an app is uploaded or we time out */
 		bootloader(timeout);
 
@@ -743,14 +782,12 @@ bootloader_main(void)
 
 			/* Write first page again to update first word */
 			flash_write_pages(0, 1, (uint8_t *)(APP_LOAD_ADDRESS));
+
+			/* Now the image is already in memory, allow booting */
+			loading_status = DONE;
 		}
 
 #endif
 
-		/* look to see if we can boot the app */
-		jump_to_app();
-
-		/* launching the app failed - stay in the bootloader forever */
-		timeout = 0;
 	}
 }
