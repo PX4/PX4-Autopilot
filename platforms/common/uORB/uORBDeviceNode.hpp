@@ -175,6 +175,8 @@ public:
 
 	void remove_publisher();
 
+	int8_t publisher_count() const { return _publisher_count; }
+
 	/**
 	 * Try to change the size of the queue. This can only be done as long as nobody published yet.
 	 * This is the case, for example when orb_subscribe was called before an orb_advertise.

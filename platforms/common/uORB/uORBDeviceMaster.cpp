@@ -183,7 +183,7 @@ void uORB::DeviceMaster::printStatistics()
 		return;
 	}
 
-	PX4_INFO_RAW("%-*s INST #SUB #Q SIZE PATH\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+	PX4_INFO_RAW("%-*s INST #PUB #SUB #Q SIZE PATH\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 
 	cur_node = first_node;
 
@@ -386,16 +386,17 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 			PX4_INFO_RAW(CLEAR_LINE "update: 1s, topics: %i, total publications: %i, %.1f kB/s\n",
 				     num_topics, total_msgs, (double)(total_size / 1000.f));
-			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #SUB RATE #Q SIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
+			PX4_INFO_RAW(CLEAR_LINE "%-*s INST #PUB #SUB RATE #Q SIZE\n", (int)max_topic_name_length - 2, "TOPIC NAME");
 			cur_node = first_node;
 
 			while (cur_node) {
 
 				if (!print_active_only || (cur_node->pub_msg_delta > 0 && cur_node->node->subscriber_count() > 0)) {
-					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %2i %4i \n", (int)max_topic_name_length,
+					PX4_INFO_RAW(CLEAR_LINE "%-*s %2i %4i %4i %4i %2i %4i \n", (int)max_topic_name_length,
 						     cur_node->node->get_meta()->o_name, (int)cur_node->node->get_instance(),
-						     (int)cur_node->node->subscriber_count(), cur_node->pub_msg_delta,
-						     cur_node->node->get_queue_size(), cur_node->node->get_meta()->o_size);
+						     (int)cur_node->node->publisher_count(), (int)cur_node->node->subscriber_count(),
+						     cur_node->pub_msg_delta, cur_node->node->get_queue_size(),
+						     cur_node->node->get_meta()->o_size);
 				}
 
 				cur_node = cur_node->next;
