@@ -205,7 +205,7 @@ void AutopilotTester::wait_until_disarmed(std::chrono::seconds timeout_duration)
 
 void AutopilotTester::wait_until_hovering()
 {
-	wait_for_landed_state(Telemetry::LandedState::InAir, std::chrono::seconds(30));
+	wait_for_landed_state(Telemetry::LandedState::InAir, std::chrono::seconds(45));
 }
 
 void AutopilotTester::wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout)
@@ -265,7 +265,7 @@ void AutopilotTester::execute_mission()
 
 	// TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
 
-	wait_for_mission_finished(std::chrono::seconds(60));
+	wait_for_mission_finished(std::chrono::seconds(90));
 }
 
 void AutopilotTester::execute_mission_and_lose_gps()
