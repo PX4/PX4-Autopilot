@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE modules__gyro_calibration
 	MAIN gyro_calibration
 	COMPILE_FLAGS
+		#-DDEBUG_BUILD
 	SRCS
 		GyroCalibration.cpp
 		GyroCalibration.hpp

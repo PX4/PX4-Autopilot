@@ -130,7 +130,8 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
         return None
 
 
-    output_groups = yaml_config['actuator_output']['output_groups']
+    actuator_output_yaml = yaml_config['actuator_output']
+    output_groups = actuator_output_yaml['output_groups']
     module_name = process_module_name(yaml_config['module_name'])
     group_idx = 0
 
@@ -139,8 +140,9 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
     actuator_output = {
             'label': module_name
         }
-    if 'show_subgroups_if' in yaml_config['actuator_output']:
-        actuator_output['show-subgroups-if'] = yaml_config['actuator_output']['show_subgroups_if']
+    if 'show_subgroups_if' in actuator_output_yaml:
+        actuator_output['show-subgroups-if'] = actuator_output_yaml['show_subgroups_if']
+    add_reverse_range_param = actuator_output_yaml.get('add_reverse_range_param', False)
 
     # config parameters
     def get_config_params(param_list):
@@ -159,7 +161,7 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
             parameters.append(param)
         return parameters
 
-    parameters = get_config_params(yaml_config['actuator_output'].get('config_parameters', []))
+    parameters = get_config_params(actuator_output_yaml.get('config_parameters', []))
     if len(parameters) > 0:
         actuator_output['parameters'] = parameters
 
@@ -254,6 +256,16 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 if show_if: param['show-if'] = show_if
                 per_channel_params.append(param)
 
+
+        if add_reverse_range_param:
+            param = {
+                    'label': 'Rev Range\n(for Servos)',
+                    'name': param_prefix+'_REV',
+                    'index-offset': -1,
+                    'show-as': 'bitset',
+                }
+            per_channel_params.append(param)
+
         # TODO: support non-standard per-channel parameters
 
         subgroup['per-channel-parameters'] = per_channel_params
@@ -346,33 +358,39 @@ def get_mixers(yaml_config, output_functions, verbose):
 
             if 'count' in actuator_conf: # possibly dynamic size
                 actuator['count'] = actuator_conf['count']
-                per_item_params = actuator_conf['per_item_parameters']
+                per_item_params = actuator_conf.get('per_item_parameters', {})
                 params = []
                 if 'standard' in per_item_params:
                     standard_params = per_item_params['standard']
+                    index_offset = standard_params.get('index_offset', 0)
                     if 'position' in standard_params:
                         params.extend([
                         {
                             'label': 'Position X',
                             'function': 'posx',
                             'name': standard_params['position'][0],
+                            'index-offset': index_offset,
                         },
                         {
                             'label': 'Position Y',
                             'function': 'posy',
                             'name': standard_params['position'][1],
+                            'index-offset': index_offset,
                         },
                         {
                             'label': 'Position Z',
                             'function': 'posz',
                             'name': standard_params['position'][2],
                             'advanced': True,
+                            'index-offset': index_offset,
                         },
                         ])
                 if 'extra' in per_item_params:
                     for extra_param in per_item_params['extra']:
                         params.append({k.replace('_','-'): v for k, v in extra_param.items()})
                 actuator['per-item-parameters'] = params
+                if 'item_label_prefix' in actuator_conf:
+                    actuator['item-label-prefix'] = actuator_conf['item_label_prefix']
             else: # fixed size
                 labels = []
                 pos_x = []
@@ -417,10 +435,18 @@ def get_mixers(yaml_config, output_functions, verbose):
 
     if verbose:
         print('Mixer configs: {}'.format(config))
+
+    rules = []
+    for rule in yaml_config['mixer'].get('rules', []):
+        rules.append({k.replace('_','-'): v for k, v in rule.items()})
+
+    if verbose:
+        print('Mixer rules: {}'.format(rules))
     
     mixers = {
             'actuator-types': actuator_types,
             'config': config,
+            'rules': rules,
         }
     return mixers
 

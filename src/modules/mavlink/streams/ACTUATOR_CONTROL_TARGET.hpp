@@ -57,6 +57,8 @@ public:
 		case 3:
 			return "ACTUATOR_CONTROL_TARGET3";
 		}
+
+		return "ACTUATOR_CONTROL_TARGET";
 	}
 
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET; }

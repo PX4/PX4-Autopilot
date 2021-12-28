@@ -158,12 +158,10 @@ private:
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_reset_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_esc_rpm_perf{nullptr};
 
 	perf_counter_t _dynamic_notch_filter_fft_disable_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_fft_reset_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_fft_perf{nullptr};
 
 	bool _dynamic_notch_esc_rpm_available{false};
 	bool _dynamic_notch_fft_available{false};
@@ -178,6 +176,7 @@ private:
 	bool _fifo_available{false};
 	bool _update_sample_rate{true};
 
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gyro filter")};
 	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro filter reset")};
 	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro selection changed")};
 

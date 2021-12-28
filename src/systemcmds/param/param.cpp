@@ -434,14 +434,14 @@ static int
 do_save(const char *param_file_name)
 {
 	/* create the file */
-	int fd = open(param_file_name, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+	int fd = open(param_file_name, O_RDWR | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
 		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
 		return 1;
 	}
 
-	int result = param_export(fd, false, nullptr);
+	int result = param_export(fd, nullptr);
 	close(fd);
 
 	if (result < 0) {
@@ -529,11 +529,8 @@ do_load(const char *param_file_name)
 static int
 do_import(const char *param_file_name)
 {
-	bool mark_saved = false;
-
 	if (param_file_name == nullptr) {
 		param_file_name = param_get_default_file();
-		mark_saved = true; // if imported from default storage, mark as saved
 	}
 
 	int fd = -1;
@@ -549,7 +546,7 @@ do_import(const char *param_file_name)
 		PX4_INFO("importing from '%s'", param_file_name);
 	}
 
-	int result = param_import(fd, mark_saved);
+	int result = param_import(fd);
 
 	if (fd >= 0) {
 		close(fd);

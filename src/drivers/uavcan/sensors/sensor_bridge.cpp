@@ -38,18 +38,19 @@
 #include "sensor_bridge.hpp"
 #include <cassert>
 
-#include "differential_pressure.hpp"
+#include "accel.hpp"
+#include "airspeed.hpp"
 #include "baro.hpp"
 #include "battery.hpp"
-#include "airspeed.hpp"
-#include "gnss.hpp"
+#include "cbat.hpp"
+#include "differential_pressure.hpp"
 #include "flow.hpp"
+#include "gnss.hpp"
+#include "gyro.hpp"
+#include "hygrometer.hpp"
+#include "ice_status.hpp"
 #include "mag.hpp"
 #include "rangefinder.hpp"
-#include "accel.hpp"
-#include "gyro.hpp"
-#include "cbat.hpp"
-#include "ice_status.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -105,6 +106,14 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 
 	if (uavcan_sub_gps != 0) {
 		list.add(new UavcanGnssBridge(node));
+	}
+
+	// hygrometer
+	int32_t uavcan_sub_hygro = 1;
+	param_get(param_find("UAVCAN_SUB_HYGRO"), &uavcan_sub_hygro);
+
+	if (uavcan_sub_hygro != 0) {
+		list.add(new UavcanHygrometerBridge(node));
 	}
 
 	// ice (internal combustion engine)

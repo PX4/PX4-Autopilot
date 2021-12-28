@@ -38,7 +38,9 @@ namespace px4
 
 ScheduledWorkItem::~ScheduledWorkItem()
 {
-	ScheduleClear();
+	if (_call.arg != nullptr) {
+		ScheduleClear();
+	}
 }
 
 void ScheduledWorkItem::schedule_trampoline(void *arg)

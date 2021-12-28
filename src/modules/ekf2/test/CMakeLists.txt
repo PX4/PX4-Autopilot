@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-add_compile_definitions(TEST_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
+add_definitions(-DTEST_DATA_PATH="${CMAKE_CURRENT_SOURCE_DIR}")
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 add_subdirectory(sensor_simulator)

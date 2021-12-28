@@ -61,7 +61,7 @@
 # define MAVLINK_COMM_5 static_cast<mavlink_channel_t>(5)
 #endif
 
-#include <mavlink_types.h>
+#include <mavlink/mavlink_types.h>
 #include <unistd.h>
 
 __BEGIN_DECLS

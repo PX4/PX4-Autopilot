@@ -71,14 +71,16 @@
 
 #include <matrix/matrix/math.hpp>
 
+#include "ActuatorEffectiveness/ActuatorEffectiveness.hpp"
+
 class ControlAllocation
 {
 public:
 	ControlAllocation();
 	virtual ~ControlAllocation() = default;
 
-	static constexpr uint8_t NUM_ACTUATORS = 16;
-	static constexpr uint8_t NUM_AXES = 6;
+	static constexpr uint8_t NUM_ACTUATORS = ActuatorEffectiveness::NUM_ACTUATORS;
+	static constexpr uint8_t NUM_AXES = ActuatorEffectiveness::NUM_AXES;
 
 	typedef matrix::Vector<float, NUM_ACTUATORS> ActuatorVector;
 
@@ -93,8 +95,6 @@ public:
 
 	/**
 	 * Allocate control setpoint to actuators
-	 *
-	 * @param control_setpoint  Desired control setpoint vector (input)
 	 */
 	virtual void allocate() = 0;
 
@@ -104,7 +104,7 @@ public:
 	 * @param B Effectiveness matrix
 	 */
 	virtual void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
-					    const matrix::Vector<float, NUM_ACTUATORS> &actuator_trim, int num_actuators);
+					    const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators);
 
 	/**
 	 * Get the allocated actuator vector
@@ -181,6 +181,14 @@ public:
 	 */
 	void setActuatorSetpoint(const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp);
 
+	void setSlewRateLimit(const matrix::Vector<float, NUM_ACTUATORS> &slew_rate_limit)
+	{ _actuator_slew_rate_limit = slew_rate_limit; }
+
+	/**
+	 * Apply slew rate to current actuator setpoint
+	 */
+	void applySlewRateLimit(float dt);
+
 	/**
 	 * Clip the actuator setpoint between minimum and maximum values.
 	 *
@@ -189,6 +197,8 @@ public:
 	 * @param actuator Actuator vector to clip
 	 */
 	void clipActuatorSetpoint(matrix::Vector<float, NUM_ACTUATORS> &actuator) const;
+
+	void clipActuatorSetpoint() { clipActuatorSetpoint(_actuator_sp); }
 
 	/**
 	 * Normalize the actuator setpoint between minimum and maximum values.
@@ -206,14 +216,21 @@ public:
 
 	int numConfiguredActuators() const { return _num_actuators; }
 
+	void setNormalizeRPY(bool normalize_rpy) { _normalize_rpy = normalize_rpy; }
+
 protected:
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  //< Effectiveness matrix
-	matrix::Vector<float, NUM_AXES> _control_allocation_scale;  	//< Scaling applied during allocation
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_trim; 	//< Neutral actuator values
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_min; 	//< Minimum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_max; 	//< Maximum actuator values
-	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	//< Actuator setpoint
-	matrix::Vector<float, NUM_AXES> _control_sp;   		//< Control setpoint
-	matrix::Vector<float, NUM_AXES> _control_trim;  	//< Control at trim actuator values
+	friend class ControlAllocator; // for _actuator_sp
+
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  ///< Effectiveness matrix
+	matrix::Vector<float, NUM_AXES> _control_allocation_scale;  	///< Scaling applied during allocation
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_trim; 	///< Neutral actuator values
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_min; 	///< Minimum actuator values
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_max; 	///< Maximum actuator values
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_slew_rate_limit; 	///< Slew rate limit
+	matrix::Vector<float, NUM_ACTUATORS> _prev_actuator_sp;  	///< Previous actuator setpoint
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	///< Actuator setpoint
+	matrix::Vector<float, NUM_AXES> _control_sp;   		///< Control setpoint
+	matrix::Vector<float, NUM_AXES> _control_trim; 		///< Control at trim actuator values
 	int _num_actuators{0};
+	bool _normalize_rpy{false};				///< if true, normalize roll, pitch and yaw columns
 };

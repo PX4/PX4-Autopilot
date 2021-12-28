@@ -44,6 +44,7 @@ set(msg_files
 	actuator_motors.msg
 	actuator_outputs.msg
 	actuator_servos.msg
+	actuator_servos_trim.msg
 	actuator_test.msg
 	adc_report.msg
 	airspeed.msg
@@ -144,6 +145,7 @@ set(msg_files
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
+	sensor_hygrometer.msg
 	sensor_mag.msg
 	sensor_preflight_mag.msg
 	sensor_selection.msg

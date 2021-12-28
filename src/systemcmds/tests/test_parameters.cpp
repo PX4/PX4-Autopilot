@@ -401,14 +401,14 @@ bool ParameterTest::exportImportAll()
 
 	// backup current parameters
 	const char *param_file_name = PX4_STORAGEDIR "/param_backup";
-	int fd = open(param_file_name, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+	int fd = open(param_file_name, O_RDWR | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
 		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
 		return false;
 	}
 
-	int result = param_export(fd, false, nullptr);
+	int result = param_export(fd, nullptr);
 
 	if (result != PX4_OK) {
 		PX4_ERR("param_export failed");
@@ -561,7 +561,7 @@ bool ParameterTest::exportImportAll()
 		return false;
 	}
 
-	result = param_import(fd, false);
+	result = param_import(fd);
 	close(fd);
 
 	if (result < 0) {

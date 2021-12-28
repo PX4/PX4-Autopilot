@@ -102,6 +102,7 @@ set(DSDLC_INPUTS
 	"${LIBUAVCAN_DIR}/dsdl/ardupilot"
 	"${LIBUAVCAN_DIR}/dsdl/com"
 	"${LIBUAVCAN_DIR}/dsdl/cuav"
+	"${LIBUAVCAN_DIR}/dsdl/dronecan"
 	"${LIBUAVCAN_DIR}/dsdl/uavcan"
 )
 set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
@@ -163,6 +164,7 @@ px4_add_module(
 		sensors/gyro.cpp
 		sensors/cbat.cpp
 		sensors/ice_status.cpp
+		sensors/hygrometer.cpp
 
 	MODULE_CONFIG
 		module.yaml

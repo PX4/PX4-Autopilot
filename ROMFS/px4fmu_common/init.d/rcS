@@ -179,6 +179,11 @@ else
 		# try importing from backup file
 		if [ -f "/fs/microsd/parameters_backup.bson" ]
 		then
+			echo "[init] importing from parameter backup"
+
+			# dump current backup file contents for comparison
+			param dump /fs/microsd/parameters_backup.bson
+
 			param import /fs/microsd/parameters_backup.bson
 		fi
 	fi

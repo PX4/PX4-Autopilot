@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,51 +31,44 @@
  *
  ****************************************************************************/
 
+#include "ActuatorEffectivenessFixedWing.hpp"
+#include <ControlAllocation/ControlAllocation.hpp>
 
+using namespace matrix;
 
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/module.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
-
-#include <perf/perf_counter.h>
-
-__EXPORT int perf_main(int argc, char *argv[]);
-
-
-static void print_usage(void)
+ActuatorEffectivenessFixedWing::ActuatorEffectivenessFixedWing(ModuleParams *parent)
+	: ModuleParams(parent), _rotors(this, ActuatorEffectivenessRotors::AxisConfiguration::FixedForward),
+	  _control_surfaces(this)
 {
-	PRINT_MODULE_DESCRIPTION("Tool to print performance counters");
-
-	PRINT_MODULE_USAGE_NAME_SIMPLE("perf", "command");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset all counters");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("latency", "Print HRT timer latency histogram");
-
-	PRINT_MODULE_USAGE_PARAM_COMMENT("Prints all performance counters if no arguments given");
 }
 
-
-int perf_main(int argc, char *argv[])
+bool
+ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configuration, bool force)
 {
-	if (argc > 1) {
-		if (strcmp(argv[1], "reset") == 0) {
-			perf_reset_all();
-			return 0;
-
-		} else if (strcmp(argv[1], "latency") == 0) {
-			perf_print_latency(1 /* stdout */);
-			fflush(stdout);
-			return 0;
-		}
-
-		print_usage();
-		return -1;
+	if (!force) {
+		return false;
 	}
 
-	perf_print_all(1 /* stdout */);
-	fflush(stdout);
-	return 0;
+	// Motors
+	_rotors.enableYawControl(false);
+	_rotors.getEffectivenessMatrix(configuration, true);
+
+	// Control Surfaces
+	_first_control_surface_idx = configuration.num_actuators_matrix[0];
+	_control_surfaces.getEffectivenessMatrix(configuration, true);
+
+	return true;
 }
 
+void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+		int matrix_index, ActuatorVector &actuator_sp)
+{
+	// apply flaps
+	actuator_controls_s actuator_controls_0;
 
+	if (_actuator_controls_0_sub.copy(&actuator_controls_0)) {
+		float control_flaps = actuator_controls_0.control[actuator_controls_s::INDEX_FLAPS];
+		float airbrakes_control = actuator_controls_0.control[actuator_controls_s::INDEX_AIRBRAKES];
+		_control_surfaces.applyFlapsAndAirbrakes(control_flaps, airbrakes_control, _first_control_surface_idx, actuator_sp);
+	}
+}

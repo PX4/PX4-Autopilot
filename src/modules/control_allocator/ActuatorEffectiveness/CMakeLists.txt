@@ -32,13 +32,30 @@
 ############################################################################
 
 px4_add_library(ActuatorEffectiveness
+	ActuatorEffectiveness.cpp
 	ActuatorEffectiveness.hpp
-	ActuatorEffectivenessMultirotor.cpp
-	ActuatorEffectivenessMultirotor.hpp
+	ActuatorEffectivenessControlSurfaces.cpp
+	ActuatorEffectivenessControlSurfaces.hpp
+	ActuatorEffectivenessCustom.cpp
+	ActuatorEffectivenessCustom.hpp
+	ActuatorEffectivenessFixedWing.cpp
+	ActuatorEffectivenessFixedWing.hpp
+	ActuatorEffectivenessMCTilt.cpp
+	ActuatorEffectivenessMCTilt.hpp
+	ActuatorEffectivenessTilts.cpp
+	ActuatorEffectivenessTilts.hpp
+	ActuatorEffectivenessRotors.cpp
+	ActuatorEffectivenessRotors.hpp
 	ActuatorEffectivenessStandardVTOL.cpp
 	ActuatorEffectivenessStandardVTOL.hpp
 	ActuatorEffectivenessTiltrotorVTOL.cpp
 	ActuatorEffectivenessTiltrotorVTOL.hpp
+	ActuatorEffectivenessTailsitterVTOL.cpp
+	ActuatorEffectivenessTailsitterVTOL.hpp
+	ActuatorEffectivenessRoverAckermann.hpp
+	ActuatorEffectivenessRoverAckermann.cpp
+	ActuatorEffectivenessRoverDifferential.hpp
+	ActuatorEffectivenessRoverDifferential.cpp
 )
 
 target_compile_options(ActuatorEffectiveness PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
@@ -46,7 +63,6 @@ target_include_directories(ActuatorEffectiveness PUBLIC ${CMAKE_CURRENT_SOURCE_D
 target_link_libraries(ActuatorEffectiveness
 	PRIVATE
 		mathlib
-		ControlAllocation
 )
 
-# px4_add_unit_gtest(SRC ActuatorEffectivenessMultirotorTest.cpp LINKLIBS ActuatorEffectiveness)
+px4_add_functional_gtest(SRC ActuatorEffectivenessRotorsTest.cpp LINKLIBS ActuatorEffectiveness)

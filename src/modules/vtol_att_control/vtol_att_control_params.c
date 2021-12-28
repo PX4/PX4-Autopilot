@@ -77,9 +77,9 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
 PARAM_DEFINE_INT32(VT_TYPE, 0);
 
 /**
- * Lock elevons in multicopter mode
+ * Lock control surfaces in hover
  *
- * If set to 1 the elevons are locked in multicopter mode
+ * If set to 1 the control surfaces are locked at the disarmed value in multicopter mode.
  *
  * @boolean
  * @group VTOL Attitude Control

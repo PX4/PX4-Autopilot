@@ -49,16 +49,13 @@
 
 #include <drivers/drv_hrt.h>
 
-
 static const unsigned MAX_PATH_LEN = 52;
 
 static const char *TEMPDIR = PX4_STORAGEDIR"/stress";
 static const char *TEMPDIR2 = PX4_STORAGEDIR"/moved";
 static const char *TEMPFILE = "tmp";
 
-
-static void
-usage(void)
+static void usage()
 {
 	PRINT_MODULE_DESCRIPTION("Test operations on an SD Card");
 
@@ -175,23 +172,22 @@ static bool rename_dir(const char *old_dir, const char *new_dir)
 	return true;
 }
 
-int
-sd_stress_main(int argc, char *argv[])
+extern "C" __EXPORT int sd_stress_main(int argc, char *argv[])
 {
 	int myoptind = 1;
 	int ch;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 	unsigned num_runs = 5;
 	unsigned num_bytes = 100;
 
 	while ((ch = px4_getopt(argc, argv, "r:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'r':
-			num_runs = strtol(myoptarg, NULL, 0);
+			num_runs = strtol(myoptarg, nullptr, 0);
 			break;
 
 		case 'b':
-			num_bytes = strtol(myoptarg, NULL, 0);
+			num_bytes = strtol(myoptarg, nullptr, 0);
 			break;
 
 		default:

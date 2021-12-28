@@ -52,7 +52,6 @@ class FunctionProviderBase
 public:
 	struct Context {
 		px4::WorkItem &work_item;
-		bool reversible_motors;
 		const float &thrust_factor;
 	};
 
@@ -73,6 +72,11 @@ public:
 	virtual uORB::SubscriptionCallbackWorkItem *subscriptionCallback() { return nullptr; }
 
 	virtual bool getLatestSampleTimestamp(hrt_abstime &t) const { return false; }
+
+	/**
+	 * Check whether the output (motor) is configured to be reversible
+	 */
+	virtual bool reversible(OutputFunction func) const { return false; }
 };
 
 /**
@@ -124,15 +128,17 @@ public:
 
 	bool getLatestSampleTimestamp(hrt_abstime &t) const override { t = _data.timestamp_sample; return t != 0; }
 
-	static inline void updateValues(bool reversible, float thrust_factor, float *values, int num_values);
+	static inline void updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values);
+
+	bool reversible(OutputFunction func) const override
+	{ return _data.reversible_flags & (1u << ((int)func - (int)OutputFunction::Motor1)); }
 private:
 	uORB::SubscriptionCallbackWorkItem _topic;
 	actuator_motors_s _data{};
-	const bool _reversible_motors;
 	const float &_thrust_factor;
 };
 
-void FunctionMotors::updateValues(bool reversible, float thrust_factor, float *values, int num_values)
+void FunctionMotors::updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values)
 {
 	if (thrust_factor > FLT_EPSILON) {
 		for (int i = 0; i < num_values; ++i) {
@@ -143,8 +149,8 @@ void FunctionMotors::updateValues(bool reversible, float thrust_factor, float *v
 		}
 	}
 
-	if (!reversible) {
-		for (int i = 0; i < num_values; ++i) {
+	for (int i = 0; i < num_values; ++i) {
+		if ((reversible & (1u << i)) == 0) {
 			if (values[i] < -FLT_EPSILON) {
 				values[i] = NAN;
 

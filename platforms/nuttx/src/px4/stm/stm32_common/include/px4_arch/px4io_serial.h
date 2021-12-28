@@ -114,7 +114,7 @@ public:
 	ArchPX4IOSerial();
 	ArchPX4IOSerial(ArchPX4IOSerial &) = delete;
 	ArchPX4IOSerial &operator = (const ArchPX4IOSerial &) = delete;
-	~ArchPX4IOSerial();
+	virtual ~ArchPX4IOSerial();
 
 	virtual int	init();
 	virtual int	ioctl(unsigned operation, unsigned &arg);
@@ -159,7 +159,6 @@ private:
 	/**
 	 * Performance counters.
 	 */
-	perf_counter_t		_pc_dmasetup;
 	perf_counter_t		_pc_dmaerrs;
 
 	/**

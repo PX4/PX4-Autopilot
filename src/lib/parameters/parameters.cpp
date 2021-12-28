@@ -72,7 +72,7 @@ using namespace time_literals;
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
 #else
-inline static int flash_param_save(bool only_unsaved, param_filter_func filter) { return -1; }
+inline static int flash_param_save(param_filter_func filter) { return -1; }
 inline static int flash_param_load() { return -1; }
 inline static int flash_param_import() { return -1; }
 #endif
@@ -91,12 +91,12 @@ static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(pa
 static px4::AtomicBitset<param_info_count> params_active;  // params found
 static px4::AtomicBitset<param_info_count> params_changed; // params non-default
 static px4::Bitset<param_info_count> params_custom_default; // params with runtime default value
+static px4::AtomicBitset<param_info_count> params_unsaved;
 
 // Storage for modified parameters.
 struct param_wbuf_s {
 	union param_value_u val;
 	param_t             param;
-	bool                unsaved;
 };
 
 /** flexible array holding modified parameter values */
@@ -284,7 +284,6 @@ static param_t param_find_internal(const char *name, bool notification)
 				param_set_used(middle);
 			}
 
-			perf_end(param_find_perf);
 			return middle;
 
 		} else if (middle == front) {
@@ -413,12 +412,7 @@ bool param_is_volatile(param_t param)
 bool
 param_value_unsaved(param_t param)
 {
-	struct param_wbuf_s *s;
-	param_lock_reader();
-	s = param_find_changed(param);
-	bool ret = s && s->unsaved;
-	param_unlock_reader();
-	return ret;
+	return handle_in_range(param) ? params_unsaved[param] : false;
 }
 
 size_t param_size(param_t param)
@@ -499,8 +493,20 @@ param_get(param_t param, void *val)
 	int result = PX4_ERROR;
 
 	if (val) {
-		param_lock_reader();
+		if (!params_changed[param] && !params_custom_default[param]) {
+			// if parameter is unchanged (static default value) copy immediately and avoid locking
+			switch (param_type(param)) {
+			case PARAM_TYPE_INT32:
+				memcpy(val, &px4::parameters[param].val.i, sizeof(px4::parameters[param].val.i));
+				return PX4_OK;
 
+			case PARAM_TYPE_FLOAT:
+				memcpy(val, &px4::parameters[param].val.f, sizeof(px4::parameters[param].val.f));
+				return PX4_OK;
+			}
+		}
+
+		param_lock_reader();
 		const void *v = param_get_value_ptr(param);
 
 		if (v) {
@@ -553,17 +559,46 @@ param_get_default_value_internal(param_t param, void *default_val)
 int
 param_get_default_value(param_t param, void *default_val)
 {
-	param_lock_reader();
-	int ret = param_get_default_value_internal(param, default_val);
-	param_unlock_reader();
+	if (!handle_in_range(param)) {
+		return PX4_ERROR;
+	}
+
+	int ret = 0;
+
+	if (!params_custom_default[param]) {
+		// return static default value
+		switch (param_type(param)) {
+		case PARAM_TYPE_INT32:
+			memcpy(default_val, &px4::parameters[param].val.i, sizeof(px4::parameters[param].val.i));
+			return PX4_OK;
+
+		case PARAM_TYPE_FLOAT:
+			memcpy(default_val, &px4::parameters[param].val.f, sizeof(px4::parameters[param].val.f));
+			return PX4_OK;
+		}
+
+	} else {
+		param_lock_reader();
+		ret = param_get_default_value_internal(param, default_val);
+		param_unlock_reader();
+	}
+
 	return ret;
 }
 
 bool param_value_is_default(param_t param)
 {
-	// the param_values dynamic array might carry things that have been set
-	// back to default, so we don't rely on the params_changed bitset here
-	if (handle_in_range(param)) {
+	if (!handle_in_range(param)) {
+		return true;
+	}
+
+	if (!params_changed[param] && !params_custom_default[param]) {
+		// no value saved and no custom default
+		return true;
+
+	} else {
+		// the param_values dynamic array might carry things that have been set
+		// back to default, so we don't rely on the params_changed bitset here
 		switch (param_type(param)) {
 		case PARAM_TYPE_INT32: {
 				param_lock_reader();
@@ -573,10 +608,9 @@ bool param_value_is_default(param_t param)
 					const void *v = param_get_value_ptr(param);
 
 					if (v) {
-						int32_t current_value;
-						memcpy(&current_value, v, param_size(param));
+						bool unchanged = (*static_cast<const int32_t *>(v) == default_value);
 						param_unlock_reader();
-						return (current_value == default_value);
+						return unchanged;
 					}
 				}
 
@@ -592,10 +626,9 @@ bool param_value_is_default(param_t param)
 					const void *v = param_get_value_ptr(param);
 
 					if (v) {
-						float current_value;
-						memcpy(&current_value, v, param_size(param));
+						bool unchanged = (fabsf(*static_cast<const float *>(v) - default_value) <= FLT_EPSILON);
 						param_unlock_reader();
-						return (fabsf(current_value - default_value) <= FLT_EPSILON);
+						return unchanged;
 					}
 				}
 
@@ -605,7 +638,7 @@ bool param_value_is_default(param_t param)
 		}
 	}
 
-	return false;
+	return true;
 }
 
 int
@@ -740,9 +773,8 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 		utarray_new(param_values, &param_icd);
 
 		// mark all parameters unchanged (default)
-		for (int i = 0; i < params_changed.size(); i++) {
-			params_changed.set(i, false);
-		}
+		params_changed.reset();
+		params_unsaved.reset();
 	}
 
 	if (param_values == nullptr) {
@@ -768,31 +800,41 @@ param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_
 			s = param_find_changed(param);
 		}
 
-		if (s != nullptr) {
+		if (s == nullptr) {
+			PX4_ERR("error param_values storage slot invalid");
+
+		} else {
 			/* update the changed value */
 			switch (param_type(param)) {
 			case PARAM_TYPE_INT32:
-				param_changed = param_changed || s->val.i != *(int32_t *)val;
-				s->val.i = *(int32_t *)val;
-				s->unsaved = !mark_saved;
+				if (s->val.i != *(int32_t *)val) {
+					s->val.i = *(int32_t *)val;
+					param_changed = true;
+				}
+
 				params_changed.set(param, true);
+				params_unsaved.set(param, !mark_saved);
 				result = PX4_OK;
 				break;
 
 			case PARAM_TYPE_FLOAT:
-				param_changed = param_changed || fabsf(s->val.f - * (float *)val) > FLT_EPSILON;
-				s->val.f = *(float *)val;
-				s->unsaved = !mark_saved;
+				if (fabsf(s->val.f - * (float *)val) > FLT_EPSILON) {
+					s->val.f = *(float *)val;
+					param_changed = true;
+				}
+
 				params_changed.set(param, true);
+				params_unsaved.set(param, !mark_saved);
 				result = PX4_OK;
 				break;
 
 			default:
+				PX4_ERR("param_set invalid param type for %s", param_name(param));
 				break;
 			}
 		}
 
-		if ((result == PX4_OK) && !mark_saved) { // this is false when importing parameters
+		if ((result == PX4_OK) && param_changed && !mark_saved) { // this is false when importing parameters
 			param_autosave();
 		}
 	}
@@ -870,15 +912,13 @@ int param_set_default_value(param_t param, const void *val)
 		utarray_new(param_custom_default_values, &param_icd);
 
 		// mark all parameters unchanged (default)
-		for (int i = 0; i < params_custom_default.size(); i++) {
-			params_custom_default.set(i, false);
-		}
-	}
+		params_custom_default.reset();
 
-	if (param_custom_default_values == nullptr) {
-		PX4_ERR("failed to allocate custom default values array");
-		param_unlock_writer();
-		return PX4_ERROR;
+		if (param_custom_default_values == nullptr) {
+			PX4_ERR("failed to allocate custom default values array");
+			param_unlock_writer();
+			return PX4_ERROR;
+		}
 	}
 
 	// check if param being set to default value
@@ -890,7 +930,7 @@ int param_set_default_value(param_t param, const void *val)
 		break;
 
 	case PARAM_TYPE_FLOAT:
-		setting_to_static_default = (fabsf(px4::parameters[param].val.f - * (float *)val) < FLT_EPSILON);
+		setting_to_static_default = (fabsf(px4::parameters[param].val.f - * (float *)val) <= FLT_EPSILON);
 		break;
 	}
 
@@ -977,6 +1017,7 @@ static int param_reset_internal(param_t param, bool notify = true)
 		}
 
 		params_changed.set(param, false);
+		params_unsaved.set(param, true);
 
 		param_found = true;
 	}
@@ -1003,9 +1044,7 @@ param_reset_all_internal(bool auto_save)
 	if (param_values != nullptr) {
 		utarray_free(param_values);
 
-		for (int i = 0; i < params_changed.size(); i++) {
-			params_changed.set(i, false);
-		}
+		params_changed.reset();
 	}
 
 	/* mark as reset / deleted */
@@ -1144,10 +1183,10 @@ static int param_save_file_internal(const char *filename)
 
 	while (res != OK && attempts > 0) {
 		// write parameters to file
-		int fd = ::open(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+		int fd = ::open(filename, O_RDWR | O_CREAT, PX4_O_MODE_666);
 
 		if (fd > -1) {
-			res = param_export(fd, false, nullptr);
+			res = param_export(fd, nullptr);
 			::close(fd);
 
 			if (res == PX4_OK) {
@@ -1183,7 +1222,8 @@ int param_save_default()
 	} else {
 		param_lock_writer();
 		perf_begin(param_export_perf);
-		res = flash_param_save(false, nullptr);
+		res = flash_param_save(nullptr);
+		params_unsaved.reset();
 		perf_end(param_export_perf);
 		param_unlock_writer();
 	}
@@ -1232,16 +1272,113 @@ param_load_default()
 	return res;
 }
 
-int
-param_export(int fd, bool only_unsaved, param_filter_func filter)
+static int param_verify_callback(bson_decoder_t decoder, bson_node_t node)
 {
-	int	result = -1;
+	if (node->type == BSON_EOO) {
+		return 0;
+	}
+
+	// find the parameter this node represents
+	param_t param = param_find_no_notification(node->name);
+
+	if (param == PARAM_INVALID) {
+		PX4_ERR("verify: invalid parameter '%s'", node->name);
+		return -1;
+	}
+
+	// handle verifying the parameter from the node
+	switch (node->type) {
+	case BSON_INT32: {
+			if (param_type(param) != PARAM_TYPE_INT32) {
+				PX4_ERR("verify: invalid param type %d for '%s' (BSON_INT32)", param_type(param), node->name);
+				return -1;
+			}
+
+			int32_t value;
+
+			if (param_get(param, &value) == 0) {
+				if (value == node->i32) {
+					return 1; // valid
+
+				} else {
+					PX4_ERR("verify: '%s' invalid BSON value %" PRIi32 "(expected %" PRIi32 ")", node->name, node->i32, value);
+				}
+			}
+		}
+		break;
+
+	case BSON_DOUBLE: {
+			if (param_type(param) != PARAM_TYPE_FLOAT) {
+				PX4_ERR("verify: invalid param type %d for '%s' (BSON_DOUBLE)", param_type(param), node->name);
+				return -1;
+			}
+
+			float value;
+
+			if (param_get(param, &value) == 0) {
+				if (fabsf(value - (float)node->d) <= FLT_EPSILON) {
+					return 1; // valid
+
+				} else {
+					PX4_ERR("verify: '%s' invalid BSON value %.3f (expected %.3f)", node->name, node->d, (double)value);
+				}
+			}
+		}
+		break;
+
+	default:
+		PX4_ERR("verify: '%s' invalid node type %d", node->name, node->type);
+	}
+
+	return -1;
+}
+
+static int param_verify(int fd)
+{
+	if (fd < 0) {
+		return -1;
+	}
+
+	if (lseek(fd, 0, SEEK_SET) != 0) {
+		PX4_ERR("verify: seek failed");
+		return -1;
+	}
+
+	bson_decoder_s decoder{};
+
+	if (bson_decoder_init_file(&decoder, fd, param_verify_callback) == 0) {
+		int result = -1;
+
+		do {
+			result = bson_decoder_next(&decoder);
+
+		} while (result > 0);
+
+		if (result == 0) {
+			return 0;
+
+		} else if (result == -ENODATA) {
+			PX4_ERR("verify: no BSON data");
+
+		} else {
+			PX4_ERR("verify: failed (%d)", result);
+		}
+	}
+
+	return -1;
+}
+
+int
+param_export(int fd, param_filter_func filter)
+{
+	int result = -1;
 	perf_begin(param_export_perf);
 
 	if (fd < 0) {
 		param_lock_writer();
 		// flash_param_save() will take the shutdown lock
-		result = flash_param_save(only_unsaved, filter);
+		result = flash_param_save(filter);
+		params_unsaved.reset();
 		param_unlock_writer();
 		perf_end(param_export_perf);
 		return result;
@@ -1262,23 +1399,19 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 	param_lock_reader();
 
 	uint8_t bson_buffer[256];
-	bson_encoder_init_buf_file(&encoder, fd, &bson_buffer, sizeof(bson_buffer));
 
-	/* no modified parameters -> we are done */
+	if (bson_encoder_init_buf_file(&encoder, fd, &bson_buffer, sizeof(bson_buffer)) != 0) {
+		result = -1;
+		goto out;
+	}
+
+	// no modified parameters, export empty BSON document
 	if (param_values == nullptr) {
 		result = 0;
 		goto out;
 	}
 
 	while ((s = (struct param_wbuf_s *)utarray_next(param_values, s)) != nullptr) {
-		/*
-		 * If we are only saving values changed since last save, and this
-		 * one hasn't, then skip it
-		 */
-		if (only_unsaved && !s->unsaved) {
-			continue;
-		}
-
 		if (filter && !filter(s->param)) {
 			continue;
 		}
@@ -1290,7 +1423,7 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 				param_get_default_value_internal(s->param, &default_value);
 
 				if (s->val.i == default_value) {
-					PX4_DEBUG("skipping %s %d export", param_name(s->param), default_value);
+					PX4_DEBUG("skipping %s %" PRIi32 " export", param_name(s->param), default_value);
 					continue;
 				}
 			}
@@ -1308,8 +1441,6 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 			break;
 		}
 
-		s->unsaved = false;
-
 		const char *name = param_name(s->param);
 		const size_t size = param_size(s->param);
 
@@ -1317,7 +1448,7 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 		switch (param_type(s->param)) {
 		case PARAM_TYPE_INT32: {
 				const int32_t i = s->val.i;
-				PX4_DEBUG("exporting: %s (%d) size: %lu val: %d", name, s->param, (long unsigned int)size, i);
+				PX4_DEBUG("exporting: %s (%d) size: %lu val: %" PRIi32, name, s->param, (long unsigned int)size, i);
 
 				if (bson_encoder_append_int(&encoder, name, i) != 0) {
 					PX4_ERR("BSON append failed for '%s'", name);
@@ -1347,8 +1478,19 @@ param_export(int fd, bool only_unsaved, param_filter_func filter)
 out:
 
 	if (result == 0) {
-		if (bson_encoder_fini(&encoder) != PX4_OK) {
-			PX4_ERR("BSON encoder finialize failed");
+		if (bson_encoder_fini(&encoder) == PX4_OK) {
+			// verify exported bson
+			if (param_verify(fd) == 0) {
+				if (!filter) {
+					params_unsaved.reset();
+				}
+
+			} else {
+				result = -1;
+			}
+
+		} else {
+			PX4_ERR("BSON encoder finalize failed");
 			result = -1;
 		}
 	}
@@ -1366,19 +1508,9 @@ out:
 	return result;
 }
 
-struct param_import_state {
-	bool mark_saved;
-};
-
 static int
-param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
+param_import_callback(bson_decoder_t decoder, bson_node_t node)
 {
-	float f = 0.0f;
-	int32_t i = 0;
-	void *v = nullptr;
-	int result = -1;
-	param_import_state *state = (param_import_state *)priv;
-
 	/*
 	 * EOO means the end of the parameter object. (Currently not supporting
 	 * nested BSON objects).
@@ -1390,10 +1522,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 
 	param_modify_on_import(node);
 
-	/*
-	 * Find the parameter this node represents.  If we don't know it,
-	 * ignore the node.
-	 */
+	// Find the parameter this node represents.  If we don't know it, ignore the node.
 	param_t param = param_find_no_notification(node->name);
 
 	if (param == PARAM_INVALID) {
@@ -1401,59 +1530,42 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		return 1;
 	}
 
-	/*
-	 * Handle setting the parameter from the node
-	 */
-
+	// Handle setting the parameter from the node
 	switch (node->type) {
 	case BSON_INT32: {
-			if (param_type(param) != PARAM_TYPE_INT32) {
+			if (param_type(param) == PARAM_TYPE_INT32) {
+				int32_t i = node->i32;
+				param_set_internal(param, &i, true, true);
+				PX4_DEBUG("Imported %s with value %d", param_name(param), i);
+
+			} else {
 				PX4_WARN("unexpected type for %s", node->name);
-				result = 1; // just skip this entry
-				goto out;
 			}
-
-			i = node->i32;
-			v = &i;
-
-			PX4_DEBUG("Imported %s with value %d", param_name(param), i);
 		}
 		break;
 
 	case BSON_DOUBLE: {
-			if (param_type(param) != PARAM_TYPE_FLOAT) {
+			if (param_type(param) == PARAM_TYPE_FLOAT) {
+				float f = node->d;
+				param_set_internal(param, &f, true, true);
+				PX4_DEBUG("Imported %s with value %f", param_name(param), (double)f);
+
+			} else {
 				PX4_WARN("unexpected type for %s", node->name);
-				result = 1; // just skip this entry
-				goto out;
 			}
-
-			f = node->d;
-			v = &f;
-
-			PX4_DEBUG("Imported %s with value %f", param_name(param), (double)f);
 		}
 		break;
 
 	default:
-		PX4_ERR("%s unrecognised node type %d", node->name, node->type);
-		result = 1; // just skip this entry
-		goto out;
+		PX4_ERR("import: unrecognised node type for '%s'", node->name);
 	}
 
-	if (param_set_internal(param, v, state->mark_saved, true)) {
-		PX4_DEBUG("error setting value for '%s'", node->name);
-		goto out;
-	}
-
-	/* don't return zero, that means EOF */
-	result = 1;
-
-out:
-	return result;
+	// don't return zero, that means EOF
+	return 1;
 }
 
 static int
-param_dump_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
+param_dump_callback(bson_decoder_t decoder, bson_node_t node)
 {
 	switch (node->type) {
 	case BSON_EOO:
@@ -1485,15 +1597,14 @@ param_dump_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 }
 
 static int
-param_import_internal(int fd, bool mark_saved)
+param_import_internal(int fd)
 {
-	for (int attempt = 1; attempt < 5; attempt++) {
+	static constexpr int MAX_ATTEMPTS = 3;
+
+	for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 		bson_decoder_s decoder{};
-		param_import_state state;
 
-		if (bson_decoder_init_file(&decoder, fd, param_import_callback, &state) == 0) {
-			state.mark_saved = mark_saved;
-
+		if (bson_decoder_init_file(&decoder, fd, param_import_callback) == 0) {
 			int result = -1;
 
 			do {
@@ -1509,8 +1620,11 @@ param_import_internal(int fd, bool mark_saved)
 				return 0;
 
 			} else if (result == -ENODATA) {
-				PX4_DEBUG("BSON: no data");
-				return 0;
+				// silently retry as a precaution unless this is our last attempt
+				if (attempt == MAX_ATTEMPTS) {
+					PX4_DEBUG("BSON: no data");
+					return 0;
+				}
 
 			} else {
 				PX4_ERR("param import failed (%d) attempt %d, retrying", result, attempt);
@@ -1520,7 +1634,10 @@ param_import_internal(int fd, bool mark_saved)
 			PX4_ERR("param import bson decoder init failed attempt %d, retrying", attempt);
 		}
 
-		lseek(fd, 0, SEEK_SET);
+		if (lseek(fd, 0, SEEK_SET) != 0) {
+			PX4_ERR("import lseek failed (%d)", errno);
+		}
+
 		px4_usleep(10000); // wait at least 10 milliseconds before trying again
 	}
 
@@ -1528,13 +1645,13 @@ param_import_internal(int fd, bool mark_saved)
 }
 
 int
-param_import(int fd, bool mark_saved)
+param_import(int fd)
 {
 	if (fd < 0) {
 		return flash_param_import();
 	}
 
-	return param_import_internal(fd, mark_saved);
+	return param_import_internal(fd);
 }
 
 int
@@ -1545,16 +1662,15 @@ param_load(int fd)
 	}
 
 	param_reset_all_internal(false);
-	return param_import_internal(fd, true);
+	return param_import_internal(fd);
 }
 
 int
 param_dump(int fd)
 {
 	bson_decoder_s decoder{};
-	param_import_state state;
 
-	if (bson_decoder_init_file(&decoder, fd, param_dump_callback, &state) == 0) {
+	if (bson_decoder_init_file(&decoder, fd, param_dump_callback) == 0) {
 		PX4_INFO_RAW("BSON document size %" PRId32 "\n", decoder.total_document_size);
 
 		int result = -1;

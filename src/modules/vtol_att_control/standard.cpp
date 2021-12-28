@@ -413,6 +413,30 @@ void Standard::fill_actuator_outputs()
 		break;
 	}
 
+	_torque_setpoint_0->timestamp = hrt_absolute_time();
+	_torque_setpoint_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
+	_torque_setpoint_0->xyz[0] = mc_out[actuator_controls_s::INDEX_ROLL];
+	_torque_setpoint_0->xyz[1] = mc_out[actuator_controls_s::INDEX_PITCH];
+	_torque_setpoint_0->xyz[2] = mc_out[actuator_controls_s::INDEX_YAW];
+
+	_torque_setpoint_1->timestamp = hrt_absolute_time();
+	_torque_setpoint_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
+	_torque_setpoint_1->xyz[0] = fw_out[actuator_controls_s::INDEX_ROLL];
+	_torque_setpoint_1->xyz[1] = fw_out[actuator_controls_s::INDEX_PITCH];
+	_torque_setpoint_1->xyz[2] = fw_out[actuator_controls_s::INDEX_YAW];
+
+	_thrust_setpoint_0->timestamp = hrt_absolute_time();
+	_thrust_setpoint_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
+	_thrust_setpoint_0->xyz[0] = 0.f;
+	_thrust_setpoint_0->xyz[1] = 0.f;
+	_thrust_setpoint_0->xyz[2] = -mc_out[actuator_controls_s::INDEX_THROTTLE];
+
+	_thrust_setpoint_1->timestamp = hrt_absolute_time();
+	_thrust_setpoint_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
+	_thrust_setpoint_1->xyz[0] = fw_out[actuator_controls_s::INDEX_THROTTLE];
+	_thrust_setpoint_1->xyz[1] = 0.f;
+	_thrust_setpoint_1->xyz[2] = 0.f;
+
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
 	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
