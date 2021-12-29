@@ -261,7 +261,7 @@ bool EKF2Selector::UpdateErrorScores()
 
 		if (_instance[i].estimator_status_sub.update(&status)) {
 
-			_instance[i].timestamp_sample_last = status.timestamp_sample;
+			_instance[i].timestamp_last = status.timestamp;
 
 			_instance[i].accel_device_id = status.accel_device_id;
 			_instance[i].gyro_device_id = status.gyro_device_id;
@@ -302,14 +302,14 @@ bool EKF2Selector::UpdateErrorScores()
 			_instance[i].timeout = false;
 
 			if (!_instance[i].warning) {
-				_instance[i].time_last_no_warning = status.timestamp_sample;
+				_instance[i].time_last_no_warning = status.timestamp;
 			}
 
 			if (!PX4_ISFINITE(_instance[i].relative_test_ratio)) {
 				_instance[i].relative_test_ratio = 0;
 			}
 
-		} else if (!_instance[i].timeout && (hrt_elapsed_time(&_instance[i].timestamp_sample_last) > status_timeout)) {
+		} else if (!_instance[i].timeout && (hrt_elapsed_time(&_instance[i].timestamp_last) > status_timeout)) {
 			_instance[i].healthy.set_state_and_update(false, hrt_absolute_time());
 			_instance[i].timeout = true;
 		}
@@ -395,7 +395,7 @@ void EKF2Selector::PublishVehicleAttitude()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's attitude for system (vehicle_attitude) if it's stale
 		if ((attitude.timestamp_sample <= _attitude_last.timestamp_sample)
-		    || (attitude.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&attitude.timestamp) > 10_ms)) {
 
 			publish = false;
 		}
@@ -497,7 +497,7 @@ void EKF2Selector::PublishVehicleLocalPosition()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's local position for system (vehicle_local_position) if it's stale
 		if ((local_position.timestamp_sample <= _local_position_last.timestamp_sample)
-		    || (local_position.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&local_position.timestamp) > 20_ms)) {
 
 			publish = false;
 		}
@@ -536,7 +536,7 @@ void EKF2Selector::PublishVehicleOdometry()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's odometry for system (vehicle_odometry) if it's stale
 		if ((odometry.timestamp_sample <= _odometry_last.timestamp_sample)
-		    || (odometry.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&odometry.timestamp) > 20_ms)) {
 
 			publish = false;
 		}
@@ -602,7 +602,7 @@ void EKF2Selector::PublishVehicleGlobalPosition()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's global position for system (vehicle_global_position) if it's stale
 		if ((global_position.timestamp_sample <= _global_position_last.timestamp_sample)
-		    || (global_position.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&global_position.timestamp) > 20_ms)) {
 
 			publish = false;
 		}
@@ -633,7 +633,7 @@ void EKF2Selector::PublishWindEstimate()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's wind for system (wind) if it's stale
 		if ((wind.timestamp_sample <= _wind_last.timestamp_sample)
-		    || (wind.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&wind.timestamp) > 100_ms)) {
 
 			publish = false;
 		}
