@@ -82,7 +82,9 @@ private:
 	uint8_t        loWord(uint8_t in) { return ((in & 0xf0u) >> 4); }
 
 	uint32_t       _count{0};
+	uint16_t       _reset_count{0};
 	hrt_abstime    _last_measurement_time{0};
+	hrt_abstime    _last_reset_time{0};
 	int            _tranfer_fail_count{0};
 
 	uORB::Publication<rpm_s> _rpm_pub{ORB_ID(rpm)};

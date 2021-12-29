@@ -58,8 +58,6 @@ int PCF8583::init()
 
 	_rpm_pub.advertise();
 
-	ScheduleOnInterval(_param_pcf8583_pool.get());
-
 	return PX4_OK;
 }
 
@@ -91,18 +89,20 @@ uint32_t PCF8583::getCounter()
 	uint8_t c = readRegister(0x03);
 
 	return uint32_t(
-		       loWord(a) * 1u + hiWord(a) * 10u
-		       + loWord(b) * 100u + hiWord(b) * 1000u
-		       + loWord(c) * 10000u + hiWord(c) * 1000000u);
+		       hiWord(a) * 1u + loWord(a) * 10u
+		       + hiWord(b) * 100u + loWord(b) * 1000u
+		       + hiWord(c) * 10000u + loWord(c) * 1000000u);
 }
 
 void PCF8583::resetCounter()
 {
+	_last_measurement_time = hrt_absolute_time();
 	setRegister(0x01, 0x00);
 	setRegister(0x02, 0x00);
 	setRegister(0x03, 0x00);
 	_count = 0;
-	_last_measurement_time = hrt_absolute_time();
+	_last_reset_time = _last_measurement_time;
+	_reset_count ++;
 }
 
 void PCF8583::setRegister(uint8_t reg, uint8_t value)
@@ -173,4 +173,7 @@ void PCF8583::print_status()
 {
 	I2CSPIDriverBase::print_status();
 	PX4_INFO("poll interval:  %" PRId32 " us", _param_pcf8583_pool.get());
+	PX4_INFO("Last reset %.3fs ago, Count of resets: %d", (double)(hrt_absolute_time() - _last_reset_time) / 1000000.0,
+		 _reset_count);
+	PX4_INFO("Last count %ld", _count);
 }
