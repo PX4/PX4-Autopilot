@@ -347,3 +347,75 @@ void Ekf::updateParameters()
 	_aux_global_position.updateParameters();
 #endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
 }
+
+void Ekf::print_status()
+{
+	printf("Q: (0-3)\n");
+	_state.quat_nominal.print();
+
+	printf("Velocity: (4-6)\n");
+	_state.vel.print();
+
+	printf("Position: (7-9)\n");
+	_state.pos.print();
+
+	printf("Delta Angle Bias: (10-12)\n");
+	_state.delta_ang_bias.print();
+
+	printf("Delta Velocity Bias: (13-15)\n");
+	_state.delta_vel_bias.print();
+
+	printf("Magnetic Field: (16-18)\n");
+	_state.mag_I.print();
+
+	printf("Magnetic Bias: (19-21)\n");
+	_state.mag_B.print();
+
+	printf("Wind: (22-23)\n");
+	_state.wind_vel.print();
+
+	printf("P:\n");
+	P.print();
+
+	printf("IMU average dt: %.6f seconds\n", (double)_dt_imu_avg);
+	printf("EKF average dt: %.6f seconds\n", (double)_dt_ekf_avg);
+
+	printf("IMU buffer: %d (%d Bytes)\n", _imu_buffer.get_length(), _imu_buffer.get_total_size());
+
+	printf("minimum observation interval %d us\n", _min_obs_interval_us);
+
+	if (_gps_buffer) {
+		printf("gps buffer: %d/%d (%d Bytes)\n", _gps_buffer->entries(), _gps_buffer->get_length(), _gps_buffer->get_total_size());
+	}
+
+	if (_mag_buffer) {
+		printf("mag buffer: %d/%d (%d Bytes)\n", _mag_buffer->entries(), _mag_buffer->get_length(), _mag_buffer->get_total_size());
+	}
+
+	if (_baro_buffer) {
+		printf("baro buffer: %d/%d (%d Bytes)\n", _baro_buffer->entries(), _baro_buffer->get_length(), _baro_buffer->get_total_size());
+	}
+
+	if (_range_buffer) {
+		printf("range buffer: %d/%d (%d Bytes)\n", _range_buffer->entries(), _range_buffer->get_length(), _range_buffer->get_total_size());
+	}
+
+	if (_airspeed_buffer) {
+		printf("airspeed buffer: %d/%d (%d Bytes)\n", _airspeed_buffer->entries(), _airspeed_buffer->get_length(), _airspeed_buffer->get_total_size());
+	}
+
+	if (_flow_buffer) {
+		printf("flow buffer: %d/%d (%d Bytes)\n", _flow_buffer->entries(), _flow_buffer->get_length(), _flow_buffer->get_total_size());
+	}
+
+	if (_ext_vision_buffer) {
+		printf("vision buffer: %d/%d (%d Bytes)\n", _ext_vision_buffer->entries(), _ext_vision_buffer->get_length(), _ext_vision_buffer->get_total_size());
+	}
+
+	if (_drag_buffer) {
+		printf("drag buffer: %d/%d (%d Bytes)\n", _drag_buffer->entries(), _drag_buffer->get_length(), _drag_buffer->get_total_size());
+	}
+
+	printf("output buffer: %d/%d (%d Bytes)\n", _output_buffer.entries(), _output_buffer.get_length(), _output_buffer.get_total_size());
+	printf("output vert buffer: %d/%d (%d Bytes)\n", _output_vert_buffer.entries(), _output_vert_buffer.get_length(), _output_vert_buffer.get_total_size());
+}

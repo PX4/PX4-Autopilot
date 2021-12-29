@@ -85,6 +85,8 @@ public:
 	// initialise variables to sane values (also interface class)
 	bool init(uint64_t timestamp) override;
 
+	void print_status();
+
 	// should be called every time new data is pushed into the filter
 	bool update();
 

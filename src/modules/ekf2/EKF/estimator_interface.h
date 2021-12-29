@@ -479,7 +479,7 @@ protected:
 	warning_event_status_u _warning_events{};
 	information_event_status_u _information_events{};
 
-private:
+	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)
 
 #if defined(CONFIG_EKF2_DRAG_FUSION)
 	void setDragData(const imuSample &imu);
@@ -492,7 +492,5 @@ private:
 	void printBufferAllocationFailed(const char *buffer_name);
 
 	ImuDownSampler _imu_down_sampler{_params.filter_update_interval_us};
-
-	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)
 };
 #endif // !EKF_ESTIMATOR_INTERFACE_H

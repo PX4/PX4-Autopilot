@@ -365,13 +365,40 @@ public:
 		}
 	}
 
-	void print() const
+	void print(float eps = 0.00001f) const
 	{
-		// element: tab, point, 8 digits, 4 scientific notation chars; row: newline; string: \0 end
-		static const size_t n = 15 * N * M + M + 1;
-		char string[n];
-		write_string(string, n);
-		printf("%s\n", string);
+		// print column numbering
+		if (N > 1) {
+			printf("  ");
+
+			for (unsigned i = 0; i < N; i++) {
+				printf("|%2u      ", i);
+
+			}
+
+			printf("\n");
+		}
+
+		const Matrix<Type, M, N> &self = *this;
+
+		for (unsigned i = 0; i < M; i++) {
+			printf("%2u|", i); // print row numbering
+
+			for (unsigned j = 0; j < N; j++) {
+				double d = static_cast<double>(self(i, j));
+
+				// avoid -0.0 for display
+				if (fabs(d - 0.0) < (double)eps) {
+					// print fixed width zero
+					printf(" 0       ");
+
+				} else {
+					printf("% 6.5f ", d);
+				}
+			}
+
+			printf("\n");
+		}
 	}
 
 	Matrix<Type, N, M> transpose() const
