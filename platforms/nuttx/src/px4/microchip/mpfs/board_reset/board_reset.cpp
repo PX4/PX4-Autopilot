@@ -41,22 +41,29 @@
 #include <errno.h>
 #include <nuttx/board.h>
 
-static int board_reset_enter_bootloader()
+extern "C" void __reset_vec(void);
+
+static void board_reset_enter_bootloader()
 {
-	return OK;
+	/* Reset the whole SoC */
+
+	up_systemreset();
 }
 
 int board_reset(int status)
 {
-	if (status == 1) {
-		board_reset_enter_bootloader();
-	}
 
 #if defined(BOARD_HAS_ON_RESET)
 	board_on_reset(status);
 #endif
 
-	up_systemreset();
+	if (status == 1) {
+		board_reset_enter_bootloader();
+	}
+
+	/* Just reboot via reset vector */
+
+	__reset_vec();
 
 	return 0;
 }
