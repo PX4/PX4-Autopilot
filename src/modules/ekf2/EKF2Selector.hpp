@@ -120,7 +120,7 @@ private:
 		uORB::Subscription estimator_odometry_sub;
 		uORB::Subscription estimator_wind_sub;
 
-		uint64_t timestamp_sample_last{0};
+		uint64_t timestamp_last{0};
 
 		uint32_t accel_device_id{0};
 		uint32_t gyro_device_id{0};
