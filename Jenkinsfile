@@ -88,7 +88,7 @@ pipeline {
             docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
-            sh 'make distclean'
+            sh 'make distclean; git clean -ff -x -d .'
             sh 'git fetch --all --tags'
             sh 'make airframe_metadata'
             dir('build/px4_sitl_default/docs') {
@@ -98,7 +98,7 @@ pipeline {
           }
           post {
             always {
-              sh 'make distclean'
+              sh 'make distclean; git clean -ff -x -d .'
             }
           }
         }
@@ -108,7 +108,7 @@ pipeline {
             docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
-            sh 'make distclean'
+            sh 'make distclean; git clean -ff -x -d .'
             sh 'git fetch --all --tags'
             sh 'make parameters_metadata'
             dir('build/px4_sitl_default/docs') {
@@ -118,7 +118,7 @@ pipeline {
           }
           post {
             always {
-              sh 'make distclean'
+              sh 'make distclean; git clean -ff -x -d .'
             }
           }
         }
@@ -128,7 +128,7 @@ pipeline {
             docker { image 'px4io/px4-dev-base-focal:2021-08-18' }
           }
           steps {
-            sh 'make distclean'
+            sh 'make distclean; git clean -ff -x -d .'
             sh 'git fetch --all --tags'
             sh 'make module_documentation'
             dir('build/px4_sitl_default/docs') {
@@ -138,7 +138,7 @@ pipeline {
           }
           post {
             always {
-              sh 'make distclean'
+              sh 'make distclean; git clean -ff -x -d .'
             }
           }
         }
@@ -156,7 +156,7 @@ pipeline {
           }
           post {
             always {
-              sh 'make distclean'
+              sh 'make distclean; git clean -ff -x -d .'
             }
           }
         }
@@ -170,7 +170,7 @@ pipeline {
           }
           steps {
             sh 'export'
-            sh 'make distclean'
+            sh 'make distclean; git clean -ff -x -d .'
             sh 'git fetch --all --tags'
             sh 'make uorb_graphs'
             dir('Tools/uorb_graph') {
@@ -180,7 +180,7 @@ pipeline {
           }
           post {
             always {
-              sh 'make distclean'
+              sh 'make distclean; git clean -ff -x -d .'
             }
           }
         }
@@ -261,7 +261,7 @@ pipeline {
           steps {
             sh('export')
             sh('git fetch --all --tags')
-            sh('make distclean')
+            sh('make distclean; git clean -ff -x -d .')
             sh('make px4_sitl_rtps')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/micrortps_agent.git -b ${BRANCH_NAME}")
@@ -290,7 +290,7 @@ pipeline {
           }
           steps {
             sh('export')
-            sh('make distclean')
+            sh('make distclean; git clean -ff -x -d .')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_msgs.git")
               // 'master' branch
@@ -319,7 +319,7 @@ pipeline {
           }
           steps {
             sh('export')
-            sh('make distclean')
+            sh('make distclean; git clean -ff -x -d .')
             withCredentials([usernamePassword(credentialsId: 'px4buildbot_github_personal_token', passwordVariable: 'GIT_PASS', usernameVariable: 'GIT_USER')]) {
               sh("git clone https://${GIT_USER}:${GIT_PASS}@github.com/PX4/px4_ros_com.git -b ${BRANCH_NAME}")
               // deploy uORB RTPS ID map

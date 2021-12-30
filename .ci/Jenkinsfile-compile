@@ -171,7 +171,7 @@ def createBuildNode(Boolean archive, String docker_image, String target) {
             try {
               sh('export')
               checkout(scm)
-              sh('make distclean')
+              sh('make distclean; git clean -ff -x -d .')
               sh('git fetch --tags')
               sh('ccache -s')
               sh('make ' + target)
@@ -188,7 +188,7 @@ def createBuildNode(Boolean archive, String docker_image, String target) {
               throw (exc)
             }
             finally {
-              sh('make distclean')
+              sh('make distclean; git clean -ff -x -d .')
             }
           }
         }
