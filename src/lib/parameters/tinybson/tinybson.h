@@ -256,13 +256,22 @@ __EXPORT void *bson_encoder_buf_data(bson_encoder_t encoder);
 __EXPORT int bson_encoder_append_bool(bson_encoder_t encoder, const char *name, bool value);
 
 /**
- * Append an integer to the encoded stream.
+ * Append an int32 to the encoded stream.
  *
  * @param encoder		Encoder state.
  * @param name			Node name.
  * @param value			Value to be encoded.
  */
-__EXPORT int bson_encoder_append_int(bson_encoder_t encoder, const char *name, int64_t value);
+__EXPORT int bson_encoder_append_int32(bson_encoder_t encoder, const char *name, int32_t value);
+
+/**
+ * Append an int64 to the encoded stream.
+ *
+ * @param encoder		Encoder state.
+ * @param name			Node name.
+ * @param value			Value to be encoded.
+ */
+__EXPORT int bson_encoder_append_int64(bson_encoder_t encoder, const char *name, int64_t value);
 
 /**
  * Append a double to the encoded stream
