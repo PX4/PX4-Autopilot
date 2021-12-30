@@ -1503,7 +1503,7 @@ static int param_export_internal(int fd, param_filter_func filter)
 				const int32_t i = s->val.i;
 				PX4_DEBUG("exporting: %s (%d) size: %lu val: %" PRIi32, name, s->param, (long unsigned int)size, i);
 
-				if (bson_encoder_append_int(&encoder, name, i) != 0) {
+				if (bson_encoder_append_int32(&encoder, name, i) != 0) {
 					PX4_ERR("BSON append failed for '%s'", name);
 					goto out;
 				}
