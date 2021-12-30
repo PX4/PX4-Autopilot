@@ -433,21 +433,9 @@ param_main(int argc, char *argv[])
 static int
 do_save(const char *param_file_name)
 {
-	/* create the file */
-	int fd = open(param_file_name, O_RDWR | O_CREAT, PX4_O_MODE_666);
-
-	if (fd < 0) {
-		PX4_ERR("open '%s' failed (%i)", param_file_name, errno);
-		return 1;
-	}
-
-	int result = param_export(fd, nullptr);
-	close(fd);
+	int result = param_export(param_file_name, nullptr);
 
 	if (result < 0) {
-#ifndef __PX4_QURT
-		(void)unlink(param_file_name);
-#endif
 		PX4_ERR("exporting to '%s' failed (%i)", param_file_name, result);
 		return 1;
 	}
