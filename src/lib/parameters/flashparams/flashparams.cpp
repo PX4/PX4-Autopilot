@@ -143,12 +143,6 @@ out:
 
 		size_t buf_size = bson_encoder_buf_size(&encoder);
 
-		int shutdown_lock_ret = px4_shutdown_lock();
-
-		if (shutdown_lock_ret) {
-			PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
-		}
-
 		/* Get a buffer from the flash driver with enough space */
 
 		uint8_t *buffer;
@@ -177,11 +171,6 @@ out:
 			free(enc_buff);
 			parameter_flashfs_free();
 		}
-
-		if (shutdown_lock_ret == 0) {
-			px4_shutdown_unlock();
-		}
-
 	}
 
 	return result;

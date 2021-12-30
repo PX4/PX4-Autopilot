@@ -59,17 +59,13 @@ FactoryCalibrationStorage::FactoryCalibrationStorage()
 
 int FactoryCalibrationStorage::open()
 {
-	if (_fd >= 0) {
-		cleanup();
-	}
-
 	if (!_enabled) {
 		return 0;
 	}
 
-	_fd = ::open(CALIBRATION_STORAGE, O_RDWR);
+	int ret = ::access(CALIBRATION_STORAGE, R_OK | W_OK);
 
-	if (_fd == -1) {
+	if (ret != 0) {
 		return -errno;
 	}
 
@@ -84,7 +80,7 @@ int FactoryCalibrationStorage::store()
 		return 0;
 	}
 
-	int ret = param_export(_fd, filter_calibration_params);
+	int ret = param_export(CALIBRATION_STORAGE, filter_calibration_params);
 
 	if (ret != 0) {
 		PX4_ERR("param export failed (%i)", ret);
@@ -97,11 +93,6 @@ void FactoryCalibrationStorage::cleanup()
 {
 	if (_enabled) {
 		param_control_autosave(true);
-	}
-
-	if (_fd >= 0) {
-		close(_fd);
-		_fd = -1;
 	}
 }
 
