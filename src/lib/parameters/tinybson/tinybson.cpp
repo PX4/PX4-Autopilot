@@ -381,6 +381,7 @@ write_x(bson_encoder_t encoder, const void *p, size_t s)
 				break;
 
 			} else {
+				PX4_ERR("file write error %d, errno:%d (%s)", ret, errno, strerror(errno));
 				CODER_KILL(encoder, "file write error");
 			}
 		}
