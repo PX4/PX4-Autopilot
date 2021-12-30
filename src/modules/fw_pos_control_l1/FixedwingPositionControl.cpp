@@ -1147,7 +1147,7 @@ FixedwingPositionControl::control_auto_velocity(const hrt_abstime &now, const Ve
 	//Offboard velocity control
 	Vector2f target_velocity{pos_sp_curr.vx, pos_sp_curr.vy};
 	_target_bearing = wrap_pi(atan2f(target_velocity(1), target_velocity(0)));
-	_l1_control.navigate_heading(_target_bearing, _yaw, get_nav_speed_2d(target_velocity));
+	_l1_control.navigate_heading(_target_bearing, _yaw, ground_speed);
 
 	_att_sp.roll_body = _l1_control.get_roll_setpoint();
 	_att_sp.yaw_body = _yaw;
