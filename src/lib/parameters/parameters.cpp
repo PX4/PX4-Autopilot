@@ -1355,7 +1355,13 @@ static int param_verify(int fd)
 		} while (result > 0);
 
 		if (result == 0) {
-			return 0;
+			if (decoder.total_document_size != decoder.total_decoded_size) {
+				PX4_ERR("BSON document size (%" PRId32 ") doesn't match bytes decoded (%" PRId32 ")", decoder.total_document_size,
+					decoder.total_decoded_size);
+
+			} else {
+				return 0;
+			}
 
 		} else if (result == -ENODATA) {
 			PX4_ERR("verify: no BSON data");
@@ -1613,11 +1619,17 @@ param_import_internal(int fd)
 			} while (result > 0);
 
 			if (result == 0) {
-				PX4_INFO("BSON document size %" PRId32 " bytes, decoded %" PRId32 " bytes (INT32:%" PRIu16 ", FLOAT:%" PRIu16 ")",
-					 decoder.total_document_size, decoder.total_decoded_size,
-					 decoder.count_node_int32, decoder.count_node_double);
+				if (decoder.total_document_size == decoder.total_decoded_size) {
+					PX4_INFO("BSON document size %" PRId32 " bytes, decoded %" PRId32 " bytes (INT32:%" PRIu16 ", FLOAT:%" PRIu16 ")",
+						 decoder.total_document_size, decoder.total_decoded_size,
+						 decoder.count_node_int32, decoder.count_node_double);
 
-				return 0;
+					return 0;
+
+				} else {
+					PX4_ERR("BSON document size (%" PRId32 ") doesn't match bytes decoded (%" PRId32 ")",
+						decoder.total_document_size, decoder.total_decoded_size);
+				}
 
 			} else if (result == -ENODATA) {
 				// silently retry as a precaution unless this is our last attempt
