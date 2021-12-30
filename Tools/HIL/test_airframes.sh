@@ -29,9 +29,9 @@ do
 	${DIR}/nsh_param_set.py --device ${SERIAL_DEVICE} --name SYS_AUTOSTART  --value $airframe
 	${DIR}/nsh_param_set.py --device ${SERIAL_DEVICE} --name CBRK_BUZZER    --value 782097
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param reset SYS_HITL'
-	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param dump'
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param status'
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param save'
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param dump'
 
 	${DIR}/reboot.py --device ${SERIAL_DEVICE}
 
