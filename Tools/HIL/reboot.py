@@ -37,14 +37,14 @@ def print_line(line):
         print('{0}'.format(line), end='')
 
 def reboot(port, baudrate):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False)
 
     # clear
-    ser.readlines()
+    ser.reset_input_buffer()
 
     time_start = time.monotonic()
-    ser.write("\nreboot\n".encode("ascii"))
-    ser.flush()
+    ser.write("\n".encode("ascii"))
+    ser.write("reboot\n".encode("ascii"))
     time_reboot_cmd = time_start
 
     timeout_reboot_cmd = 90
@@ -57,8 +57,7 @@ def reboot(port, baudrate):
             time_reboot_cmd = time.monotonic()
             print("sending reboot cmd again")
             ser.write("reboot\n".encode("ascii"))
-            ser.flush()
-            time.sleep(0.2)
+            time.sleep(0.5)
 
         serial_line = ser.readline().decode("ascii", errors='ignore')
 

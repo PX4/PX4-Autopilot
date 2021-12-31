@@ -37,7 +37,7 @@ def print_line(line):
         print('{0}'.format(line), end='')
 
 def monitor_firmware_upload(port, baudrate):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False)
 
     timeout = 180  # 3 minutes
     timeout_start = time.monotonic()

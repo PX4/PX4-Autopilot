@@ -32,7 +32,7 @@ def print_line(line):
     print(line, end='')
 
 def do_param_set_cmd(port, baudrate, param_name, param_value):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.1, xonxoff=True, rtscts=False, dsrdtr=False)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False)
 
     timeout_start = time.monotonic()
     timeout = 30  # 30 seconds
@@ -55,7 +55,7 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
             sys.exit(1)
 
     # clear
-    ser.readlines()
+    ser.reset_input_buffer()
 
     # run command
     timeout_start = time.monotonic()
