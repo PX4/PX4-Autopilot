@@ -1244,12 +1244,17 @@ int param_save_default()
 
 			if (fd_backup_file > -1) {
 				int backup_export_ret = param_export_internal(fd_backup_file, nullptr);
+				::close(fd_backup_file);
 
 				if (backup_export_ret != 0) {
 					PX4_ERR("backup parameter export to %s failed (%d)", param_backup_file, backup_export_ret);
-				}
 
-				::close(fd_backup_file);
+				} else {
+					// verify export
+					int fd_verify = ::open(param_backup_file, O_RDONLY, PX4_O_MODE_666);
+					param_verify(fd_verify);
+					::close(fd_verify);
+				}
 			}
 		}
 	}
