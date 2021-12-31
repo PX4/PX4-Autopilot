@@ -39,7 +39,7 @@ def print_line(line):
         print('{0}'.format(line), end='')
 
 def do_test(port, baudrate, test_name):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=0.2, xonxoff=True, rtscts=False, dsrdtr=False)
+    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False)
 
     timeout_start = time.monotonic()
     timeout = 30  # 30 seconds
@@ -47,7 +47,6 @@ def do_test(port, baudrate, test_name):
     # wait for nsh prompt
     while True:
         ser.write("\n".encode("ascii"))
-        ser.flush()
 
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
@@ -62,7 +61,7 @@ def do_test(port, baudrate, test_name):
             return False
 
     # clear
-    ser.readlines()
+    ser.reset_input_buffer()
 
     success = False
 
