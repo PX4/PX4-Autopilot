@@ -401,32 +401,17 @@ pipeline {
                 }
                 stage("tests") {
                   steps {
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "top once"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb top -1"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "work_queue status"'
-
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_bench"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_bench -v"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_bench -u -v"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sd_stress"'
-
-                    // test dataman
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests dataman"'
-
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests file" || true'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests"'
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests latency_test" || true'
+                    runTests()
                   }
                 }
                 stage("status") {
                   steps {
                     // configure
                     resetParameters()
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 4001" || true'   // generic quadcopter
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set IMU_GYRO_RATEMAX 200" || true' // limit cpu usage
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
-                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
+                    sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "4001"'    // generic quadcopter
+                    sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
                     checkStatus()
+                    quickCalibrate()
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status" || true'
                   }
                 }
