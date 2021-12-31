@@ -859,6 +859,8 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	if (use_tecs_pitch) {
 		_att_sp.pitch_body = get_tecs_pitch();
 	}
+
+	publishLocalPositionSetpoint(current_sp);
 }
 
 void
@@ -1918,17 +1920,16 @@ FixedwingPositionControl::Run()
 		_alt_reset_counter = _local_pos.vz_reset_counter;
 		_pos_reset_counter = _local_pos.vxy_reset_counter;
 
+		// Convert Local setpoints to global setpoints
+		if (!_global_local_proj_ref.isInitialized()
+		    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)) {
+
+			_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
+							     _local_pos.ref_timestamp);
+			_global_local_alt0 = _local_pos.ref_alt;
+		}
 
 		if (_control_mode.flag_control_offboard_enabled) {
-			// Convert Local setpoints to global setpoints
-			if (!_global_local_proj_ref.isInitialized()
-			    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)) {
-
-				_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
-								     _local_pos.ref_timestamp);
-				_global_local_alt0 = _local_pos.ref_alt;
-			}
-
 			vehicle_local_position_setpoint_s trajectory_setpoint;
 
 			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
@@ -2235,6 +2236,22 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 				    _param_climbrate_target.get(), _param_sinkrate_target.get(), hgt_rate_sp);
 
 	tecs_status_publish();
+}
+
+void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpoint_s current_waypoint)
+{
+	if (_global_local_proj_ref.isInitialized()) {
+		Vector2f current_setpoint = _global_local_proj_ref.project(current_waypoint.lat, current_waypoint.lon);
+		vehicle_local_position_setpoint_s local_position_setpoint{};
+		local_position_setpoint.x = current_setpoint(0);
+		local_position_setpoint.y = current_setpoint(1);
+		local_position_setpoint.z = _global_local_alt0 - current_waypoint.alt;
+		local_position_setpoint.thrust[0] = _att_sp.thrust_body[0];
+		local_position_setpoint.thrust[1] = _att_sp.thrust_body[1];
+		local_position_setpoint.thrust[2] = _att_sp.thrust_body[2];
+		local_position_setpoint.timestamp = hrt_absolute_time();
+		_local_pos_sp_pub.publish(local_position_setpoint);
+	}
 }
 
 void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_sp)
