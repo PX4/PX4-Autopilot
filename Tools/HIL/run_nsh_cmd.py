@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 import re
 import sys
 import datetime
+import serial.tools.list_ports as list_ports
 
 COLOR_RED    = "\x1b[31m"
 COLOR_GREEN  = "\x1b[32m"
@@ -46,6 +47,7 @@ def do_nsh_cmd(port, baudrate, cmd):
     # wait for nsh prompt
     while True:
         ser.write("\n".encode("ascii"))
+        ser.flush()
 
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
@@ -126,8 +128,30 @@ def do_nsh_cmd(port, baudrate, cmd):
     ser.close()
 
 def main():
+
+    default_device = None
+    device_required = True
+
+    # select USB UART as default if there's only 1
+    ports = list(serial.tools.list_ports.grep('USB UART'))
+
+    if (len(ports) == 1):
+        default_device = ports[0].device
+        device_required = False
+
+        print("Default USB UART port: {0}".format(ports[0].name))
+        print(" device: {0}".format(ports[0].device))
+        print(" description: \"{0}\" ".format(ports[0].description))
+        print(" hwid: {0}".format(ports[0].hwid))
+        #print(" vid: {0}, pid: {1}".format(ports[0].vid, ports[0].pid))
+        #print(" serial_number: {0}".format(ports[0].serial_number))
+        #print(" location: {0}".format(ports[0].location))
+        print(" manufacturer: {0}".format(ports[0].manufacturer))
+        #print(" product: {0}".format(ports[0].product))
+        #print(" interface: {0}".format(ports[0].interface))
+
     parser = ArgumentParser(description=__doc__)
-    parser.add_argument('--device', "-d", nargs='?', default=None, help='', required=True)
+    parser.add_argument('--device', "-d", nargs='?', default=default_device, help='', required=device_required)
     parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
     parser.add_argument("--cmd", "-c", dest="cmd", help="Command to run")
     args = parser.parse_args()
