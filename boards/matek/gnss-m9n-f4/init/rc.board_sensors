@@ -5,6 +5,8 @@
 
 gps start -d /dev/ttyS3 -p ubx
 
-rm3100 -s start
+icm20602 -s start
 
-dps310 -I start
+rm3100 -b 2 -s start
+
+dps310 -a 118 -X start
