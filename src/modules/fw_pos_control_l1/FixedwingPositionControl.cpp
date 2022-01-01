@@ -864,7 +864,9 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		_att_sp.pitch_body = get_tecs_pitch();
 	}
 
-	publishLocalPositionSetpoint(current_sp);
+	if (!_vehicle_status.in_transition_to_fw) {
+		publishLocalPositionSetpoint(current_sp);
+	}
 }
 
 void
@@ -2322,18 +2324,29 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 	tecs_status_publish();
 }
 
-void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpoint_s current_waypoint)
+void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint)
 {
 	if (_global_local_proj_ref.isInitialized()) {
 		Vector2f current_setpoint = _global_local_proj_ref.project(current_waypoint.lat, current_waypoint.lon);
 		vehicle_local_position_setpoint_s local_position_setpoint{};
+		local_position_setpoint.timestamp = hrt_absolute_time();
 		local_position_setpoint.x = current_setpoint(0);
 		local_position_setpoint.y = current_setpoint(1);
 		local_position_setpoint.z = _global_local_alt0 - current_waypoint.alt;
+		local_position_setpoint.yaw = NAN;
+		local_position_setpoint.yawspeed = NAN;
+		local_position_setpoint.vx = NAN;
+		local_position_setpoint.vy = NAN;
+		local_position_setpoint.vz = NAN;
+		local_position_setpoint.acceleration[0] = NAN;
+		local_position_setpoint.acceleration[1] = NAN;
+		local_position_setpoint.acceleration[2] = NAN;
+		local_position_setpoint.jerk[0] = NAN;
+		local_position_setpoint.jerk[1] = NAN;
+		local_position_setpoint.jerk[2] = NAN;
 		local_position_setpoint.thrust[0] = _att_sp.thrust_body[0];
 		local_position_setpoint.thrust[1] = _att_sp.thrust_body[1];
 		local_position_setpoint.thrust[2] = _att_sp.thrust_body[2];
-		local_position_setpoint.timestamp = hrt_absolute_time();
 		_local_pos_sp_pub.publish(local_position_setpoint);
 	}
 }
