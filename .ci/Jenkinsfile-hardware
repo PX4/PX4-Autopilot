@@ -818,23 +818,6 @@ void runTests() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "microbench all"'
 
   //sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "calib_udelay"'
-
-  // test rebooting multiple times
-  resetParameters()
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 4001" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
-  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CBRK*; param show SYS*"' // check that CBRK_BUZZER and SYS_AUTOSTART haven't been lost
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param dump /fs/microsd/parameters_backup.bson" || true'
 }
 
 void printTopics() {
@@ -955,6 +938,4 @@ void resetBoard() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/blocks" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/mount" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/usage" || true'
-
-  sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
 }
