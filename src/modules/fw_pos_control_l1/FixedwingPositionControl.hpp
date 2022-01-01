@@ -286,7 +286,7 @@ private:
 	void		status_publish();
 	void		landing_status_publish();
 	void		tecs_status_publish();
-	void 		publishLocalPositionSetpoint(const position_setpoint_s current_waypoint);
+	void 		publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 
 	void		abort_landing(bool abort);
 
