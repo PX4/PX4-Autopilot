@@ -50,18 +50,12 @@ static const px4_mft_device_t i2c4 = {             // 24LC64T on IMU   8K 32 X 2
 
 static const px4_mtd_entry_t fmum_fram = {
 	.device = &spi5,
-	.npart = 2,
+	.npart = 1,
 	.partd = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 32
-		},
-		{
-			.type = MTD_WAYPOINTS,
-			.path = "/fs/mtd_waypoints",
-			.nblocks = 32
-
+			.nblocks = 64
 		}
 	},
 };

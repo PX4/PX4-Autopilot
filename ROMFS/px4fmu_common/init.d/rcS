@@ -127,7 +127,7 @@ else
 	#
 	if mft query -q -k MTD -s MTD_PARAMETERS -v /fs/mtd_params
 	then
-		set PARAM_FILE /fs/mtd_params
+		set PARAM_FILE /fs/mtd_params/parameters.bson
 	fi
 
 	#

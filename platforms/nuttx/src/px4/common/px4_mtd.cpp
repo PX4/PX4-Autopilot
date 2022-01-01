@@ -39,6 +39,8 @@
  * @author David Sidrane <david.sidrane@nscdg.com>
  */
 
+#if defined(CONFIG_MTD)
+
 #ifndef MODULE_NAME
 #define MODULE_NAME "PX4_MTD"
 #endif
@@ -57,6 +59,7 @@
 #include <nuttx/drivers/drivers.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/mtd/mtd.h>
+#include <nuttx/fs/fs.h>
 
 extern "C" {
 	struct mtd_dev_s *ramtron_initialize(FAR struct spi_dev_s *dev);
@@ -115,15 +118,6 @@ static int ramtron_attach(mtd_instance_s &instance)
 	if (instance.mtd_dev == nullptr) {
 		PX4_ERR("failed to initialize mtd driver");
 		return -EIO;
-	}
-
-	int ret = instance.mtd_dev->ioctl(instance.mtd_dev, MTDIOC_SETSPEED, (unsigned long)spi_speed_mhz * 1000 * 1000);
-
-	if (ret != OK) {
-		// FIXME: From the previous warning call, it looked like this should have been fatal error instead. Tried
-		// that but setting the bus speed does fail all the time. Which was then exiting and the board would
-		// not run correctly. So changed to PX4_WARN.
-		PX4_WARN("failed to set bus speed");
 	}
 
 	return 0;
@@ -251,18 +245,12 @@ const px4_mft_device_t spifram  = {             // FM25V02A on FMUM 32K 512 X 64
 
 const px4_mtd_entry_t fram = {
 	.device = &spifram,
-	.npart = 2,
+	.npart = 1,
 	.partd = {
 		{
 			.type = MTD_PARAMETERS,
 			.path = "/fs/mtd_params",
-			.nblocks = 32
-		},
-		{
-			.type = MTD_WAYPOINTS,
-			.path = "/fs/mtd_waypoints",
-			.nblocks = 32
-
+			.nblocks = 64
 		}
 	},
 };
@@ -389,26 +377,48 @@ memoryout:
 			}
 
 			/* Initialize to provide an FTL block driver on the MTD FLASH interface */
-
 			snprintf(blockname, sizeof(blockname), "/dev/mtdblock%d", total_blocks);
 
-			rv = ftl_initialize(total_blocks, instances[i].part_dev[part]);
+			printf("blockname: %s, type: %d, name: %s\n", blockname, instances[i].partition_types[part],
+			       instances[i].partition_names[part]);
 
-			if (rv < 0) {
-				PX4_ERR("ftl_initialize %s failed: %d", blockname, rv);
-				goto errout;
+			if (instances[i].partition_types[part] == MTD_PARAMETERS) {
+
+				rv = register_mtddriver(blockname, instances[i].part_dev[part], 0755, nullptr);
+
+				if (rv < 0) {
+					PX4_ERR("register_mtddriver %s failed: %d", blockname, rv);
+					goto errout;
+				}
+
+				// Now create a character device on the block device
+				rv = nx_mount(blockname, instances[i].partition_names[part], "littlefs", 0, "autoformat");
+
+				printf("nx_mount: blockname: %s partition: %s\n", blockname, instances[i].partition_names[part]);
+
+				if (rv < 0) {
+					PX4_ERR("nx_mount %s failed: %d", instances[i].partition_names[part], rv);
+					goto errout;
+				}
+
+			} else {
+				rv = ftl_initialize(total_blocks, instances[i].part_dev[part]);
+
+				if (rv < 0) {
+					PX4_ERR("ftl_initialize %s failed: %d", blockname, rv);
+					goto errout;
+				}
+
+				/* Now create a character device on the block device */
+				rv = bchdev_register(blockname, instances[i].partition_names[part], false);
+
+				if (rv < 0) {
+					PX4_ERR("bchdev_register %s failed: %d", instances[i].partition_names[part], rv);
+					goto errout;
+				}
 			}
 
 			total_blocks++;
-
-			/* Now create a character device on the block device */
-
-			rv = bchdev_register(blockname, instances[i].partition_names[part], false);
-
-			if (rv < 0) {
-				PX4_ERR("bchdev_register %s failed: %d", instances[i].partition_names[part], rv);
-				goto errout;
-			}
 
 			instances[i].n_partitions_current++;
 		}
@@ -470,3 +480,5 @@ __EXPORT int px4_mtd_query(const char *sub, const char *val, const char **get)
 
 	return rv;
 }
+
+#endif // CONFIG_MTD

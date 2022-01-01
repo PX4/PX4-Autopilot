@@ -74,9 +74,12 @@ __EXPORT int px4_mft_configure(const px4_mft_s *mft)
 	if (mft != nullptr) {
 		for (uint32_t m = 0; m < mft->nmft; m++) {
 			switch (mft->mfts[m].type) {
+#if defined(CONFIG_MTD)
+
 			case MTD:
 				px4_mtd_config(static_cast<const px4_mtd_manifest_t *>(mft->mfts[m].pmft));
 				break;
+#endif // CONFIG_MTD
 
 			case MFT:
 			default:
@@ -97,9 +100,12 @@ __EXPORT int px4_mft_query(const px4_mft_s *mft, px4_manifest_types_e type,
 		for (uint32_t m = 0; m < mft->nmft; m++) {
 			if (mft->mfts[m].type == type)
 				switch (type) {
+#if defined(CONFIG_MTD)
+
 				case MTD:
 					return px4_mtd_query(sub, val);
 					break;
+#endif // CONFIG_MTD
 
 				case MFT:
 				default:
