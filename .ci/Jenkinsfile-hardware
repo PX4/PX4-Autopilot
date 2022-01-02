@@ -25,7 +25,7 @@ pipeline {
               }
               post {
                 always {
-                    sh 'make distclean; git clean -ff -x -d .'
+                  sh 'make distclean; git clean -ff -x -d .'
                 }
               }
             } // stage build
@@ -73,8 +73,11 @@ pipeline {
                 }
               }
               post {
+                failure {
+                  sh 'cat /tmp/pyserial_spy_file.txt'
+                }
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf || true'
+                  sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf || true'
                 }
               }
             } // stage test
@@ -99,7 +102,7 @@ pipeline {
               }
               post {
                 always {
-                    sh 'make distclean; git clean -ff -x -d .'
+                  sh 'make distclean; git clean -ff -x -d .'
                 }
               }
             } // stage build
@@ -142,8 +145,11 @@ pipeline {
                 }
               }
               post {
+                failure {
+                  sh 'cat /tmp/pyserial_spy_file.txt'
+                }
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cuav_x7pro_test/cuav_x7pro_test.elf || true'
+                  sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cuav_x7pro_test/cuav_x7pro_test.elf || true'
                 }
               }
             } // stage test
@@ -168,7 +174,7 @@ pipeline {
               }
               post {
                 always {
-                    sh 'make distclean; git clean -ff -x -d .'
+                  sh 'make distclean; git clean -ff -x -d .'
                 }
               }
             } // stage build
@@ -211,8 +217,11 @@ pipeline {
                 }
               }
               post {
+                failure {
+                  sh 'cat /tmp/pyserial_spy_file.txt'
+                }
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf || true'
+                  sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf || true'
                 }
               }
             } // stage test
@@ -237,7 +246,7 @@ pipeline {
               }
               post {
                 always {
-                    sh 'make distclean; git clean -ff -x -d .'
+                  sh 'make distclean; git clean -ff -x -d .'
                 }
               }
             } // stage build
@@ -279,8 +288,11 @@ pipeline {
                 }
               }
               post {
+                failure {
+                  sh 'cat /tmp/pyserial_spy_file.txt'
+                }
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf || true'
+                  sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf || true'
                 }
               }
             } // stage test
@@ -305,7 +317,7 @@ pipeline {
               }
               post {
                 always {
-                    sh 'make distclean; git clean -ff -x -d .'
+                  sh 'make distclean; git clean -ff -x -d .'
                 }
               }
             } // stage build
@@ -348,8 +360,11 @@ pipeline {
                 }
               }
               post {
+                failure {
+                  sh 'cat /tmp/pyserial_spy_file.txt'
+                }
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf || true'
+                  sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf || true'
                 }
               }
             } // stage test
@@ -374,7 +389,7 @@ pipeline {
               }
               post {
                 always {
-                    sh 'make distclean; git clean -ff -x -d .'
+                  sh 'make distclean; git clean -ff -x -d .'
                 }
               }
             } // stage build
@@ -437,8 +452,11 @@ pipeline {
                 }
               }
               post {
+                failure {
+                  sh 'cat /tmp/pyserial_spy_file.txt'
+                }
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf || true'
+                  sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf || true'
                 }
               }
             } // stage test
@@ -463,7 +481,7 @@ pipeline {
               }
               post {
                 always {
-                    sh 'make distclean; git clean -ff -x -d .'
+                  sh 'make distclean; git clean -ff -x -d .'
                 }
               }
             } // stage build
@@ -518,8 +536,11 @@ pipeline {
                 }
               }
               post {
+                failure {
+                  sh 'cat /tmp/pyserial_spy_file.txt'
+                }
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf || true'
+                  sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf || true'
                 }
               }
             } // stage test
@@ -544,7 +565,7 @@ pipeline {
               }
               post {
                 always {
-                    sh 'make distclean; git clean -ff -x -d .'
+                  sh 'make distclean; git clean -ff -x -d .'
                 }
               }
             } // stage build
@@ -587,8 +608,11 @@ pipeline {
                 }
               }
               post {
+                failure {
+                  sh 'cat /tmp/pyserial_spy_file.txt'
+                }
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf || true'
+                  sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf || true'
                 }
               }
             } // stage test
@@ -613,7 +637,7 @@ pipeline {
               }
               post {
                 always {
-                    sh 'make distclean; git clean -ff -x -d .'
+                  sh 'make distclean; git clean -ff -x -d .'
                 }
               }
             } // stage build
@@ -656,8 +680,11 @@ pipeline {
                 }
               }
               post {
+                failure {
+                  sh 'cat /tmp/pyserial_spy_file.txt'
+                }
                 always {
-                    sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf || true'
+                  sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf || true'
                 }
               }
             } // stage test
@@ -723,11 +750,15 @@ void checkStatus() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "logger on"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sleep 1"' // sleep before continuing
   // status commands
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/blocks"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/mount"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/usage"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/meminfo"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/uptime"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander check" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "dataman status"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "df -h"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "df"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ekf2 status"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "free"'
@@ -738,8 +769,11 @@ void checkStatus() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /bin"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /dev"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /etc"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /fs"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /fs/microsd"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /obj"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /proc"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /proc/fs"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mavlink status streams" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mavlink status" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "mount"'
@@ -917,10 +951,6 @@ void printTopics() {
 }
 
 void resetBoard() {
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "df -h" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /fs/" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /fs/microsd" || true'
-
   resetParameters()
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 0" || true'
@@ -930,12 +960,4 @@ void resetBoard() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SDLOG_MODE -1" || true'        // limit cpu usage
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "echo > /fs/microsd/.format" || true'
   sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply
-
-  // check SD card
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "df -h" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /fs/microsd" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /proc/fs" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/blocks" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/mount" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "cat /proc/fs/usage" || true'
 }

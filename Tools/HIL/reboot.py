@@ -8,6 +8,7 @@ import re
 import sys
 import datetime
 import serial.tools.list_ports as list_ports
+import tempfile
 
 COLOR_RED    = "\x1b[31m"
 COLOR_GREEN  = "\x1b[32m"
@@ -38,14 +39,13 @@ def print_line(line):
         print('{0}'.format(line), end='')
 
 
-def reboot(port, baudrate):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False)
-
-    # clear
-    ser.reset_input_buffer()
+def reboot(port_url, baudrate):
+    ser = serial.serial_for_url(url=port_url, baudrate=baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=1)
 
     time_start = time.monotonic()
-    ser.write("\n".encode("ascii"))
+
+    ser.write("\n\n\n".encode("ascii"))
+
     ser.write("reboot\n".encode("ascii"))
     time_reboot_cmd = time_start
 
@@ -55,26 +55,27 @@ def reboot(port, baudrate):
     return_code = 0
 
     while True:
-        if time.monotonic() > time_reboot_cmd + timeout_reboot_cmd:
-            time_reboot_cmd = time.monotonic()
-            print("sending reboot cmd again")
-            ser.write("reboot\n".encode("ascii"))
-            time.sleep(0.5)
-
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
         if len(serial_line) > 0:
+            print_line(serial_line)
+
             if "ERROR" in serial_line:
                 return_code = -1
 
-            print_line(serial_line)
+            if "NuttShell (NSH)" in serial_line:
+                sys.exit(return_code)
 
-        if "NuttShell (NSH)" in serial_line:
-            sys.exit(return_code)
+        else:
+            if time.monotonic() > time_start + timeout:
+                print("Error, timeout")
+                sys.exit(-1)
 
-        if time.monotonic() > time_start + timeout:
-            print("Error, timeout")
-            sys.exit(-1)
+            if time.monotonic() > time_reboot_cmd + timeout_reboot_cmd:
+                time_reboot_cmd = time.monotonic()
+                print("sending reboot cmd again")
+                ser.write("reboot\n".encode("ascii"))
+
 
 def main():
 
