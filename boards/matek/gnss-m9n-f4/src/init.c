@@ -232,14 +232,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		return -ENODEV;
 	}
 
-	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
+	/* SPI1: ICM20602 IMU */
 
-	//SPI_SETFREQUENCY(spi1, 10000000);
-	//SPI_SETBITS(spi1, 8);
-	//SPI_SETMODE(spi1, SPIDEV_MODE3);
+	SPI_SETFREQUENCY(spi1, 10000000);
+	SPI_SETBITS(spi1, 8);
+	SPI_SETMODE(spi1, SPIDEV_MODE3);
 	up_udelay(20);
 
-	/* Get the SPI port for the RM3100 Magnetometer */
+	/* SPI2: RM3100 Magnetometer */
 
 	spi2 = stm32_spibus_initialize(2);
 
@@ -252,7 +252,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	up_udelay(20);
 
 
-	/* Get SPI port 3 */
+	/* SPI3: SD card */
 
 	spi3 = stm32_spibus_initialize(3);
 
@@ -262,10 +262,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		return -ENODEV;
 	}
 
-	/* Copied from fmu-v4
-	 * Default SPI3 to 12MHz and de-assert the known chip selects.
-	 */
-
 	SPI_SETFREQUENCY(spi3, 10 * 1000 * 1000);
 	SPI_SETBITS(spi3, 8);
 	SPI_SETMODE(spi3, SPIDEV_MODE3);
@@ -273,7 +269,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #if defined(FLASH_BASED_PARAMS)
 	static sector_descriptor_t params_sector_map[] = {
-		{2, 32 * 1024, 0x08008000},
+		{1, 16 * 1024, 0x08008000},
+		{2, 16 * 1024, 0x0800C000},
 		{0, 0, 0},
 	};
 

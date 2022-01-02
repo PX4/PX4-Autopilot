@@ -98,6 +98,8 @@
 #define HRT_TIMER                    3 /* use timer 3 as HRT */
 #define HRT_TIMER_CHANNEL            4 /* use capture/compare channel 4 */
 
+#define BOARD_ENABLE_CONSOLE_BUFFER
+
 #define PX4_GPIO_INIT_LIST { \
 		GPIO_I2C1_SCL_RESET,              \
 		GPIO_I2C1_SDA_RESET,              \

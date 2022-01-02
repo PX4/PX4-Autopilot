@@ -75,3 +75,5 @@
 //--------------------------------------------//---------------------------//----------------
 #define DMACHAN_SPI1_RX    DMAMAP_SPI1_RX_1   // DMA2, Stream 0, Channel 3    (SPI1 RX)
 #define DMACHAN_SPI1_TX    DMAMAP_SPI1_TX_1   // DMA2, Stream 3, Channel 3    (SPI1 TX)
+#define DMACHAN_SPI2_RX    DMAMAP_SPI2_RX     // DMA1, Stream 3, Channel 0    (SPI2 RX)
+#define DMACHAN_SPI2_TX    DMAMAP_SPI2_TX     // DMA1, Stream 4, Channel 0    (SPI2 TX)
