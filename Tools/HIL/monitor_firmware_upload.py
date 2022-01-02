@@ -8,6 +8,7 @@ import re
 import sys
 import datetime
 import serial.tools.list_ports as list_ports
+import tempfile
 
 COLOR_RED    = "\x1b[31m"
 COLOR_GREEN  = "\x1b[32m"
@@ -38,8 +39,8 @@ def print_line(line):
         print('{0}'.format(line), end='')
 
 
-def monitor_firmware_upload(port, baudrate):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False)
+def monitor_firmware_upload(port_url, baudrate):
+    ser = serial.serial_for_url(url=port_url, baudrate=baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=1)
 
     timeout = 180  # 3 minutes
     timeout_start = time.monotonic()
@@ -56,20 +57,21 @@ def monitor_firmware_upload(port, baudrate):
 
             print_line(serial_line)
 
-        if "NuttShell (NSH)" in serial_line:
-            sys.exit(return_code)
-        elif "nsh>" in serial_line:
-            sys.exit(return_code)
+            if "NuttShell (NSH)" in serial_line:
+                sys.exit(return_code)
+            elif "nsh>" in serial_line:
+                sys.exit(return_code)
 
-        if time.monotonic() > timeout_start + timeout:
-            print("Error, timeout")
-            sys.exit(-1)
+        else:
+            if time.monotonic() > timeout_start + timeout:
+                print("Error, timeout")
+                sys.exit(-1)
 
-        # newline every 10 seconds if still running
-        if time.monotonic() - timeout_newline > 10:
-            timeout_newline = time.monotonic()
-            ser.write("\n".encode("ascii"))
-            ser.flush()
+            # newline every 10 seconds if still running
+            if (len(serial_line) <= 0) and (time.monotonic() - timeout_newline > 10):
+                timeout_newline = time.monotonic()
+                ser.write("\n".encode("ascii"))
+
 
 def main():
 
@@ -96,10 +98,15 @@ def main():
 
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('--device', "-d", nargs='?', default=default_device, help='', required=device_required)
-    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
+    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="serial port baud rate (default=57600)", default=57600)
     args = parser.parse_args()
 
-    monitor_firmware_upload(args.device, args.baudrate)
+    tmp_file = "{0}/pyserial_spy_file.txt".format(tempfile.gettempdir())
+    port_url = "spy://{0}?file={1}".format(args.device, tmp_file)
+
+    print("pyserial url: {0}".format(port_url))
+
+    monitor_firmware_upload(port_url, args.baudrate)
 
 if __name__ == "__main__":
    main()

@@ -8,6 +8,7 @@ import re
 import sys
 import datetime
 import serial.tools.list_ports as list_ports
+import tempfile
 
 COLOR_RED    = "\x1b[31m"
 COLOR_GREEN  = "\x1b[32m"
@@ -38,28 +39,28 @@ def print_line(line):
         print('{0}'.format(line), end='')
 
 
-def do_param_set_cmd(port, baudrate, param_name, param_value):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False)
+def do_param_set_cmd(port_url, baudrate, param_name, param_value):
+    ser = serial.serial_for_url(url=port_url, baudrate=baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=1)
 
     timeout_start = time.monotonic()
     timeout = 30  # 30 seconds
 
+    ser.write("\n\n\n".encode("ascii"))
+
     # wait for nsh prompt
     while True:
-        ser.write("\n".encode("ascii"))
-        ser.flush()
-
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
-        if "nsh>" in serial_line:
-            break
+        if len(serial_line) > 0:
+            if "nsh>" in serial_line:
+                break
         else:
-            if len(serial_line) > 0:
-                print_line(serial_line)
+            if time.monotonic() > timeout_start + timeout:
+                print("Error, timeout waiting for prompt")
+                sys.exit(1)
 
-        if time.monotonic() > timeout_start + timeout:
-            print("Error, timeout waiting for prompt")
-            sys.exit(1)
+            ser.write("\n".encode("ascii"))
+
 
     # clear
     ser.reset_input_buffer()
@@ -72,28 +73,32 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
 
     # write command (param set) and wait for command echo
     print("Running command: \'{0}\'".format(cmd))
-    serial_cmd = '{0}\r\n'.format(cmd)
+    serial_cmd = '{0}\n'.format(cmd)
+
     ser.write(serial_cmd.encode("ascii"))
-    ser.flush()
+
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
-        if cmd in serial_line:
-            print_line(serial_line)
-            break
-        else:
-            if len(serial_line) > 0:
-                print_line(serial_line)
+        if len(serial_line) > 0:
+            if cmd in serial_line:
+                break
 
-        if time.monotonic() > timeout_start + timeout:
-            print("Error, timeout waiting for command echo")
-            break
+            print_line(serial_line)
+
+        else:
+            if time.monotonic() > timeout_start + timeout:
+                print("Error, timeout waiting for command echo")
+                break
+
+    # clear
+    ser.reset_input_buffer()
 
     # verify param value
     cmd = "param show " + param_name
-    serial_cmd = '{0}\r\n'.format(cmd)
+    print("Running command: \'{0}\'".format(cmd))
+    serial_cmd = '{0}\n'.format(cmd)
     ser.write(serial_cmd.encode("ascii"))
-    ser.flush()
 
     param_show_response = param_name + " ["
 
@@ -103,34 +108,27 @@ def do_param_set_cmd(port, baudrate, param_name, param_value):
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
-        if param_show_response in serial_line:
+        if len(serial_line) > 0:
             print_line(serial_line)
-            current_param_value = serial_line.split(":")[-1].strip()
 
-            if (current_param_value == param_value):
-                sys.exit(0)
+            if param_show_response in serial_line:
+                current_param_value = serial_line.split(":")[-1].strip()
+
+                if (current_param_value == param_value):
+                    sys.exit(0)
+                else:
+                    sys.exit(1)
             else:
-                sys.exit(1)
+                if time.monotonic() > timeout_start + timeout:
+                    if "nsh>" in serial_line:
+                        sys.exit(1) # error, command didn't complete successfully
+                    elif "NuttShell (NSH)" in serial_line:
+                        sys.exit(1) # error, command didn't complete successfully
         else:
-            if len(serial_line) > 0:
-                print_line(serial_line)
-
             if time.monotonic() > timeout_start + timeout:
-                if "nsh>" in serial_line:
-                    sys.exit(1) # error, command didn't complete successfully
-                elif "NuttShell (NSH)" in serial_line:
-                    sys.exit(1) # error, command didn't complete successfully
+                print("Error, timeout")
+                sys.exit(-1)
 
-        if time.monotonic() > timeout_start + timeout:
-            print("Error, timeout")
-            sys.exit(-1)
-
-        if len(serial_line) <= 0:
-            ser.write("\r\n".encode("ascii"))
-            ser.flush()
-            time.sleep(0.2)
-
-    ser.close()
 
 def main():
 
@@ -157,12 +155,17 @@ def main():
 
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('--device', "-d", nargs='?', default=default_device, help='', required=device_required)
-    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
+    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="serial port baud rate (default=57600)", default=57600)
     parser.add_argument("--name", "-p", dest="param_name", help="Parameter name")
     parser.add_argument("--value", "-v", dest="param_value", help="Parameter value")
     args = parser.parse_args()
 
-    do_param_set_cmd(args.device, args.baudrate, args.param_name, args.param_value)
+    tmp_file = "{0}/pyserial_spy_file.txt".format(tempfile.gettempdir())
+    port_url = "spy://{0}?file={1}".format(args.device, tmp_file)
+
+    print("pyserial url: {0}".format(port_url))
+
+    do_param_set_cmd(port_url, args.baudrate, args.param_name, args.param_value)
 
 if __name__ == "__main__":
    main()
