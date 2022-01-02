@@ -52,8 +52,6 @@ def monitor_firmware_upload(port_url, baudrate):
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
         if len(serial_line) > 0:
-            if "ERROR" in serial_line:
-                return_code = -1
 
             print_line(serial_line)
 
