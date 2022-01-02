@@ -8,6 +8,7 @@ import re
 import sys
 import datetime
 import serial.tools.list_ports as list_ports
+import tempfile
 
 COLOR_RED    = "\x1b[31m"
 COLOR_GREEN  = "\x1b[32m"
@@ -38,59 +39,59 @@ def print_line(line):
         print('{0}'.format(line), end='')
 
 
-def do_nsh_cmd(port, baudrate, cmd):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False)
+def do_nsh_cmd(port_url, baudrate, cmd):
+    ser = serial.serial_for_url(url=port_url, baudrate=baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=1)
 
     timeout_start = time.monotonic()
     timeout = 30  # 30 seconds
 
+    ser.write("\n\n\n".encode("ascii"))
+
     # wait for nsh prompt
     while True:
-        ser.write("\n".encode("ascii"))
-        ser.flush()
-
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
-        if "nsh>" in serial_line:
-            break
+        if len(serial_line) > 0:
+            if "nsh>" in serial_line:
+                break
         else:
-            if len(serial_line) > 0:
-                print_line(serial_line)
+            if time.monotonic() > timeout_start + timeout:
+                print("Error, timeout waiting for prompt")
+                sys.exit(1)
 
-        if time.monotonic() > timeout_start + timeout:
-            print("Error, timeout waiting for prompt")
-            sys.exit(1)
+            ser.write("\n".encode("ascii"))
+
 
     # clear
     ser.reset_input_buffer()
 
     # run command
     timeout_start = time.monotonic()
-    timeout = 1  # 1 second
+    timeout = 5  # 5 seconds
 
     success_cmd = "cmd succeeded!"
 
     # wait for command echo
     print("Running command: \'{0}\'".format(cmd))
-    serial_cmd = '{0}; echo "{1}"; echo "{2}";\r\n'.format(cmd, success_cmd, success_cmd)
+    serial_cmd = '{0}; echo "{1}"; echo "{2}";\n'.format(cmd, success_cmd, success_cmd)
     ser.write(serial_cmd.encode("ascii"))
-    ser.flush()
+
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
-        if cmd in serial_line:
-            break
-        elif serial_line.startswith(success_cmd) and len(serial_line) <= len(success_cmd) + 2:
-            print_line(serial_line)
-            # we missed the echo, but command ran and succeeded
-            sys.exit(0)
-        else:
-            if len(serial_line) > 0:
+        if len(serial_line) > 0:
+            if cmd in serial_line:
+                break
+            elif serial_line.startswith(success_cmd) and len(serial_line) <= len(success_cmd) + 2:
                 print_line(serial_line)
-
-        if (len(serial_line) <= 0) and (time.monotonic() > timeout_start + timeout):
-            print("Error, timeout waiting for command echo")
-            break
+                # we missed the echo, but command ran and succeeded
+                sys.exit(0)
+            else:
+                print_line(serial_line)
+        else:
+            if time.monotonic() > timeout_start + timeout:
+                print("Error, timeout waiting for command echo")
+                break
 
 
     timeout_start = time.monotonic()
@@ -101,31 +102,24 @@ def do_nsh_cmd(port, baudrate, cmd):
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
-        if success_cmd in serial_line:
-            sys.exit(return_code)
-            break
-        else:
-            if len(serial_line) > 0:
+        if len(serial_line) > 0:
+            if success_cmd in serial_line:
+                sys.exit(return_code)
+            else:
                 if "ERROR " in serial_line:
                     return_code = -1
 
                 print_line(serial_line)
 
-            if "nsh>" in serial_line:
-                sys.exit(1) # error, command didn't complete successfully
-            elif "NuttShell (NSH)" in serial_line:
-                sys.exit(1) # error, command didn't complete successfully
+                if "nsh>" in serial_line:
+                    sys.exit(1) # error, command didn't complete successfully
+                elif "NuttShell (NSH)" in serial_line:
+                    sys.exit(1) # error, command didn't complete successfully
+        else:
+            if time.monotonic() > timeout_start + timeout:
+                print("Error, timeout")
+                sys.exit(-1)
 
-        if (len(serial_line) <= 0) and (time.monotonic() > timeout_start + timeout):
-            print("Error, timeout")
-            sys.exit(-1)
-
-        if len(serial_line) <= 0:
-            ser.write("\r\n".encode("ascii"))
-            ser.flush()
-            time.sleep(0.2)
-
-    ser.close()
 
 def main():
 
@@ -152,11 +146,16 @@ def main():
 
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('--device', "-d", nargs='?', default=default_device, help='', required=device_required)
-    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
+    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="serial port baud rate (default=57600)", default=57600)
     parser.add_argument("--cmd", "-c", dest="cmd", help="Command to run")
     args = parser.parse_args()
 
-    do_nsh_cmd(args.device, args.baudrate, args.cmd)
+    tmp_file = "{0}/pyserial_spy_file.txt".format(tempfile.gettempdir())
+    port_url = "spy://{0}?file={1}".format(args.device, tmp_file)
+
+    print("pyserial url: {0}".format(port_url))
+
+    do_nsh_cmd(port_url, args.baudrate, args.cmd)
 
 if __name__ == "__main__":
    main()

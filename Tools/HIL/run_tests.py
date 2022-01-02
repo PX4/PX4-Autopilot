@@ -10,6 +10,8 @@ import os
 import sys
 import datetime
 import serial.tools.list_ports as list_ports
+import tempfile
+import warnings
 
 COLOR_RED    = "\x1b[31m"
 COLOR_GREEN  = "\x1b[32m"
@@ -40,33 +42,35 @@ def print_line(line):
         print('{0}'.format(line), end='')
 
 
-def do_test(port, baudrate, test_name):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=False, rtscts=False, dsrdtr=False)
+def do_test(port_url, baudrate, test_name):
+
+    # ignore pyserial spy:// resource warnings
+    warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
+
+    ser = serial.serial_for_url(url=port_url, baudrate=baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=1)
 
     timeout_start = time.monotonic()
     timeout = 30  # 30 seconds
 
+    ser.write("\n\n\n".encode("ascii"))
+
     # wait for nsh prompt
     while True:
-        ser.write("\n".encode("ascii"))
-        ser.flush()
-
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
-        if "nsh>" in serial_line:
-            break
+        if len(serial_line) > 0:
+            if "nsh>" in serial_line:
+                break
         else:
-            if len(serial_line) > 0:
-                print(serial_line, end='')
+            if time.monotonic() > timeout_start + timeout:
+                print("Error, timeout waiting for prompt")
+                return False
 
-        if time.monotonic() > timeout_start + timeout:
-            print("Error, timeout waiting for prompt")
-            return False
+            ser.write("\n".encode("ascii"))
+
 
     # clear
     ser.reset_input_buffer()
-
-    success = False
 
     # run test cmd
     print('\n|======================================================================')
@@ -81,20 +85,17 @@ def do_test(port, baudrate, test_name):
     print("Running command: \'{0}\'".format(cmd))
     serial_cmd = '{0}\n'.format(cmd)
     ser.write(serial_cmd.encode("ascii"))
-    ser.flush()
+
     while True:
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
-        if cmd in serial_line:
-            break
+        if len(serial_line) > 0:
+            if cmd in serial_line:
+                break
         else:
-            if len(serial_line) > 0:
-                print_line(serial_line)
-
-        if time.monotonic() > timeout_start + timeout:
-            print("Error, timeout waiting for command echo")
-            break
-
+            if time.monotonic() > timeout_start + timeout:
+                print("Error, timeout waiting for command echo")
+                break
 
     # print results, wait for final result (PASSED or FAILED)
     timeout = 300  # 5 minutes
@@ -107,27 +108,26 @@ def do_test(port, baudrate, test_name):
         if len(serial_line) > 0:
             print_line(serial_line)
 
-        if test_name + " PASSED" in serial_line:
-            success = True
-            break
-        elif test_name + " FAILED" in serial_line:
-            success = False
-            break
+            if test_name + " PASSED" in serial_line:
+                ser.close()
+                return True
+            elif test_name + " FAILED" in serial_line:
+                ser.close()
+                return False
+        else:
+            if time.monotonic() > timeout_start + timeout:
+                print("Error, timeout")
+                print(test_name + f" {COLOR_RED}FAILED{COLOR_RESET}")
+                ser.close()
+                return False
 
-        if time.monotonic() > timeout_start + timeout:
-            print("Error, timeout")
-            print(test_name + f" {COLOR_RED}FAILED{COLOR_RESET}")
-            success = False
-            break
-
-        # newline every 10 seconds if still running
-        if (len(serial_line) <= 0) and (time.monotonic() - timeout_newline > 10):
-            ser.write("\n".encode("ascii"))
-            timeout_newline = time.monotonic()
+            # newline every 30 seconds if still running
+            if time.monotonic() - timeout_newline > 30:
+                ser.write("\n".encode("ascii"))
+                timeout_newline = time.monotonic()
 
     ser.close()
-
-    return success
+    return False
 
 class TestHardwareMethods(unittest.TestCase):
     TEST_DEVICE = 0
@@ -233,10 +233,15 @@ def main():
 
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('--device', "-d", nargs='?', default=default_device, help='', required=device_required)
-    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
+    parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="serial port baud rate (default=57600)", default=57600)
     args = parser.parse_args()
 
-    TestHardwareMethods.TEST_DEVICE = args.device
+    tmp_file = "{0}/pyserial_spy_file.txt".format(tempfile.gettempdir())
+    port_url = "spy://{0}?file={1}".format(args.device, tmp_file)
+
+    print("pyserial url: {0}".format(port_url))
+
+    TestHardwareMethods.TEST_DEVICE = port_url
     TestHardwareMethods.TEST_BAUDRATE = args.baudrate
 
     unittest.main(__name__, failfast=True, verbosity=0, argv=['main'])
