@@ -123,15 +123,11 @@ $ pwm test -c 13 -p 1200
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("min", "Set Minimum PWM value");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("max", "Set Maximum PWM value");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Set Output to a specific value until 'q' or 'c' or 'ctrl-c' pressed");
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("steps", "Run 5 steps from 0 to 100%");
-
-
-	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'min', 'max' and 'test' require a PWM value:");
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'min' and 'max' require a PWM value:");
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 4000, "PWM value (eg. 1100)", false);
 
-	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'rate', 'oneshot', 'min', 'max', 'test' and 'steps' "
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'rate', 'oneshot', 'min', 'max' "
 					 "additionally require to specify the channels with one of the following commands:");
 	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, nullptr, "select channels in the form: 1234 (1 digit per channel, 1=first)",
 					true);
@@ -159,7 +155,7 @@ pwm_main(int argc, char *argv[])
 	bool oneshot = false;
 	int ch;
 	int ret;
-	int rv = 1;
+
 	char *ep;
 	uint32_t set_mask = 0;
 	unsigned group;
@@ -496,237 +492,6 @@ pwm_main(int argc, char *argv[])
 		}
 
 		return 0;
-
-	} else if (!strcmp(command, "test")) {
-
-		if (set_mask == 0) {
-			usage("no channels set");
-			return 1;
-		}
-
-		if (pwm_value == 0) {
-			usage("no PWM provided");
-			return 1;
-		}
-
-		/* get current servo values */
-		struct pwm_output_values last_spos;
-
-		for (unsigned i = 0; i < servo_count; i++) {
-
-
-			ret = px4_ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&last_spos.values[i]);
-
-			if (ret != OK) {
-				PX4_ERR("PWM_SERVO_GET(%d)", i);
-				return 1;
-			}
-		}
-
-		/* perform PWM output */
-
-		/* Open console directly to grab CTRL-C signal */
-		struct pollfd fds;
-		fds.fd = 0; /* stdin */
-		fds.events = POLLIN;
-
-		if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
-				PX4_ERR("Failed to Enter pwm test mode");
-				goto err_out_no_test;
-		}
-
-		PX4_INFO("Press CTRL-C or 'c' to abort.");
-
-		while (1) {
-			for (unsigned i = 0; i < servo_count; i++) {
-				if (set_mask & 1 << i) {
-					ret = px4_ioctl(fd, PWM_SERVO_SET(i), pwm_value);
-
-					if (ret != OK) {
-						PX4_ERR("PWM_SERVO_SET(%d)", i);
-						goto err_out;
-					}
-				}
-			}
-
-			/* abort on user request */
-			char c;
-			ret = poll(&fds, 1, 0);
-
-			if (ret > 0) {
-
-				ret = read(0, &c, 1);
-
-				if (c == 0x03 || c == 0x63 || c == 'q') {
-					/* reset output to the last value */
-					for (unsigned i = 0; i < servo_count; i++) {
-						if (set_mask & 1 << i) {
-							ret = px4_ioctl(fd, PWM_SERVO_SET(i), last_spos.values[i]);
-
-							if (ret != OK) {
-								PX4_ERR("PWM_SERVO_SET(%d)", i);
-								goto err_out;
-							}
-						}
-					}
-
-					PX4_INFO("User abort\n");
-					rv = 0;
-					goto err_out;
-				}
-			}
-
-			/* Delay longer than the max Oneshot duration */
-
-			px4_usleep(2542);
-
-#ifdef __PX4_NUTTX
-			/* Trigger all timer's channels in Oneshot mode to fire
-			 * the oneshots with updated values.
-			 */
-
-			up_pwm_update(0xff);
-#endif
-		}
-		rv = 0;
-err_out:
-			if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_EXIT_TEST_MODE) < 0) {
-					rv = 1;
-					PX4_ERR("Failed to Exit pwm test mode");
-			}
-
-err_out_no_test:
-		return rv;
-
-
-	} else if (!strcmp(command, "steps")) {
-
-		if (set_mask == 0) {
-			usage("no channels set");
-			return 1;
-		}
-
-		/* get current servo values */
-		struct pwm_output_values last_spos;
-
-		for (unsigned i = 0; i < servo_count; i++) {
-
-			ret = px4_ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&last_spos.values[i]);
-
-			if (ret != OK) {
-				PX4_ERR("PWM_SERVO_GET(%d)", i);
-				return 1;
-			}
-		}
-
-		/* perform PWM output */
-
-		/* Open console directly to grab CTRL-C signal */
-		struct pollfd fds;
-		fds.fd = 0; /* stdin */
-		fds.events = POLLIN;
-
-		PX4_WARN("Running 5 steps. WARNING! Motors will be live in 5 seconds\nPress any key to abort now.");
-		px4_sleep(5);
-
-		if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
-				PX4_ERR("Failed to Enter pwm test mode");
-				goto err_out_no_test;
-		}
-
-		unsigned off = 900;
-		unsigned idle = 1300;
-		unsigned full = 2000;
-		unsigned steps_timings_us[] = {2000, 5000, 20000, 50000};
-
-		unsigned phase = 0;
-		unsigned phase_counter = 0;
-		unsigned const phase_maxcount = 20;
-
-		for (unsigned steps_timing_index = 0;
-		     steps_timing_index < sizeof(steps_timings_us) / sizeof(steps_timings_us[0]);
-		     steps_timing_index++) {
-
-			PX4_INFO("Step input (0 to 100%%) over %u us ramp", steps_timings_us[steps_timing_index]);
-
-			while (1) {
-				for (unsigned i = 0; i < servo_count; i++) {
-					if (set_mask & 1 << i) {
-
-						unsigned val;
-
-						if (phase == 0) {
-							val = idle;
-
-						} else if (phase == 1) {
-							/* ramp - depending how steep it is this ramp will look instantaneous on the output */
-							val = idle + (full - idle) * ((float)phase_counter / phase_maxcount);
-
-						} else {
-							val = off;
-						}
-
-						ret = px4_ioctl(fd, PWM_SERVO_SET(i), val);
-
-						if (ret != OK) {
-							PX4_ERR("PWM_SERVO_SET(%d)", i);
-							goto err_out;
-						}
-					}
-				}
-
-				/* abort on user request */
-				char c;
-				ret = poll(&fds, 1, 0);
-
-				if (ret > 0) {
-
-					ret = read(0, &c, 1);
-
-					if (ret > 0) {
-						/* reset output to the last value */
-						for (unsigned i = 0; i < servo_count; i++) {
-							if (set_mask & 1 << i) {
-								ret = px4_ioctl(fd, PWM_SERVO_SET(i), last_spos.values[i]);
-
-								if (ret != OK) {
-									PX4_ERR("PWM_SERVO_SET(%d)", i);
-									goto err_out;
-								}
-							}
-						}
-
-						PX4_INFO("User abort\n");
-						rv = 0;
-						goto err_out;
-					}
-				}
-
-				if (phase == 1) {
-					px4_usleep(steps_timings_us[steps_timing_index] / phase_maxcount);
-
-				} else if (phase == 0) {
-					px4_usleep(50000);
-
-				} else if (phase == 2) {
-					px4_usleep(50000);
-
-				} else {
-					break;
-				}
-
-				phase_counter++;
-
-				if (phase_counter > phase_maxcount) {
-					phase++;
-					phase_counter = 0;
-				}
-			}
-		}
-
-		rv = 0;
-		goto err_out;
-
 
 	} else if (!strcmp(command, "status") || !strcmp(command, "info")) {
 
