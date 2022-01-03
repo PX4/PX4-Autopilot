@@ -1656,10 +1656,8 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 			pwm->channel_count = _max_actuators;
 
-			ret = io_reg_get(PX4IO_PAGE_FAILSAFE_PWM, 0, pwm->values, _max_actuators);
-
-			if (ret != OK) {
-				ret = -EIO;
+			for (unsigned i = 0; i < _max_actuators; i++) {
+				pwm->values[i] = _mixing_output.failsafeValue(i);
 			}
 
 			break;
