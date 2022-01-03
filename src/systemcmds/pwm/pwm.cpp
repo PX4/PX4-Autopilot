@@ -765,8 +765,6 @@ err_out_no_test:
 
 		struct pwm_output_values max_pwm;
 
-		struct pwm_output_values trim_pwm;
-
 		ret = px4_ioctl(fd, PWM_SERVO_GET_FAILSAFE_PWM, (unsigned long)&failsafe_pwm);
 
 		if (ret != OK) {
@@ -795,13 +793,6 @@ err_out_no_test:
 			return 1;
 		}
 
-		ret = px4_ioctl(fd, PWM_SERVO_GET_TRIM_PWM, (unsigned long)&trim_pwm);
-
-		if (ret != OK) {
-			PX4_ERR("PWM_SERVO_GET_TRIM_PWM");
-			return 1;
-		}
-
 		/* print current servo values */
 		for (unsigned i = 0; i < servo_count; i++) {
 			servo_position_t spos;
@@ -819,9 +810,8 @@ err_out_no_test:
 				}
 
 
-				printf(" failsafe: %d, disarmed: %" PRIu16 " us, min: %" PRIu16 " us, max: %" PRIu16 " us, trim: %5.2f)",
-				       failsafe_pwm.values[i], disarmed_pwm.values[i], min_pwm.values[i], max_pwm.values[i],
-				       (double)((int16_t)(trim_pwm.values[i]) / 10000.0f));
+				printf(" failsafe: %d, disarmed: %" PRIu16 " us, min: %" PRIu16 " us, max: %" PRIu16 " us)",
+				       failsafe_pwm.values[i], disarmed_pwm.values[i], min_pwm.values[i], max_pwm.values[i]);
 				printf("\n");
 
 			} else {

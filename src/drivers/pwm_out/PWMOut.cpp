@@ -855,20 +855,6 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 		break;
 
-	case PWM_SERVO_GET_TRIM_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			if (_mixing_output.mixers() == nullptr) {
-				memset(pwm, 0, sizeof(pwm_output_values));
-				PX4_WARN("warning: trim values not valid - no mixer loaded");
-
-			} else {
-
-				pwm->channel_count = _mixing_output.mixers()->get_trims((int16_t *)pwm->values);
-			}
-		}
-		break;
-
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
 
 	case PWM_SERVO_SET(13):

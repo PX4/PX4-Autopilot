@@ -1735,22 +1735,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 		break;
 
-	case PWM_SERVO_GET_TRIM_PWM: {
-			PX4_DEBUG("PWM_SERVO_GET_TRIM_PWM");
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-			pwm->channel_count = _max_actuators;
-
-			if (_mixing_output.mixers() == nullptr) {
-				memset(pwm, 0, sizeof(pwm_output_values));
-				PX4_WARN("warning: trim values not valid - no mixer loaded");
-
-			} else {
-				pwm->channel_count = _mixing_output.mixers()->get_trims((int16_t *)pwm->values);
-			}
-
-			break;
-		}
-
 	case PWM_SERVO_GET_COUNT:
 		PX4_DEBUG("PWM_SERVO_GET_COUNT");
 		*(unsigned *)arg = _max_actuators;
