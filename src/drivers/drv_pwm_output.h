@@ -194,11 +194,6 @@ typedef uint16_t	servo_position_t;
 /** force safety switch on (to enable use of safety switch) */
 #define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 28)
 
-/** set auxillary output mode */
-#define PWM_SERVO_ENTER_TEST_MODE  18
-#define PWM_SERVO_EXIT_TEST_MODE   19
-#define PWM_SERVO_SET_MODE         _PX4_IOC(_PWM_SERVO_BASE, 34)
-
 /*
  *
  *
@@ -206,9 +201,6 @@ typedef uint16_t	servo_position_t;
  *
  *
  */
-
-/** set a single servo to a specific value */
-#define PWM_SERVO_SET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x30 + _servo)
 
 /** get a single specific servo value */
 #define PWM_SERVO_GET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x50 + _servo)
