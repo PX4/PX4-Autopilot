@@ -54,19 +54,8 @@
  ****************************************************************************************************/
 
 /* PX4IO connection configuration */
-
 #define BOARD_USES_PX4IO_VERSION       2
 #define PX4IO_SERIAL_DEVICE            "/dev/ttyS6"
-#define PX4IO_SERIAL_TX_GPIO           GPIO_UART8_TX
-#define PX4IO_SERIAL_RX_GPIO           GPIO_UART8_RX
-#define PX4IO_SERIAL_BASE              STM32_UART8_BASE
-#define PX4IO_SERIAL_VECTOR            STM32_IRQ_UART8
-#define PX4IO_SERIAL_TX_DMAMAP         DMAMAP_UART8_TX
-#define PX4IO_SERIAL_RX_DMAMAP         DMAMAP_UART8_RX
-#define PX4IO_SERIAL_RCC_REG           STM32_RCC_APB1ENR
-#define PX4IO_SERIAL_RCC_EN            RCC_APB1ENR_UART8EN
-#define PX4IO_SERIAL_CLOCK             STM32_PCLK1_FREQUENCY
-#define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
 
 /* Configuration ************************************************************************************/
 

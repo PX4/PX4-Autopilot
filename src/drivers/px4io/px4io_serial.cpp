@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,20 +37,15 @@
  * Serial interface for PX4IO
  */
 
-#include "px4io_driver.h"
+#include "px4io_serial.h"
 
-#include <px4_arch/px4io_serial.h>
+#include <termios.h>
+
+uint8_t PX4IO_serial::_io_buffer_storage[sizeof(IOPacket)];
 
 static PX4IO_serial *g_interface;
 
-device::Device
-*PX4IO_serial_interface()
-{
-	return new ArchPX4IOSerial();
-}
-
 PX4IO_serial::PX4IO_serial() :
-	Device("PX4IO_serial"),
 	_pc_txns(perf_alloc(PC_ELAPSED, MODULE_NAME": txns")),
 	_pc_retries(perf_alloc(PC_COUNT, MODULE_NAME": retries")),
 	_pc_timeouts(perf_alloc(PC_COUNT, MODULE_NAME": timeouts")),
@@ -81,15 +76,88 @@ PX4IO_serial::~PX4IO_serial()
 	if (g_interface == this) {
 		g_interface = nullptr;
 	}
+
+	close(_uart_fd);
 }
 
-int
-PX4IO_serial::init(IOPacket *io_buffer)
+int PX4IO_serial::init()
 {
-	_io_buffer_ptr = io_buffer;
+	_io_buffer_ptr = (IOPacket *)&_io_buffer_storage[0];
+
 	/* create semaphores */
 	// in case the sub-class impl fails, the semaphore is cleaned up by destructor.
 	px4_sem_init(&_bus_semaphore, 0, 1);
+
+	if (_uart_fd < 0) {
+		_uart_fd = open(PX4IO_SERIAL_DEVICE, O_RDWR | O_NONBLOCK);
+	}
+
+	if (_uart_fd < 0) {
+		PX4_ERR("Open failed in %s", __FUNCTION__);
+		return -1;
+
+	} else {
+		PX4_INFO("serial port fd %d", _uart_fd);
+	}
+
+	// Configuration copied from dsm_config
+	struct termios uart_config;
+
+	int termios_state;
+
+	/* fill the struct for the new configuration */
+	tcgetattr(_uart_fd, &uart_config);
+
+	/* properly configure the terminal (see also https://en.wikibooks.org/wiki/Serial_Programming/termios ) */
+
+	//
+	// Input flags - Turn off input processing
+	//
+	// convert break to null byte, no CR to NL translation,
+	// no NL to CR translation, don't mark parity errors or breaks
+	// no input parity check, don't strip high bit off,
+	// no XON/XOFF software flow control
+	//
+	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+
+	//
+	// Output flags - Turn off output processing
+	//
+	// no CR to NL translation, no NL to CR-NL translation,
+	// no NL to CR translation, no column 0 CR suppression,
+	// no Ctrl-D suppression, no fill characters, no case mapping,
+	// no local output processing
+	//
+	// config.c_oflag &= ~(OCRNL | ONLCR | ONLRET |
+	//                     ONOCR | ONOEOT| OFILL | OLCUC | OPOST);
+	uart_config.c_oflag = 0;
+
+	//
+	// No line processing
+	//
+	// echo off, echo newline off, canonical mode off,
+	// extended input processing off, signal chars off
+	//
+	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+
+	/* no parity, one stop bit, disable flow control */
+	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+
+	/* set baud rate */
+	if ((termios_state = cfsetispeed(&uart_config, B1500000)) < 0) {
+		PX4_ERR("ERR: %d (cfsetispeed)", termios_state);
+		return -1;
+	}
+
+	if ((termios_state = cfsetospeed(&uart_config, B1500000)) < 0) {
+		PX4_ERR("ERR: %d (cfsetospeed)", termios_state);
+		return -1;
+	}
+
+	if ((termios_state = tcsetattr(_uart_fd, TCSANOW, &uart_config)) < 0) {
+		PX4_ERR("ERR: %d (tcsetattr)", termios_state);
+		return -1;
+	}
 
 	return 0;
 }
@@ -217,4 +285,47 @@ PX4IO_serial::read(unsigned address, void *data, unsigned count)
 	}
 
 	return result;
+}
+
+int PX4IO_serial::_bus_exchange(IOPacket *_packet)
+{
+	if (_uart_fd < 0) {
+		init();
+	}
+
+	_current_packet = _packet;
+
+	perf_begin(_pc_txns);
+
+	int ret = ::write(_uart_fd, _packet, sizeof(IOPacket));
+
+	if (ret > 0) {
+		// PX4_INFO("Write %d bytes", ret);
+		px4_usleep(2000);
+
+		ret = ::read(_uart_fd, _packet, sizeof(IOPacket));
+
+		if (ret > 0) {
+			// PX4_INFO("Read %d bytes", ret);
+
+			// Check CRC
+			uint8_t crc = _packet->crc;
+			_packet->crc = 0;
+
+			if ((crc != crc_packet(_packet)) || (PKT_CODE(*_packet) == PKT_CODE_CORRUPT)) {
+				// PX4_ERR("Packet CRC error");
+				perf_count(_pc_crcerrs);
+				perf_end(_pc_txns);
+				return -EIO;
+			}
+		}
+	}
+
+	if (ret <= 0) {
+		perf_cancel(_pc_txns); // don't count this as a transaction
+		return -EIO;
+	}
+
+	perf_end(_pc_txns);
+	return 0;
 }

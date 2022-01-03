@@ -514,7 +514,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
 
 	return OK;

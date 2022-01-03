@@ -42,7 +42,6 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
-		arch_px4io_serial
 		circuit_breaker
 		mixer_module
 	)
