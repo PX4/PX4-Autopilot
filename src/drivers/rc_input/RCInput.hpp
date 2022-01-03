@@ -131,7 +131,7 @@ private:
 	bool _rc_scan_locked{false};
 	bool _report_lock{true};
 
-	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
+	static constexpr unsigned	_backup_update_interval{100000}; // 10 Hz (backup schedule)
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 

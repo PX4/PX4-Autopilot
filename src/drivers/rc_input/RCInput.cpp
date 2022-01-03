@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,9 +33,9 @@
 
 #include "RCInput.hpp"
 
-#include "crsf_telemetry.h"
 #include <uORB/topics/vehicle_command_ack.h>
 
+#include <poll.h>
 #include <termios.h>
 
 using namespace time_literals;
@@ -164,7 +164,7 @@ RCInput::task_spawn(int argc, char *argv[])
 	_object.store(instance);
 	_task_id = task_id_is_work_queue;
 
-	instance->ScheduleOnInterval(_current_update_interval);
+	instance->ScheduleOnInterval(_backup_update_interval);
 
 	return PX4_OK;
 }
@@ -395,14 +395,17 @@ void RCInput::Run()
 
 		// This block scans for a supported serial RC input and locks onto the first one found
 		// Scan for 300 msec, then switch protocol
-		constexpr hrt_abstime rc_scan_max = 300_ms;
+		static constexpr hrt_abstime rc_scan_max = 300_ms;
 
-		unsigned frame_drops = 0;
+		// poll with 1 second timeout
+		pollfd fds[1];
+		fds[0].fd = _rcs_fd;
+		fds[0].events = POLLIN;
+		int ret = poll(fds, 1, 1000);
 
-		// TODO: needs work (poll _rcs_fd)
-		// int ret = poll(fds, sizeof(fds) / sizeof(fds[0]), 100);
-		// then update priority to SCHED_PRIORITY_FAST_DRIVER
-		// read all available data from the serial RC input UART
+		if (ret < 0) {
+			PX4_DEBUG("poll error %d", ret);
+		}
 
 		// read all available data from the serial RC input UART
 		int newBytes = ::read(_rcs_fd, &_rcs_buf[0], RC_MAX_BUFFER_SIZE);
@@ -410,6 +413,8 @@ void RCInput::Run()
 		if (newBytes > 0) {
 			_bytes_rx += newBytes;
 		}
+
+		unsigned frame_drops = 0;
 
 		switch (_rc_scan_state) {
 		case RC_SCAN_SBUS:
@@ -731,6 +736,14 @@ void RCInput::Run()
 			_report_lock = false;
 			PX4_INFO("RC scan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
 		}
+
+		// reschedule immediately if RC is locked
+		if (_rc_scan_locked) {
+			ScheduleNow();
+
+		} else {
+			ScheduleDelayed(_backup_update_interval);
+		}
 	}
 }
 
@@ -805,8 +818,6 @@ int RCInput::custom_command(int argc, char *argv[])
 
 int RCInput::print_status()
 {
-	PX4_INFO("Max update rate: %u Hz", 1000000 / _current_update_interval);
-
 	if (_device[0] != '\0') {
 		PX4_INFO("UART device: %s", _device);
 		PX4_INFO("UART RX bytes: %"  PRIu32, _bytes_rx);
