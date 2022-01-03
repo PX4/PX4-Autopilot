@@ -458,6 +458,26 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 	return dx * dx + dy * dy < circle_point.circle_radius * circle_point.circle_radius;
 }
 
+bool Geofence::isCloserThanMinDistToFenceWhenLanded(const double lat, const double lon, const float alt)
+{
+	float test_bearing = 0.0f;
+	double test_point_lat, test_point_lon;
+
+	while (test_bearing < M_TWOPI_F) {
+		waypoint_from_heading_and_distance(lat, lon, test_bearing,
+						   _min_dist_to_fence_when_landed, &test_point_lat,
+						   &test_point_lon);
+
+		if (!isInsidePolygonOrCircle(test_point_lat, test_point_lon, alt)) {
+			return true;
+		}
+
+		test_bearing += math::radians(30.0f);
+	}
+
+	return false;
+}
+
 bool
 Geofence::valid()
 {

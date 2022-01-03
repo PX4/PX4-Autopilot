@@ -796,18 +796,9 @@ bool Navigator::geofence_breach_check_while_on_ground(bool &have_geofence_positi
 
 		have_geofence_position_data = false;
 
-		if (!_geofence_result.geofence_too_close_on_ground) {
-			// the last point did not violate the fence, let's try other directions
-			_fence_proximity_search_bearing = matrix::wrap_2pi(_fence_proximity_search_bearing + math::radians(30.0f));
-		}
-
-
-		double lat, lon;
-		waypoint_from_heading_and_distance(_global_pos.lat, _global_pos.lon, _fence_proximity_search_bearing,
-						   _geofence.getMinimumDistanceToFenceWhileOnGround(), &lat,
-						   &lon);
-
-		_geofence_result.geofence_too_close_on_ground = !_geofence.isInsidePolygonOrCircle(lat, lon, _global_pos.alt);
+		_geofence_result.geofence_too_close_on_ground = _geofence.isCloserThanMinDistToFenceWhenLanded(_global_pos.lat,
+				_global_pos.lon,
+				_global_pos.alt);
 		_geofence_result.geofence_violated =  !_geofence.isInsidePolygonOrCircle(_global_pos.lat, _global_pos.lon,
 						      _global_pos.alt);
 
@@ -876,8 +867,6 @@ bool Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		gf_violation_type.flags.fence_violation = !_geofence.isInsidePolygonOrCircle(fence_violation_test_point(0),
 				fence_violation_test_point(1),
 				_global_pos.alt);
-
-
 
 		_last_geofence_check = hrt_absolute_time();
 		have_geofence_position_data = false;

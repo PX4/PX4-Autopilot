@@ -129,17 +129,3 @@ PARAM_DEFINE_FLOAT(GF_MAX_HOR_DIST, 0);
  * @group Geofence
  */
 PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0);
-
-/**
- * Minimum distance from fence when the vehicle is on the ground.
- *
- * If vehicle is closer than this distance while disarmed and landed, then 'geofence_too_close_on_ground' field
- * in the geofence_result topic will be set to true.
- *
- * @unit m
- * @min 5
- * @max 1000
- * @increment 1
- * @group Geofence
- */
-PARAM_DEFINE_FLOAT(GF_MINDIST_GND, 20);

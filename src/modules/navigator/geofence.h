@@ -105,6 +105,8 @@ public:
 
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
+	bool isCloserThanMinDistToFenceWhenLanded(const double lat, const double lon, const float alt);
+
 	int clearDm();
 
 	bool valid();
@@ -137,7 +139,6 @@ public:
 	int getGeofenceAction() { return _param_gf_action.get(); }
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
-	float getMinimumDistanceToFenceWhileOnGround() { return _param_gf_min_dist_on_ground.get(); }
 
 	bool isHomeRequired();
 
@@ -156,6 +157,9 @@ public:
 
 private:
 	Navigator	*_navigator{nullptr};
+
+	static constexpr float _min_dist_to_fence_when_landed =
+		20.0f;	// if exceeded will cause 'geofence_too_close_on_ground' flag in 'geofence_result' to trigger
 
 	hrt_abstime _last_horizontal_range_warning{0};
 	hrt_abstime _last_vertical_range_warning{0};
@@ -182,8 +186,7 @@ private:
 		(ParamInt<px4::params::GF_SOURCE>) _param_gf_source,
 		(ParamInt<px4::params::GF_COUNT>) _param_gf_count,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
-		(ParamFloat<px4::params::GF_MINDIST_GND>) _param_gf_min_dist_on_ground
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
 	)
 
 	uORB::SubscriptionData<vehicle_air_data_s>	_sub_airdata;

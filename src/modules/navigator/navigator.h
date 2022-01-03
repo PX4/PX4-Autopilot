@@ -424,8 +424,6 @@ private:
 	bool _mission_landing_in_progress{false};	// this flag gets set if the mission is currently executing on a landing pattern
 	// if mission mode is inactive, this flag will be cleared after 2 seconds
 
-	float _fence_proximity_search_bearing{0.0f};	// bearing at which a fence proximity check is conducted while vehicle is on ground
-
 	traffic_buffer_s _traffic_buffer{};
 
 	// update subscriptions
