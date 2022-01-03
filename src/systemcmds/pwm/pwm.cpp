@@ -115,10 +115,6 @@ $ pwm test -c 13 -p 1200
 	PRINT_MODULE_USAGE_COMMAND_DESCR("disarm", "Disarm output");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print current configuration of all channels");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("terminatefail", "Enable Termination Failsafe mode. "
-                                         "While this is true, "
-                                         "any failsafe that occurs will be unrecoverable (even if recovery conditions are met).");
-	PRINT_MODULE_USAGE_ARG("on|off", "Turn on or off", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("rate", "Configure PWM rates");
 	PRINT_MODULE_USAGE_PARAM_INT('r', -1, 50, 400, "PWM Rate in Hz (0 = Oneshot, otherwise 50 to 400Hz)", false);
@@ -853,30 +849,6 @@ err_out_no_test:
 				}
 
 				printf("\n");
-			}
-		}
-
-		return 0;
-
-	} else if (!strcmp(command, "terminatefail")) {
-
-		if (argc < 3) {
-			PX4_ERR("arg missing [on|off]");
-			return 1;
-
-		} else {
-
-			if (!strcmp(argv[2], "on")) {
-				/* force failsafe */
-				ret = px4_ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 1);
-
-			} else {
-				/* disable failsafe */
-				ret = px4_ioctl(fd, PWM_SERVO_SET_TERMINATION_FAILSAFE, 0);
-			}
-
-			if (ret != OK) {
-				PX4_ERR("FAILED setting termination failsafe %s", argv[2]);
 			}
 		}
 

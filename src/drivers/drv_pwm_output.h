@@ -194,9 +194,6 @@ typedef uint16_t	servo_position_t;
 /** force safety switch off (to disable use of safety switch) */
 #define PWM_SERVO_SET_FORCE_SAFETY_OFF		_PX4_IOC(_PWM_SERVO_BASE, 25)
 
-/** make failsafe non-recoverable (termination) if it occurs */
-#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_PX4_IOC(_PWM_SERVO_BASE, 27)
-
 /** force safety switch on (to enable use of safety switch) */
 #define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 28)
 
