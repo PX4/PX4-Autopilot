@@ -55,7 +55,6 @@ set(srcs
 	test_parameters.cpp
 	test_perf.c
 	test_ppm.cpp
-	test_ppm_loopback.cpp
 	test_rc.cpp
 	test_search_min.cpp
 	test_sleep.c

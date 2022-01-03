@@ -128,7 +128,6 @@ $ pwm test -c 13 -p 1200
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("oneshot", "Configure Oneshot125 (rate is set to 0)");
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("disarmed", "Set Disarmed PWM value");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("min", "Set Minimum PWM value");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("max", "Set Maximum PWM value");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Set Output to a specific value until 'q' or 'c' or 'ctrl-c' pressed");
@@ -136,10 +135,10 @@ $ pwm test -c 13 -p 1200
 	PRINT_MODULE_USAGE_COMMAND_DESCR("steps", "Run 5 steps from 0 to 100%");
 
 
-	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'disarmed', 'min', 'max' and 'test' require a PWM value:");
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'min', 'max' and 'test' require a PWM value:");
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 0, 4000, "PWM value (eg. 1100)", false);
 
-	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'rate', 'oneshot', 'disarmed', 'min', 'max', 'test' and 'steps' "
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The commands 'rate', 'oneshot', 'min', 'max', 'test' and 'steps' "
 					 "additionally require to specify the channels with one of the following commands:");
 	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, nullptr, "select channels in the form: 1234 (1 digit per channel, 1=first)",
 					true);
@@ -499,59 +498,6 @@ pwm_main(int argc, char *argv[])
 
 			if (ret != OK) {
 				PX4_ERR("failed setting max values (%d)", ret);
-				return error_on_warn;
-			}
-		}
-
-		return 0;
-
-	} else if (!strcmp(command, "disarmed")) {
-
-		if (set_mask == 0) {
-			usage("no channels set");
-			return 1;
-		}
-
-		if (pwm_value < 0) {
-			return 0;
-		}
-
-		if (pwm_value == 0) {
-			PX4_WARN("reading disarmed value of zero, disabling disarmed PWM");
-		}
-
-		struct pwm_output_values pwm_values {};
-
-		pwm_values.channel_count = servo_count;
-
-		/* first get current state before modifying it */
-		ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&pwm_values);
-
-		if (ret != OK) {
-			PX4_ERR("failed get disarmed values");
-			return ret;
-		}
-
-		for (unsigned i = 0; i < servo_count; i++) {
-			if (set_mask & 1 << i) {
-				pwm_values.values[i] = pwm_value;
-
-				if (print_verbose) {
-					PX4_INFO("chan %d: disarmed PWM: %d", i + 1, pwm_value);
-				}
-			}
-		}
-
-		if (pwm_values.channel_count == 0) {
-			usage("disarmed: no PWM channels");
-			return 1;
-
-		} else {
-
-			ret = px4_ioctl(fd, PWM_SERVO_SET_DISARMED_PWM, (long unsigned int)&pwm_values);
-
-			if (ret != OK) {
-				PX4_ERR("failed setting disarmed values (%d)", ret);
 				return error_on_warn;
 			}
 		}

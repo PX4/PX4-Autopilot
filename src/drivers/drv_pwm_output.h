@@ -173,9 +173,6 @@ typedef uint16_t	servo_position_t;
 /** get the PWM value for failsafe */
 #define PWM_SERVO_GET_FAILSAFE_PWM	_PX4_IOC(_PWM_SERVO_BASE, 13)
 
-/** set the PWM value when disarmed - should be no PWM (zero) by default */
-#define PWM_SERVO_SET_DISARMED_PWM	_PX4_IOC(_PWM_SERVO_BASE, 14)
-
 /** get the PWM value when disarmed */
 #define PWM_SERVO_GET_DISARMED_PWM	_PX4_IOC(_PWM_SERVO_BASE, 15)
 

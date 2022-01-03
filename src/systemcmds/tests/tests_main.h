@@ -67,7 +67,6 @@ extern int test_param(int argc, char *argv[]);
 extern int test_parameters(int argc, char *argv[]);
 extern int test_perf(int argc, char *argv[]);
 extern int test_ppm(int argc, char *argv[]);
-extern int test_ppm_loopback(int argc, char *argv[]);
 extern int test_rc(int argc, char *argv[]);
 extern int test_search_min(int argc, char *argv[]);
 extern int test_sleep(int argc, char *argv[]);
