@@ -429,7 +429,7 @@ bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 {
 	SmartLock lock_guard(_lock);
 
-	if (!_test_fmu_fail && !_in_test_mode) {
+	if (!_test_fmu_fail) {
 		/* output to the servos */
 		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, num_outputs);
 	}
@@ -1755,32 +1755,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = dsm_bind_ioctl(arg);
 		break;
 
-	case PWM_SERVO_SET(0) ... PWM_SERVO_SET(PWM_OUTPUT_MAX_CHANNELS - 1): {
-
-			/* TODO: we could go lower for e.g. TurboPWM */
-			unsigned channel = cmd - PWM_SERVO_SET(0);
-
-			/* PWM needs to be either 0 or in the valid range. */
-			if ((arg != 0) && ((channel >= _max_actuators) ||
-					   (arg < PWM_LOWEST_MIN) ||
-					   (arg > PWM_HIGHEST_MAX))) {
-				ret = -EINVAL;
-
-			} else {
-				if (!_test_fmu_fail && _in_test_mode) {
-					/* send a direct PWM value */
-					ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
-
-				} else {
-					/* Just silently accept the ioctl without doing anything
-					 * in test mode. */
-					ret = OK;
-				}
-			}
-
-			break;
-		}
-
 	case PWM_SERVO_GET(0) ... PWM_SERVO_GET(PWM_OUTPUT_MAX_CHANNELS - 1): {
 
 			unsigned channel = cmd - PWM_SERVO_GET(0);
@@ -1815,22 +1789,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 			break;
 		}
-
-	case PWM_SERVO_SET_MODE: {
-			// reset all channels to disarmed when entering/leaving test mode, so that we don't
-			// accidentially use values from previous tests
-			pwm_output_values pwm_disarmed;
-
-			if (io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, pwm_disarmed.values, _max_actuators) == 0) {
-				for (unsigned i = 0; i < _max_actuators; ++i) {
-					io_reg_set(PX4IO_PAGE_DIRECT_PWM, i, pwm_disarmed.values[i]);
-				}
-			}
-
-			_in_test_mode = (arg == PWM_SERVO_ENTER_TEST_MODE);
-			ret = (arg == PWM_SERVO_ENTER_TEST_MODE || PWM_SERVO_EXIT_TEST_MODE) ? 0 : -EINVAL;
-		}
-		break;
 
 	case MIXERIOCRESET:
 		PX4_DEBUG("MIXERIOCRESET");

@@ -1,5 +1,0 @@
-menuconfig SYSTEMCMDS_MOTOR_RAMP
-	bool "motor_ramp"
-	default n
-	---help---
-		Enable support for motor_ramp
