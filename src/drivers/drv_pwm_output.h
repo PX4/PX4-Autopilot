@@ -191,12 +191,6 @@ typedef uint16_t	servo_position_t;
 /** get the TRIM value the output will send */
 #define PWM_SERVO_GET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 21)
 
-/** set the lockdown override flag to enable outputs in HIL */
-#define PWM_SERVO_SET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 23)
-
-/** get the lockdown override flag to enable outputs in HIL */
-#define PWM_SERVO_GET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 24)
-
 /** force safety switch off (to disable use of safety switch) */
 #define PWM_SERVO_SET_FORCE_SAFETY_OFF		_PX4_IOC(_PWM_SERVO_BASE, 25)
 
