@@ -178,7 +178,6 @@ private:
 
 	static int checkcrc(int argc, char *argv[]);
 	static int bind(int argc, char *argv[]);
-	static int lockdown(int argc, char *argv[]);
 	static int monitor();
 
 	static constexpr int PX4IO_MAX_ACTUATORS = 8;
@@ -1757,16 +1756,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = _max_actuators;
 		break;
 
-	case PWM_SERVO_SET_DISABLE_LOCKDOWN:
-		PX4_DEBUG("PWM_SERVO_SET_DISABLE_LOCKDOWN");
-		_lockdown_override = arg;
-		break;
-
-	case PWM_SERVO_GET_DISABLE_LOCKDOWN:
-		PX4_DEBUG("PWM_SERVO_GET_DISABLE_LOCKDOWN");
-		*(unsigned *)arg = _lockdown_override;
-		break;
-
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 		PX4_DEBUG("PWM_SERVO_SET_FORCE_SAFETY_OFF");
 		/* force safety swith off */
@@ -2174,60 +2163,6 @@ int PX4IO::monitor()
 	return 0;
 }
 
-int PX4IO::lockdown(int argc, char *argv[])
-{
-	if (argc > 1 && !strcmp(argv[1], "disable")) {
-
-		PX4_WARN("WARNING: ACTUATORS WILL BE LIVE IN HIL! PROCEED?");
-		PX4_WARN("Press 'y' to enable, any other key to abort.");
-
-		/* check if user wants to abort */
-		char c;
-
-		struct pollfd fds;
-		int ret;
-		hrt_abstime start = hrt_absolute_time();
-		const unsigned long timeout = 5000000;
-
-		while (hrt_elapsed_time(&start) < timeout) {
-			fds.fd = 0; /* stdin */
-			fds.events = POLLIN;
-			ret = ::poll(&fds, 1, 0);
-
-			if (ret > 0) {
-
-				if (::read(0, &c, 1) > 0) {
-
-					if (c != 'y') {
-						return 0;
-
-					} else if (c == 'y') {
-						break;
-					}
-				}
-			}
-
-			px4_usleep(10000);
-		}
-
-		if (hrt_elapsed_time(&start) > timeout) {
-			PX4_ERR("TIMEOUT! ABORTED WITHOUT CHANGES.");
-			return 1;
-		}
-
-		get_instance()->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 1);
-
-		PX4_WARN("ACTUATORS ARE NOW LIVE IN HIL!");
-
-	} else {
-		get_instance()->ioctl(0, PWM_SERVO_SET_DISABLE_LOCKDOWN, 0);
-		PX4_WARN("ACTUATORS ARE NOW SAFE IN HIL.");
-	}
-
-	return 0;
-}
-
-
 int PX4IO::task_spawn(int argc, char *argv[])
 {
 	device::Device *interface = get_interface();
@@ -2431,10 +2366,6 @@ int PX4IO::custom_command(int argc, char *argv[])
 		return bind(argc - 1, argv + 1);
 	}
 
-	if (!strcmp(verb, "lockdown")) {
-		return lockdown(argc, argv);
-	}
-
 	if (!strcmp(verb, "sbus1_out")) {
 		int ret = get_instance()->ioctl(nullptr, SBUS_SET_PROTO_VERSION, 1);
 
@@ -2497,8 +2428,6 @@ Output driver communicating with the IO co-processor.
 	PRINT_MODULE_USAGE_COMMAND_DESCR("monitor", "continuously monitor status");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "DSM bind");
 	PRINT_MODULE_USAGE_ARG("dsm2|dsmx|dsmx8", "protocol", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("lockdown", "enable (or disable) lockdown");
-	PRINT_MODULE_USAGE_ARG("disable", "disable lockdown", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus1_out", "enable sbus1 out");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus2_out", "enable sbus2 out");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test_fmu_fail", "test: turn off IO updates");
