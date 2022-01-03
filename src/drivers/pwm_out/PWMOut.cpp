@@ -761,50 +761,6 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_DISARMED_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > FMU_MAX_ACTUATORS || _mixing_output.useDynamicMixing()) {
-				ret = -EINVAL;
-				break;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] == 0) {
-					/* ignore 0 */
-				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_mixing_output.disarmedValue(i) = PWM_HIGHEST_MAX;
-				}
-
-#if PWM_LOWEST_MIN > 0
-
-				else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_mixing_output.disarmedValue(i) = PWM_LOWEST_MIN;
-				}
-
-#endif
-
-				else {
-					_mixing_output.disarmedValue(i) = pwm->values[i];
-				}
-			}
-
-			/*
-			 * update the counter
-			 * this is needed to decide if disarmed PWM output should be turned on or not
-			 */
-			_num_disarmed_set = 0;
-
-			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
-				if (_mixing_output.disarmedValue(i) > 0) {
-					_num_disarmed_set++;
-				}
-			}
-
-			break;
-		}
-
 	case PWM_SERVO_GET_DISARMED_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
