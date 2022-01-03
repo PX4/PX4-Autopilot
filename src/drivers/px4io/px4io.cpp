@@ -1652,27 +1652,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_PWM_RATES);
 		break;
 
-	case PWM_SERVO_SET_FAILSAFE_PWM: {
-			PX4_DEBUG("PWM_SERVO_SET_FAILSAFE_PWM");
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			if (pwm->channel_count > _max_actuators)
-				/* fail with error */
-			{
-				return -E2BIG;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] != 0 && !_mixing_output.useDynamicMixing()) {
-					_mixing_output.failsafeValue(i) = math::constrain(pwm->values[i], (uint16_t)PWM_LOWEST_MIN, (uint16_t)PWM_HIGHEST_MAX);
-				}
-			}
-
-			updateFailsafe();
-
-			break;
-		}
-
 	case PWM_SERVO_GET_FAILSAFE_PWM: {
 			PX4_DEBUG("PWM_SERVO_GET_FAILSAFE_PWM");
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
