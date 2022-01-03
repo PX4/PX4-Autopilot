@@ -87,6 +87,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("safety");
 	add_topic("sensor_combined");
+	add_topic("sensor_hygrometer", 500);
 	add_optional_topic("sensor_correction");
 	add_optional_topic("sensor_gyro_fft", 50);
 	add_topic("sensor_selection");
