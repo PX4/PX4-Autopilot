@@ -278,14 +278,6 @@ extern "C" __EXPORT int esc_calib_main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
-	ret = ioctl(fd, PWM_SERVO_ARM, 0);
-
-	if (ret != OK) {
-		PX4_ERR("PWM_SERVO_ARM");
-		goto cleanup;
-	}
-
 	printf("Outputs armed");
 
 

@@ -411,10 +411,6 @@ bool PWMOut::update_pwm_out_state(bool on)
 bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	if (_test_mode) {
-		return false;
-	}
-
 	/* output to the servos */
 	if (_pwm_initialized) {
 		for (size_t i = 0; i < num_outputs; i++) {
@@ -761,10 +757,6 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	lock();
 
 	switch (cmd) {
-	case PWM_SERVO_ARM:
-		update_pwm_out_state(true);
-		break;
-
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
 		break;
@@ -1137,165 +1129,8 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-int PWMOut::test(const char *dev)
-{
-	int	 fd;
-	unsigned servo_count = 0;
-	unsigned pwm_value = 1000;
-	int	 direction = 1;
-	int  ret;
-	int   rv = -1;
-
-	fd = ::open(dev, O_RDWR);
-
-	if (fd < 0) {
-		PX4_ERR("open fail");
-		return -1;
-	}
-
-	if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
-		PX4_ERR("Failed to Enter pwm test mode");
-		goto err_out_no_test;
-	}
-
-	if (::ioctl(fd, PWM_SERVO_ARM, 0) < 0) {
-		PX4_ERR("servo arm failed");
-		goto err_out;
-	}
-
-	if (::ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count) != 0) {
-		PX4_ERR("Unable to get servo count");
-		goto err_out;
-	}
-
-	PX4_INFO("Testing %u servos", servo_count);
-
-	struct pollfd fds;
-
-	fds.fd = 0; /* stdin */
-
-	fds.events = POLLIN;
-
-	PX4_INFO("Press CTRL-C or 'c' to abort.");
-
-	for (;;) {
-		/* sweep all servos between 1000..2000 */
-		servo_position_t servos[servo_count];
-
-		for (unsigned i = 0; i < servo_count; i++) {
-			servos[i] = pwm_value;
-		}
-
-		for (unsigned i = 0; i < servo_count;	i++) {
-			if (::ioctl(fd, PWM_SERVO_SET(i), servos[i]) < 0) {
-				PX4_ERR("servo %u set failed", i);
-				goto err_out;
-			}
-		}
-
-		if (direction > 0) {
-			if (pwm_value < 2000) {
-				pwm_value++;
-
-			} else {
-				direction = -1;
-			}
-
-		} else {
-			if (pwm_value > 1000) {
-				pwm_value--;
-
-			} else {
-				direction = 1;
-			}
-		}
-
-		/* readback servo values */
-		for (unsigned i = 0; i < servo_count; i++) {
-			servo_position_t value;
-
-			if (::ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
-				PX4_ERR("error reading PWM servo %u", i);
-				goto err_out;
-			}
-
-			if (value != servos[i]) {
-				PX4_ERR("servo %u readback error, got %" PRIu16 " expected %" PRIu16, i, value, servos[i]);
-				goto err_out;
-			}
-		}
-
-		/* Check if user wants to quit */
-		char c;
-		ret = ::poll(&fds, 1, 0);
-
-		if (ret > 0) {
-
-			::read(0, &c, 1);
-
-			if (c == 0x03 || c == 0x63 || c == 'q') {
-				PX4_INFO("User abort");
-				break;
-			}
-		}
-	}
-
-	rv = 0;
-
-err_out:
-
-	if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_EXIT_TEST_MODE) < 0) {
-		PX4_ERR("Failed to Exit pwm test mode");
-	}
-
-err_out_no_test:
-	::close(fd);
-	return rv;
-}
-
 int PWMOut::custom_command(int argc, char *argv[])
 {
-
-	int ch = 0;
-	int myoptind = 0;
-	const char *myoptarg = nullptr;
-	const char *dev = PX4FMU_DEVICE_PATH;
-
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'd':
-			if (nullptr == strstr(myoptarg, "/dev/")) {
-				PX4_WARN("device %s not valid", myoptarg);
-				print_usage(nullptr);
-				return 1;
-			}
-
-			dev = myoptarg;
-			break;
-		}
-	}
-
-	if (myoptind >= argc) {
-		print_usage(nullptr);
-		return 1;
-	}
-
-	const char *verb = argv[myoptind];
-
-	/* start pwm_out if not running */
-	if (!is_running()) {
-
-		int ret = PWMOut::task_spawn(argc, argv);
-
-		if (ret) {
-			return ret;
-		}
-	}
-
-	if (!strcmp(verb, "test")) {
-		return test(dev);
-	}
-
 	return print_usage("unknown command");
 }
 
@@ -1365,7 +1200,6 @@ By default the module runs on a work queue with a callback on the uORB actuator_
 
 	PRINT_MODULE_USAGE_NAME("pwm_out", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test outputs");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

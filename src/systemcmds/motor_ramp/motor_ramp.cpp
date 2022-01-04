@@ -344,12 +344,6 @@ int prepare(int fd, unsigned long *max_channels)
 		return 1;
 	}
 
-	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
-	if (px4_ioctl(fd, PWM_SERVO_ARM, 0) != OK) {
-		PX4_ERR("PWM_SERVO_ARM");
-		return 1;
-	}
-
 	return 0;
 }
 

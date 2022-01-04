@@ -137,9 +137,6 @@ typedef uint16_t	servo_position_t;
  */
 #define _PWM_SERVO_BASE		0x2a00
 
-/** arm all servo outputs handle by this driver */
-#define PWM_SERVO_ARM		_PX4_IOC(_PWM_SERVO_BASE, 0)
-
 /** disarm all servo outputs (stop generating pulses) */
 #define PWM_SERVO_DISARM	_PX4_IOC(_PWM_SERVO_BASE, 1)
 

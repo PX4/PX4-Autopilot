@@ -94,9 +94,6 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	lock();
 
 	switch (cmd) {
-	case PWM_SERVO_ARM:
-		break;
-
 	case PWM_SERVO_DISARM:
 		break;
 

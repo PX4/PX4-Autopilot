@@ -101,8 +101,6 @@ public:
 	static bool trylock_module() { return (pthread_mutex_trylock(&pwm_out_module_mutex) == 0); }
 	static void unlock_module() { pthread_mutex_unlock(&pwm_out_module_mutex); }
 
-	static int test(const char *dev);
-
 	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	int init() override;
