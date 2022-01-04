@@ -106,7 +106,7 @@ param_export_internal(param_filter_func filter)
 		case PARAM_TYPE_INT32:
 			i = s->val.i;
 
-			if (bson_encoder_append_int(&encoder, param_name(s->param), i)) {
+			if (bson_encoder_append_int32(&encoder, param_name(s->param), i)) {
 				debug("BSON append failed for '%s'", param_name(s->param));
 				goto out;
 			}
@@ -143,12 +143,6 @@ out:
 
 		size_t buf_size = bson_encoder_buf_size(&encoder);
 
-		int shutdown_lock_ret = px4_shutdown_lock();
-
-		if (shutdown_lock_ret) {
-			PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
-		}
-
 		/* Get a buffer from the flash driver with enough space */
 
 		uint8_t *buffer;
@@ -177,11 +171,6 @@ out:
 			free(enc_buff);
 			parameter_flashfs_free();
 		}
-
-		if (shutdown_lock_ret == 0) {
-			px4_shutdown_unlock();
-		}
-
 	}
 
 	return result;

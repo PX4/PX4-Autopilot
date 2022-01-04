@@ -417,57 +417,56 @@ static void usage(const char *reason)
   $ netman show           # display current settings.
   $ netman update -i eth0 # do an update
 )DESCR_STR");
-    PRINT_MODULE_USAGE_NAME("netman", "system");
-    PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Display the current persistent network settings to the console.");
-    PRINT_MODULE_USAGE_COMMAND_DESCR("update","Check SD card for net.cfg and update network persistent network settings.");
-    PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save the current network parameters to the SD card.");
-    PRINT_MODULE_USAGE_PARAM_STRING('i',"eth0", nullptr, "Set the interface name", true);
+
+	PRINT_MODULE_USAGE_NAME("netman", "system");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("show", "Display the current persistent network settings to the console.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("update", "Check SD card for net.cfg and update network persistent network settings.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save the current network parameters to the SD card.");
+	PRINT_MODULE_USAGE_PARAM_STRING('i', "eth0", nullptr, "Set the interface name", true);
 }
 
 int netman_main(int argc, char *argv[])
 {
-  const char *path = DEFAULT_NETMAN_CONFIG;
-  const char *netdev = "eth0";
-  int ch;
-  int rv = 1;
+	const char *path = DEFAULT_NETMAN_CONFIG;
+	const char *netdev = "eth0";
+	int ch;
+	int rv = 1;
 
-  if (argc < 2) {
-    usage(nullptr);
-    return 1;
-  }
+	if (argc < 2) {
+		usage(nullptr);
+		return 1;
+	}
 
-  int myoptind = 1;
-  const char *myoptarg = nullptr;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
 
-  while ((ch = px4_getopt(argc, argv, "i:", &myoptind, &myoptarg)) != EOF) {
-    switch (ch) {
+	while ((ch = px4_getopt(argc, argv, "i:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
 
-      case 'i':
-        netdev = myoptarg;
-          break;
+		case 'i':
+			netdev = myoptarg;
+			break;
 
-     default:
-      usage(nullptr);
-      return rv;
-    }
-  }
+		default:
+			usage(nullptr);
+			return rv;
+		}
+	}
 
-  if (myoptind >= argc) {
-    usage(nullptr);
-    return rv;
-  }
+	if (myoptind >= argc) {
+		usage(nullptr);
+		return rv;
+	}
 
-  if (strcmp("save", argv[myoptind]) == 0)
-      {
-        rv = save(path, netdev);
-      }
-  else if (strcmp("update", argv[myoptind]) == 0)
-      {
-      rv = update(path, netdev);
-      }
-  else if (strcmp("show", argv[myoptind]) == 0)
-      {
-      rv = save(nullptr, netdev);
-      }
-  return rv;
+	if (strcmp("save", argv[myoptind]) == 0) {
+		rv = save(path, netdev);
+
+	} else if (strcmp("update", argv[myoptind]) == 0) {
+		rv = update(path, netdev);
+
+	} else if (strcmp("show", argv[myoptind]) == 0) {
+		rv = save(nullptr, netdev);
+	}
+
+	return rv;
 }

@@ -1176,61 +1176,94 @@ const char *param_get_backup_file()
 	return param_backup_file;
 }
 
-static int param_save_file_internal(const char *filename)
-{
-	int res = PX4_ERROR;
-	int attempts = 5;
-
-	while (res != OK && attempts > 0) {
-		// write parameters to file
-		int fd = ::open(filename, O_RDWR | O_CREAT, PX4_O_MODE_666);
-
-		if (fd > -1) {
-			res = param_export(fd, nullptr);
-			::close(fd);
-
-			if (res == PX4_OK) {
-				return PX4_OK;
-
-			} else {
-				PX4_ERR("param_export failed, retrying %d", attempts);
-				px4_usleep(10000); // wait at least 10 milliseconds before trying again
-			}
-
-		} else {
-			PX4_ERR("failed to open param file %s, retrying %d", filename, attempts);
-		}
-
-		attempts--;
-	}
-
-	if (res != OK) {
-		PX4_ERR("failed to write parameters to file: %s", filename);
-	}
-
-	return PX4_ERROR;
-}
+static int param_export_internal(int fd, param_filter_func filter);
+static int param_verify(int fd);
 
 int param_save_default()
 {
+	PX4_DEBUG("param_save_default");
+	int shutdown_lock_ret = px4_shutdown_lock();
+
+	if (shutdown_lock_ret != 0) {
+		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
+	}
+
+	// take the file lock
+	do {} while (px4_sem_wait(&param_sem_save) != 0);
+
+	param_lock_reader();
+
 	int res = PX4_ERROR;
 	const char *filename = param_get_default_file();
 
 	if (filename) {
-		res = param_save_file_internal(filename);
+		static constexpr int MAX_ATTEMPTS = 3;
+
+		for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+			// write parameters to file
+			int fd = ::open(filename, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+
+			if (fd > -1) {
+				perf_begin(param_export_perf);
+				res = param_export_internal(fd, nullptr);
+				perf_end(param_export_perf);
+				::close(fd);
+
+				if (res == PX4_OK) {
+					// reopen file to verify
+					int fd_verify = ::open(filename, O_RDONLY, PX4_O_MODE_666);
+					res = param_verify(fd_verify);
+					::close(fd_verify);
+				}
+			}
+
+			if (res == PX4_OK) {
+				break;
+
+			} else {
+				PX4_ERR("parameter export to %s failed (%d) attempt %d", filename, res, attempt);
+				px4_usleep(10000); // wait at least 10 milliseconds before trying again
+			}
+		}
 
 	} else {
-		param_lock_writer();
 		perf_begin(param_export_perf);
 		res = flash_param_save(nullptr);
-		params_unsaved.reset();
 		perf_end(param_export_perf);
-		param_unlock_writer();
 	}
 
-	// backup file
-	if (param_backup_file) {
-		param_save_file_internal(param_backup_file);
+	if (res != PX4_OK) {
+		PX4_ERR("param export failed (%d)", res);
+
+	} else {
+		params_unsaved.reset();
+
+		// backup file
+		if (param_backup_file) {
+			int fd_backup_file = ::open(param_backup_file, O_WRONLY | O_CREAT, PX4_O_MODE_666);
+
+			if (fd_backup_file > -1) {
+				int backup_export_ret = param_export_internal(fd_backup_file, nullptr);
+				::close(fd_backup_file);
+
+				if (backup_export_ret != 0) {
+					PX4_ERR("backup parameter export to %s failed (%d)", param_backup_file, backup_export_ret);
+
+				} else {
+					// verify export
+					int fd_verify = ::open(param_backup_file, O_RDONLY, PX4_O_MODE_666);
+					param_verify(fd_verify);
+					::close(fd_verify);
+				}
+			}
+		}
+	}
+
+	param_unlock_reader();
+	px4_sem_post(&param_sem_save);
+
+	if (shutdown_lock_ret == 0) {
+		px4_shutdown_unlock();
 	}
 
 	return res;
@@ -1335,6 +1368,8 @@ static int param_verify_callback(bson_decoder_t decoder, bson_node_t node)
 
 static int param_verify(int fd)
 {
+	PX4_DEBUG("param_verify");
+
 	if (fd < 0) {
 		return -1;
 	}
@@ -1375,27 +1410,13 @@ static int param_verify(int fd)
 }
 
 int
-param_export(int fd, param_filter_func filter)
+param_export(const char *filename, param_filter_func filter)
 {
-	int result = -1;
-	perf_begin(param_export_perf);
-
-	if (fd < 0) {
-		param_lock_writer();
-		// flash_param_save() will take the shutdown lock
-		result = flash_param_save(filter);
-		params_unsaved.reset();
-		param_unlock_writer();
-		perf_end(param_export_perf);
-		return result;
-	}
-
-	param_wbuf_s *s = nullptr;
-	bson_encoder_s encoder{};
+	PX4_DEBUG("param_export");
 
 	int shutdown_lock_ret = px4_shutdown_lock();
 
-	if (shutdown_lock_ret) {
+	if (shutdown_lock_ret != 0) {
 		PX4_ERR("px4_shutdown_lock() failed (%i)", shutdown_lock_ret);
 	}
 
@@ -1404,10 +1425,41 @@ param_export(int fd, param_filter_func filter)
 
 	param_lock_reader();
 
+	int fd = ::open(filename, O_RDWR | O_CREAT, PX4_O_MODE_666);
+	int result = PX4_ERROR;
+
+	perf_begin(param_export_perf);
+
+	if (fd > -1) {
+		result = param_export_internal(fd, filter);
+
+	} else {
+		result = flash_param_save(filter);
+	}
+
+	perf_end(param_export_perf);
+
+	param_unlock_reader();
+	px4_sem_post(&param_sem_save);
+
+	if (shutdown_lock_ret == 0) {
+		px4_shutdown_unlock();
+	}
+
+	return result;
+}
+
+// internal parameter export, caller is responsible for locking
+static int param_export_internal(int fd, param_filter_func filter)
+{
+	PX4_DEBUG("param_export_internal");
+
+	int result = -1;
+	param_wbuf_s *s = nullptr;
+	bson_encoder_s encoder{};
 	uint8_t bson_buffer[256];
 
 	if (bson_encoder_init_buf_file(&encoder, fd, &bson_buffer, sizeof(bson_buffer)) != 0) {
-		result = -1;
 		goto out;
 	}
 
@@ -1456,7 +1508,7 @@ param_export(int fd, param_filter_func filter)
 				const int32_t i = s->val.i;
 				PX4_DEBUG("exporting: %s (%d) size: %lu val: %" PRIi32, name, s->param, (long unsigned int)size, i);
 
-				if (bson_encoder_append_int(&encoder, name, i) != 0) {
+				if (bson_encoder_append_int32(&encoder, name, i) != 0) {
 					PX4_ERR("BSON append failed for '%s'", name);
 					goto out;
 				}
@@ -1484,32 +1536,11 @@ param_export(int fd, param_filter_func filter)
 out:
 
 	if (result == 0) {
-		if (bson_encoder_fini(&encoder) == PX4_OK) {
-			// verify exported bson
-			if (param_verify(fd) == 0) {
-				if (!filter) {
-					params_unsaved.reset();
-				}
-
-			} else {
-				result = -1;
-			}
-
-		} else {
+		if (bson_encoder_fini(&encoder) != PX4_OK) {
 			PX4_ERR("BSON encoder finalize failed");
 			result = -1;
 		}
 	}
-
-	param_unlock_reader();
-
-	px4_sem_post(&param_sem_save);
-
-	if (shutdown_lock_ret == 0) {
-		px4_shutdown_unlock();
-	}
-
-	perf_end(param_export_perf);
 
 	return result;
 }
@@ -1542,7 +1573,7 @@ param_import_callback(bson_decoder_t decoder, bson_node_t node)
 			if (param_type(param) == PARAM_TYPE_INT32) {
 				int32_t i = node->i32;
 				param_set_internal(param, &i, true, true);
-				PX4_DEBUG("Imported %s with value %d", param_name(param), i);
+				PX4_DEBUG("Imported %s with value %" PRIi32, param_name(param), i);
 
 			} else {
 				PX4_WARN("unexpected type for %s", node->name);
@@ -1639,18 +1670,20 @@ param_import_internal(int fd)
 				}
 
 			} else {
-				PX4_ERR("param import failed (%d) attempt %d, retrying", result, attempt);
+				PX4_ERR("param import failed (%d) attempt %d", result, attempt);
 			}
 
 		} else {
-			PX4_ERR("param import bson decoder init failed attempt %d, retrying", attempt);
+			PX4_ERR("param import bson decoder init failed (attempt %d)", attempt);
 		}
 
-		if (lseek(fd, 0, SEEK_SET) != 0) {
-			PX4_ERR("import lseek failed (%d)", errno);
-		}
+		if (attempt != MAX_ATTEMPTS) {
+			if (lseek(fd, 0, SEEK_SET) != 0) {
+				PX4_ERR("import lseek failed (%d)", errno);
+			}
 
-		px4_usleep(10000); // wait at least 10 milliseconds before trying again
+			px4_usleep(10000); // wait at least 10 milliseconds before trying again
+		}
 	}
 
 	return -1;

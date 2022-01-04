@@ -82,7 +82,7 @@ function(px4_os_add_flags)
 			-ffixed-r10
 			-finstrument-functions
 			# instrumenting PX4 Matrix and Param methods is too burdensome
-			-finstrument-functions-exclude-file-list=matrix/Matrix.hpp,px4_platform_common/param.h
+			-finstrument-functions-exclude-file-list=matrix/Matrix.hpp,px4_platform_common/param.h,modules__ekf2_unity.cpp
 		)
 	endif()
 

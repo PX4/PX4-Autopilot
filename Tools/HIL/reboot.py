@@ -7,6 +7,8 @@ from argparse import ArgumentParser
 import re
 import sys
 import datetime
+import serial.tools.list_ports as list_ports
+import tempfile
 
 COLOR_RED    = "\x1b[31m"
 COLOR_GREEN  = "\x1b[32m"
@@ -36,15 +38,15 @@ def print_line(line):
     else:
         print('{0}'.format(line), end='')
 
-def reboot(port, baudrate):
-    ser = serial.Serial(port, baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=1, xonxoff=True, rtscts=False, dsrdtr=False)
 
-    # clear
-    ser.readlines()
+def reboot(port_url, baudrate):
+    ser = serial.serial_for_url(url=port_url, baudrate=baudrate, bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE, timeout=3, xonxoff=False, rtscts=False, dsrdtr=False, inter_byte_timeout=1)
 
     time_start = time.monotonic()
-    ser.write("\nreboot\n".encode("ascii"))
-    ser.flush()
+
+    ser.write("\n\n\n".encode("ascii"))
+
+    ser.write("reboot\n".encode("ascii"))
     time_reboot_cmd = time_start
 
     timeout_reboot_cmd = 90
@@ -53,31 +55,53 @@ def reboot(port, baudrate):
     return_code = 0
 
     while True:
-        if time.monotonic() > time_reboot_cmd + timeout_reboot_cmd:
-            time_reboot_cmd = time.monotonic()
-            print("sending reboot cmd again")
-            ser.write("reboot\n".encode("ascii"))
-            ser.flush()
-            time.sleep(0.2)
-
         serial_line = ser.readline().decode("ascii", errors='ignore')
 
         if len(serial_line) > 0:
+            print_line(serial_line)
+
             if "ERROR" in serial_line:
                 return_code = -1
 
-            print_line(serial_line)
+            if "NuttShell (NSH)" in serial_line:
+                sys.exit(return_code)
 
-        if "NuttShell (NSH)" in serial_line:
-            sys.exit(return_code)
+        else:
+            if time.monotonic() > time_start + timeout:
+                print("Error, timeout")
+                sys.exit(-1)
 
-        if time.monotonic() > time_start + timeout:
-            print("Error, timeout")
-            sys.exit(-1)
+            if time.monotonic() > time_reboot_cmd + timeout_reboot_cmd:
+                time_reboot_cmd = time.monotonic()
+                print("sending reboot cmd again")
+                ser.write("reboot\n".encode("ascii"))
+
 
 def main():
+
+    default_device = None
+    device_required = True
+
+    # select USB UART as default if there's only 1
+    ports = list(serial.tools.list_ports.grep('USB UART'))
+
+    if (len(ports) == 1):
+        default_device = ports[0].device
+        device_required = False
+
+        print("Default USB UART port: {0}".format(ports[0].name))
+        print(" device: {0}".format(ports[0].device))
+        print(" description: \"{0}\" ".format(ports[0].description))
+        print(" hwid: {0}".format(ports[0].hwid))
+        #print(" vid: {0}, pid: {1}".format(ports[0].vid, ports[0].pid))
+        #print(" serial_number: {0}".format(ports[0].serial_number))
+        #print(" location: {0}".format(ports[0].location))
+        print(" manufacturer: {0}".format(ports[0].manufacturer))
+        #print(" product: {0}".format(ports[0].product))
+        #print(" interface: {0}".format(ports[0].interface))
+
     parser = ArgumentParser(description=__doc__)
-    parser.add_argument('--device', "-d", nargs='?', default=None, help='', required=True)
+    parser.add_argument('--device', "-d", nargs='?', default=default_device, help='', required=device_required)
     parser.add_argument("--baudrate", "-b", dest="baudrate", type=int, help="Mavlink port baud rate (default=57600)", default=57600)
     args = parser.parse_args()
 

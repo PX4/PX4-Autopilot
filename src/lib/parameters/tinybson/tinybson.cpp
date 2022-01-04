@@ -381,6 +381,7 @@ write_x(bson_encoder_t encoder, const void *p, size_t s)
 				break;
 
 			} else {
+				PX4_ERR("file write error %d, errno:%d (%s)", ret, errno, strerror(errno));
 				CODER_KILL(encoder, "file write error");
 			}
 		}
@@ -575,28 +576,28 @@ int bson_encoder_append_bool(bson_encoder_t encoder, const char *name, bool valu
 }
 
 int
-bson_encoder_append_int(bson_encoder_t encoder, const char *name, int64_t value)
+bson_encoder_append_int32(bson_encoder_t encoder, const char *name, int32_t value)
 {
-	bool result;
-
 	CODER_CHECK(encoder);
 
-	/* use the smallest encoding that will hold the value */
-	if (value == (int32_t)value) {
-		debug("encoding %lld as int32", value);
-		result = write_int8(encoder, BSON_INT32) ||
-			 write_name(encoder, name) ||
-			 write_int32(encoder, value);
-
-	} else {
-		debug("encoding %lld as int64", value);
-		result = write_int8(encoder, BSON_INT64) ||
-			 write_name(encoder, name) ||
-			 write_int64(encoder, value);
+	if (write_int8(encoder, BSON_INT32) ||
+	    write_name(encoder, name) ||
+	    write_int32(encoder, value)) {
+		CODER_KILL(encoder, "write error on BSON_INT32");
 	}
 
-	if (result) {
-		CODER_KILL(encoder, "write error on BSON_INT");
+	return 0;
+}
+
+int
+bson_encoder_append_int64(bson_encoder_t encoder, const char *name, int64_t value)
+{
+	CODER_CHECK(encoder);
+
+	if (write_int8(encoder, BSON_INT64) ||
+	    write_name(encoder, name) ||
+	    write_int64(encoder, value)) {
+		CODER_KILL(encoder, "write error on BSON_INT64");
 	}
 
 	return 0;
@@ -612,7 +613,6 @@ bson_encoder_append_double(bson_encoder_t encoder, const char *name, double valu
 	    write_double(encoder, value)) {
 		CODER_KILL(encoder, "write error on BSON_DOUBLE");
 	}
-
 
 	return 0;
 }

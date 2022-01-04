@@ -154,6 +154,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::Publication<vehicle_attitude_setpoint_s>		_attitude_sp_pub;
+	uORB::Publication<vehicle_local_position_setpoint_s> 	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	///< vehicle local position setpoint publication
 	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication
 	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication
@@ -285,6 +286,7 @@ private:
 	void		status_publish();
 	void		landing_status_publish();
 	void		tecs_status_publish();
+	void 		publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint);
 
 	void		abort_landing(bool abort);
 
@@ -329,6 +331,8 @@ private:
 					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 	void		control_auto_loiter(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+	void		control_auto_velocity(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 	void		control_auto_takeoff(const hrt_abstime &now, const float dt,  const Vector2d &curr_pos,
 					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,

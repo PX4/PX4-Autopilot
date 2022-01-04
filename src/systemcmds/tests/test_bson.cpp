@@ -65,12 +65,12 @@ encode(bson_encoder_t encoder)
 		return 1;
 	}
 
-	if (bson_encoder_append_int(encoder, "int1", sample_small_int) != 0) {
+	if (bson_encoder_append_int32(encoder, "int1", sample_small_int) != 0) {
 		PX4_ERR("FAIL: encoder: append int failed");
 		return 1;
 	}
 
-	if (bson_encoder_append_int(encoder, "int2", sample_big_int) != 0) {
+	if (bson_encoder_append_int64(encoder, "int2", sample_big_int) != 0) {
 		PX4_ERR("FAIL: encoder: append int failed");
 		return 1;
 	}
