@@ -151,7 +151,6 @@ pwm_main(int argc, char *argv[])
 	bool oneshot = false;
 	int ch;
 	int ret;
-	int rv = 1;
 	char *ep;
 	uint32_t set_mask = 0;
 	unsigned group;

@@ -155,9 +155,6 @@ typedef uint16_t	servo_position_t;
 /** check the selected update rates */
 #define PWM_SERVO_GET_SELECT_UPDATE_RATE _PX4_IOC(_PWM_SERVO_BASE, 7)
 
-/** clear the 'ARM ok' bit, which deactivates the safety switch */
-#define PWM_SERVO_CLEAR_ARM_OK	_PX4_IOC(_PWM_SERVO_BASE, 9)
-
 /** start DSM bind */
 #define DSM_BIND_START	_PX4_IOC(_PWM_SERVO_BASE, 10)
 

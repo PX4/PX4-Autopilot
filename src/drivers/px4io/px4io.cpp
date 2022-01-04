@@ -1621,12 +1621,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	/* regular ioctl? */
 	switch (cmd) {
-	case PWM_SERVO_CLEAR_ARM_OK:
-		PX4_DEBUG("PWM_SERVO_CLEAR_ARM_OK");
-		/* clear the 'OK to arm' bit */
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_IO_ARM_OK, 0);
-		break;
-
 	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
 		PX4_DEBUG("PWM_SERVO_GET_DEFAULT_UPDATE_RATE");
 		/* get the default update rate */
