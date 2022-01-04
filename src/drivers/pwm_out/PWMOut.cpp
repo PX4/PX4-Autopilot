@@ -761,15 +761,6 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_CLEAR_ARM_OK:
 		break;
 
-	case PWM_SERVO_DISARM:
-
-		/* Ignore disarm if disarmed PWM is set already. */
-		if (_num_disarmed_set == 0) {
-			update_pwm_out_state(false);
-		}
-
-		break;
-
 	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
 		*(uint32_t *)arg = _pwm_default_rate;
 		break;

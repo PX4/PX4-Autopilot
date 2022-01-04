@@ -94,9 +94,6 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	lock();
 
 	switch (cmd) {
-	case PWM_SERVO_DISARM:
-		break;
-
 	case PWM_SERVO_SET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 

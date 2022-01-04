@@ -137,9 +137,6 @@ typedef uint16_t	servo_position_t;
  */
 #define _PWM_SERVO_BASE		0x2a00
 
-/** disarm all servo outputs (stop generating pulses) */
-#define PWM_SERVO_DISARM	_PX4_IOC(_PWM_SERVO_BASE, 1)
-
 /** get default servo update rate */
 #define PWM_SERVO_GET_DEFAULT_UPDATE_RATE _PX4_IOC(_PWM_SERVO_BASE, 2)
 

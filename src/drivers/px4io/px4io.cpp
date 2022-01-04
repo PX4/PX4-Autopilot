@@ -1634,12 +1634,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_IO_ARM_OK, 0);
 		break;
 
-	case PWM_SERVO_DISARM:
-		PX4_DEBUG("PWM_SERVO_DISARM");
-		/* clear the 'armed' bit */
-		ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_FMU_ARMED, 0);
-		break;
-
 	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
 		PX4_DEBUG("PWM_SERVO_GET_DEFAULT_UPDATE_RATE");
 		/* get the default update rate */

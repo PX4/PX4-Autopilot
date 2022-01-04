@@ -111,7 +111,6 @@ $ pwm test -c 13 -p 1200
 
 
 	PRINT_MODULE_USAGE_NAME("pwm", "command");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("disarm", "Disarm output");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Print current configuration of all channels");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("forcefail", "Force Failsafe mode. "
@@ -305,21 +304,7 @@ pwm_main(int argc, char *argv[])
 
 	oneshot = !strcmp(command, "oneshot");
 
-	if (!strcmp(command, "disarm")) {
-		/* disarm, but do not revoke the SET_ARM_OK flag */
-		ret = px4_ioctl(fd, PWM_SERVO_DISARM, 0);
-
-		if (ret != OK) {
-			err(1, "PWM_SERVO_DISARM");
-		}
-
-		if (print_verbose) {
-			PX4_INFO("Outputs disarmed");
-		}
-
-		return 0;
-
-	} else if (oneshot || !strcmp(command, "rate")) {
+	if (oneshot || !strcmp(command, "rate")) {
 
 		/* Change alternate PWM rate or set oneshot
 		 * Either the "oneshot" command was used

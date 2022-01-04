@@ -363,14 +363,6 @@ extern "C" __EXPORT int esc_calib_main(int argc, char *argv[])
 		px4_usleep(50000);
 	}
 
-	/* disarm */
-	ret = ioctl(fd, PWM_SERVO_DISARM, 0);
-
-	if (ret != OK) {
-		PX4_ERR("PWM_SERVO_DISARM");
-		goto cleanup;
-	}
-
 	printf("Outputs disarmed");
 
 	printf("ESC calibration finished\n");
