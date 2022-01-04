@@ -1380,12 +1380,17 @@ void EKF2::UpdateImuStatus()
 			return;
 		}
 
+		const float dt = _ekf.get_dt_imu_avg();
+
 		// accel -> delta velocity
-		_ekf.setDeltaVelocityHighFrequencyVibrationMetric(imu_status.accel_vibration_metric * _ekf.get_dt_imu_avg());
+		_ekf.setDeltaVelocityHighFrequencyVibrationMetric(imu_status.accel_vibration_metric * dt);
 
 		// gyro -> delta angle
-		_ekf.setDeltaAngleHighFrequencyVibrationMetric(imu_status.gyro_vibration_metric * _ekf.get_dt_imu_avg());
-		_ekf.setDeltaAngleConingMetric(imu_status.gyro_coning_vibration * _ekf.get_dt_imu_avg());
+		_ekf.setDeltaAngleHighFrequencyVibrationMetric(imu_status.gyro_vibration_metric * dt);
+
+		// note: the coning metric uses the cross product of two consecutive angular velocities
+		// this is why the conversion to delta angle requires dt^2
+		_ekf.setDeltaAngleConingMetric(imu_status.gyro_coning_vibration * dt * dt);
 	}
 }
 
