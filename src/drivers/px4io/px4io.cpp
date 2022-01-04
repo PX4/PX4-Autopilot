@@ -145,11 +145,6 @@ public:
 
 	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Fetch and print debug console output.
-	 */
-	int			print_debug();
-
 	/*
 	 * To test what happens if IO stops receiving updates from FMU.
 	 *
@@ -171,7 +166,6 @@ private:
 
 	static int checkcrc(int argc, char *argv[]);
 	static int bind(int argc, char *argv[]);
-	static int monitor();
 
 	static constexpr int PX4IO_MAX_ACTUATORS = 8;
 
@@ -1403,50 +1397,6 @@ int PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint1
 	return io_reg_set(page, offset, value);
 }
 
-int
-PX4IO::print_debug()
-{
-#if defined(CONFIG_ARCH_BOARD_PX4_FMU_V2) || defined(CONFIG_ARCH_BOARD_PX4_FMU_V3)
-	int io_fd = -1;
-
-	if (io_fd <= 0) {
-		io_fd = ::open("/dev/ttyS0", O_RDONLY | O_NONBLOCK | O_NOCTTY);
-	}
-
-	/* read IO's output */
-	if (io_fd >= 0) {
-		pollfd fds[1];
-		fds[0].fd = io_fd;
-		fds[0].events = POLLIN;
-
-		px4_usleep(500);
-		int pret = ::poll(fds, sizeof(fds) / sizeof(fds[0]), 0);
-
-		if (pret > 0) {
-			int count;
-			char buf[65];
-
-			do {
-				count = ::read(io_fd, buf, sizeof(buf) - 1);
-
-				if (count > 0) {
-					/* enforce null termination */
-					buf[count] = '\0';
-					warnx("IO CONSOLE: %s", buf);
-				}
-
-			} while (count > 0);
-		}
-
-		::close(io_fd);
-		return 0;
-	}
-
-#endif
-	return 1;
-
-}
-
 int PX4IO::print_status()
 {
 	/* basic configuration */
@@ -1970,44 +1920,6 @@ int PX4IO::bind(int argc, char *argv[])
 	return 0;
 }
 
-int PX4IO::monitor()
-{
-	/* clear screen */
-	printf("\033[2J");
-
-	unsigned cancels = 2;
-
-	for (;;) {
-		pollfd fds[1];
-
-		fds[0].fd = 0;
-		fds[0].events = POLLIN;
-
-		if (::poll(fds, 1, 2000) < 0) {
-			PX4_ERR("poll fail");
-			return 1;
-		}
-
-		if (fds[0].revents == POLLIN) {
-			/* control logic is to cancel with any key */
-			char c;
-			::read(0, &c, 1);
-
-			if (cancels-- == 0) {
-				printf("\033[2J\033[H"); /* move cursor home and clear screen */
-				return 0;
-			}
-		}
-
-		printf("\033[2J\033[H"); /* move cursor home and clear screen */
-		get_instance()->print_status();
-		get_instance()->print_debug();
-		printf("\n\n\n[ Use 'px4io debug <N>' for more output. Hit <enter> three times to exit monitor mode ]\n");
-	}
-
-	return 0;
-}
-
 int PX4IO::task_spawn(int argc, char *argv[])
 {
 	device::Device *interface = get_interface();
@@ -2189,10 +2101,6 @@ int PX4IO::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
-	if (!strcmp(verb, "monitor")) {
-		return monitor();
-	}
-
 	if (!strcmp(verb, "bind")) {
 		if (!is_running()) {
 			PX4_ERR("io must be running");
@@ -2260,7 +2168,6 @@ Output driver communicating with the IO co-processor.
 	PRINT_MODULE_USAGE_COMMAND_DESCR("safety_on", "Turn on safety (force)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("debug", "set IO debug level");
 	PRINT_MODULE_USAGE_ARG("<debug_level>", "0=disabled, 9=max verbosity", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("monitor", "continuously monitor status");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "DSM bind");
 	PRINT_MODULE_USAGE_ARG("dsm2|dsmx|dsmx8", "protocol", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("sbus1_out", "enable sbus1 out");
