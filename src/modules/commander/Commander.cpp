@@ -1300,14 +1300,25 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 				} else if ((int)(cmd.param7) == 1) {
 					/* do esc calibration */
-					if (check_battery_disconnected(&_mavlink_log_pub)) {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-						_status_flags.condition_calibration_enabled = true;
-						_armed.in_esc_calibration_mode = true;
-						_worker_thread.startTask(WorkerThread::Request::ESCCalibration);
+
+					// check safety
+					uORB::SubscriptionData<safety_s> safety_sub{ORB_ID(safety)};
+					safety_sub.update();
+
+					if (safety_sub.get().safety_switch_available && !safety_sub.get().safety_off) {
+						//mavlink_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Disable safety first"); // TODO
+						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
 
 					} else {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
+						if (check_battery_disconnected(&_mavlink_log_pub)) {
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+							_status_flags.condition_calibration_enabled = true;
+							_armed.in_esc_calibration_mode = true;
+							_worker_thread.startTask(WorkerThread::Request::ESCCalibration);
+
+						} else {
+							answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
+						}
 					}
 
 				} else if ((int)(cmd.param4) == 0) {

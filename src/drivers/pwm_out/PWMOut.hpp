@@ -149,6 +149,9 @@ private:
 	bool		_pwm_initialized{false};
 	bool		_test_mode{false};
 
+	bool           _esc_calibration_mode{false};
+	hrt_abstime    _esc_calibration_last{0};
+
 	unsigned	_num_disarmed_set{0};
 
 	perf_counter_t	_cycle_perf;

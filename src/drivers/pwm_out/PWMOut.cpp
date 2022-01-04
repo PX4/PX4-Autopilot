@@ -449,47 +449,97 @@ void PWMOut::Run()
 		return;
 	}
 
-	perf_begin(_cycle_perf);
+	// ESC calibration
+	if (_pwm_initialized && !_mixing_output.armed().armed) {
+		if (_mixing_output.armed().in_esc_calibration_mode) {
+			_esc_calibration_mode = true;
+			_esc_calibration_last = _mixing_output.armed().timestamp;
+
+			// set outputs to maximum
+			for (size_t i = 0; i < _num_outputs; i++) {
+				// TODO: ESCs only
+				//   - PWM only (no oneshot)
+				if (_pwm_mask & (1 << (i + _output_base))) {
+					up_pwm_servo_set(_output_base + i, PWM_DEFAULT_MAX);
+				}
+			}
+
+			ScheduleDelayed(10_ms);
+			return;
+
+		} else if (_esc_calibration_mode) {
+			if (hrt_elapsed_time(&_esc_calibration_last) < 3_s) {
+				// set outputs to minimum
+				for (size_t i = 0; i < _num_outputs; i++) {
+					// TODO: ESCs only
+					if (_pwm_mask & (1 << (i + _output_base))) {
+						up_pwm_servo_set(_output_base + i, PWM_DEFAULT_MIN);
+					}
+				}
+
+				ScheduleDelayed(10_ms);
+				return;
+
+			} else {
+				// calibration finished
+				_esc_calibration_mode = false;
+				_esc_calibration_last = 0;
+			}
+		}
+	}
+
+
+
 	perf_count(_interval_perf);
 
-	if (!_mixing_output.useDynamicMixing()) {
-		// push backup schedule
-		ScheduleDelayed(_backup_schedule_interval_us);
-	}
+	if (_mixing_output.armed().in_esc_calibration_mode) {
+		// do calibration
 
-	_mixing_output.update();
 
-	/* update PWM status if armed or if disarmed PWM values are set */
-	bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.useDynamicMixing()
-		      || _mixing_output.armed().in_esc_calibration_mode;
 
-	if (_pwm_on != pwm_on || _require_arming[_instance].load()) {
+	} else {
+		perf_begin(_cycle_perf);
 
-		if (update_pwm_out_state(pwm_on)) {
-			_pwm_on = pwm_on;
+		if (!_mixing_output.useDynamicMixing()) {
+			// push backup schedule
+			ScheduleDelayed(_backup_schedule_interval_us);
 		}
-	}
 
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
+		_mixing_output.update();
 
-		// update parameters from storage
-		if (_mixing_output.useDynamicMixing()) { // do not update PWM params for now (was interfering with VTOL PWM settings)
-			update_params();
+		/* update PWM status if armed or if disarmed PWM values are set */
+		bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.useDynamicMixing()
+			      || _mixing_output.armed().in_esc_calibration_mode;
+
+		if (_pwm_on != pwm_on || _require_arming[_instance].load()) {
+
+			if (update_pwm_out_state(pwm_on)) {
+				_pwm_on = pwm_on;
+			}
 		}
+
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
+
+			// update parameters from storage
+			if (_mixing_output.useDynamicMixing()) { // do not update PWM params for now (was interfering with VTOL PWM settings)
+				update_params();
+			}
+		}
+
+		if (_pwm_initialized && _current_update_rate == 0 && !_mixing_output.useDynamicMixing()) {
+			update_current_rate();
+		}
+
+		// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
+		_mixing_output.updateSubscriptions(true, true);
+		perf_end(_cycle_perf);
 	}
 
-	if (_pwm_initialized && _current_update_rate == 0 && !_mixing_output.useDynamicMixing()) {
-		update_current_rate();
-	}
 
-	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true, true);
-
-	perf_end(_cycle_perf);
 }
 
 void PWMOut::update_params()

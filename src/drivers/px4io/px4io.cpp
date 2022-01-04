@@ -218,6 +218,9 @@ private:
 
 	hrt_abstime             _last_status_publish{0};
 
+	bool           _esc_calibration_mode{false};
+	hrt_abstime    _esc_calibration_last{0};
+
 	bool			_param_update_force{true};	///< force a parameter update
 	bool			_timer_rates_configured{false};
 
@@ -579,6 +582,52 @@ void PX4IO::Run()
 		return;
 	}
 
+	SmartLock lock_guard(_lock);
+
+	// ESC calibration
+	if (!_mixing_output.armed().armed && !_test_fmu_fail && !_in_test_mode) {
+		if (_mixing_output.armed().in_esc_calibration_mode) {
+			_esc_calibration_mode = true;
+			_esc_calibration_last = _mixing_output.armed().timestamp;
+
+			// set outputs to maximum
+			uint16_t outputs[MAX_ACTUATORS];
+
+			for (unsigned i = 0; i < _max_actuators; i++) {
+				outputs[i] = PWM_DEFAULT_MAX;
+			}
+
+			// TODO: ESCs only
+			//   - PWM only (no oneshot)
+			io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, _max_actuators);
+
+			ScheduleDelayed(10_ms);
+			return;
+
+		} else if (_esc_calibration_mode) {
+			if (hrt_elapsed_time(&_esc_calibration_last) < 3_s) {
+				// set outputs to minimum
+				uint16_t outputs[MAX_ACTUATORS];
+
+				for (unsigned i = 0; i < _max_actuators; i++) {
+					outputs[i] = PWM_DEFAULT_MIN;
+				}
+
+				// TODO: ESCs only
+				io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, _max_actuators);
+
+				ScheduleDelayed(10_ms);
+				return;
+
+			} else {
+				// calibration finished
+				_esc_calibration_mode = false;
+				_esc_calibration_last = 0;
+			}
+		}
+	}
+
+
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
@@ -592,7 +641,7 @@ void PX4IO::Run()
 		_mixing_output.update();
 	}
 
-	SmartLock lock_guard(_lock);
+
 
 	if (hrt_elapsed_time(&_poll_last) >= 20_ms) {
 		/* run at 50 */

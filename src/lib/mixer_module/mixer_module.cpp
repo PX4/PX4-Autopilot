@@ -683,19 +683,6 @@ bool MixingOutput::updateStaticMixer()
 			if (_control_subs[i].copy(&_controls[i])) {
 				n_updates++;
 			}
-
-			/* During ESC calibration, we overwrite the throttle value. */
-			if (i == 0 && _armed.in_esc_calibration_mode) {
-
-				/* Set all controls to 0 */
-				memset(&_controls[i], 0, sizeof(_controls[i]));
-
-				/* except thrust to maximum. */
-				_controls[i].control[actuator_controls_s::INDEX_THROTTLE] = 1.0f;
-
-				/* Switch off the output limit ramp for the calibration. */
-				_output_limit.state = OUTPUT_LIMIT_STATE_ON;
-			}
 		}
 	}
 
@@ -1043,7 +1030,7 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 	}
 
 	/* throttle not arming - mark throttle input as invalid */
-	if (output->armNoThrottle() && !output->_armed.in_esc_calibration_mode) {
+	if (output->armNoThrottle()) {
 		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
 		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {
