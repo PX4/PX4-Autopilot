@@ -91,14 +91,14 @@ int px4_arch_adc_init(uint32_t base_address)
 
 		once = true;
 
-		/* Input is Buss Clock 56 Mhz We will use /8 for 7 Mhz */
+		/* Input is Buss Clock 144 Mhz We will use /4 for 36 Mhz */
 
 		irqstate_t flags = px4_enter_critical_section();
 
 		imxrt_clockall_adc1();
 
-		rCFG(base_address) = ADC_CFG_ADICLK_IPGDIV2 | ADC_CFG_MODE_12BIT | \
-				     ADC_CFG_ADIV_DIV8 | ADC_CFG_ADLSMP | ADC_CFG_ADSTS_7_21 | \
+		rCFG(base_address) = ADC_CFG_ADICLK_IPG | ADC_CFG_MODE_12BIT | \
+				     ADC_CFG_ADIV_DIV4 | ADC_CFG_ADLSMP | ADC_CFG_ADSTS_7_21 | \
 				     ADC_CFG_AVGS_4SMPL | ADC_CFG_OVWREN;
 		px4_leave_critical_section(flags);
 
@@ -156,6 +156,7 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	return 0;
 }
+
 void px4_arch_adc_uninit(uint32_t base_address)
 {
 	imxrt_clockoff_adc1();
@@ -163,6 +164,8 @@ void px4_arch_adc_uninit(uint32_t base_address)
 
 uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 {
+
+	irqstate_t flags = px4_enter_critical_section();
 
 	/* clear any previous COCO0 */
 
@@ -174,16 +177,19 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	hrt_abstime now = hrt_absolute_time();
 
 	while (!(rHS(base_address) & ADC_HS_COCO0)) {
-		/* don't wait for more than 50us, since that means something broke
+		/* don't wait for more than 10us, since that means something broke
 		 *  should reset here if we see this
 		 */
-		if ((hrt_absolute_time() - now) > 50) {
-			return 0xffff;
+		if ((hrt_absolute_time() - now) > 10) {
+			px4_leave_critical_section(flags);
+			return UINT32_MAX;
 		}
 	}
 
 	/* read the result and clear  COCO0 */
 	result  = rR0(base_address);
+	px4_leave_critical_section(flags);
+
 	return result;
 }
 

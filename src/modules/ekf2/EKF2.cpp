@@ -667,7 +667,7 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 
 	if (information_event_updated || warning_event_updated) {
 		estimator_event_flags_s event_flags{};
-		event_flags.timestamp_sample = timestamp;
+		event_flags.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 		event_flags.information_event_changes           = _filter_information_event_changes;
 		event_flags.gps_checks_passed                   = _ekf.information_event_flags().gps_checks_passed;
@@ -752,7 +752,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp, const imuSample &imu
 {
 	// publish estimator innovation data
 	estimator_innovations_s innovations{};
-	innovations.timestamp_sample = timestamp;
+	innovations.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 	_ekf.getGpsVelPosInnov(innovations.gps_hvel, innovations.gps_vvel, innovations.gps_hpos, innovations.gps_vpos);
 	_ekf.getEvVelPosInnov(innovations.ev_hvel, innovations.ev_vvel, innovations.ev_hpos, innovations.ev_vpos);
 	_ekf.getBaroHgtInnov(innovations.baro_vpos);
@@ -787,7 +787,7 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 {
 	// publish estimator innovation test ratio data
 	estimator_innovations_s test_ratios{};
-	test_ratios.timestamp_sample = timestamp;
+	test_ratios.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 	_ekf.getGpsVelPosInnovRatio(test_ratios.gps_hvel[0], test_ratios.gps_vvel, test_ratios.gps_hpos[0],
 				    test_ratios.gps_vpos);
 	_ekf.getEvVelPosInnovRatio(test_ratios.ev_hvel[0], test_ratios.ev_vvel, test_ratios.ev_hpos[0], test_ratios.ev_vpos);
@@ -812,7 +812,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 {
 	// publish estimator innovation variance data
 	estimator_innovations_s variances{};
-	variances.timestamp_sample = timestamp;
+	variances.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 	_ekf.getGpsVelPosInnovVar(variances.gps_hvel, variances.gps_vvel, variances.gps_hpos, variances.gps_vpos);
 	_ekf.getEvVelPosInnovVar(variances.ev_hvel, variances.ev_vvel, variances.ev_hpos, variances.ev_vpos);
 	_ekf.getBaroHgtInnovVar(variances.baro_vpos);
@@ -1058,7 +1058,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 {
 	// estimator_sensor_bias
 	estimator_sensor_bias_s bias{};
-	bias.timestamp_sample = timestamp;
+	bias.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 	const Vector3f gyro_bias{_ekf.getGyroBias()};
 	const Vector3f accel_bias{_ekf.getAccelBias()};
@@ -1109,7 +1109,7 @@ void EKF2::PublishStates(const hrt_abstime &timestamp)
 {
 	// publish estimator states
 	estimator_states_s states;
-	states.timestamp_sample = timestamp;
+	states.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 	states.n_states = Ekf::_k_num_states;
 	_ekf.getStateAtFusionHorizonAsVector().copyTo(states.states);
 	_ekf.covariances_diagonal().copyTo(states.covariances);
@@ -1120,7 +1120,7 @@ void EKF2::PublishStates(const hrt_abstime &timestamp)
 void EKF2::PublishStatus(const hrt_abstime &timestamp)
 {
 	estimator_status_s status{};
-	status.timestamp_sample = timestamp;
+	status.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 	_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
 
@@ -1199,7 +1199,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 
 	if (update) {
 		estimator_status_flags_s status_flags{};
-		status_flags.timestamp_sample = timestamp;
+		status_flags.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 		status_flags.control_status_changes   = _filter_control_status_changes;
 		status_flags.cs_tilt_align            = _ekf.control_status_flags().tilt_align;
@@ -1297,7 +1297,7 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 	if (_ekf.get_wind_status()) {
 		// Publish wind estimate only if ekf declares them valid
 		wind_s wind{};
-		wind.timestamp_sample = timestamp;
+		wind.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 		const Vector2f wind_vel = _ekf.getWindVelocity();
 		const Vector2f wind_vel_var = _ekf.getWindVelocityVariance();
