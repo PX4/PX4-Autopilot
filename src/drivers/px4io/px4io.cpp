@@ -1863,12 +1863,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
 		break;
 
-	case PWM_SERVO_SET_FORCE_SAFETY_ON:
-		PX4_DEBUG("PWM_SERVO_SET_FORCE_SAFETY_ON");
-		/* force safety switch on */
-		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
-		break;
-
 	case PWM_SERVO_SET_FORCE_FAILSAFE:
 		PX4_DEBUG("PWM_SERVO_SET_FORCE_FAILSAFE");
 
@@ -2473,17 +2467,6 @@ int PX4IO::custom_command(int argc, char *argv[])
 
 		if (ret != OK) {
 			PX4_ERR("failed to disable safety (%i)", ret);
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(verb, "safety_on")) {
-		int ret = get_instance()->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_ON, 0);
-
-		if (ret != OK) {
-			PX4_ERR("failed to enable safety (%i)", ret);
 			return 1;
 		}
 
