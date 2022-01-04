@@ -338,12 +338,6 @@ int prepare(int fd, unsigned long *max_channels)
 		return 1;
 	}
 
-	/* tell IO/FMU that its ok to disable its safety with the switch */
-	if (px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0) != OK) {
-		PX4_ERR("PWM_SERVO_SET_ARM_OK");
-		return 1;
-	}
-
 	return 0;
 }
 

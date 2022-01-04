@@ -866,7 +866,6 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 	lock();
 
 	switch (cmd) {
-	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
 		// these are no-ops, as no safety switch
 		break;

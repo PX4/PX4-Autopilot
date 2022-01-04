@@ -270,16 +270,6 @@ extern "C" __EXPORT int esc_calib_main(int argc, char *argv[])
 		goto cleanup;
 	}
 
-	/* tell IO/FMU that its ok to disable its safety with the switch */
-	ret = ioctl(fd, PWM_SERVO_SET_ARM_OK, 0);
-
-	if (ret != OK) {
-		PX4_ERR("PWM_SERVO_SET_ARM_OK");
-		goto cleanup;
-	}
-
-	printf("Outputs armed");
-
 
 	/* wait for user confirmation */
 	printf("\nHigh PWM set: %d\n"
