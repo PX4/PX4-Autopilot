@@ -121,13 +121,6 @@ public:
 	int		init() override;
 
 	/**
-	 * Detect if a PX4IO is connected.
-	 *
-	 * Only validate if there is a PX4IO to talk to.
-	 */
-	int		detect();
-
-	/**
 	 * IO Control handler.
 	 *
 	 * Handle all IOCTL calls to the PX4IO file descriptor.
@@ -387,41 +380,6 @@ PX4IO::~PX4IO()
 	perf_free(_interval_perf);
 	perf_free(_interface_read_perf);
 	perf_free(_interface_write_perf);
-}
-
-int
-PX4IO::detect()
-{
-	if (!is_running()) {
-
-		/* do regular cdev init */
-		int ret = CDev::init();
-
-		if (ret != OK) {
-			return ret;
-		}
-
-		/* get some parameters */
-		unsigned protocol = io_reg_get(PX4IO_PAGE_CONFIG, PX4IO_P_CONFIG_PROTOCOL_VERSION);
-
-		if (protocol != PX4IO_PROTOCOL_VERSION) {
-			if (protocol == _io_reg_get_error) {
-				PX4_ERR("IO not installed");
-
-			} else {
-				PX4_ERR("IO version error");
-				mavlink_log_emergency(&_mavlink_log_pub, "IO VERSION MISMATCH, PLEASE UPGRADE SOFTWARE!\t");
-				events::send(events::ID("px4io_io_ver_mismatch"), events::Log::Emergency,
-					     "IO version mismatch, please upgrade the software");
-			}
-
-			return -1;
-		}
-	}
-
-	PX4_INFO("IO found");
-
-	return 0;
 }
 
 bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
@@ -1912,29 +1870,6 @@ static device::Device *get_interface()
 	return interface;
 }
 
-static int detect(int argc, char *argv[])
-{
-	/* allocate the interface */
-	device::Device *interface = get_interface();
-
-	if (interface == nullptr) {
-		PX4_ERR("interface allocation failed");
-		return 1;
-	}
-
-	PX4IO *dev = new PX4IO(interface);
-
-	if (dev == nullptr) {
-		PX4_ERR("driver allocation failed");
-		return 1;
-	}
-
-	int ret = dev->detect();
-	delete dev;
-	return ret;
-}
-
-
 int PX4IO::checkcrc(int argc, char *argv[])
 {
 	/*
@@ -2106,15 +2041,6 @@ int PX4IO::task_spawn(int argc, char *argv[])
 int PX4IO::custom_command(int argc, char *argv[])
 {
 	const char *verb = argv[0];
-
-	if (!strcmp(verb, "detect")) {
-		if (is_running()) {
-			PX4_ERR("io must be stopped");
-			return 1;
-		}
-
-		return ::detect(argc - 1, argv + 1);
-	}
 
 	if (!strcmp(verb, "checkcrc")) {
 		if (is_running()) {
@@ -2326,7 +2252,6 @@ Output driver communicating with the IO co-processor.
 	PRINT_MODULE_USAGE_NAME("px4io", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 
-	PRINT_MODULE_USAGE_COMMAND_DESCR("detect", "Try to detect the presence of an IO");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("checkcrc", "Check CRC for a firmware file against current code on IO");
 	PRINT_MODULE_USAGE_ARG("<filename>", "Firmware file", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("update", "Update IO firmware");
