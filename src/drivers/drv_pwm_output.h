@@ -197,9 +197,6 @@ typedef uint16_t	servo_position_t;
 /** get the lockdown override flag to enable outputs in HIL */
 #define PWM_SERVO_GET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 24)
 
-/** make failsafe non-recoverable (termination) if it occurs */
-#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_PX4_IOC(_PWM_SERVO_BASE, 27)
-
 /*
  *
  *

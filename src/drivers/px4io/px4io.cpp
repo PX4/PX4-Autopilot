@@ -1844,21 +1844,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = _lockdown_override;
 		break;
 
-	case PWM_SERVO_SET_TERMINATION_FAILSAFE:
-		PX4_DEBUG("PWM_SERVO_SET_TERMINATION_FAILSAFE");
-
-		/* if failsafe occurs, do not allow the system to recover */
-		if (arg == 0) {
-			/* clear termination failsafe flag */
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE, 0);
-
-		} else {
-			/* set termination failsafe flag */
-			ret = io_reg_modify(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ARMING, 0, PX4IO_P_SETUP_ARMING_TERMINATION_FAILSAFE);
-		}
-
-		break;
-
 	case DSM_BIND_START:
 		/* bind a DSM receiver */
 		ret = dsm_bind_ioctl(arg);
