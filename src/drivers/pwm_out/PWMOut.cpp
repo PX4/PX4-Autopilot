@@ -1079,23 +1079,6 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		*(unsigned *)arg = _num_outputs;
 		break;
 
-	case PWM_SERVO_SET_MODE: {
-			switch (arg) {
-			case PWM_SERVO_ENTER_TEST_MODE:
-				_test_mode = true;
-				break;
-
-			case PWM_SERVO_EXIT_TEST_MODE:
-				_test_mode = false;
-				break;
-
-			default:
-				ret = -EINVAL;
-			}
-
-			break;
-		}
-
 	case MIXERIOCRESET:
 		_mixing_output.resetMixerThreadSafe();
 

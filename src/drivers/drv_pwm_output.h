@@ -203,11 +203,6 @@ typedef uint16_t	servo_position_t;
 /** make failsafe non-recoverable (termination) if it occurs */
 #define PWM_SERVO_SET_TERMINATION_FAILSAFE	_PX4_IOC(_PWM_SERVO_BASE, 27)
 
-/** set auxillary output mode */
-#define PWM_SERVO_ENTER_TEST_MODE  18
-#define PWM_SERVO_EXIT_TEST_MODE   19
-#define PWM_SERVO_SET_MODE         _PX4_IOC(_PWM_SERVO_BASE, 34)
-
 /*
  *
  *

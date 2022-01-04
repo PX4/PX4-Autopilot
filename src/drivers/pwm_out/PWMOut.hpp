@@ -145,7 +145,6 @@ private:
 	bool		_pwm_on{false};
 	uint32_t	_pwm_mask{0};
 	bool		_pwm_initialized{false};
-	bool		_test_mode{false};
 
 	bool           _esc_calibration_mode{false};
 	hrt_abstime    _esc_calibration_last{0};

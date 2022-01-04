@@ -392,13 +392,6 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		return 1;
 	}
 
-	if (px4_ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
-		PX4_ERR("Failed to Enter pwm test mode");
-		px4_close(fd);
-		_thread_running = false;
-		return 1;
-	}
-
 	if (prepare(fd, &max_channels) != OK) {
 		_thread_should_exit = true;
 	}
@@ -503,13 +496,6 @@ int motor_ramp_thread_main(int argc, char *argv[])
 				_thread_running = false;
 				return 1;
 			}
-		}
-
-		if (px4_ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_EXIT_TEST_MODE) < 0) {
-			PX4_ERR("Failed to Exit pwm test mode");
-			px4_close(fd);
-			_thread_running = false;
-			return 1;
 		}
 
 		px4_close(fd);

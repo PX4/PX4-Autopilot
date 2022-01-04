@@ -238,7 +238,6 @@ private:
 	float			_analog_rc_rssi_volt{-1.f}; ///< analog RSSI voltage
 
 	bool			_test_fmu_fail{false}; ///< To test what happens if IO loses FMU
-	bool			_in_test_mode{false}; ///< true if PWM_SERVO_ENTER_TEST_MODE is active
 
 	MixingOutput _mixing_output{"PWM_MAIN", PX4IO_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
@@ -433,7 +432,7 @@ bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 {
 	SmartLock lock_guard(_lock);
 
-	if (!_test_fmu_fail && !_in_test_mode) {
+	if (!_test_fmu_fail) {
 		/* output to the servos */
 		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, num_outputs);
 	}
@@ -585,7 +584,7 @@ void PX4IO::Run()
 	SmartLock lock_guard(_lock);
 
 	// ESC calibration
-	if (!_mixing_output.armed().armed && !_test_fmu_fail && !_in_test_mode) {
+	if (!_mixing_output.armed().armed && !_test_fmu_fail) {
 		if (_mixing_output.armed().in_esc_calibration_mode) {
 			_esc_calibration_mode = true;
 			_esc_calibration_last = _mixing_output.armed().timestamp;
@@ -1892,7 +1891,7 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				ret = -EINVAL;
 
 			} else {
-				if (!_test_fmu_fail && _in_test_mode) {
+				if (!_test_fmu_fail) {
 					/* send a direct PWM value */
 					ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
 
@@ -1940,22 +1939,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 			break;
 		}
-
-	case PWM_SERVO_SET_MODE: {
-			// reset all channels to disarmed when entering/leaving test mode, so that we don't
-			// accidentially use values from previous tests
-			pwm_output_values pwm_disarmed;
-
-			if (io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, pwm_disarmed.values, _max_actuators) == 0) {
-				for (unsigned i = 0; i < _max_actuators; ++i) {
-					io_reg_set(PX4IO_PAGE_DIRECT_PWM, i, pwm_disarmed.values[i]);
-				}
-			}
-
-			_in_test_mode = (arg == PWM_SERVO_ENTER_TEST_MODE);
-			ret = (arg == PWM_SERVO_ENTER_TEST_MODE || PWM_SERVO_EXIT_TEST_MODE) ? 0 : -EINVAL;
-		}
-		break;
 
 	case MIXERIOCRESET:
 		PX4_DEBUG("MIXERIOCRESET");
