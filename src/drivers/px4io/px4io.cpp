@@ -1857,12 +1857,6 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		*(unsigned *)arg = _lockdown_override;
 		break;
 
-	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
-		PX4_DEBUG("PWM_SERVO_SET_FORCE_SAFETY_OFF");
-		/* force safety swith off */
-		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
-		break;
-
 	case PWM_SERVO_SET_FORCE_FAILSAFE:
 		PX4_DEBUG("PWM_SERVO_SET_FORCE_FAILSAFE");
 
@@ -2461,18 +2455,6 @@ int PX4IO::custom_command(int argc, char *argv[])
 		return 1;
 	}
 
-
-	if (!strcmp(verb, "safety_off")) {
-		int ret = get_instance()->ioctl(NULL, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0);
-
-		if (ret != OK) {
-			PX4_ERR("failed to disable safety (%i)", ret);
-			return 1;
-		}
-
-		return 0;
-	}
-
 	if (!strcmp(verb, "debug")) {
 		if (argc <= 1) {
 			PX4_ERR("usage: px4io debug LEVEL");
@@ -2563,8 +2545,6 @@ Output driver communicating with the IO co-processor.
 	PRINT_MODULE_USAGE_ARG("<filename>", "Firmware file", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("update", "Update IO firmware");
 	PRINT_MODULE_USAGE_ARG("<filename>", "Firmware file", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("safety_off", "Turn off safety (force)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("safety_on", "Turn on safety (force)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("debug", "set IO debug level");
 	PRINT_MODULE_USAGE_ARG("<debug_level>", "0=disabled, 9=max verbosity", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("monitor", "continuously monitor status");
