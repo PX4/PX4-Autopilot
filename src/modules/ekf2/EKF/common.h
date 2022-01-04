@@ -369,9 +369,6 @@ struct parameters {
 	const float auxvel_noise{0.5f};		///< minimum observation noise, uses reported noise if greater (m/s)
 	const float auxvel_gate{5.0f};		///< velocity fusion innovation consistency gate size (STD)
 
-	// control of on-ground movement check
-	float is_moving_scaler{1.0f};		///< gain scaler used to adjust the threshold for the on-ground movement detection. Larger values make the test less sensitive.
-
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
 	int32_t check_mag_strength{0};

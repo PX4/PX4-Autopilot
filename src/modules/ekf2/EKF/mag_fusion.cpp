@@ -824,7 +824,7 @@ void Ekf::fuseHeading()
 			// conditioned covariance matrix developing over time.
 			if (!_control_status.flags.vehicle_at_rest) {
 				// Vehicle is not at rest so fuse a zero innovation if necessary to prevent
-				// unconstrained quaterniion variance growth and record the predicted heading
+				// unconstrained quaternion variance growth and record the predicted heading
 				// to use as an observation when movement ceases.
 				// TODO a better way of determining when this is necessary
 				const float sumQuatVar = P(0, 0) + P(1, 1) + P(2, 2) + P(3, 3);

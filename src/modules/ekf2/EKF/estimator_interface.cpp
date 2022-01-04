@@ -62,9 +62,6 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 
 	_newest_high_rate_imu_sample = imu_sample;
 
-	// Do not change order of computeVibrationMetric and checkIfVehicleAtRest
-	_control_status.flags.vehicle_at_rest = checkIfVehicleAtRest(dt, imu_sample);
-
 	_imu_updated = _imu_down_sampler.update(imu_sample);
 
 	// accumulate and down-sample imu data and push to the buffer when new downsampled data becomes available
@@ -82,25 +79,6 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 		setDragData(imu_sample);
 	}
 }
-
-bool EstimatorInterface::checkIfVehicleAtRest(float dt, const imuSample &imu)
-{
-	// detect if the vehicle is not moving when on ground
-	if (!_control_status.flags.in_air) {
-		if (((_vibe_metrics(1) * 4.0e4f > _params.is_moving_scaler) || (_vibe_metrics(2) * 2.1e2f > _params.is_moving_scaler))
-		    && ((imu.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
-
-			_time_last_move_detect_us = imu.time_us;
-		}
-
-		return ((imu.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
-
-	} else {
-		_time_last_move_detect_us = imu.time_us;
-		return false;
-	}
-}
-
 
 void EstimatorInterface::setMagData(const magSample &mag_sample)
 {

@@ -154,6 +154,7 @@ void SensorSimulator::runMicroseconds(uint32_t duration)
 
 		if (update_imu) {
 			// Update at IMU rate
+			_ekf->set_vehicle_at_rest(!_imu.moving());
 			_ekf->update();
 		}
 	}
@@ -193,6 +194,7 @@ void SensorSimulator::runReplayMicroseconds(uint32_t duration)
 		updateSensors();
 
 		if (update_imu) {
+			_ekf->set_vehicle_at_rest(!_imu.moving());
 			_ekf->update();
 		}
 	}
@@ -316,6 +318,7 @@ void SensorSimulator::runTrajectoryMicroseconds(uint32_t duration)
 		updateSensors();
 
 		if (update_imu) {
+			_ekf->set_vehicle_at_rest(!_imu.moving());
 			_ekf->update();
 		}
 	}
