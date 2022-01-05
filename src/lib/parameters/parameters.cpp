@@ -1212,7 +1212,10 @@ int param_save_default()
 				if (res == PX4_OK) {
 					// reopen file to verify
 					int fd_verify = ::open(filename, O_RDONLY, PX4_O_MODE_666);
-					res = param_verify(fd_verify);
+
+					// verify twice to be paranoid
+					res = param_verify(fd_verify) || lseek(fd_verify, 0, SEEK_SET) || param_verify(fd_verify);
+
 					::close(fd_verify);
 				}
 			}
@@ -1368,7 +1371,7 @@ static int param_verify_callback(bson_decoder_t decoder, bson_node_t node)
 
 static int param_verify(int fd)
 {
-	PX4_DEBUG("param_verify");
+	printf("\n\nparam_verify\n");
 
 	if (fd < 0) {
 		return -1;

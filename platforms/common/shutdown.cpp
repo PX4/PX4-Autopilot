@@ -67,6 +67,8 @@ static uint8_t shutdown_lock_counter = 0;
 
 int px4_shutdown_lock()
 {
+	printf("px4_shutdown_lock\n");
+
 	int ret = pthread_mutex_lock(&shutdown_mutex);
 
 	if (ret == 0) {
@@ -80,6 +82,8 @@ int px4_shutdown_lock()
 
 int px4_shutdown_unlock()
 {
+	printf("px4_shutdown_unlock\n");
+
 	int ret = pthread_mutex_lock(&shutdown_mutex);
 
 	if (ret == 0) {

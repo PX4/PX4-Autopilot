@@ -147,6 +147,8 @@ else
 
 		param dump $PARAM_FILE
 
+		hexdump $PARAM_FILE
+
 		if [ -d "/fs/microsd" ]
 		then
 			dmesg >> /fs/microsd/param_import_fail.txt &
