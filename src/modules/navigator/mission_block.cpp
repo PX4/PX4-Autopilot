@@ -277,7 +277,7 @@ MissionBlock::is_mission_item_reached()
 
 			float acceptance_radius = _navigator->get_acceptance_radius();
 
-			// We use the acceptance radius of the mission item if it has been set (not NAN)
+			// We use the acceptance radius of the mission item if it has been set and it is greater than L1 distance (not NAN)
 			if (PX4_ISFINITE(_mission_item.acceptance_radius) && _mission_item.acceptance_radius > FLT_EPSILON) {
 				acceptance_radius = std::max(_navigator->get_acceptance_radius(), _mission_item.acceptance_radius);
 			}
