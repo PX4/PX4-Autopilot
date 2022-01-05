@@ -38,3 +38,4 @@ param set SIH_IXZ 0.00046
 param set SIH_KDV 0.2
 
 param set SIH_VEHICLE_TYPE 1 	# sih as fixed wing
+param set RWTO_TKOFF 1  # enable takeoff from runway (as opposed to launched)
