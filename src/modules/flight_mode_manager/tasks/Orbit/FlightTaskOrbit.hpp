@@ -118,7 +118,6 @@ private:
 	matrix::Vector3f _center; /**< local frame coordinates of the center point */
 
 	bool _in_circle_approach = false;
-	Vector3f _circle_approach_start_position;
 	PositionSmoothing _position_smoothing;
 	VelocitySmoothing _altitude_velocity_smoothing;
 	Vector3f _unsmoothed_velocity_setpoint;

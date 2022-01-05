@@ -106,7 +106,6 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	if (!_is_position_on_circle()) {
 		_in_circle_approach = true;
 		_position_smoothing.reset({0.f, 0.f, 0.f}, _velocity, _position);
-		_circle_approach_start_position = _position;
 	}
 
 	return ret;
@@ -169,7 +168,6 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 	      && PX4_ISFINITE(_velocity(2));
 
 	_position_smoothing.reset({0.f, 0.f, 0.f}, _velocity, _position);
-	_circle_approach_start_position = _position;
 
 	return ret;
 }
@@ -192,13 +190,6 @@ bool FlightTaskOrbit::update()
 		if (_in_circle_approach) {
 			_in_circle_approach = false;
 			_altitude_velocity_smoothing.reset(0, _velocity(2), _position(2));
-		}
-
-	} else {
-		if (!_in_circle_approach) {
-			_in_circle_approach = true;
-			_position_smoothing.reset({0.f, 0.f, 0.f}, _velocity, _position);
-			_circle_approach_start_position = _position;
 		}
 	}
 
