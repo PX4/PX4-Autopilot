@@ -1,0 +1,20 @@
+# Copyright (c) 2019, NXP
+# SPDX-License-Identifier: Apache-2.0
+
+description: NXP i.MX LPI2C controller
+
+compatible: "nxp,imx-lpi2c"
+
+include: i2c-controller.yaml
+
+properties:
+    reg:
+      required: true
+
+    interrupts:
+      required: true
+
+    bus-idle-timeout:
+      required: false
+      type: int
+      description: Bus idle timeout in nanoseconds

@@ -1,0 +1,5 @@
+description: STM32 F3 flash controller
+
+compatible: "st,stm32f3-flash-controller"
+
+include: flash-controller.yaml

@@ -1,0 +1,11 @@
+# Copyright (c) 2020, STMicroelectronics
+# SPDX-License-Identifier: Apache-2.0
+
+description: STM32 lptim
+
+compatible: "st,stm32-lptim"
+
+include:
+  - name: st,stm32-timers.yaml
+    property-blocklist:
+        - st,prescaler

@@ -77,6 +77,8 @@ extern "C" {
 #include <px4_platform/board_dma_alloc.h>
 #include <px4_platform/gpio/mcp23009.hpp>
 
+#include <include/devicetree.h>
+
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -295,6 +297,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 			return ret;
 		}
 	}
+
+	printf("DT_LABEL: %s\n", DT_LABEL(DT_NODELABEL(usart1)));
+
 
 	return OK;
 }

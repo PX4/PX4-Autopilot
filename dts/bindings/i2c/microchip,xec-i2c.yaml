@@ -1,0 +1,27 @@
+# Copyright (c) 2019 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+description: Microchip I2C/SMB controller
+
+compatible: "microchip,xec-i2c"
+
+include: i2c-controller.yaml
+
+properties:
+    reg:
+      required: true
+
+    port_sel:
+      type: int
+      description: soc block mapping to pin
+      required: true
+
+    girq:
+      type: int
+      required: true
+      description: GIRQ for this device
+
+    girq-bit:
+      type: int
+      required: true
+      description: Bit position in GIRQ for this device

@@ -10,6 +10,7 @@ fi
 exec find boards msg src platforms test \
     -path msg/templates/urtps -prune -o \
     -path platforms/nuttx/NuttX -prune -o \
+    -path platforms/nuttx/src/px4/stm/hal_stm32 -prune -o \
     -path platforms/qurt/dspal -prune -o \
     -path src/drivers/uavcan/libuavcan -prune -o \
     -path src/drivers/uavcan/uavcan_drivers/kinetis/driver/include/uavcan_kinetis -prune -o \

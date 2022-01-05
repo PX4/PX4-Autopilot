@@ -1,0 +1,33 @@
+# Copyright (c) 2018, SiFive Inc.
+# SPDX-License-Identifier: Apache-2.0
+
+description: SiFive PWM
+
+compatible: "sifive,pwm0"
+
+include: [pwm-controller.yaml, base.yaml]
+
+properties:
+    clock-frequency:
+      type: int
+      required: false
+      description: Clock frequency information for PWM operation
+
+    reg:
+      required: true
+
+    interrupts:
+      required: true
+
+    sifive,compare-width:
+      type: int
+      required: true
+      description: Width of the PWM comparator in bits
+
+    "#pwm-cells":
+      const: 2
+
+pwm-cells:
+  - channel
+# period in terms of nanoseconds
+  - period

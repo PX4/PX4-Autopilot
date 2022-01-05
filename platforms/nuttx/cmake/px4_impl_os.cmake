@@ -62,6 +62,8 @@ function(px4_os_add_flags)
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/${CONFIG_ARCH}/src/common
 
 		${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/apps/include
+
+		${PX4_BINARY_DIR}/dts/include/generated
 	)
 
 	# prevent using the toolchain's std c++ library

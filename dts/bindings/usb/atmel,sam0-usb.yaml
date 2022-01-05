@@ -1,0 +1,13 @@
+description: |
+    Atmel SAM0 USB in device mode
+
+compatible: "atmel,sam0-usb"
+
+include: usb-ep.yaml
+
+properties:
+    reg:
+      required: true
+
+    interrupts:
+      required: true

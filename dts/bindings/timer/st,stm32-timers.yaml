@@ -1,0 +1,28 @@
+# Copyright (c) 2020, STMicroelectronics
+# SPDX-License-Identifier: Apache-2.0
+
+description: STM32 timers
+
+compatible: "st,stm32-timers"
+
+include: base.yaml
+
+properties:
+    label:
+      required: true
+
+    reg:
+      required: true
+
+    clocks:
+      required: true
+
+    interrupts:
+      required: false
+
+    st,prescaler:
+      type: int
+      required: true
+      description: |
+        Clock prescaler at the input of the timer
+        Could be in range [0 .. 0xFFFF] for STM32 General Purpose Timers (CLK/(prescaler+1) )

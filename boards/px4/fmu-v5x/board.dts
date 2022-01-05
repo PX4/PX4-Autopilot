@@ -1,0 +1,204 @@
+/*
+ * Copyright (c) 2021 PX4
+ *
+ * SPDX-License-Identifier:
+ */
+
+/dts-v1/;
+
+#include <mem.h> // DT_SIZE_K()
+
+#include <st/f7/stm32f765.dtsi>
+#include <st/f7/stm32f765i(g-i)tx-pinctrl.dtsi>
+
+/ {
+	model = "PX4 FMUv5x";
+	compatible = "px4,px4_fmu-v5x";
+
+	chosen {
+		//zephyr,console = &usart1;
+		//zephyr,shell-uart = &usart1;
+		//zephyr,sram = &sram0;
+		//zephyr,flash = &flash0;
+		//zephyr,dtcm = &dtcm;
+		//zephyr,flash-controller = &mx25l51245g;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		red_led_1:led_1 {
+			gpios = <&gpioe 3 GPIO_ACTIVE_LOW>;
+			label = "LED RED";
+		};
+		green_led_2:led_2 {
+			gpios = <&gpioe 4 GPIO_ACTIVE_LOW>;
+			label = "LED GREEN";
+		};
+		blue_led_3:led_3 {
+			gpios = <&gpioe 5 GPIO_ACTIVE_LOW>;
+			label = "LED BLUE";
+		};
+	};
+
+	aliases {
+		led0 = &red_led_1;
+		led1 = &green_led_2;
+		led2 = &blue_led_3;
+	};
+};
+
+&clk_hse {
+	clock-frequency = <DT_FREQ_M(16)>;
+	status = "okay";
+};
+
+&pll {
+	div-m = <8>;
+	mul-n = <216>;
+	div-p = <2>;
+	div-q = <9>;
+	clocks = <&clk_hse>;
+	status = "okay";
+};
+
+&rcc {
+	clocks = <&pll>;
+	clock-frequency = <DT_FREQ_M(216)>;
+	ahb-prescaler = <1>;
+	apb1-prescaler = <4>;
+	apb2-prescaler = <2>;
+};
+
+
+&usart1 {
+	pinctrl-0 = <&usart1_tx_pb14 &usart1_rx_pb15>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&usart2 {
+	pinctrl-0 = <&usart2_tx_pd5 &usart2_rx_pa3>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&usart3 {
+	pinctrl-0 = <&usart3_tx_pd8 &usart3_rx_pd9>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&uart4 {
+	pinctrl-0 = <&uart4_tx_ph13 &uart4_rx_ph14>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&uart5 {
+	pinctrl-0 = <&uart5_tx_pb9 &uart5_rx_pd2>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&usart6 {
+	pinctrl-0 = <&usart6_tx_pc6 &usart6_rx_pc7>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&uart7 {
+	pinctrl-0 = <&uart7_tx_pe8 &uart7_rx_pf6>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&uart8 {
+	pinctrl-0 = <&uart8_tx_pe1 &uart8_rx_pe0>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+
+&i2c1 {
+	pinctrl-0 = <&i2c1_scl_pb8 &i2c1_sda_pb9>;
+	pinctrl-names = "default";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+&i2c2 {
+	pinctrl-0 = <&i2c2_scl_pf1 &i2c2_sda_pf0>;
+	pinctrl-names = "default";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+&i2c3 {
+	pinctrl-0 = <&i2c3_scl_ph7 &i2c3_sda_ph8>;
+	pinctrl-names = "default";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+&i2c4 {
+	pinctrl-0 = <&i2c4_scl_pf14 &i2c4_sda_pf15>;
+	pinctrl-names = "default";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>;
+};
+
+
+&spi1 {
+	pinctrl-0 = <&spi1_sck_pa5 &spi1_miso_pb4 &spi1_mosi_pb5>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&spi2 {
+	pinctrl-0 = <&spi2_sck_pa12 &spi2_miso_pb14 &spi2_mosi_pb15>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&spi3 {
+	pinctrl-0 = <&spi3_sck_pc10 &spi3_miso_pc11 &spi3_mosi_pb2>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&spi5 {
+	pinctrl-0 = <&spi5_sck_pf7 &spi5_miso_pf8 &spi5_mosi_pf11>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&spi6 {
+	pinctrl-0 = <&spi6_sck_pb3 &spi6_miso_pa6 &spi6_mosi_pg14>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+
+&mac {
+	status = "okay";
+	pinctrl-0 = <&eth_mdc_pc1
+		     &eth_rxd0_pc4
+		     &eth_rxd1_pc5
+		     &eth_ref_clk_pa1
+		     &eth_mdio_pa2
+		     &eth_crs_dv_pa7
+		     &eth_tx_en_pb11
+		     &eth_txd0_pg13
+		     &eth_txd1_pb13>;
+	pinctrl-names = "default";
+};
+
+
+&sdmmc2 {
+	status = "okay";
+	pinctrl-0 = <&sdmmc2_d0_pg9  &sdmmc2_d1_pg10
+		     &sdmmc2_d2_pg11 &sdmmc2_d3_pg12
+		     &sdmmc2_ck_pd6  &sdmmc2_cmd_pd7>;
+	pinctrl-names = "default";
+	cd-gpios = <&gpioi 15 GPIO_ACTIVE_LOW>;
+};

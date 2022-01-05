@@ -1,0 +1,18 @@
+description: STM32 USART
+
+compatible: "st,stm32-usart"
+
+include: [uart-controller.yaml, pinctrl-device.yaml]
+
+properties:
+    reg:
+      required: true
+
+    interrupts:
+      required: true
+
+    pinctrl-0:
+      required: true
+
+    pinctrl-names:
+      required: true

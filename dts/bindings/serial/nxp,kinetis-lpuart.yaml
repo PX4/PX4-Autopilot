@@ -1,0 +1,12 @@
+description: Kinetis LPUART
+
+compatible: "nxp,kinetis-lpuart"
+
+include: uart-controller.yaml
+
+properties:
+    reg:
+      required: true
+
+    interrupts:
+      required: true

@@ -1,0 +1,53 @@
+/*
+ * Copyright (c) 2018 Endre Karlson <endre.karlson@gmail.com>
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <st/l0/stm32l071.dtsi>
+
+/ {
+	chosen {
+		zephyr,entropy = &rng;
+	};
+
+	soc {
+		usb: usb@40005c00 {
+			compatible = "st,stm32-usb";
+			reg = <0x40005c00 0x400>;
+			interrupts = <31 0>;
+			interrupt-names = "usb";
+			num-bidir-endpoints = <8>;
+			ram-size = <1024>;
+			maximum-speed = "full-speed";
+			phys = <&otgfs_phy>;
+			clocks = <&rcc STM32_CLOCK_BUS_APB1 0x00800000>;
+			status = "disabled";
+			label= "USB";
+		};
+
+		rng: rng@40025000 {
+			compatible = "st,stm32-rng";
+			reg = <0x40025000 0x400>;
+			interrupts = <29 0>;
+			clocks = <&rcc STM32_CLOCK_BUS_AHB1 0x00100000>;
+			status = "disabled";
+			label = "RNG";
+		};
+	};
+
+	otgfs_phy: otgfs_phy {
+		compatible = "usb-nop-xceiv";
+		#phy-cells = <0>;
+		label = "OTGFS_PHY";
+	};
+
+	dac1: dac@40007400 {
+		compatible = "st,stm32-dac";
+		reg = <0x40007400 0x400>;
+		clocks = <&rcc STM32_CLOCK_BUS_APB1 0x20000000>;
+		status = "disabled";
+		label = "DAC_1";
+		#io-channel-cells = <1>;
+	};
+};

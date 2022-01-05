@@ -64,3 +64,6 @@
 	path = src/lib/crypto/libtommath
 	url = https://github.com/PX4/libtommath.git
 	branch = px4
+[submodule "platforms/nuttx/src/px4/stm/hal_stm32"]
+	path = platforms/nuttx/src/px4/stm/hal_stm32
+	url = git@github.com:zephyrproject-rtos/hal_stm32.git

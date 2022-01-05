@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+px4_add_git_submodule(TARGET git_hal_stm32 PATH hal_stm32)
 
 add_subdirectory(${PX4_CHIP})
 
