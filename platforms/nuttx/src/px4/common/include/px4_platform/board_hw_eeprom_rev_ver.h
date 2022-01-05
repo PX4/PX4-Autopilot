@@ -38,22 +38,22 @@
 #pragma pack(push, 1)
 
 typedef struct {
-	uint16_t format_version;
+	uint16_t id;
+} mtd_mft_t;
+
+typedef struct {
+	mtd_mft_t version;
 	uint16_t hw_extended_ver;
 	uint16_t crc;
 } mtd_mft_v0_t;
 
 typedef struct {
-	uint16_t format_version;
+	mtd_mft_t  version;
 	uint16_t hw_extended_ver;
 	//{device tree overlay}
 	uint16_t crc;
 } mtd_mft_v1_t;
 
-typedef struct {
-	uint16_t hw_extended_ver;
-	//{device tree overlay}
-} mtd_mft_t;
 
 #pragma pack(pop)
 
@@ -62,6 +62,8 @@ typedef struct {
 
 #define MTD_MFT_OFFSET 0 //<! Offset in EEPROM where mtd_mft data starts
 
+__BEGIN_DECLS
+
 /************************************************************************************
   * Name: board_set_eeprom_hw_info
  *
@@ -69,7 +71,7 @@ typedef struct {
  * Function for writing hardware info to EEPROM
  *
  * Input Parameters:
- *   *mtd_mft - pointer to mtd_mft to write hw_info
+ *   *mtd_mft_unk - pointer to mtd_mft to write hw_info
  *
  * Returned Value:
  *    0    - Successful storing to EEPROM
@@ -78,9 +80,9 @@ typedef struct {
  ************************************************************************************/
 
 #if !defined(BOARD_HAS_SIMPLE_HW_VERSIONING) && defined(BOARD_HAS_VERSIONING)
-__EXPORT int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft);
+__EXPORT int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft_unk);
 #else
-static inline int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft) { return -ENOSYS; }
+static inline int board_set_eeprom_hw_info(mtd_mft_t *mtd_mft_unk) { return -ENOSYS; }
 #endif
 
 /************************************************************************************
@@ -103,3 +105,5 @@ __EXPORT int board_get_eeprom_hw_info(mtd_mft_t *mtd_mft);
 #else
 static inline int board_get_eeprom_hw_info(mtd_mft_t *mtd_mft) { return -ENOSYS; }
 #endif
+
+__END_DECLS
