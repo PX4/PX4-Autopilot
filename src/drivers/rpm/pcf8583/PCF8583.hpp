@@ -48,6 +48,7 @@
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <drivers/device/i2c.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/rpm.h>
 #include <drivers/drv_hrt.h>
 
@@ -86,8 +87,9 @@ private:
 	hrt_abstime    _last_measurement_time{0};
 	hrt_abstime    _last_reset_time{0};
 	int            _tranfer_fail_count{0};
+	uint8_t        _last_config_register_content{0x00};
 
-	uORB::Publication<rpm_s> _rpm_pub{ORB_ID(rpm)};
+	uORB::PublicationMulti<rpm_s> _rpm_pub{ORB_ID(rpm)};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::PCF8583_POOL>) _param_pcf8583_pool,
