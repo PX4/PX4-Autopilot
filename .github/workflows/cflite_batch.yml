@@ -1,11 +1,10 @@
-name: ClusterFuzzLite PR fuzzing
+name: ClusterFuzzLite batch fuzzing
 on:
-  pull_request:
-    paths:
-      - '**'
+  schedule:
+    - cron: '0 6 * * *'  # UTC 6am every day.
 permissions: read-all
 jobs:
-  PR:
+  BatchFuzzing:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -20,24 +19,16 @@ jobs:
       uses: google/clusterfuzzlite/actions/build_fuzzers@v1
       with:
         sanitizer: ${{ matrix.sanitizer }}
-        # Optional but recommended: used to only run fuzzers that are affected
-        # by the PR.
-        # See later section on "Git repo for storage".
-        # storage-repo: https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/OWNER/STORAGE-REPO-NAME.git
-        # storage-repo-branch: main   # Optional. Defaults to "main"
-        # storage-repo-branch-coverage: gh-pages  # Optional. Defaults to "gh-pages".
     - name: Run Fuzzers (${{ matrix.sanitizer }})
       id: run
       uses: google/clusterfuzzlite/actions/run_fuzzers@v1
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        fuzz-seconds: 600
-        mode: 'code-change'
+        fuzz-seconds: 1800 # 30 mins
+        mode: 'batch'
         sanitizer: ${{ matrix.sanitizer }}
-        # Optional but recommended: used to download the corpus produced by
-        # batch fuzzing.
+        # Optional but recommended: For storing certain artifacts from fuzzing.
         # See later section on "Git repo for storage".
         # storage-repo: https://${{ secrets.PERSONAL_ACCESS_TOKEN }}@github.com/OWNER/STORAGE-REPO-NAME.git
         # storage-repo-branch: main   # Optional. Defaults to "main"
         # storage-repo-branch-coverage: gh-pages  # Optional. Defaults to "gh-pages".
-
