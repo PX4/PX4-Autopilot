@@ -120,7 +120,6 @@ private:
 
 	vehicle_land_detected_s _vehicle_land_detected {
 		.timestamp = 0,
-		.alt_max = -1.0f,
 		.freefall = false,
 		.ground_contact = true,
 		.maybe_landed = true,
