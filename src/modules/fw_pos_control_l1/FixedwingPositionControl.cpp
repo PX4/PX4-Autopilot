@@ -72,6 +72,8 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 
 	_tecs_status_pub.advertise();
 
+	_slew_rate_airspeed.setSlewRate(ASPD_SP_SLEW_RATE);
+
 	/* fetch initial parameter values */
 	parameters_update();
 }
@@ -401,17 +403,15 @@ FixedwingPositionControl::get_auto_airspeed_setpoint(const hrt_abstime &now, con
 	airspeed_setpoint = constrain(airspeed_setpoint, airspeed_min_adjusted, _param_fw_airspd_max.get());
 
 	// initialize to current airspeed setpoint, also if previous setpoint is out of bounds to not apply slew rate in that case
-	const bool outside_of_limits = _last_airspeed_setpoint < airspeed_min_adjusted
-				       || _last_airspeed_setpoint > _param_fw_airspd_max.get();
+	const bool outside_of_limits = _slew_rate_airspeed.getState() < airspeed_min_adjusted
+				       || _slew_rate_airspeed.getState() > _param_fw_airspd_max.get();
 
-	if (!PX4_ISFINITE(_last_airspeed_setpoint) || outside_of_limits) {
-		_last_airspeed_setpoint = airspeed_setpoint;
+	if (!PX4_ISFINITE(_slew_rate_airspeed.getState()) || outside_of_limits) {
+		_slew_rate_airspeed.setForcedValue(airspeed_setpoint);
 
 	} else if (dt > FLT_EPSILON) {
 		// constrain airspeed setpoint changes with slew rate of ASPD_SP_SLEW_RATE m/s/s
-		airspeed_setpoint = constrain(airspeed_setpoint, _last_airspeed_setpoint - ASPD_SP_SLEW_RATE * dt,
-					      _last_airspeed_setpoint + ASPD_SP_SLEW_RATE * dt);
-		_last_airspeed_setpoint = airspeed_setpoint;
+		airspeed_setpoint = _slew_rate_airspeed.update(airspeed_setpoint, dt);
 	}
 
 	return airspeed_setpoint;
