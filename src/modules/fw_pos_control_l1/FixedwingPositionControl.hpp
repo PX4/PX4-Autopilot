@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -112,6 +112,7 @@ static constexpr hrt_abstime T_ALT_TIMEOUT = 1_s; // time after which we abort l
 
 static constexpr float THROTTLE_THRESH =
 	0.05f;	///< max throttle from user which will not lead to motors spinning up in altitude controlled modes
+static constexpr float ASPD_SP_SLEW_RATE = 1.f; // slew rate limit for airspeed setpoint changes [m/s/S]
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
@@ -253,6 +254,8 @@ private:
 	float _manual_control_setpoint_altitude{0.0f};
 	float _manual_control_setpoint_airspeed{0.0f};
 
+	float _last_airspeed_setpoint{0.f};
+
 	hrt_abstime _time_in_fixed_bank_loiter{0};
 
 	ECL_L1_Pos_Controller	_l1_control;
@@ -327,17 +330,21 @@ private:
 	void		control_auto_fixed_bank_alt_hold(const hrt_abstime &now);
 	void		control_auto_descend(const hrt_abstime &now);
 
-	void		control_auto_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+	void		control_auto_position(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
+					      const Vector2f &ground_speed,
 					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-	void		control_auto_loiter(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+	void		control_auto_loiter(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
+					    const Vector2f &ground_speed,
 					    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-	void		control_auto_velocity(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+	void		control_auto_velocity(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
+					      const Vector2f &ground_speed,
 					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 	void		control_auto_takeoff(const hrt_abstime &now, const float dt,  const Vector2d &curr_pos,
 					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,
 					     const position_setpoint_s &pos_sp_curr);
-	void		control_auto_landing(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
+	void		control_auto_landing(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
+					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,
 					     const position_setpoint_s &pos_sp_curr);
 	void		control_manual_altitude(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
@@ -346,8 +353,9 @@ private:
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
 
-	float		get_demanded_airspeed();
-	float		calculate_target_airspeed(float airspeed_demand, const Vector2f &ground_speed);
+	float		get_manual_airspeed_setpoint();
+	float		get_auto_airspeed_setpoint(const hrt_abstime &now, const float pos_sp_cru_airspeed,
+			const Vector2f &ground_speed, float dt);
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
@@ -363,7 +371,7 @@ private:
 					float pitch_min_rad, float pitch_max_rad,
 					float throttle_min, float throttle_max, float throttle_cruise,
 					bool climbout_mode, float climbout_pitch_min_rad,
-					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL, float hgt_rate_sp = NAN);
+					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
 
 	DEFINE_PARAMETERS(
 
@@ -425,7 +433,6 @@ private:
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
 
 		(ParamBool<px4::params::FW_POSCTL_INV_ST>) _param_fw_posctl_inv_st,
-
 
 		(ParamInt<px4::params::FW_GPSF_LT>) _param_nav_gpsf_lt,
 		(ParamFloat<px4::params::FW_GPSF_R>) _param_nav_gpsf_r,

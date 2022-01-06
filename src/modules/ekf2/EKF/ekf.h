@@ -244,6 +244,8 @@ public:
 	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)} / sq(_dt_ekf_avg); } // get the accelerometer bias variance in m/s**2
 	Vector3f getMagBiasVariance() const { return Vector3f{P(19, 19), P(20, 20), P(21, 21)}; }
 
+	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
+
 	// get GPS check status
 	void get_gps_check_status(uint16_t *val) const { *val = _gps_check_fail_status.value; }
 

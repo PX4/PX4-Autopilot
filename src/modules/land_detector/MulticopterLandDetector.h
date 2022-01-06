@@ -76,7 +76,6 @@ protected:
 	bool _get_horizontal_movement() override { return _horizontal_movement; }
 	bool _get_vertical_movement() override { return _vertical_movement; }
 	bool _get_close_to_ground_or_skipped_check() override { return _close_to_ground_or_skipped_check; }
-	float _get_max_altitude() override;
 
 	void _set_hysteresis_factor(const int factor) override;
 private:
@@ -140,7 +139,6 @@ private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
 		(ParamFloat<px4::params::LNDMC_TRIG_TIME>)   _param_lndmc_trig_time,
-		(ParamFloat<px4::params::LNDMC_ALT_MAX>)    _param_lndmc_alt_max,
 		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
 		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
 		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,
