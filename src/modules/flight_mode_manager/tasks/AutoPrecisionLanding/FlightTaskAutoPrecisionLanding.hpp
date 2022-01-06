@@ -1,6 +1,6 @@
-/***************************************************************************
+/****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,24 +30,32 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /**
- * @file precland.h
+ * @file FlightTaskAutoPrecisionLanding.hpp
  *
- * Helper class to do precision landing with a landing target
+ * Flight task for better precision landing
  *
  * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
  */
 
 #pragma once
 
+#include "FlightTaskAuto.hpp"
+
 #include <matrix/math.hpp>
+#include <mathlib/mathlib.h>
 #include <lib/geo/geo.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/landing_target_pose.h>
+#include <uORB/topics/precision_landing_status.h>
 
-#include "navigator_mode.h"
-#include "mission_block.h"
+#define SEC2USEC 1000000.0f		// TODO: Get the correct define from some header
+#define STATE_TIMEOUT 10000000 		// [us] Maximum time to spend in any state
+#define ACCEPTANCE_RADIUS 0.20f		// Horizontal acceptance radius for the navigation to the landing target
+// TODO: Get ACCEPTANCE_RADIUS from NAV_ACC_RAD
 
 enum class PrecLandState {
 	Start, // Starting state
@@ -55,8 +63,7 @@ enum class PrecLandState {
 	DescendAboveTarget, // Stay over landing target while descending
 	FinalApproach, // Final landing approach, even without landing target
 	Search, // Search for landing target
-	Fallback, // Fallback landing method
-	Done // Done landing
+	Fallback // Fallback landing method
 };
 
 enum class PrecLandMode {
@@ -64,26 +71,17 @@ enum class PrecLandMode {
 	Required = 2 // try to find landing target if not visible at the beginning
 };
 
-class PrecLand : public MissionBlock, public ModuleParams
+class FlightTaskAutoPrecisionLanding : public FlightTaskAuto
 {
 public:
-	PrecLand(Navigator *navigator);
-	~PrecLand() override = default;
+	FlightTaskAutoPrecisionLanding() = default;
+	virtual ~FlightTaskAutoPrecisionLanding() = default;
 
-	void on_activation() override;
-	void on_active() override;
-	void on_inactivation() override;
+	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 
-	void set_mode(PrecLandMode mode) { _mode = mode; };
-
-	PrecLandMode get_mode() { return _mode; };
-
-	bool is_activated() { return _is_activated; };
+	bool update() override;
 
 private:
-
-	void updateParams() override;
-
 	// run the control loop for each state
 	void run_state_start();
 	void run_state_horizontal_approach();
@@ -97,9 +95,8 @@ private:
 	bool switch_to_state_horizontal_approach();
 	bool switch_to_state_descend_above_target();
 	bool switch_to_state_final_approach();
-	bool switch_to_state_search();
-	bool switch_to_state_fallback();
-	bool switch_to_state_done();
+	void switch_to_state_search();
+	void switch_to_state_fallback();
 
 	void print_state_switch_message(const char *state_name);
 
@@ -110,10 +107,9 @@ private:
 	landing_target_pose_s _target_pose{}; /**< precision landing target position */
 
 	uORB::Subscription _target_pose_sub{ORB_ID(landing_target_pose)};
-	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
-	bool _target_pose_updated{false}; /**< wether the landing target position message is updated */
+	uORB::PublicationMulti<precision_landing_status_s> _precision_landing_status_pub{ORB_ID(precision_landing_status)};
 
-	MapProjection _map_ref{}; /**< class for local/global projections */
+	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
 
 	uint64_t _state_start_time{0}; /**< time when we entered current state */
 	uint64_t _last_slewrate_time{0}; /**< time when we last limited setpoint changes */
@@ -121,30 +117,23 @@ private:
 	uint64_t _point_reached_time{0}; /**< time when we reached a setpoint */
 
 	int _search_cnt{0}; /**< counter of how many times we had to search for the landing target */
-	float _approach_alt{0.0f}; /**< altitude at which to stay during horizontal approach */
 
 	matrix::Vector2f _sp_pev;
 	matrix::Vector2f _sp_pev_prev;
 
 	PrecLandState _state{PrecLandState::Start};
 
-	PrecLandMode _mode{PrecLandMode::Opportunistic};
-
-	bool _is_activated {false}; /**< indicates if precland is activated */
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
-		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
-		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
-		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
-		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
-		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch
-	)
-
-	// non-navigator parameters
-	param_t	_handle_param_acceleration_hor{PARAM_INVALID};
-	param_t	_handle_param_xy_vel_cruise{PARAM_INVALID};
-	float	_param_acceleration_hor{0.0f};
-	float	_param_xy_vel_cruise{0.0f};
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed, ///< velocity for controlled descend
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_acceleration_hor,
+					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise,
+					(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
+					(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
+					(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
+					(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
+					(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
+					(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch,
+					(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
+				       )
 
 };

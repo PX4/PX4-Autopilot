@@ -146,6 +146,7 @@ set(msg_files
 	PowerButtonState.msg
 	PowerMonitor.msg
 	PpsCapture.msg
+	precision_landing_status.msg
 	PwmInput.msg
 	Px4ioStatus.msg
 	QshellReq.msg

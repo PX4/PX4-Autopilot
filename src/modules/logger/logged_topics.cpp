@@ -94,6 +94,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_controller_status", 500);
 	add_topic("position_controller_landing_status", 100);
 	add_topic("position_setpoint_triplet", 200);
+	add_topic("precision_landing_status", 1000);
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
 	add_topic("rtl_time_estimate", 1000);
