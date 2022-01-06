@@ -60,6 +60,7 @@
 #include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/slew_rate/SlewRate.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -254,8 +255,6 @@ private:
 	float _manual_control_setpoint_altitude{0.0f};
 	float _manual_control_setpoint_airspeed{0.0f};
 
-	float _last_airspeed_setpoint{0.f};
-
 	hrt_abstime _time_in_fixed_bank_loiter{0};
 
 	ECL_L1_Pos_Controller	_l1_control;
@@ -363,6 +362,8 @@ private:
 	void		set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid);
 
 	void publishOrbitStatus(const position_setpoint_s pos_sp);
+
+	SlewRate<float> _slew_rate_airspeed;
 
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation
