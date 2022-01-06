@@ -3070,6 +3070,8 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.angular_velocity_z = gimbal_device_attitude_status_msg.angular_velocity_z;
 	gimbal_attitude_status.failure_flags = gimbal_device_attitude_status_msg.failure_flags;
 
+	gimbal_attitude_status.received_from_mavlink = true;
+
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
 }
 
