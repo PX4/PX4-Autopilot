@@ -76,7 +76,7 @@ public:
 	void PrintStatus();
 
 private:
-	void ParametersUpdate(bool force = false);
+	bool ParametersUpdate(bool force = false);
 	bool Publish();
 	void Run() override;
 
@@ -88,6 +88,8 @@ private:
 	void UpdateGyroVibrationMetrics(const matrix::Vector3f &angular_velocity);
 
 	void SensorCalibrationUpdate();
+	void SensorCalibrationSaveAccel();
+	void SensorCalibrationSaveGyro();
 
 	uORB::PublicationMulti<vehicle_imu_s> _vehicle_imu_pub{ORB_ID(vehicle_imu)};
 	uORB::PublicationMulti<vehicle_imu_status_s> _vehicle_imu_status_pub{ORB_ID(vehicle_imu_status)};
@@ -172,7 +174,6 @@ private:
 
 	InFlightCalibration _accel_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
 	InFlightCalibration _gyro_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
-
 
 	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};
 	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};
