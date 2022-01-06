@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,28 +31,9 @@
 #
 ############################################################################
 
-add_subdirectory(GeofenceBreachAvoidance)
-add_subdirectory(MissionFeasibility)
+px4_add_library(FlightTaskAutoPrecisionLanding
+FlightTaskAutoPrecisionLanding.cpp
+)
 
-px4_add_module(
-	MODULE modules__navigator
-	MAIN navigator
-	SRCS
-		navigator_main.cpp
-		navigator_mode.cpp
-		mission_block.cpp
-		mission.cpp
-		loiter.cpp
-		rtl.cpp
-		takeoff.cpp
-		land.cpp
-		mission_feasibility_checker.cpp
-		geofence.cpp
-		vtol_takeoff.cpp
-	DEPENDS
-		geo
-		adsb
-		geofence_breach_avoidance
-		motion_planning
-		mission_feasibility_checker
-	)
+target_link_libraries(FlightTaskAutoPrecisionLanding PUBLIC FlightTaskAuto)
+target_include_directories(FlightTaskAutoPrecisionLanding PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

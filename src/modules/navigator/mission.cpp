@@ -176,10 +176,6 @@ Mission::on_inactivation()
 	_navigator->stop_capturing_images();
 	_navigator->release_gimbal_control();
 
-	if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
-	}
-
 	_time_mission_deactivated = hrt_absolute_time();
 
 	/* reset so current mission item gets restarted if mission was paused */
@@ -295,13 +291,6 @@ Mission::on_active()
 	    && (_navigator->abort_landing())) {
 
 		do_abort_landing();
-	}
-
-	if (_work_item_type == WORK_ITEM_TYPE_PRECISION_LAND) {
-		_navigator->get_precland()->on_active();
-
-	} else if (_navigator->get_precland()->is_activated()) {
-		_navigator->get_precland()->on_inactivation();
 	}
 }
 
@@ -978,40 +967,6 @@ Mission::set_mission_items()
 					// if the vehicle drifted off the path during back-transition it should just go straight to the landing point
 					pos_sp_triplet->previous.valid = false;
 
-				} else if (_mission_item.nav_cmd == NAV_CMD_LAND && _work_item_type == WORK_ITEM_TYPE_DEFAULT) {
-					if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
-						new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
-
-						if (_mission_item.land_precision == 1) {
-							_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
-
-						} else { //_mission_item.land_precision == 2
-							_navigator->get_precland()->set_mode(PrecLandMode::Required);
-						}
-
-						_navigator->get_precland()->on_activation();
-
-					}
-				}
-
-				/* we just moved to the landing waypoint, now descend */
-				if (_work_item_type == WORK_ITEM_TYPE_MOVE_TO_LAND &&
-				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT) {
-
-					if (_mission_item.land_precision > 0 && _mission_item.land_precision < 3) {
-						new_work_item_type = WORK_ITEM_TYPE_PRECISION_LAND;
-
-						if (_mission_item.land_precision == 1) {
-							_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
-
-						} else { //_mission_item.land_precision == 2
-							_navigator->get_precland()->set_mode(PrecLandMode::Required);
-						}
-
-						_navigator->get_precland()->on_activation();
-
-					}
-
 				}
 
 				/* ignore yaw for landing items */
@@ -1145,10 +1100,8 @@ Mission::set_mission_items()
 	} else {
 		// The mission item is not a gate, set the current position setpoint from mission item (is protected against non-position items)
 		// TODO Precision land needs to be refactored: https://github.com/PX4/Firmware/issues/14320
-		if (new_work_item_type != WORK_ITEM_TYPE_PRECISION_LAND) {
-			mission_apply_limitation(_mission_item);
-			mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
-		}
+		mission_apply_limitation(_mission_item);
+		mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 
 		// ELSE: The current position setpoint stays unchanged.
 	}
