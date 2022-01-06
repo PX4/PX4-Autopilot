@@ -830,6 +830,11 @@ void FlightTaskAuto::_updateTrajConstraints()
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
 		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
 	}
+
+	// Stretch the constraints of the velocity controller to leave some room for an additional
+	// correction required by the altitude/vertical position controller
+	_constraints.speed_down = math::max(_constraints.speed_down, 1.2f * _param_mpc_z_v_auto_dn.get());;
+	_constraints.speed_up = math::max(_constraints.speed_up, 1.2f * _param_mpc_z_v_auto_up.get());;
 }
 
 bool FlightTaskAuto::_highEnoughForLandingGear()
