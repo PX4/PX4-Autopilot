@@ -106,6 +106,8 @@ export PX4_SIM_PROGRAM=${program}
 
 if [[ "$sitl_bin" == *"px4_sitl_sih"* ]]; then
 	export PX4_SIH="true"
+else
+	export PX4_SIH="false"
 fi
 
 SIM_PID=0

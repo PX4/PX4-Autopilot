@@ -217,11 +217,16 @@ if ! replay tryapplyparams
 then
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
   if [ "$PX4_SIM_PROGRAM" = "sih" ]; then
+=======
+  if [ $PX4_SIH = true ]; then
+>>>>>>> sih started only when needed
     sih start
   else
     . px4-rc.simulator
   fi
+<<<<<<< HEAD
 =======
 #   . px4-rc.simulator
    sih start
@@ -234,6 +239,8 @@ then
   		. px4-rc.simulator
 	fi
 >>>>>>> starting sih when needed only
+=======
+>>>>>>> sih started only when needed
 fi
 load_mon start
 battery_simulator start
