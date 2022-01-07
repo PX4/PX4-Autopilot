@@ -1,5 +1,5 @@
 set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")
-set_property(CACHE config_sitl_viewer PROPERTY STRINGS "jmavsim;none")
+set_property(CACHE config_sitl_viewer PROPERTY STRINGS "jmavsim;sih;none")
 
 set(config_sitl_debugger disable CACHE STRING "debugger for sitl")
 set_property(CACHE config_sitl_debugger PROPERTY STRINGS "disable;gdb;lldb")

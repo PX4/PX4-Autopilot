@@ -99,16 +99,19 @@ for file in "$@"; do
 done
 
 export PX4_SIM_MODEL=${model}
-
-if [[ "$sitl_bin" == *"px4_sitl_sih"* ]]; then
-	export PX4_SIH="true"
-else
-	export PX4_SIH="false"
-fi
+export PX4_SIM_PROGRAM=${program}
 
 SIM_PID=0
 
-if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
+if [ "$program" == "sih" ] && [ ! -n "$no_sim" ] && [[ ! -n "$HEADLESS" ]]; then
+	# Start Java simulator for displaying sih
+	if [ "$model" == "plane" ]; then
+		"$src_path"/Tools/jmavsim_run.sh -r 250 -o -a &
+	else
+		"$src_path"/Tools/jmavsim_run.sh -r 250 -o &
+	fi
+	SIM_PID=$!
+elif [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
 	# Start Java simulator
 	"$src_path"/Tools/jmavsim_run.sh -r 250 -l &
 	SIM_PID=$!

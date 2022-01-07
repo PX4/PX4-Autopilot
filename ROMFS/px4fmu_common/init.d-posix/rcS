@@ -215,7 +215,7 @@ dataman start
 # only start the simulator if not in replay mode, as both control the lockstep time
 if ! replay tryapplyparams
 then
-  if [ $PX4_SIH = true ]; then
+  if [ "$PX4_SIM_PROGRAM" = "sih" ]; then
     sih start
   else
     . px4-rc.simulator
