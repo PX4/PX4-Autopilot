@@ -215,12 +215,11 @@ dataman start
 # only start the simulator if not in replay mode, as both control the lockstep time
 if ! replay tryapplyparams
 then
-  	if [ $PX4_SIH = true ]
-  	then
-		sih start
-  	else
-  		. px4-rc.simulator
-	fi
+  if [ $PX4_SIH = true ]; then
+    sih start
+  else
+    . px4-rc.simulator
+  fi
 fi
 load_mon start
 battery_simulator start
