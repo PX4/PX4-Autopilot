@@ -64,7 +64,6 @@ LSM303D::LSM303D(const I2CSPIDriverConfig &config) :
 	_bad_values(perf_alloc(PC_COUNT, "lsm303d: bad_val")),
 	_accel_duplicates(perf_alloc(PC_COUNT, "lsm303d: acc_dupe"))
 {
-	_px4_mag.set_external(external());
 }
 
 LSM303D::~LSM303D()
@@ -558,7 +557,6 @@ LSM303D::measureMagnetometer()
 	_px4_mag.set_temperature(_last_temperature);
 
 	_px4_mag.set_error_count(perf_event_count(_bad_registers) + perf_event_count(_bad_values));
-	_px4_mag.set_external(external());
 	_px4_mag.update(timestamp_sample, raw_mag_report.x, raw_mag_report.y, raw_mag_report.z);
 
 	_mag_last_measure = timestamp_sample;

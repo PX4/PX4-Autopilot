@@ -48,17 +48,20 @@ Accelerometer::Accelerometer()
 	Reset();
 }
 
-Accelerometer::Accelerometer(uint32_t device_id, bool external)
+Accelerometer::Accelerometer(uint32_t device_id)
 {
-	Reset();
-	set_device_id(device_id, external);
+	set_device_id(device_id);
 }
 
-void Accelerometer::set_device_id(uint32_t device_id, bool external)
+void Accelerometer::set_device_id(uint32_t device_id)
 {
+	bool external = DeviceExternal(device_id);
+
 	if (_device_id != device_id || _external != external) {
 		set_external(external);
 		_device_id = device_id;
+
+		Reset();
 
 		ParametersUpdate();
 		SensorCorrectionsUpdate(true);
@@ -162,7 +165,10 @@ void Accelerometer::set_rotation(Rotation rotation)
 
 void Accelerometer::ParametersUpdate()
 {
-	if (_device_id != 0) {
+	if (_device_id == 0) {
+		return;
+
+	} else {
 		_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
 	}
 
@@ -286,11 +292,22 @@ bool Accelerometer::ParametersSave()
 
 void Accelerometer::PrintStatus()
 {
-	PX4_INFO("%s %" PRIu32 " EN: %d, offset: [%.4f %.4f %.4f], scale: [%.4f %.4f %.4f], %.1f degC",
-		 SensorString(), device_id(), enabled(),
-		 (double)_offset(0), (double)_offset(1), (double)_offset(2),
-		 (double)_scale(0), (double)_scale(1), (double)_scale(2),
-		 (double)_temperature);
+	if (external()) {
+		PX4_INFO("%s %" PRIu32
+			 " EN: %d, offset: [%05.3f %05.3f %05.3f], scale: [%05.3f %05.3f %05.3f], %.1f degC, Ext ROT: %d",
+			 SensorString(), device_id(), enabled(),
+			 (double)_offset(0), (double)_offset(1), (double)_offset(2),
+			 (double)_scale(0), (double)_scale(1), (double)_scale(2),
+			 (double)_temperature,
+			 rotation_enum());
+
+	} else {
+		PX4_INFO("%s %" PRIu32 " EN: %d, offset: [%05.3f %05.3f %05.3f], scale: [%05.3f %05.3f %05.3f], %.1f degC, Internal",
+			 SensorString(), device_id(), enabled(),
+			 (double)_offset(0), (double)_offset(1), (double)_offset(2),
+			 (double)_scale(0), (double)_scale(1), (double)_scale(2),
+			 (double)_temperature);
+	}
 
 	if (_thermal_offset.norm() > 0.f) {
 		PX4_INFO("%s %" PRIu32 " temperature offset: [%.4f %.4f %.4f]", SensorString(), _device_id,

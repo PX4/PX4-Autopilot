@@ -535,8 +535,6 @@ bool ADIS16448::Configure()
 	_px4_accel.set_range(18.f * CONSTANTS_ONE_G);
 	_px4_gyro.set_range(math::radians(1000.f));
 
-	_px4_mag.set_external(external());
-
 	return success;
 }
 

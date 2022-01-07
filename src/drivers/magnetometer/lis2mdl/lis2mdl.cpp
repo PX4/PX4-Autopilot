@@ -52,7 +52,6 @@ LIS2MDL::LIS2MDL(device::Device *interface, const I2CSPIDriverConfig &config) :
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_interval(0)
 {
-	_px4_mag.set_external(_interface->external());
 	_px4_mag.set_scale(0.0015f); /* 49.152f / (2^15) */
 }
 

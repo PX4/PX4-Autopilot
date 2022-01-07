@@ -40,7 +40,6 @@ BMM150::BMM150(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_mag(get_device_id(), config.rotation)
 {
-	_px4_mag.set_external(external());
 }
 
 BMM150::~BMM150()

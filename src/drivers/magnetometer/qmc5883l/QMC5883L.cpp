@@ -45,7 +45,6 @@ QMC5883L::QMC5883L(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_mag(get_device_id(), config.rotation)
 {
-	_px4_mag.set_external(external());
 }
 
 QMC5883L::~QMC5883L()

@@ -48,17 +48,20 @@ Magnetometer::Magnetometer()
 	Reset();
 }
 
-Magnetometer::Magnetometer(uint32_t device_id, bool external)
+Magnetometer::Magnetometer(uint32_t device_id)
 {
-	Reset();
-	set_device_id(device_id, external);
+	set_device_id(device_id);
 }
 
-void Magnetometer::set_device_id(uint32_t device_id, bool external)
+void Magnetometer::set_device_id(uint32_t device_id)
 {
+	bool external = DeviceExternal(device_id);
+
 	if (_device_id != device_id || _external != external) {
 		set_external(external);
 		_device_id = device_id;
+
+		Reset();
 
 		ParametersUpdate();
 	}
@@ -147,7 +150,10 @@ void Magnetometer::set_rotation(Rotation rotation)
 
 void Magnetometer::ParametersUpdate()
 {
-	if (_device_id != 0) {
+	if (_device_id == 0) {
+		return;
+
+	} else {
 		_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
 	}
 
