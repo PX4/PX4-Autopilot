@@ -127,6 +127,7 @@ set(viewers
 	jmavsim
 	gazebo
 	ignition
+	sih
 )
 
 set(debuggers
@@ -217,6 +218,8 @@ foreach(viewer ${viewers})
 					if(viewer STREQUAL "gazebo")
 						add_dependencies(${_targ_name} px4 sitl_gazebo)
 					elseif(viewer STREQUAL "jmavsim")
+						add_dependencies(${_targ_name} px4 git_jmavsim)
+					elseif(viewer STREQUAL "sih")
 						add_dependencies(${_targ_name} px4 git_jmavsim)
 					elseif(viewer STREQUAL "ignition")
 						add_dependencies(${_targ_name} px4 simulation-ignition)
