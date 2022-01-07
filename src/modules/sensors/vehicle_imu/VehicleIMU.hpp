@@ -180,7 +180,8 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_INTEG_RATE>) _param_imu_integ_rate,
-		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax
+		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _param_imu_gyro_ratemax,
+		(ParamBool<px4::params::SENS_IMU_AUTOCAL>) _param_sens_imu_autocal
 	)
 };
 
