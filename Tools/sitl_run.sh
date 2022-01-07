@@ -104,6 +104,10 @@ done
 export PX4_SIM_MODEL=${model}
 export PX4_SIM_PROGRAM=${program}
 
+if [[ "$sitl_bin" == *"px4_sitl_sih"* ]]; then
+	export PX4_SIH="true"
+fi
+
 SIM_PID=0
 
 if [ "$program" == "sih" ] && [ ! -n "$no_sim" ] && [[ ! -n "$HEADLESS" ]]; then
