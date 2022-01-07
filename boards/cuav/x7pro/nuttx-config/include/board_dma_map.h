@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,16 +34,19 @@
 #pragma once
 
 // DMAMUX1
-#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0 /* DMA1:37 */
-#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0 /* DMA1:38 */
+#define DMAMAP_SPI1_RX    DMAMAP_DMA12_SPI1RX_0   /* DMA1:37 */
+#define DMAMAP_SPI1_TX    DMAMAP_DMA12_SPI1TX_0   /* DMA1:38 */
 
-#define DMAMAP_UART8_RX   DMAMAP_DMA12_UART8RX_0 /* DMA1:81 */
-#define DMAMAP_UART8_TX   DMAMAP_DMA12_UART8TX_0 /* DMA1:82 */
+#define DMAMAP_UART7_RX   DMAMAP_DMA12_UART7RX_0  /* DMA1:79 */
+#define DMAMAP_UART7_TX   DMAMAP_DMA12_UART7TX_0  /* DMA1:80 */
 
-#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_0 /* DMA1:83 */
-#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_0 /* DMA1:84 */
+#define DMAMAP_UART8_RX   DMAMAP_DMA12_UART8RX_0  /* DMA1:81 */
+#define DMAMAP_UART8_TX   DMAMAP_DMA12_UART8TX_0  /* DMA1:82 */
+
+#define DMAMAP_SPI4_RX    DMAMAP_DMA12_SPI4RX_0   /* DMA1:83 */
+#define DMAMAP_SPI4_TX    DMAMAP_DMA12_SPI4TX_0   /* DMA1:84 */
 
 
-// DMAMUX2 (BDMA)
-#define DMAMAP_SPI6_RX    DMAMAP_BDMA_SPI6_RX /* BDMA:11 */
-#define DMAMAP_SPI6_TX    DMAMAP_BDMA_SPI6_TX /* BDMA:12 */
+// BDMA
+#define DMAMAP_SPI6_RX    DMAMAP_BDMA_SPI6_RX     /* BDMA:11 */
+#define DMAMAP_SPI6_TX    DMAMAP_BDMA_SPI6_TX     /* BDMA:12 */
