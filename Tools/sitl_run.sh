@@ -100,6 +100,10 @@ done
 
 export PX4_SIM_MODEL=${model}
 
+if [[ "$sitl_bin" == *"px4_sitl_sih"* ]]; then
+	export PX4_SIH="true"
+fi
+
 SIM_PID=0
 
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
