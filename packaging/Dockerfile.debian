@@ -1,8 +1,7 @@
 # px4-firmware builder for PixHawk4
-FROM ros:galactic-ros-base as builder
+FROM ghcr.io/tiiuae/tii-ubuntu-ros:galactic as builder
 
 ARG VERSION="0.0.0-0"
-ARG PACKAGING_PATH="."
 
 ENV LANG C.UTF-8
 ENV LANGUAGE C.UTF-8
@@ -24,9 +23,9 @@ COPY --from=tii-px4-pixhawk-artifacts /artifacts/* ./opt/px4fwupdater/
 COPY --from=tii-px4-saluki-artifacts /artifacts/* ./opt/px4fwupdater/
 
 RUN mkdir DEBIAN
-COPY ${PACKAGING_PATH}/debian            DEBIAN
-COPY ${PACKAGING_PATH}/px4_update_fw.sh  ./opt/px4fwupdater/px4_update_fw.sh
-COPY ${PACKAGING_PATH}/detect_ttyS.sh    ./opt/px4fwupdater/detect_ttyS.sh
+COPY packaging/debian            DEBIAN
+COPY packaging/px4_update_fw.sh  ./opt/px4fwupdater/px4_update_fw.sh
+COPY packaging/detect_ttyS.sh    ./opt/px4fwupdater/detect_ttyS.sh
 
 RUN sed -i "s/Version:.*/&${VERSION}/" DEBIAN/control
 

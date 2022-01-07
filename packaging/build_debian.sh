@@ -36,7 +36,6 @@ version=$(git describe --always --tags --dirty | sed 's/^v//')
 iname=tii-px4-debian-artifacts
 docker build -t ${iname} -f Dockerfile.debian \
 	--build-arg VERSION=${version} \
-	--build-arg PACKAGING_PATH=packaging \
 	..
 
 container_id=$(docker create ${iname} "")
