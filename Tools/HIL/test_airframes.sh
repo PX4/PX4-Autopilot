@@ -21,13 +21,26 @@ echo "airframes: ${ALL_AIRFRAMES}"
 for airframe in $ALL_AIRFRAMES
 do
 	echo
-	echo "##########################################################################################"
+	echo
+	echo
+	echo "########################################################################################################################"
 	echo " Airframe: $airframe"
-	echo "##########################################################################################"
+	echo "########################################################################################################################"
 	echo
 
 	${DIR}/nsh_param_set.py --device ${SERIAL_DEVICE} --name SYS_AUTOSTART  --value $airframe
 	${DIR}/nsh_param_set.py --device ${SERIAL_DEVICE} --name CBRK_BUZZER    --value 782097
+
+	# enable all mavlink instances
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_0_CONFIG 101' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_1_CONFIG 102' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_2_CONFIG 103' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_3_CONFIG 104' || true
+
+	# enable all GPS
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set GPS_1_CONFIG 201' || true
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set GPS_1_CONFIG 202' || true
+
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param reset SYS_HITL'
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param status'
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param save'
@@ -37,11 +50,13 @@ do
 
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param dump /fs/mtd_params' || true
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param dump /fs/microsd/parameters_backup.bson' || true
-	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param dump /fs/microsd/param_import_fail.bson' || true
 
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'ps'
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'work_queue status'
 
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'pwm info'
+
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'mavlink stop-all'
+	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'gps stop'
 
 done
