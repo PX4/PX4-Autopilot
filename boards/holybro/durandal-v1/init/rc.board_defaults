@@ -1,7 +1,13 @@
 #!/bin/sh
 #
-# Holybro Durandal V1 specific board defaults
+# board specific defaults
 #------------------------------------------------------------------------------
+
+param set-default BAT1_V_DIV 18.1
+param set-default BAT2_V_DIV 18.1
+
+param set-default BAT1_A_PER_V 36.367515152
+param set-default BAT2_A_PER_V 36.367515152
 
 # Enable IMU thermal control
 param set-default SENS_EN_THERMAL 1

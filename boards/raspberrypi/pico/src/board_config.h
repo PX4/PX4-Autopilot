@@ -65,10 +65,6 @@
 #define ADC_BATTERY_CURRENT_CHANNEL  2			// Corresponding GPIO 28. Used in init.c for disabling GPIO_IE
 #define ADC_RC_RSSI_CHANNEL          0
 
-/* Define Battery 1 Voltage Divider and A per V. */
-#define BOARD_BATTERY1_V_DIV         (13.653333333f)
-#define BOARD_BATTERY1_A_PER_V       (36.367515152f)
-
 /* High-resolution timer */
 #define HRT_TIMER 1
 #define HRT_TIMER_CHANNEL 1
