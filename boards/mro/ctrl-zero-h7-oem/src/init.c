@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,7 @@
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 #include "board_config.h"
@@ -59,8 +59,6 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
-
-#include <mpu.h>
 
 __BEGIN_DECLS
 extern void led_init(void);
@@ -129,6 +127,7 @@ __EXPORT void stm32_boardinitialize(void)
 	/* configure pins */
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
+
 	board_control_spi_sensors_power_configgpio();
 
 	/* configure LEDs */
@@ -168,6 +167,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
+#if defined(SERIAL_HAVE_RXDMA)
+	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
+	static struct hrt_call serial_dma_call;
+	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
+#endif
 
 	/* initial LED state */
 	drv_led_start();
@@ -197,7 +201,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif /* CONFIG_MMCSD */
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
 
 	return OK;

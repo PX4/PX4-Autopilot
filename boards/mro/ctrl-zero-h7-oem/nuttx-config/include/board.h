@@ -268,6 +268,10 @@
 #define GPIO_SPI5_MISO   GPIO_SPI5_MISO_1               /* PF8  */
 #define GPIO_SPI5_MOSI   GPIO_SPI5_MOSI_2               /* PF9  */
 
+#define GPIO_SPI6_SCK    ADJ_SLEW_RATE(GPIO_SPI6_SCK_1) /* PG13 */
+#define GPIO_SPI6_MISO   GPIO_SPI6_MISO_1               /* PG12 */
+#define GPIO_SPI6_MOSI   GPIO_SPI6_MOSI_1               /* PG14 */
+
 
 /* I2C */
 #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */

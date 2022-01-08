@@ -45,7 +45,6 @@ constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBus(SPI::Bus::SPI4, {
 		initSPIDevice(DRV_OSD_DEVTYPE_ATXXXX, SPI::CS{GPIO::PortE, GPIO::Pin11}),
 	}),
-
 };
 
 static constexpr bool unused = validateSPIConfig(px4_spi_buses);

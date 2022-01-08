@@ -44,25 +44,6 @@
 #include <debug.h>
 
 /************************************************************************************
- * Name: stm32_usbinitialize
- *
- * Description:
- *   Called to setup USB-related GPIO pins for the board.
- *
- ************************************************************************************/
-
-__EXPORT void stm32_usbinitialize(void)
-{
-	/* The OTG FS has an internal soft pull-up */
-
-	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
-
-#ifdef CONFIG_STM32F7_OTGFS
-	stm32_configgpio(GPIO_OTGFS_VBUS);
-#endif
-}
-
-/************************************************************************************
  * Name:  stm32_usbsuspend
  *
  * Description:

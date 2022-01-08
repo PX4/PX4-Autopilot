@@ -35,7 +35,6 @@
 #include <drivers/drv_sensor.h>
 #include <nuttx/spi/spi.h>
 
-
 constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
 	initSPIBus(SPI::Bus::SPI1, {
 		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin15}, SPI::DRDY{GPIO::PortB, GPIO::Pin2}),

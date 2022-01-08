@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -109,7 +109,6 @@
 
 /* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS   14
-#define BOARD_NUM_IO_TIMERS           4
 
 /* Power supply control and monitoring GPIOs */
 #define BOARD_NUMBER_BRICKS             2
@@ -192,14 +191,9 @@
 #define BOARD_ADC_PERIPH_5V_OC  (!px4_arch_gpioread(GPIO_nVDD_5V_PERIPH_OC))
 #define BOARD_ADC_HIPOWER_5V_OC (!px4_arch_gpioread(GPIO_VDD_5V_HIPOWER_OC))
 
-
-/* This board provides a DMA pool and APIs */
+#define BOARD_NUM_IO_TIMERS 4
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
-
-/* This board provides the board_on_reset interface */
 #define BOARD_HAS_ON_RESET 1
-
-
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define PX4_GPIO_INIT_LIST { \

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,42 +34,28 @@
 /**
  * @file init.c
  *
- * Board-specific early startup code.  This file implements the
+ * board-specific early startup code. This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
-
-/****************************************************************************
- * Included Files
- ****************************************************************************/
 
 #include "board_config.h"
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
 #include <syslog.h>
 
 #include <nuttx/config.h>
 #include <nuttx/board.h>
-#include <nuttx/spi/spi.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
-#include <nuttx/analog/adc.h>
-#include <nuttx/mm/gran.h>
-#include <chip.h>
-#include <stm32_uart.h>
 #include <arch/board/board.h>
 #include "arm_internal.h"
 
-#include <px4_arch/io_timer.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
+#include <px4_arch/io_timer.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
@@ -78,19 +64,6 @@
 #  include <parameters/flashparams/flashfs.h>
 #endif
 
-/****************************************************************************
- * Pre-Processor Definitions
- ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-/*
- * Ideally we'd be able to get these from arm_internal.h,
- * but since we want to be able to disable the NuttX use
- * of leds for system indication at will and there is no
- * separate switch, we need to build independent of the
- * CONFIG_ARCH_LEDS configuration switch.
- */
 __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
@@ -139,32 +112,23 @@ __EXPORT void board_on_reset(int status)
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
-
-__EXPORT void
-stm32_boardinitialize(void)
+__EXPORT void stm32_boardinitialize(void)
 {
-	board_on_reset(-1); /* Reset PWM first thing */
-
-	/* configure LEDs */
-
-	board_autoled_initialize();
+	/* Reset PWM first thing */
+	board_on_reset(-1);
 
 	/* configure pins */
-
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
 	/* configure SPI interfaces */
-
 	stm32_spiinitialize();
-
-	/* configure USB interfaces */
-
-	stm32_usbinitialize();
 
 	/* configure external memory*/
 	flash_w25q128_init();
 
+	/* configure LEDs */
+	board_autoled_initialize();
 }
 
 /****************************************************************************
@@ -178,29 +142,19 @@ stm32_boardinitialize(void)
  * Input Parameters:
  *   arg - The boardctl() argument is passed to the board_app_initialize()
  *         implementation without modification.  The argument has no
- *         meaning to NuttX; the meaning of the argument is a contract
- *         between the board-specific initalization logic and the the
- *         matching application logic.  The value cold be such things as a
- *         mode enumeration value, a set of DIP switch switch settings, a
- *         pointer to configuration data read from a file or serial FLASH,
- *         or whatever you would like to do with it.  Every implementation
- *         should accept zero/NULL as a default configuration.
+ *         meaning to NuttX;
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
  *   any failure to indicate the nature of the failure.
  *
  ****************************************************************************/
-
-
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Need hrt running before using the ADC */
-
 	px4_platform_init();
 
 	/* configure the DMA allocator */
-
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
@@ -219,15 +173,23 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-
 #ifdef CONFIG_MMCSD
-	int ret = stm32_sdio_initialize();
+	/* Mount the SDIO-based MMC/SD block driver */
+	/* First, get an instance of the SDIO interface */
+	struct sdio_dev_s *sdio_dev = sdio_initialize(0); // SDIO_SLOTNO 0 Only one slot
 
-	if (ret != OK) {
-		led_on(LED_RED);
+	if (!sdio_dev) {
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", 0);
 	}
 
-#endif
+	if (mmcsd_slotinitialize(0, sdio_dev) != OK) {
+		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver\n");
+	}
+
+	/* Assume that the SD card is inserted.  What choice do we have? */
+	sdio_mediachange(sdio_dev, true);
+#endif /* CONFIG_MMCSD */
+
 
 	up_udelay(20);
 
@@ -277,7 +239,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
 
 	return OK;

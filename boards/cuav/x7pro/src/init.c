@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,11 +34,11 @@
 /**
  * @file init.c
  *
- * FMU-specific early startup code. This file implements the
+ * board-specific early startup code. This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
- * subsystems and perform board-specific initialisation.
+ * subsystems and perform board-specific initialization.
  */
 
 #include "board_config.h"
@@ -60,8 +60,6 @@
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
 
-#include <mpu.h>
-
 __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
@@ -78,7 +76,6 @@ __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
 	VDD_5V_PERIPH_EN(false);
-	board_control_spi_sensors_power(false, 0xffff);
 
 	bool last = READ_SPEKTRUM_POWER();
 	/* Keep Spektum on to discharge rail*/
@@ -92,7 +89,6 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* switch the peripheral rail back on */
 	SPEKTRUM_POWER(last);
-	board_control_spi_sensors_power(true, 0xffff);
 	VDD_5V_PERIPH_EN(true);
 }
 
@@ -132,14 +128,14 @@ __EXPORT void stm32_boardinitialize(void)
 	/* Reset PWM first thing */
 	board_on_reset(-1);
 
-	/* configure LEDs */
-	board_autoled_initialize();
-
 	/* configure pins */
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
 	board_control_spi_sensors_power_configgpio();
+
+	/* configure LEDs */
+	board_autoled_initialize();
 }
 
 /****************************************************************************
@@ -179,6 +175,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
+#if defined(SERIAL_HAVE_RXDMA)
+	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
+	static struct hrt_call serial_dma_call;
+	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)stm32_serial_dma_poll, NULL);
+#endif
+
 	/* initial LED state */
 	drv_led_start();
 	led_off(LED_RED);
@@ -212,7 +214,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif /* CONFIG_MMCSD */
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
 
 	return OK;

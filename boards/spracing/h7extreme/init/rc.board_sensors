@@ -1,7 +1,8 @@
 #!/bin/sh
 #
-# SP Racing H7 EXTREME specific board sensors init
+# board specific sensors init
 #------------------------------------------------------------------------------
+
 board_adc start
 
 # Internal SPI bus ICM-20602
@@ -12,6 +13,4 @@ icm20602 -s -b 3 -R 4 start # SPI 3
 
 # Internal I2C bus
 bmp388 -I start
-
-
 

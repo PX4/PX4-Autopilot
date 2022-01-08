@@ -35,61 +35,44 @@
 /**
  * @file board_config.h
  *
- * sp racing h7 extreme internal definitions
+ * Board internal definitions
  */
 
 #pragma once
 
-/****************************************************************************************************
- * Included Files
- ****************************************************************************************************/
-
 #include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
-
 #include <stm32_gpio.h>
-
-/****************************************************************************************************
- * Definitions
- ****************************************************************************************************/
 
 #define FLASH_BASED_PARAMS
 #define BOARD_USE_EXTERNAL_FLASH //Configuration and firmware are in external flash
 
-#define BOARD_HAS_USB_VALID            1 // LTC Has No USB valid
-
+/* LEDs */
 /* LEDs are driven with push open drain to support Anode to 5V or 3.3V */
-
 #define GPIO_nLED_RED        /* PE3 */  (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN3)
 
-#define BOARD_HAS_CONTROL_STATUS_LEDS      1
+#define BOARD_HAS_CONTROL_STATUS_LEDS   1
 #define BOARD_ARMED_STATE_LED  LED_RED
 #define BOARD_OVERLOAD_LED     LED_RED
 
-/*
- * ADC channels
- *
- * These are the channel numbers of the ADCs of the microcontroller that
- * can be used by the Px4 Firmware in the adc driver
- */
-
-/* Define GPIO pins used as ADC N.B. Channel numbers must match below */
+/* ADC channels */
 #define PX4_ADC_GPIO  \
-	/* PC4 */  GPIO_ADC12_INP4,  \
-	/* PC1 */  GPIO_ADC123_INP11, \
-	/* PC0 */  GPIO_ADC123_INP10
+	/* PC4  */  GPIO_ADC12_INP4,   \
+	/* PC1  */  GPIO_ADC123_INP11, \
+	/* PC0  */  GPIO_ADC123_INP10
 
+/* Define Channel numbers must match above GPIO pins */
+#define ADC_RSSI_IN_CHANNEL                 4 /* PC4 */
+#define ADC_BATTERY_VOLTAGE_CHANNEL        11 /* PC1 */
+#define ADC_BATTERY_CURRENT_CHANNEL        10 /* PC0 */
 
-/* Define Channel numbers must match above GPIO pin IN(n)*/
-#define ADC_RSSI_IN_CHANNEL                 /* PC4 */  4
-#define ADC_BATTERY_VOLTAGE_CHANNEL         /* PC1 */  11
-#define ADC_BATTERY_CURRENT_CHANNEL         /* PC0 */  10
+#define ADC_CHANNELS \
+	((1 << ADC_RSSI_IN_CHANNEL)               | \
+	 (1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
+	 (1 << ADC_BATTERY_VOLTAGE_CHANNEL))
 
-#define ADC_CHANNELS (1 << 4) | (1 << 10) | (1 << 11)
-
-/* PWM
- */
+/* PWM */
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
 
 /* Tone alarm output */
@@ -97,8 +80,7 @@
 #define GPIO_TONE_ALARM_GPIO    /* PE5 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN5)
 
 /* USB OTG FS
- *
- * PA8  OTG_FS_VBUS VBUS sensing
+ * PA9  OTG_FS_VBUS VBUS sensing
  */
 #define GPIO_OTGFS_VBUS         /* PA9 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_SPEED_100MHz|GPIO_PORTA|GPIO_PIN9)
 
@@ -108,71 +90,32 @@
 
 
 /* RC Serial port */
-
 #define RC_SERIAL_PORT          "/dev/ttyS0"
 
 #define GPIO_RSSI_IN            /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
-#define SDIO_SLOTNO             0  /* Only one slot */
-#define SDIO_MINOR              0
-
-
-/* This board provides a DMA pool and APIs */
+#define BOARD_NUM_IO_TIMERS 3
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {1, 2, 3, 0, 4, 5, 6, 7};
 #define BOARD_DMA_ALLOC_POOL_SIZE 5120
-
-/* This board provides the board_on_reset interface */
 #define BOARD_HAS_ON_RESET 1
+#define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
+		GPIO_RSSI_IN,                     \
+		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D0), \
+		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D1), \
+		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D2), \
+		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_D3), \
+		PX4_GPIO_PIN_OFF(GPIO_SDMMC1_CMD),\
 		GPIO_TONE_ALARM_IDLE,             \
-		GPIO_RSSI_IN,                \
+		GPIO_OTGFS_VBUS,                  \
 	}
 
-#define BOARD_ENABLE_CONSOLE_BUFFER
-
-#define BOARD_NUM_IO_TIMERS 3
-
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {1, 2, 3, 0, 4, 5, 6, 7};
-
 __BEGIN_DECLS
-
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Public data
- ****************************************************************************************************/
-
 #ifndef __ASSEMBLY__
 
-/****************************************************************************************************
- * Public Functions
- ****************************************************************************************************/
-
-/****************************************************************************
- * Name: stm32_sdio_initialize
- *
- * Description:
- *   Initialize SDIO-based MMC/SD card support
- *
- ****************************************************************************/
-
-int stm32_sdio_initialize(void);
-
-/****************************************************************************************************
- * Name: stm32_spiinitialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the board.
- *
- ****************************************************************************************************/
-
 extern void stm32_spiinitialize(void);
-
-extern void stm32_usbinitialize(void);
-
 extern void board_peripheral_reset(int ms);
 
 #include <px4_platform_common/board_common.h>

@@ -20,6 +20,5 @@ param set-default SENS_TEMP_ID 6946850
 # Set Camera trigger pins to 13/14
 param set-default TRIG_PINS_EX 12288
 
-
 rgbled_pwm start
 safety_button start

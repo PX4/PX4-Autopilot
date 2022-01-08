@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -118,7 +118,6 @@
 
 /* RC Serial port */
 #define RC_SERIAL_PORT          "/dev/ttyS4"
-#define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 #define GPIO_RSSI_IN            /* PC1  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN1)
 
@@ -147,8 +146,8 @@
 
 #define BOARD_NUM_IO_TIMERS 3
 #define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
-#define BOARD_DMA_ALLOC_POOL_SIZE 5120 /* This board provides a DMA pool and APIs */
-#define BOARD_HAS_ON_RESET 1 /* This board provides the board_on_reset interface */
+#define BOARD_DMA_ALLOC_POOL_SIZE 5120
+#define BOARD_HAS_ON_RESET 1
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define PX4_GPIO_INIT_LIST { \
