@@ -42,8 +42,6 @@
 #define BOARD_OVERRIDE_UUID "BBBLUEID00000000" // must be of length 16
 #define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_BBBLUE
 
-#define BOARD_BATTERY1_V_DIV   (11.0f)
-
 #define BOARD_MAX_LEDS 4 // Number external of LED's this board has
 
 
