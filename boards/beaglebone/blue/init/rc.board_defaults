@@ -3,7 +3,4 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-# system_power unavailable
-param set-default CBRK_SUPPLY_CHK 894281
-
-param set-default BAT1_V_DIV 10.13
+param set-default BAT1_V_DIV 11.0

@@ -83,10 +83,6 @@
 #define ADC_5V_RAIL_SENSE            4
 #define ADC_RC_RSSI_CHANNEL          11
 
-/* Define Battery 1 Voltage Divider and A per V. */
-#define BOARD_BATTERY1_V_DIV         (10.14f)
-#define BOARD_BATTERY1_A_PER_V       (18.18f)
-
 /* Power supply control and monitoring GPIOs. */
 #define GPIO_VDD_BRICK_VALID         (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN5)
 #define GPIO_VDD_USB_VALID           (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN0)

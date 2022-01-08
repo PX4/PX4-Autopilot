@@ -3,5 +3,8 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
+param set-default BAT1_V_DIV 10.14
+param set-default BAT1_A_PER_V 18.18
+
 # don't probe external I2C
 param set-default SENS_EXT_I2C_PRB 0

@@ -5,6 +5,8 @@
 
 param set-default SYS_AUTOSTART 4061
 
+param set-default BAT1_V_DIV 9.0
+
 param set-default COM_ARM_SDCARD 0
 
 param set-default SENS_EXT_I2C_PRB 0
