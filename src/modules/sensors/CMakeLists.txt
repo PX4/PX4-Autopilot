@@ -45,8 +45,11 @@ px4_add_module(
 	MODULE modules__sensors
 	MAIN sensors
 	SRCS
-		voted_sensors_update.cpp
 		sensors.cpp
+		voted_sensors_update.cpp
+		voted_sensors_update.h
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		airspeed
 		conversion

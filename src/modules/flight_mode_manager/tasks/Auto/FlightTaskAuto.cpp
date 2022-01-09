@@ -455,7 +455,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 				_sub_triplet_setpoint.get().next.yaw,
 				_sub_triplet_setpoint.get().next.yawspeed_valid ? _sub_triplet_setpoint.get().next.yawspeed : (float)NAN,
 				_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active(), _sub_triplet_setpoint.get().current.type);
-		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt);
+		_obstacle_avoidance.checkAvoidanceProgress(
+			_position, _triplet_prev_wp, _target_acceptance_radius, Vector2f(_closest_pt));
 	}
 
 	// set heading
@@ -617,11 +618,11 @@ Vector2f FlightTaskAuto::_getTargetVelocityXY()
 State FlightTaskAuto::_getCurrentState()
 {
 	// Calculate the vehicle current state based on the Navigator triplets and the current position.
-	Vector2f u_prev_to_target = Vector2f(_triplet_target - _triplet_prev_wp).unit_or_zero();
-	Vector2f pos_to_target(_triplet_target - _position);
-	Vector2f prev_to_pos(_position - _triplet_prev_wp);
+	const Vector3f u_prev_to_target = (_triplet_target - _triplet_prev_wp).unit_or_zero();
+	const Vector3f pos_to_target(_triplet_target - _position);
+	const Vector3f prev_to_pos(_position - _triplet_prev_wp);
 	// Calculate the closest point to the vehicle position on the line prev_wp - target
-	_closest_pt = Vector2f(_triplet_prev_wp) + u_prev_to_target * (prev_to_pos * u_prev_to_target);
+	_closest_pt = _triplet_prev_wp + u_prev_to_target * (prev_to_pos * u_prev_to_target);
 
 	State return_state = State::none;
 
@@ -633,7 +634,7 @@ State FlightTaskAuto::_getCurrentState()
 		// Current position is more than cruise speed in front of previous setpoint.
 		return_state = State::previous_infront;
 
-	} else if (Vector2f(Vector2f(_position) - _closest_pt).length() > _target_acceptance_radius) {
+	} else if ((_position - _closest_pt).length() > _target_acceptance_radius) {
 		// Vehicle is more than cruise speed off track.
 		return_state = State::offtrack;
 
@@ -664,7 +665,7 @@ void FlightTaskAuto::_updateInternalWaypoints()
 
 	case State::offtrack:
 		_next_wp = _triplet_target;
-		_target = matrix::Vector3f(_closest_pt(0), _closest_pt(1), _triplet_target(2));
+		_target = _closest_pt;
 		_prev_wp = _position;
 		break;
 
