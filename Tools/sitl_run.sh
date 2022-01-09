@@ -107,10 +107,15 @@ if [ "$program" == "sih" ] && [ ! -n "$no_sim" ] && [[ ! -n "$HEADLESS" ]]; then
 	# Start Java simulator for displaying sih
 	if [ "$model" == "plane" ]; then
 		"$src_path"/Tools/jmavsim_run.sh -r 250 -o -a &
-	else
+		SIM_PID=$!
+	elif [ "$model" == "iris" ] || [ "$model" == "none" ]; then
 		"$src_path"/Tools/jmavsim_run.sh -r 250 -o &
+		SIM_PID=$!
+	else
+		echo "Model ${model} not compatible with with sih. sih supports [iris,plane]."
+		exit 1
 	fi
-	SIM_PID=$!
+
 elif [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
 	# Start Java simulator
 	"$src_path"/Tools/jmavsim_run.sh -r 250 -l &
