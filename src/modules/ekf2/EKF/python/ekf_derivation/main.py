@@ -6,22 +6,23 @@ from code_gen import *
 # q: quaternion describing rotation from frame 1 to frame 2
 # returns a rotation matrix derived form q which describes the same
 # rotation
-def quat2Rot(q):
+def quat2Rot(q, use_legacy_method=0):
     q0 = q[0]
     q1 = q[1]
     q2 = q[2]
     q3 = q[3]
 
-    # Rot = Matrix([[q0**2 + q1**2 - q2**2 - q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
-    #               [2*(q1*q2 + q0*q3), q0**2 - q1**2 + q2**2 - q3**2, 2*(q2*q3 - q0*q1)],
-    #                [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), q0**2 - q1**2 - q2**2 + q3**2]])
-
-    # Use the simplified formula for unit quaternion to rotation matrix
-    # as it produces a simpler and more stable EKF derivation given
-    # the additional constraint: q0^2 + q1^2 + q2^2 + q3^2 = 1
-    Rot = Matrix([[1 - 2*q2**2 - 2*q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
-                  [2*(q1*q2 + q0*q3), 1 - 2*q1**2 - 2*q3**2, 2*(q2*q3 - q0*q1)],
-                   [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), 1 - 2*q1**2 - 2*q2**2]])
+    if use_legacy_method == 1:
+        Rot = Matrix([[q0**2 + q1**2 - q2**2 - q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
+                    [2*(q1*q2 + q0*q3), q0**2 - q1**2 + q2**2 - q3**2, 2*(q2*q3 - q0*q1)],
+                    [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), q0**2 - q1**2 - q2**2 + q3**2]])
+    else:
+        # Use the simplified formula for unit quaternion to rotation matrix
+        # as it produces a simpler and more stable EKF derivation given
+        # the additional constraint: q0^2 + q1^2 + q2^2 + q3^2 = 1
+        Rot = Matrix([[1 - 2*q2**2 - 2*q3**2, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)],
+                    [2*(q1*q2 + q0*q3), 1 - 2*q1**2 - 2*q3**2, 2*(q2*q3 - q0*q1)],
+                    [2*(q1*q3-q0*q2), 2*(q2*q3 + q0*q1), 1 - 2*q1**2 - 2*q2**2]])
 
     return Rot
 
@@ -614,6 +615,11 @@ def generate_code():
     cov_code_generator.write_matrix(Matrix(P_new_simple[1]), "nextP", True, "(", ")")
 
     cov_code_generator.close()
+
+    # use legacy quaternion to rotation matrix conversion for observaton equation as it gives
+    # simpler equations
+    R_to_earth = quat2Rot(q,1)
+    R_to_body = R_to_earth.T
 
     # derive autocode for observation methods
     print('Generating heading observation code ...')
