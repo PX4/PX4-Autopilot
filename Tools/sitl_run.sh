@@ -74,6 +74,9 @@ if [ "$model" == "" ] || [ "$model" == "none" ]; then
 	if [ "$program" == "jsbsim" ]; then
 		echo "empty model, setting rascal as default for jsbsim"
 		model="rascal"
+	elif [ "$program" == "sih_sim" ]; then
+		echo "empty model, setting quadx as default for sih_sim"
+		model="quadx"
 	else
 		echo "empty model, setting iris as default"
 		model="iris"
@@ -216,6 +219,10 @@ elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
 	JSBSIM_PID=$!
 elif [ "$program" == "sih_sim" ] && [ ! -n "$no_sim" ]; then
 	export SIM_MODE="sih_sim"
+	if [ "$model" != "airplane" ] && [ "$model" != "quadx" ]; then
+		echo "Model ${model} not compatible with with sih. sih supports [quadx,airplane]."
+		exit 1
+	fi
 fi
 
 pushd "$rootfs" >/dev/null
