@@ -806,7 +806,7 @@ void resetParameters() {
 void runTests() {
 
   // test loading a range of airframes
-  sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 1000 1001 2100 3000 4001 6001 8001 10016'
+  sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 1000 1001 2100 3000 4001 4018 6001 8001 10016'
 
   resetParameters()
 

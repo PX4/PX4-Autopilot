@@ -45,5 +45,6 @@ px4_add_module(
 		launchdetection
 		landing_slope
 		runway_takeoff
+		SlewRate
 		tecs
 	)
