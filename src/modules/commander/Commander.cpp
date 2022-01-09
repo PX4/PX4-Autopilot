@@ -76,6 +76,10 @@
 #include <cstring>
 #include <matrix/math.hpp>
 
+#ifdef __PX4_NUTTX
+# include <lib/systemlib/hardfault_log.h>
+#endif // __PX4_NUTTX
+
 #include <uORB/topics/mavlink_log.h>
 
 typedef enum VEHICLE_MODE_FLAG {
@@ -681,6 +685,34 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_failure_detector(this)
 {
+
+#if defined(px4_savepanic)
+	{
+		vehicle_status_s buf1{};
+		vehicle_status_s buf2{};
+
+		int fd1 = ::open(HARDFAULT_VEHICLE_STATUS_0_PATH, O_RDONLY);
+		int fd2 = ::open(HARDFAULT_VEHICLE_STATUS_1_PATH, O_RDONLY);
+
+		int read_ret1 = ::read(fd1, &buf1, sizeof(vehicle_status_s));
+		int read_ret2 = ::read(fd2, &buf2, sizeof(vehicle_status_s));
+
+		::close(fd1);
+		::close(fd1);
+
+		if ((read_ret1 == sizeof(vehicle_status_s)) && (read_ret2 == sizeof(vehicle_status_s)))
+		{
+			if (buf1.timestamp > buf2.timestamp) {
+				print_message(ORB_ID(vehicle_status), buf1);
+
+			} else if (buf2.timestamp > buf1.timestamp) {
+				print_message(ORB_ID(vehicle_status), buf2);
+			}
+		}
+	}
+#endif // px4_savepanic
+
+
 	_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
 
 	_land_detector.landed = true;
@@ -2856,6 +2888,9 @@ Commander::run()
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			_failure_detector_status_pub.publish(fd_status);
+
+
+			SaveCheckPoint();
 		}
 
 		/* play arming and battery warning tunes */
@@ -2960,6 +2995,35 @@ Commander::run()
 	/* close fds */
 	led_deinit();
 	buzzer_deinit();
+}
+
+void Commander::SaveCheckPoint()
+{
+#if defined(px4_savepanic)
+
+	_check_point_index = (_check_point_index == 0) ? 1 : 0;
+
+	int fd = -1;
+
+	if (_check_point_index == 0) {
+		fd = open(HARDFAULT_VEHICLE_STATUS_0_PATH, O_TRUNC | O_WRONLY | O_CREAT);
+
+	} else if (_check_point_index == 1) {
+		fd = open(HARDFAULT_VEHICLE_STATUS_1_PATH, O_TRUNC | O_WRONLY | O_CREAT);
+	}
+
+	if (fd < 0) {
+		return;
+	}
+
+	int write_ret = ::write(fd, (void *)&_status, sizeof(vehicle_status_s));
+	close(fd);
+
+	if (sizeof(vehicle_status_s) != write_ret) {
+		PX4_ERR("vehicle status check point failed ret=%d, errno=%d (%s)", write_ret, errno, strerror(errno));
+	}
+
+#endif // px4_savepanic
 }
 
 void

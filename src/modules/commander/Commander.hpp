@@ -129,6 +129,8 @@ private:
 
 	void battery_status_check();
 
+	void SaveCheckPoint();
+
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
 				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us,
 				   const bool was_valid);
@@ -396,6 +398,11 @@ private:
 	vehicle_status_flags_s  _status_flags{};
 
 	WorkerThread _worker_thread;
+
+#if defined(__PX4_NUTTX) && defined(px4_savepanic)
+	// check point
+	uint8_t _check_point_index{0};
+#endif // __PX4_NUTTX && px4_savepanic
 
 	// Subscriptions
 	uORB::Subscription					_action_request_sub {ORB_ID(action_request)};

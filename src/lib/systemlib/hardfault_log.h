@@ -38,21 +38,31 @@
 #include <px4_platform_common/px4_config.h>
 #include <systemlib/px4_macros.h>
 
+#include <uORB/topics/vehicle_status.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 #define HARDFAULT_REBOOT_FILENO 0
 #define HARDFAULT_REBOOT_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_REBOOT_FILENO)
+
+#define HARDFAULT_VEHICLE_STATUS_0_FILENO 1
+#define HARDFAULT_VEHICLE_STATUS_0_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_VEHICLE_STATUS_0_FILENO)
+
+#define HARDFAULT_VEHICLE_STATUS_1_FILENO 2
+#define HARDFAULT_VEHICLE_STATUS_1_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_VEHICLE_STATUS_1_FILENO)
+
 #define HARDFAULT_ULOG_FILENO 3
 #define HARDFAULT_ULOG_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_ULOG_FILENO)
+
 #define HARDFAULT_FILENO 4
 #define HARDFAULT_PATH BBSRAM_PATH "" STRINGIFY(HARDFAULT_FILENO)
 
 #define HARDFAULT_MAX_ULOG_FILE_LEN 64 /* must be large enough to store the full path to the log file */
 
 #define BBSRAM_SIZE_FN0 (sizeof(int))
-#define BBSRAM_SIZE_FN1 384     /* greater then 2.5 times the size of vehicle_status_s */
-#define BBSRAM_SIZE_FN2 384     /* greater then 2.5 times the size of vehicle_status_s */
+#define BBSRAM_SIZE_FN1 (sizeof(struct vehicle_status_s))     /* greater then 2.5 times the size of vehicle_status_s */
+#define BBSRAM_SIZE_FN2 (sizeof(struct vehicle_status_s))     /* greater then 2.5 times the size of vehicle_status_s */
 #define BBSRAM_SIZE_FN3 HARDFAULT_MAX_ULOG_FILE_LEN
 #define BBSRAM_SIZE_FN4 -1
 
