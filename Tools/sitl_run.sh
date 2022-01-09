@@ -74,6 +74,9 @@ if [ "$model" == "" ] || [ "$model" == "none" ]; then
 	if [ "$program" == "jsbsim" ]; then
 		echo "empty model, setting rascal as default for jsbsim"
 		model="rascal"
+	elif [ "$program" == "sih" ]; then
+		echo "empty model, setting quadx as default for sih"
+		model="quadx"
 	else
 		echo "empty model, setting iris as default"
 		model="iris"
@@ -105,14 +108,14 @@ SIM_PID=0
 
 if [ "$program" == "sih" ] && [ ! -n "$no_sim" ] && [[ ! -n "$HEADLESS" ]]; then
 	# Start Java simulator for displaying sih
-	if [ "$model" == "plane" ]; then
+	if [ "$model" == "airplane" ]; then
 		"$src_path"/Tools/jmavsim_run.sh -r 250 -o -a &
 		SIM_PID=$!
-	elif [ "$model" == "iris" ] || [ "$model" == "none" ]; then
+	elif [ "$model" == "quadx" ]; then
 		"$src_path"/Tools/jmavsim_run.sh -r 250 -o &
 		SIM_PID=$!
 	else
-		echo "Model ${model} not compatible with with sih. sih supports [iris,plane]."
+		echo "Model ${model} not compatible with with sih. sih supports [quadx,airplane]."
 		exit 1
 	fi
 
