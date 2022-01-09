@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# @name QuadrotorX SITL for SIH
+#
+# @type Quadrotor
+#
+# @maintainer Romain Chiappinelli <romain.chiap@gmail.com>
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+set MIXER quad_x
+
+# disable some checks to allow to fly:
+# - with usb
+param set-default CBRK_USB_CHK 197848
+# - without real battery
+param set-default CBRK_SUPPLY_CHK 894281
+# - without safety switch
+param set-default COM_PREARM_MODE 0
+param set-default CBRK_IO_SAFETY 22027
+
+param set SIH_VEHICLE_TYPE 0

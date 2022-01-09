@@ -140,6 +140,7 @@ set(debuggers
 
 set(models
 	none
+	airplane
 	believer
 	boat
 	cloudship
@@ -161,6 +162,7 @@ set(models
 	plane_catapult
 	plane_lidar
 	px4vision
+	quadx
 	r1_rover
 	rover
 	shell
