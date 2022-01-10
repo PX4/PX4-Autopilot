@@ -55,7 +55,8 @@ public:
 
 	void allocate() override;
 	void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
-				    const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators) override;
+				    const ActuatorVector &actuator_trim, const ActuatorVector &linearization_point, int num_actuators,
+				    bool update_normalization_scale) override;
 
 protected:
 	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
@@ -70,4 +71,6 @@ protected:
 
 private:
 	void normalizeControlAllocationMatrix();
+	void updateControlAllocationMatrixScale();
+	bool _normalization_needs_update{false};
 };
