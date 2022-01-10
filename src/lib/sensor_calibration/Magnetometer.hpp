@@ -101,8 +101,6 @@ public:
 	void UpdatePower(float power) { _power = power; }
 
 private:
-	void set_external(bool external = true);
-
 	static constexpr float TEMPERATURE_INVALID = -1000.f;
 
 	Rotation _rotation_enum{ROTATION_NONE};

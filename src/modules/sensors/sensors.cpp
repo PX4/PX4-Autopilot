@@ -339,21 +339,25 @@ int Sensors::parameters_update()
 
 	// ensure calibration slots are active for the number of sensors currently available
 	// this to done to eliminate differences in the active set of parameters before and after sensor calibration
-	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-		if (orb_exists(ORB_ID(sensor_accel), i) == PX4_OK) {
-			calibration::Accelerometer cal{0};
+	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+		uORB::SubscriptionData<sensor_accel_s> sensor_accel_sub{ORB_ID(sensor_accel), i};
+		uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
+		uORB::SubscriptionData<sensor_mag_s> sensor_mag_sub{ORB_ID(sensor_mag), i};
+
+		if (sensor_accel_sub.get().device_id != 0) {
+			calibration::Accelerometer cal{sensor_accel_sub.get().device_id};
 			cal.set_calibration_index(i);
 			cal.ParametersUpdate();
 		}
 
-		if (orb_exists(ORB_ID(sensor_gyro), i) == PX4_OK) {
-			calibration::Gyroscope cal{0};
+		if (sensor_gyro_sub.get().device_id != 0) {
+			calibration::Gyroscope cal{sensor_gyro_sub.get().device_id};
 			cal.set_calibration_index(i);
 			cal.ParametersUpdate();
 		}
 
-		if (orb_exists(ORB_ID(sensor_mag), i) == PX4_OK) {
-			calibration::Magnetometer cal{0};
+		if (sensor_mag_sub.get().device_id != 0) {
+			calibration::Magnetometer cal{sensor_mag_sub.get().device_id};
 			cal.set_calibration_index(i);
 			cal.ParametersUpdate();
 		}
