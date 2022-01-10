@@ -75,8 +75,6 @@ void PX4Magnetometer::update(const hrt_abstime &timestamp_sample, float x, float
 	report.y = y * _scale;
 	report.z = z * _scale;
 
-	report.is_external = _external;
-
 	report.timestamp = hrt_absolute_time();
 	_sensor_pub.publish(report);
 }

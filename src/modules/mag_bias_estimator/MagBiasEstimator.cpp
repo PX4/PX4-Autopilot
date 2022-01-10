@@ -170,7 +170,7 @@ void MagBiasEstimator::Run()
 				updated = true;
 
 				// apply existing mag calibration
-				_calibration[mag_index].set_device_id(sensor_mag.device_id, sensor_mag.is_external);
+				_calibration[mag_index].set_device_id(sensor_mag.device_id);
 
 				const Vector3f mag_calibrated = _calibration[mag_index].Correct(Vector3f{sensor_mag.x, sensor_mag.y, sensor_mag.z});
 

@@ -432,7 +432,7 @@ void VehicleMagnetometer::Run()
 			while (_sensor_sub[uorb_index].update(&report)) {
 
 				if (_calibration[uorb_index].device_id() != report.device_id) {
-					_calibration[uorb_index].set_device_id(report.device_id, report.is_external);
+					_calibration[uorb_index].set_device_id(report.device_id);
 					_priority[uorb_index] = _calibration[uorb_index].priority();
 				}
 
