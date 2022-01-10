@@ -135,12 +135,14 @@ void Magnetometer::ParametersUpdate()
 		return;
 	}
 
-	if (_calibration_index < 0) {
-		_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
-	}
+	_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
 
-	if (_calibration_index >= 0) {
+	ParametersLoad();
+}
 
+bool Magnetometer::ParametersLoad()
+{
+	if (_calibration_index >= 0 && _calibration_index < MAX_SENSOR_COUNT) {
 		// CAL_MAGx_ROT
 		int32_t rotation_value = GetCalibrationParamInt32(SensorString(), "ROT", _calibration_index);
 
@@ -196,9 +198,10 @@ void Magnetometer::ParametersUpdate()
 		// CAL_MAGx_COMP{X,Y,Z}
 		_power_compensation = GetCalibrationParamsVector3f(SensorString(), "COMP", _calibration_index);
 
-	} else {
-		Reset();
+		return true;
 	}
+
+	return false;
 }
 
 void Magnetometer::Reset()

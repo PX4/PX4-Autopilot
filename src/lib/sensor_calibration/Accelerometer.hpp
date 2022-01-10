@@ -91,6 +91,7 @@ public:
 		return (_rotation.I() * bias).edivide(_scale) + _thermal_offset + _offset;
 	}
 
+	bool ParametersLoad();
 	bool ParametersSave();
 	void ParametersUpdate();
 
