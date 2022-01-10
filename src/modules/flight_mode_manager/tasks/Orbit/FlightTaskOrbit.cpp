@@ -102,9 +102,9 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	}
 
 	// perpendicularly approach the orbit circle again when new parameters get commanded
-	if (!_is_position_on_circle()) {
+	if (!_is_position_on_circle() && !_in_circle_approach) {
 		_in_circle_approach = true;
-		_position_smoothing.reset({0.f, 0.f, 0.f}, _velocity, _position);
+		_position_smoothing.reset(_acceleration_setpoint, _velocity_setpoint, _position);
 	}
 
 	return ret;
@@ -151,7 +151,7 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 {
 	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 	_orbit_radius = _radius_min;
-	_orbit_velocity =  1.f;
+	_orbit_velocity = 1.f;
 	_center = _position;
 	_initial_heading = _yaw;
 	_slew_rate_yaw.setForcedValue(_yaw);
@@ -165,7 +165,23 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 	      && PX4_ISFINITE(_velocity(1))
 	      && PX4_ISFINITE(_velocity(2));
 
-	_position_smoothing.reset({0.f, 0.f, 0.f}, _velocity, _position);
+	Vector3f vel_prev{last_setpoint.vx, last_setpoint.vy, last_setpoint.vz};
+	Vector3f pos_prev{last_setpoint.x, last_setpoint.y, last_setpoint.z};
+	Vector3f accel_prev{last_setpoint.acceleration};
+
+	for (int i = 0; i < 3; i++) {
+		// If the position setpoint is unknown, set to the current position
+		if (!PX4_ISFINITE(pos_prev(i))) { pos_prev(i) = _position(i); }
+
+		// If the velocity setpoint is unknown, set to the current velocity
+		if (!PX4_ISFINITE(vel_prev(i))) { vel_prev(i) = _velocity(i); }
+
+		// No acceleration estimate available, set to zero if the setpoint is NAN
+		if (!PX4_ISFINITE(accel_prev(i))) { accel_prev(i) = 0.f; }
+	}
+
+	_position_smoothing.reset(accel_prev, vel_prev, pos_prev);
+	_in_circle_approach = true;
 
 	return ret;
 }
