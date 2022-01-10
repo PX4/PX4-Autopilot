@@ -1656,7 +1656,7 @@ Commander::set_home_position()
 	// Need global and local position fix to be able to set home
 	// but already set the home position in local coordinates if available
 	// in case the global position is only valid after takeoff
-	if (_status_flags.condition_local_position_valid) {
+	if (_param_com_home_en.get() && _status_flags.condition_local_position_valid) {
 
 		// Set home position in local coordinates
 		const vehicle_local_position_s &lpos = _local_position_sub.get();
