@@ -66,18 +66,6 @@
 // ioctl interface
 #define _UAVCAN_IOC(_n)               (_IOC(_UAVCAN_IOCBASE, _n))
 #define _UAVCAN_IOCBASE               (0x4000)                        // IOCTL base for module UAVCAN
-/*
- * Query if node identification is in progress. Returns:
- *      EINVAL - not applicable in the current operating mode
- *      ETIME  - network discovery complete
- *      OK (0) - network discovery in progress
- */
-#define UAVCAN_IOCG_NODEID_INPROGRESS _UAVCAN_IOC(1)
-/*
- * Set hardpoint command. Accepts a pointer to uavcan::equipment::hardpoint::Command; returns nothing.
- * The pointer may be invalidated once the call returns.
- */
-#define UAVCAN_IOCS_HARDPOINT_SET       _UAVCAN_IOC(10)
 
 // public prototypes
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
