@@ -291,15 +291,9 @@ else
 		# Start core UAVCAN module.
 		if uavcan start
 		then
-			if param greater UAVCAN_ENABLE 1
+			if param greater UAVCAN_ENABLE 2
 			then
-				# Start UAVCAN firmware update server and dynamic node ID allocation server.
-				uavcan start fw
-
-				if param greater UAVCAN_ENABLE 2
-				then
-					set OUTPUT_MODE uavcan_esc
-				fi
+				set OUTPUT_MODE uavcan_esc
 			fi
 		else
 			tune_control play error
