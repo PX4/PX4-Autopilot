@@ -152,10 +152,9 @@ void Gyroscope::ParametersUpdate()
 {
 	if (_device_id == 0) {
 		return;
-
-	} else {
-		_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
 	}
+
+	_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
 
 	if (_calibration_index >= 0) {
 
