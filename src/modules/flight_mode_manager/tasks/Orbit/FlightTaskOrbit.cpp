@@ -51,25 +51,24 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 {
 	bool ret = true;
 	// save previous velocity and roatation direction
-	bool is_clockwise = _orbit_velocity > 0;
-
+	bool new_is_clockwise = _orbit_velocity > 0;
 	float new_radius = _orbit_radius;
-	float new_abs_velocity = fabsf(_orbit_velocity);
+	float new_absolute_velocity = fabsf(_orbit_velocity);
 
 	// commanded radius
 	if (PX4_ISFINITE(command.param1)) {
 		// Note: Radius sign is defined as orbit direction in MAVLINK
-		float radius = command.param1;
-		is_clockwise = radius > 0;
-		new_radius = fabsf(radius);
+		const float radius_parameter = command.param1;
+		new_is_clockwise = radius_parameter > 0;
+		new_radius = fabsf(radius_parameter);
 	}
 
 	// commanded velocity, take sign of radius as rotation direction
 	if (PX4_ISFINITE(command.param2)) {
-		new_abs_velocity = command.param2;
+		new_absolute_velocity = command.param2;
 	}
 
-	float new_velocity = (is_clockwise ? 1.f : -1.f) * new_abs_velocity;
+	float new_velocity = (new_is_clockwise ? 1.f : -1.f) * new_absolute_velocity;
 	_sanitizeParams(new_radius, new_velocity);
 	_orbit_radius = new_radius;
 	_orbit_velocity = new_velocity;
