@@ -19,19 +19,20 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Checkout ci-scripts
-        uses: actions/checkout@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
         with:
-          repository: tiiuae/fogsw-ci-scripts
-          path: fogsw-ci-scripts
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Run docker build
-      - name: Run fog-sw docker build
+      - name: Run px4-firmware docker build
         run: |
           set -eux
           mkdir bin
-          pushd fogsw-ci-scripts/px4/pixhawk
-          ./package.sh ../../../px4-firmware ../../../bin
+          pushd px4-firmware
+          ./build.sh ../bin/
           popd
 
       - name: Install jfrog CLI tool

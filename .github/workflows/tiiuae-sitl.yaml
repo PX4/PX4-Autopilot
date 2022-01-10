@@ -1,4 +1,4 @@
-name: tiiuea-sitl
+name: tii-px4-sitl
 
 on:
   push:
@@ -7,8 +7,13 @@ on:
     branches: [ master ]
 
 jobs:
-  sitl:
+  tii-px4-sitl:
     runs-on: ubuntu-latest
+    services:
+      registry:
+        image: registry:2
+        ports:
+          - 5000:5000
     steps:
 
       - name: Checkout px4-firmware
@@ -19,20 +24,51 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Checkout ci-scripts
-        uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
         with:
-          repository: tiiuae/fogsw-ci-scripts
-          path: fogsw-ci-scripts
+          driver-opts: network=host
 
       # Run docker build
       - name: Run fog-sw docker build
         run: |
           set -eux
           mkdir bin
-          pushd fogsw-ci-scripts/px4/sitl
-          ./build.sh ../../../px4-firmware ../../../bin
+          pushd px4-firmware
+          IMAGE_NAME=localhost:5000/tiiuae/px4-sitl-artifacts:latest ./build_sitl.sh ../bin/
           popd
+          docker push localhost:5000/tiiuae/px4-sitl-artifacts:latest
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/tiiuae/tii-px4-sitl
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=sha
+            type=raw,value=latest
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build tii-px4-sitl image and push
+        uses: docker/build-push-action@v2
+        with:
+          context: px4-firmware/
+          file: ./px4-firmware/packaging/Dockerfile.docker
+          pull: true
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            FROM_ARTIFACTS=localhost:5000/tiiuae/px4-sitl-artifacts:latest
 
       - name: Install jfrog CLI tool
         env:
