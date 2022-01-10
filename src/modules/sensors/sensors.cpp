@@ -340,26 +340,32 @@ int Sensors::parameters_update()
 	// ensure calibration slots are active for the number of sensors currently available
 	// this to done to eliminate differences in the active set of parameters before and after sensor calibration
 	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+
+		// sensor_accel
 		uORB::SubscriptionData<sensor_accel_s> sensor_accel_sub{ORB_ID(sensor_accel), i};
-		uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
-		uORB::SubscriptionData<sensor_mag_s> sensor_mag_sub{ORB_ID(sensor_mag), i};
 
 		if (sensor_accel_sub.get().device_id != 0) {
-			calibration::Accelerometer cal{sensor_accel_sub.get().device_id};
+			calibration::Accelerometer cal;
 			cal.set_calibration_index(i);
-			cal.ParametersUpdate();
+			cal.ParametersLoad();
 		}
+
+		// sensor_gyro
+		uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
 
 		if (sensor_gyro_sub.get().device_id != 0) {
-			calibration::Gyroscope cal{sensor_gyro_sub.get().device_id};
+			calibration::Gyroscope cal;
 			cal.set_calibration_index(i);
-			cal.ParametersUpdate();
+			cal.ParametersLoad();
 		}
 
+		// sensor_mag
+		uORB::SubscriptionData<sensor_mag_s> sensor_mag_sub{ORB_ID(sensor_mag), i};
+
 		if (sensor_mag_sub.get().device_id != 0) {
-			calibration::Magnetometer cal{sensor_mag_sub.get().device_id};
+			calibration::Magnetometer cal;
 			cal.set_calibration_index(i);
-			cal.ParametersUpdate();
+			cal.ParametersLoad();
 		}
 	}
 

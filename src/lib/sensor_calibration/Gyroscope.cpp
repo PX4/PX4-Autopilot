@@ -135,12 +135,14 @@ void Gyroscope::ParametersUpdate()
 		return;
 	}
 
-	if (_calibration_index < 0) {
-		_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
-	}
+	_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
 
-	if (_calibration_index >= 0) {
+	ParametersLoad();
+}
 
+bool Gyroscope::ParametersLoad()
+{
+	if (_calibration_index >= 0 && _calibration_index < MAX_SENSOR_COUNT) {
 		// CAL_GYROx_ROT
 		int32_t rotation_value = GetCalibrationParamInt32(SensorString(), "ROT", _calibration_index);
 
@@ -187,9 +189,10 @@ void Gyroscope::ParametersUpdate()
 		// CAL_GYROx_OFF{X,Y,Z}
 		set_offset(GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index));
 
-	} else {
-		Reset();
+		return true;
 	}
+
+	return false;
 }
 
 void Gyroscope::Reset()

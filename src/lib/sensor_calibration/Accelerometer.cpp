@@ -150,12 +150,14 @@ void Accelerometer::ParametersUpdate()
 		return;
 	}
 
-	if (_calibration_index < 0) {
-		_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
-	}
+	_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
 
-	if (_calibration_index >= 0) {
+	ParametersLoad();
+}
 
+bool Accelerometer::ParametersLoad()
+{
+	if (_calibration_index >= 0 && _calibration_index < MAX_SENSOR_COUNT) {
 		// CAL_ACCx_ROT
 		int32_t rotation_value = GetCalibrationParamInt32(SensorString(), "ROT", _calibration_index);
 
@@ -205,9 +207,10 @@ void Accelerometer::ParametersUpdate()
 		// CAL_ACCx_SCALE{X,Y,Z}
 		set_scale(GetCalibrationParamsVector3f(SensorString(), "SCALE", _calibration_index));
 
-	} else {
-		Reset();
+		return true;
 	}
+
+	return false;
 }
 
 void Accelerometer::Reset()
