@@ -34,8 +34,17 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <lib/conversion/rotation.h>
+#include <lib/drivers/device/Device.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
+
+#if defined(CONFIG_I2C)
+# include <px4_platform_common/i2c.h>
+#endif // CONFIG_I2C
+
+#if defined(CONFIG_SPI)
+# include <px4_platform_common/spi.h>
+#endif // CONFIG_SPI
 
 using math::radians;
 using matrix::Eulerf;
@@ -177,6 +186,53 @@ enum Rotation GetBoardRotation()
 Dcmf GetBoardRotationMatrix()
 {
 	return get_rot_matrix(GetBoardRotation());
+}
+
+bool DeviceExternal(uint32_t device_id)
+{
+	bool external = true;
+
+	// decode device id to determine if external
+	union device::Device::DeviceId id {};
+	id.devid = device_id;
+
+	const device::Device::DeviceBusType bus_type = id.devid_s.bus_type;
+
+	switch (bus_type) {
+	case device::Device::DeviceBusType_I2C:
+#if defined(CONFIG_I2C)
+		external = px4_i2c_bus_external(id.devid_s.bus);
+#endif // CONFIG_I2C
+		break;
+
+	case device::Device::DeviceBusType_SPI:
+#if defined(CONFIG_SPI)
+		external = px4_spi_bus_external(id.devid_s.bus);
+#endif // CONFIG_SPI
+		break;
+
+	case device::Device::DeviceBusType_UAVCAN:
+		external = true;
+		break;
+
+	case device::Device::DeviceBusType_SIMULATION:
+		external = false;
+		break;
+
+	case device::Device::DeviceBusType_SERIAL:
+		external = true;
+		break;
+
+	case device::Device::DeviceBusType_MAVLINK:
+		external = true;
+		break;
+
+	case device::Device::DeviceBusType_UNKNOWN:
+		external = true;
+		break;
+	}
+
+	return external;
 }
 
 } // namespace calibration

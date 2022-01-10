@@ -540,7 +540,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		uORB::SubscriptionData<sensor_mag_s> mag_sub{ORB_ID(sensor_mag), cur_mag};
 
 		if (mag_sub.advertised() && (mag_sub.get().device_id != 0) && (mag_sub.get().timestamp > 0)) {
-			worker_data.calibration[cur_mag].set_device_id(mag_sub.get().device_id, mag_sub.get().is_external);
+			worker_data.calibration[cur_mag].set_device_id(mag_sub.get().device_id);
 		}
 
 		// reset calibration index to match uORB numbering
@@ -1016,7 +1016,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 			if (mag_sub.advertised() && (mag.timestamp != 0) && (mag.device_id != 0)) {
 
-				calibration::Magnetometer cal{mag.device_id, mag.is_external};
+				calibration::Magnetometer cal{mag.device_id};
 
 				// force calibration index to uORB index
 				cal.set_calibration_index(cur_mag);

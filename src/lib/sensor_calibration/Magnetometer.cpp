@@ -48,40 +48,24 @@ Magnetometer::Magnetometer()
 	Reset();
 }
 
-Magnetometer::Magnetometer(uint32_t device_id, bool external)
+Magnetometer::Magnetometer(uint32_t device_id)
 {
-	Reset();
-	set_device_id(device_id, external);
+	set_device_id(device_id);
 }
 
-void Magnetometer::set_device_id(uint32_t device_id, bool external)
+void Magnetometer::set_device_id(uint32_t device_id)
 {
+	bool external = DeviceExternal(device_id);
+
 	if (_device_id != device_id || _external != external) {
-		set_external(external);
+
 		_device_id = device_id;
+		_external = external;
+
+		Reset();
 
 		ParametersUpdate();
 	}
-}
-
-void Magnetometer::set_external(bool external)
-{
-	// update priority default appropriately if not set
-	if (_calibration_index < 0 || _priority < 0) {
-		if ((_priority < 0) || (_priority > 100)) {
-			_priority = external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
-
-		} else if (!_external && external && (_priority == DEFAULT_PRIORITY)) {
-			// internal -> external
-			_priority = DEFAULT_EXTERNAL_PRIORITY;
-
-		} else if (_external && !external && (_priority == DEFAULT_EXTERNAL_PRIORITY)) {
-			// external -> internal
-			_priority = DEFAULT_PRIORITY;
-		}
-	}
-
-	_external = external;
 }
 
 bool Magnetometer::set_offset(const Vector3f &offset)
@@ -147,7 +131,11 @@ void Magnetometer::set_rotation(Rotation rotation)
 
 void Magnetometer::ParametersUpdate()
 {
-	if (_device_id != 0) {
+	if (_device_id == 0) {
+		return;
+	}
+
+	if (_calibration_index < 0) {
 		_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
 	}
 
@@ -158,22 +146,13 @@ void Magnetometer::ParametersUpdate()
 
 		if (_external) {
 			if ((rotation_value >= ROTATION_MAX) || (rotation_value < 0)) {
-				PX4_WARN("External %s %" PRIu32 " (%" PRId8 ") invalid rotation %" PRId32 ", resetting to rotation none",
-					 SensorString(), _device_id, _calibration_index, rotation_value);
+				// invalid rotation, resetting
 				rotation_value = ROTATION_NONE;
-				SetCalibrationParam(SensorString(), "ROT", _calibration_index, rotation_value);
 			}
 
 			set_rotation(static_cast<Rotation>(rotation_value));
 
 		} else {
-			// internal mag, CAL_MAGx_ROT -1
-			if (rotation_value != -1) {
-				PX4_ERR("Internal %s %" PRIu32 " (%" PRId8 ") invalid rotation %" PRId32 " resetting",
-					SensorString(), _device_id, _calibration_index, rotation_value);
-				SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
-			}
-
 			// internal sensors follow board rotation
 			set_rotation(GetBoardRotation());
 		}
@@ -183,16 +162,16 @@ void Magnetometer::ParametersUpdate()
 
 		if ((_priority < 0) || (_priority > 100)) {
 			// reset to default, -1 is the uninitialized parameter value
-			int32_t new_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
+			static constexpr int32_t CAL_PRIO_UNINITIALIZED = -1;
 
-			if (_priority != -1) {
-				PX4_ERR("%s %" PRIu32 " (%" PRId8 ") invalid priority %" PRId32 ", resetting to %" PRId32, SensorString(), _device_id,
-					_calibration_index, _priority, new_priority);
+			if (_priority != CAL_PRIO_UNINITIALIZED) {
+				PX4_ERR("%s %" PRIu32 " (%" PRId8 ") invalid priority %" PRId32 ", resetting", SensorString(), _device_id,
+					_calibration_index, _priority);
 
-				SetCalibrationParam(SensorString(), "PRIO", _calibration_index, new_priority);
+				SetCalibrationParam(SensorString(), "PRIO", _calibration_index, CAL_PRIO_UNINITIALIZED);
 			}
 
-			_priority = new_priority;
+			_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 		}
 
 		// CAL_MAGx_TEMP
@@ -268,7 +247,7 @@ bool Magnetometer::ParametersSave()
 			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, (int32_t)_rotation_enum);
 
 		} else {
-			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1);
+			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1); // internal
 		}
 
 		if (PX4_ISFINITE(_temperature)) {

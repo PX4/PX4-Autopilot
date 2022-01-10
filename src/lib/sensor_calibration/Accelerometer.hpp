@@ -48,20 +48,19 @@ public:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
-	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 25;
+	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
 
 	static constexpr const char *SensorString() { return "ACC"; }
 
 	Accelerometer();
-	explicit Accelerometer(uint32_t device_id, bool external = false);
+	explicit Accelerometer(uint32_t device_id);
 
 	~Accelerometer() = default;
 
 	void PrintStatus();
 
 	void set_calibration_index(uint8_t calibration_index) { _calibration_index = calibration_index; }
-	void set_device_id(uint32_t device_id, bool external = false);
-	void set_external(bool external = true);
+	void set_device_id(uint32_t device_id);
 	bool set_offset(const matrix::Vector3f &offset);
 	bool set_scale(const matrix::Vector3f &scale);
 	void set_rotation(Rotation rotation);
