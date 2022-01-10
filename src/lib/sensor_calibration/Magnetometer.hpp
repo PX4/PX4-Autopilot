@@ -93,6 +93,7 @@ public:
 		return _scale.I() * _rotation.I() * bias + _offset;
 	}
 
+	bool ParametersLoad();
 	bool ParametersSave();
 	void ParametersUpdate();
 

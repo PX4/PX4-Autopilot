@@ -95,6 +95,7 @@ public:
 		return (_rotation.I() * bias) + _thermal_offset + _offset;
 	}
 
+	bool ParametersLoad();
 	bool ParametersSave();
 	void ParametersUpdate();
 
