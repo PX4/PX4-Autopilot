@@ -74,10 +74,34 @@ ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 {
 	// Same scale on roll and pitch
 	if (_normalize_rpy) {
-		const float roll_norm_sq = _mix.col(0).norm_squared();
-		const float pitch_norm_sq = _mix.col(1).norm_squared();
 
-		_control_allocation_scale(0) = sqrtf(fmaxf(roll_norm_sq, pitch_norm_sq) / (_num_actuators / 2.f));
+		int num_non_zero_roll_torque = 0;
+		int num_non_zero_pitch_torque = 0;
+
+		for (int i = 0; i < _num_actuators; i++) {
+
+			if (fabsf(_mix(i, 0)) > 1e-3f) {
+				++num_non_zero_roll_torque;
+			}
+
+			if (fabsf(_mix(i, 1)) > 1e-3f) {
+				++num_non_zero_pitch_torque;
+			}
+		}
+
+		float roll_norm_scale = 1.f;
+
+		if (num_non_zero_roll_torque > 0) {
+			roll_norm_scale = sqrtf(_mix.col(0).norm_squared() / (num_non_zero_roll_torque / 2.f));
+		}
+
+		float pitch_norm_scale = 1.f;
+
+		if (num_non_zero_pitch_torque > 0) {
+			pitch_norm_scale = sqrtf(_mix.col(1).norm_squared() / (num_non_zero_pitch_torque / 2.f));
+		}
+
+		_control_allocation_scale(0) = fmaxf(roll_norm_scale, pitch_norm_scale);
 		_control_allocation_scale(1) = _control_allocation_scale(0);
 
 		// Scale yaw separately
