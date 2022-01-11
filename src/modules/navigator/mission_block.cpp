@@ -114,7 +114,8 @@ MissionBlock::is_mission_item_reached()
 
 		if (int(_mission_item.params[0]) == 3) {
 			// transition to RW requested, only accept waypoint if vehicle state has changed accordingly
-			return _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+			return !_navigator->get_vstatus()->in_transition_mode
+			       && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 		} else if (int(_mission_item.params[0]) == 4) {
 			// transition to FW requested, only accept waypoint if vehicle state has changed accordingly
