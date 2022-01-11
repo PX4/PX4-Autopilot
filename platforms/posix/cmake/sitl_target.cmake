@@ -9,7 +9,6 @@ add_custom_command(OUTPUT ${PX4_BINARY_DIR}/logs
 )
 add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
 add_dependencies(px4 logs_symlink)
-
 add_custom_target(run_config
 	COMMAND Tools/sitl_run.sh $<TARGET_FILE:px4> ${config_sitl_debugger} ${config_sitl_viewer} ${config_sitl_model} ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
 	WORKING_DIRECTORY ${SITL_WORKING_DIR}
@@ -131,6 +130,7 @@ set(viewers
 	jmavsim
 	gazebo
 	ignition
+	sih_sim
 )
 
 set(debuggers

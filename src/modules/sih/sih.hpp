@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -79,6 +79,10 @@
 #include <uORB/topics/vehicle_global_position.h>    // to publish groundtruth
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/airspeed.h>
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+#include <sys/time.h>
+#endif
 
 using namespace time_literals;
 
@@ -178,14 +182,24 @@ private:
 	void publish_sih();
 	void generate_fw_aerodynamics();
 	void generate_ts_aerodynamics();
-	void inner_loop();
+	void sensor_step();
 
-	perf_counter_t  _loop_perf;
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	void lockstep_loop();
+	int _lockstep_component{-1};
+	uint64_t _current_simulation_time_us{0};
+	uint64_t _last_iteration_wall_time_us{0};
+#endif
 
+	void realtime_loop();
 	px4_sem_t       _data_semaphore;
 	hrt_call 	_timer_call;
 
+	perf_counter_t  _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t  _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
+
 	hrt_abstime _last_run{0};
+	hrt_abstime _last_actuator_output_time{0};
 	hrt_abstime _baro_time{0};
 	hrt_abstime _gps_time{0};
 	hrt_abstime _airspeed_time{0};
@@ -285,6 +299,7 @@ private:
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,
+		(ParamInt<px4::params::IMU_INTEG_RATE>) _imu_integration_rate,
 		(ParamFloat<px4::params::SIH_MASS>) _sih_mass,
 		(ParamFloat<px4::params::SIH_IXX>) _sih_ixx,
 		(ParamFloat<px4::params::SIH_IYY>) _sih_iyy,

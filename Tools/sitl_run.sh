@@ -214,6 +214,8 @@ elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
 	fi
 	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" ${model} -s "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" 2> /dev/null &
 	JSBSIM_PID=$!
+elif [ "$program" == "sih_sim" ] && [ ! -n "$no_sim" ]; then
+	export SIM_MODE="sih_sim"
 fi
 
 pushd "$rootfs" >/dev/null
