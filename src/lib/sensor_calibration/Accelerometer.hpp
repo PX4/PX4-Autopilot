@@ -59,7 +59,7 @@ public:
 
 	void PrintStatus();
 
-	void set_calibration_index(uint8_t calibration_index) { _calibration_index = calibration_index; }
+	bool set_calibration_index(int calibration_index);
 	void set_device_id(uint32_t device_id);
 	bool set_offset(const matrix::Vector3f &offset);
 	bool set_scale(const matrix::Vector3f &scale);
@@ -92,7 +92,7 @@ public:
 	}
 
 	bool ParametersLoad();
-	bool ParametersSave();
+	bool ParametersSave(int desired_calibration_index = -1, bool force = false);
 	void ParametersUpdate();
 
 	void Reset();

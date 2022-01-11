@@ -350,9 +350,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		} else {
 			calibrations[cur_accel].Reset();
 		}
-
-		// reset calibration index to match uORB numbering
-		calibrations[cur_accel].set_calibration_index(cur_accel);
 	}
 
 	if (active_sensors == 0) {
@@ -435,7 +432,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				calibrations[i].PrintStatus();
 
 
-				if (calibrations[i].ParametersSave()) {
+				if (calibrations[i].ParametersSave(i, true)) {
 					param_save = true;
 					failed = false;
 
@@ -587,9 +584,6 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 			calibration::Accelerometer calibration{arp.device_id};
 
-			// reset cal index to uORB
-			calibration.set_calibration_index(accel_index);
-
 			if (!calibrated || (offset.norm() > CONSTANTS_ONE_G)
 			    || !PX4_ISFINITE(offset(0))
 			    || !PX4_ISFINITE(offset(1))
@@ -601,7 +595,7 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 				calibration.set_offset(offset);
 				calibration.set_temperature(temperature_avg);
 
-				if (calibration.ParametersSave()) {
+				if (calibration.ParametersSave(accel_index)) {
 					calibration.PrintStatus();
 					param_save = true;
 					failed = false;

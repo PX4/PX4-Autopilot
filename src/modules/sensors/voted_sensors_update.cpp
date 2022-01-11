@@ -90,7 +90,7 @@ void VotedSensorsUpdate::parametersUpdate()
 		if (imu.get().timestamp > 0 && imu.get().accel_device_id > 0 && imu.get().gyro_device_id > 0) {
 
 			// find corresponding configured accel priority
-			int8_t accel_cal_index = calibration::FindCalibrationIndex("ACC", imu.get().accel_device_id);
+			int8_t accel_cal_index = calibration::FindCurrentCalibrationIndex("ACC", imu.get().accel_device_id);
 
 			if (accel_cal_index >= 0) {
 				// found matching CAL_ACCx_PRIO
@@ -113,7 +113,7 @@ void VotedSensorsUpdate::parametersUpdate()
 			}
 
 			// find corresponding configured gyro priority
-			int8_t gyro_cal_index = calibration::FindCalibrationIndex("GYRO", imu.get().gyro_device_id);
+			int8_t gyro_cal_index = calibration::FindCurrentCalibrationIndex("GYRO", imu.get().gyro_device_id);
 
 			if (gyro_cal_index >= 0) {
 				// found matching CAL_GYROx_PRIO
