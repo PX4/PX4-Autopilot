@@ -129,9 +129,9 @@ PARAM_DEFINE_FLOAT(FW_THR_ALT_SCL, 0.0f);
 PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
 
 /**
- * Negative pitch limit
+ * Minimum pitch angle
  *
- * The minimum negative pitch the controller will output.
+ * The minimum pitch angle setpoint for autonomous modes including altitude and position control.
  *
  * @unit deg
  * @min -60.0
@@ -143,9 +143,9 @@ PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
 PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
 
 /**
- * Positive pitch limit
+ * Maximum pitch angle
  *
- * The maximum positive pitch the controller will output.
+ * The maximum pitch angle setpoint for autonomous modes including altitude and position control.
  *
  * @unit deg
  * @min 0.0
@@ -157,9 +157,9 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
 PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
 
 /**
- * Controller roll limit
+ * Maximum roll angle
  *
- * The maximum roll the controller will output.
+ * The maximum roll angle setpoint for autonomous modes including altitude and position control.
  *
  * @unit deg
  * @min 35.0

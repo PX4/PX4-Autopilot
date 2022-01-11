@@ -430,9 +430,9 @@ PARAM_DEFINE_FLOAT(FW_WR_FF, 0.2f);
 PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
 
 /**
- * Max manual roll
+ * Maximum manual roll angle
  *
- * Max roll for manual control in attitude stabilized mode
+ * Maximum manual roll angle setpoint in manual attitude-only stabilized mode
  *
  * @unit deg
  * @min 0.0
@@ -444,9 +444,9 @@ PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
 PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
 
 /**
- * Max manual pitch
+ * Maximum manual pitch angle
  *
- * Max pitch for manual control in attitude stabilized mode
+ * Maximum manual pitch angle setpoint (positive & negative) in manual attitude-only stabilized mode
  *
  * @unit deg
  * @min 0.0
