@@ -143,10 +143,16 @@ def optical_flow_observation(P,state,R_to_body,vx,vy,vz):
     obs_var = symbols("R_LOS", real=True) # optical flow line of sight rate measurement noise variance
 
     # Define rotation matrix from body to sensor frame
-    Tbs = Matrix(3,3,create_Tbs_matrix)
+    Tsb = Matrix(3,3,create_Tbs_matrix)
+
+    # define rotation from nav to sensor frame
+    Tsn = Tsb * R_to_body
+
+    hagl = state[24] - state[9]
+    range = hagl / Tsn[2,2]
 
     # Calculate earth relative velocity in a non-rotating sensor frame
-    relVelSensor = Tbs * R_to_body * Matrix([vx,vy,vz])
+    relVelSensor = Tsn * Matrix([vx,vy,vz])
 
     # Divide by range to get predicted angular LOS rates relative to X and Y
     # axes. Note these are rates in a non-rotating sensor frame
