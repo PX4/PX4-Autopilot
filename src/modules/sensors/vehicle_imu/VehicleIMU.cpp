@@ -260,13 +260,13 @@ void VehicleIMU::Run()
 	}
 
 	if (_param_sens_imu_autocal.get() && !parameters_updated) {
-		if (_armed || !_accel_calibration.calibrated() || !_gyro_calibration.calibrated()) {
-			if (now_us > _in_flight_calibration_check_timestamp_last + 1_s) {
-				SensorCalibrationUpdate();
-				_in_flight_calibration_check_timestamp_last = now_us;
-			}
+		if ((_armed || !_accel_calibration.calibrated() || !_gyro_calibration.calibrated())
+		    && (now_us > _in_flight_calibration_check_timestamp_last + 1_s)) {
 
-		} else {
+			SensorCalibrationUpdate();
+			_in_flight_calibration_check_timestamp_last = now_us;
+
+		} else if (!_armed) {
 			SensorCalibrationSaveAccel();
 			SensorCalibrationSaveGyro();
 		}
@@ -785,7 +785,7 @@ void VehicleIMU::SensorCalibrationSaveAccel()
 			}
 		}
 
-		if (initialised && (cal_orig - offset_estimate).longerThan(0.05f)) {
+		if (initialised && ((cal_orig - offset_estimate).longerThan(0.05f) || !_accel_calibration.calibrated())) {
 			if (_accel_calibration.set_offset(offset_estimate)) {
 				PX4_INFO("%s %d (%" PRIu32 ") offset committed: [%.3f %.3f %.3f]->[%.3f %.3f %.3f])",
 					 _accel_calibration.SensorString(), _instance, _accel_calibration.device_id(),
@@ -873,7 +873,7 @@ void VehicleIMU::SensorCalibrationSaveGyro()
 			}
 		}
 
-		if (initialised && (cal_orig - offset_estimate).longerThan(0.01f)) {
+		if (initialised && ((cal_orig - offset_estimate).longerThan(0.01f) || !_gyro_calibration.calibrated())) {
 			if (_gyro_calibration.set_offset(offset_estimate)) {
 				PX4_INFO("%s %d (%" PRIu32 ") offset committed: [%.3f %.3f %.3f]->[%.3f %.3f %.3f])",
 					 _gyro_calibration.SensorString(), _instance, _gyro_calibration.device_id(),
