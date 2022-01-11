@@ -35,6 +35,7 @@
 
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
+#include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 
 #include <float.h>
@@ -792,46 +793,8 @@ void VehicleIMU::SensorCalibrationSaveAccel()
 					 (double)cal_orig(0), (double)cal_orig(1), (double)cal_orig(2),
 					 (double)offset_estimate(0), (double)offset_estimate(1), (double)offset_estimate(2));
 
-				// find appropriate calibration slot if not already set
-				if (_accel_calibration.calibration_index() < 0) {
-					uint32_t cal_device_ids[calibration::Accelerometer::MAX_SENSOR_COUNT] {};
-					bool cal_slot_match = false;
-
-					for (unsigned cal_index = 0; cal_index < calibration::Accelerometer::MAX_SENSOR_COUNT; cal_index++) {
-						char str[20] {};
-						sprintf(str, "CAL_%s%u_ID", "ACC", cal_index);
-						int32_t device_id_val = 0;
-
-						if (param_get(param_find_no_notification(str), &device_id_val) == PX4_OK) {
-							cal_device_ids[cal_index] = device_id_val;
-
-							if (cal_device_ids[cal_index] == _accel_calibration.device_id()) {
-								cal_slot_match = true;
-								_accel_calibration.set_calibration_index(cal_index);
-								break;
-							}
-						}
-					}
-
-					if (!cal_slot_match) {
-						// prefer slot that matches sensor instance
-						int accel_index = _sensor_accel_sub.get_instance();
-
-						if (cal_device_ids[accel_index] == 0) {
-							_accel_calibration.set_calibration_index(accel_index);
-
-						} else {
-							for (int cal_index = 0; cal_index < calibration::Accelerometer::MAX_SENSOR_COUNT; cal_index++) {
-								if (cal_device_ids[accel_index] == 0) {
-									_accel_calibration.set_calibration_index(cal_index);
-									break;
-								}
-							}
-						}
-					}
-				}
-
-				if (_accel_calibration.ParametersSave()) {
+				// save parameters with preferred calibration slot to current sensor index
+				if (_accel_calibration.ParametersSave(_sensor_accel_sub.get_instance())) {
 					param_notify_changes();
 				}
 			}
@@ -880,46 +843,8 @@ void VehicleIMU::SensorCalibrationSaveGyro()
 					 (double)cal_orig(0), (double)cal_orig(1), (double)cal_orig(2),
 					 (double)offset_estimate(0), (double)offset_estimate(1), (double)offset_estimate(2));
 
-				// find appropriate calibration slot if not already set
-				if (_gyro_calibration.calibration_index() < 0) {
-					uint32_t cal_device_ids[calibration::Gyroscope::MAX_SENSOR_COUNT] {};
-					bool cal_slot_match = false;
-
-					for (unsigned cal_index = 0; cal_index < calibration::Gyroscope::MAX_SENSOR_COUNT; cal_index++) {
-						char str[20] {};
-						sprintf(str, "CAL_%s%u_ID", "GYRO", cal_index);
-						int32_t device_id_val = 0;
-
-						if (param_get(param_find_no_notification(str), &device_id_val) == PX4_OK) {
-							cal_device_ids[cal_index] = device_id_val;
-
-							if (cal_device_ids[cal_index] == _gyro_calibration.device_id()) {
-								cal_slot_match = true;
-								_gyro_calibration.set_calibration_index(cal_index);
-								break;
-							}
-						}
-					}
-
-					if (!cal_slot_match) {
-						// prefer slot that matches sensor instance
-						int gyro_index = _sensor_gyro_sub.get_instance();
-
-						if (cal_device_ids[gyro_index] == 0) {
-							_gyro_calibration.set_calibration_index(gyro_index);
-
-						} else {
-							for (int cal_index = 0; cal_index < calibration::Gyroscope::MAX_SENSOR_COUNT; cal_index++) {
-								if (cal_device_ids[gyro_index] == 0) {
-									_gyro_calibration.set_calibration_index(cal_index);
-									break;
-								}
-							}
-						}
-					}
-				}
-
-				if (_gyro_calibration.ParametersSave()) {
+				// save parameters with preferred calibration slot to current sensor index
+				if (_gyro_calibration.ParametersSave(_sensor_gyro_sub.get_instance())) {
 					param_notify_changes();
 				}
 			}

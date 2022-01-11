@@ -69,7 +69,7 @@ bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_s
 			calibration_valid = true;
 
 		} else {
-			calibration_valid = (calibration::FindCalibrationIndex("ACC", device_id) >= 0);
+			calibration_valid = (calibration::FindCurrentCalibrationIndex("ACC", device_id) >= 0);
 		}
 
 		if (!calibration_valid) {

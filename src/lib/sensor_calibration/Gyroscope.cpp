@@ -129,15 +129,31 @@ void Gyroscope::set_rotation(Rotation rotation)
 	_rotation = Dcmf(GetSensorLevelAdjustment()) * get_rot_matrix(rotation);
 }
 
+bool Gyroscope::set_calibration_index(int calibration_index)
+{
+	if ((calibration_index >= 0) && (calibration_index < MAX_SENSOR_COUNT)) {
+		_calibration_index = calibration_index;
+		return true;
+	}
+
+	return false;
+}
+
 void Gyroscope::ParametersUpdate()
 {
 	if (_device_id == 0) {
 		return;
 	}
 
-	_calibration_index = FindCalibrationIndex(SensorString(), _device_id);
+	_calibration_index = FindCurrentCalibrationIndex(SensorString(), _device_id);
 
-	ParametersLoad();
+	if (_calibration_index == -1) {
+		// no saved calibration available
+		Reset();
+
+	} else {
+		ParametersLoad();
+	}
 }
 
 bool Gyroscope::ParametersLoad()
@@ -217,9 +233,25 @@ void Gyroscope::Reset()
 	_calibration_count = 0;
 }
 
-bool Gyroscope::ParametersSave()
+bool Gyroscope::ParametersSave(int desired_calibration_index, bool force)
 {
-	if (_calibration_index >= 0) {
+	if (force && desired_calibration_index >= 0 && desired_calibration_index < MAX_SENSOR_COUNT) {
+		_calibration_index = desired_calibration_index;
+
+	} else if (!force || (_calibration_index < 0)
+		   || (desired_calibration_index != -1 && desired_calibration_index != _calibration_index)) {
+
+		// ensure we have a valid calibration slot (matching existing or first available slot)
+		int8_t calibration_index_prev = _calibration_index;
+		_calibration_index = FindAvailableCalibrationIndex(SensorString(), _device_id, desired_calibration_index);
+
+		if (calibration_index_prev >= 0 && (calibration_index_prev != _calibration_index)) {
+			PX4_WARN("%s %" PRIu32 " calibration index changed %" PRIi8 " -> %" PRIi8, SensorString(), _device_id,
+				 calibration_index_prev, _calibration_index);
+		}
+	}
+
+	if (_calibration_index >= 0 && _calibration_index < MAX_SENSOR_COUNT) {
 		// save calibration
 		bool success = true;
 		success &= SetCalibrationParam(SensorString(), "ID", _calibration_index, _device_id);
