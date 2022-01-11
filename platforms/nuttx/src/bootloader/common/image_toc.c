@@ -45,7 +45,9 @@
 /* Helper macros to define flash start and end addresses, based on info from
  * hw_config.h
  */
+#ifndef FLASH_START_ADDRESS
 #define FLASH_START_ADDRESS (APP_LOAD_ADDRESS & (~(BOARD_FLASH_SIZE - 1)))
+#endif
 #define FLASH_END_ADDRESS (FLASH_START_ADDRESS + BOARD_FLASH_SIZE)
 
 bool find_toc(const image_toc_entry_t **toc_entries, uint8_t *len)
