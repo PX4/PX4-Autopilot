@@ -186,53 +186,18 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 					if (_param_sens_mag_autocal.get() && !_armed && mag_bias_est.stable[mag_index]
 					    && (_calibration[mag_index].device_id() != 0) && !_calibration[mag_index].calibrated()) {
 
-						if (_calibration[mag_index].calibration_index() < 0) {
-							// find available slots
-							uint32_t cal_device_ids[MAX_SENSOR_COUNT] {};
-							bool cal_slot_match = false;
+						// set initial mag calibration
+						const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
 
-							for (unsigned cal_index = 0; cal_index < MAX_SENSOR_COUNT; cal_index++) {
-								char str[20] {};
-								sprintf(str, "CAL_%s%u_ID", "MAG", cal_index);
-								int32_t device_id_val = 0;
+						if (_calibration[mag_index].set_offset(offset)) {
+							_calibration[mag_index].set_temperature(_last_data[mag_index].temperature);
 
-								if (param_get(param_find_no_notification(str), &device_id_val) == PX4_OK) {
-									cal_device_ids[cal_index] = device_id_val;
+							// save parameters with preferred calibration slot to current sensor index
+							_calibration[mag_index].ParametersSave(mag_index);
 
-									if (cal_device_ids[cal_index] == _calibration[mag_index].device_id()) {
-										cal_slot_match = true;
-										_calibration[mag_index].set_calibration_index(cal_index);
-									}
-								}
-							}
+							_calibration_estimator_bias[mag_index].zero();
 
-							if (!cal_slot_match) {
-								// prefer slot that matches sensor instance
-								if (cal_device_ids[mag_index] == 0) {
-									_calibration[mag_index].set_calibration_index(mag_index);
-
-								} else {
-									for (int cal_index = 0; cal_index < MAX_SENSOR_COUNT; cal_index++) {
-										if (cal_device_ids[mag_index] == 0) {
-											_calibration[mag_index].set_calibration_index(cal_index);
-											break;
-										}
-									}
-								}
-							}
-						}
-
-						// set initial mag calibration if calibration index is set successfully
-						if (_calibration[mag_index].calibration_index() >= 0) {
-							const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
-
-							if (_calibration[mag_index].set_offset(offset)) {
-								_calibration[mag_index].set_temperature(_last_data[mag_index].temperature);
-								_calibration[mag_index].ParametersSave();
-								_calibration_estimator_bias[mag_index].zero();
-
-								parameters_notify = true;
-							}
+							parameters_notify = true;
 						}
 					}
 				}

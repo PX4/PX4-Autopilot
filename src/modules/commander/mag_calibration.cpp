@@ -914,11 +914,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 				current_cal.set_temperature(worker_data.temperature[cur_mag]);
 
-				current_cal.set_calibration_index(cur_mag);
-
 				current_cal.PrintStatus();
 
-				if (current_cal.ParametersSave()) {
+				if (current_cal.ParametersSave(cur_mag, true)) {
 					param_save = true;
 					failed = false;
 
@@ -1018,16 +1016,13 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 				calibration::Magnetometer cal{mag.device_id};
 
-				// force calibration index to uORB index
-				cal.set_calibration_index(cur_mag);
-
 				// use any existing scale and store the offset to the expected earth field
 				const Vector3f offset = Vector3f{mag.x, mag.y, mag.z} - (cal.scale().I() * cal.rotation().transpose() * expected_field);
 				cal.set_offset(offset);
 				cal.set_temperature(mag.temperature);
 
 				// save new calibration
-				if (cal.ParametersSave()) {
+				if (cal.ParametersSave(cur_mag)) {
 					cal.PrintStatus();
 					param_save = true;
 					failed = false;
