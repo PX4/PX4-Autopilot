@@ -432,7 +432,7 @@ PARAM_DEFINE_FLOAT(FW_PSP_OFF, 0.0f);
 /**
  * Maximum manual roll angle
  *
- * Maximum manual roll angle setpoint in manual attitude-only stabilized mode
+ * Maximum manual roll angle setpoint (positive & negative) in manual attitude-only stabilized mode
  *
  * @unit deg
  * @min 0.0
