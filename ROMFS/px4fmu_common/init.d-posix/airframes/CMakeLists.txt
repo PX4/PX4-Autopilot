@@ -39,6 +39,7 @@ px4_add_romfs_files(
 	10030_px4vision
 	10040_quadx
 	10041_airplane
+	10042_xvert
 	1010_iris_opt_flow
 	1010_iris_opt_flow.post
 	1011_iris_irlock

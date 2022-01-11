@@ -176,6 +176,7 @@ set(models
 	typhoon_h480_ctrlalloc
 	uuv_bluerov2_heavy
 	uuv_hippocampus
+	xvert
 )
 
 set(worlds

@@ -120,8 +120,11 @@ if [ "$program" == "sih" ] && [ ! -n "$no_sim" ] && [[ ! -n "$HEADLESS" ]]; then
 	elif [ "$model" == "quadx" ]; then
 		"$src_path"/Tools/jmavsim_run.sh -r 250 -o &
 		SIM_PID=$!
+	elif [ "$model" == "xvert" ]; then
+		"$src_path"/Tools/jmavsim_run.sh -r 250 -ts &
+		SIM_PID=$!
 	else
-		echo "Model ${model} not compatible with sih. sih supports [quadx,airplane]."
+		echo "Model ${model} not compatible with sih. sih supports [quadx,airplane,xvert]."
 		exit 1
 	fi
 
