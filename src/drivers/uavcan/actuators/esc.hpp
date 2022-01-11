@@ -65,7 +65,7 @@ public:
 
 
 	UavcanEscController(uavcan::INode &node);
-	~UavcanEscController();
+	~UavcanEscController() = default;
 
 	int init();
 
@@ -85,16 +85,10 @@ private:
 	void esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg);
 
 	/**
-	 * ESC status will be published to ORB from this callback (fixed rate).
-	 */
-	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
-
-	/**
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
 	 */
 	uint8_t check_escs_status();
 
-	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
 	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 5;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
@@ -116,7 +110,6 @@ private:
 	uavcan::INode								&_node;
 	uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
 	uavcan::Subscriber<uavcan::equipment::esc::Status, StatusCbBinder>	_uavcan_sub_status;
-	uavcan::TimerEventForwarder<TimerCbBinder>				_orb_timer;
 
 	/*
 	 * ESC states
