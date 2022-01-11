@@ -45,9 +45,9 @@ parameters:
         # Motor parameters
         CA_R_REV:
             description:
-                short: Reversible motors
+                short: Bidirectional/Reversible motors
                 long: |
-                  Configure motors to be reversible. Note that the output driver needs to support this as well.
+                  Configure motors to be bidirectional/reversible. Note that the output driver needs to support this as well.
             type: bitmask
             bit:
                 0: Motor 1
@@ -394,7 +394,7 @@ mixer:
                 default_is_nan: true
             per_item_parameters:
               - name: 'CA_R_REV'
-                label: 'Reversible'
+                label: 'Bidirectional'
                 show_as: 'bitset'
                 index_offset: 0
                 advanced: true
