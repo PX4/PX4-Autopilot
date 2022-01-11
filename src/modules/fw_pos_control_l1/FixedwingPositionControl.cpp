@@ -701,7 +701,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 
 			/* reset setpoints from other modes (auto) otherwise we won't
 			 * level out without new manual input */
-			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_r_lim.get());
 			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 		}
 
@@ -1774,7 +1774,7 @@ FixedwingPositionControl::control_manual_altitude(const hrt_abstime &now, const 
 				   false,
 				   height_rate_sp);
 
-	_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+	_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_r_lim.get());
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	/* Copy thrust and pitch values from tecs */
@@ -1892,7 +1892,7 @@ FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const 
 		_yaw_lock_engaged = false;
 
 		// do slew rate limiting on roll if enabled
-		float roll_sp_new = _manual_control_setpoint.y * radians(_param_fw_man_r_max.get());
+		float roll_sp_new = _manual_control_setpoint.y * radians(_param_fw_r_lim.get());
 		const float roll_rate_slew_rad = radians(_param_fw_l1_r_slew_max.get());
 
 		if (dt > 0.f && roll_rate_slew_rad > 0.f) {
@@ -2118,10 +2118,10 @@ FixedwingPositionControl::Run()
 		if (_control_mode_current != FW_POSCTRL_MODE_OTHER) {
 
 			if (_control_mode.flag_control_manual_enabled) {
-				_att_sp.roll_body = constrain(_att_sp.roll_body, -radians(_param_fw_man_r_max.get()),
-							      radians(_param_fw_man_r_max.get()));
-				_att_sp.pitch_body = constrain(_att_sp.pitch_body, -radians(_param_fw_man_p_max.get()),
-							       radians(_param_fw_man_p_max.get()));
+				_att_sp.roll_body = constrain(_att_sp.roll_body, -radians(_param_fw_r_lim.get()),
+							      radians(_param_fw_r_lim.get()));
+				_att_sp.pitch_body = constrain(_att_sp.pitch_body, radians(_param_fw_p_lim_min.get()),
+							       radians(_param_fw_p_lim_max.get()));
 			}
 
 			if (_control_mode.flag_control_position_enabled ||
