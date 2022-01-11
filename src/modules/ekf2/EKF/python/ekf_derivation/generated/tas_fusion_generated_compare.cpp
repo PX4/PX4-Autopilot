@@ -4,10 +4,10 @@
 #include "../../../../../matrix/matrix/math.hpp"
 #include "util.h"
 
-typedef matrix::Vector<float, 24> Vector24f;
-typedef matrix::SquareMatrix<float, 24> SquareMatrix24f;
+typedef matrix::Vector<float, 24> Vector25f;
+typedef matrix::SquareMatrix<float, 24> SquareMatrix25f;
 template<int ... Idxs>
-using SparseVector24f = matrix::SparseVectorf<24, Idxs...>;
+using SparseVector25f = matrix::SparseVectorf<24, Idxs...>;
 
 int main()
 {
@@ -15,13 +15,13 @@ int main()
 
     float airspeed_innov_var;
 
-    Vector24f Kfusion; // Kalman gain vector
+    Vector25f Kfusion; // Kalman gain vector
 
-    Vector24f Hfusion_sympy;
-    Vector24f Kfusion_sympy;
+    Vector25f Hfusion_sympy;
+    Vector25f Kfusion_sympy;
 
-    Vector24f Hfusion_matlab;
-    Vector24f Kfusion_matlab;
+    Vector25f Hfusion_matlab;
+    Vector25f Kfusion_matlab;
 
     const float R_TAS = sq(1.5f);
 
@@ -37,7 +37,7 @@ int main()
     const float vwe = 3.0f;
 
     // create a symmetrical positive dfinite matrix with off diagonals between -1 and 1 and diagonals between 0 and 1
-    SquareMatrix24f P;
+    SquareMatrix25f P;
     for (int col=0; col<=23; col++) {
         for (int row=0; row<=col; row++) {
             if (row == col) {
@@ -77,7 +77,7 @@ int main()
         const float HK16 = HK3/(-HK10*HK14 + HK10*HK9 + HK12*HK13 - HK13*HK15 + HK6*HK7*vd + R_TAS);
 
         // Observation Jacobians
-        SparseVector24f<4,5,6,22,23> Hfusion;
+        SparseVector25f<4,5,6,22,23> Hfusion;
         Hfusion.at<4>() = HK4;
         Hfusion.at<5>() = HK5;
         Hfusion.at<6>() = HK3*vd;
@@ -121,7 +121,7 @@ int main()
         SH_TAS[2] = (SH_TAS[0]*(2.0f*vn - 2.0f*vwn))*0.5f;
 
         // Observation Jacobian
-        Vector24f H_TAS = {};
+        Vector25f H_TAS = {};
         H_TAS(4) = SH_TAS[2];
         H_TAS(5) = SH_TAS[1];
         H_TAS(6) = vd*SH_TAS[0];

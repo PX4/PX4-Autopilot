@@ -3,8 +3,8 @@
 #include <cstdlib>
 #include "../../../../../matrix/matrix/math.hpp"
 
-typedef matrix::Vector<float, 24> Vector24f;
-typedef matrix::SquareMatrix<float, 24> SquareMatrix24f;
+typedef matrix::Vector<float, 24> Vector25f;
+typedef matrix::SquareMatrix<float, 24> SquareMatrix25f;
 
 float sq(float in) {
     return in * in;
@@ -15,8 +15,8 @@ int main()
     // Compare calculation of observation Jacobians and Kalman gains for sympy and matlab generated equations
 
 	float Hfusion[24] = {};
-    Vector24f H_DECL;
-    Vector24f Kfusion;
+    Vector25f H_DECL;
+    Vector25f Kfusion;
     float decl_innov_var;
 
 	const float R_DECL = sq(0.3f);
@@ -40,7 +40,7 @@ int main()
     const float h_field_min = 1e-3f;
 
     // create a symmetrical positive dfinite matrix with off diagonals between -1 and 1 and diagonals between 0 and 1
-    SquareMatrix24f P;
+    SquareMatrix25f P;
     for (int col=0; col<=23; col++) {
         for (int row=0; row<=col; row++) {
             if (row == col) {
@@ -95,7 +95,7 @@ int main()
 
     // save output and repeat calculation using legacy matlab generated code
     float Hfusion_sympy[24];
-    Vector24f Kfusion_sympy;
+    Vector25f Kfusion_sympy;
     for (int row=0; row<24; row++) {
         Hfusion_sympy[row] = Hfusion[row];
         Kfusion_sympy(row) = Kfusion(row);

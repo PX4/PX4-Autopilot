@@ -1,6 +1,6 @@
 #include "../../../../../matrix/matrix/math.hpp"
 
-typedef matrix::SquareMatrix<float, 24> SquareMatrix24f;
+typedef matrix::SquareMatrix<float, 24> SquareMatrix25f;
 
 inline float sq(float in) {
     return in * in;

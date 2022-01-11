@@ -3,10 +3,10 @@
 #include <cstdlib>
 #include "../../../../../matrix/matrix/math.hpp"
 
-typedef matrix::Vector<float, 24> Vector24f;
-typedef matrix::SquareMatrix<float, 24> SquareMatrix24f;
+typedef matrix::Vector<float, 24> Vector25f;
+typedef matrix::SquareMatrix<float, 24> SquareMatrix25f;
 template<int ... Idxs>
-using SparseVector24f = matrix::SparseVectorf<24, Idxs...>;
+using SparseVector25f = matrix::SparseVectorf<24, Idxs...>;
 
 float sq(float in) {
 	return in * in;
@@ -17,7 +17,7 @@ int main()
 	// Compare calculation of observation Jacobians and Kalman gains for sympy and matlab generated equations
 
 	float H_YAW[24];
-	Vector24f Kfusion;
+	Vector25f Kfusion;
 	float _heading_innov_var;
 
 	const float R_YAW = sq(0.3f);
@@ -36,7 +36,7 @@ int main()
 	q3 /= length;
 
 	// create a symmetrical positive dfinite matrix with off diagonals between -1 and 1 and diagonals between 0 and 1
-	SquareMatrix24f P;
+	SquareMatrix25f P;
 	for (int col=0; col<=23; col++) {
 		for (int row=0; row<=col; row++) {
 			if (row == col) {
@@ -97,7 +97,7 @@ int main()
 
 	// calculate observation jacobian
 	// Observation jacobian and Kalman gain vectors
-	SparseVector24f<0,1,2,3> Hfusion;
+	SparseVector25f<0,1,2,3> Hfusion;
 	Hfusion.at<0>() = -HK16*HK18;
 	Hfusion.at<1>() = -HK18*HK24;
 	Hfusion.at<2>() = -HK18*HK25;
@@ -115,7 +115,7 @@ int main()
 
 	// save output and repeat calculation using legacy matlab generated code
 	float Hfusion_sympy[24] = {};
-	Vector24f Kfusion_sympy;
+	Vector25f Kfusion_sympy;
 	Hfusion_sympy[0] = Hfusion.at<0>();
 	Hfusion_sympy[1] = Hfusion.at<1>();
 	Hfusion_sympy[2] = Hfusion.at<2>();

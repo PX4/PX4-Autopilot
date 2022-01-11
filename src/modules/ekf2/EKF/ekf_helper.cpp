@@ -673,9 +673,9 @@ void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2]) const
 }
 
 // get the state vector at the delayed time horizon
-matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
+matrix::Vector<float, 25> Ekf::getStateAtFusionHorizonAsVector() const
 {
-	matrix::Vector<float, 24> state;
+	matrix::Vector<float, 25> state;
 	state.slice<4, 1>(0, 0) = _state.quat_nominal;
 	state.slice<3, 1>(4, 0) = _state.vel;
 	state.slice<3, 1>(7, 0) = _state.pos;
@@ -684,6 +684,7 @@ matrix::Vector<float, 24> Ekf::getStateAtFusionHorizonAsVector() const
 	state.slice<3, 1>(16, 0) = _state.mag_I;
 	state.slice<3, 1>(19, 0) = _state.mag_B;
 	state.slice<2, 1>(22, 0) = _state.wind_vel;
+	state.slice<1, 1>(24, 0) = _state.posd_terrain;
 	return state;
 }
 
@@ -986,7 +987,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 	*status = soln_status.value;
 }
 
-void Ekf::fuse(const Vector24f &K, float innovation)
+void Ekf::fuse(const Vector25f &K, float innovation)
 {
 	_state.quat_nominal -= K.slice<4, 1>(0, 0) * innovation;
 	_state.quat_nominal.normalize();

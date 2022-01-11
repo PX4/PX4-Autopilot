@@ -202,7 +202,7 @@ void Ekf::predictCovariance()
 	}
 
 	// compute noise variance for stationary processes
-	Vector24f process_noise;
+	Vector25f process_noise;
 
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
@@ -217,6 +217,9 @@ void Ekf::predictCovariance()
 	process_noise.slice<3, 1>(19, 0) = sq(mag_B_sig);
 	// wind velocity states
 	process_noise.slice<2, 1>(22, 0) = sq(wind_vel_sig);
+	// terrain vertical position state
+	process_noise.slice<1, 1>(24, 0) = sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_p_noise) + sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_gradient)
+			* (sq(_state.vel(0)) + sq(_state.vel(1)));
 
 	// assign IMU noise variances
 	// inputs to the system are 3 delta angles and 3 delta velocities
@@ -482,7 +485,7 @@ void Ekf::predictCovariance()
 
 
 	// covariance update
-	SquareMatrix24f nextP;
+	SquareMatrix25f nextP;
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 
@@ -862,6 +865,37 @@ void Ekf::predictCovariance()
 
 	}
 
+	if (_terrain_initialised) {
+		nextP(0,24) = P(0,24) - P(1,24)*PS11 + P(10,24)*PS6 + P(11,24)*PS7 + P(12,24)*PS9 - P(2,24)*PS12 - P(3,24)*PS13;
+		nextP(1,24) = P(0,24)*PS11 + P(1,24) - P(10,24)*PS34 + P(11,24)*PS9 - P(12,24)*PS7 + P(2,24)*PS13 - P(3,24)*PS12;
+		nextP(2,24) = P(0,24)*PS12 - P(1,24)*PS13 - P(10,24)*PS9 - P(11,24)*PS34 + P(12,24)*PS6 + P(2,24) + P(3,24)*PS11;
+		nextP(3,24) = P(0,24)*PS13 + P(1,24)*PS12 + P(10,24)*PS7 - P(11,24)*PS6 - P(12,24)*PS34 - P(2,24)*PS11 + P(3,24);
+		nextP(4,24) = P(0,24)*PS174 + P(1,24)*PS173 + P(13,24)*PS43 + P(14,24)*PS172 - P(15,24)*PS171 + P(2,24)*PS175 - P(3,24)*PS176 + P(4,24);
+		nextP(5,24) = -P(0,24)*PS202 - P(1,24)*PS204 - P(13,24)*PS193 + P(14,24)*PS75 + P(15,24)*PS190 + P(2,24)*PS201 + P(3,24)*PS203 + P(5,24);
+		nextP(6,24) = P(0,24)*PS216 + P(1,24)*PS217 + P(13,24)*PS199 - P(14,24)*PS197 + P(15,24)*PS87 - P(2,24)*PS214 + P(3,24)*PS215 + P(6,24);
+		nextP(7,24) = P(4,24)*dt + P(7,24);
+		nextP(8,24) = P(5,24)*dt + P(8,24);
+		nextP(9,24) = P(6,24)*dt + P(9,24);
+		nextP(10,24) = P(10,24);
+		nextP(11,24) = P(11,24);
+		nextP(12,24) = P(12,24);
+		nextP(13,24) = P(13,24);
+		nextP(14,24) = P(14,24);
+		nextP(15,24) = P(15,24);
+		nextP(16,24) = P(16,24);
+		nextP(17,24) = P(17,24);
+		nextP(18,24) = P(18,24);
+		nextP(19,24) = P(19,24);
+		nextP(20,24) = P(20,24);
+		nextP(21,24) = P(21,24);
+		nextP(22,24) = P(22,24);
+		nextP(23,24) = P(23,24);
+		nextP(24,24) = P(24,24);
+
+		// add process noise that is not from the IMU
+		nextP(24, 24) += process_noise(24);
+	}
+
 	// stop position covariance growth if our total position variance reaches 100m
 	// this can happen if we lose gps for some time
 	if ((P(7, 7) + P(8, 8)) > 1e4f) {
@@ -898,7 +932,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	// and set corresponding entries in Q to zero when states exceed 50% of the limit
 	// Covariance diagonal limits. Use same values for states which
 	// belong to the same group (e.g. vel_x, vel_y, vel_z)
-	float P_lim[8] = {};
+	float P_lim[9] = {};
 	P_lim[0] = 1.0f;		// quaternion max var
 	P_lim[1] = 1e6f;		// velocity max var
 	P_lim[2] = 1e6f;		// positiion max var
@@ -907,6 +941,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	P_lim[5] = 1.0f;		// earth mag field max var
 	P_lim[6] = 1.0f;		// body mag field max var
 	P_lim[7] = 1e6f;		// wind max var
+	P_lim[8] = 1E4f;		// terrain vertical position max variance
 
 	for (int i = 0; i <= 3; i++) {
 		// quaternion states
@@ -1056,11 +1091,25 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 			P.makeRowColSymmetric<2>(22);
 		}
 	}
+
+	// terrain vertical position
+	if (!_terrain_initialised) {
+		P.uncorrelateCovarianceSetVariance<1>(24, 0.0f);
+
+	} else {
+		// constrain variances
+		P(24, 24) = math::constrain(P(24, 24), 0.0f, P_lim[8]);
+
+		// force symmetry
+		if (force_symmetry) {
+			P.makeRowColSymmetric<1>(24);
+		}
+	}
 }
 
 // if the covariance correction will result in a negative variance, then
 // the covariance matrix is unhealthy and must be corrected
-bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP)
+bool Ekf::checkAndFixCovarianceUpdate(const SquareMatrix25f &KHP)
 {
 	bool healthy = true;
 

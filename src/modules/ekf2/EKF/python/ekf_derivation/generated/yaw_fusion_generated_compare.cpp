@@ -3,8 +3,8 @@
 #include <cstdlib>
 #include "../../../../../matrix/matrix/math.hpp"
 
-typedef matrix::Vector<float, 24> Vector24f;
-typedef matrix::SquareMatrix<float, 24> SquareMatrix24f;
+typedef matrix::Vector<float, 24> Vector25f;
+typedef matrix::SquareMatrix<float, 24> SquareMatrix25f;
 
 float sq(float in) {
     return in * in;

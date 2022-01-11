@@ -386,14 +386,15 @@ struct parameters {
 };
 
 struct stateSample {
-	Quatf  quat_nominal;	///< quaternion defining the rotation from body to earth frame
-	Vector3f    vel;	///< NED velocity in earth frame in m/s
-	Vector3f    pos;	///< NED position in earth frame in m
+	Quatf  quat_nominal;		///< quaternion defining the rotation from body to earth frame
+	Vector3f    vel;		///< NED velocity in earth frame in m/s
+	Vector3f    pos;		///< NED position in earth frame in m
 	Vector3f    delta_ang_bias;	///< delta angle bias estimate in rad
 	Vector3f    delta_vel_bias;	///< delta velocity bias estimate in m/s
-	Vector3f    mag_I;	///< NED earth magnetic field in gauss
-	Vector3f    mag_B;	///< magnetometer bias estimate in body frame in gauss
-	Vector2f    wind_vel;	///< horizontal wind velocity in earth frame in m/s
+	Vector3f    mag_I;		///< NED earth magnetic field in gauss
+	Vector3f    mag_B;		///< magnetometer bias estimate in body frame in gauss
+	Vector2f    wind_vel;		///< horizontal wind velocity in earth frame in m/s
+	float       posd_terrain;	///< vertical position of the terrain surface in m
 };
 
 union fault_status_u {

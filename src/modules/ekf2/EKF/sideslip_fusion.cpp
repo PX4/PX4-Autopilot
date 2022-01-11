@@ -173,7 +173,7 @@ void Ekf::fuseSideslip()
 		}
 
 		// Observation Jacobians
-		SparseVector24f<0,1,2,3,4,5,6,22,23> Hfusion;
+		SparseVector25f<0,1,2,3,4,5,6,22,23> Hfusion;
 		Hfusion.at<0>() = HK21*HK22;
 		Hfusion.at<1>() = HK22*HK25;
 		Hfusion.at<2>() = HK22*HK26;
@@ -185,7 +185,7 @@ void Ekf::fuseSideslip()
 		Hfusion.at<23>() = HK16*HK32;
 
 		// Calculate Kalman gains
-		Vector24f Kfusion;
+		Vector25f Kfusion;
 
 		if (!update_wind_only) {
 

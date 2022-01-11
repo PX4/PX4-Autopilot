@@ -4,19 +4,19 @@
 #include "../../../../../matrix/matrix/math.hpp"
 #include "util.h"
 
-typedef matrix::Vector<float, 24> Vector24f;
-typedef matrix::SquareMatrix<float, 24> SquareMatrix24f;
+typedef matrix::Vector<float, 24> Vector25f;
+typedef matrix::SquareMatrix<float, 24> SquareMatrix25f;
 template<int ... Idxs>
-using SparseVector24f = matrix::SparseVectorf<24, Idxs...>;
+using SparseVector25f = matrix::SparseVectorf<24, Idxs...>;
 
 int main()
 {
     // Compare calculation of observation Jacobians and Kalman gains for sympy and matlab generated equations
-    Vector24f Hfusion_sympy;
-    Vector24f Kfusion_sympy;
+    Vector25f Hfusion_sympy;
+    Vector25f Kfusion_sympy;
 
-    Vector24f Hfusion_matlab;
-    Vector24f Kfusion_matlab;
+    Vector25f Hfusion_matlab;
+    Vector25f Kfusion_matlab;
 
     float _beta_innov_var;
 
@@ -43,7 +43,7 @@ int main()
 	const float vwe = 5.0f * 2.0f * ((float)rand() - 0.5f);
 
     // create a symmetrical positive dfinite matrix with off diagonals between -1 and 1 and diagonals between 0 and 1
-    SquareMatrix24f P;
+    SquareMatrix25f P;
     for (int col=0; col<=23; col++) {
         for (int row=0; row<=col; row++) {
             if (row == col) {
@@ -157,7 +157,7 @@ int main()
         // }
 
         // Observation Jacobians
-        SparseVector24f<0,1,2,3,4,5,6,22,23> Hfusion;
+        SparseVector25f<0,1,2,3,4,5,6,22,23> Hfusion;
         Hfusion.at<0>() = HK21*HK22;
         Hfusion.at<1>() = HK22*HK25;
         Hfusion.at<2>() = HK22*HK26;
@@ -169,7 +169,7 @@ int main()
         Hfusion.at<23>() = HK16*HK32;
 
         // Calculate Kalman gains
-        Vector24f Kfusion;
+        Vector25f Kfusion;
         if (!update_wind_only) {
 
             Kfusion(0) = HK38*HK52;
@@ -224,7 +224,7 @@ int main()
         SH_BETA[11] = 2.0f*q1*SH_BETA[2] + 2.0f*q2*SH_BETA[3] + 2.0f*q3*vd;
         SH_BETA[12] = 2.0f*q0*q3;
 
-        Vector24f H_BETA;
+        Vector25f H_BETA;
         H_BETA(0) = SH_BETA[5]*SH_BETA[8] - SH_BETA[1]*SH_BETA[4]*SH_BETA[9];
         H_BETA(1) = SH_BETA[5]*SH_BETA[10] - SH_BETA[1]*SH_BETA[4]*SH_BETA[11];
         H_BETA(2) = SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10];
@@ -248,7 +248,7 @@ int main()
         SK_BETA[6] = SH_BETA[5]*SH_BETA[11] + SH_BETA[1]*SH_BETA[4]*SH_BETA[10];
         SK_BETA[7] = SH_BETA[5]*SH_BETA[9] + SH_BETA[1]*SH_BETA[4]*SH_BETA[8];
 
-        Vector24f Kfusion;
+        Vector25f Kfusion;
         Kfusion(0) = SK_BETA[0]*(P(0,0)*SK_BETA[5] + P(0,1)*SK_BETA[4] - P(0,4)*SK_BETA[1] + P(0,5)*SK_BETA[2] + P(0,2)*SK_BETA[6] + P(0,6)*SK_BETA[3] - P(0,3)*SK_BETA[7] + P(0,22)*SK_BETA[1] - P(0,23)*SK_BETA[2]);
         Kfusion(1) = SK_BETA[0]*(P(1,0)*SK_BETA[5] + P(1,1)*SK_BETA[4] - P(1,4)*SK_BETA[1] + P(1,5)*SK_BETA[2] + P(1,2)*SK_BETA[6] + P(1,6)*SK_BETA[3] - P(1,3)*SK_BETA[7] + P(1,22)*SK_BETA[1] - P(1,23)*SK_BETA[2]);
         Kfusion(2) = SK_BETA[0]*(P(2,0)*SK_BETA[5] + P(2,1)*SK_BETA[4] - P(2,4)*SK_BETA[1] + P(2,5)*SK_BETA[2] + P(2,2)*SK_BETA[6] + P(2,6)*SK_BETA[3] - P(2,3)*SK_BETA[7] + P(2,22)*SK_BETA[1] - P(2,23)*SK_BETA[2]);

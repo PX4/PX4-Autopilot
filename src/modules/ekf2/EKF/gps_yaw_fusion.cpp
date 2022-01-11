@@ -170,7 +170,7 @@ void Ekf::fuseGpsYaw()
 
 	// calculate observation jacobian
 	// Observation jacobian and Kalman gain vectors
-	SparseVector24f<0,1,2,3> Hfusion;
+	SparseVector25f<0,1,2,3> Hfusion;
 	Hfusion.at<0>() = -HK16*HK18;
 	Hfusion.at<1>() = -HK18*HK24;
 	Hfusion.at<2>() = -HK18*HK25;
@@ -178,7 +178,7 @@ void Ekf::fuseGpsYaw()
 
 	// calculate the Kalman gains
 	// only calculate gains for states we are using
-	Vector24f Kfusion;
+	Vector25f Kfusion;
 	Kfusion(0) = HK27*HK32;
 	Kfusion(1) = HK28*HK32;
 	Kfusion(2) = HK30*HK32;

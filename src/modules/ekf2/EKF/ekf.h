@@ -51,15 +51,15 @@
 class Ekf final : public EstimatorInterface
 {
 public:
-	static constexpr uint8_t _k_num_states{24};		///< number of EKF states
+	static constexpr uint8_t _k_num_states{25};		///< number of EKF states
 
-	typedef matrix::Vector<float, _k_num_states> Vector24f;
-	typedef matrix::SquareMatrix<float, _k_num_states> SquareMatrix24f;
+	typedef matrix::Vector<float, _k_num_states> Vector25f;
+	typedef matrix::SquareMatrix<float, _k_num_states> SquareMatrix25f;
 	typedef matrix::SquareMatrix<float, 2> Matrix2f;
 	typedef matrix::Vector<float, 4> Vector4f;
 	template<int ... Idxs>
 
-	using SparseVector24f = matrix::SparseVectorf<24, Idxs...>;
+	using SparseVector25f = matrix::SparseVectorf<25, Idxs...>;
 
 	Ekf() = default;
 	virtual ~Ekf() = default;
@@ -125,7 +125,7 @@ public:
 	void getHaglInnovRatio(float &hagl_innov_ratio) const { hagl_innov_ratio = _hagl_test_ratio; }
 
 	// get the state vector at the delayed time horizon
-	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const;
+	matrix::Vector<float, 25> getStateAtFusionHorizonAsVector() const;
 
 	// get the wind velocity in m/s
 	const Vector2f &getWindVelocity() const { return _state.wind_vel; };
@@ -137,10 +137,10 @@ public:
 	float getTrueAirspeed() const;
 
 	// get the full covariance matrix
-	const matrix::SquareMatrix<float, 24> &covariances() const { return P; }
+	const matrix::SquareMatrix<float, 25> &covariances() const { return P; }
 
 	// get the diagonal elements of the covariance matrix
-	matrix::Vector<float, 24> covariances_diagonal() const { return P.diag(); }
+	matrix::Vector<float, 25> covariances_diagonal() const { return P.diag(); }
 
 	// get the orientation (quaterion) covariances
 	matrix::SquareMatrix<float, 4> orientation_covariances() const { return P.slice<4, 4>(0, 0); }
@@ -418,7 +418,7 @@ private:
 	bool _non_mag_yaw_aiding_running_prev{false};  ///< true when heading is being fused from other sources that are not the magnetometer (for example EV or GPS).
 	bool _is_yaw_fusion_inhibited{false};		///< true when yaw sensor use is being inhibited
 
-	SquareMatrix24f P{};	///< state covariance matrix
+	SquareMatrix25f P{};	///< state covariance matrix
 
 	Vector3f _delta_vel_bias_var_accum{};		///< kahan summation algorithm accumulator for delta velocity bias variance
 	Vector3f _delta_angle_bias_var_accum{};	///< kahan summation algorithm accumulator for delta angle bias variance
@@ -739,9 +739,9 @@ private:
 	// matrix vector multiplication for computing K<24,1> * H<1,24> * P<24,24>
 	// that is optimized by exploring the sparsity in H
 	template <size_t ...Idxs>
-	SquareMatrix24f computeKHP(const Vector24f &K, const SparseVector24f<Idxs...> &H) const
+	SquareMatrix25f computeKHP(const Vector25f &K, const SparseVector25f<Idxs...> &H) const
 	{
-		SquareMatrix24f KHP;
+		SquareMatrix25f KHP;
 		constexpr size_t non_zeros = sizeof...(Idxs);
 		float KH[non_zeros];
 
@@ -768,7 +768,7 @@ private:
 	// measurement update with a single measurement
 	// returns true if fusion is performed
 	template <size_t ...Idxs>
-	bool measurementUpdate(Vector24f &K, const SparseVector24f<Idxs...> &H, float innovation)
+	bool measurementUpdate(Vector25f &K, const SparseVector25f<Idxs...> &H, float innovation)
 	{
 		for (unsigned i = 0; i < 3; i++) {
 			if (_accel_bias_inhibit[i]) {
@@ -779,7 +779,7 @@ private:
 		// apply covariance correction via P_new = (I -K*H)*P
 		// first calculate expression for KHP
 		// then calculate P - KHP
-		const SquareMatrix24f KHP = computeKHP(K, H);
+		const SquareMatrix25f KHP = computeKHP(K, H);
 
 		const bool is_healthy = checkAndFixCovarianceUpdate(KHP);
 
@@ -798,7 +798,7 @@ private:
 
 	// if the covariance correction will result in a negative variance, then
 	// the covariance matrix is unhealthy and must be corrected
-	bool checkAndFixCovarianceUpdate(const SquareMatrix24f &KHP);
+	bool checkAndFixCovarianceUpdate(const SquareMatrix25f &KHP);
 
 	// limit the diagonal of the covariance matrix
 	// force symmetry when the argument is true
@@ -809,7 +809,7 @@ private:
 
 	// generic function which will perform a fusion step given a kalman gain K
 	// and a scalar innovation value
-	void fuse(const Vector24f &K, float innovation);
+	void fuse(const Vector25f &K, float innovation);
 
 	float compensateBaroForDynamicPressure(float baro_alt_uncompensated) const override;
 

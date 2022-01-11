@@ -46,8 +46,8 @@
 
 void Ekf::fuseDrag(const dragSample &drag_sample)
 {
-	SparseVector24f<0,1,2,3,4,5,6,22,23> Hfusion;  // Observation Jacobians
-	Vector24f Kfusion; // Kalman gain vector
+	SparseVector25f<0,1,2,3,4,5,6,22,23> Hfusion;  // Observation Jacobians
+	Vector25f Kfusion; // Kalman gain vector
 
 	const float R_ACC = fmaxf(_params.drag_noise, 0.5f); // observation noise variance in specific force drag (m/sec**2)**2
 	const float rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)

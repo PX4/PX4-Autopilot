@@ -4,25 +4,25 @@
 #include "../../../../../matrix/matrix/math.hpp"
 #include "util.h"
 
-typedef matrix::Vector<float, 24> Vector24f;
-typedef matrix::SquareMatrix<float, 24> SquareMatrix24f;
+typedef matrix::Vector<float, 24> Vector25f;
+typedef matrix::SquareMatrix<float, 24> SquareMatrix25f;
 template<int ... Idxs>
-using SparseVector24f = matrix::SparseVectorf<24, Idxs...>;
+using SparseVector25f = matrix::SparseVectorf<24, Idxs...>;
 
 int main()
 {
     // Compare calculation of observation Jacobians and Kalman gains for sympy and matlab generated equations
 
-	SparseVector24f<0,1,2,3,4,5,6,22,23> Hfusion;
-    Vector24f H_ACC;
-    Vector24f Kfusion;
+	SparseVector25f<0,1,2,3,4,5,6,22,23> Hfusion;
+    Vector25f H_ACC;
+    Vector25f Kfusion;
     float drag_innov_var;
 
-    Vector24f Hfusion_sympy;
-    Vector24f Kfusion_sympy;
+    Vector25f Hfusion_sympy;
+    Vector25f Kfusion_sympy;
 
-    Vector24f Hfusion_matlab;
-    Vector24f Kfusion_matlab;
+    Vector25f Hfusion_matlab;
+    Vector25f Kfusion_matlab;
 
 	float SH_ACC[4] = {}; // Variable used to optimise calculations of measurement jacobian
 	float SK_ACC[9] = {}; // Variable used to optimise calculations of the Kalman gain vector
@@ -56,7 +56,7 @@ int main()
     const float rho = 1.225f;
 
     // create a symmetrical positive dfinite matrix with off diagonals between -1 and 1 and diagonals between 0 and 1
-    SquareMatrix24f P;
+    SquareMatrix25f P;
     for (int col=0; col<=23; col++) {
         for (int row=0; row<=col; row++) {
             if (row == col) {

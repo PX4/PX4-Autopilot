@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include "../../../../../matrix/matrix/math.hpp"
 
-typedef matrix::SquareMatrix<float, 24> SquareMatrix24f;
+typedef matrix::SquareMatrix<float, 24> SquareMatrix25f;
 
 inline float sq(float in) {
     return in * in;
@@ -73,7 +73,7 @@ int main()
         const float dvzVar = dvxVar;
 
         // create a symmetrical positive dfinite matrix with off diagonals between -1 and 1 and diagonals between 0 and 1
-        SquareMatrix24f P;
+        SquareMatrix25f P;
         for (int col=0; col<=23; col++) {
             for (int row=0; row<=col; row++) {
                 if (row == col) {
@@ -273,7 +273,7 @@ int main()
         const float PS185 = P(0,13)*PS60 + P(1,13)*PS74 + P(13,13)*PS166 - P(13,14)*PS165 - P(13,15)*PS70 - P(2,13)*PS72 + P(3,13)*PS62 + P(6,13);
         const float PS186 = P(0,6)*PS60 + P(1,6)*PS74 - P(2,6)*PS72 + P(3,6)*PS62 + P(6,13)*PS166 - P(6,14)*PS165 - P(6,15)*PS70 + P(6,6);
 
-        SquareMatrix24f nextP;
+        SquareMatrix25f nextP;
 
         nextP(0,0) = PS0*PS1 - PS11*PS23 - PS12*PS26 - PS13*PS29 + PS14*PS6 + PS17*PS7 + PS2*PS3 + PS20*PS9 + PS33 + PS4*PS5;
         nextP(0,1) = -PS1*PS36 + PS11*PS33 - PS12*PS29 + PS13*PS26 - PS14*PS34 + PS17*PS9 - PS20*PS7 + PS23 + PS3*PS35 - PS35*PS5;
@@ -577,7 +577,7 @@ int main()
         nextP(23,23) = P(23,23);
 
         // save output and repeat calculation using legacy matlab generated code
-        SquareMatrix24f nextP_sympy;
+        SquareMatrix25f nextP_sympy;
         for (int col=0; col<=23; col++) {
             for (int row=0; row<=col; row++) {
                 nextP_sympy(row,col) = nextP(row,col);
