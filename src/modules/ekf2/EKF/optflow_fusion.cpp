@@ -62,6 +62,10 @@ void Ekf::fuseOptFlow()
 	const float ve = _state.vel(1);
 	const float vd = _state.vel(2);
 
+	// get latest vehicle and terrain vertical position
+	const float pd = _state.pos(2);
+	const float ptd = _state.posd_terrain;
+
 	// calculate the optical flow observation variance
 	const float R_LOS = calcOptFlowMeasVar();
 
@@ -120,119 +124,209 @@ void Ekf::fuseOptFlow()
 	const float HK0 = -Tbs(1,0)*q2 + Tbs(1,1)*q1 + Tbs(1,2)*q0;
 	const float HK1 = Tbs(1,0)*q3 + Tbs(1,1)*q0 - Tbs(1,2)*q1;
 	const float HK2 = Tbs(1,0)*q0 - Tbs(1,1)*q3 + Tbs(1,2)*q2;
-	const float HK3 = HK0*vd + HK1*ve + HK2*vn;
-	const float HK4 = 1.0F/range;
-	const float HK5 = 2*HK4;
-	const float HK6 = Tbs(1,0)*q1 + Tbs(1,1)*q2 + Tbs(1,2)*q3;
-	const float HK7 = -HK0*ve + HK1*vd + HK6*vn;
-	const float HK8 = HK0*vn - HK2*vd + HK6*ve;
-	const float HK9 = -HK1*vn + HK2*ve + HK6*vd;
-	const float HK10 = q0*q2;
-	const float HK11 = q1*q3;
-	const float HK12 = HK10 + HK11;
-	const float HK13 = 2*Tbs(1,2);
-	const float HK14 = q0*q3;
-	const float HK15 = q1*q2;
+	const float HK3 = q0*q1;
+	const float HK4 = q2*q3;
+	const float HK5 = HK3 + HK4;
+	const float HK6 = 2*HK5;
+	const float HK7 = q0*q2;
+	const float HK8 = q1*q3;
+	const float HK9 = HK7 - HK8;
+	const float HK10 = 2*HK9;
+	const float HK11 = powf(q3, 2);
+	const float HK12 = powf(q2, 2);
+	const float HK13 = -HK12;
+	const float HK14 = powf(q0, 2);
+	const float HK15 = powf(q1, 2);
 	const float HK16 = HK14 - HK15;
-	const float HK17 = 2*Tbs(1,1);
-	const float HK18 = ecl::powf(q1, 2);
-	const float HK19 = ecl::powf(q2, 2);
-	const float HK20 = -HK19;
-	const float HK21 = ecl::powf(q0, 2);
-	const float HK22 = ecl::powf(q3, 2);
-	const float HK23 = HK21 - HK22;
-	const float HK24 = HK18 + HK20 + HK23;
-	const float HK25 = HK12*HK13 - HK16*HK17 + HK24*Tbs(1,0);
-	const float HK26 = HK14 + HK15;
-	const float HK27 = 2*Tbs(1,0);
-	const float HK28 = q0*q1;
-	const float HK29 = q2*q3;
-	const float HK30 = HK28 - HK29;
-	const float HK31 = -HK18;
-	const float HK32 = HK19 + HK23 + HK31;
-	const float HK33 = -HK13*HK30 + HK26*HK27 + HK32*Tbs(1,1);
-	const float HK34 = HK28 + HK29;
-	const float HK35 = HK10 - HK11;
-	const float HK36 = HK20 + HK21 + HK22 + HK31;
-	const float HK37 = HK17*HK34 - HK27*HK35 + HK36*Tbs(1,2);
-	const float HK38 = 2*HK3;
-	const float HK39 = 2*HK7;
-	const float HK40 = 2*HK8;
-	const float HK41 = 2*HK9;
-	const float HK42 = HK25*P(0,4) + HK33*P(0,5) + HK37*P(0,6) + HK38*P(0,0) + HK39*P(0,1) + HK40*P(0,2) + HK41*P(0,3);
-	const float HK43 = ecl::powf(range, -2);
-	const float HK44 = HK25*P(4,6) + HK33*P(5,6) + HK37*P(6,6) + HK38*P(0,6) + HK39*P(1,6) + HK40*P(2,6) + HK41*P(3,6);
-	const float HK45 = HK25*P(4,5) + HK33*P(5,5) + HK37*P(5,6) + HK38*P(0,5) + HK39*P(1,5) + HK40*P(2,5) + HK41*P(3,5);
-	const float HK46 = HK25*P(4,4) + HK33*P(4,5) + HK37*P(4,6) + HK38*P(0,4) + HK39*P(1,4) + HK40*P(2,4) + HK41*P(3,4);
-	const float HK47 = HK25*P(2,4) + HK33*P(2,5) + HK37*P(2,6) + HK38*P(0,2) + HK39*P(1,2) + HK40*P(2,2) + HK41*P(2,3);
-	const float HK48 = HK25*P(3,4) + HK33*P(3,5) + HK37*P(3,6) + HK38*P(0,3) + HK39*P(1,3) + HK40*P(2,3) + HK41*P(3,3);
-	const float HK49 = HK25*P(1,4) + HK33*P(1,5) + HK37*P(1,6) + HK38*P(0,1) + HK39*P(1,1) + HK40*P(1,2) + HK41*P(1,3);
-	// const float HK50 = HK4/(HK25*HK43*HK46 + HK33*HK43*HK45 + HK37*HK43*HK44 + HK38*HK42*HK43 + HK39*HK43*HK49 + HK40*HK43*HK47 + HK41*HK43*HK48 + R_LOS);
+	const float HK17 = HK11 + HK13 + HK16;
+	const float HK18 = -HK10*Tbs(2,0) + HK17*Tbs(2,2) + HK6*Tbs(2,1);
+	const float HK19 = -Tbs(2,0)*q2 + Tbs(2,1)*q1 + Tbs(2,2)*q0;
+	const float HK20 = 2*Tbs(1,1);
+	const float HK21 = 2*Tbs(1,0);
+	const float HK22 = HK17*Tbs(1,2) + HK20*HK5 - HK21*HK9;
+	const float HK23 = q0*q3;
+	const float HK24 = q1*q2;
+	const float HK25 = HK23 + HK24;
+	const float HK26 = HK3 - HK4;
+	const float HK27 = 2*Tbs(1,2);
+	const float HK28 = -HK11;
+	const float HK29 = HK12 + HK16 + HK28;
+	const float HK30 = HK21*HK25 - HK26*HK27 + HK29*Tbs(1,1);
+	const float HK31 = HK7 + HK8;
+	const float HK32 = HK23 - HK24;
+	const float HK33 = HK13 + HK14 + HK15 + HK28;
+	const float HK34 = -HK20*HK32 + HK27*HK31 + HK33*Tbs(1,0);
+	const float HK35 = HK22*vd + HK30*ve + HK34*vn;
+	const float HK36 = HK18*(HK0*vd + HK1*ve + HK2*vn) + HK19*HK35;
+	const float HK37 = pd - ptd;
+	const float HK38 = 1.0F/HK37;
+	const float HK39 = 2*HK38;
+	const float HK40 = Tbs(1,0)*q1 + Tbs(1,1)*q2 + Tbs(1,2)*q3;
+	const float HK41 = Tbs(2,0)*q3 + Tbs(2,1)*q0 - Tbs(2,2)*q1;
+	const float HK42 = HK18*(-HK0*ve + HK1*vd + HK40*vn) + HK35*HK41;
+	const float HK43 = Tbs(2,0)*q0 - Tbs(2,1)*q3 + Tbs(2,2)*q2;
+	const float HK44 = -HK18*(HK0*vn - HK2*vd + HK40*ve) + HK35*HK43;
+	const float HK45 = Tbs(2,0)*q1 + Tbs(2,1)*q2 + Tbs(2,2)*q3;
+	const float HK46 = HK18*(-HK1*vn + HK2*ve + HK40*vd) + HK35*HK45;
+	const float HK47 = HK18*HK38;
+	const float HK48 = powf(HK37, -2);
+	const float HK49 = HK18*HK48;
+	const float HK50 = HK35*HK49;
+	const float HK51 = HK18*HK34;
+	const float HK52 = HK51*P(0,4);
+	const float HK53 = HK18*HK30;
+	const float HK54 = HK53*P(0,5);
+	const float HK55 = HK18*HK22;
+	const float HK56 = HK55*P(0,6);
+	const float HK57 = HK35*HK47;
+	const float HK58 = HK57*P(0,24);
+	const float HK59 = HK57*P(0,9);
+	const float HK60 = 2*HK46;
+	const float HK61 = HK60*P(0,3);
+	const float HK62 = 2*HK36;
+	const float HK63 = HK62*P(0,0);
+	const float HK64 = 2*HK42;
+	const float HK65 = HK64*P(0,1);
+	const float HK66 = 2*HK44;
+	const float HK67 = HK66*P(0,2);
+	const float HK68 = HK51*P(4,6);
+	const float HK69 = HK53*P(5,6);
+	const float HK70 = HK55*P(6,6);
+	const float HK71 = HK57*P(6,9);
+	const float HK72 = HK57*P(6,24);
+	const float HK73 = HK60*P(3,6);
+	const float HK74 = HK62*P(0,6);
+	const float HK75 = HK64*P(1,6);
+	const float HK76 = HK66*P(2,6);
+	const float HK77 = HK51*P(4,5);
+	const float HK78 = HK53*P(5,5);
+	const float HK79 = HK55*P(5,6);
+	const float HK80 = HK57*P(5,9);
+	const float HK81 = HK57*P(5,24);
+	const float HK82 = HK60*P(3,5);
+	const float HK83 = HK62*P(0,5);
+	const float HK84 = HK64*P(1,5);
+	const float HK85 = HK66*P(2,5);
+	const float HK86 = HK51*P(4,4);
+	const float HK87 = HK53*P(4,5);
+	const float HK88 = HK55*P(4,6);
+	const float HK89 = HK57*P(4,9);
+	const float HK90 = HK57*P(4,24);
+	const float HK91 = HK60*P(3,4);
+	const float HK92 = HK62*P(0,4);
+	const float HK93 = HK64*P(1,4);
+	const float HK94 = HK66*P(2,4);
+	const float HK95 = HK51*P(4,24);
+	const float HK96 = HK53*P(5,24);
+	const float HK97 = HK55*P(6,24);
+	const float HK98 = HK57*P(9,24);
+	const float HK99 = HK57*P(24,24);
+	const float HK100 = HK60*P(3,24);
+	const float HK101 = HK62*P(0,24);
+	const float HK102 = HK64*P(1,24);
+	const float HK103 = HK66*P(2,24);
+	const float HK104 = HK18/powf(HK37, 3);
+	const float HK105 = HK104*HK35;
+	const float HK106 = HK51*P(4,9);
+	const float HK107 = HK53*P(5,9);
+	const float HK108 = HK55*P(6,9);
+	const float HK109 = HK57*P(9,9);
+	const float HK110 = -HK98;
+	const float HK111 = HK60*P(3,9);
+	const float HK112 = HK62*P(0,9);
+	const float HK113 = HK64*P(1,9);
+	const float HK114 = HK66*P(2,9);
+	const float HK115 = HK51*P(3,4);
+	const float HK116 = HK53*P(3,5);
+	const float HK117 = HK55*P(3,6);
+	const float HK118 = HK57*P(3,9);
+	const float HK119 = HK57*P(3,24);
+	const float HK120 = HK60*P(3,3);
+	const float HK121 = HK62*P(0,3);
+	const float HK122 = HK64*P(1,3);
+	const float HK123 = HK66*P(2,3);
+	const float HK124 = HK51*P(1,4);
+	const float HK125 = HK53*P(1,5);
+	const float HK126 = HK55*P(1,6);
+	const float HK127 = HK57*P(1,9);
+	const float HK128 = HK57*P(1,24);
+	const float HK129 = HK60*P(1,3);
+	const float HK130 = HK62*P(0,1);
+	const float HK131 = HK64*P(1,1);
+	const float HK132 = HK66*P(1,2);
+	const float HK133 = HK51*P(2,4);
+	const float HK134 = HK53*P(2,5);
+	const float HK135 = HK55*P(2,6);
+	const float HK136 = HK57*P(2,9);
+	const float HK137 = HK57*P(2,24);
+	const float HK138 = HK60*P(2,3);
+	const float HK139 = HK62*P(0,2);
+	const float HK140 = HK64*P(1,2);
+	const float HK141 = HK66*P(2,2);
+	// const float HK142 = HK38/(HK105*(-HK100 - HK101 - HK102 + HK103 - HK95 - HK96 - HK97 + HK98 - HK99) - HK105*(-HK106 - HK107 - HK108 + HK109 + HK110 - HK111 - HK112 - HK113 + HK114) + HK22*HK49*(-HK68 - HK69 - HK70 + HK71 - HK72 - HK73 - HK74 - HK75 + HK76) + HK30*HK49*(-HK77 - HK78 - HK79 + HK80 - HK81 - HK82 - HK83 - HK84 + HK85) + HK34*HK49*(-HK86 - HK87 - HK88 + HK89 - HK90 - HK91 - HK92 - HK93 + HK94) + HK48*HK60*(-HK115 - HK116 - HK117 + HK118 - HK119 - HK120 - HK121 - HK122 + HK123) + HK48*HK62*(-HK52 - HK54 - HK56 - HK58 + HK59 - HK61 - HK63 - HK65 + HK67) + HK48*HK64*(-HK124 - HK125 - HK126 + HK127 - HK128 - HK129 - HK130 - HK131 + HK132) - HK48*HK66*(-HK133 - HK134 - HK135 + HK136 - HK137 - HK138 - HK139 - HK140 + HK141) - R_LOS);
 
 	// calculate innovation variance for X axis observation and protect against a badly conditioned calculation
-	_flow_innov_var(0) = (HK25*HK43*HK46 + HK33*HK43*HK45 + HK37*HK43*HK44 + HK38*HK42*HK43 + HK39*HK43*HK49 + HK40*HK43*HK47 + HK41*HK43*HK48 + R_LOS);
+	_flow_innov_var(0) = -(HK105*(-HK100 - HK101 - HK102 + HK103 - HK95 - HK96 - HK97 + HK98 - HK99) - HK105*(-HK106 - HK107 - HK108 + HK109 + HK110 - HK111 - HK112 - HK113 + HK114) + HK22*HK49*(-HK68 - HK69 - HK70 + HK71 - HK72 - HK73 - HK74 - HK75 + HK76) + HK30*HK49*(-HK77 - HK78 - HK79 + HK80 - HK81 - HK82 - HK83 - HK84 + HK85) + HK34*HK49*(-HK86 - HK87 - HK88 + HK89 - HK90 - HK91 - HK92 - HK93 + HK94) + HK48*HK60*(-HK115 - HK116 - HK117 + HK118 - HK119 - HK120 - HK121 - HK122 + HK123) + HK48*HK62*(-HK52 - HK54 - HK56 - HK58 + HK59 - HK61 - HK63 - HK65 + HK67) + HK48*HK64*(-HK124 - HK125 - HK126 + HK127 - HK128 - HK129 - HK130 - HK131 + HK132) - HK48*HK66*(-HK133 - HK134 - HK135 + HK136 - HK137 - HK138 - HK139 - HK140 + HK141) - R_LOS);
 
 	if (_flow_innov_var(0) < R_LOS) {
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
 		return;
 	}
-	const float HK50 = HK4/_flow_innov_var(0);
+	const float HK142 = HK38/(-_flow_innov_var(0));
 
-	const float HK51 = Tbs(0,1)*q1;
-	const float HK52 = Tbs(0,2)*q0;
-	const float HK53 = Tbs(0,0)*q2;
-	const float HK54 = HK51 + HK52 - HK53;
-	const float HK55 = Tbs(0,0)*q3;
-	const float HK56 = Tbs(0,1)*q0;
-	const float HK57 = Tbs(0,2)*q1;
-	const float HK58 = HK55 + HK56 - HK57;
-	const float HK59 = Tbs(0,0)*q0;
-	const float HK60 = Tbs(0,2)*q2;
-	const float HK61 = Tbs(0,1)*q3;
-	const float HK62 = HK59 + HK60 - HK61;
-	const float HK63 = HK54*vd + HK58*ve + HK62*vn;
-	const float HK64 = Tbs(0,0)*q1 + Tbs(0,1)*q2 + Tbs(0,2)*q3;
-	const float HK65 = HK58*vd + HK64*vn;
-	const float HK66 = -HK54*ve + HK65;
-	const float HK67 = HK54*vn + HK64*ve;
-	const float HK68 = -HK62*vd + HK67;
-	const float HK69 = HK62*ve + HK64*vd;
-	const float HK70 = -HK58*vn + HK69;
-	const float HK71 = 2*Tbs(0,1);
-	const float HK72 = 2*Tbs(0,2);
-	const float HK73 = HK12*HK72 + HK24*Tbs(0,0);
-	const float HK74 = -HK16*HK71 + HK73;
-	const float HK75 = 2*Tbs(0,0);
-	const float HK76 = HK26*HK75 + HK32*Tbs(0,1);
-	const float HK77 = -HK30*HK72 + HK76;
-	const float HK78 = HK34*HK71 + HK36*Tbs(0,2);
-	const float HK79 = -HK35*HK75 + HK78;
-	const float HK80 = 2*HK63;
-	const float HK81 = 2*HK65 + 2*ve*(-HK51 - HK52 + HK53);
-	const float HK82 = 2*HK67 + 2*vd*(-HK59 - HK60 + HK61);
-	const float HK83 = 2*HK69 + 2*vn*(-HK55 - HK56 + HK57);
-	const float HK84 = HK71*(-HK14 + HK15) + HK73;
-	const float HK85 = HK72*(-HK28 + HK29) + HK76;
-	const float HK86 = HK75*(-HK10 + HK11) + HK78;
-	const float HK87 = HK80*P(0,0) + HK81*P(0,1) + HK82*P(0,2) + HK83*P(0,3) + HK84*P(0,4) + HK85*P(0,5) + HK86*P(0,6);
-	const float HK88 = HK80*P(0,6) + HK81*P(1,6) + HK82*P(2,6) + HK83*P(3,6) + HK84*P(4,6) + HK85*P(5,6) + HK86*P(6,6);
-	const float HK89 = HK80*P(0,5) + HK81*P(1,5) + HK82*P(2,5) + HK83*P(3,5) + HK84*P(4,5) + HK85*P(5,5) + HK86*P(5,6);
-	const float HK90 = HK80*P(0,4) + HK81*P(1,4) + HK82*P(2,4) + HK83*P(3,4) + HK84*P(4,4) + HK85*P(4,5) + HK86*P(4,6);
-	const float HK91 = HK80*P(0,2) + HK81*P(1,2) + HK82*P(2,2) + HK83*P(2,3) + HK84*P(2,4) + HK85*P(2,5) + HK86*P(2,6);
-	const float HK92 = 2*HK43;
-	const float HK93 = HK80*P(0,3) + HK81*P(1,3) + HK82*P(2,3) + HK83*P(3,3) + HK84*P(3,4) + HK85*P(3,5) + HK86*P(3,6);
-	const float HK94 = HK80*P(0,1) + HK81*P(1,1) + HK82*P(1,2) + HK83*P(1,3) + HK84*P(1,4) + HK85*P(1,5) + HK86*P(1,6);
-	// const float HK95 = HK4/(HK43*HK74*HK90 + HK43*HK77*HK89 + HK43*HK79*HK88 + HK43*HK80*HK87 + HK66*HK92*HK94 + HK68*HK91*HK92 + HK70*HK92*HK93 + R_LOS);
+	const float HK143 = -Tbs(0,0)*q2 + Tbs(0,1)*q1 + Tbs(0,2)*q0;
+	const float HK144 = Tbs(0,0)*q3 + Tbs(0,1)*q0 - Tbs(0,2)*q1;
+	const float HK145 = Tbs(0,0)*q0;
+	const float HK146 = Tbs(0,2)*q2;
+	const float HK147 = Tbs(0,1)*q3;
+	const float HK148 = HK145 + HK146 - HK147;
+	const float HK149 = HK17*Tbs(0,2) + HK6*Tbs(0,1);
+	const float HK150 = -HK10*Tbs(0,0) + HK149;
+	const float HK151 = 2*Tbs(0,2);
+	const float HK152 = 2*Tbs(0,0);
+	const float HK153 = HK152*HK25 + HK29*Tbs(0,1);
+	const float HK154 = -HK151*HK26 + HK153;
+	const float HK155 = 2*Tbs(0,1);
+	const float HK156 = HK151*HK31 + HK33*Tbs(0,0);
+	const float HK157 = -HK155*HK32 + HK156;
+	const float HK158 = HK150*vd + HK154*ve + HK157*vn;
+	const float HK159 = HK158*HK19 + HK18*(HK143*vd + HK144*ve + HK148*vn);
+	const float HK160 = Tbs(0,0)*q1 + Tbs(0,1)*q2 + Tbs(0,2)*q3;
+	const float HK161 = HK158*HK41 + HK18*(-HK143*ve + HK144*vd + HK160*vn);
+	const float HK162 = HK18*(HK143*vn + HK160*ve + vd*(-HK145 - HK146 + HK147));
+	const float HK163 = HK43*(vd*(HK149 + HK152*(-HK7 + HK8)) + ve*(HK151*(-HK3 + HK4) + HK153) + vn*(HK155*(-HK23 + HK24) + HK156));
+	const float HK164 = HK158*HK45 + HK18*(-HK144*vn + HK148*ve + HK160*vd);
+	const float HK165 = HK158*HK49;
+	const float HK166 = HK157*HK18;
+	const float HK167 = HK154*HK18;
+	const float HK168 = HK150*HK18;
+	const float HK169 = HK158*HK47;
+	const float HK170 = 2*HK164;
+	const float HK171 = 2*HK159;
+	const float HK172 = 2*HK161;
+	const float HK173 = -2*HK162 + 2*HK163;
+	const float HK174 = HK166*P(0,4) + HK167*P(0,5) + HK168*P(0,6) + HK169*P(0,24) - HK169*P(0,9) + HK170*P(0,3) + HK171*P(0,0) + HK172*P(0,1) - HK173*P(0,2);
+	const float HK175 = HK166*P(4,6) + HK167*P(5,6) + HK168*P(6,6) + HK169*P(6,24) - HK169*P(6,9) + HK170*P(3,6) + HK171*P(0,6) + HK172*P(1,6) - HK173*P(2,6);
+	const float HK176 = HK166*P(4,5) + HK167*P(5,5) + HK168*P(5,6) + HK169*P(5,24) - HK169*P(5,9) + HK170*P(3,5) + HK171*P(0,5) + HK172*P(1,5) - HK173*P(2,5);
+	const float HK177 = HK166*P(4,4) + HK167*P(4,5) + HK168*P(4,6) + HK169*P(4,24) - HK169*P(4,9) + HK170*P(3,4) + HK171*P(0,4) + HK172*P(1,4) - HK173*P(2,4);
+	const float HK178 = HK169*P(9,24);
+	const float HK179 = HK166*P(4,24) + HK167*P(5,24) + HK168*P(6,24) + HK169*P(24,24) + HK170*P(3,24) + HK171*P(0,24) + HK172*P(1,24) - HK173*P(2,24) - HK178;
+	const float HK180 = HK104*HK158;
+	const float HK181 = HK166*P(4,9) + HK167*P(5,9) + HK168*P(6,9) - HK169*P(9,9) + HK170*P(3,9) + HK171*P(0,9) + HK172*P(1,9) - HK173*P(2,9) + HK178;
+	const float HK182 = HK166*P(3,4) + HK167*P(3,5) + HK168*P(3,6) + HK169*P(3,24) - HK169*P(3,9) + HK170*P(3,3) + HK171*P(0,3) + HK172*P(1,3) - HK173*P(2,3);
+	const float HK183 = HK166*P(1,4) + HK167*P(1,5) + HK168*P(1,6) + HK169*P(1,24) - HK169*P(1,9) + HK170*P(1,3) + HK171*P(0,1) + HK172*P(1,1) - HK173*P(1,2);
+	const float HK184 = HK166*P(2,4) + HK167*P(2,5) + HK168*P(2,6) + HK169*P(2,24) - HK169*P(2,9) + HK170*P(2,3) + HK171*P(0,2) + HK172*P(1,2) - HK173*P(2,2);
+	// const float HK185 = HK38/(HK150*HK175*HK49 + HK154*HK176*HK49 + HK157*HK177*HK49 + HK170*HK182*HK48 + HK171*HK174*HK48 + HK172*HK183*HK48 - HK173*HK184*HK48 + HK179*HK180 - HK180*HK181 + R_LOS);
 
 	// calculate innovation variance for Y axis observation and protect against a badly conditioned calculation
-	_flow_innov_var(1) = (HK43*HK74*HK90 + HK43*HK77*HK89 + HK43*HK79*HK88 + HK43*HK80*HK87 + HK66*HK92*HK94 + HK68*HK91*HK92 + HK70*HK92*HK93 + R_LOS);
+	_flow_innov_var(1) = (HK150*HK175*HK49 + HK154*HK176*HK49 + HK157*HK177*HK49 + HK170*HK182*HK48 + HK171*HK174*HK48 + HK172*HK183*HK48 - HK173*HK184*HK48 + HK179*HK180 - HK180*HK181 + R_LOS);
 	if (_flow_innov_var(1) < R_LOS) {
 		// we need to reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
 		return;
 	}
-	const float HK95 = HK4/_flow_innov_var(1);
+	const float HK185 = HK38/_flow_innov_var(1);
 
 
 	// run the innovation consistency check and record result
@@ -260,7 +354,7 @@ void Ekf::fuseOptFlow()
 	}
 
 	// fuse observation axes sequentially
-	SparseVector25f<0,1,2,3,4,5,6> Hfusion; // Optical flow observation Jacobians
+	SparseVector25f<0,1,2,3,4,5,6,9,24> Hfusion; // Optical flow observation Jacobians
 	Vector25f Kfusion; // Optical flow Kalman gains
 
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
@@ -268,49 +362,63 @@ void Ekf::fuseOptFlow()
 		// calculate observation Jocobians and Kalman gains
 		if (obs_index == 0) {
 			// Observation Jacobians - axis 0
-			Hfusion.at<0>() = HK3*HK5;
-			Hfusion.at<1>() = HK5*HK7;
-			Hfusion.at<2>() = HK5*HK8;
-			Hfusion.at<3>() = HK5*HK9;
-			Hfusion.at<4>() = HK25*HK4;
-			Hfusion.at<5>() = HK33*HK4;
-			Hfusion.at<6>() = HK37*HK4;
+			Hfusion.at<0>() = -HK36*HK39;
+			Hfusion.at<1>() = -HK39*HK42;
+			Hfusion.at<2>() = HK39*HK44;
+			Hfusion.at<3>() = -HK39*HK46;
+			Hfusion.at<4>() = -HK34*HK47;
+			Hfusion.at<5>() = -HK30*HK47;
+			Hfusion.at<6>() = -HK22*HK47;
+			Hfusion.at<9>() = HK50;
+			Hfusion.at<24>() = -HK50;
 
 			// Kalman gains - axis 0
-			Kfusion(0) = HK42*HK50;
-			Kfusion(1) = HK49*HK50;
-			Kfusion(2) = HK47*HK50;
-			Kfusion(3) = HK48*HK50;
-			Kfusion(4) = HK46*HK50;
-			Kfusion(5) = HK45*HK50;
-			Kfusion(6) = HK44*HK50;
+			Kfusion(0) = HK142*(HK52 + HK54 + HK56 + HK58 - HK59 + HK61 + HK63 + HK65 - HK67);
+			Kfusion(1) = HK142*(HK124 + HK125 + HK126 - HK127 + HK128 + HK129 + HK130 + HK131 - HK132);
+			Kfusion(2) = HK142*(HK133 + HK134 + HK135 - HK136 + HK137 + HK138 + HK139 + HK140 - HK141);
+			Kfusion(3) = HK142*(HK115 + HK116 + HK117 - HK118 + HK119 + HK120 + HK121 + HK122 - HK123);
+			Kfusion(4) = HK142*(HK86 + HK87 + HK88 - HK89 + HK90 + HK91 + HK92 + HK93 - HK94);
+			Kfusion(5) = HK142*(HK77 + HK78 + HK79 - HK80 + HK81 + HK82 + HK83 + HK84 - HK85);
+			Kfusion(6) = HK142*(HK68 + HK69 + HK70 - HK71 + HK72 + HK73 + HK74 + HK75 - HK76);
+			Kfusion(7) = HK142*(HK51*P(4,7) + HK53*P(5,7) + HK55*P(6,7) + HK57*P(7,24) - HK57*P(7,9) + HK60*P(3,7) + HK62*P(0,7) + HK64*P(1,7) - HK66*P(2,7));
+			Kfusion(8) = HK142*(HK51*P(4,8) + HK53*P(5,8) + HK55*P(6,8) + HK57*P(8,24) - HK57*P(8,9) + HK60*P(3,8) + HK62*P(0,8) + HK64*P(1,8) - HK66*P(2,8));
+			Kfusion(9) = HK142*(HK106 + HK107 + HK108 - HK109 + HK111 + HK112 + HK113 - HK114 + HK98);
 
-			for (unsigned row = 7; row <= 23; row++) {
-				Kfusion(row) = HK50*(HK25*P(4,row) + HK33*P(5,row) + HK37*P(6,row) + HK38*P(0,row) + HK39*P(1,row) + HK40*P(2,row) + HK41*P(3,row));
+			for (unsigned row = 10; row <= 23; row++) {
+				Kfusion(row) = HK142*(HK51*P(4,row) + HK53*P(5,row) + HK55*P(6,row) + HK57*P(row,24) - HK57*P(9,row) + HK60*P(3,row) + HK62*P(0,row) + HK64*P(1,row) - HK66*P(2,row));
 			}
+
+			Kfusion(24) = HK142*(HK100 + HK101 + HK102 - HK103 + HK110 + HK95 + HK96 + HK97 + HK99);
 
 		} else {
 			// Observation Jacobians - axis 1
-			Hfusion.at<0>() = -HK5*HK63;
-			Hfusion.at<1>() = -HK5*HK66;
-			Hfusion.at<2>() = -HK5*HK68;
-			Hfusion.at<3>() = -HK5*HK70;
-			Hfusion.at<4>() = -HK4*HK74;
-			Hfusion.at<5>() = -HK4*HK77;
-			Hfusion.at<6>() = -HK4*HK79;
+			Hfusion.at<0>() = HK159*HK39;
+			Hfusion.at<1>() = HK161*HK39;
+			Hfusion.at<2>() = HK39*(HK162 - HK163);
+			Hfusion.at<3>() = HK164*HK39;
+			Hfusion.at<4>() = HK157*HK47;
+			Hfusion.at<5>() = HK154*HK47;
+			Hfusion.at<6>() = HK150*HK47;
+			Hfusion.at<9>() = -HK165;
+			Hfusion.at<24>() = HK165;
 
 			// Kalman gains - axis 1
-			Kfusion(0) = -HK87*HK95;
-			Kfusion(1) = -HK94*HK95;
-			Kfusion(2) = -HK91*HK95;
-			Kfusion(3) = -HK93*HK95;
-			Kfusion(4) = -HK90*HK95;
-			Kfusion(5) = -HK89*HK95;
-			Kfusion(6) = -HK88*HK95;
+			Kfusion(0) = HK174*HK185;
+			Kfusion(1) = HK183*HK185;
+			Kfusion(2) = HK184*HK185;
+			Kfusion(3) = HK182*HK185;
+			Kfusion(4) = HK177*HK185;
+			Kfusion(5) = HK176*HK185;
+			Kfusion(6) = HK175*HK185;
+			Kfusion(7) = HK185*(HK166*P(4,7) + HK167*P(5,7) + HK168*P(6,7) + HK169*P(7,24) - HK169*P(7,9) + HK170*P(3,7) + HK171*P(0,7) + HK172*P(1,7) - HK173*P(2,7));
+			Kfusion(8) = HK185*(HK166*P(4,8) + HK167*P(5,8) + HK168*P(6,8) + HK169*P(8,24) - HK169*P(8,9) + HK170*P(3,8) + HK171*P(0,8) + HK172*P(1,8) - HK173*P(2,8));
+			Kfusion(9) = HK181*HK185;
 
-			for (unsigned row = 7; row <= 23; row++) {
-				Kfusion(row) = -HK95*(HK80*P(0,row) + HK81*P(1,row) + HK82*P(2,row) + HK83*P(3,row) + HK84*P(4,row) + HK85*P(5,row) + HK86*P(6,row));
+			for (unsigned row = 10; row <= 23; row++) {
+				Kfusion(row) = HK185*(HK166*P(4,row) + HK167*P(5,row) + HK168*P(6,row) + HK169*P(row,24) - HK169*P(9,row) + HK170*P(3,row) + HK171*P(0,row) + HK172*P(1,row) - HK173*P(2,row));
 			}
+
+			Kfusion(24) = HK179*HK185;
 
 		}
 
