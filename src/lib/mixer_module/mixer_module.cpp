@@ -193,8 +193,6 @@ void MixingOutput::updateParams()
 
 		bool function_changed = false;
 
-		_reverse_output_mask = 0;
-
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
 			int32_t val;
 
@@ -219,7 +217,6 @@ void MixingOutput::updateParams()
 			}
 
 			if (_min_value[i] > _max_value[i]) {
-				_reverse_output_mask |= 1 << i;
 				uint16_t tmp = _min_value[i];
 				_min_value[i] = _max_value[i];
 				_max_value[i] = tmp;
@@ -230,10 +227,11 @@ void MixingOutput::updateParams()
 			}
 		}
 
+		_reverse_output_mask = 0;
 		int32_t rev_range_param;
 
 		if (_param_handle_rev_range != PARAM_INVALID && param_get(_param_handle_rev_range, &rev_range_param) == 0) {
-			_reverse_output_mask |= rev_range_param;
+			_reverse_output_mask = rev_range_param;
 		}
 
 		if (function_changed) {
