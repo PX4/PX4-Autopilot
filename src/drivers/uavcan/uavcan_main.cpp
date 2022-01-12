@@ -81,6 +81,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
 	ModuleParams(nullptr),
 	_node(can_driver, system_clock, _pool_allocator),
+	_beep_controller(_node),
 	_esc_controller(_node),
 	_servo_controller(_node),
 	_hardpoint_controller(_node),
@@ -505,6 +506,12 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	_node.setNodeID(node_id);
 
 	fill_node_info();
+
+	ret = _beep_controller.init();
+
+	if (ret < 0) {
+		return ret;
+	}
 
 	// Actuators
 	ret = _esc_controller.init();
