@@ -31,25 +31,20 @@
 *
 ****************************************************************************/
 
-/**
-* @file vmount_params.c
-* @author Leon Müller (thedevleon)
-* @author Matthew Edwards (mje-nz)
-*
-*/
 
 /**
 * Mount input mode
 *
-* RC uses the AUX input channels (see MNT_MAN_* parameters),
-* MAVLINK_ROI uses the MAV_CMD_DO_SET_ROI Mavlink message, and MAVLINK_DO_MOUNT the
-* MAV_CMD_DO_MOUNT_CONFIGURE and MAV_CMD_DO_MOUNT_CONTROL messages to control a mount.
+* This is the protocol used between the ground station and the autopilot.
+*
+* Recommended is Auto, RC only or MAVLink gimbal protocol v2.
+* The rest will be deprecated.
 *
 * @value -1 DISABLED
-* @value 0 AUTO
+* @value 0 Auto (RC and MAVLink gimbal protocol v2)
 * @value 1 RC
-* @value 2 MAVLINK_ROI (protocol v1)
-* @value 3 MAVLINK_DO_MOUNT (protocol v1)
+* @value 2 MAVLINK_ROI (protocol v1, to be deprecated)
+* @value 3 MAVLINK_DO_MOUNT (protocol v1, to be deprecated)
 * @value 4 MAVlink gimbal protocol v2
 * @min -1
 * @max 4
@@ -61,9 +56,9 @@ PARAM_DEFINE_INT32(MNT_MODE_IN, -1);
 /**
 * Mount output mode
 *
-* AUX uses the mixer output Control Group #2.
-* MAVLINK uses the MAV_CMD_DO_MOUNT_CONFIGURE and MAV_CMD_DO_MOUNT_CONTROL MavLink messages
-* to control a mount (set MNT_MAV_SYSID & MNT_MAV_COMPID)
+* This is the protocol used between the autopilot and a connected gimbal.
+*
+* Recommended is the MAVLink gimbal protocol v2 if the gimbal supports it.
 *
 * @value 0 AUX
 * @value 1 MAVLink gimbal protocol v1
@@ -71,6 +66,7 @@ PARAM_DEFINE_INT32(MNT_MODE_IN, -1);
 * @min 0
 * @max 2
 * @group Mount
+* @reboot_required true
 */
 PARAM_DEFINE_INT32(MNT_MODE_OUT, 0);
 

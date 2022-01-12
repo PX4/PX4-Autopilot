@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -34,34 +34,58 @@
 
 #pragma once
 
-#include "input.h"
-#include "vmount_params.h"
-#include <uORB/topics/manual_control_setpoint.h>
+#include <stdint.h>
+#include <lib/parameters/param.h>
 
 namespace vmount
 {
 
-class InputRC : public InputBase
-{
-public:
-	InputRC() = delete;
-	explicit InputRC(Parameters &parameters);
+struct Parameters {
+	int32_t mnt_mode_in;
+	int32_t mnt_mode_out;
+	int32_t mnt_mav_sysid_v1;
+	int32_t mnt_mav_compid_v1;
+	float mnt_ob_lock_mode;
+	float mnt_ob_norm_mode;
+	int32_t mnt_man_pitch;
+	int32_t mnt_man_roll;
+	int32_t mnt_man_yaw;
+	int32_t mnt_do_stab;
+	float mnt_range_pitch;
+	float mnt_range_roll;
+	float mnt_range_yaw;
+	float mnt_off_pitch;
+	float mnt_off_roll;
+	float mnt_off_yaw;
+	int32_t mav_sysid;
+	int32_t mav_compid;
+	float mnt_rate_pitch;
+	float mnt_rate_yaw;
+	int32_t mnt_rc_in_mode;
+};
 
-	virtual ~InputRC();
-
-	virtual void print_status() const;
-
-	virtual UpdateResult update(unsigned int timeout_ms, ControlData &control_data, bool already_active);
-
-	virtual int initialize();
-
-private:
-	virtual UpdateResult _read_control_data_from_subscription(ControlData &control_data, bool already_active);
-	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
-
-	int _manual_control_setpoint_sub{-1};
-
-	float _last_set_aux_values[3] {};
+struct ParameterHandles {
+	param_t mnt_mode_in;
+	param_t mnt_mode_out;
+	param_t mnt_mav_sysid_v1;
+	param_t mnt_mav_compid_v1;
+	param_t mnt_ob_lock_mode;
+	param_t mnt_ob_norm_mode;
+	param_t mnt_man_pitch;
+	param_t mnt_man_roll;
+	param_t mnt_man_yaw;
+	param_t mnt_do_stab;
+	param_t mnt_range_pitch;
+	param_t mnt_range_roll;
+	param_t mnt_range_yaw;
+	param_t mnt_off_pitch;
+	param_t mnt_off_roll;
+	param_t mnt_off_yaw;
+	param_t mav_sysid;
+	param_t mav_compid;
+	param_t mnt_rate_pitch;
+	param_t mnt_rate_yaw;
+	param_t mnt_rc_in_mode;
 };
 
 } /* namespace vmount */

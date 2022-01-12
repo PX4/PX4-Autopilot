@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,15 +31,7 @@
 *
 ****************************************************************************/
 
-/**
- * @file input_test.cpp
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
-
 #include "input_test.h"
-
-#include <math.h>
 
 #include <px4_platform_common/posix.h>
 #include <lib/matrix/matrix/math.hpp>
@@ -49,39 +41,42 @@
 namespace vmount
 {
 
-InputTest::InputTest(float roll_deg, float pitch_deg, float yaw_deg)
+InputTest::InputTest(Parameters &parameters) :
+	InputBase(parameters)
+{}
+
+InputTest::UpdateResult InputTest::update(unsigned int timeout_ms, ControlData &control_data, bool already_active)
 {
-	_angles[0] = roll_deg;
-	_angles[1] = pitch_deg;
-	_angles[2] = yaw_deg;
-}
+	if (!_has_been_set.load()) {
+		return UpdateResult::NoUpdate;
+	}
 
-bool InputTest::finished()
-{
-	return true; /* only a single-shot test (for now) */
-}
+	control_data.type = ControlData::Type::Angle;
 
-int InputTest::update(unsigned int timeout_ms, ControlData **control_data, bool already_active)
-{
-	//we directly override the update() here, since we don't need the initialization from the base class
-
-	_control_data.type = ControlData::Type::Angle;
-
-	_control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-	_control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
-	_control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
+	control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+	control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
+	control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
 	matrix::Eulerf euler(
-		math::radians(_angles[0]),
-		math::radians(_angles[1]),
-		math::radians(_angles[2]));
+		math::radians((float)_roll_deg),
+		math::radians((float)_pitch_deg),
+		math::radians((float)_yaw_deg));
 	matrix::Quatf q(euler);
 
-	q.copyTo(_control_data.type_data.angle.q);
+	q.copyTo(control_data.type_data.angle.q);
 
-	_control_data.gimbal_shutter_retract = false;
-	*control_data = &_control_data;
-	return 0;
+	control_data.gimbal_shutter_retract = false;
+
+	control_data.type_data.angle.angular_velocity[0] = NAN;
+	control_data.type_data.angle.angular_velocity[1] = NAN;
+	control_data.type_data.angle.angular_velocity[2] = NAN;
+
+	// For testing we mark ourselves as in control.
+	control_data.sysid_primary_control = _parameters.mav_sysid;
+	control_data.compid_primary_control = _parameters.mav_compid;
+
+	_has_been_set.store(false);
+	return UpdateResult::UpdatedActive;
 }
 
 int InputTest::initialize()
@@ -89,9 +84,21 @@ int InputTest::initialize()
 	return 0;
 }
 
-void InputTest::print_status()
+void InputTest::print_status() const
 {
 	PX4_INFO("Input: Test");
+	PX4_INFO_RAW("  roll : % 3d deg\n", _roll_deg);
+	PX4_INFO_RAW("  pitch: % 3d deg\n", _pitch_deg);
+	PX4_INFO_RAW("  yaw  : % 3d deg\n", _yaw_deg);
+}
+
+void InputTest::set_test_input(int roll_deg, int pitch_deg, int yaw_deg)
+{
+	_roll_deg = roll_deg;
+	_pitch_deg = pitch_deg;
+	_yaw_deg = yaw_deg;
+
+	_has_been_set.store(true);
 }
 
 } /* namespace vmount */
