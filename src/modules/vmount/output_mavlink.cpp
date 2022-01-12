@@ -168,7 +168,6 @@ void OutputMavlinkV2::update(const ControlData &control_data, bool new_setpoints
 
 void OutputMavlinkV2::_request_gimbal_device_information()
 {
-	printf("request gimbal device\n");
 	vehicle_command_s vehicle_cmd{};
 	vehicle_cmd.timestamp = hrt_absolute_time();
 	vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE;
