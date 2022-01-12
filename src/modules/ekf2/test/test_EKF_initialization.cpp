@@ -50,7 +50,7 @@ public:
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
-	const float _init_tilt_period = 1.0; // seconds
+	const float _init_tilt_period = 0.3f; // seconds
 
 	// GTests is calling this
 	void SetUp() override
