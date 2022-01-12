@@ -222,7 +222,9 @@ static int vmount_thread_main(int argc, char *argv[])
 			for (int i = 0; i < thread_data.input_objs_len; ++i) {
 
 				const bool already_active = (thread_data.last_input_active == i);
-				const unsigned int poll_timeout = already_active ? 20 : 0; // poll only on active input to reduce latency
+				// poll only on active input to reduce latency, or on all if none is active
+				const unsigned int poll_timeout =
+					(already_active || thread_data.last_input_active == -1) ? 20 : 0;
 
 				update_result = thread_data.input_objs[i]->update(poll_timeout, control_data, already_active);
 
@@ -282,9 +284,6 @@ static int vmount_thread_main(int argc, char *argv[])
 
 	g_thread_data = nullptr;
 
-	delete thread_data.test_input;
-	thread_data.test_input = nullptr;
-
 	for (int i = 0; i < input_objs_len_max; ++i) {
 		if (thread_data.input_objs[i]) {
 			delete (thread_data.input_objs[i]);
@@ -317,6 +316,8 @@ int vmount_main(int argc, char *argv[])
 			PX4_WARN("mount driver already running");
 			return 1;
 		}
+
+		thread_should_exit.store(false);
 
 		int vmount_task = px4_task_spawn_cmd("vmount",
 						     SCHED_DEFAULT,
