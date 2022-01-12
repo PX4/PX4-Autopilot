@@ -407,9 +407,7 @@ FixedwingPositionControl::get_auto_airspeed_setpoint(const hrt_abstime &now, con
 	}
 
 	// Adapt cruise airspeed when otherwise the min groundspeed couldn't be maintained
-	const bool not_using_wind_est = !_param_fw_use_npfg.get() || !_wind_valid;
-
-	if (!_l1_control.circle_mode() && not_using_wind_est) {
+	if (!_l1_control.circle_mode() && !using_npfg_with_wind_estimate()) {
 		/*
 		 * This error value ensures that a plane (as long as its throttle capability is
 		 * not exceeded) travels towards a waypoint (and is not pushed more and more away
@@ -543,7 +541,7 @@ FixedwingPositionControl::status_publish()
 
 	}
 
-	if (_param_fw_use_npfg.get() && _wind_valid) {
+	if (_param_fw_use_npfg.get()) {
 		npfg_status_s npfg_status = {};
 
 		npfg_status.wind_est_valid = _wind_valid;
@@ -794,7 +792,7 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	const float dt = math::constrain((now - _control_position_last_called) * 1e-6f, 0.01f, 0.05f);
 	_control_position_last_called = now;
 
-	if (_param_fw_use_npfg.get() && _wind_valid) {
+	if (_param_fw_use_npfg.get()) {
 		_npfg.setDt(dt);
 
 	} else {
@@ -826,7 +824,7 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	_hdg_hold_yaw = _yaw;
 
 	/* get circle mode */
-	const bool was_circle_mode = (_param_fw_use_npfg.get() && _wind_valid) ? _npfg.circleMode() : _l1_control.circle_mode();
+	const bool was_circle_mode = (_param_fw_use_npfg.get()) ? _npfg.circleMode() : _l1_control.circle_mode();
 
 	/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
 	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
@@ -1037,8 +1035,7 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 	/* current waypoint (the one currently heading for) */
 	curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	const float acc_rad = (_param_fw_use_npfg.get()
-			       && _wind_valid) ? _npfg.switchDistance(500.0f) : _l1_control.switch_distance(500.0f);
+	const float acc_rad = (_param_fw_use_npfg.get()) ? _npfg.switchDistance(500.0f) : _l1_control.switch_distance(500.0f);
 
 	uint8_t position_sp_type = setpoint_type;
 
@@ -1077,10 +1074,10 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 			}
 
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-			// LOITER: use SETPOINT_TYPE_POSITION to get to SETPOINT_TYPE_LOITER
+			// LOITER: use SETPOINT_TYPE_POSITION to get to SETPOINT_TYPE_LOITER (NPFG handles this internally)
 			if ((dist >= 0.f)
 			    && (dist_xy > 2.f * math::max(acc_rad, loiter_radius_abs))
-			    && !(_param_fw_use_npfg.get() && _wind_valid)) {
+			    && !_param_fw_use_npfg.get()) {
 				// SETPOINT_TYPE_LOITER -> SETPOINT_TYPE_POSITION
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 			}
@@ -1099,8 +1096,7 @@ void
 FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
-	const float acc_rad = (_param_fw_use_npfg.get()
-			       && _wind_valid) ? _npfg.switchDistance(500.0f) : _l1_control.switch_distance(500.0f);
+	const float acc_rad = (_param_fw_use_npfg.get()) ? _npfg.switchDistance(500.0f) : _l1_control.switch_distance(500.0f);
 	Vector2d curr_wp{0, 0};
 	Vector2d prev_wp{0, 0};
 
@@ -1183,10 +1179,10 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const fl
 
 	float target_airspeed = get_auto_airspeed_setpoint(now, pos_sp_curr.cruising_speed, ground_speed, dt);
 
-	if (_param_fw_use_npfg.get() && _wind_valid) {
+	if (_param_fw_use_npfg.get()) {
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-		_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
+		_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed), _wind_vel);
 		_att_sp.roll_body = _npfg.getRollSetpoint();
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -1246,7 +1242,7 @@ FixedwingPositionControl::control_auto_velocity(const hrt_abstime &now, const fl
 
 	float target_airspeed = get_auto_airspeed_setpoint(now, pos_sp_curr.cruising_speed, ground_speed, dt);
 
-	if (_param_fw_use_npfg.get() && _wind_valid) {
+	if (_param_fw_use_npfg.get()) {
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 		_npfg.navigateBearing(_target_bearing, ground_speed, _wind_vel);
@@ -1338,7 +1334,7 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const floa
 		loiter_direction = (loiter_radius > 0) ? 1 : -1;
 	}
 
-	const bool in_circle_mode = (_param_fw_use_npfg.get() && _wind_valid) ? _npfg.circleMode() : _l1_control.circle_mode();
+	const bool in_circle_mode = (_param_fw_use_npfg.get()) ? _npfg.circleMode() : _l1_control.circle_mode();
 
 	if (pos_sp_next.type == position_setpoint_s::SETPOINT_TYPE_LAND && pos_sp_next.valid
 	    && in_circle_mode && _param_fw_lnd_earlycfg.get()) {
@@ -1352,10 +1348,10 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const floa
 
 	float target_airspeed = get_auto_airspeed_setpoint(now, airspeed_sp, ground_speed, dt);
 
-	if (_param_fw_use_npfg.get() && _wind_valid) {
+	if (_param_fw_use_npfg.get()) {
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-		_npfg.navigateLoiter(curr_wp, curr_pos, loiter_radius, loiter_direction, ground_speed, _wind_vel);
+		_npfg.navigateLoiter(curr_wp, curr_pos, loiter_radius, loiter_direction, get_nav_speed_2d(ground_speed), _wind_vel);
 		_att_sp.roll_body = _npfg.getRollSetpoint();
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -1455,7 +1451,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
 		 * If we use the navigator heading or not is decided later.
 		 */
-		if (_param_fw_use_npfg.get() && _wind_valid) {
+		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 			_npfg.navigateWaypoints(_runway_takeoff.getStartWP(), curr_wp, curr_pos, ground_speed, _wind_vel);
@@ -1525,7 +1521,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			float target_airspeed = get_auto_airspeed_setpoint(now, _param_fw_airspd_trim.get(), ground_speed,
 						dt);
 
-			if (_param_fw_use_npfg.get() && _wind_valid) {
+			if (_param_fw_use_npfg.get()) {
 				_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 				_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 				_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
@@ -1767,7 +1763,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		const float throttle_land = _param_fw_thr_min.get() + (_param_fw_thr_max.get() - _param_fw_thr_min.get()) * 0.1f;
 
 		/* lateral guidance */
-		if (_param_fw_use_npfg.get() && _wind_valid) {
+		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 
@@ -1882,7 +1878,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		float target_airspeed = get_auto_airspeed_setpoint(now, airspeed_approach, ground_speed, dt);
 
 		/* lateral guidance */
-		if (_param_fw_use_npfg.get() && _wind_valid) {
+		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 
@@ -2060,7 +2056,7 @@ FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const 
 			Vector2d prev_wp{_hdg_hold_prev_wp.lat, _hdg_hold_prev_wp.lon};
 			Vector2d curr_wp{_hdg_hold_curr_wp.lat, _hdg_hold_curr_wp.lon};
 
-			if (_param_fw_use_npfg.get() && _wind_valid) {
+			if (_param_fw_use_npfg.get()) {
 				_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 				_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 				_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
@@ -2400,13 +2396,19 @@ FixedwingPositionControl::reset_landing_state()
 	}
 }
 
+bool FixedwingPositionControl::using_npfg_with_wind_estimate() const
+{
+	// high wind mitigation is handled by NPFG if the wind estimate is valid
+	return _param_fw_use_npfg.get() && _wind_valid;
+}
+
 Vector2f
 FixedwingPositionControl::get_nav_speed_2d(const Vector2f &ground_speed)
 {
 
 	Vector2f nav_speed_2d{ground_speed};
 
-	if (_airspeed_valid) {
+	if (_airspeed_valid && !using_npfg_with_wind_estimate()) {
 		// l1 navigation logic breaks down when wind speed exceeds max airspeed
 		// compute 2D groundspeed from airspeed-heading projection
 		const Vector2f air_speed_2d{_airspeed * cosf(_yaw), _airspeed * sinf(_yaw)};
