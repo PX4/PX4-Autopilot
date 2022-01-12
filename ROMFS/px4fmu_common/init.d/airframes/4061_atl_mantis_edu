@@ -147,7 +147,7 @@ param set-default MPC_Z_VEL_P 0.27
 
 
 # gimbal configuration
-param set-default MNT_MODE_IN 1
+param set-default MNT_MODE_IN 0
 param set-default MNT_MODE_OUT 1
 param set-default MNT_MAN_PITCH 2
 param set-default MNT_RC_IN_MODE 1
