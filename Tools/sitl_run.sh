@@ -103,15 +103,6 @@ done
 
 export PX4_SIM_MODEL=${model}
 export PX4_SIM_PROGRAM=${program}
-<<<<<<< HEAD
-
-if [[ "$sitl_bin" == *"px4_sitl_sih"* ]]; then
-	export PX4_SIH="true"
-else
-	export PX4_SIH="false"
-fi
-=======
->>>>>>> f0857c9dc38b62a099a47110d3ccb9200aa8b823
 
 SIM_PID=0
 
@@ -123,16 +114,11 @@ if [ "$program" == "sih" ] && [ ! -n "$no_sim" ] && [[ ! -n "$HEADLESS" ]]; then
 	elif [ "$model" == "quadx" ]; then
 		"$src_path"/Tools/jmavsim_run.sh -r 250 -o &
 		SIM_PID=$!
-<<<<<<< HEAD
 	elif [ "$model" == "xvert" ]; then
 		"$src_path"/Tools/jmavsim_run.sh -r 250 -ts &
 		SIM_PID=$!
 	else
 		echo "Model ${model} not compatible with sih. sih supports [quadx,airplane,xvert]."
-=======
-	else
-		echo "Model ${model} not compatible with with sih. sih supports [quadx,airplane]."
->>>>>>> f0857c9dc38b62a099a47110d3ccb9200aa8b823
 		exit 1
 	fi
 
