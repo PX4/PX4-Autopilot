@@ -5,7 +5,7 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @maintainer Lorenz Meier <lorenz@px4.io>
+# @maintainer Farhang Naderi <farhang.nba@gmail.com>
 #
 # @board px4_fmu-v2 exclude
 # @board bitcraze_crazyflie exclude
