@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,51 +31,42 @@
 *
 ****************************************************************************/
 
-/**
- * @file output_mavlink.cpp
- * @author Leon Müller (thedevleon)
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
 
 #include "output_mavlink.h"
 
-#include <math.h>
 #include <matrix/matrix/math.hpp>
 
-#include <uORB/topics/vehicle_command.h>
 #include <px4_platform_common/defines.h>
 
 
 namespace vmount
 {
 
-OutputMavlinkV1::OutputMavlinkV1(const OutputConfig &output_config)
-	: OutputBase(output_config)
-{
-}
+OutputMavlinkV1::OutputMavlinkV1(const Parameters &parameters)
+	: OutputBase(parameters)
+{}
 
-int OutputMavlinkV1::update(const ControlData *control_data)
+void OutputMavlinkV1::update(const ControlData &control_data, bool new_setpoints)
 {
 	vehicle_command_s vehicle_command{};
 	vehicle_command.timestamp = hrt_absolute_time();
-	vehicle_command.target_system = (uint8_t)_config.mavlink_sys_id_v1;
-	vehicle_command.target_component = (uint8_t)_config.mavlink_comp_id_v1;
+	vehicle_command.target_system = (uint8_t)_parameters.mnt_mav_sysid_v1;
+	vehicle_command.target_component = (uint8_t)_parameters.mnt_mav_compid_v1;
 
-	if (control_data) {
+	if (new_setpoints) {
 		//got new command
 		_set_angle_setpoints(control_data);
 
 		const bool configuration_changed =
-			(control_data->type != _previous_control_data_type);
-		_previous_control_data_type = control_data->type;
+			(control_data.type != _previous_control_data_type);
+		_previous_control_data_type = control_data.type;
 
 		if (configuration_changed) {
 
 			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
 			vehicle_command.timestamp = hrt_absolute_time();
 
-			if (control_data->type == ControlData::Type::Neutral) {
+			if (control_data.type == ControlData::Type::Neutral) {
 				vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
 
 				vehicle_command.param5 = 0.0;
@@ -85,20 +76,20 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 			} else {
 				vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
 
-				vehicle_command.param5 = static_cast<double>(control_data->type_data.angle.frames[0]);
-				vehicle_command.param6 = static_cast<double>(control_data->type_data.angle.frames[1]);
-				vehicle_command.param7 = static_cast<float>(control_data->type_data.angle.frames[2]);
+				vehicle_command.param5 = static_cast<double>(control_data.type_data.angle.frames[0]);
+				vehicle_command.param6 = static_cast<double>(control_data.type_data.angle.frames[1]);
+				vehicle_command.param7 = static_cast<float>(control_data.type_data.angle.frames[2]);
 			}
 
 			vehicle_command.param2 = _stabilize[0] ? 1.0f : 0.0f;
 			vehicle_command.param3 = _stabilize[1] ? 1.0f : 0.0f;
 			vehicle_command.param4 = _stabilize[2] ? 1.0f : 0.0f;
 
-			_vehicle_command_pub.publish(vehicle_command);
+			_gimbal_v1_command_pub.publish(vehicle_command);
 		}
 	}
 
-	_handle_position_update();
+	_handle_position_update(control_data);
 
 	hrt_abstime t = hrt_absolute_time();
 	_calculate_angle_output(t);
@@ -108,18 +99,16 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 
 	// vmount spec has roll, pitch on channels 0, 1, respectively; MAVLink spec has roll, pitch on channels 1, 0, respectively
 	// vmount uses radians, MAVLink uses degrees
-	vehicle_command.param1 = math::degrees(_angle_outputs[1] + _config.pitch_offset);
-	vehicle_command.param2 = math::degrees(_angle_outputs[0] + _config.roll_offset);
-	vehicle_command.param3 = math::degrees(_angle_outputs[2] + _config.yaw_offset);
+	vehicle_command.param1 = math::degrees(_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch));
+	vehicle_command.param2 = math::degrees(_angle_outputs[0] + math::radians(_parameters.mnt_off_roll));
+	vehicle_command.param3 = math::degrees(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw));
 	vehicle_command.param7 = 2.0f; // MAV_MOUNT_MODE_MAVLINK_TARGETING;
 
-	_vehicle_command_pub.publish(vehicle_command);
+	_gimbal_v1_command_pub.publish(vehicle_command);
 
 	_stream_device_attitude_status();
 
 	_last_update = t;
-
-	return 0;
 }
 
 void OutputMavlinkV1::_stream_device_attitude_status()
@@ -143,52 +132,51 @@ void OutputMavlinkV1::_stream_device_attitude_status()
 	_attitude_status_pub.publish(attitude_status);
 }
 
-void OutputMavlinkV1::print_status()
+void OutputMavlinkV1::print_status() const
 {
 	PX4_INFO("Output: MAVLink gimbal protocol v1");
 }
 
-OutputMavlinkV2::OutputMavlinkV2(int32_t mav_sys_id, int32_t mav_comp_id, const OutputConfig &output_config)
-	: OutputBase(output_config),
-	  _mav_sys_id(mav_sys_id),
-	  _mav_comp_id(mav_comp_id)
+OutputMavlinkV2::OutputMavlinkV2(const Parameters &parameters)
+	: OutputBase(parameters)
 {
 }
 
-int OutputMavlinkV2::update(const ControlData *control_data)
+void OutputMavlinkV2::update(const ControlData &control_data, bool new_setpoints)
 {
 	_check_for_gimbal_device_information();
 
 	hrt_abstime t = hrt_absolute_time();
+
 
 	if (!_gimbal_device_found && t - _last_gimbal_device_checked > 1000000) {
 		_request_gimbal_device_information();
 		_last_gimbal_device_checked = t;
 
 	} else {
-		if (control_data) {
+		if (new_setpoints) {
 			//got new command
 			_set_angle_setpoints(control_data);
+
+			_handle_position_update(control_data);
+			_last_update = t;
 		}
 
-		_handle_position_update();
 		_publish_gimbal_device_set_attitude();
-		_last_update = t;
 	}
-
-	return 0;
 }
 
 void OutputMavlinkV2::_request_gimbal_device_information()
 {
+	printf("request gimbal device\n");
 	vehicle_command_s vehicle_cmd{};
 	vehicle_cmd.timestamp = hrt_absolute_time();
 	vehicle_cmd.command = vehicle_command_s::VEHICLE_CMD_REQUEST_MESSAGE;
 	vehicle_cmd.param1 = vehicle_command_s::VEHICLE_CMD_GIMBAL_DEVICE_INFORMATION;
 	vehicle_cmd.target_system = 0;
 	vehicle_cmd.target_component = 0;
-	vehicle_cmd.source_system = _mav_sys_id;
-	vehicle_cmd.source_component = _mav_comp_id;
+	vehicle_cmd.source_system = _parameters.mav_sysid;
+	vehicle_cmd.source_component = _parameters.mav_compid;
 	vehicle_cmd.confirmation = 0;
 	vehicle_cmd.from_external = false;
 
@@ -206,16 +194,26 @@ void OutputMavlinkV2::_check_for_gimbal_device_information()
 	}
 }
 
-void OutputMavlinkV2::print_status()
+void OutputMavlinkV2::print_status() const
 {
 	PX4_INFO("Output: MAVLink gimbal protocol v2");
+
+	PX4_INFO_RAW("  quaternion: [%.1f %.1f %.1f %.1f]\n",
+		     (double)_q_setpoint[0],
+		     (double)_q_setpoint[1],
+		     (double)_q_setpoint[2],
+		     (double)_q_setpoint[3]);
+	PX4_INFO_RAW("  angular velocity: [%.1f %.1f %.1f]\n",
+		     (double)_angle_velocity[0],
+		     (double)_angle_velocity[1],
+		     (double)_angle_velocity[2]);
 }
 
 void OutputMavlinkV2::_publish_gimbal_device_set_attitude()
 {
 	gimbal_device_set_attitude_s set_attitude{};
 	set_attitude.timestamp = hrt_absolute_time();
-	set_attitude.target_system = (uint8_t)_mav_sys_id;
+	set_attitude.target_system = (uint8_t)_parameters.mav_sysid;
 	set_attitude.target_component = _gimbal_device_compid;
 
 	set_attitude.angular_velocity_x = _angle_velocity[0];

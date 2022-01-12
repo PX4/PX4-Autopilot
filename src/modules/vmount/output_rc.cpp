@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,12 +31,6 @@
 *
 ****************************************************************************/
 
-/**
- * @file output_rc.cpp
- * @author Leon Müller (thedevleon)
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
 
 #include "output_rc.h"
 
@@ -49,20 +43,19 @@ using math::constrain;
 namespace vmount
 {
 
-OutputRC::OutputRC(const OutputConfig &output_config)
-	: OutputBase(output_config)
+OutputRC::OutputRC(const Parameters &parameters)
+	: OutputBase(parameters)
 {
 }
 
-int OutputRC::update(const ControlData *control_data)
+void OutputRC::update(const ControlData &control_data, bool new_setpoints)
 {
-	if (control_data) {
-		//got new command
-		_retract_gimbal = control_data->gimbal_shutter_retract;
+	if (new_setpoints) {
+		_retract_gimbal = control_data.gimbal_shutter_retract;
 		_set_angle_setpoints(control_data);
 	}
 
-	_handle_position_update();
+	_handle_position_update(control_data);
 
 	hrt_abstime t = hrt_absolute_time();
 	_calculate_angle_output(t);
@@ -71,20 +64,28 @@ int OutputRC::update(const ControlData *control_data)
 
 	// _angle_outputs are in radians, actuator_controls are in [-1, 1]
 	actuator_controls_s actuator_controls{};
-	actuator_controls.control[0] = constrain((_angle_outputs[0] + _config.roll_offset) * _config.roll_scale, -1.f, 1.f);
-	actuator_controls.control[1] = constrain((_angle_outputs[1] + _config.pitch_offset) * _config.pitch_scale, -1.f, 1.f);
-	actuator_controls.control[2] = constrain((_angle_outputs[2] + _config.yaw_offset) * _config.yaw_scale, -1.f, 1.f);
-	actuator_controls.control[3] = constrain(_retract_gimbal ? _config.gimbal_retracted_mode_value :
-				       _config.gimbal_normal_mode_value, -1.f, 1.f);
+	actuator_controls.control[0] = constrain(
+					       (_angle_outputs[0] + math::radians(_parameters.mnt_off_roll)) *
+					       (1.0f / (math::radians(_parameters.mnt_range_roll / 2.0f))),
+					       -1.f, 1.f);
+	actuator_controls.control[1] = constrain(
+					       (_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch)) *
+					       (1.0f / (math::radians(_parameters.mnt_range_pitch / 2.0f))),
+					       -1.f, 1.f);
+	actuator_controls.control[2] = constrain(
+					       (_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw)) *
+					       (1.0f / (math::radians(_parameters.mnt_range_yaw / 2.0f))),
+					       -1.f, 1.f);
+	actuator_controls.control[3] = constrain(
+					       _retract_gimbal ? _parameters.mnt_ob_lock_mode : _parameters.mnt_ob_norm_mode,
+					       -1.f, 1.f);
 	actuator_controls.timestamp = hrt_absolute_time();
 	_actuator_controls_pub.publish(actuator_controls);
 
 	_last_update = t;
-
-	return 0;
 }
 
-void OutputRC::print_status()
+void OutputRC::print_status() const
 {
 	PX4_INFO("Output: AUX");
 }

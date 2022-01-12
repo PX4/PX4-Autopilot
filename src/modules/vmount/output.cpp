@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,15 +31,8 @@
 *
 ****************************************************************************/
 
-/**
- * @file output.cpp
- * @author Leon Müller (thedevleon)
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
 
 #include "output.h"
-#include <errno.h>
 
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -53,8 +46,8 @@
 namespace vmount
 {
 
-OutputBase::OutputBase(const OutputConfig &output_config)
-	: _config(output_config)
+OutputBase::OutputBase(const Parameters &parameters)
+	: _parameters(parameters)
 {
 	_last_update = hrt_absolute_time();
 }
@@ -88,16 +81,14 @@ float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
 	return atan2f(z, target_distance);
 }
 
-void OutputBase::_set_angle_setpoints(const ControlData *control_data)
+void OutputBase::_set_angle_setpoints(const ControlData &control_data)
 {
-	_cur_control_data = control_data;
-
-	switch (control_data->type) {
+	switch (control_data.type) {
 	case ControlData::Type::Angle:
 
 		{
 			for (int i = 0; i < 3; ++i) {
-				switch (control_data->type_data.angle.frames[i]) {
+				switch (control_data.type_data.angle.frames[i]) {
 				case ControlData::TypeData::TypeAngle::Frame::AngularRate:
 					break;
 
@@ -110,18 +101,18 @@ void OutputBase::_set_angle_setpoints(const ControlData *control_data)
 					break;
 				}
 
-				_angle_velocity[i] = control_data->type_data.angle.angular_velocity[i];
+				_angle_velocity[i] = control_data.type_data.angle.angular_velocity[i];
 			}
 
 			for (int i = 0; i < 4; ++i) {
-				_q_setpoint[i] = control_data->type_data.angle.q[i];
+				_q_setpoint[i] = control_data.type_data.angle.q[i];
 			}
 		}
 
 		break;
 
 	case ControlData::Type::LonLat:
-		_handle_position_update(true);
+		_handle_position_update(control_data, true);
 		break;
 
 	case ControlData::Type::Neutral:
@@ -134,31 +125,21 @@ void OutputBase::_set_angle_setpoints(const ControlData *control_data)
 		_angle_velocity[2] = NAN;
 		break;
 	}
-
-	for (int i = 0; i < 3; ++i) {
-		_stabilize[i] = control_data->stabilize_axis[i];
-	}
 }
 
-void OutputBase::_handle_position_update(bool force_update)
+void OutputBase::_handle_position_update(const ControlData &control_data, bool force_update)
 {
-	if (!_cur_control_data || _cur_control_data->type != ControlData::Type::LonLat) {
+	if (control_data.type != ControlData::Type::LonLat) {
 		return;
 	}
 
 	vehicle_global_position_s vehicle_global_position{};
-	vehicle_local_position_s vehicle_local_position{};
 
 	if (force_update) {
 		_vehicle_global_position_sub.copy(&vehicle_global_position);
-		_vehicle_local_position_sub.copy(&vehicle_local_position);
 
 	} else {
 		if (!_vehicle_global_position_sub.update(&vehicle_global_position)) {
-			return;
-		}
-
-		if (!_vehicle_local_position_sub.update(&vehicle_local_position)) {
 			return;
 		}
 	}
@@ -166,15 +147,17 @@ void OutputBase::_handle_position_update(bool force_update)
 	const double &vlat = vehicle_global_position.lat;
 	const double &vlon = vehicle_global_position.lon;
 
-	const double &lat = _cur_control_data->type_data.lonlat.lat;
-	const double &lon = _cur_control_data->type_data.lonlat.lon;
-	const float &alt = _cur_control_data->type_data.lonlat.altitude;
+	const double &lat = control_data.type_data.lonlat.lat;
+	const double &lon = control_data.type_data.lonlat.lon;
+	const float &alt = control_data.type_data.lonlat.altitude;
 
-	float roll = _cur_control_data->type_data.lonlat.roll_angle;
+	float roll = PX4_ISFINITE(control_data.type_data.lonlat.roll_offset)
+		     ? control_data.type_data.lonlat.roll_offset
+		     : 0.0f;
 
 	// interface: use fixed pitch value > -pi otherwise consider ROI altitude
-	float pitch = (_cur_control_data->type_data.lonlat.pitch_fixed_angle >= -M_PI_F) ?
-		      _cur_control_data->type_data.lonlat.pitch_fixed_angle :
+	float pitch = (control_data.type_data.lonlat.pitch_fixed_angle >= -M_PI_F) ?
+		      control_data.type_data.lonlat.pitch_fixed_angle :
 		      _calculate_pitch(lon, lat, alt, vehicle_global_position);
 
 	float yaw = get_bearing_to_next_waypoint(vlat, vlon, lat, lon);
@@ -182,8 +165,13 @@ void OutputBase::_handle_position_update(bool force_update)
 	_absolute_angle[2] = true;
 
 	// add offsets from VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET
-	pitch += _cur_control_data->type_data.lonlat.pitch_angle_offset;
-	yaw += _cur_control_data->type_data.lonlat.yaw_angle_offset;
+	if (PX4_ISFINITE(control_data.type_data.lonlat.pitch_offset)) {
+		pitch += control_data.type_data.lonlat.pitch_offset;
+	}
+
+	if (PX4_ISFINITE(control_data.type_data.lonlat.yaw_offset)) {
+		yaw += control_data.type_data.lonlat.yaw_offset;
+	}
 
 	matrix::Quatf(matrix::Eulerf(roll, pitch, yaw)).copyTo(_q_setpoint);
 
@@ -244,6 +232,13 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 			_angle_outputs[i] = matrix::wrap_pi(_angle_outputs[i]);
 		}
 	}
+}
+
+void OutputBase::set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool yaw_stabilize)
+{
+	_stabilize[0] = roll_stabilize;
+	_stabilize[1] = pitch_stabilize;
+	_stabilize[2] = yaw_stabilize;
 }
 
 } /* namespace vmount */

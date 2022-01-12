@@ -31,11 +31,6 @@
 *
 ****************************************************************************/
 
-/**
- * @file common.h
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
 
 #pragma once
 
@@ -52,44 +47,44 @@ namespace vmount
  */
 struct ControlData {
 
-	enum class Type : uint8_t {
-		Neutral = 0,      /**< move to neutral position */
-		Angle,            /**< control the roll, pitch & yaw angle directly */
-		LonLat            /**< control via lon, lat */
+	enum class Type {
+		Neutral = 0,
+		Angle,
+		LonLat
 	};
-
-
-	Type type = Type::Neutral;
 
 	union TypeData {
 		struct TypeAngle {
-			float q[4]; /**< attitude quaternion */
-			float angular_velocity[3]; // angular velocity
+			float q[4];
+			float angular_velocity[3];
 
-			// according to DO_MOUNT_CONFIGURE
 			enum class Frame : uint8_t {
-				AngleBodyFrame = 0, /**< Follow mode, angle relative to vehicle (usually default for yaw axis). */
-				AngularRate = 1, /**< Angular rate set only, for compatibility with MAVLink v1 protocol. */
-				AngleAbsoluteFrame = 2/**< Lock mode, angle relative to horizon/world, lock mode. (usually default for roll and pitch). */
-			} frames[3]; /**< Mode. */
+				AngleBodyFrame = 0, // Also called follow mode, angle relative to vehicle forward (usually default for yaw axis).
+				AngularRate = 1, // Angular rate set only.
+				AngleAbsoluteFrame = 2 // Also called lock mode, angle relative to horizon/world, lock mode. (usually default for roll and pitch).
+			} frames[3];
 		} angle;
 
 		struct TypeLonLat {
-			double lon;              /**< longitude in [deg] */
-			double lat;              /**< latitude in [deg] */
-			float altitude;          /**< altitude in [m] */
-			float roll_angle;        /**< roll is set to a fixed angle. Set to 0 for level horizon [rad] */
-			float pitch_angle_offset; /**< angular offset for pitch [rad] */
-			float yaw_angle_offset;  /**< angular offset for yaw [rad] */
-			float pitch_fixed_angle; /**< ignored if < -pi, otherwise use a fixed pitch angle instead of the altitude */
+			double lon; // longitude in deg
+			double lat; // latitude in deg
+			float altitude; // altitude in m
+			float roll_offset; // roll offset in rad
+			float pitch_offset; // pitch offset in rad
+			float yaw_offset;  // yaw offset in rad
+			float pitch_fixed_angle; // ignored if < -pi, otherwise use a fixed pitch angle instead of the altitude
 		} lonlat;
 	} type_data;
 
+	Type type = Type::Neutral;
 
-	bool stabilize_axis[3] = { false, false, false }; /**< whether the vmount driver should stabilize an axis
-	 	 	 	 	 	 	 	 	 	 (if the output supports it, this can also be done externally) */
-	bool gimbal_shutter_retract = false; /**< whether to lock the gimbal (only in RC output mode) */
+	bool gimbal_shutter_retract = false; // whether to lock the gimbal (only in RC output mode)
 
+	uint8_t sysid_primary_control = 0; // The MAVLink system ID selected to be in control, 0 for no one.
+	uint8_t compid_primary_control = 0; // The MAVLink component ID selected to be in control, 0 for no one.
+	// uint8_t sysid_secondary_control = 0; // The MAVLink system ID selected for additional input, not implemented yet.
+	// uint8_t compid_secondary_control = 0; // The MAVLink component ID selected for additional input, not implemented yet.
 };
+
 
 } /* namespace vmount */
