@@ -372,6 +372,7 @@ private:
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
+	bool		using_npfg_with_wind_estimate() const;
 	Vector2f 	get_nav_speed_2d(const Vector2f &ground_speed);
 	void		set_control_mode_current(const hrt_abstime &now, bool pos_sp_curr_valid);
 
