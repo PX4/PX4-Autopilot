@@ -54,8 +54,7 @@ static constexpr unsigned detect_orientation_side_count = 6;
 /// Wait for vehicle to become still and detect it's orientation
 ///	@return Returns detect_orientation_return according to orientation when vehicle
 ///		and ready for measurements
-enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
-		bool lenient_still_detection);	///< true: Use more lenient still position detection
+enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub);
 
 /// Returns the human readable string representation of the orientation
 ///	@param orientation Orientation to return string for, "error" if buffer is too small
@@ -67,17 +66,15 @@ enum calibrate_return {
 	calibrate_return_cancelled
 };
 
-typedef calibrate_return(*calibration_from_orientation_worker_t)(detect_orientation_return
-		orientation,	///< Orientation which was detected
-		void *worker_data);	///< Opaque worker data
+typedef calibrate_return(*calibration_from_orientation_worker_t)(detect_orientation_return orientation,
+		void *worker_data);
 
 /// Perform calibration sequence which require a rest orientation detection prior to calibration.
 ///	@return OK: Calibration succeeded, ERROR: Calibration failed
 calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,	///< uORB handle to write output to
 		bool side_data_collected[detect_orientation_side_count],	///< Sides for which data still needs calibration
 		calibration_from_orientation_worker_t calibration_worker,	///< Worker routine which performs the actual calibration
-		void *worker_data,						///< Opaque data passed to worker routine
-		bool lenient_still_detection);					///< true: Use more lenient still position detection
+		void *worker_data);						///< Opaque data passed to worker routine
 
 /// Used to periodically check for a cancel command
 bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, const hrt_abstime &calibration_started);

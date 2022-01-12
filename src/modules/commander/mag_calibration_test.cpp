@@ -50,38 +50,38 @@ using matrix::Vector3f;
 class MagCalTest : public ::testing::Test
 {
 public:
-	void generate2SidesMagData(float *x, float *y, float *z, unsigned int n_samples, float mag_str);
+	void generate2SidesMagData(matrix::Vector3f mag_data[], unsigned int n_samples, float mag_str);
 
 	/* Generate regularly spaced data on a sphere
 	 * Ref.: How to generate equidistributed points on the surface of a sphere, Markus Deserno, 2004
 	 */
-	void generateRegularData(float *x, float *y, float *z, unsigned int n_samples, float mag_str);
+	void generateRegularData(matrix::Vector3f mag_data[], unsigned int n_samples, float mag_str);
 
-	void modifyOffsetScale(float *x, float *y, float *z, unsigned int n_samples, Vector3f offsets, Vector3f scale_factors);
+	void modifyOffsetScale(matrix::Vector3f mag_data[], unsigned int n_samples, Vector3f offsets, Vector3f scale_factors);
 };
 
-void MagCalTest::generate2SidesMagData(float *x, float *y, float *z, unsigned int n_samples, float mag_str)
+void MagCalTest::generate2SidesMagData(matrix::Vector3f data[], unsigned int n_samples, float mag_str)
 {
 	float psi = 0.f;
 	float theta = 0.f;
 	const float d_angle = 2.f * M_PI_F / float(n_samples / 2);
 
 	for (int i = 0; i < int(n_samples / 2); i++) {
-		x[i] = mag_str * sinf(psi);
-		y[i] = mag_str * cosf(psi);
-		z[i] = 0.f;
+		data[i](0) = mag_str * sinf(psi);
+		data[i](1) = mag_str * cosf(psi);
+		data[i](2) = 0.f;
 		psi += d_angle;
 	}
 
 	for (int i = int(n_samples / 2); i < int(n_samples); i++) {
-		x[i] = mag_str * sinf(theta);
-		y[i] = 0.f;
-		z[i] = mag_str * cosf(theta);
+		data[i](0) = mag_str * sinf(theta);
+		data[i](1) = 0.f;
+		data[i](2) = mag_str * cosf(theta);
 		theta += d_angle;
 	}
 }
 
-void MagCalTest::generateRegularData(float *x, float *y, float *z, unsigned int n_samples, float mag_str)
+void MagCalTest::generateRegularData(matrix::Vector3f mag_data[], unsigned int n_samples, float mag_str)
 {
 	const float a = 4.f * M_PI_F * mag_str * mag_str / n_samples;
 	const float d = sqrtf(a);
@@ -97,9 +97,9 @@ void MagCalTest::generateRegularData(float *x, float *y, float *z, unsigned int 
 
 		for (int n = 0; n < m_phi; n++) {
 			const float phi = 2.f * M_PI_F * n / static_cast<float>(m_phi);
-			x[n_count] = mag_str * sinf(theta) * cosf(phi);
-			y[n_count] = mag_str * sinf(theta) * sinf(phi);
-			z[n_count] = mag_str * cosf(theta);
+			mag_data[n_count](0) = mag_str * sinf(theta) * cosf(phi);
+			mag_data[n_count](1) = mag_str * sinf(theta) * sinf(phi);
+			mag_data[n_count](2) = mag_str * cosf(theta);
 			n_count++;
 		}
 	}
@@ -111,20 +111,16 @@ void MagCalTest::generateRegularData(float *x, float *y, float *z, unsigned int 
 
 	// Padd with constant data
 	while (n_count < n_samples) {
-		x[n_count] = x[n_count - 1];
-		y[n_count] = y[n_count - 1];
-		z[n_count] = z[n_count - 1];
+		mag_data[n_count] = mag_data[n_count - 1];
 		n_count++;
 	}
 }
 
-void MagCalTest::modifyOffsetScale(float *x, float *y, float *z, unsigned int n_samples, Vector3f offsets,
+void MagCalTest::modifyOffsetScale(matrix::Vector3f mag_data[], unsigned int n_samples, Vector3f offsets,
 				   Vector3f scale_factors)
 {
 	for (unsigned int k = 0; k < n_samples; k++) {
-		x[k] = x[k] * scale_factors(0) + offsets(0);
-		y[k] = y[k] * scale_factors(1) + offsets(1);
-		z[k] = z[k] * scale_factors(2) + offsets(2);
+		mag_data[k] = mag_data[k].emult(scale_factors) + offsets;
 	}
 }
 
@@ -138,17 +134,13 @@ TEST_F(MagCalTest, sphere2Sides)
 	const Vector3f offset_true;
 	const Vector3f scale_true = {1.f, 1.f, 1.f};
 
-	float x[N_SAMPLES];
-	float y[N_SAMPLES];
-	float z[N_SAMPLES];
-
-	generate2SidesMagData(x, y, z, N_SAMPLES, mag_str_true);
+	Vector3f mag_data[N_SAMPLES];
+	generate2SidesMagData(mag_data, N_SAMPLES, mag_str_true);
 
 	// WHEN: fitting a sphere with the data and given a wrong initial radius
-	sphere_params sphere;
-	sphere.diag = {1.f, 1.f, 1.f};
+	sphere_params sphere{};
 	sphere.radius = 0.2;
-	int success = lm_mag_fit(x, y, z, N_SAMPLES, sphere, false);
+	int success = lm_fit(mag_data, N_SAMPLES, sphere, false);
 
 	// THEN: the algorithm should converge in a single step
 	EXPECT_EQ(success, PX4_OK);
@@ -171,17 +163,15 @@ TEST_F(MagCalTest, sphereRegularlySpaced)
 	const Vector3f offset_true = {-1.07f, 0.35f, -0.78f};
 	const Vector3f scale_true = {1.f, 1.f, 1.f};
 
-	float x[N_SAMPLES];
-	float y[N_SAMPLES];
-	float z[N_SAMPLES];
-	generateRegularData(x, y, z, N_SAMPLES, mag_str_true);
-	modifyOffsetScale(x, y, z, N_SAMPLES, offset_true, scale_true);
+	Vector3f mag_data[N_SAMPLES];
+	generateRegularData(mag_data, N_SAMPLES, mag_str_true);
+	modifyOffsetScale(mag_data, N_SAMPLES, offset_true, scale_true);
 
 	// WHEN: fitting a sphere to the data
-	sphere_params sphere;
+	sphere_params sphere{};
 	sphere.diag = {1.f, 1.f, 1.f};
 	sphere.radius = 0.2;
-	int success = lm_mag_fit(x, y, z, N_SAMPLES, sphere, false);
+	int success = lm_fit(mag_data, N_SAMPLES, sphere, false);
 
 	// THEN: the algorithm should converge in a few iterations and
 	// find the correct parameters
@@ -200,7 +190,7 @@ TEST_F(MagCalTest, replayTestData)
 	// GIVEN: a real test dataset with large offsets
 	// and where the two first iterations of the LM algorithm
 	// produces a negative radius and a constant fitness value
-	constexpr unsigned int N_SAMPLES = 231;
+	constexpr unsigned N_SAMPLES = 231;
 
 	const float mag_str_true = 0.4f;
 	const Vector3f offset_true = {-0.18f, 0.05f, -0.58f};
@@ -209,7 +199,16 @@ TEST_F(MagCalTest, replayTestData)
 	sphere_params sphere;
 	sphere.diag = {1.f, 1.f, 1.f};
 	sphere.radius = 0.2;
-	int sphere_success = lm_mag_fit(mag_data1_x, mag_data1_y, mag_data1_z, N_SAMPLES, sphere, false);
+
+	matrix::Vector3f mag_data1[231];
+
+	for (unsigned i = 0; i < N_SAMPLES; i++) {
+		mag_data1[i](0) = mag_data1_x[i];
+		mag_data1[i](1) = mag_data1_y[i];
+		mag_data1[i](2) = mag_data1_z[i];
+	}
+
+	int sphere_success = lm_fit(mag_data1, N_SAMPLES, sphere, false);
 
 	// THEN: the algorithm should converge and find the correct parameters
 	EXPECT_EQ(sphere_success, PX4_OK);
@@ -222,8 +221,8 @@ TEST_F(MagCalTest, replayTestData)
 	sphere_params ellipsoid;
 	ellipsoid.diag = {1.f, 1.f, 1.f};
 	ellipsoid.radius = 0.2;
-	int ellipsoid_step_1_success = lm_mag_fit(mag_data1_x, mag_data1_y, mag_data1_z, N_SAMPLES, ellipsoid, false);
-	int ellipsoid_success = lm_mag_fit(mag_data1_x, mag_data1_y, mag_data1_z, N_SAMPLES, ellipsoid, true);
+	int ellipsoid_step_1_success = lm_fit(mag_data1, N_SAMPLES, ellipsoid, false);
+	int ellipsoid_success = lm_fit(mag_data1, N_SAMPLES, ellipsoid, true);
 	const Vector3f scale_true = {1.f, 1.06f, 0.94f};
 
 	EXPECT_EQ(ellipsoid_step_1_success, PX4_OK);

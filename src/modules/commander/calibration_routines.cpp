@@ -63,17 +63,16 @@
 
 using namespace time_literals;
 
-enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub, bool lenient_still_position)
+enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub)
 {
 	static constexpr unsigned ndim = 3;
 
 	float accel_ema[ndim] {};                       // exponential moving average of accel
 	float accel_disp[3] {};                         // max-hold dispersion of accel
 	static constexpr float ema_len = 0.5f;          // EMA time constant in seconds
-	static constexpr float normal_still_thr = 0.25; // normal still threshold
-	float still_thr2 = powf(lenient_still_position ? (normal_still_thr * 3) : normal_still_thr, 2);
+	float still_thr2 = powf(0.25f * 3, 2);
 	static constexpr float accel_err_thr = 5.0f;    // set accel error threshold to 5m/s^2
-	const hrt_abstime still_time = lenient_still_position ? 500000 : 1300000; // still time required in us
+	static constexpr hrt_abstime still_time = 500000;
 
 	/* set timeout to 90s */
 	static constexpr hrt_abstime timeout = 90_s;
@@ -219,7 +218,7 @@ const char *detect_orientation_str(enum detect_orientation_return orientation)
 
 calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		bool side_data_collected[detect_orientation_side_count], calibration_from_orientation_worker_t calibration_worker,
-		void *worker_data, bool lenient_still_position)
+		void *worker_data)
 {
 	const hrt_abstime calibration_started = hrt_absolute_time();
 	calibrate_return result = calibrate_return_ok;
@@ -268,7 +267,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
 		px4_usleep(20000);
-		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, lenient_still_position);
+		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub);
 
 		if (orient == ORIENTATION_ERROR) {
 			orientation_failures++;
