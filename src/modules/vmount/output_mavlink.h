@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,11 +31,6 @@
 *
 ****************************************************************************/
 
-/**
- * @file output_mavlink.h
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
 
 #pragma once
 
@@ -50,23 +45,19 @@
 
 namespace vmount
 {
-/**
- ** class OutputMavlink
- *  Output via vehicle_command topic
- */
 class OutputMavlinkV1 : public OutputBase
 {
 public:
-	OutputMavlinkV1(const OutputConfig &output_config);
+	OutputMavlinkV1(const Parameters &parameters);
 	virtual ~OutputMavlinkV1() = default;
 
-	virtual int update(const ControlData *control_data);
+	virtual void update(const ControlData &control_data, bool new_setpoints);
 
-	virtual void print_status();
+	virtual void print_status() const;
 
 private:
 	void _stream_device_attitude_status();
-	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_s> _gimbal_v1_command_pub{ORB_ID(gimbal_v1_command)};
 	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
 
 	ControlData::Type _previous_control_data_type {ControlData::Type::Neutral};
@@ -75,12 +66,12 @@ private:
 class OutputMavlinkV2 : public OutputBase
 {
 public:
-	OutputMavlinkV2(int32_t mav_sys_id, int32_t mav_comp_id, const OutputConfig &output_config);
+	OutputMavlinkV2(const Parameters &parameters);
 	virtual ~OutputMavlinkV2() = default;
 
-	virtual int update(const ControlData *control_data);
+	virtual void update(const ControlData &control_data, bool new_setpoints);
 
-	virtual void print_status();
+	virtual void print_status() const;
 
 private:
 	void _publish_gimbal_device_set_attitude();
@@ -90,8 +81,6 @@ private:
 	uORB::Publication<gimbal_device_set_attitude_s> _gimbal_device_set_attitude_pub{ORB_ID(gimbal_device_set_attitude)};
 	uORB::Subscription _gimbal_device_information_sub{ORB_ID(gimbal_device_information)};
 
-	int32_t _mav_sys_id{1}; ///< our mavlink system id
-	int32_t _mav_comp_id{1}; ///< our mavlink component id
 	uint8_t _gimbal_device_compid{0};
 	hrt_abstime _last_gimbal_device_checked{0};
 	bool _gimbal_device_found {false};

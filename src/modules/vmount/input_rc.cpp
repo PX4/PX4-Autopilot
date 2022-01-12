@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,11 +31,6 @@
 *
 ****************************************************************************/
 
-/**
- * @file input_rc.cpp
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
 
 #include "input_rc.h"
 
@@ -50,17 +45,9 @@
 namespace vmount
 {
 
-
-InputRC::InputRC(int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw, float mnt_rate_pitch,
-		 float mnt_rate_yaw, int rc_in_mode)
-{
-	_aux_channels[0] = aux_channel_roll;
-	_aux_channels[1] = aux_channel_pitch;
-	_aux_channels[2] = aux_channel_yaw;
-	_mnt_rate_pitch = mnt_rate_pitch;
-	_mnt_rate_yaw = mnt_rate_yaw;
-	_rc_in_mode = rc_in_mode;
-}
+InputRC::InputRC(Parameters &parameters) :
+	InputBase(parameters)
+{}
 
 InputRC::~InputRC()
 {
@@ -80,11 +67,8 @@ int InputRC::initialize()
 	return 0;
 }
 
-int InputRC::update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active)
+InputRC::UpdateResult InputRC::update(unsigned int timeout_ms, ControlData &control_data, bool already_active)
 {
-	// Default to no change signalled by NULL.
-	*control_data = nullptr;
-
 	px4_pollfd_struct_t polls[1];
 	polls[0].fd = 		_manual_control_setpoint_sub;
 	polls[0].events = 	POLLIN;
@@ -92,24 +76,25 @@ int InputRC::update_impl(unsigned int timeout_ms, ControlData **control_data, bo
 	int ret = px4_poll(polls, 1, timeout_ms);
 
 	if (ret < 0) {
-		return -errno;
+		return UpdateResult::NoUpdate;
 	}
 
 	if (ret == 0) {
-		// Timeout, leave NULL
-	} else {
-		if (polls[0].revents & POLLIN) {
-			// Only if there was a change, we update the control data, otherwise leave it NULL.
-			if (_read_control_data_from_subscription(_control_data, already_active)) {
-				*control_data = &_control_data;
-			}
+		// If we have been active before, we stay active, unless someone steals
+		// the control away.
+		if (already_active) {
+			return UpdateResult::UpdatedActive;
 		}
 	}
 
-	return 0;
+	if (polls[0].revents & POLLIN) {
+		return _read_control_data_from_subscription(control_data, already_active);
+	}
+
+	return UpdateResult::NoUpdate;
 }
 
-bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bool already_active)
+InputRC::UpdateResult InputRC::_read_control_data_from_subscription(ControlData &control_data, bool already_active)
 {
 	manual_control_setpoint_s manual_control_setpoint{};
 	orb_copy(ORB_ID(manual_control_setpoint), _manual_control_setpoint_sub, &manual_control_setpoint);
@@ -123,20 +108,23 @@ bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bo
 
 	// If we were already active previously, we just update normally. Otherwise, there needs to be
 	// a major stick movement to re-activate manual (or it's running for the very first time).
-	bool major_movement = false;
 
 	// Detect a big stick movement
-	for (int i = 0; i < 3; ++i) {
-		if (fabsf(_last_set_aux_values[i] - new_aux_values[i]) > 0.25f) {
-			major_movement = true;
+	const bool major_movement = [&]() {
+		for (int i = 0; i < 3; ++i) {
+			if (fabsf(_last_set_aux_values[i] - new_aux_values[i]) > 0.25f) {
+				return true;
+			}
 		}
-	}
 
-	if (already_active || major_movement || _first_time) {
+		return false;
+	}();
 
-		_first_time = false;
+	if (already_active || major_movement) {
+		control_data.sysid_primary_control = _parameters.mav_sysid;
+		control_data.compid_primary_control = _parameters.mav_compid;
 
-		if (_rc_in_mode == 0) {
+		if (_parameters.mnt_rc_in_mode == 0) {
 			// We scale manual input from roll -180..180, pitch -90..90, yaw, -180..180 degrees.
 			matrix::Eulerf euler(new_aux_values[0] * math::radians(180.f),
 					     new_aux_values[1] * math::radians(90.f),
@@ -160,8 +148,8 @@ bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bo
 			control_data.type_data.angle.q[3] = NAN;
 
 			control_data.type_data.angle.angular_velocity[0] = 0.f;
-			control_data.type_data.angle.angular_velocity[1] = math::radians(_mnt_rate_pitch) * new_aux_values[1];
-			control_data.type_data.angle.angular_velocity[2] = math::radians(_mnt_rate_yaw) * new_aux_values[2];
+			control_data.type_data.angle.angular_velocity[1] = math::radians(_parameters.mnt_rate_pitch) * new_aux_values[1];
+			control_data.type_data.angle.angular_velocity[2] = math::radians(_parameters.mnt_rate_yaw) * new_aux_values[2];
 
 			control_data.type_data.angle.frames[0] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
 			control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngularRate;
@@ -174,16 +162,33 @@ bool InputRC::_read_control_data_from_subscription(ControlData &control_data, bo
 		}
 
 		control_data.gimbal_shutter_retract = false;
-		return true;
+
+		return UpdateResult::UpdatedActive;
 
 	} else {
-		return false;
+		return UpdateResult::NoUpdate;
 	}
 }
 
 float InputRC::_get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx)
 {
-	switch (_aux_channels[channel_idx]) {
+	int32_t aux_channel = [&]() {
+		switch (channel_idx) {
+		case 0:
+			return _parameters.mnt_man_roll;
+
+		case 1:
+			return _parameters.mnt_man_pitch;
+
+		case 2:
+			return _parameters.mnt_man_yaw;
+
+		default:
+			return int32_t(0);
+		}
+	}();
+
+	switch (aux_channel) {
 
 	case 1:
 		return manual_control_setpoint.aux1;
@@ -208,9 +213,10 @@ float InputRC::_get_aux_value(const manual_control_setpoint_s &manual_control_se
 	}
 }
 
-void InputRC::print_status()
+void InputRC::print_status() const
 {
-	PX4_INFO("Input: RC (channels: roll=%i, pitch=%i, yaw=%i)", _aux_channels[0], _aux_channels[1], _aux_channels[2]);
+	PX4_INFO("Input: RC (channels: roll=%" PRIi32 ", pitch=%" PRIi32 ", yaw=%" PRIi32 ")", _parameters.mnt_man_roll,
+		 _parameters.mnt_man_pitch, _parameters.mnt_man_yaw);
 }
 
 } /* namespace vmount */

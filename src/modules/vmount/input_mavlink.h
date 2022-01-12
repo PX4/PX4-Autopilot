@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,11 +31,6 @@
 *
 ****************************************************************************/
 
-/**
- * @file input_mavlink.h
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
 
 #pragma once
 
@@ -48,32 +43,30 @@
 #include <uORB/topics/gimbal_device_attitude_status.h>
 #include <uORB/topics/gimbal_manager_information.h>
 #include <uORB/topics/gimbal_manager_status.h>
+#include <uORB/topics/gimbal_manager_set_attitude.h>
+#include <uORB/topics/gimbal_manager_set_manual_control.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_roi.h>
-#include <uORB/topics/vehicle_global_position.h>
 #include <lib/geo/geo.h>
 
 
 namespace vmount
 {
-/**
- ** class InputMavlinkROI
- ** Input based on the vehicle_roi topic
- */
+
 class InputMavlinkROI : public InputBase
 {
 public:
-	InputMavlinkROI() = default;
+	InputMavlinkROI() = delete;
+	explicit InputMavlinkROI(Parameters &parameters);
 	virtual ~InputMavlinkROI();
 
-	virtual void print_status();
-
-protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active);
-	virtual int initialize();
+	void print_status() const override;
+	UpdateResult update(unsigned int timeout_ms, ControlData &control_data, bool already_active) override;
+	int initialize() override;
 
 private:
-	void _read_control_data_from_position_setpoint_sub();
+	void _read_control_data_from_position_setpoint_sub(ControlData &control_data);
 
 	int _vehicle_roi_sub = -1;
 	int _position_setpoint_triplet_sub = -1;
@@ -81,50 +74,49 @@ private:
 };
 
 
-/**
- ** class InputMavlinkCmdMount
- ** Input based on the VEHICLE_CMD_DO_MOUNT_CONTROL mavlink command
- */
 class InputMavlinkCmdMount : public InputBase
 {
 public:
-	InputMavlinkCmdMount();
+	InputMavlinkCmdMount() = delete;
+	explicit InputMavlinkCmdMount(Parameters &parameters);
 	virtual ~InputMavlinkCmdMount();
 
-	virtual void print_status();
-
-protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active);
-	virtual int initialize();
+	void print_status() const override;
+	UpdateResult update(unsigned int timeout_ms, ControlData &control_data, bool already_active) override;
+	int initialize() override;
 
 private:
-	void _ack_vehicle_command(vehicle_command_s *cmd);
+	UpdateResult _process_command(ControlData &control_data, const vehicle_command_s &vehicle_command);
+	void _ack_vehicle_command(const vehicle_command_s &cmd);
 
 	int _vehicle_command_sub = -1;
-
-	int32_t _mav_sys_id{1}; ///< our mavlink system id
-	int32_t _mav_comp_id{1}; ///< our mavlink component id
 };
 
 class InputMavlinkGimbalV2 : public InputBase
 {
 public:
-	InputMavlinkGimbalV2(uint8_t mav_sys_id, uint8_t mav_comp_id, float &mnt_rate_pitch, float &mnt_rate_yaw);
+	InputMavlinkGimbalV2() = delete;
+	explicit InputMavlinkGimbalV2(Parameters &parameters);
 	virtual ~InputMavlinkGimbalV2();
 
-	virtual void print_status();
-
-protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active);
-	virtual int initialize();
+	UpdateResult update(unsigned int timeout_ms, ControlData &control_data, bool already_active) override;
+	int initialize() override;
+	void print_status() const override;
 
 private:
-	void _set_control_data_from_set_attitude(const uint32_t flags, const matrix::Quatf &q,
+	UpdateResult _process_set_attitude(ControlData &control_data, const gimbal_manager_set_attitude_s &set_attitude);
+	UpdateResult _process_vehicle_roi(ControlData &control_data, const vehicle_roi_s &vehicle_roi);
+	UpdateResult _process_position_setpoint_triplet(ControlData &control_data,
+			const position_setpoint_triplet_s &position_setpoint_triplet);
+	UpdateResult _process_command(ControlData &control_data, const vehicle_command_s &vehicle_command);
+	UpdateResult _process_set_manual_control(ControlData &control_data,
+			const gimbal_manager_set_manual_control_s &set_manual_control);
+	void _set_control_data_from_set_attitude(ControlData &control_data, const uint32_t flags, const matrix::Quatf &q,
 			const matrix::Vector3f &angular_velocity);
-	void _ack_vehicle_command(vehicle_command_s *cmd, uint8_t result);
+	void _ack_vehicle_command(const vehicle_command_s &cmd, uint8_t result);
 	void _stream_gimbal_manager_information();
-	void _stream_gimbal_manager_status();
-	void _read_control_data_from_position_setpoint_sub();
+	void _stream_gimbal_manager_status(const ControlData &control_data);
+	void _read_control_data_from_position_setpoint_sub(ControlData &control_data);
 
 	int _vehicle_roi_sub = -1;
 	int _gimbal_manager_set_attitude_sub = -1;
@@ -132,17 +124,7 @@ private:
 	int _position_setpoint_triplet_sub = -1;
 	int _vehicle_command_sub = -1;
 
-	uint8_t _mav_sys_id{1}; ///< our mavlink system id
-	uint8_t _mav_comp_id{1}; ///< our mavlink component id
-
-	uint8_t _sys_id_primary_control{0};
-	uint8_t _comp_id_primary_control{0};
-
-	float &_mnt_rate_pitch;
-	float &_mnt_rate_yaw;
-
 	uORB::Subscription _gimbal_device_attitude_status_sub{ORB_ID(gimbal_device_attitude_status)};
-	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Publication<gimbal_manager_information_s> _gimbal_manager_info_pub{ORB_ID(gimbal_manager_information)};
 	uORB::Publication<gimbal_manager_status_s> _gimbal_manager_status_pub{ORB_ID(gimbal_manager_status)};
 	uint8_t _cur_roi_mode = vehicle_roi_s::ROI_NONE;

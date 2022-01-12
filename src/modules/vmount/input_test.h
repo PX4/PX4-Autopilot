@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2017 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,47 +31,33 @@
 *
 ****************************************************************************/
 
-/**
- * @file input_test.h
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
-
 #pragma once
 
 #include "input.h"
+#include <px4_platform_common/atomic.h>
 
 namespace vmount
 {
 
-/**
- ** class InputTest
- * Send a single control command, configured via constructor arguments
- */
 class InputTest : public InputBase
 {
 public:
+	InputTest() = delete;
+	explicit InputTest(Parameters &parameters);
+	virtual ~InputTest() = default;
 
-	/**
-	 * set to a fixed angle
-	 */
-	InputTest(float roll_deg, float pitch_deg, float yaw_deg);
-	virtual ~InputTest() {}
+	UpdateResult update(unsigned int timeout_ms, ControlData &control_data, bool already_active) override;
+	int initialize() override;
+	void print_status() const override;
 
-	/** check whether the test finished, and thus the main thread can quit */
-	bool finished();
-
-	virtual int update(unsigned int timeout_ms, ControlData **control_data, bool already_active);
-
-protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active) { return 0; } //not needed
-
-	virtual int initialize();
-
-	virtual void print_status();
+	void set_test_input(int roll_deg, int pitch_deg, int yaw_deg);
 
 private:
-	float _angles[3]; /**< desired angles in [deg] */
+	int _roll_deg {0};
+	int _pitch_deg {0};
+	int _yaw_deg {0};
+
+	px4::atomic<bool> _has_been_set {false};
 };
 
 

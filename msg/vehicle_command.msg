@@ -175,3 +175,5 @@ uint8 source_system		# System sending the command
 uint8 source_component		# Component sending the command
 uint8 confirmation		# 0: First transmission of this command. 1-255: Confirmation transmissions (e.g. for kill command)
 bool from_external
+
+# TOPICS vehicle_command gimbal_v1_command
