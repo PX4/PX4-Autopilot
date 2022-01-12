@@ -52,6 +52,7 @@
 #include "lib/flash_cache.h"
 
 #include <nuttx/mtd/mtd.h>
+#include <nuttx/fs/partition.h>
 #include "riscv_arch.h"
 
 #include "image_toc.h"
@@ -90,7 +91,10 @@ typedef enum {
 	LOAD_FAIL
 } image_loading_status_t;
 
-image_loading_status_t loading_status = UNINITIALIZED;
+static image_loading_status_t loading_status = UNINITIALIZED;
+static bool u_boot_loaded = false;
+static bool sbi_loaded = false;
+static bool sel4_loaded = false;
 
 /* board definition */
 struct boardinfo board_info = {
@@ -388,7 +392,6 @@ flash_func_write_word(uintptr_t address, uint32_t word)
 
 		// write pages
 		flash_write_pages(write_page, pgs_per_block, (uint8_t *)block_start);
-
 		device_flashed = true;
 
 		first_unwritten = address + sizeof(uint32_t);
@@ -506,14 +509,33 @@ led_toggle(unsigned led)
 	}
 }
 
-
 /* Make the actual jump to app */
 void
 arch_do_jump(const uint32_t *app_base)
 {
 
-	/* Boot PX4 on hart 1 */
-	*(volatile uint32_t *)MPFS_CLINT_MSIP1 = 0x01U;
+	/* seL4 on hart 1 */
+	if (sel4_loaded) {
+#if CONFIG_MPFS_HART1_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
+		*(volatile uint32_t *)MPFS_CLINT_MSIP1 = 0x01U;
+#endif
+	}
+
+	/* PX4 on hart 2 */
+#if CONFIG_MPFS_HART2_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
+	*(volatile uint32_t *)MPFS_CLINT_MSIP2 = 0x01U;
+#endif
+
+	/* Linux on harts 3,4 */
+	if (sbi_loaded && u_boot_loaded) {
+#if CONFIG_MPFS_HART3_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
+		*(volatile uint32_t *)MPFS_CLINT_MSIP3 = 0x01U;
+#endif
+
+#if CONFIG_MPFS_HART4_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
+		*(volatile uint32_t *)MPFS_CLINT_MSIP4 = 0x01U;
+#endif
+	}
 
 	// TODO. monitor?
 	while (1) {
@@ -545,6 +567,15 @@ static size_t get_image_size(void)
 }
 #endif
 
+#ifdef CONFIG_MMCSD
+void partition_handler(FAR struct partition_s *part, FAR void *arg)
+{
+	//_alert("found partition %d\n",part->index);
+	if (part->index == 0) {
+		register_blockpartition("/dev/mmcsd0p0", 0, "/dev/mmcsd0", part->firstblock, part->nblocks);
+	}
+}
+#endif
 
 static int loader_main(int argc, char *argv[])
 {
@@ -553,10 +584,13 @@ static int loader_main(int argc, char *argv[])
 	loading_status = IN_PROGRESS;
 
 #ifdef CONFIG_MMCSD
+
+	parse_block_partition("/dev/mmcsd0", partition_handler, "/sdcard/");
+
 	/*
 	 * Mount the sdcard and check if the image is present
 	 */
-	int ret = mount("/dev/mmcsd0", "/sdcard/", "vfat", 0, NULL);
+	int ret = mount("/dev/mmcsd0p0", "/sdcard/", "vfat", 0, NULL);
 
 	if (ret >= 0) {
 		int mmc_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
@@ -610,6 +644,55 @@ static int loader_main(int argc, char *argv[])
 				}
 			}
 		}
+	}
+
+#endif
+
+#ifdef CONFIG_OPENSBI
+	// Load u-boot and sbi
+
+	int mmcsd_fd;
+
+	/*
+	 * Mount the emmc and check if the image is present
+	 */
+	ret = mount("/dev/mmcsd0p0", "/sdcard/", "vfat", 0, NULL);
+
+	if (ret < 0) {
+		_err("SD card mount failed\n");
+
+	} else {
+		_alert("Loading /boot/u-boot.bin\n");
+		mmcsd_fd = open("/sdcard/boot/u-boot.bin", O_RDONLY);
+
+		if (mmcsd_fd > 0) {
+			size_t got = read(mmcsd_fd, (void *)0x80200000, 0x100000);
+
+			if (got > 0) {
+				u_boot_loaded = true;
+			}
+
+		} else {
+			_alert("File not found\n");
+		}
+
+		close(mmcsd_fd);
+
+		_alert("Loading /boot/ssrc_saluki.sbi\n");
+		mmcsd_fd = open("/sdcard/boot/ssrc_saluki.sbi", O_RDONLY);
+
+		if (mmcsd_fd > 0) {
+			size_t got = read(mmcsd_fd, (void *)0x80000000, 0x100000);
+
+			if (got > 0) {
+				sbi_loaded = true;
+			}
+
+		} else {
+			_alert("File not found\n");
+		}
+
+		close(mmcsd_fd);
 	}
 
 #endif
