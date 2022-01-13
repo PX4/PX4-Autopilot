@@ -40,19 +40,6 @@
  */
 
 /**
- * Minimum time of arrival delta between non-IMU observations before data is downsampled.
- *
- * Baro and Magnetometer data will be averaged before downsampling, other data will be point sampled resulting in loss of information.
- *
- * @group EKF2
- * @min 10
- * @max 50
- * @reboot_required true
- * @unit ms
- */
-PARAM_DEFINE_INT32(EKF2_MIN_OBS_DT, 20);
-
-/**
  * Magnetometer measurement delay relative to IMU measurements
  *
  * @group EKF2

@@ -46,10 +46,17 @@
 # define ECL_INFO PX4_DEBUG
 # define ECL_WARN PX4_DEBUG
 # define ECL_ERR  PX4_DEBUG
+# define ECL_DEBUG PX4_DEBUG
 #else
 # define ECL_INFO(X, ...) printf(X "\n", ##__VA_ARGS__)
 # define ECL_WARN(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
 # define ECL_ERR(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
+
+# if defined(DEBUG_BUILD)
+#  define ECL_DEBUG(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
+# else
+#  define ECL_DEBUG(X, ...)
+#endif
 
 #endif
 
@@ -263,7 +270,7 @@ public:
 protected:
 
 	EstimatorInterface() = default;
-	virtual ~EstimatorInterface() = default;
+	virtual ~EstimatorInterface();
 
 	virtual bool init(uint64_t timestamp) = 0;
 
@@ -365,15 +372,15 @@ protected:
 	RingBuffer<outputSample> _output_buffer{12};
 	RingBuffer<outputVert> _output_vert_buffer{12};
 
-	RingBuffer<gpsSample> _gps_buffer;
-	RingBuffer<magSample> _mag_buffer;
-	RingBuffer<baroSample> _baro_buffer;
-	RingBuffer<rangeSample> _range_buffer;
-	RingBuffer<airspeedSample> _airspeed_buffer;
-	RingBuffer<flowSample> 	_flow_buffer;
-	RingBuffer<extVisionSample> _ext_vision_buffer;
-	RingBuffer<dragSample> _drag_buffer;
-	RingBuffer<auxVelSample> _auxvel_buffer;
+	RingBuffer<gpsSample> *_gps_buffer{nullptr};
+	RingBuffer<magSample> *_mag_buffer{nullptr};
+	RingBuffer<baroSample> *_baro_buffer{nullptr};
+	RingBuffer<rangeSample> *_range_buffer{nullptr};
+	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
+	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
+	RingBuffer<extVisionSample> *_ext_vision_buffer{nullptr};
+	RingBuffer<dragSample> *_drag_buffer{nullptr};
+	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
 
 	// timestamps of latest in buffer saved measurement in microseconds
 	uint64_t _time_last_imu{0};
@@ -429,30 +436,11 @@ private:
 					// [1] high frequency vibration level in the IMU delta angle data (rad)
 					// [2] high frequency vibration level in the IMU delta velocity data (m/s)
 
-	// Used to down sample barometer data
-	uint64_t _baro_timestamp_sum{0};	// summed timestamp to provide the timestamp of the averaged sample
-	float _baro_alt_sum{0.0f};			// summed pressure altitude readings (m)
-	uint8_t _baro_sample_count{0};		// number of barometric altitude measurements summed
-
 	// Used by the multi-rotor specific drag force fusion
 	uint8_t _drag_sample_count{0};	// number of drag specific force samples assumulated at the filter prediction rate
 	float _drag_sample_time_dt{0.0f};	// time integral across all samples used to form _drag_down_sampled (sec)
 
-	// Used to downsample magnetometer data
-	uint64_t _mag_timestamp_sum{0};
-	Vector3f _mag_data_sum{};
-	uint8_t _mag_sample_count{0};
-
 	// observation buffer final allocation failed
-	bool _gps_buffer_fail{false};
-	bool _mag_buffer_fail{false};
-	bool _baro_buffer_fail{false};
-	bool _range_buffer_fail{false};
-	bool _airspeed_buffer_fail{false};
-	bool _flow_buffer_fail{false};
-	bool _ev_buffer_fail{false};
-	bool _drag_buffer_fail{false};
-	bool _auxvel_buffer_fail{false};
-
+	uint64_t _last_allocation_fail_print{0};
 };
 #endif // !EKF_ESTIMATOR_INTERFACE_H
