@@ -125,8 +125,10 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 	_mag_data_sum += mag_sample.mag;
 	_mag_timestamp_sum += mag_sample.time_us / 1000; // Dividing by 1000 to avoid overflow
 
+	const unsigned min_interval = math::max(static_cast<unsigned>(_params.mag_interval_min_ms * 1000), _min_obs_interval_us);
+
 	// limit data rate to prevent data being lost
-	if ((mag_sample.time_us - _time_last_mag) > _min_obs_interval_us) {
+	if ((mag_sample.time_us - _time_last_mag) > min_interval) {
 		_time_last_mag = mag_sample.time_us;
 
 		magSample mag_sample_new;
@@ -136,6 +138,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 		mag_sample_new.time_us -= static_cast<uint64_t>(_params.mag_delay_ms * 1000);
 		mag_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
 
+		// TODO: the noise should also be adjusted
 		mag_sample_new.mag = _mag_data_sum / _mag_sample_count;
 
 		_mag_buffer.push(mag_sample_new);

@@ -53,6 +53,19 @@
 PARAM_DEFINE_INT32(EKF2_MIN_OBS_DT, 20);
 
 /**
+ * Minimum time between magnetometer updates
+ *
+ * Magnetometer data will be averaged before downsampling. Set this value higher to reduce
+ * CPU load during 3D mag fusion and lower to obtain better perfromance in acrobatic flights.
+ *
+ * @group EKF2
+ * @min 10
+ * @max 200
+ * @unit ms
+ */
+PARAM_DEFINE_INT32(EKF2_MAG_MIN_DT, 66);
+
+/**
  * Magnetometer measurement delay relative to IMU measurements
  *
  * @group EKF2
