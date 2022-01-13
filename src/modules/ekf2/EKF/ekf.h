@@ -546,8 +546,8 @@ private:
 	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 
 	// height sensor status
-	bool _baro_hgt_faulty{false};		///< true if valid baro data is unavailable for use
-	bool _gps_hgt_intermittent{false};	///< true if gps height into the buffer is intermittent
+	bool _baro_hgt_faulty{true};		///< true if valid baro data is unavailable for use
+	bool _gps_hgt_intermittent{true};	///< true if gps height into the buffer is intermittent
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)

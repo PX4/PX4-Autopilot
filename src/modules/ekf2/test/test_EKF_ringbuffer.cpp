@@ -46,11 +46,11 @@ class EkfRingBufferTest : public ::testing::Test
 public:
 
 	sample _x, _y, _z;
-	RingBuffer<sample> *_buffer;
+	RingBuffer<sample> *_buffer{nullptr};
 
 	void SetUp() override
 	{
-		_buffer = new RingBuffer<sample>();
+		_buffer = new RingBuffer<sample>(3);
 		_x.time_us = 1000000;
 		_x.data[0] = _x.data[1] = _x.data[2] = 1.5f;
 
