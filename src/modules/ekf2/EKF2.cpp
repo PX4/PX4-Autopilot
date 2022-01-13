@@ -57,7 +57,6 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
 	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
 	_params(_ekf.getParamHandle()),
-	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
 	_param_ekf2_baro_delay(_params->baro_delay_ms),
 	_param_ekf2_gps_delay(_params->gps_delay_ms),
@@ -243,6 +242,10 @@ int EKF2::print_status()
 	perf_print_counter(_msg_missed_odometry_perf);
 	perf_print_counter(_msg_missed_optical_flow_perf);
 
+#if defined(DEBUG_BUILD)
+	_ekf.print_status();
+#endif // DEBUG_BUILD
+
 	return 0;
 }
 
@@ -271,6 +274,38 @@ void EKF2::Run()
 
 		if (param_aspd_scale != PARAM_INVALID) {
 			param_get(param_aspd_scale, &_airspeed_scale_factor);
+		}
+
+		// if using baro ensure sensor interval minimum is sufficient to accommodate system averaged baro output
+		if (_params->vdist_sensor_type == 0) {
+			float sens_baro_rate = 0.f;
+
+			if (param_get(param_find("SENS_BARO_RATE"), &sens_baro_rate) == PX4_OK) {
+				if (sens_baro_rate > 0) {
+					float interval_ms = roundf(1000.f / sens_baro_rate);
+
+					if (PX4_ISFINITE(interval_ms) && (interval_ms > _params->sensor_interval_max_ms)) {
+						PX4_DEBUG("updating sensor_interval_max_ms %.3f -> %.3f", (double)_params->sensor_interval_max_ms, (double)interval_ms);
+						_params->sensor_interval_max_ms = interval_ms;
+					}
+				}
+			}
+		}
+
+		// if using mag ensure sensor interval minimum is sufficient to accommodate system averaged mag output
+		if (_params->mag_fusion_type != MAG_FUSE_TYPE_NONE) {
+			float sens_mag_rate = 0.f;
+
+			if (param_get(param_find("SENS_MAG_RATE"), &sens_mag_rate) == PX4_OK) {
+				if (sens_mag_rate > 0) {
+					float interval_ms = roundf(1000.f / sens_mag_rate);
+
+					if (PX4_ISFINITE(interval_ms) && (interval_ms > _params->sensor_interval_max_ms)) {
+						PX4_DEBUG("updating sensor_interval_max_ms %.3f -> %.3f", (double)_params->sensor_interval_max_ms, (double)interval_ms);
+						_params->sensor_interval_max_ms = interval_ms;
+					}
+				}
+			}
 		}
 	}
 
