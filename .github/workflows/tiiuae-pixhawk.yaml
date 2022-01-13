@@ -31,9 +31,8 @@ jobs:
         run: |
           set -eux
           mkdir bin
-          pushd px4-firmware
+          cd px4-firmware/
           ./build.sh ../bin/
-          popd
 
       - name: Install jfrog CLI tool
         env:
