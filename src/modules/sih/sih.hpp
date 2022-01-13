@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -58,7 +58,6 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <matrix/matrix/math.hpp>   // matrix, vectors, dcm, quaterions
 #include <conversion/rotation.h>    // math::radians,
@@ -67,7 +66,7 @@
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
-#include <lib/perf/perf_counter.h>
+#include <perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
@@ -83,14 +82,20 @@
 
 using namespace time_literals;
 
-class Sih : public ModuleBase<Sih>, public ModuleParams, public px4::ScheduledWorkItem
+extern "C" __EXPORT int sih_main(int argc, char *argv[]);
+
+class Sih : public ModuleBase<Sih>, public ModuleParams
 {
 public:
 	Sih();
-	~Sih() override;
+
+	virtual ~Sih();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static Sih *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -101,16 +106,18 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
+	/** @see ModuleBase::run() */
+	void run() override;
+
 	static float generate_wgn();    // generate white Gaussian noise sample
 
 	// generate white Gaussian noise sample as a 3D vector with specified std
 	static matrix::Vector3f noiseGauss3f(float stdx, float stdy, float stdz);
 
-	bool init();
+	// timer called periodically to post the semaphore
+	static void timer_callback(void *sem);
 
 private:
-	void Run() override;
-
 	void parameters_updated();
 
 	// simulated sensor instances
@@ -171,9 +178,12 @@ private:
 	void publish_sih();
 	void generate_fw_aerodynamics();
 	void generate_ts_aerodynamics();
+	void inner_loop();
 
-	perf_counter_t  _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t  _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
+	perf_counter_t  _loop_perf;
+
+	px4_sem_t       _data_semaphore;
+	hrt_call 	_timer_call;
 
 	hrt_abstime _last_run{0};
 	hrt_abstime _baro_time{0};
@@ -275,7 +285,6 @@ private:
 	// parameters defined in sih_params.c
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_RATEMAX>) _imu_gyro_ratemax,
-
 		(ParamFloat<px4::params::SIH_MASS>) _sih_mass,
 		(ParamFloat<px4::params::SIH_IXX>) _sih_ixx,
 		(ParamFloat<px4::params::SIH_IYY>) _sih_iyy,

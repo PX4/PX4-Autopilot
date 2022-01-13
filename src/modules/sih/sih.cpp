@@ -54,8 +54,17 @@ using namespace matrix;
 using namespace time_literals;
 
 Sih::Sih() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+	ModuleParams(nullptr)
+{
+
+}
+
+Sih::~Sih()
+{
+	perf_free(_loop_perf);
+}
+
+void Sih::run()
 {
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
@@ -85,8 +94,6 @@ Sih::~Sih()
 	perf_free(_loop_interval_perf);
 }
 
-bool Sih::init()
-{
 	int rate = _imu_gyro_ratemax.get();
 
 	// default to 250 Hz (4000 us interval)
@@ -96,20 +103,32 @@ bool Sih::init()
 
 	// 200 - 2000 Hz
 	int interval_us = math::constrain(int(roundf(1e6f / rate)), 500, 5000);
-	ScheduleOnInterval(interval_us);
 
-	return true;
+	px4_sem_init(&_data_semaphore, 0, 0);
+	hrt_call_every(&_timer_call, interval_us, interval_us, timer_callback, &_data_semaphore);
+
+	while (!should_exit()) {
+		px4_sem_wait(&_data_semaphore);     // periodic real time wakeup
+		perf_begin(_loop_perf);
+		inner_loop();
+		perf_end(_loop_perf);
+	}
+
+	hrt_cancel(&_timer_call);
+	px4_sem_destroy(&_data_semaphore);
 }
 
-void Sih::Run()
+void Sih::timer_callback(void *sem)
 {
 	if (should_exit()) {
 		exit_and_cleanup();
 		return;
 	}
+	px4_sem_post((px4_sem_t *)sem);
+}
 
-	perf_count(_loop_interval_perf);
-
+void Sih::inner_loop()
+{
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -658,27 +677,33 @@ int Sih::print_status()
 	return 0;
 }
 
+
 int Sih::task_spawn(int argc, char *argv[])
+{
+	_task_id = px4_task_spawn_cmd("sih",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_MAX,
+				      1024,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
+
+	if (_task_id < 0) {
+		_task_id = -1;
+		return -errno;
+	}
+
+	return 0;
+}
+
+Sih *Sih::instantiate(int argc, char *argv[])
 {
 	Sih *instance = new Sih();
 
-	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
-
-		if (instance->init()) {
-			return PX4_OK;
-		}
-
-	} else {
+	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 	}
 
-	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
-
-	return PX4_ERROR;
+	return instance;
 }
 
 int Sih::custom_command(int argc, char *argv[])
