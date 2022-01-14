@@ -17,12 +17,18 @@ mkdir -p ${dest_dir}
 # Generate debian package
 pushd ${script_dir}/packaging
 
-iname_p=tii-px4-pixhawk-artifacts
-iname_s=tii-px4-saluki-artifacts
-docker build -t ${iname_p} -f Dockerfile.build_pixhawk ..
-docker build -t ${iname_s} -f Dockerfile.build_saluki ..
-
 version=$(git describe --always --tags --dirty | sed 's/^v//')
+
+iname_p=tii-px4-pixhawk-artifacts
+docker build -t ${iname_p} -f Dockerfile.build_pixhawk \
+	--build-arg VERSION=${version} \
+	..
+
+iname_s=tii-px4-saluki-artifacts
+docker build -t ${iname_s} -f Dockerfile.build_saluki \
+	--build-arg VERSION=${version} \
+	..
+
 iname=tii-px4-debian-artifacts
 docker build -t ${iname} -f Dockerfile.build_px4fwupdater \
 	--build-arg VERSION=${version} \

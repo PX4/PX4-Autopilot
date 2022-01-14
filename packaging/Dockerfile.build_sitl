@@ -73,8 +73,8 @@ RUN cp -r /px4-firmware/build/px4_sitl_rtps/bin                       /px4_sitl/
     && cp -r /px4-firmware/Tools/sitl_gazebo/worlds/empty.world       /px4_gazebo_data/worlds/ \
     && cp -r /px4-firmware/Tools/sitl_gazebo/worlds/empty_ssrc.world  /px4_gazebo_data/worlds/ \
     && cp -r /px4-firmware/Tools/sitl_gazebo/scripts/jinja_gen.py     /px4_gazebo_data/scripts/ \
-    && tar czvf /artifacts/px4_sitl_build-${VERSION}.tar.gz /px4_sitl \
-    && tar czvf /artifacts/px4_gazebo_data-${VERSION}.tar.gz /px4_gazebo_data \
+    && tar czvf /artifacts/px4_sitl_build-v${VERSION}.tar.gz /px4_sitl \
+    && tar czvf /artifacts/px4_gazebo_data-v${VERSION}.tar.gz /px4_gazebo_data \
     && rm -Rf /px4_sitl /px4_gazebo_data
 
 # Bare bones image containing only the build results

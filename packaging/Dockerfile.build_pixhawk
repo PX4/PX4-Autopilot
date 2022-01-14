@@ -1,6 +1,8 @@
 # px4-firmware builder for PixHawk4
 FROM ros:galactic-ros-base as px4-cross-builder
 
+ARG VERSION="0.0.0-0"
+
 ENV LANG C.UTF-8
 ENV LANGUAGE C.UTF-8
 ENV LC_ALL C.UTF-8
@@ -36,6 +38,6 @@ RUN . /opt/ros/galactic/setup.sh \
     && SIGNING_TOOL=Tools/cryptotools.py make px4_fmu-v5x_ssrc
 
 FROM scratch
-COPY --from=px4-cross-builder /build/build/px4_fmu-v5_ssrc/px4_fmu-v5_ssrc.px4 /artifacts/
-COPY --from=px4-cross-builder /build/build/px4_fmu-v5x_ssrc/px4_fmu-v5x_ssrc.px4 /artifacts/
+COPY --from=px4-cross-builder /build/build/px4_fmu-v5_ssrc/px4_fmu-v5_ssrc.px4 /artifacts/px4_fmu-v5_ssrc-${VERSION}.px4
+COPY --from=px4-cross-builder /build/build/px4_fmu-v5x_ssrc/px4_fmu-v5x_ssrc.px4 /artifacts/px4_fmu-v5x_ssrc-${VERSION}.px4
 COPY --from=px4-cross-builder /build/Tools/px_uploader.py /artifacts/
