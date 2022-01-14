@@ -19,7 +19,7 @@ pushd ${script_dir}/packaging
 
 version=$(git describe --always --tags --dirty | sed 's/^v//')
 iname=${IMAGE_NAME:-tii-px4-sitl-artifacts}
-docker build -t ${iname} -f Dockerfile.sitl \
+docker build -t ${iname} -f Dockerfile.build_sitl \
 	--build-arg VERSION=${version} \
 	..
 

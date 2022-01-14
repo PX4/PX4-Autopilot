@@ -19,12 +19,12 @@ pushd ${script_dir}/packaging
 
 iname_p=tii-px4-pixhawk-artifacts
 iname_s=tii-px4-saluki-artifacts
-docker build -t ${iname_p} -f Dockerfile.pixhawk ..
-docker build -t ${iname_s} -f Dockerfile.saluki ..
+docker build -t ${iname_p} -f Dockerfile.build_pixhawk ..
+docker build -t ${iname_s} -f Dockerfile.build_saluki ..
 
 version=$(git describe --always --tags --dirty | sed 's/^v//')
 iname=tii-px4-debian-artifacts
-docker build -t ${iname} -f Dockerfile.debian \
+docker build -t ${iname} -f Dockerfile.build_px4fwupdater \
 	--build-arg VERSION=${version} \
 	..
 

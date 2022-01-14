@@ -36,9 +36,8 @@ jobs:
         run: |
           set -eux
           mkdir bin
-          pushd px4-firmware
+          cd px4-firmware
           IMAGE_NAME=localhost:5000/tiiuae/px4-sitl-artifacts:latest ./build_sitl.sh ../bin/
-          popd
           docker push localhost:5000/tiiuae/px4-sitl-artifacts:latest
 
       - name: Docker meta
@@ -63,7 +62,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: px4-firmware/
-          file: ./px4-firmware/packaging/Dockerfile.docker
+          file: ./px4-firmware/packaging/Dockerfile.sitl
           pull: true
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}

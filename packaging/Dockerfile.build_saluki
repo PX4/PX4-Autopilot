@@ -1,9 +1,10 @@
 # px4-firmware builder for PixHawk4
-FROM ros:foxy as px4-cross-builder
+FROM ros:galactic-ros-base as px4-cross-builder
 
 ENV LANG C.UTF-8
 ENV LANGUAGE C.UTF-8
 ENV LC_ALL C.UTF-8
+ENV RMW_IMPLEMENTATION rmw_fastrtps_cpp
 
 RUN echo "deb [trusted=yes] https://ssrc.jfrog.io/artifactory/ssrc-debian-public-remote focal fog-sw" >> /etc/apt/sources.list.d/fogsw-latest.list
 
@@ -14,6 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fast-dds-gen \
     genromfs xxd curl \
     python3-nacl python3-pip \
+    ros-galactic-fastrtps \
+    ros-galactic-rmw-fastrtps-cpp \
     && pip3 install kconfiglib jsonschema \
     && rm -rf /var/lib/apt/lists/*
 
@@ -30,7 +33,7 @@ WORKDIR /build
 
 COPY . .
 
-RUN . /opt/ros/foxy/setup.sh \
+RUN . /opt/ros/galactic/setup.sh \
     && SIGNING_TOOL=Tools/cryptotools.py make ssrc_saluki-v1_default \
     && SIGNING_TOOL=Tools/cryptotools.py make ssrc_saluki-v1_bootloader
 

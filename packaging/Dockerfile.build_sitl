@@ -1,0 +1,84 @@
+# PX4 FIRMWARE BUILDER
+# There should not be need to publish this builder image anywhere
+FROM ros:galactic-ros-base as px4_sitl_builder
+
+ARG VERSION="0.0.0-0"
+
+RUN echo "deb [trusted=yes] https://ssrc.jfrog.io/artifactory/ssrc-debian-public-remote focal fog-sw" >> /etc/apt/sources.list
+
+# Install build tools
+RUN apt-get update -y && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    wget \
+    git-core \
+    libboost-all-dev \
+    libeigen3-dev \
+    libgstreamer-plugins-base1.0-dev \
+    libopencv-dev \
+    openjdk-11-jdk-headless \
+    python3 \
+    python3-empy \
+    python3-jinja2 \
+    python3-pip \
+    python3-setuptools \
+    python3-toml \
+    python3-yaml \
+    python3-packaging \
+    python3-numpy \
+    python3-genmsg \
+    gazebo11 \
+    libgazebo11-dev \
+    fast-dds-gen \
+    ninja-build \
+    ros-galactic-gazebo-ros \
+    ros-galactic-fastrtps \
+    ros-galactic-rmw-fastrtps-cpp \
+    && pip3 install kconfiglib jsonschema \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV RMW_IMPLEMENTATION rmw_fastrtps_cpp
+
+ENV LANG C.UTF-8
+ENV LANGUAGE C.UTF-8
+ENV LC_ALL C.UTF-8
+
+WORKDIR /px4-firmware
+
+# Copy repository contents
+COPY . .
+
+RUN [ -d ./build ] && rm -Rf ./build || :
+
+# Build the PX4 firmware for SITL
+RUN . /opt/ros/galactic/setup.sh \
+    && DONT_RUN=1 make px4_sitl_rtps gazebo_ssrc_fog_x
+
+# tar artifacts
+RUN mkdir -p /artifacts \
+    && mkdir -p /px4_sitl/build/px4_sitl_rtps \
+    && mkdir -p /px4_gazebo_data/plugins \
+    && mkdir -p /px4_gazebo_data/models \
+    && mkdir -p /px4_gazebo_data/worlds/ \
+    && mkdir -p /px4_gazebo_data/scripts/
+
+RUN find /px4-firmware/build/px4_sitl_rtps/build_gazebo/*.so -exec cp {} /px4_gazebo_data/plugins \;
+
+RUN cp -r /px4-firmware/build/px4_sitl_rtps/bin                       /px4_sitl/build/px4_sitl_rtps/bin \
+    && cp -r /px4-firmware/build/px4_sitl_rtps/etc                    /px4_sitl/build/px4_sitl_rtps/etc \
+    && cp -r /px4-firmware/Tools/sitl_gazebo/models/asphalt_plane     /px4_gazebo_data/models/asphalt_plane \
+    && cp -r /px4-firmware/Tools/sitl_gazebo/models/ground_plane      /px4_gazebo_data/models/ground_plane \
+    && cp -r /px4-firmware/Tools/sitl_gazebo/models/sun               /px4_gazebo_data/models/sun \
+    && cp -r /px4-firmware/Tools/sitl_gazebo/models/ssrc_fog_x        /px4_gazebo_data/models/ssrc_fog_x \
+    && cp -r /px4-firmware/Tools/sitl_gazebo/worlds/empty.world       /px4_gazebo_data/worlds/ \
+    && cp -r /px4-firmware/Tools/sitl_gazebo/worlds/empty_ssrc.world  /px4_gazebo_data/worlds/ \
+    && cp -r /px4-firmware/Tools/sitl_gazebo/scripts/jinja_gen.py     /px4_gazebo_data/scripts/ \
+    && tar czvf /artifacts/px4_sitl_build-${VERSION}.tar.gz /px4_sitl \
+    && tar czvf /artifacts/px4_gazebo_data-${VERSION}.tar.gz /px4_gazebo_data \
+    && rm -Rf /px4_sitl /px4_gazebo_data
+
+# Bare bones image containing only the build results
+# This image can be used for retrieving relevant px4 firmware artifacts
+FROM scratch
+
+COPY --from=px4_sitl_builder /artifacts /artifacts
