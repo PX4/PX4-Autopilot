@@ -353,6 +353,22 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
 /**
+ * Delay between battery state change and failsafe reaction
+ *
+ * Battery state requires action -> wait COM_BAT_ACT_T seconds for the user to realize and take custom action
+ * React with failsafe action COM_LOW_BAT_ACT
+ *
+ * A zero value disables the delay.
+ *
+ * @group Commander
+ * @unit s
+ * @min 0.0
+ * @max 25.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(COM_BAT_ACT_T, 10.0f);
+
+/**
  * Imbalanced propeller failsafe mode
  *
  * Action the system takes when an imbalanced propeller is detected by the failure detector.

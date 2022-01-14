@@ -211,6 +211,7 @@ private:
 		(ParamInt<px4::params::COM_POS_FS_GAIN>) _param_com_pos_fs_gain,
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
+		(ParamFloat<px4::params::COM_BAT_ACT_T>) _param_com_bat_act_t,
 		(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _param_com_disarm_land,
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
@@ -343,6 +344,7 @@ private:
 	hrt_abstime	_last_esc_status_updated{0};
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
+	hrt_abstime	_battery_failsafe_timestamp{0};
 	float		_battery_current{0.0f};
 	uint8_t		_last_connected_batteries{0};
 	uint32_t	_last_battery_custom_fault[battery_status_s::MAX_INSTANCES] {};
