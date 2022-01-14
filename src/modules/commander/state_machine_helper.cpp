@@ -1138,10 +1138,11 @@ void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t batter
 	}
 }
 
-void act_on_battery_failsafe(commander_state_s &internal_state, const uint8_t battery_warning,
-			     const low_battery_action_t param_com_low_bat_act)
+uint8_t get_battery_failsafe_action(const commander_state_s &internal_state, const uint8_t battery_warning,
+				    const low_battery_action_t param_com_low_bat_act)
 {
-	// Failsafe action
+	uint8_t ret = commander_state_s::MAIN_STATE_MAX;
+
 	const bool already_landing = internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND
 				     || internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND;
 	const bool already_landing_or_rtl = already_landing
@@ -1154,18 +1155,14 @@ void act_on_battery_failsafe(commander_state_s &internal_state, const uint8_t ba
 		case LOW_BAT_ACTION::RETURN:
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
 			if (!already_landing_or_rtl) {
-				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
-				internal_state.main_state_changes++;
-				internal_state.timestamp = hrt_absolute_time();
+				ret = commander_state_s::MAIN_STATE_AUTO_RTL;
 			}
 
 			break;
 
 		case LOW_BAT_ACTION::LAND:
 			if (!already_landing) {
-				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
-				internal_state.main_state_changes++;
-				internal_state.timestamp = hrt_absolute_time();
+				ret = commander_state_s::MAIN_STATE_AUTO_LAND;
 			}
 
 			break;
@@ -1179,9 +1176,7 @@ void act_on_battery_failsafe(commander_state_s &internal_state, const uint8_t ba
 		switch (param_com_low_bat_act) {
 		case LOW_BAT_ACTION::RETURN:
 			if (!already_landing_or_rtl) {
-				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
-				internal_state.main_state_changes++;
-				internal_state.timestamp = hrt_absolute_time();
+				ret = commander_state_s::MAIN_STATE_AUTO_RTL;
 			}
 
 			break;
@@ -1189,9 +1184,7 @@ void act_on_battery_failsafe(commander_state_s &internal_state, const uint8_t ba
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
 		case LOW_BAT_ACTION::LAND:
 			if (!already_landing) {
-				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
-				internal_state.main_state_changes++;
-				internal_state.timestamp = hrt_absolute_time();
+				ret = commander_state_s::MAIN_STATE_AUTO_LAND;
 			}
 
 			break;
@@ -1201,6 +1194,8 @@ void act_on_battery_failsafe(commander_state_s &internal_state, const uint8_t ba
 
 		break;
 	}
+
+	return ret;
 }
 
 void imbalanced_prop_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
