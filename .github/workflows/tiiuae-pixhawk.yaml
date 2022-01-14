@@ -33,6 +33,7 @@ jobs:
           mkdir bin
           cd px4-firmware
           ./build.sh ../bin/
+          ls ../bin
 
       - name: Install jfrog CLI tool
         env:

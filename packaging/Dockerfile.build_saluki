@@ -1,8 +1,6 @@
 # px4-firmware builder for PixHawk4
 FROM ros:galactic-ros-base as px4-cross-builder
 
-ARG VERSION="0.0.0-0"
-
 ENV LANG C.UTF-8
 ENV LANGUAGE C.UTF-8
 ENV LC_ALL C.UTF-8
@@ -39,6 +37,13 @@ RUN . /opt/ros/galactic/setup.sh \
     && SIGNING_TOOL=Tools/cryptotools.py make ssrc_saluki-v1_default \
     && SIGNING_TOOL=Tools/cryptotools.py make ssrc_saluki-v1_bootloader
 
+WORKDIR /artifacts
+
+ARG VERSION="0.0.0-0"
+
+RUN cp /build/build/ssrc_saluki-v1_default/ssrc_saluki-v1_default.px4 /artifacts/ssrc_saluki-v1_default-${VERSION}.px4 \
+    && cp /build/build/ssrc_saluki-v1_bootloader/ssrc_saluki-v1_bootloader.elf /artifacts/ssrc_saluki-v1_bootloader-${VERSION}.elf
+
+
 FROM scratch
-COPY --from=px4-cross-builder /build/build/ssrc_saluki-v1_default/ssrc_saluki-v1_default.px4 /artifacts/ssrc_saluki-v1_default-${VERSION}.px4
-COPY --from=px4-cross-builder /build/build/ssrc_saluki-v1_bootloader/ssrc_saluki-v1_bootloader.elf /artifacts/ssrc_saluki-v1_bootloader-${VERSION}.elf
+COPY --from=px4-cross-builder /artifacts /artifacts

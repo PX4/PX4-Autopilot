@@ -29,7 +29,7 @@ docker build -t ${iname_s} -f Dockerfile.build_saluki \
 	--build-arg VERSION=${version} \
 	..
 
-iname=tii-px4-debian-artifacts
+iname=tii-px4-fwupdater-artifacts
 docker build -t ${iname} -f Dockerfile.build_px4fwupdater \
 	--build-arg VERSION=${version} \
 	..

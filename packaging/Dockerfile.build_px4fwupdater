@@ -1,13 +1,9 @@
 # px4-firmware builder for PixHawk4
 FROM ghcr.io/tiiuae/tii-ubuntu-ros:galactic as builder
 
-ARG VERSION="0.0.0-0"
-
 ENV LANG C.UTF-8
 ENV LANGUAGE C.UTF-8
 ENV LC_ALL C.UTF-8
-
-RUN echo "deb [trusted=yes] https://ssrc.jfrog.io/artifactory/ssrc-debian-public-remote focal fog-sw" >> /etc/apt/sources.list.d/fogsw-latest.list
 
 RUN apt-get update -y && apt-get install -y --no-install-recommends \
     curl \
@@ -27,19 +23,19 @@ COPY packaging/debian            DEBIAN
 COPY packaging/px4_update_fw.sh  ./opt/px4fwupdater/px4_update_fw.sh
 COPY packaging/detect_ttyS.sh    ./opt/px4fwupdater/detect_ttyS.sh
 
-RUN sed -i "s/Version:.*/&${VERSION}/" DEBIAN/control
-
-# move elf files from deb
+# Remove elf files from deb
 RUN mkdir -p /artifacts
-RUN	for elf in ./opt/px4fwupdater/*.elf; \
-	do \
-		elf_out_file=$(basename $elf | sed "s/\(.*\)\.elf/\1-${VERSION}.elf/") \
-		&& mv $elf /artifacts/${elf_out_file}; \
-	done
+RUN for elf in ./opt/px4fwupdater/*.elf; \
+        do \
+            rm -f $elf; \
+        done
+
+ARG VERSION="0.0.0-0"
+
+RUN sed -i "s/Version:.*/&${VERSION}/" DEBIAN/control
 
 RUN fakeroot dpkg-deb --build /packaging_dir /artifacts/px4fwupdater_${VERSION}_amd64.deb
 
 
 FROM scratch
 COPY --from=builder /artifacts/*.deb /artifacts/
-COPY --from=builder /artifacts/*.elf /artifacts/
