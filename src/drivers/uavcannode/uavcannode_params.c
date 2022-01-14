@@ -89,3 +89,15 @@ PARAM_DEFINE_INT32(CANNODE_FLOW_ROT, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(CANNODE_GPS_RTCM, 0);
+
+/**
+ * Rangefinder Orientations
+ *
+ * @value 24    pitch 90°    Rotation Upward Facing
+ * @value 25    pitch 270°   Rotation Downward Facing
+ * @value 0     yaw   0°     Rotation Forward Facing
+ * @value 2     yaw   90°    Rotation Right Facing
+ * @value 4     yaw   180°   Rotation Backward Facing
+ * @value 6     yaw   270°   Rotation Left Facing
+ */
+PARAM_DEFINE_INT32(CANNODE_RNG_ORIENT, 25)

@@ -83,6 +83,7 @@ void UavcanRangefinderBridge::range_sub_cb(const
 	if (!_inited) {
 
 		uint8_t rangefinder_type = 0;
+		uint8_t rangefinder_orientation = 0;
 
 		switch (msg.sensor_type) {
 		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR:
@@ -100,10 +101,61 @@ void UavcanRangefinderBridge::range_sub_cb(const
 			break;
 		}
 
+		if (msg.beam_orientation_in_body_frame.orientation_defined) {
+			// Yaw is the second element per DSDL
+
+			switch (msg.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[1]) {
+			case distance_sensor_s::ROTATION_UPWARD_FACING:
+				rangefinder_orientation = distance_sensor_s::ROTATION_UPWARD_FACING;
+				break;
+
+			case distance_sensor_s::ROTATION_DOWNWARD_FACING:
+				rangefinder_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+				break;
+
+			default:
+				break;
+			}
+
+			// Pitch is the third element per DSDL
+
+			switch (msg.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[2]) {
+			case distance_sensor_s::ROTATION_FORWARD_FACING:
+				if (msg.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[1] != 0) {
+					break;
+				}
+
+				else {
+					rangefinder_orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+					break;
+				}
+
+			case distance_sensor_s::ROTATION_RIGHT_FACING:
+				rangefinder_orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
+				break;
+
+			case distance_sensor_s::ROTATION_BACKWARD_FACING:
+				rangefinder_orientation = distance_sensor_s::ROTATION_BACKWARD_FACING;
+				break;
+
+			case distance_sensor_s::ROTATION_LEFT_FACING:
+				rangefinder_orientation = distance_sensor_s::ROTATION_LEFT_FACING;
+				break;
+
+			default:
+				break;
+			}
+		} // End If
+
+		else {
+			rangefinder_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+		}
+
 		rangefinder->set_rangefinder_type(rangefinder_type);
 		rangefinder->set_fov(msg.field_of_view);
 		rangefinder->set_min_distance(_range_min_m);
 		rangefinder->set_max_distance(_range_max_m);
+		rangefinder->set_orientation(rangefinder_orientation);
 
 		_inited = true;
 	}
