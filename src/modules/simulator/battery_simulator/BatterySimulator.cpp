@@ -90,6 +90,7 @@ void BatterySimulator::Run()
 		_last_integration_us = now_us;
 
 	} else {
+		_battery_percentage = 1.f;
 		_last_integration_us = 0;
 	}
 
