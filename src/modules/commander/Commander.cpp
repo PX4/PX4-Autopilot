@@ -787,8 +787,6 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_failure_detector(this)
 {
-	_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
-
 	_land_detector.landed = true;
 
 	// XXX for now just set sensors as initialized
@@ -2042,6 +2040,7 @@ Commander::run()
 			_arm_requirements.geofence = _param_geofence_action.get() > geofence_result_s::GF_ACTION_NONE;
 
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
+			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1_s);
 
 			// disable arm gesture if an arm switch is configured
 			if (param_man_arm_gesture != PARAM_INVALID && param_rc_map_arm_sw != PARAM_INVALID) {
@@ -2078,8 +2077,6 @@ Commander::run()
 						     "Yaw Airmode requires disabling the stick arm gesture");
 				}
 			}
-
-			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1e6f);
 
 			param_init_forced = false;
 		}
