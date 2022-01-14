@@ -16,12 +16,12 @@ FROM python:alpine3.14
 # (/ is actually relative to GH action runner home dir)
 # (see .github/workflows/tiiuae-pixhawk.yaml)
 
-# dependency of px_uploader.py
-RUN pip3 install --user pyserial
+WORKDIR /firmware
 
 ENTRYPOINT ["/bin/px_uploader.py"]
 
-WORKDIR /firmware
+# dependency of px_uploader.py
+RUN pip3 install --user pyserial
 
 ADD px4-firmware/Tools/px_uploader.py /bin/
 
