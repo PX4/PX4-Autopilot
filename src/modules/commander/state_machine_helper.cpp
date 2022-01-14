@@ -1104,9 +1104,7 @@ void reset_offboard_loss_globals(actuator_armed_s &armed, const bool old_failsaf
 	}
 }
 
-void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
-		      const vehicle_status_flags_s &status_flags, commander_state_s &internal_state, const uint8_t battery_warning,
-		      const low_battery_action_t low_battery_action)
+void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t battery_warning)
 {
 	static constexpr char battery_level[] = "battery level";
 
@@ -1138,7 +1136,11 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 	case battery_status_s::BATTERY_WARNING_NONE: break; // no warning
 	}
+}
 
+void act_on_battery_failsafe(commander_state_s &internal_state, const uint8_t battery_warning,
+			     const low_battery_action_t param_com_low_bat_act)
+{
 	// Failsafe action
 	const bool already_landing = internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND
 				     || internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND;
@@ -1148,7 +1150,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 	// The main state is directly changed for the action because we need the fallbacks by the navigation state.
 	switch (battery_warning) {
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
-		switch (low_battery_action) {
+		switch (param_com_low_bat_act) {
 		case LOW_BAT_ACTION::RETURN:
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
 			if (!already_landing_or_rtl) {
@@ -1174,7 +1176,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		break;
 
 	case battery_status_s::BATTERY_WARNING_EMERGENCY:
-		switch (low_battery_action) {
+		switch (param_com_low_bat_act) {
 		case LOW_BAT_ACTION::RETURN:
 			if (!already_landing_or_rtl) {
 				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
