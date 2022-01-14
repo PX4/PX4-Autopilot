@@ -76,11 +76,11 @@ static struct mtd_geometry_s geo;
 
 #if defined(CONFIG_MTD_M25P)
 static struct spi_dev_s *spinor = 0;
-
-static bool device_flashed = false;
 static uintptr_t end_address = 0;
 static uintptr_t first_unwritten = 0;
 #endif
+
+static bool device_flashed = false;
 
 static int loader_task = -1;
 typedef enum {
@@ -321,7 +321,22 @@ flash_func_erase_sector(unsigned sector)
 
 	/* Break any loading process */
 
-	loading_status = UNINITIALIZED;
+	/* This is a hack, there is no callback from
+	 * common code for "start flash"
+	 */
+
+	if (loading_status == IN_PROGRESS) {
+		loading_status = UNINITIALIZED;
+
+		/* Wait for loading to stop */
+
+		while (loading_status != LOAD_FAIL) {
+			usleep(1000);
+		}
+	}
+
+	/* In case there has been an interrupted flashing previously */
+	device_flashed = false;
 
 #ifdef CONFIG_MTD_M25P
 	int ret = MTD_ERASE(mtd, sector, 1);
@@ -610,6 +625,7 @@ static int loader_main(int argc, char *argv[])
 
 	} else {
 		_alert("Image loading interrupted\n");
+		loading_status = LOAD_FAIL;
 	}
 
 	return 0;
@@ -618,7 +634,7 @@ static int loader_main(int argc, char *argv[])
 int start_image_loading(void)
 {
 	/* create the task */
-	loader_task = task_create("laoder", SCHED_PRIORITY_MAX - 6, 2000, loader_main, (char *const *)0);
+	loader_task = task_create("loader", SCHED_PRIORITY_MAX - 6, 2000, loader_main, (char *const *)0);
 
 	return 0;
 }
