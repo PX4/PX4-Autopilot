@@ -61,7 +61,7 @@ PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.3f);
  * @unit SD
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_TAS_GATE, 3);
+PARAM_DEFINE_INT32(ASPD_TAS_GATE, 5);
 
 /**
  * Airspeed Selector: Gate size for sideslip angle fusion
@@ -73,7 +73,7 @@ PARAM_DEFINE_INT32(ASPD_TAS_GATE, 3);
  * @unit SD
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_BETA_GATE, 1);
+PARAM_DEFINE_INT32(ASPD_BETA_GATE, 2);
 
 /**
  * Controls when to apply the new estimated airspeed scale(s)
