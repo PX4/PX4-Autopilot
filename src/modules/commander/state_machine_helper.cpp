@@ -1140,28 +1140,21 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 	}
 
 	// Failsafe action
-	const bool rtl_possible = status_flags.condition_global_position_valid && status_flags.condition_home_position_valid;
 	const bool already_landing = internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND
 				     || internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND;
 	const bool already_landing_or_rtl = already_landing
 					    || internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL;
 
+	// The main state is directly changed for the action because we need the fallbacks by the navigation state.
 	switch (battery_warning) {
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::RETURN:
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
-			if (rtl_possible) {
-				if (!already_landing_or_rtl) {
-					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
-					internal_state.timestamp = hrt_absolute_time();
-				}
-
-			} else {
-				if (!already_landing) {
-					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
-					internal_state.timestamp = hrt_absolute_time();
-				}
+			if (!already_landing_or_rtl) {
+				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
+				internal_state.main_state_changes++;
+				internal_state.timestamp = hrt_absolute_time();
 			}
 
 			break;
@@ -1169,6 +1162,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		case LOW_BAT_ACTION::LAND:
 			if (!already_landing) {
 				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+				internal_state.main_state_changes++;
 				internal_state.timestamp = hrt_absolute_time();
 			}
 
@@ -1182,17 +1176,10 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 	case battery_status_s::BATTERY_WARNING_EMERGENCY:
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::RETURN:
-			if (rtl_possible) {
-				if (!already_landing_or_rtl) {
-					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
-					internal_state.timestamp = hrt_absolute_time();
-				}
-
-			} else {
-				if (!already_landing) {
-					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
-					internal_state.timestamp = hrt_absolute_time();
-				}
+			if (!already_landing_or_rtl) {
+				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
+				internal_state.main_state_changes++;
+				internal_state.timestamp = hrt_absolute_time();
 			}
 
 			break;
@@ -1201,6 +1188,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		case LOW_BAT_ACTION::LAND:
 			if (!already_landing) {
 				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+				internal_state.main_state_changes++;
 				internal_state.timestamp = hrt_absolute_time();
 			}
 
