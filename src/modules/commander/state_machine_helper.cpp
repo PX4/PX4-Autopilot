@@ -1117,9 +1117,9 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		break;
 
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
-		mavlink_log_critical(mavlink_log_pub, "Critical %s, return encouraged\t", battery_level);
+		mavlink_log_critical(mavlink_log_pub, "Critical %s, return now\t", battery_level);
 		events::send(events::ID("commander_bat_crit"), {events::Log::Critical, events::LogInternal::Info},
-			     "Critical battery level, return encouraged");
+			     "Critical battery level, return now");
 		break;
 
 	case battery_status_s::BATTERY_WARNING_EMERGENCY:
@@ -1138,23 +1138,25 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 	}
 
 	// Failsafe action
+	const bool rtl_possible = status_flags.condition_global_position_valid && status_flags.condition_home_position_valid;
+	const bool already_landing = internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND
+				     || internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND;
+	const bool already_landing_or_rtl = already_landing
+					    || internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL;
+
 	switch (battery_warning) {
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::RETURN:
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
-			if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
-				if (!(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
-				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
-
+			if (rtl_possible) {
+				if (!already_landing_or_rtl) {
 					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
 					internal_state.timestamp = hrt_absolute_time();
 				}
 
 			} else {
-				if (!(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+				if (!already_landing) {
 					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 					internal_state.timestamp = hrt_absolute_time();
 				}
@@ -1163,8 +1165,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 			break;
 
 		case LOW_BAT_ACTION::LAND:
-			if (!(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-			      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+			if (!already_landing) {
 				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 				internal_state.timestamp = hrt_absolute_time();
 			}
@@ -1179,17 +1180,14 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 	case battery_status_s::BATTERY_WARNING_EMERGENCY:
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::RETURN:
-			if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
-				if (!(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
-				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+			if (rtl_possible) {
+				if (!already_landing_or_rtl) {
 					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
 					internal_state.timestamp = hrt_absolute_time();
 				}
 
 			} else {
-				if (!(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+				if (!already_landing) {
 					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 					internal_state.timestamp = hrt_absolute_time();
 				}
@@ -1199,8 +1197,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
 		case LOW_BAT_ACTION::LAND:
-			if (!(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-			      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
+			if (!already_landing) {
 				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 				internal_state.timestamp = hrt_absolute_time();
 			}
