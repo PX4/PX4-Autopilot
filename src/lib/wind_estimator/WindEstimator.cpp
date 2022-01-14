@@ -39,7 +39,8 @@
 #include "WindEstimator.hpp"
 
 bool
-WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas)
+WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas,
+			  const matrix::Quatf q_att)
 {
 	// do no initialise if ground velocity is low
 	// this should prevent the filter from initialising on the ground
@@ -50,8 +51,7 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &
 	const float v_n = velI(0);
 	const float v_e = velI(1);
 
-	// estimate heading from ground velocity
-	const float heading_est = atan2f(v_e, v_n);
+	const float heading_est = matrix::Eulerf(q_att).psi();
 
 	// initilaise wind states assuming zero side slip and horizontal flight
 	_state(INDEX_W_N) = velI(INDEX_W_N) - tas_meas * cosf(heading_est);
@@ -138,13 +138,13 @@ WindEstimator::update(uint64_t time_now)
 
 void
 WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const matrix::Vector3f &velI,
-			     const matrix::Vector2f &velIvar)
+			     const matrix::Vector2f &velIvar, const matrix::Quatf &q_att)
 {
 	matrix::Vector2f velIvar_constrained = { math::max(0.01f, velIvar(0)), math::max(0.01f, velIvar(1)) };
 
 	if (!_initialised) {
 		// try to initialise
-		_initialised =	initialise(velI, velIvar_constrained, true_airspeed);
+		_initialised = initialise(velI, velIvar_constrained, true_airspeed, q_att);
 		return;
 	}
 
@@ -197,7 +197,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	if (meas_is_rejected || _tas_innov_var < 0.f) {
 		// only reset filter if _tas_innov_var gets unfeasible
 		if (_tas_innov_var < 0.0f) {
-			_initialised =	initialise(velI, matrix::Vector2f(0.1f, 0.1f), true_airspeed);
+			_initialised = initialise(velI, matrix::Vector2f(0.1f, 0.1f), true_airspeed, q_att);
 		}
 
 		// we either did a filter reset or the current measurement was rejected so do not fuse
@@ -219,7 +219,7 @@ void
 WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const matrix::Quatf &q_att)
 {
 	if (!_initialised) {
-		_initialised =	initialise(velI, matrix::Vector2f(0.1f, 0.1f), velI.length());
+		_initialised = initialise(velI, matrix::Vector2f(0.1f, 0.1f), velI.length(), q_att);
 		return;
 	}
 
@@ -291,7 +291,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 
 	if (meas_is_rejected || reinit_filter) {
 		if (reinit_filter) {
-			_initialised =	initialise(velI, matrix::Vector2f(0.1f, 0.1f), velI.length());
+			_initialised = initialise(velI, matrix::Vector2f(0.1f, 0.1f), velI.length(), q_att);
 		}
 
 		// we either did a filter reset or the current measurement was rejected so do not fuse
