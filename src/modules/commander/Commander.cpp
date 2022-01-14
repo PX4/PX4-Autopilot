@@ -3890,7 +3890,14 @@ void Commander::battery_status_check()
 	// execute battery failsafe if the state has gotten worse while we are armed
 	if (battery_warning_level_increased_while_armed) {
 		warn_user_about_battery(&_mavlink_log_pub, _battery_warning);
-		act_on_battery_failsafe(_internal_state, _battery_warning, (low_battery_action_t)_param_com_low_bat_act.get());
+		uint8_t failsafe_action = get_battery_failsafe_action(_internal_state, _battery_warning,
+					  (low_battery_action_t)_param_com_low_bat_act.get());
+
+		if (failsafe_action != commander_state_s::MAIN_STATE_MAX) {
+			_internal_state.main_state = failsafe_action;
+			_internal_state.main_state_changes++;
+			_internal_state.timestamp = hrt_absolute_time();
+		}
 	}
 
 	// Handle shutdown request from emergency battery action

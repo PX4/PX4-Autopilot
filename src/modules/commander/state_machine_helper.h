@@ -143,8 +143,8 @@ typedef enum LOW_BAT_ACTION {
 } low_battery_action_t;
 
 void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t battery_warning);
-void act_on_battery_failsafe(commander_state_s &commander_state, const uint8_t battery_warning,
-			     const low_battery_action_t param_com_low_bat_act);
+uint8_t get_battery_failsafe_action(const commander_state_s &internal_state, const uint8_t battery_warning,
+				    const low_battery_action_t param_com_low_bat_act);
 
 // COM_IMB_PROP_ACT parameter values
 enum class imbalanced_propeller_action_t {
