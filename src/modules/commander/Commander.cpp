@@ -3876,7 +3876,6 @@ void Commander::battery_status_check()
 		_battery_warning = worst_warning;
 	}
 
-
 	_status_flags.condition_battery_healthy =
 		// All connected batteries are regularly being published
 		(hrt_elapsed_time(&oldest_update) < 5_s)
@@ -3890,6 +3889,18 @@ void Commander::battery_status_check()
 	// execute battery failsafe if the state has gotten worse while we are armed
 	if (battery_warning_level_increased_while_armed) {
 		warn_user_about_battery(&_mavlink_log_pub, _battery_warning);
+		_battery_failsafe_timestamp = hrt_absolute_time();
+
+		if (get_battery_failsafe_action(_internal_state, _battery_warning,
+						(low_battery_action_t)_param_com_low_bat_act.get()) != commander_state_s::MAIN_STATE_MAX) {
+			main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, _internal_state);
+		}
+	}
+
+	if (_battery_failsafe_timestamp != 0
+	    && hrt_elapsed_time(&_battery_failsafe_timestamp) > _param_com_bat_act_t.get() * 1_s
+	    && _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER) {
+		_battery_failsafe_timestamp = 0;
 		uint8_t failsafe_action = get_battery_failsafe_action(_internal_state, _battery_warning,
 					  (low_battery_action_t)_param_com_low_bat_act.get());
 
