@@ -1108,32 +1108,43 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		      const vehicle_status_flags_s &status_flags, commander_state_s &internal_state, const uint8_t battery_warning,
 		      const low_battery_action_t low_battery_action)
 {
-	switch (battery_warning) {
-	case battery_status_s::BATTERY_WARNING_NONE:
-		break;
+	static constexpr char battery_level[] = "battery level";
 
+	// User warning
+	switch (battery_warning) {
 	case battery_status_s::BATTERY_WARNING_LOW:
-		mavlink_log_critical(mavlink_log_pub, "Low battery level! Return advised\t");
+		mavlink_log_warning(mavlink_log_pub, "Low %s, return advised\t", battery_level);
 		events::send(events::ID("commander_bat_low"), {events::Log::Warning, events::LogInternal::Info},
-			     "Low battery level! Return advised");
+			     "Low battery level, return advised");
 		break;
 
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
+		mavlink_log_critical(mavlink_log_pub, "Critical %s, return encouraged\t", battery_level);
+		events::send(events::ID("commander_bat_crit"), {events::Log::Critical, events::LogInternal::Info},
+			     "Critical battery level, return encouraged");
+		break;
 
-		static constexpr char battery_critical[] = "Critical battery level!";
+	case battery_status_s::BATTERY_WARNING_EMERGENCY:
+		mavlink_log_emergency(mavlink_log_pub, "Dangerous %s, land now\t", battery_level);
+		events::send(events::ID("commander_bat_emerg"), {events::Log::Emergency, events::LogInternal::Info},
+			     "Dangerous battery level, land now");
+		break;
 
+	case battery_status_s::BATTERY_WARNING_FAILED:
+		mavlink_log_emergency(mavlink_log_pub, "Battery failure detected, land and check battery\t");
+		events::send(events::ID("commander_bat_failure"), events::Log::Emergency,
+			     "Battery failure detected, land and check battery");
+		break;
+
+	case battery_status_s::BATTERY_WARNING_NONE: break; // no warning
+	}
+
+	// Failsafe action
+	switch (battery_warning) {
+	case battery_status_s::BATTERY_WARNING_CRITICAL:
 		switch (low_battery_action) {
-		case LOW_BAT_ACTION::WARNING:
-			mavlink_log_critical(mavlink_log_pub, "%s, landing advised\t", battery_critical);
-			events::send(events::ID("commander_bat_crit"), {events::Log::Critical, events::LogInternal::Info},
-				     "Critical battery level! Landing advised");
-			break;
-
 		case LOW_BAT_ACTION::RETURN:
-
-		// FALLTHROUGH
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
-
 			if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
 				if (!(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
 				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
@@ -1141,9 +1152,6 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
 					internal_state.timestamp = hrt_absolute_time();
-					mavlink_log_critical(mavlink_log_pub, "%s, executing RTL\t", battery_critical);
-					events::send(events::ID("commander_bat_crit_rtl"), {events::Log::Critical, events::LogInternal::Info},
-						     "Critical battery level! Executing RTL");
 				}
 
 			} else {
@@ -1151,9 +1159,6 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
 					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 					internal_state.timestamp = hrt_absolute_time();
-					mavlink_log_emergency(mavlink_log_pub, "%s, can't execute RTL, landing instead\t", battery_critical);
-					events::send(events::ID("commander_bat_crit_no_rtl_land"), {events::Log::Emergency, events::LogInternal::Info},
-						     "Critical battery level! Cannot execute RTL, landing instead");
 				}
 			}
 
@@ -1164,27 +1169,17 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 			      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
 				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 				internal_state.timestamp = hrt_absolute_time();
-				mavlink_log_emergency(mavlink_log_pub, "%s, landing\t", battery_critical);
-				events::send(events::ID("commander_bat_crit_land"), {events::Log::Warning, events::LogInternal::Info},
-					     "Critical battery level! Landing now");
 			}
 
 			break;
+
+		case LOW_BAT_ACTION::WARNING: break; // no action
 		}
 
 		break;
 
 	case battery_status_s::BATTERY_WARNING_EMERGENCY:
-
-		static constexpr char battery_dangerous[] = "Dangerous battery level!";
-
 		switch (low_battery_action) {
-		case LOW_BAT_ACTION::WARNING:
-			mavlink_log_emergency(mavlink_log_pub, "%s, please land!\t", battery_dangerous);
-			events::send(events::ID("commander_bat_emerg_warn"), {events::Log::Emergency, events::LogInternal::Info},
-				     "Dangerous battery level! Please land immediately");
-			break;
-
 		case LOW_BAT_ACTION::RETURN:
 			if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
 				if (!(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
@@ -1192,9 +1187,6 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
 					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
 					internal_state.timestamp = hrt_absolute_time();
-					mavlink_log_critical(mavlink_log_pub, "%s, executing RTL\t", battery_dangerous);
-					events::send(events::ID("commander_bat_emerg_rtl"), {events::Log::Emergency, events::LogInternal::Info},
-						     "Dangerous battery level! Executing RTL");
 				}
 
 			} else {
@@ -1202,35 +1194,24 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 				      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
 					internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 					internal_state.timestamp = hrt_absolute_time();
-					mavlink_log_emergency(mavlink_log_pub, "%s, can't execute RTL, landing instead\t", battery_dangerous);
-					events::send(events::ID("commander_bat_emerg_no_rtl_land"), {events::Log::Emergency, events::LogInternal::Info},
-						     "Dangerous battery level! Cannot execute RTL, landing instead");
 				}
 			}
 
 			break;
 
 		case LOW_BAT_ACTION::RETURN_OR_LAND:
-
-		// FALLTHROUGH
 		case LOW_BAT_ACTION::LAND:
 			if (!(internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
 			      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {
 				internal_state.main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
 				internal_state.timestamp = hrt_absolute_time();
-				mavlink_log_emergency(mavlink_log_pub, "%s, landing\t", battery_dangerous);
-				events::send(events::ID("commander_bat_emerg_land"), {events::Log::Emergency, events::LogInternal::Info},
-					     "Dangerous battery level! Landing now");
 			}
 
 			break;
+
+		case LOW_BAT_ACTION::WARNING: break; // no action
 		}
 
-		break;
-
-	case battery_status_s::BATTERY_WARNING_FAILED:
-		mavlink_log_emergency(mavlink_log_pub, "Battery failure detected\t");
-		events::send(events::ID("commander_bat_failure"), events::Log::Emergency, "Battery failure detected");
 		break;
 	}
 }
