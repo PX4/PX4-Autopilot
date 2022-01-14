@@ -9,11 +9,11 @@ FROM python:alpine3.14
 #		px4_fmu-v5_ssrc.px4
 
 # This gets built in environment with somewhat unorthodox paths:
-# - This file is copied to /Dockerfile
+# - The build context is at /
 # - The repository itself is mounted in /px4-firmware/
 # - Built firmware files are in /bin/
 #
-# (/ is actually relative to GH action runner home dir)
+# ("/" above is relative to GH action runner home dir)
 # (see .github/workflows/tiiuae-pixhawk.yaml)
 
 WORKDIR /firmware

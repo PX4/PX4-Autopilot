@@ -133,7 +133,7 @@ jobs:
                        --comment "development build"
 
       - name: Firmware flasher - Container metadata
-        id: containermeta # referenced from later steps
+        id: containermeta # referenced from later step
         uses: docker/metadata-action@v3
         with:
           images: ghcr.io/tiiuae/px4-firmware
@@ -143,16 +143,12 @@ jobs:
             type=semver,pattern={{version}}
             type=sha
 
-      - name: Firmware flasher - Prepare for build
-        # If we'd run build in Tools/ directory, I don't know how to pass both bin/ and Tools/ as context
-        run: |
-          cp px4-firmware/Tools/px_uploader.Dockerfile Dockerfile
-
       - name: Firmware flasher - Build and push
         uses: docker/build-push-action@v2
         if: github.event_name == 'push'
         with:
           push: true
           context: .
+          file: px4-firmware/Tools/px_uploader.Dockerfile
           tags: ${{ steps.containermeta.outputs.tags }}
           labels: ${{ steps.containermeta.outputs.labels }}
