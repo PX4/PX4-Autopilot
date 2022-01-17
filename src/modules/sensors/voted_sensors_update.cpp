@@ -140,6 +140,8 @@ void VotedSensorsUpdate::parametersUpdate()
 
 void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 {
+	const hrt_abstime time_now_us = hrt_absolute_time();
+
 	for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
 		vehicle_imu_s imu_report;
 
@@ -176,10 +178,10 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 
 			_last_accel_timestamp[uorb_index] = imu_report.timestamp_sample;
 
-			_accel.voter.put(uorb_index, imu_report.timestamp_sample, _last_sensor_data[uorb_index].accelerometer_m_s2,
+			_accel.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].accelerometer_m_s2,
 					 imu_status.accel_error_count, _accel.priority[uorb_index]);
 
-			_gyro.voter.put(uorb_index, imu_report.timestamp_sample, _last_sensor_data[uorb_index].gyro_rad,
+			_gyro.voter.put(uorb_index, imu_report.timestamp, _last_sensor_data[uorb_index].gyro_rad,
 					imu_status.gyro_error_count, _gyro.priority[uorb_index]);
 		}
 	}
@@ -187,8 +189,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	// find the best sensor
 	int accel_best_index = -1;
 	int gyro_best_index = -1;
-	_accel.voter.get_best(hrt_absolute_time(), &accel_best_index);
-	_gyro.voter.get_best(hrt_absolute_time(), &gyro_best_index);
+	_accel.voter.get_best(time_now_us, &accel_best_index);
+	_gyro.voter.get_best(time_now_us, &gyro_best_index);
 
 	if (!_param_sens_imu_mode.get() && ((_selection.timestamp != 0) || (_sensor_selection_sub.updated()))) {
 		// use sensor_selection to find best
@@ -196,9 +198,6 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 			// reset inconsistency checks against primary
 			for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
 				_accel_diff[sensor_index].zero();
-			}
-
-			for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
 				_gyro_diff[sensor_index].zero();
 			}
 		}
