@@ -40,7 +40,7 @@
 
 bool
 WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas,
-			  const matrix::Quatf q_att)
+			  const matrix::Quatf &q_att)
 {
 	// do no initialise if ground velocity is low
 	// this should prevent the filter from initialising on the ground
