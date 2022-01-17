@@ -394,11 +394,15 @@ private:
 	param_t _handle_sens_flow_maxr{PARAM_INVALID};
 	param_t _handle_sens_flow_minhgt{PARAM_INVALID};
 	param_t _handle_sens_flow_rot{PARAM_INVALID};
+	param_t _handle_ekf2_min_rng{PARAM_INVALID};
+	param_t _handle_ekf2_rng_a_hmax{PARAM_INVALID};
 
 	float _param_sens_flow_maxhgt{-1.0f};
 	float _param_sens_flow_maxr{-1.0f};
 	float _param_sens_flow_minhgt{-1.0f};
 	int32_t _param_sens_flow_rot{0};
+	float _param_ekf2_min_rng{NAN};
+	float _param_ekf2_rng_a_hmax{NAN};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

@@ -126,17 +126,5 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
 
-	if (_analog_params.v_div < 0.0f) {
-		/* apply scaling according to defaults if set to default */
-		_analog_params.v_div = BOARD_BATTERY1_V_DIV;
-		param_set_no_notification(_analog_param_handles.v_div, &_analog_params.v_div);
-	}
-
-	if (_analog_params.a_per_v < 0.0f) {
-		/* apply scaling according to defaults if set to default */
-		_analog_params.a_per_v = BOARD_BATTERY1_A_PER_V;
-		param_set_no_notification(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
-	}
-
 	Battery::updateParams();
 }

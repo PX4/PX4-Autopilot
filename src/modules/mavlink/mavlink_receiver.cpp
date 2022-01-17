@@ -94,6 +94,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_handle_sens_flow_maxr = param_find("SENS_FLOW_MAXR");
 	_handle_sens_flow_minhgt = param_find("SENS_FLOW_MINHGT");
 	_handle_sens_flow_rot = param_find("SENS_FLOW_ROT");
+	_handle_ekf2_min_rng = param_find("EKF2_MIN_RNG");
+	_handle_ekf2_rng_a_hmax = param_find("EKF2_RNG_A_HMAX");
 }
 
 void
@@ -177,10 +179,6 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_MANUAL_CONTROL:
 		handle_message_manual_control(msg);
-		break;
-
-	case MAVLINK_MSG_ID_RC_CHANNELS:
-		handle_message_rc_channels(msg);
 		break;
 
 	case MAVLINK_MSG_ID_RC_CHANNELS_OVERRIDE:
@@ -833,13 +831,14 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 		device_id.devid_s.address = msg->sysid;
 
 		d.timestamp = f.timestamp;
-		d.min_distance = 0.3f;
-		d.max_distance = 5.0f;
+		d.min_distance = _param_ekf2_min_rng;
+		d.max_distance = _param_ekf2_rng_a_hmax;
 		d.current_distance = flow.distance; /* both are in m */
 		d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 		d.device_id = device_id.devid;
 		d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-		d.variance = 0.0;
+		d.variance = 0.01;
+		d.signal_quality = -1;
 
 		_flow_distance_sensor_pub.publish(d);
 	}
@@ -884,7 +883,8 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	d.device_id = device_id.devid;
 	d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	d.variance = 0.0;
+	d.variance = 0.01;
+	d.signal_quality = -1;
 
 	_flow_distance_sensor_pub.publish(d);
 }
@@ -1954,73 +1954,6 @@ MavlinkReceiver::handle_message_trajectory_representation_waypoints(mavlink_mess
 }
 
 void
-MavlinkReceiver::handle_message_rc_channels(mavlink_message_t *msg)
-{
-	mavlink_rc_channels_t rc_channels;
-	mavlink_msg_rc_channels_decode(msg, &rc_channels);
-
-	if (msg->compid != MAV_COMP_ID_SYSTEM_CONTROL) {
-		PX4_DEBUG("Mavlink receiver only processes RC_CHANNELS from MAV_COMP_ID_SYSTEM_CONTROL");
-		return;
-	}
-
-	input_rc_s rc{};
-
-	rc.timestamp_last_signal = hrt_absolute_time();
-	rc.rssi = input_rc_s::RSSI_MAX;
-
-	// TODO: fake RSSI from dropped messages?
-	// for (auto &component_state : _component_states) {
-	// 	if (component_state.component_id == MAV_COMP_ID_SYSTEM_CONTROL) {
-	// 		rc.rssi = (float)component_state.missed_messages / (float)component_state.received_messages;
-	// 	}
-	// }
-
-	rc.rc_total_frame_count = 1;
-	rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
-
-	// channels
-	rc.values[0] = rc_channels.chan1_raw;
-	rc.values[1] = rc_channels.chan2_raw;
-	rc.values[2] = rc_channels.chan3_raw;
-	rc.values[3] = rc_channels.chan4_raw;
-	rc.values[4] = rc_channels.chan5_raw;
-	rc.values[5] = rc_channels.chan6_raw;
-	rc.values[6] = rc_channels.chan7_raw;
-	rc.values[7] = rc_channels.chan8_raw;
-	rc.values[8] = rc_channels.chan9_raw;
-	rc.values[9] = rc_channels.chan10_raw;
-	rc.values[10] = rc_channels.chan11_raw;
-	rc.values[11] = rc_channels.chan12_raw;
-	rc.values[12] = rc_channels.chan13_raw;
-	rc.values[13] = rc_channels.chan14_raw;
-	rc.values[14] = rc_channels.chan15_raw;
-	rc.values[15] = rc_channels.chan16_raw;
-	rc.values[16] = rc_channels.chan17_raw;
-	rc.values[17] = rc_channels.chan18_raw;
-
-	// check how many channels are valid
-	for (int i = 17; i >= 0; i--) {
-		const bool ignore_max = rc.values[i] == UINT16_MAX; // ignore any channel with value UINT16_MAX
-		const bool ignore_zero = (i > 7) && (rc.values[i] == 0); // ignore channel 8-18 if value is 0
-
-		if (ignore_max || ignore_zero) {
-			// set all ignored values to zero
-			rc.values[i] = 0;
-
-		} else {
-			// first channel to not ignore -> set count considering zero-based index
-			rc.channel_count = i + 1;
-			break;
-		}
-	}
-
-	// publish uORB message
-	rc.timestamp = hrt_absolute_time();
-	_rc_pub.publish(rc);
-}
-
-void
 MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 {
 	mavlink_rc_channels_override_t man;
@@ -2061,6 +1994,28 @@ MavlinkReceiver::handle_message_rc_channels_override(mavlink_message_t *msg)
 	rc.values[15] = man.chan16_raw;
 	rc.values[16] = man.chan17_raw;
 	rc.values[17] = man.chan18_raw;
+
+#if defined(ATL_MANTIS_RC_INPUT_HACKS)
+
+	// Sanity checking if the RC controller is really sending.
+	if (rc.values[5] == 2048 && rc.values[6] == 0 && (rc.values[8] & 0xff00) == 0x0C00) {
+		rc.values[0] = 1000 + (uint16_t)((float)rc.values[0] / 4095.f * 1000.f); // 0..4095 -> 1000..2000
+		rc.values[1] = 1000 + (uint16_t)((float)rc.values[1] / 4095.f * 1000.f); // 0..4095 -> 1000..2000
+		rc.values[2] = 1000 + (uint16_t)((float)rc.values[2] / 4095.f * 1000.f); // 0..4095 -> 1000..2000
+		rc.values[3] = 1000 + (uint16_t)((float)rc.values[3] / 4095.f * 1000.f); // 0..4095 -> 1000..2000
+		rc.values[4] = 1000 + (uint16_t)((float)rc.values[4] / 4095.f * 1000.f); // 0..4095 -> 1000..2000 -> Aux 2
+		rc.values[5] = 1000 + rc.values[7] * 500; // Switch toggles from 0 to 2, we map it from 1000 to 2000
+		rc.values[6] = 1000 + (((rc.values[8] & 0x02) != 0) ? 1000 : 0); // Return button.
+		rc.values[7] = 1000 + (((rc.values[8] & 0x01) != 0) ? 1000 : 0); // Video record button. -> Aux4
+		rc.values[9] = 1000 + (((rc.values[8] & 0x10) != 0) ? 1000 : 0); // Photo record button. -> Aux3
+		rc.values[8] = rc.values[8] & 0x00ff; // Remove magic identifier.
+		// leave rc.values[10] as is 0..4095
+		//
+		// Note we are currently ignoring the stick buttons (sticks pressed down).
+		// They are on rc.values[8] & 0x20 and rc.values[8] & 0x40.
+	}
+
+#endif
 
 	// check how many channels are valid
 	for (int i = 17; i >= 0; i--) {
@@ -3494,6 +3449,14 @@ MavlinkReceiver::updateParams()
 
 	if (_handle_sens_flow_rot != PARAM_INVALID) {
 		param_get(_handle_sens_flow_rot, &_param_sens_flow_rot);
+	}
+
+	if (_handle_ekf2_min_rng != PARAM_INVALID) {
+		param_get(_handle_ekf2_min_rng, &_param_ekf2_min_rng);
+	}
+
+	if (_handle_ekf2_rng_a_hmax != PARAM_INVALID) {
+		param_get(_handle_ekf2_rng_a_hmax, &_param_ekf2_rng_a_hmax);
 	}
 }
 

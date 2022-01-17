@@ -45,7 +45,7 @@ fi
 #
 # Set the default output mode if none was set.
 #
-if [ $OUTPUT_MODE = none ]
+if [ $OUTPUT_MODE = none -a $OUTPUT_MODE != skip ]
 then
 	if [ $USE_IO = yes ]
 	then
@@ -72,7 +72,7 @@ fi
 #
 # If OUTPUT_MODE = none then something is wrong with setup and we shouldn't try to enable output.
 #
-if [ $OUTPUT_MODE != none ]
+if [ $OUTPUT_MODE != none -a $OUTPUT_MODE != skip ]
 then
 
 	if [ $OUTPUT_MODE = hil -o $OUTPUT_MODE = sim ]

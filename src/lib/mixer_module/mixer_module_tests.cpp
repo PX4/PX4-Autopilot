@@ -72,7 +72,7 @@ public:
 	{
 		mixing_output.update();
 		// make sure output_limit switches to ON (if outputs enabled)
-		px4_usleep(INIT_TIME_US * 2);
+		px4_usleep(50000 * 2);
 		mixing_output.update();
 		mixing_output.update();
 		return 3; // expected number of output updates

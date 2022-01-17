@@ -812,6 +812,8 @@ void runTests() {
 
   sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "IMU_GYRO_CAL_EN" --value "0" || true' // disable during testing
   sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "IMU_GYRO_FFT_EN" --value "0" || true' // disable during testing
+  sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SENS_IMU_AUTOCAL" --value "0" || true' // disable during testing
+  sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SENS_MAG_AUTOCAL" --value "0" || true' // disable during testing
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save"'
   sh './Tools/HIL/reboot.py --device `find /dev/serial -name *usb-*`' // reboot to apply

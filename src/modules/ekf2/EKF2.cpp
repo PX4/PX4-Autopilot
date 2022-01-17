@@ -1791,9 +1791,6 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 		return;
 	}
 
-	// State variance assumed for accelerometer bias storage.
-	// This is a reference variance used to calculate the fraction of learned accelerometer bias that will be used to update the stored value.
-	// Larger values cause a larger fraction of the learned biases to be used.
 	static constexpr float max_var_allowed = 1e-3f;
 	static constexpr float max_var_ratio = 1e2f;
 
@@ -1814,12 +1811,8 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 		if (_accel_cal.last_us != 0) {
 			_accel_cal.total_time_us += timestamp - _accel_cal.last_us;
 
-			// Start checking accel bias estimates when we have accumulated sufficient calibration time
+			// consider bias estimates stable when we have accumulated sufficient time
 			if (_accel_cal.total_time_us > 30_s) {
-				if (!_accel_cal.cal_available) {
-					PX4_DEBUG("%d accel bias now stable", _instance);
-				}
-
 				_accel_cal.cal_available = true;
 			}
 		}
@@ -1827,20 +1820,12 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 		_accel_cal.last_us = timestamp;
 
 	} else {
-		// conditions are NOT OK for learning accelerometer bias, reset
-		if (_accel_cal.total_time_us > 0) {
-			PX4_DEBUG("%d, clearing learned accel bias", _instance);
-		}
-
 		_accel_cal = {};
 	}
 }
 
 void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 {
-	// State variance assumed for accelerometer bias storage.
-	// This is a reference variance used to calculate the fraction of learned accelerometer bias that will be used to update the stored value.
-	// Larger values cause a larger fraction of the learned biases to be used.
 	static constexpr float max_var_allowed = 1e-3f;
 	static constexpr float max_var_ratio = 1e2f;
 
@@ -1855,12 +1840,8 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 		if (_gyro_cal.last_us != 0) {
 			_gyro_cal.total_time_us += timestamp - _gyro_cal.last_us;
 
-			// Start checking gyro bias estimates when we have accumulated sufficient calibration time
+			// consider bias estimates stable when we have accumulated sufficient time
 			if (_gyro_cal.total_time_us > 30_s) {
-				if (!_gyro_cal.cal_available) {
-					PX4_DEBUG("%d gyro bias now stable", _instance);
-				}
-
 				_gyro_cal.cal_available = true;
 			}
 		}
@@ -1868,11 +1849,7 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 		_gyro_cal.last_us = timestamp;
 
 	} else {
-		// conditions are NOT OK for learning gyro bias, reset
-		if (_gyro_cal.total_time_us > 0) {
-			PX4_DEBUG("%d, clearing learned gyro bias", _instance);
-		}
-
+		// conditions are NOT OK for learning bias, reset
 		_gyro_cal = {};
 	}
 }
@@ -1881,12 +1858,23 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
 	// Check if conditions are OK for learning of magnetometer bias values
 	// the EKF is operating in the correct mode and there are no filter faults
-	if (_ekf.control_status_flags().in_air && _ekf.control_status_flags().mag_3D && (_ekf.fault_status().value == 0)) {
+
+	static constexpr float max_var_allowed = 1e-3f;
+	static constexpr float max_var_ratio = 1e2f;
+
+	const Vector3f bias_variance{_ekf.getMagBiasVariance()};
+
+	bool valid = _ekf.control_status_flags().in_air
+		     && (_ekf.fault_status().value == 0)
+		     && (bias_variance.max() < max_var_allowed)
+		     && (bias_variance.max() < max_var_ratio * bias_variance.min());
+
+	if (valid && _ekf.control_status_flags().mag_3D) {
 
 		if (_mag_cal.last_us != 0) {
 			_mag_cal.total_time_us += timestamp - _mag_cal.last_us;
 
-			// Start checking mag bias estimates when we have accumulated sufficient calibration time
+			// consider bias estimates stable when we have accumulated sufficient time
 			if (_mag_cal.total_time_us > 30_s) {
 				_mag_cal.cal_available = true;
 			}
@@ -1899,12 +1887,13 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 		// but keep the accumulated calibration time
 		_mag_cal.last_us = 0;
 
-		if (_ekf.fault_status().value != 0) {
+		if (!valid) {
 			// if a filter fault has occurred, assume previous learning was invalid and do not
 			// count it towards total learning time.
 			_mag_cal.total_time_us = 0;
 		}
 	}
+
 
 	if (!_armed) {
 		// update stored declination value

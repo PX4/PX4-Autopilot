@@ -187,8 +187,8 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 		_horizontal_movement = false; // not known
 	}
 
-	if (lpos_available && _vehicle_local_position.dist_bottom_valid) {
-		_below_gnd_effect_hgt = _vehicle_local_position.dist_bottom < _get_gnd_effect_altitude();
+	if (lpos_available && _vehicle_local_position.dist_bottom_valid && _param_lndmc_alt_gnd_effect.get() > 0) {
+		_below_gnd_effect_hgt = _vehicle_local_position.dist_bottom < _param_lndmc_alt_gnd_effect.get();
 
 	} else {
 		_below_gnd_effect_hgt = false;
@@ -321,16 +321,6 @@ bool MulticopterLandDetector::_get_landed_state()
 	// if we have maybe_landed, the mc_pos_control goes into idle (thrust_sp = 0.0)
 	// therefore check if all other condition of the landed state remain true
 	return _maybe_landed_hysteresis.get_state();
-}
-
-float MulticopterLandDetector::_get_gnd_effect_altitude()
-{
-	if (_param_lndmc_alt_gnd_effect.get() < 0.0f) {
-		return INFINITY;
-
-	} else {
-		return _param_lndmc_alt_gnd_effect.get();
-	}
 }
 
 bool MulticopterLandDetector::_get_ground_effect_state()

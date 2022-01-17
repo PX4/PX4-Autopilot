@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,11 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-    MODULE systemcmds__motor_ramp
-    MAIN motor_ramp
-    COMPILE_FLAGS
-        -Wno-write-strings
-    SRCS
-        motor_ramp.cpp
-    )
+
+
+set(PX4_FW_NAME ${PX4_BINARY_DIR}/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.px4)
+
+# The file needs to have that name in order to be updated automatically.
+set(UPLOAD_NAME autopilot.px4)
+
+add_custom_target(upload_wifi
+	COMMAND ${CMAKE_COMMAND} -E copy ${PX4_FW_NAME} ${UPLOAD_NAME}
+	COMMAND ${PX4_SOURCE_DIR}/boards/atl/mantis-edu/upload.sh ${UPLOAD_NAME}
+	DEPENDS ${PX4_FW_NAME}
+	COMMENT "uploading autopilot.px4 file"
+	USES_TERMINAL
+)

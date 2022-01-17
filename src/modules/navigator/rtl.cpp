@@ -57,8 +57,8 @@ RTL::RTL(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
 {
-	_param_mpc_z_vel_max_up = param_find("MPC_Z_VEL_MAX_UP");
-	_param_mpc_z_vel_max_down = param_find("MPC_Z_VEL_MAX_DN");
+	_param_mpc_z_v_auto_up = param_find("MPC_Z_V_AUTO_UP");
+	_param_mpc_z_v_auto_dn = param_find("MPC_Z_V_AUTO_DN");
 	_param_mpc_land_speed = param_find("MPC_LAND_SPEED");
 	_param_fw_climb_rate = param_find("FW_T_CLMB_R_SP");
 	_param_fw_sink_rate = param_find("FW_T_SINK_R_SP");
@@ -886,7 +886,7 @@ float RTL::getClimbRate()
 	float ret = 1e6f;
 
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (_param_mpc_z_vel_max_up == PARAM_INVALID || param_get(_param_mpc_z_vel_max_up, &ret) != PX4_OK) {
+		if (_param_mpc_z_v_auto_up == PARAM_INVALID || param_get(_param_mpc_z_v_auto_up, &ret) != PX4_OK) {
 			ret = 1e6f;
 		}
 
@@ -905,7 +905,7 @@ float RTL::getDescendRate()
 	float ret = 1e6f;
 
 	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (_param_mpc_z_vel_max_down == PARAM_INVALID || param_get(_param_mpc_z_vel_max_down, &ret) != PX4_OK) {
+		if (_param_mpc_z_v_auto_dn == PARAM_INVALID || param_get(_param_mpc_z_v_auto_dn, &ret) != PX4_OK) {
 			ret = 1e6f;
 		}
 

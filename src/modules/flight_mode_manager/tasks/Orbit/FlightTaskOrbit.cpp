@@ -248,19 +248,18 @@ void FlightTaskOrbit::_updateTrajectoryBoundaries()
 	_altitude_velocity_smoothing.setMaxJerk(max_jerk);
 
 	if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
-		float z_accel_constraint = _param_mpc_acc_up_max.get();
-		float z_vel_constraint = _param_mpc_z_vel_max_up.get();
+		const float z_accel_constraint = _param_mpc_acc_up_max.get();
 
-		_position_smoothing.setMaxVelocityZ(z_vel_constraint);
+		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_up.get());
 		_position_smoothing.setMaxAccelerationZ(z_accel_constraint);
-		_altitude_velocity_smoothing.setMaxVel(z_vel_constraint);
+		_altitude_velocity_smoothing.setMaxVel(_param_mpc_z_vel_max_up.get());
 		_altitude_velocity_smoothing.setMaxAccel(z_accel_constraint);
 
 	} else { // down
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
-		_position_smoothing.setMaxVelocityZ(_param_mpc_z_vel_max_dn.get());
-		_altitude_velocity_smoothing.setMaxVel(_param_mpc_acc_down_max.get());
-		_altitude_velocity_smoothing.setMaxAccel(_param_mpc_z_vel_max_dn.get());
+		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
+		_altitude_velocity_smoothing.setMaxAccel(_param_mpc_acc_down_max.get());
+		_altitude_velocity_smoothing.setMaxVel(_param_mpc_z_vel_max_dn.get());
 	}
 
 }

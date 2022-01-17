@@ -112,18 +112,6 @@
 	(1 << ADC_5V_RAIL_SENSE) | \
 	(1 << ADC_BATTERY2_VOLTAGE_CHANNEL) | (1 << ADC_BATTERY2_CURRENT_CHANNEL)
 
-/* Define Battery 1 Voltage Divider and A per V
- */
-
-#define BOARD_BATTERY1_V_DIV (6.490196078f)
-#define BOARD_BATTERY1_A_PER_V (26.4f)
-
-/* Define Battery 2 Voltage Divider and A per V
- */
-
-#define BOARD_BATTERY2_V_DIV (6.490196078f)
-#define BOARD_BATTERY2_A_PER_V (26.4f)
-
 /* Define LTC4417 UV set by resistors on the board that are different than FMUv2 3.7V */
 
 #define BOARD_VALID_UV (4.01f)

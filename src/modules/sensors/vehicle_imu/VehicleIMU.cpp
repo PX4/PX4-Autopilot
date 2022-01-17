@@ -35,6 +35,7 @@
 
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
+#include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 
 #include <float.h>
@@ -259,14 +260,14 @@ void VehicleIMU::Run()
 		}
 	}
 
-	if (!parameters_updated) {
-		if (_armed) {
-			if (now_us > _in_flight_calibration_check_timestamp_last + 1_s) {
-				SensorCalibrationUpdate();
-				_in_flight_calibration_check_timestamp_last = now_us;
-			}
+	if (_param_sens_imu_autocal.get() && !parameters_updated) {
+		if ((_armed || !_accel_calibration.calibrated() || !_gyro_calibration.calibrated())
+		    && (now_us > _in_flight_calibration_check_timestamp_last + 1_s)) {
 
-		} else {
+			SensorCalibrationUpdate();
+			_in_flight_calibration_check_timestamp_last = now_us;
+
+		} else if (!_armed) {
 			SensorCalibrationSaveAccel();
 			SensorCalibrationSaveGyro();
 		}
@@ -785,14 +786,15 @@ void VehicleIMU::SensorCalibrationSaveAccel()
 			}
 		}
 
-		if (initialised && (cal_orig - offset_estimate).longerThan(0.05f)) {
+		if (initialised && ((cal_orig - offset_estimate).longerThan(0.05f) || !_accel_calibration.calibrated())) {
 			if (_accel_calibration.set_offset(offset_estimate)) {
 				PX4_INFO("%s %d (%" PRIu32 ") offset committed: [%.3f %.3f %.3f]->[%.3f %.3f %.3f])",
 					 _accel_calibration.SensorString(), _instance, _accel_calibration.device_id(),
 					 (double)cal_orig(0), (double)cal_orig(1), (double)cal_orig(2),
 					 (double)offset_estimate(0), (double)offset_estimate(1), (double)offset_estimate(2));
 
-				if (_accel_calibration.ParametersSave()) {
+				// save parameters with preferred calibration slot to current sensor index
+				if (_accel_calibration.ParametersSave(_sensor_accel_sub.get_instance())) {
 					param_notify_changes();
 				}
 			}
@@ -834,14 +836,15 @@ void VehicleIMU::SensorCalibrationSaveGyro()
 			}
 		}
 
-		if (initialised && (cal_orig - offset_estimate).longerThan(0.01f)) {
+		if (initialised && ((cal_orig - offset_estimate).longerThan(0.01f) || !_gyro_calibration.calibrated())) {
 			if (_gyro_calibration.set_offset(offset_estimate)) {
 				PX4_INFO("%s %d (%" PRIu32 ") offset committed: [%.3f %.3f %.3f]->[%.3f %.3f %.3f])",
 					 _gyro_calibration.SensorString(), _instance, _gyro_calibration.device_id(),
 					 (double)cal_orig(0), (double)cal_orig(1), (double)cal_orig(2),
 					 (double)offset_estimate(0), (double)offset_estimate(1), (double)offset_estimate(2));
 
-				if (_gyro_calibration.ParametersSave()) {
+				// save parameters with preferred calibration slot to current sensor index
+				if (_gyro_calibration.ParametersSave(_sensor_gyro_sub.get_instance())) {
 					param_notify_changes();
 				}
 			}
