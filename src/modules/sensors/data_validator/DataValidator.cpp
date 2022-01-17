@@ -105,7 +105,7 @@ float DataValidator::confidence(uint64_t timestamp)
 		_error_mask |= ERROR_FLAG_NO_DATA;
 		ret = 0.0f;
 
-	} else if (timestamp - _time_last > _timeout_interval) {
+	} else if (timestamp > _time_last + _timeout_interval) {
 		/* timed out - that's it */
 		_error_mask |= ERROR_FLAG_TIMEOUT;
 		ret = 0.0f;
