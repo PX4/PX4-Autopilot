@@ -126,7 +126,7 @@ private:
 
 	struct Telemetry {
 		DShotTelemetry handler{};
-		uORB::PublicationData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
+		uORB::PublicationMultiData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
 		int last_motor_index{-1};
 	};
 

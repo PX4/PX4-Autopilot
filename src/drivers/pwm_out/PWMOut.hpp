@@ -147,7 +147,6 @@ private:
 	bool		_pwm_on{false};
 	uint32_t	_pwm_mask{0};
 	bool		_pwm_initialized{false};
-	bool		_test_mode{false};
 
 	unsigned	_num_disarmed_set{0};
 

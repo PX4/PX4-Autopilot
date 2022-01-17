@@ -84,15 +84,16 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_esc_controller(_node),
 	_servo_controller(_node),
 	_hardpoint_controller(_node),
-	_beep_controller(_node),
 	_safety_state_controller(_node),
 	_rgbled_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
-	_cycle_perf(perf_alloc(PC_ELAPSED, "uavcan: cycle time")),
-	_interval_perf(perf_alloc(PC_INTERVAL, "uavcan: cycle interval")),
-	_master_timer(_node)
+	_node_info_retriever(_node),
+	_master_timer(_node),
+	_param_getset_client(_node),
+	_param_opcode_client(_node),
+	_param_restartnode_client(_node)
 {
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
 
@@ -100,23 +101,16 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 		std::abort();
 	}
 
-	res = px4_sem_init(&_server_command_sem, 0, 0);
-
-	if (res < 0) {
-		std::abort();
-	}
-
-	/* _server_command_sem use case is a signal */
-	px4_sem_setprotocol(&_server_command_sem, SEM_PRIO_NONE);
-
 	_mixing_interface_esc.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanEscController::MAX_RATE_HZ);
 	_mixing_interface_servo.mixingOutput().setMaxTopicUpdateRate(1000000 / UavcanServoController::MAX_RATE_HZ);
-
 }
 
 UavcanNode::~UavcanNode()
 {
-	fw_server(Stop);
+	if (_servers != nullptr) {
+		delete _servers;
+		_servers = nullptr;
+	}
 
 	if (_instance) {
 
@@ -141,7 +135,6 @@ UavcanNode::~UavcanNode()
 	_sensor_bridges.clear();
 
 	pthread_mutex_destroy(&_node_mutex);
-	px4_sem_destroy(&_server_command_sem);
 
 	perf_free(_cycle_perf);
 	perf_free(_interval_perf);
@@ -192,15 +185,6 @@ UavcanNode::print_params(uavcan::protocol::param::GetSet::Response &resp)
 	return -1;
 }
 
-void
-UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
-{
-	uavcan::protocol::param::ExecuteOpcode::Response resp;
-	_callback_success = result.isSuccessful();
-	resp = result.getResponse();
-	_callback_success &= resp.ok;
-}
-
 int
 UavcanNode::save_params(int remote_node_id)
 {
@@ -223,15 +207,6 @@ UavcanNode::save_params(int remote_node_id)
 	}
 
 	return 0;
-}
-
-void
-UavcanNode::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result)
-{
-	uavcan::protocol::RestartNode::Response resp;
-	_callback_success = result.isSuccessful();
-	resp = result.getResponse();
-	_callback_success &= resp.ok;
 }
 
 int
@@ -423,99 +398,6 @@ UavcanNode::update_params()
 }
 
 int
-UavcanNode::start_fw_server()
-{
-	int rv = -1;
-	_fw_server_action.store((int)Busy);
-	UavcanServers   *_servers = UavcanServers::instance();
-
-	if (_servers == nullptr) {
-
-		rv = UavcanServers::start(_node);
-
-		if (rv >= 0) {
-			/*
-			 * Set our pointer to to the injector
-			 *  This is a work around as
-			 *  main_node.getDispatcher().installRxFrameListener(driver.get());
-			 *  would require a dynamic cast and rtti is not enabled.
-			 */
-			UavcanServers::instance()->attachITxQueueInjector(&_tx_injector);
-		}
-	}
-
-	_fw_server_action.store((int)None);
-	px4_sem_post(&_server_command_sem);
-	return rv;
-}
-
-int
-UavcanNode::request_fw_check()
-{
-	int rv = -1;
-	_fw_server_action.store((int)Busy);
-	UavcanServers *_servers  = UavcanServers::instance();
-
-	if (_servers != nullptr) {
-		_servers->requestCheckAllNodesFirmwareAndUpdate();
-		rv = 0;
-	}
-
-	_fw_server_action.store((int)None);
-	px4_sem_post(&_server_command_sem);
-	return rv;
-}
-
-int
-UavcanNode::stop_fw_server()
-{
-	int rv = -1;
-	_fw_server_action.store((int)Busy);
-	UavcanServers *_servers = UavcanServers::instance();
-
-	if (_servers != nullptr) {
-		/*
-		 * Set our pointer to to the injector
-		 *  This is a work around as
-		 *  main_node.getDispatcher().remeveRxFrameListener();
-		 *  would require a dynamic cast and rtti is not enabled.
-		 */
-		_tx_injector = nullptr;
-
-		rv = _servers->stop();
-	}
-
-	_fw_server_action.store((int)None);
-	px4_sem_post(&_server_command_sem);
-	return rv;
-}
-
-int
-UavcanNode::fw_server(eServerAction action)
-{
-	int rv = -EAGAIN;
-
-	switch (action) {
-	case Start:
-	case Stop:
-	case CheckFW:
-		if (_fw_server_action.load() == (int)None) {
-			_fw_server_action.store((int)action);
-			px4_sem_wait(&_server_command_sem);
-			rv = _fw_server_status;
-		}
-
-		break;
-
-	default:
-		rv = -EINVAL;
-		break;
-	}
-
-	return rv;
-}
-
-int
 UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 {
 	if (_instance != nullptr) {
@@ -637,12 +519,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		return ret;
 	}
 
-	ret = _beep_controller.init();
-
-	if (ret < 0) {
-		return ret;
-	}
-
 	ret = _safety_state_controller.init();
 
 	if (ret < 0) {
@@ -652,6 +528,14 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	ret = _rgbled_controller.init();
 
 	if (ret < 0) {
+		return ret;
+	}
+
+	/* Start node info retriever to fetch node info from new nodes */
+	ret = _node_info_retriever.start();
+
+	if (ret < 0) {
+		PX4_ERR("NodeInfoRetriever init: %d", ret);
 		return ret;
 	}
 
@@ -687,23 +571,29 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 		enable_idle_throttle_when_armed(true);
 	}
 
-	/*  Start the Node   */
+	/* Set up shared service clients */
+	_param_getset_client.setCallback(GetSetCallback(this, &UavcanNode::cb_getset));
+	_param_opcode_client.setCallback(ExecuteOpcodeCallback(this, &UavcanNode::cb_opcode));
+	_param_restartnode_client.setCallback(RestartNodeCallback(this, &UavcanNode::cb_restart));
+
+
+	int32_t uavcan_enable = 1;
+	(void)param_get(param_find("UAVCAN_ENABLE"), &uavcan_enable);
+
+	if (uavcan_enable > 1) {
+		_servers = new UavcanServers(_node, _node_info_retriever);
+
+		if (_servers) {
+			int rv = _servers->init();
+
+			if (rv < 0) {
+				PX4_ERR("UavcanServers init: %d", ret);
+			}
+		}
+	}
+
+	// Start the Node
 	return _node.start();
-}
-
-void
-UavcanNode::node_spin_once()
-{
-	const int spin_res = _node.spinOnce();
-
-	if (spin_res < 0) {
-		PX4_ERR("node spin error %i", spin_res);
-	}
-
-
-	if (_tx_injector != nullptr) {
-		_tx_injector->injectTxFramesInto(_node);
-	}
 }
 
 void
@@ -746,8 +636,6 @@ UavcanNode::handle_time_sync(const uavcan::TimerEvent &)
 	_time_sync_master.publish();
 }
 
-
-
 void
 UavcanNode::Run()
 {
@@ -789,7 +677,12 @@ UavcanNode::Run()
 		br->update();
 	}
 
-	node_spin_once(); // expected to be non-blocking
+	if (_check_fw) {
+		_check_fw = false;
+		_node_info_retriever.invalidateAll();
+	}
+
+	_node.spinOnce(); // expected to be non-blocking
 
 	// Check arming state
 	const actuator_armed_s &armed = _mixing_interface_esc.mixingOutput().armed();
@@ -805,22 +698,206 @@ UavcanNode::Run()
 		update_params();
 	}
 
-	switch ((eServerAction)_fw_server_action.load()) {
-	case Start:
-		_fw_server_status = start_fw_server();
-		break;
+	// Check for parameter requests (get/set/list)
+	if (_param_request_sub.updated() && !_param_list_in_progress && !_param_in_progress && !_count_in_progress) {
+		uavcan_parameter_request_s request{};
+		_param_request_sub.copy(&request);
 
-	case Stop:
-		_fw_server_status = stop_fw_server();
-		break;
+		if (_param_counts[request.node_id]) {
+			/*
+			 * We know how many parameters are exposed by this node, so
+			 * process the request.
+			 */
+			if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_READ) {
+				uavcan::protocol::param::GetSet::Request req;
 
-	case CheckFW:
-		_fw_server_status = request_fw_check();
-		break;
+				if (request.param_index >= 0) {
+					req.index = request.param_index;
 
-	case None:
-	default:
-		break;
+				} else {
+					req.name = (char *)request.param_id;
+				}
+
+				int call_res = _param_getset_client.call(request.node_id, req);
+
+				if (call_res < 0) {
+					PX4_ERR("couldn't send GetSet: %d", call_res);
+
+				} else {
+					_param_in_progress = true;
+					_param_index = request.param_index;
+				}
+
+			} else if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_SET) {
+				uavcan::protocol::param::GetSet::Request req;
+
+				if (request.param_index >= 0) {
+					req.index = request.param_index;
+
+				} else {
+					req.name = (char *)request.param_id;
+				}
+
+				if (request.param_type == uavcan_parameter_request_s::PARAM_TYPE_REAL32) {
+					req.value.to<uavcan::protocol::param::Value::Tag::real_value>() = request.real_value;
+
+				} else if (request.param_type == uavcan_parameter_request_s::PARAM_TYPE_UINT8) {
+					req.value.to<uavcan::protocol::param::Value::Tag::boolean_value>() = request.int_value;
+
+				} else {
+					req.value.to<uavcan::protocol::param::Value::Tag::integer_value>() = request.int_value;
+				}
+
+				// Set the dirty bit for this node
+				set_node_params_dirty(request.node_id);
+
+				int call_res = _param_getset_client.call(request.node_id, req);
+
+				if (call_res < 0) {
+					PX4_ERR("couldn't send GetSet: %d", call_res);
+
+				} else {
+					_param_in_progress = true;
+					_param_index = request.param_index;
+				}
+
+			} else if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
+				// This triggers the _param_list_in_progress case below.
+				_param_index = 0;
+				_param_list_in_progress = true;
+				_param_list_node_id = request.node_id;
+				_param_list_all_nodes = false;
+
+				PX4_DEBUG("starting component-specific param list");
+			}
+
+		} else if (request.node_id == uavcan_parameter_request_s::NODE_ID_ALL) {
+			if (request.message_type == uavcan_parameter_request_s::MESSAGE_TYPE_PARAM_REQUEST_LIST) {
+				/*
+				 * This triggers the _param_list_in_progress case below,
+				 * but additionally iterates over all active nodes.
+				 */
+				_param_index = 0;
+				_param_list_in_progress = true;
+				_param_list_node_id = get_next_active_node_id(0);
+				_param_list_all_nodes = true;
+
+				PX4_DEBUG("starting global param list with node %hhu", _param_list_node_id);
+
+				if (_param_counts[_param_list_node_id] == 0) {
+					param_count(_param_list_node_id);
+				}
+			}
+
+		} else {
+			/*
+			 * Need to know how many parameters this node has before we can
+			 * continue; count them now and then process the request.
+			 */
+			param_count(request.node_id);
+		}
+	}
+
+	// Handle parameter listing index/node ID advancement
+	if (_param_list_in_progress && !_param_in_progress && !_count_in_progress) {
+		if (_param_index >= _param_counts[_param_list_node_id]) {
+			PX4_DEBUG("completed param list for node %hhu", _param_list_node_id);
+			// Reached the end of the current node's parameter set.
+			_param_list_in_progress = false;
+
+			if (_param_list_all_nodes) {
+				// We're listing all parameters for all nodes -- get the next node ID
+				uint8_t next_id = get_next_active_node_id(_param_list_node_id);
+
+				if (next_id < 128) {
+					_param_list_node_id = next_id;
+
+					/*
+					 * If there is a next node ID, check if that node's parameters
+					 * have been counted before. If not, do it now.
+					 */
+					if (_param_counts[_param_list_node_id] == 0) {
+						param_count(_param_list_node_id);
+					}
+
+					// Keep on listing.
+					_param_index = 0;
+					_param_list_in_progress = true;
+					PX4_DEBUG("started param list for node %hhu", _param_list_node_id);
+				}
+			}
+		}
+	}
+
+	// Check if we're still listing, and need to get the next parameter
+	if (_param_list_in_progress && !_param_in_progress && !_count_in_progress) {
+		// Ready to request the next value -- _param_index is incremented
+		// after each successful fetch by cb_getset
+		uavcan::protocol::param::GetSet::Request req;
+		req.index = _param_index;
+
+		int call_res = _param_getset_client.call(_param_list_node_id, req);
+
+		if (call_res < 0) {
+			_param_list_in_progress = false;
+			PX4_ERR("couldn't send param list GetSet: %d", call_res);
+
+		} else {
+			_param_in_progress = true;
+		}
+	}
+
+	if (_vcmd_sub.updated() && !_cmd_in_progress) {
+		bool acknowledge = false;
+		vehicle_command_s cmd{};
+		_vcmd_sub.copy(&cmd);
+
+		uint8_t cmd_ack_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+
+		if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE) {
+			acknowledge = true;
+			int command_id = static_cast<int>(cmd.param1 + 0.5f);
+
+			PX4_DEBUG("received storage command ID %d", command_id);
+
+			switch (command_id) {
+			case 1: {
+					// Param save request
+					int node_id;
+					node_id = get_next_dirty_node_id(1);
+
+					if (node_id < 128) {
+						_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_SAVE;
+						param_opcode(node_id);
+					}
+
+					break;
+				}
+
+			case 2: {
+					// Command is a param erase request -- apply it to all active nodes by setting the dirty bit
+					_param_save_opcode = uavcan::protocol::param::ExecuteOpcode::Request::OPCODE_ERASE;
+
+					for (int i = 1; i < 128; i = get_next_active_node_id(i)) {
+						set_node_params_dirty(i);
+					}
+
+					param_opcode(get_next_dirty_node_id(1));
+					break;
+				}
+			}
+		}
+
+		if (acknowledge) {
+			// Acknowledge the received command
+			vehicle_command_ack_s ack{};
+			ack.command = cmd.command;
+			ack.result = cmd_ack_result;
+			ack.target_system = cmd.source_system;
+			ack.target_component = cmd.source_component;
+			ack.timestamp = hrt_absolute_time();
+			_command_ack_pub.publish(ack);
+		}
 	}
 
 	perf_end(_cycle_perf);
@@ -833,7 +910,6 @@ UavcanNode::Run()
 		_mixing_interface_servo.mixingOutput().unregister();
 		_mixing_interface_servo.ScheduleClear();
 		ScheduleClear();
-		teardown();
 		_instance = nullptr;
 	}
 }
@@ -849,13 +925,6 @@ UavcanNode::enable_idle_throttle_when_armed(bool value)
 			_idle_throttle_when_armed = value;
 		}
 	}
-}
-
-int
-UavcanNode::teardown()
-{
-	px4_sem_post(&_server_command_sem);
-	return 0;
 }
 
 int
@@ -884,33 +953,6 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		}
 		break;
 
-
-	case UAVCAN_IOCS_HARDPOINT_SET: {
-			const auto &hp_cmd = *reinterpret_cast<uavcan::equipment::hardpoint::Command *>(arg);
-			_hardpoint_controller.set_command(hp_cmd.hardpoint_id, hp_cmd.command);
-		}
-		break;
-
-	case UAVCAN_IOCG_NODEID_INPROGRESS: {
-			UavcanServers   *_servers = UavcanServers::instance();
-
-			if (_servers == nullptr) {
-				// status unavailable
-				ret = -EINVAL;
-				break;
-
-			} else if (_servers->guessIfAllDynamicNodesAreAllocated()) {
-				// node discovery complete
-				ret = -ETIME;
-				break;
-
-			} else {
-				// node discovery in progress
-				ret = OK;
-				break;
-			}
-		}
-
 	default:
 		ret = -ENOTTY;
 		break;
@@ -924,7 +966,6 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 
 	return ret;
 }
-
 
 bool UavcanMixingInterfaceESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		unsigned num_control_groups_updated)
@@ -1054,11 +1095,212 @@ UavcanNode::shrink()
 }
 
 void
-UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command)
+UavcanNode::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result)
 {
-	(void)pthread_mutex_lock(&_node_mutex);
-	_hardpoint_controller.set_command(hardpoint_id, command);
-	(void)pthread_mutex_unlock(&_node_mutex);
+	if (_count_in_progress) {
+		/*
+		 * Currently in parameter count mode:
+		 * Iterate over all parameters for the node to which the request was
+		 * originally sent, in order to find the maximum parameter ID. If a
+		 * request fails, set the node's parameter count to zero.
+		 */
+		uint8_t node_id = result.getCallID().server_node_id.get();
+
+		if (result.isSuccessful()) {
+			uavcan::protocol::param::GetSet::Response resp = result.getResponse();
+
+			if (resp.name.size()) {
+				_count_index++;
+				_param_counts[node_id] = _count_index;
+
+				uavcan::protocol::param::GetSet::Request req;
+				req.index = _count_index;
+
+				int call_res = _param_getset_client.call(result.getCallID().server_node_id, req);
+
+				if (call_res < 0) {
+					_count_in_progress = false;
+					_count_index = 0;
+					PX4_ERR("couldn't send GetSet during param count: %d", call_res);
+				}
+
+			} else {
+				_count_in_progress = false;
+				_count_index = 0;
+				PX4_DEBUG("completed param count for node %hhu: %hhu", node_id, _param_counts[node_id]);
+			}
+
+		} else {
+			_param_counts[node_id] = 0;
+			_count_in_progress = false;
+			_count_index = 0;
+			PX4_ERR("GetSet error during param count");
+		}
+
+	} else {
+		/*
+		 * Currently in parameter get/set mode:
+		 * Publish a uORB uavcan_parameter_value message containing the current value
+		 * of the parameter.
+		 */
+		if (result.isSuccessful()) {
+			uavcan::protocol::param::GetSet::Response param = result.getResponse();
+
+			uavcan_parameter_value_s response{};
+			response.node_id = result.getCallID().server_node_id.get();
+			strncpy(response.param_id, param.name.c_str(), sizeof(response.param_id) - 1);
+			response.param_id[16] = '\0';
+			response.param_index = _param_index;
+			response.param_count = _param_counts[response.node_id];
+
+			if (param.value.is(uavcan::protocol::param::Value::Tag::integer_value)) {
+				response.param_type = uavcan_parameter_request_s::PARAM_TYPE_INT64;
+				response.int_value = param.value.to<uavcan::protocol::param::Value::Tag::integer_value>();
+
+			} else if (param.value.is(uavcan::protocol::param::Value::Tag::real_value)) {
+				response.param_type = uavcan_parameter_request_s::PARAM_TYPE_REAL32;
+				response.real_value = param.value.to<uavcan::protocol::param::Value::Tag::real_value>();
+
+			} else if (param.value.is(uavcan::protocol::param::Value::Tag::boolean_value)) {
+				response.param_type = uavcan_parameter_request_s::PARAM_TYPE_UINT8;
+				response.int_value = param.value.to<uavcan::protocol::param::Value::Tag::boolean_value>();
+			}
+
+			_param_response_pub.publish(response);
+
+		} else {
+			PX4_ERR("GetSet error");
+		}
+
+		_param_in_progress = false;
+		_param_index++;
+	}
+}
+
+void
+UavcanNode::param_count(uavcan::NodeID node_id)
+{
+	uavcan::protocol::param::GetSet::Request req;
+	req.index = 0;
+	int call_res = _param_getset_client.call(node_id, req);
+
+	if (call_res < 0) {
+		PX4_ERR("couldn't start parameter count: %d", call_res);
+
+	} else {
+		_count_in_progress = true;
+		_count_index = 0;
+		PX4_DEBUG("starting param count");
+	}
+}
+
+void
+UavcanNode::param_opcode(uavcan::NodeID node_id)
+{
+	uavcan::protocol::param::ExecuteOpcode::Request opcode_req;
+	opcode_req.opcode = _param_save_opcode;
+	int call_res = _param_opcode_client.call(node_id, opcode_req);
+
+	if (call_res < 0) {
+		PX4_ERR("couldn't send ExecuteOpcode: %d", call_res);
+
+	} else {
+		_cmd_in_progress = true;
+		PX4_INFO("sent ExecuteOpcode");
+	}
+}
+
+void
+UavcanNode::cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result)
+{
+	bool success = result.isSuccessful();
+	uint8_t node_id = result.getCallID().server_node_id.get();
+	uavcan::protocol::param::ExecuteOpcode::Response resp = result.getResponse();
+	success &= resp.ok;
+	_cmd_in_progress = false;
+
+	if (!result.isSuccessful()) {
+		PX4_ERR("save request for node %hhu timed out.", node_id);
+
+	} else if (!result.getResponse().ok) {
+		PX4_ERR("save request for node %hhu rejected.", node_id);
+
+	} else {
+		PX4_INFO("save request for node %hhu completed OK, restarting.", node_id);
+
+		uavcan::protocol::RestartNode::Request restart_req;
+		restart_req.magic_number = restart_req.MAGIC_NUMBER;
+		int call_res = _param_restartnode_client.call(node_id, restart_req);
+
+		if (call_res < 0) {
+			PX4_ERR("couldn't send RestartNode: %d", call_res);
+
+		} else {
+			PX4_ERR("sent RestartNode");
+			_cmd_in_progress = true;
+		}
+	}
+
+	if (!_cmd_in_progress) {
+		/*
+		 * Something went wrong, so cb_restart is never going to be called as a result of this request.
+		 * To ensure we try to execute the opcode on all nodes that permit it, get the next dirty node
+		 * ID and keep processing here. The dirty bit on the current node is still set, so the
+		 * save/erase attempt will occur when the next save/erase command is received over MAVLink.
+		 */
+		node_id = get_next_dirty_node_id(node_id);
+
+		if (node_id < 128) {
+			param_opcode(node_id);
+		}
+	}
+}
+
+void
+UavcanNode::cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result)
+{
+	bool success = result.isSuccessful();
+	uint8_t node_id = result.getCallID().server_node_id.get();
+	uavcan::protocol::RestartNode::Response resp = result.getResponse();
+	success &= resp.ok;
+	_cmd_in_progress = false;
+
+	if (success) {
+		PX4_DEBUG("restart request for node %hhu completed OK.", node_id);
+
+		// Clear the dirty flag
+		clear_node_params_dirty(node_id);
+
+	} else {
+		PX4_ERR("restart request for node %hhu failed.", node_id);
+	}
+
+	// Get the next dirty node ID and send the same command to it
+	node_id = get_next_dirty_node_id(node_id);
+
+	if (node_id < 128) {
+		param_opcode(node_id);
+	}
+}
+
+uint8_t
+UavcanNode::get_next_active_node_id(uint8_t base)
+{
+	base++;
+
+	for (; base < 128 && (!_node_info_retriever.isNodeKnown(base) || _node.getNodeID().get() == base); base++);
+
+	return base;
+}
+
+uint8_t
+UavcanNode::get_next_dirty_node_id(uint8_t base)
+{
+	base++;
+
+	for (; base < 128 && !are_node_params_dirty(base); base++);
+
+	return base;
 }
 
 /*
@@ -1067,35 +1309,19 @@ UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command)
 static void print_usage()
 {
 	PX4_INFO("usage: \n"
-		 "\tuavcan {start [fw]|status|stop [all|fw]|shrink|arm|disarm|update fw|\n"
-		 "\t        param [set|get|list|save] <node-id> <name> <value>|reset <node-id>|\n"
-		 "\t        hardpoint set <id> <command>}");
+		 "\tuavcan {start|status|stop|shrink|update}\n"
+		 "\t        param [set|get|list|save] <node-id> <name> <value>|reset <node-id>");
 }
 
-extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);
-
-int uavcan_main(int argc, char *argv[])
+extern "C" __EXPORT int uavcan_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		print_usage();
 		::exit(1);
 	}
 
-	bool fw = argc > 2 && !std::strcmp(argv[2], "fw");
-
 	if (!std::strcmp(argv[1], "start")) {
 		if (UavcanNode::instance()) {
-			if (fw && UavcanServers::instance() == nullptr) {
-				int rv = UavcanNode::instance()->fw_server(UavcanNode::Start);
-
-				if (rv < 0) {
-					PX4_ERR("Firmware Server Failed to Start %d", rv);
-					::exit(rv);
-				}
-
-				::exit(0);
-			}
-
 			// Already running, no error
 			PX4_INFO("already started");
 			::exit(0);
@@ -1126,17 +1352,12 @@ int uavcan_main(int argc, char *argv[])
 		errx(1, "application not running");
 	}
 
-	if (fw && !std::strcmp(argv[1], "update")) {
-		if (UavcanServers::instance() == nullptr) {
+	if (!std::strcmp(argv[1], "update")) {
+		if (UavcanNode::instance() == nullptr) {
 			errx(1, "firmware server is not running");
 		}
 
-		int rv = UavcanNode::instance()->fw_server(UavcanNode::CheckFW);
-		::exit(rv);
-	}
-
-	if (fw && (!std::strcmp(argv[1], "status") || !std::strcmp(argv[1], "info"))) {
-		printf("Firmware Server is %s\n", UavcanServers::instance() ? "Running" : "Stopped");
+		UavcanNode::instance()->requestCheckAllNodesFirmwareAndUpdate();
 		::exit(0);
 	}
 
@@ -1204,47 +1425,9 @@ int uavcan_main(int argc, char *argv[])
 		}
 	}
 
-	if (!std::strcmp(argv[1], "hardpoint")) {
-		if (argc > 4 && !std::strcmp(argv[2], "set")) {
-			const int hardpoint_id = atoi(argv[3]);
-			const int command = atoi(argv[4]);
-
-			// Sanity check - weed out negative values, check against maximums
-			if (hardpoint_id >= 0 && hardpoint_id < 256 &&
-			    command >= 0 && command < 65536) {
-				inst->hardpoint_controller_set((uint8_t) hardpoint_id, (uint16_t) command);
-
-			} else {
-				errx(1, "Invalid argument");
-			}
-
-		} else {
-			errx(1, "Invalid hardpoint command");
-		}
-
-		::exit(0);
-	}
-
 	if (!std::strcmp(argv[1], "stop")) {
-		if (fw) {
-
-			int rv = inst->fw_server(UavcanNode::Stop);
-
-			/* Let's recover any memory we can */
-
-			inst->shrink();
-
-			if (rv < 0) {
-				PX4_ERR("Firmware Server Failed to Stop %d", rv);
-				::exit(rv);
-			}
-
-			::exit(0);
-
-		} else {
-			delete inst;
-			::exit(0);
-		}
+		delete inst;
+		::exit(0);
 	}
 
 	print_usage();

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+tap_esc start -d /dev/ttyS4 -n 4
+sleep 1
+mixer load /dev/tap_esc /etc/mixers/quad_x.main.mix

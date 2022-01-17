@@ -82,7 +82,7 @@ AirspeedValidator::update_wind_estimator(const uint64_t time_now_usec, float air
 
 		// airspeed fusion (with raw TAS)
 		const Vector3f vel_var{Dcmf(q) *Vector3f{lpos_evh, lpos_evh, lpos_evv}};
-		_wind_estimator.fuse_airspeed(time_now_usec, airspeed_true_raw, vI, Vector2f{vel_var(0), vel_var(1)});
+		_wind_estimator.fuse_airspeed(time_now_usec, airspeed_true_raw, vI, Vector2f{vel_var(0), vel_var(1)}, q);
 
 		// sideslip fusion
 		_wind_estimator.fuse_beta(time_now_usec, vI, q);

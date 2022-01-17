@@ -127,7 +127,9 @@ int MulticopterPositionControl::parameters_update(bool force)
 
 		if (_param_mpc_z_vel_all.get() >= 0.f) {
 			float z_vel = _param_mpc_z_vel_all.get();
+			num_changed += _param_mpc_z_v_auto_up.commit_no_notification(z_vel);
 			num_changed += _param_mpc_z_vel_max_up.commit_no_notification(z_vel);
+			num_changed += _param_mpc_z_v_auto_dn.commit_no_notification(z_vel * 0.75f);
 			num_changed += _param_mpc_z_vel_max_dn.commit_no_notification(z_vel * 0.75f);
 			num_changed += _param_mpc_tko_speed.commit_no_notification(z_vel * 0.6f);
 			num_changed += _param_mpc_land_speed.commit_no_notification(z_vel * 0.5f);
@@ -187,6 +189,28 @@ int MulticopterPositionControl::parameters_update(bool force)
 			 */
 			events::send<float>(events::ID("mc_pos_ctrl_man_vel_set"), events::Log::Warning,
 					    "Manual speed has been constrained by maximum speed", _param_mpc_xy_vel_max.get());
+		}
+
+		if (_param_mpc_z_v_auto_up.get() > _param_mpc_z_vel_max_up.get()) {
+			_param_mpc_z_v_auto_up.set(_param_mpc_z_vel_max_up.get());
+			_param_mpc_z_v_auto_up.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Ascent speed has been constrained by max speed\t");
+			/* EVENT
+			 * @description <param>MPC_Z_V_AUTO_UP</param> is set to {1:.0}.
+			 */
+			events::send<float>(events::ID("mc_pos_ctrl_up_vel_set"), events::Log::Warning,
+					    "Ascent speed has been constrained by max speed", _param_mpc_z_vel_max_up.get());
+		}
+
+		if (_param_mpc_z_v_auto_dn.get() > _param_mpc_z_vel_max_dn.get()) {
+			_param_mpc_z_v_auto_dn.set(_param_mpc_z_vel_max_dn.get());
+			_param_mpc_z_v_auto_dn.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Descent speed has been constrained by max speed\t");
+			/* EVENT
+			 * @description <param>MPC_Z_V_AUTO_DN</param> is set to {1:.0}.
+			 */
+			events::send<float>(events::ID("mc_pos_ctrl_down_vel_set"), events::Log::Warning,
+					    "Descent speed has been constrained by max speed", _param_mpc_z_vel_max_dn.get());
 		}
 
 		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||

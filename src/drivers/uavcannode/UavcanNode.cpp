@@ -304,14 +304,25 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new MagneticFieldStrength2(this, _node));
 	_publisher_list.add(new RangeSensorMeasurement(this, _node));
 	_publisher_list.add(new RawAirData(this, _node));
-	_publisher_list.add(new MovingBaselineDataPub(this, _node));
+
+	int32_t enable_movingbaselinedata = 0;
+	param_get(param_find("CANNODE_GPS_RTCM"), &enable_movingbaselinedata);
+
+	if (enable_movingbaselinedata != 0) {
+		_publisher_list.add(new MovingBaselineDataPub(this, _node));
+
+	}
+
 	_publisher_list.add(new SafetyButton(this, _node));
 	_publisher_list.add(new StaticPressure(this, _node));
 	_publisher_list.add(new StaticTemperature(this, _node));
 
 	_subscriber_list.add(new BeepCommand(_node));
 	_subscriber_list.add(new LightsCommand(_node));
-	_subscriber_list.add(new MovingBaselineData(_node));
+
+	if (enable_movingbaselinedata != 0) {
+		_subscriber_list.add(new MovingBaselineData(_node));
+	}
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();

@@ -142,7 +142,6 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
         }
     if 'show_subgroups_if' in actuator_output_yaml:
         actuator_output['show-subgroups-if'] = actuator_output_yaml['show_subgroups_if']
-    add_reverse_range_param = actuator_output_yaml.get('add_reverse_range_param', False)
 
     # config parameters
     def get_config_params(param_list):
@@ -257,14 +256,13 @@ def get_actuator_output(yaml_config, output_functions, timer_config_file, verbos
                 per_channel_params.append(param)
 
 
-        if add_reverse_range_param:
-            param = {
-                    'label': 'Rev Range\n(for Servos)',
-                    'name': param_prefix+'_REV',
-                    'index-offset': -1,
-                    'show-as': 'bitset',
-                }
-            per_channel_params.append(param)
+        param = {
+                'label': 'Rev Range\n(for Servos)',
+                'name': param_prefix+'_REV',
+                'index-offset': -1,
+                'show-as': 'bitset',
+            }
+        per_channel_params.append(param)
 
         # TODO: support non-standard per-channel parameters
 

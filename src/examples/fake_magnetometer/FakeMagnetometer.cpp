@@ -44,7 +44,6 @@ FakeMagnetometer::FakeMagnetometer() :
 	_px4_mag(0, ROTATION_NONE)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MAGSIM);
-	_px4_mag.set_external(false);
 }
 
 bool FakeMagnetometer::init()

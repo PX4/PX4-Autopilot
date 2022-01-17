@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,32 +46,37 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-#include "beep.hpp"
-#include "rgbled.hpp"
-#include "safety_state.hpp"
-#include "uavcan_driver.hpp"
-#include "uavcan_servers.hpp"
-#include "allocator.hpp"
 #include "actuators/esc.hpp"
 #include "actuators/hardpoint.hpp"
 #include "actuators/servo.hpp"
+#include "allocator.hpp"
+#include "beep.hpp"
+#include "rgbled.hpp"
+#include "safety_state.hpp"
 #include "sensors/sensor_bridge.hpp"
+#include "uavcan_driver.hpp"
+#include "uavcan_servers.hpp"
+
+#include <lib/drivers/device/Device.hpp>
+#include <lib/mixer_module/mixer_module.hpp>
+#include <lib/perf/perf_counter.h>
 
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <uavcan/protocol/global_time_sync_master.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
+#include <uavcan/protocol/node_info_retriever.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
-#include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/param/ExecuteOpcode.hpp>
+#include <uavcan/protocol/param/GetSet.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
 
-#include <lib/drivers/device/device.h>
-#include <lib/mixer_module/mixer_module.hpp>
-#include <lib/perf/perf_counter.h>
-
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/uavcan_parameter_request.h>
+#include <uORB/topics/uavcan_parameter_value.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 using namespace time_literals;
 
@@ -178,18 +183,15 @@ public:
 
 	uavcan::Node<>	&get_node() { return _node; }
 
-	int		teardown();
-
 	void		print_info();
 
 	void		shrink();
 
-	void		hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command);
-
 	static UavcanNode	*instance() { return _instance; }
 	static int		 getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
-	int			 fw_server(eServerAction action);
-	void			 attachITxQueueInjector(ITxQueueInjector *injector) {_tx_injector = injector;}
+
+	void requestCheckAllNodesFirmwareAndUpdate() { _check_fw = true; }
+
 	int			 list_params(int remote_node_id);
 	int			 save_params(int remote_node_id);
 	int			 set_param(int remote_node_id, const char *name, char *value);
@@ -198,16 +200,11 @@ public:
 
 	static void busevent_signal_trampoline();
 
-protected:
-	void Run() override;
 private:
+	void Run() override;
+
 	void		fill_node_info();
 	int		init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
-	void		node_spin_once();
-
-	int		start_fw_server();
-	int		stop_fw_server();
-	int		request_fw_check();
 
 	int		print_params(uavcan::protocol::param::GetSet::Response &resp);
 	int		get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
@@ -219,10 +216,6 @@ private:
 	void enable_idle_throttle_when_armed(bool value);
 
 	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
-	px4::atomic<int>	_fw_server_action{None};
-	int			 _fw_server_status{-1};
-
-	bool			_is_armed{false};		///< the arming status of the actuators on the bus
 
 	unsigned		_output_count{0};		///< number of actuators currently available
 
@@ -232,30 +225,28 @@ private:
 
 	uavcan::Node<>			_node;				///< library instance
 	pthread_mutex_t			_node_mutex;
-	px4_sem_t			_server_command_sem;
+
 	UavcanEscController		_esc_controller;
 	UavcanServoController		_servo_controller;
 	UavcanMixingInterfaceESC 	_mixing_interface_esc{_node_mutex, _esc_controller};
 	UavcanMixingInterfaceServo 	_mixing_interface_servo{_node_mutex, _servo_controller};
 	UavcanHardpointController	_hardpoint_controller;
-	UavcanBeep			_beep_controller;
 	UavcanSafetyState         	_safety_state_controller;
 	UavcanRGBController             _rgbled_controller;
+
 	uavcan::GlobalTimeSyncMaster	_time_sync_master;
 	uavcan::GlobalTimeSyncSlave	_time_sync_slave;
 	uavcan::NodeStatusMonitor	_node_status_monitor;
 
-	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
+	uavcan::NodeInfoRetriever   _node_info_retriever;
 
-	ITxQueueInjector		*_tx_injector{nullptr};
+	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
 
 	bool 				_idle_throttle_when_armed{false};
 	int32_t 			_idle_throttle_when_armed_param{0};
 
-	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	perf_counter_t			_cycle_perf;
-	perf_counter_t			_interval_perf;
+	perf_counter_t			_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
+	perf_counter_t			_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
 
 	void handle_time_sync(const uavcan::TimerEvent &);
 
@@ -274,7 +265,58 @@ private:
 		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &)> RestartNodeCallback;
 
 	void cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+
+	uORB::SubscriptionInterval	_parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _vcmd_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _param_request_sub{ORB_ID(uavcan_parameter_request)};
+
+	uORB::Publication<uavcan_parameter_value_s> _param_response_pub{ORB_ID(uavcan_parameter_value)};
+	uORB::Publication<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	/*
+	 * The MAVLink parameter bridge needs to know the maximum parameter index
+	 * of each node so that clients can determine when parameter listings have
+	 * finished. We do that by querying a node's entire parameter set whenever
+	 * a parameter message is received for a node with a zero _param_count,
+	 * and storing the count here. If a node doesn't respond, or doesn't have
+	 * any parameters, its count will stay at zero and we'll try to query the
+	 * set again next time.
+	 *
+	 * The node's UAVCAN ID is used as the index into the _param_counts array.
+	 */
+	uint8_t _param_counts[128] {};
+	bool _count_in_progress{false};
+	uint8_t _count_index{0};
+
+	bool _param_in_progress{false};
+	uint8_t _param_index{0};
+	bool _param_list_in_progress{false};
+	bool _param_list_all_nodes{false};
+	uint8_t _param_list_node_id{1};
+
+	uint32_t _param_dirty_bitmap[4] {};
+	uint8_t _param_save_opcode{0};
+
+	bool _cmd_in_progress{false};
+
+	void cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
+	void cb_count(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
 	void cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
 	void cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result);
 
+	uavcan::ServiceClient<uavcan::protocol::param::GetSet, GetSetCallback> _param_getset_client;
+	uavcan::ServiceClient<uavcan::protocol::param::ExecuteOpcode, ExecuteOpcodeCallback> _param_opcode_client;
+	uavcan::ServiceClient<uavcan::protocol::RestartNode, RestartNodeCallback> _param_restartnode_client;
+	void param_count(uavcan::NodeID node_id);
+	void param_opcode(uavcan::NodeID node_id);
+
+	uint8_t get_next_active_node_id(uint8_t base);
+	uint8_t get_next_dirty_node_id(uint8_t base);
+	void set_node_params_dirty(uint8_t node_id) { _param_dirty_bitmap[node_id >> 5] |= 1 << (node_id & 31); }
+	void clear_node_params_dirty(uint8_t node_id) { _param_dirty_bitmap[node_id >> 5] &= ~(1 << (node_id & 31)); }
+	bool are_node_params_dirty(uint8_t node_id) const { return bool((_param_dirty_bitmap[node_id >> 5] >> (node_id & 31)) & 1); }
+
+	bool _check_fw{false};
+
+	UavcanServers   *_servers{nullptr};
 };

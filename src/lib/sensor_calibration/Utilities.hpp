@@ -50,7 +50,17 @@ namespace calibration
  * @param device_id
  * @return int8_t Valid calibration index on success, -1 otherwise
  */
-int8_t FindCalibrationIndex(const char *sensor_type, uint32_t device_id);
+int8_t FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id);
+
+/**
+ * @brief Find sensor's calibration index if it exists, otherwise select an available slot.
+ *
+ * @param sensor_type Calibration parameter abbreviated sensor string ("ACC", "GYRO", "MAG")
+ * @param device_id
+ * @param preferred_index preferred index (optional)
+ * @return int8_t Valid calibration index on success, -1 otherwise
+ */
+int8_t FindAvailableCalibrationIndex(const char *sensor_type, uint32_t device_id, int8_t preferred_index = -1);
 
 /**
  * @brief Get sensor calibration parameter value.
@@ -131,5 +141,12 @@ Rotation GetBoardRotation();
  * @return matrix::Dcmf
  */
 matrix::Dcmf GetBoardRotationMatrix();
+
+/**
+ * @brief Determine if device is on an external bus
+ *
+ * @return true if device is on an external bus
+ */
+bool DeviceExternal(uint32_t device_id);
 
 } // namespace calibration
