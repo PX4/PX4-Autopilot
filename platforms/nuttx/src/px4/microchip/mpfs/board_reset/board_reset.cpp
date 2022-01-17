@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <nuttx/board.h>
 
-extern "C" void __reset_vec(void);
+extern "C" void __start(void);
 
 static void board_reset_enter_bootloader()
 {
@@ -63,7 +63,7 @@ int board_reset(int status)
 
 	/* Just reboot via reset vector */
 
-	__reset_vec();
+	__start();
 
 	return 0;
 }
