@@ -84,6 +84,8 @@ void UavcanRangefinderBridge::range_sub_cb(const
 
 		uint8_t rangefinder_type = 0;
 		uint8_t rangefinder_orientation = 0;
+		const uint8_t coarse_orientation_upward = 14;
+		const uint8_t coarse_orientation_downward = 15;
 
 		switch (msg.sensor_type) {
 		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR:
@@ -102,14 +104,14 @@ void UavcanRangefinderBridge::range_sub_cb(const
 		}
 
 		if (msg.beam_orientation_in_body_frame.orientation_defined) {
-			// Yaw is the second element per DSDL
+			// Pitch is the second element per DSDL
 
 			switch (msg.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[1]) {
-			case distance_sensor_s::ROTATION_UPWARD_FACING:
+			case coarse_orientation_upward:
 				rangefinder_orientation = distance_sensor_s::ROTATION_UPWARD_FACING;
 				break;
 
-			case distance_sensor_s::ROTATION_DOWNWARD_FACING:
+			case coarse_orientation_downward:
 				rangefinder_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 				break;
 
@@ -117,7 +119,7 @@ void UavcanRangefinderBridge::range_sub_cb(const
 				break;
 			}
 
-			// Pitch is the third element per DSDL
+			// Yaw is the third element per DSDL
 
 			switch (msg.beam_orientation_in_body_frame.fixed_axis_roll_pitch_yaw[2]) {
 			case distance_sensor_s::ROTATION_FORWARD_FACING:
