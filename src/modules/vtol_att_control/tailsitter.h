@@ -62,15 +62,6 @@ public:
 	void waiting_on_tecs() override;
 
 private:
-
-	struct {
-		float fw_pitch_sp_offset;
-	} _params_tailsitter{};
-
-	struct {
-		param_t fw_pitch_sp_offset;
-	} _params_handles_tailsitter{};
-
 	enum class vtol_mode {
 		MC_MODE = 0,			/**< vtol is in multicopter mode */
 		TRANSITION_FRONT_P1,	/**< vtol is in front transition part 1 mode */
@@ -88,6 +79,11 @@ private:
 	matrix::Vector3f _trans_rot_axis;
 
 	void parameters_update() override;
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
+					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off
+				       )
+
 
 };
 #endif
