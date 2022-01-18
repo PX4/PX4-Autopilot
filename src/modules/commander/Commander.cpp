@@ -3904,7 +3904,8 @@ void Commander::battery_status_check()
 
 	if (_battery_failsafe_timestamp != 0
 	    && hrt_elapsed_time(&_battery_failsafe_timestamp) > _param_com_bat_act_t.get() * 1_s
-	    && _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER) {
+	    && (_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER
+		|| _vehicle_control_mode.flag_control_auto_enabled)) {
 		_battery_failsafe_timestamp = 0;
 		uint8_t failsafe_action = get_battery_failsafe_action(_internal_state, _battery_warning,
 					  (low_battery_action_t)_param_com_low_bat_act.get());
