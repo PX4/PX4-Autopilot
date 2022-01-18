@@ -50,6 +50,7 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/follow_target_status.h>
 #include <uORB/topics/follow_target_estimator.h>
+#include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 // Speed above which the target heading can change.
@@ -150,6 +151,9 @@ protected:
 			const matrix::Vector3f &vel_ned_est,
 			const matrix::Vector3f &acc_ned_est) const;
 
+
+	void calculate_and_publish_gimbal_setpoint(float xy_distance, float z_distance);
+
 	TargetEstimator _target_estimator;
 
 	// Follow angle is defined with 0 degrees following from front, and then clockwise rotation
@@ -179,4 +183,5 @@ protected:
 	uORB::Subscription _follow_target_estimator_sub{ORB_ID(follow_target_estimator)};
 
 	uORB::PublicationMulti<follow_target_status_s> _follow_target_status_pub{ORB_ID(follow_target_status)};
+	uORB::PublicationMulti<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
 };

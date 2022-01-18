@@ -42,9 +42,12 @@
 
 #include "FlightTaskAutoFollowTarget.hpp"
 #include <mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 
 using matrix::Vector2f;
 using matrix::Vector3f;
+using matrix::Quatf;
+using matrix::Eulerf;
 
 FlightTaskAutoFollowTarget::FlightTaskAutoFollowTarget()
 {
@@ -247,6 +250,10 @@ bool FlightTaskAutoFollowTarget::update()
 			_yaw_setpoint = atan2f(-target_to_drone(1), -target_to_drone(0));
 		}
 
+		// Gimbal setpoint
+		const float gimbal_height = -(_position(2) - (_target_position_filtered.getState()(2)));
+		calculate_and_publish_gimbal_setpoint(target_to_drone.norm(), gimbal_height);
+
 	} else {
 		// Control setpoint: Stay in current position
 		_position_setpoint(0) = _position_setpoint(1) = NAN;
@@ -309,4 +316,25 @@ Vector3f FlightTaskAutoFollowTarget::predict_future_pos_ned_est(float deltatime,
 		const Vector3f &vel_ned_est, const Vector3f &acc_ned_est) const
 {
 	return pos_ned_est + vel_ned_est * deltatime + 0.5f * acc_ned_est * deltatime * deltatime;
+}
+
+
+void FlightTaskAutoFollowTarget::calculate_and_publish_gimbal_setpoint(float xy_distance, float z_distance)
+{
+	gimbal_manager_set_attitude_s msg{};
+	float pitch_down_angle = 0.0f;
+
+	if (PX4_ISFINITE(z_distance)) {
+		pitch_down_angle = atan2f(z_distance, xy_distance);
+	}
+
+	if (!PX4_ISFINITE(pitch_down_angle)) {
+		pitch_down_angle = 0.0;
+	}
+
+	const Quatf q_gimbal = Quatf(Eulerf(0, -pitch_down_angle, 0));
+	q_gimbal.copyTo(msg.q);
+
+	msg.timestamp = hrt_absolute_time();
+	_gimbal_manager_set_attitude_pub.publish(msg);
 }

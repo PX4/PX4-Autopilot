@@ -65,6 +65,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("follow_target_status", 100);
 	add_topic("follow_target", 500);
 	add_topic("follow_target_estimator", 100);
+	add_topic("gimbal_manager_set_attitude", 500);
 	add_optional_topic("generator_status");
 	add_optional_topic("gps_dump");
 	add_optional_topic("heater_status");
