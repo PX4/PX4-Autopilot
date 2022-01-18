@@ -429,3 +429,97 @@ void Ekf::updateTerrainValidity()
 
 	_hagl_valid = (recent_range_fusion || recent_flow_for_terrain_fusion);
 }
+
+void Ekf::fuseHaglAllStates()
+{
+	// get a height above ground measurement from the range finder assuming a flat earth
+	const float meas_hagl = _range_sensor.getDistBottom();
+
+	// predict the hagl from the vehicle position and terrain height
+	const float pred_hagl = _terrain_vpos - _state.pos(2);
+
+	// calculate the innovation
+	_hagl_innov = pred_hagl - meas_hagl;
+
+	// calculate the observation variance adding the variance of the vehicles own height uncertainty
+	const float obs_variance = fmaxf(P(9, 9) * _params.vehicle_variance_scaler, 0.0f)
+				   + sq(_params.range_noise)
+				   + sq(_params.range_noise_scaler * _range_sensor.getRange());
+
+	// calculate the innovation variance - limiting it to prevent a badly conditioned fusion
+	_hagl_innov_var = fmaxf(P(24,24) - 2*P(9,24) + P(9,9) + obs_variance, obs_variance);
+
+	// perform an innovation consistency check and only fuse data if it passes
+	const float gate_size = fmaxf(_params.range_innov_gate, 1.0f);
+	_hagl_test_ratio = sq(_hagl_innov) / (sq(gate_size) * _hagl_innov_var);
+
+	bool is_fused = false;
+	if (_hagl_test_ratio <= 1.0f) {
+		// calculate the Kalman gain
+		const float HK0 = 1.0F/_hagl_innov_var;
+
+		// calculate the observation Jacobians and Kalman gains
+		SparseVector25f<9,24> Hfusion; // Optical flow observation Jacobians
+		Vector25f Kfusion;
+
+		if (_control_status.flags.rng_hgt) {
+			Hfusion.at<9>() = -1.0f;
+			if (shouldUseRangeFinderForHagl()) {
+				for (uint8_t index=0; index<=23; index++) {
+					Kfusion(index) = HK0*(P(index,24) - P(index,9));
+				}
+			} else {
+				for (uint8_t index=0; index<=23; index++) {
+					Kfusion(index) = - HK0*P(index,9);
+				}
+			}
+		} else {
+			for (unsigned row=0; row<=23; row++) {
+				// update of all states other than terrain is inhibited
+				Kfusion(row) = 0.0f;
+			}
+		}
+
+		if (shouldUseRangeFinderForHagl()) {
+			Hfusion.at<24>() = 1.0f;
+			if (_control_status.flags.rng_hgt) {
+				Kfusion(24) = HK0*(P(24,24) - P(24,9));
+			} else {
+				Kfusion(24) = HK0*P(24,24);
+			}
+		} else {
+			Kfusion(24) = 0.0f;
+		}
+
+
+		is_fused = measurementUpdate(Kfusion, Hfusion, _hagl_innov);
+	}
+
+	if (is_fused) {
+		// record last successful fusion event
+		if (shouldUseRangeFinderForHagl()) {
+			_time_last_hagl_fuse = _time_last_imu;
+			_innov_check_fail_status.flags.reject_hagl = false;
+		}
+		if (_control_status.flags.rng_hgt) {
+			_time_last_hgt_fuse = _time_last_imu;
+			_innov_check_fail_status.flags.reject_ver_pos = false;
+		}
+	} else {
+		if (shouldUseRangeFinderForHagl()) {
+			// If we have been rejecting range data for too long, reset to measurement
+			const uint64_t timeout = static_cast<uint64_t>(_params.terrain_timeout * 1e6f);
+			if (isTimedOut(_time_last_hagl_fuse, timeout)) {
+				_state.posd_terrain = _state.pos(2) + meas_hagl;
+				P.uncorrelateCovarianceSetVariance<1>(24, 0.0f);
+				P(24,24) = obs_variance;
+				_terrain_vpos_reset_counter++;
+			} else {
+				_innov_check_fail_status.flags.reject_hagl = true;
+			}
+		}
+		if (_control_status.flags.rng_hgt) {
+			_innov_check_fail_status.flags.reject_ver_pos = true;
+		}
+	}
+}

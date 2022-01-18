@@ -901,17 +901,17 @@ void Ekf::controlHeightFusion()
 			fuseGpsHgt();
 		}
 
-	} else if (_control_status.flags.rng_hgt) {
-
-		if (_range_sensor.isDataHealthy()) {
-			fuseRngHgt();
-		}
-
 	} else if (_control_status.flags.ev_hgt) {
 
 		if (_control_status.flags.ev_hgt && _ev_data_ready) {
 			fuseEvHgt();
 		}
+	}
+
+	// Fuse range finder data if available
+	const bool use_for_hagl = _terrain_initialised && shouldUseRangeFinderForHagl();
+	if ((use_for_hagl || _control_status.flags.rng_hgt) && _range_sensor.isDataHealthy()) {
+		fuseHaglAllStates();
 	}
 }
 
