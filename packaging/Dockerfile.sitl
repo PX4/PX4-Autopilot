@@ -1,13 +1,9 @@
-# fog-sw BUILDER
-ARG FROM_ARTIFACTS
-FROM $FROM_ARTIFACTS as px4_sitl_artifacts
-
 FROM ghcr.io/tiiuae/tii-ubuntu-ros:galactic
 
 # Install PX4 SITL
 WORKDIR /packages
 
-COPY --from=px4_sitl_artifacts /artifacts/px4_sitl_build*.tar.gz ./px4_sitl_build.tar.gz
+COPY bin/px4_sitl_build*.tar.gz ./px4_sitl_build.tar.gz
 
 RUN tar -xzf px4_sitl_build.tar.gz \
     && mv px4_sitl/build/px4_sitl_rtps/bin/* /usr/bin/ \
@@ -17,8 +13,9 @@ RUN tar -xzf px4_sitl_build.tar.gz \
 
 WORKDIR /px4_sitl
 
-COPY packaging/entrypoint.sh .
+COPY px4-firmware/packaging/entrypoint.sh .
 
-ENV PACKAGE_NAME px4_sitl
+ENV PACKAGE_NAME=px4_sitl
+ENV PX4_SIM_MODEL=ssrc_fog_x
 
 ENTRYPOINT ["/px4_sitl/entrypoint.sh"]

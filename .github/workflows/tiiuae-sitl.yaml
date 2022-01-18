@@ -37,8 +37,8 @@ jobs:
           set -eux
           mkdir bin
           cd px4-firmware
-          IMAGE_NAME=localhost:5000/tiiuae/px4-sitl-artifacts:latest ./build_sitl.sh ../bin/
-          docker push localhost:5000/tiiuae/px4-sitl-artifacts:latest
+          ./build_sitl.sh ../bin/
+          ls ../bin/
 
       - name: Docker meta
         id: meta
@@ -61,14 +61,12 @@ jobs:
       - name: Build tii-px4-sitl image and push
         uses: docker/build-push-action@v2
         with:
-          context: px4-firmware/
+          context: .
           file: ./px4-firmware/packaging/Dockerfile.sitl
           pull: true
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            FROM_ARTIFACTS=localhost:5000/tiiuae/px4-sitl-artifacts:latest
 
       - name: Install jfrog CLI tool
         env:

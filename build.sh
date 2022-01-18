@@ -14,43 +14,47 @@ dest_dir=$(realpath $1)
 
 mkdir -p ${dest_dir}
 
-# Generate debian package
-pushd ${script_dir}/packaging
+pushd ${script_dir}
+
+# Generate build_env
+iname_env=tii_px4_build
+docker build \
+  --build-arg UID=$(id -u) \
+  --build-arg GID=$(id -g) \
+  --pull \
+  -f ./packaging/Dockerfile.build_env -t ${iname_env} .
+
 
 version=$(git describe --always --tags --dirty | sed 's/^v//')
 
-iname_p=tii-px4-pixhawk-artifacts
-docker build -t ${iname_p} -f Dockerfile.build_pixhawk \
-	--build-arg VERSION=${version} \
-	..
+# Build Pixhawk4 image
+docker run \
+  --rm \
+  -v ${script_dir}:/px4-firmware/sources \
+  ${iname_env} \
+  ./packaging/build_pixhawk4.sh
 
-iname_s=tii-px4-saluki-artifacts
-docker build -t ${iname_s} -f Dockerfile.build_saluki \
-	--build-arg VERSION=${version} \
-	..
+# Build Saluki image
+docker run \
+  --rm \
+  -v ${script_dir}:/px4-firmware/sources \
+  ${iname_env} \
+  ./packaging/build_saluki.sh
 
-iname=tii-px4-fwupdater-artifacts
-docker build -t ${iname} -f Dockerfile.build_px4fwupdater \
-	--build-arg VERSION=${version} \
-	..
+# Generate debian package
+docker run \
+  --rm \
+  -v ${script_dir}:/px4-firmware/sources \
+  ${iname_env} \
+  ./packaging/build_px4fwupdater.sh \
+  -v ${version}
 
-container_deb=$(docker create ${iname} "")
-container_p=$(docker create ${iname_p} "")
-container_s=$(docker create ${iname_s} "")
-mkdir -p tmp_
-pushd tmp_
-docker cp ${container_deb}:/artifacts .
-docker rm ${container_deb}
-docker cp ${container_p}:/artifacts .
-docker rm ${container_p}
-docker cp ${container_s}:/artifacts .
-docker rm ${container_s}
-cp artifacts/* ${dest_dir}
-popd
-rm -Rf tmp_
-
-popd
-
+# Copy artifacts to destination directory
+cp ${script_dir}/build/px4_fmu-v5_ssrc/px4_fmu-v5_ssrc.px4                      ${dest_dir}/px4_fmu-v5_ssrc-${version}.px4
+cp ${script_dir}/build/px4_fmu-v5x_ssrc/px4_fmu-v5x_ssrc.px4                    ${dest_dir}/px4_fmu-v5x_ssrc-${version}.px4
+cp ${script_dir}/build/ssrc_saluki-v1_default/ssrc_saluki-v1_default.px4        ${dest_dir}/ssrc_saluki-v1_default-${version}.px4
+cp ${script_dir}/build/ssrc_saluki-v1_bootloader/ssrc_saluki-v1_bootloader.elf  ${dest_dir}/ssrc_saluki-v1_bootloader-${version}.elf
+mv ${script_dir}/px4fwupdater*.deb                                              ${dest_dir}/
 
 echo "Done"
 exit 0
