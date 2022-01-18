@@ -61,8 +61,8 @@ pipeline {
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "IMU_GYRO_RATEMAX" --value "2000"'
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "13000"'   // generic vtol standard
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-                    checkStatus()
                     quickCalibrate()
+                    checkStatus()
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status"'
                   }
                 }
@@ -134,8 +134,8 @@ pipeline {
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "IMU_GYRO_RATEMAX" --value "2000"'
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "13000"'   // generic vtol standard
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-                    checkStatus()
                     quickCalibrate()
+                    checkStatus()
                   }
                 }
                 stage("print topics") {
@@ -205,8 +205,8 @@ pipeline {
                     resetParameters()
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "13000"'   // generic vtol standard
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-                    checkStatus()
                     quickCalibrate()
+                    checkStatus()
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status"'
                   }
                 }
@@ -277,8 +277,8 @@ pipeline {
                     resetParameters()
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "4001"'    // generic quadcopter
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-                    checkStatus()
                     quickCalibrate()
+                    checkStatus()
                   }
                 }
                 stage("print topics") {
@@ -348,8 +348,8 @@ pipeline {
                     resetParameters()
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "13000"'   // generic vtol standard
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-                    checkStatus()
                     quickCalibrate()
+                    checkStatus()
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status"'
                   }
                 }
@@ -596,8 +596,8 @@ pipeline {
                     resetParameters()
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "4001"'    // generic quadcopter
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-                    checkStatus()
                     quickCalibrate()
+                    checkStatus()
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status" || true'
                   }
                 }
@@ -669,8 +669,8 @@ pipeline {
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "IMU_GYRO_RATEMAX" --value "400"'
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_AUTOSTART" --value "4001"'    // generic quadcopter
                     sh './Tools/HIL/nsh_param_set.py --device `find /dev/serial -name *usb-*` --name "SYS_BL_UPDATE" --value "1"'       // update bootloader
-                    checkStatus()
                     quickCalibrate()
+                    checkStatus()
                   }
                 }
                 stage("print topics") {
