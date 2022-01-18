@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,12 +53,12 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
@@ -94,7 +94,7 @@ extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
 static constexpr float kMaxVTOLAttitudeControlTimeStep = 0.1f; // max time step [s]
 
-class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::WorkItem
+class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public ModuleParams, public px4::WorkItem
 {
 public:
 
@@ -151,8 +151,6 @@ public:
 	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_1() {return &_torque_setpoint_1;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_0() {return &_thrust_setpoint_0;}
 	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
-
-	struct Params 					*get_params() {return &_params;}
 
 private:
 	void Run() override;
@@ -214,46 +212,6 @@ private:
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};	// [kg/m^3]
 
-	Params _params{};	// struct holding the parameters
-
-	struct {
-		param_t idle_pwm_mc;
-		param_t vtol_motor_id;
-		param_t vtol_fw_permanent_stab;
-		param_t vtol_type;
-		param_t elevons_mc_lock;
-		param_t fw_min_alt;
-		param_t fw_alt_err;
-		param_t fw_qc_max_pitch;
-		param_t fw_qc_max_roll;
-		param_t front_trans_time_openloop;
-		param_t front_trans_time_min;
-		param_t front_trans_duration;
-		param_t back_trans_duration;
-		param_t transition_airspeed;
-		param_t front_trans_throttle;
-		param_t back_trans_throttle;
-		param_t airspeed_blend;
-		param_t airspeed_mode;
-		param_t front_trans_timeout;
-		param_t mpc_xy_cruise;
-		param_t fw_motors_off;
-		param_t diff_thrust;
-		param_t diff_thrust_scale;
-		param_t pitch_min_rad;
-		param_t land_pitch_min_rad;
-		param_t forward_thrust_scale;
-		param_t dec_to_pitch_ff;
-		param_t dec_to_pitch_i;
-		param_t back_trans_dec_sp;
-		param_t vt_mc_on_fmu;
-		param_t vt_forward_thrust_enable_mode;
-		param_t mpc_land_alt1;
-		param_t mpc_land_alt2;
-		param_t sys_ctrl_alloc;
-		param_t vt_spoiler_mc_ld;
-	} _params_handles{};
-
 	hrt_abstime _last_run_timestamp{0};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines
@@ -271,5 +229,10 @@ private:
 	void		action_request_poll();
 	void		vehicle_cmd_poll();
 
-	int 		parameters_update();			//Update local parameter cache
+	void 		parameters_update();
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::VT_TYPE>) _param_vt_type,
+		(ParamBool<px4::params::VT_FW_PERM_STAB>) _param_vt_fw_perm_stab
+	)
 };
