@@ -769,7 +769,7 @@ int Sensors::print_status()
 	}
 
 	PX4_INFO_RAW("\n");
-	PX4_INFO("Airspeed status:");
+	PX4_INFO_RAW("Airspeed status:\n");
 	_airspeed_validator.print();
 
 	PX4_INFO_RAW("\n");

@@ -142,12 +142,12 @@ float DataValidator::confidence(uint64_t timestamp)
 void DataValidator::print()
 {
 	if (_time_last == 0) {
-		PX4_INFO("\tno data");
+		PX4_INFO_RAW("\tno data\n");
 		return;
 	}
 
 	for (unsigned i = 0; i < dimensions; i++) {
-		PX4_INFO("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f conf: %8.4f", (double)_value[i],
-			 (double)_lp[i], (double)_mean[i], (double)_rms[i], (double)confidence(hrt_absolute_time()));
+		PX4_INFO_RAW("\tval: %8.4f, lp: %8.4f mean dev: %8.4f RMS: %8.4f conf: %8.4f\n", (double)_value[i],
+			     (double)_lp[i], (double)_mean[i], (double)_rms[i], (double)confidence(hrt_absolute_time()));
 	}
 }
