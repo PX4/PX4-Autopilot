@@ -2410,14 +2410,14 @@ Commander::run()
 		_geofence_result_sub.update(&_geofence_result);
 		_status.geofence_violated = _geofence_result.geofence_violated;
 
-		const bool in_low_battery_failsafe = _battery_warning > battery_status_s::BATTERY_WARNING_LOW;
+		const bool in_low_battery_failsafe_delay = _battery_failsafe_timestamp != 0;
 
 		// Geofence actions
 		const bool geofence_action_enabled = _geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
 
 		if (_armed.armed
 		    && geofence_action_enabled
-		    && !in_low_battery_failsafe) {
+		    && !in_low_battery_failsafe_delay) {
 
 			// check for geofence violation transition
 			if (_geofence_result.geofence_violated && !_geofence_violated_prev) {
@@ -2598,7 +2598,7 @@ Commander::run()
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly
 			// but only if actually in air.
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-			    && !in_low_battery_failsafe && !_geofence_warning_action_on
+			    && !in_low_battery_failsafe_delay && !_geofence_warning_action_on
 			    && _armed.armed
 			    && !_status_flags.rc_calibration_in_progress
 			    && manual_control_setpoint.valid
