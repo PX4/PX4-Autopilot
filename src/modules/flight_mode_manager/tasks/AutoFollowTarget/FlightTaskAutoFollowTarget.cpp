@@ -308,6 +308,7 @@ bool FlightTaskAutoFollowTarget::update()
 	_target_position_filter.getState().copyTo(follow_target_status.pos_est_filtered);
 	follow_target_status.timestamp = hrt_absolute_time();
 	follow_target_status.emergency_ascent = _emergency_ascent;
+	follow_target_status.gimbal_pitch = _gimbal_pitch;
 	_follow_target_status_pub.publish(follow_target_status);
 
 	_constraints.want_takeoff = _checkTakeoff();
@@ -375,6 +376,8 @@ void FlightTaskAutoFollowTarget::point_gimbal_at(float xy_distance, float z_dist
 	}
 
 	const Quatf q_gimbal = Quatf(Eulerf(0, -pitch_down_angle, 0));
+	_gimbal_pitch = pitch_down_angle; // For logging
+
 	q_gimbal.copyTo(msg.q);
 
 	msg.timestamp = hrt_absolute_time();

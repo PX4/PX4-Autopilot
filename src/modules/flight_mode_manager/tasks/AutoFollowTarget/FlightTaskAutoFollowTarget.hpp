@@ -197,4 +197,7 @@ protected:
 
 	uORB::PublicationMulti<follow_target_status_s> _follow_target_status_pub{ORB_ID(follow_target_status)};
 	uORB::PublicationMulti<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
+
+	// Debugging
+	float _gimbal_pitch{0};
 };
