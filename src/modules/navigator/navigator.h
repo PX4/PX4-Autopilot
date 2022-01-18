@@ -51,6 +51,7 @@
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#include "vtol_takeoff.h"
 
 #include "navigation.h"
 
@@ -85,7 +86,7 @@ using namespace time_literals;
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 8
+#define NAVIGATOR_MODE_ARRAY_SIZE 9
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -386,7 +387,8 @@ private:
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
-	Land		_land;				/**< class for handling land commands */
+	VtolTakeoff	_vtol_takeoff;			/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */
+	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
