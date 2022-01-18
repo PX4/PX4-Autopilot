@@ -1729,18 +1729,18 @@ bool Ekf::resetYawToEKFGSF()
 {
 	// don't allow reet using the EKF-GSF estimate until the filter has started fusing velocity
 	// data and the yaw estimate has converged
-	float new_yaw, new_yaw_variance;
-
-	if (!_yawEstimator.getYawData(&new_yaw, &new_yaw_variance)) {
+	if (!_yawEstimator.isActive()) {
 		return false;
 	}
 
+	const float new_yaw_variance = _yawEstimator.getYawVar();
 	const bool has_converged = new_yaw_variance < sq(_params.EKFGSF_yaw_err_max);
 
 	if (!has_converged) {
 		return false;
 	}
 
+	const float new_yaw = _yawEstimator.getYaw();
 	resetQuatStateYaw(new_yaw, new_yaw_variance, true);
 
 	// reset velocity and position states to GPS - if yaw is fixed then the filter should start to operate correctly
