@@ -137,6 +137,17 @@ def write_equations_to_file(equations,code_generator_id,n_obs):
     return
 
 # derive equations for sequential fusion of optical flow measurements
+def hagl_observation(P,state):
+    obs_var = symbols("R_HAGL", real=True) # optical flow line of sight rate measurement noise variance
+    observation = state[24] - state[9]
+    equations = generate_observation_equations(P,state,observation,obs_var)
+    hagl_code_generator = CodeGenerator("./generated/hagl_generated.cpp")
+    write_equations_to_file(equations,hagl_code_generator,1)
+    hagl_code_generator.close()
+
+    return
+
+# derive equations for sequential fusion of optical flow measurements
 def optical_flow_observation(P,state,R_to_body,vx,vy,vz):
     flow_code_generator = CodeGenerator("./generated/flow_generated.cpp")
     range = symbols("range", real=True) # range from camera focal point to ground along sensor Z axis
@@ -643,6 +654,8 @@ def generate_code():
     beta_observation(P,state,R_to_body,vx,vy,vz,wx,wy)
     print('Generating optical flow observation code ...')
     optical_flow_observation(P,state,R_to_body,vx,vy,vz)
+    print('Generating HAGL observation code ...')
+    hagl_observation(P,state)
     print('Generating body frame velocity observation code ...')
     body_frame_velocity_observation(P,state,R_to_body,vx,vy,vz)
     print('Generating body frame acceleration observation code ...')
