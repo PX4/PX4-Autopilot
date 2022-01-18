@@ -822,7 +822,7 @@ private:
 	void controlGpsFusion();
 	bool shouldResetGpsFusion() const;
 	bool hasHorizontalAidingTimedOut() const;
-	bool isVelStateAlignedWithObs() const;
+	bool isYawFailure() const;
 	void processYawEstimatorResetRequest();
 	void processVelPosResetRequest();
 
