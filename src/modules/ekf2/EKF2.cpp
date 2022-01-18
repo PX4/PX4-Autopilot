@@ -57,6 +57,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
 	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
 	_params(_ekf.getParamHandle()),
+	_param_ekf2_predict_us(_params->filter_update_interval_us),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
 	_param_ekf2_baro_delay(_params->baro_delay_ms),
 	_param_ekf2_gps_delay(_params->gps_delay_ms),
@@ -228,8 +229,10 @@ bool EKF2::multi_init(int imu, int mag)
 
 int EKF2::print_status()
 {
-	PX4_INFO_RAW("ekf2:%d attitude: %d, local position: %d, global position: %d\n", _instance, _ekf.attitude_valid(),
+	PX4_INFO_RAW("ekf2:%d EKF dt: %.4fs, IMU dt: %.4fs, attitude: %d, local position: %d, global position: %d\n",
+		     _instance, (double)_ekf.get_dt_ekf_avg(), (double)_ekf.get_dt_imu_avg(), _ekf.attitude_valid(),
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
+
 	perf_print_counter(_ecl_ekf_update_perf);
 	perf_print_counter(_ecl_ekf_update_full_perf);
 	perf_print_counter(_msg_missed_imu_perf);
