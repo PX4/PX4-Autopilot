@@ -116,8 +116,6 @@ private:
 	hrt_abstime _gyro_timestamp_sample_last{0};
 	hrt_abstime _gyro_timestamp_last{0};
 
-	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
-
 	math::WelfordMean<matrix::Vector3f> _raw_accel_mean{};
 	math::WelfordMean<matrix::Vector3f> _raw_gyro_mean{};
 
@@ -174,6 +172,10 @@ private:
 
 	InFlightCalibration _accel_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
 	InFlightCalibration _gyro_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
+
+	static constexpr hrt_abstime INFLIGHT_CALIBRATION_QUIET_PERIOD_US{30_s};
+
+	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
 
 	perf_counter_t _accel_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel data gap")};
 	perf_counter_t _gyro_generation_gap_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro data gap")};

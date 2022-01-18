@@ -128,7 +128,7 @@ bool VehicleIMU::ParametersUpdate(bool force)
 		if (accel_calibration_count != _accel_calibration.calibration_count()) {
 			// if calibration changed reset any existing learned calibration
 			_accel_cal_available = false;
-			_in_flight_calibration_check_timestamp_last = hrt_absolute_time();
+			_in_flight_calibration_check_timestamp_last = hrt_absolute_time() + INFLIGHT_CALIBRATION_QUIET_PERIOD_US;
 
 			for (auto &learned_cal : _accel_learned_calibration) {
 				learned_cal = {};
@@ -138,7 +138,7 @@ bool VehicleIMU::ParametersUpdate(bool force)
 		if (gyro_calibration_count != _gyro_calibration.calibration_count()) {
 			// if calibration changed reset any existing learned calibration
 			_gyro_cal_available = false;
-			_in_flight_calibration_check_timestamp_last = hrt_absolute_time();
+			_in_flight_calibration_check_timestamp_last = hrt_absolute_time() + INFLIGHT_CALIBRATION_QUIET_PERIOD_US;
 
 			for (auto &learned_cal : _gyro_learned_calibration) {
 				learned_cal = {};
@@ -797,6 +797,8 @@ void VehicleIMU::SensorCalibrationSaveAccel()
 				if (_accel_calibration.ParametersSave(_sensor_accel_sub.get_instance())) {
 					param_notify_changes();
 				}
+
+				_in_flight_calibration_check_timestamp_last = hrt_absolute_time() + INFLIGHT_CALIBRATION_QUIET_PERIOD_US;
 			}
 		}
 
@@ -847,6 +849,8 @@ void VehicleIMU::SensorCalibrationSaveGyro()
 				if (_gyro_calibration.ParametersSave(_sensor_gyro_sub.get_instance())) {
 					param_notify_changes();
 				}
+
+				_in_flight_calibration_check_timestamp_last = hrt_absolute_time() + INFLIGHT_CALIBRATION_QUIET_PERIOD_US;
 			}
 		}
 
