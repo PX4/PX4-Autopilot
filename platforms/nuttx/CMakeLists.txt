@@ -38,7 +38,13 @@ endif()
 include(cygwin_cygpath)
 
 add_executable(px4 ${PX4_SOURCE_DIR}/platforms/common/empty.c)
-set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
+if (CONFIG_OPENSBI AND "${PX4_BOARD_LABEL}" STREQUAL "bootloader")
+	set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}_int.elf)
+	set(FW_NAME_FLASH ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
+	set(FW_NAME_SBI ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_sbi.bin)
+else()
+	set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
+endif()
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
 add_dependencies(px4 git_nuttx)
 
@@ -288,10 +294,19 @@ else()
 		target_link_libraries(px4 PRIVATE romfs)
 	endif()
 
-	add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
-		COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_OUTPUT}
-		DEPENDS px4
-	)
+	# for opensbi bootloader, strip the l2lim & ddr sections
+	if (CONFIG_OPENSBI AND "${PX4_BOARD_LABEL}" STREQUAL "bootloader")
+		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
+			COMMAND ${CMAKE_OBJCOPY} -R .l2_scratchpad ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_DIR_REL}/${FW_NAME_FLASH}
+			COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME_FLASH} ${PX4_BINARY_OUTPUT}
+			DEPENDS px4
+		)
+	else()
+		add_custom_command(OUTPUT ${PX4_BINARY_OUTPUT}
+			COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BINARY_OUTPUT}
+			DEPENDS px4
+		)
+	endif()
 
 endif()
 
@@ -342,7 +357,7 @@ if(${CONFIG_NSH_LIBRARY} MATCHES "y")
 	endif()
 endif()
 
-if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
+if("${PX4_BOARD_LABEL}" STREQUAL "bootloader" AND NOT CONFIG_OPENSBI) # TODO: handle opensbi
 	add_custom_command(OUTPUT ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
 		COMMAND ${CMAKE_OBJCOPY} -O binary ${PX4_BINARY_DIR_REL}/${FW_NAME} ${PX4_BOARD_DIR}/extras/${PX4_BOARD}_bootloader.bin
 		DEPENDS px4
