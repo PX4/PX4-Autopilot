@@ -3888,8 +3888,16 @@ void Commander::battery_status_check()
 		warn_user_about_battery(&_mavlink_log_pub, _battery_warning);
 		_battery_failsafe_timestamp = hrt_absolute_time();
 
-		if (get_battery_failsafe_action(_internal_state, _battery_warning,
-						(low_battery_action_t)_param_com_low_bat_act.get()) != commander_state_s::MAIN_STATE_MAX) {
+		uint8_t failsafe_action = get_battery_failsafe_action(_internal_state, _battery_warning,
+					  (low_battery_action_t)_param_com_low_bat_act.get());
+
+		if (_param_com_bat_act_t.get() > 0.f
+		    && failsafe_action != commander_state_s::MAIN_STATE_MAX) {
+			mavlink_log_critical(&_mavlink_log_pub, "Executing %s in %d seconds",
+					     main_state_str(failsafe_action), static_cast<uint16_t>(_param_com_bat_act_t.get()));
+			events::send<events::px4::enums::navigation_mode_t, uint16_t>(events::ID("commander_low_bat_action"), {events::Log::Critical, events::LogInternal::Warning},
+					"Executing {1} in {2} seconds",
+					navigation_mode(failsafe_action), static_cast<uint16_t>(_param_com_bat_act_t.get()));
 			main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, _internal_state);
 		}
 	}
