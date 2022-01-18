@@ -1727,21 +1727,11 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 // Returns true if the reset was successful
 bool Ekf::resetYawToEKFGSF()
 {
-	// don't allow reet using the EKF-GSF estimate until the filter has started fusing velocity
-	// data and the yaw estimate has converged
-	if (!_yawEstimator.isActive()) {
+	if (!isYawEmergencyEstimateAvailable()) {
 		return false;
 	}
 
-	const float new_yaw_variance = _yawEstimator.getYawVar();
-	const bool has_converged = new_yaw_variance < sq(_params.EKFGSF_yaw_err_max);
-
-	if (!has_converged) {
-		return false;
-	}
-
-	const float new_yaw = _yawEstimator.getYaw();
-	resetQuatStateYaw(new_yaw, new_yaw_variance, true);
+	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar(), true);
 
 	// reset velocity and position states to GPS - if yaw is fixed then the filter should start to operate correctly
 	resetVelocity();
@@ -1780,6 +1770,17 @@ bool Ekf::resetYawToEKFGSF()
 	}
 
 	return true;
+}
+
+bool Ekf::isYawEmergencyEstimateAvailable() const
+{
+	// don't allow reet using the EKF-GSF estimate until the filter has started fusing velocity
+	// data and the yaw estimate has converged
+	if (!_yawEstimator.isActive()) {
+		return false;
+	}
+
+	return _yawEstimator.getYawVar() < sq(_params.EKFGSF_yaw_err_max);
 }
 
 bool Ekf::getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],

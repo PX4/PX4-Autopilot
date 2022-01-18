@@ -1036,6 +1036,9 @@ private:
 	// Returns true if the reset was successful
 	bool resetYawToEKFGSF();
 
+	// Returns true if the output of the yaw emergency estimator can be used for a reset
+	bool isYawEmergencyEstimateAvailable() const;
+
 	void resetGpsDriftCheckFilters();
 };
 
