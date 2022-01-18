@@ -281,23 +281,23 @@ bool Gyroscope::ParametersSave(int desired_calibration_index, bool force)
 void Gyroscope::PrintStatus()
 {
 	if (external()) {
-		PX4_INFO("%s %" PRIu32
-			 " EN: %d, offset: [%05.3f %05.3f %05.3f], %.1f degC, Ext ROT: %d",
-			 SensorString(), device_id(), enabled(),
-			 (double)_offset(0), (double)_offset(1), (double)_offset(2),
-			 (double)_temperature,
-			 rotation_enum());
+		PX4_INFO_RAW("%s %" PRIu32
+			     " EN: %d, offset: [%05.3f %05.3f %05.3f], %.1f degC, Ext ROT: %d\n",
+			     SensorString(), device_id(), enabled(),
+			     (double)_offset(0), (double)_offset(1), (double)_offset(2),
+			     (double)_temperature,
+			     rotation_enum());
 
 	} else {
-		PX4_INFO("%s %" PRIu32 " EN: %d, offset: [%05.3f %05.3f %05.3f], %.1f degC, Internal",
-			 SensorString(), device_id(), enabled(),
-			 (double)_offset(0), (double)_offset(1), (double)_offset(2),
-			 (double)_temperature);
+		PX4_INFO_RAW("%s %" PRIu32 " EN: %d, offset: [%05.3f %05.3f %05.3f], %.1f degC, Internal\n",
+			     SensorString(), device_id(), enabled(),
+			     (double)_offset(0), (double)_offset(1), (double)_offset(2),
+			     (double)_temperature);
 	}
 
 	if (_thermal_offset.norm() > 0.f) {
-		PX4_INFO("%s %" PRIu32 " temperature offset: [%.4f %.4f %.4f]", SensorString(), _device_id,
-			 (double)_thermal_offset(0), (double)_thermal_offset(1), (double)_thermal_offset(2));
+		PX4_INFO_RAW("%s %" PRIu32 " temperature offset: [%.4f %.4f %.4f]\n", SensorString(), _device_id,
+			     (double)_thermal_offset(0), (double)_thermal_offset(1), (double)_thermal_offset(2));
 	}
 }
 

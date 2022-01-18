@@ -377,11 +377,11 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 
 void VotedSensorsUpdate::printStatus()
 {
-	PX4_INFO("selected gyro: %" PRIu32 " (%" PRIu8 ")", _selection.gyro_device_id, _gyro.last_best_vote);
+	PX4_INFO_RAW("selected gyro: %" PRIu32 " (%" PRIu8 ")\n", _selection.gyro_device_id, _gyro.last_best_vote);
 	_gyro.voter.print();
 
 	PX4_INFO_RAW("\n");
-	PX4_INFO("selected accel: %" PRIu32 " (%" PRIu8 ")", _selection.accel_device_id, _accel.last_best_vote);
+	PX4_INFO_RAW("selected accel: %" PRIu32 " (%" PRIu8 ")\n", _selection.accel_device_id, _accel.last_best_vote);
 	_accel.voter.print();
 }
 

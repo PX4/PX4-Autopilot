@@ -633,8 +633,9 @@ void VehicleMagnetometer::calcMagInconsistency()
 void VehicleMagnetometer::PrintStatus()
 {
 	if (_selected_sensor_sub_index >= 0) {
-		PX4_INFO("selected magnetometer: %" PRIu32 " (%" PRId8 ")", _last_data[_selected_sensor_sub_index].device_id,
-			 _selected_sensor_sub_index);
+		PX4_INFO_RAW("[vehicle_magnetometer] selected magnetometer: %" PRIu32 " (%" PRId8 ")\n",
+			     _last_data[_selected_sensor_sub_index].device_id,
+			     _selected_sensor_sub_index);
 	}
 
 	_voter.print();

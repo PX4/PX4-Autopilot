@@ -338,12 +338,13 @@ void VehicleAirData::Run()
 void VehicleAirData::PrintStatus()
 {
 	if (_selected_sensor_sub_index >= 0) {
-		PX4_INFO("selected barometer: %" PRIu32 " (%" PRId8 ")", _last_data[_selected_sensor_sub_index].device_id,
-			 _selected_sensor_sub_index);
+		PX4_INFO_RAW("[vehicle_air_data] selected barometer: %" PRIu32 " (%" PRId8 ")\n",
+			     _last_data[_selected_sensor_sub_index].device_id,
+			     _selected_sensor_sub_index);
 
 		if (fabsf(_thermal_offset[_selected_sensor_sub_index]) > 0.f) {
-			PX4_INFO("%" PRIu32 " temperature offset: %.4f", _last_data[_selected_sensor_sub_index].device_id,
-				 (double)_thermal_offset[_selected_sensor_sub_index]);
+			PX4_INFO_RAW("%" PRIu32 " temperature offset: %.4f\n", _last_data[_selected_sensor_sub_index].device_id,
+				     (double)_thermal_offset[_selected_sensor_sub_index]);
 		}
 	}
 
