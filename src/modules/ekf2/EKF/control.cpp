@@ -800,7 +800,7 @@ void Ekf::checkVerticalAccelerationHealth()
 	}
 
 	// Check for more than 50% clipping affected IMU samples within the past 1 second
-	const uint16_t clip_count_limit = 1000 / FILTER_UPDATE_PERIOD_MS;
+	const uint16_t clip_count_limit = 1.f / _dt_ekf_avg;
 	const bool is_clipping = _imu_sample_delayed.delta_vel_clipping[0] ||
 				 _imu_sample_delayed.delta_vel_clipping[1] ||
 				 _imu_sample_delayed.delta_vel_clipping[2];

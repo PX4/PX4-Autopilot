@@ -40,6 +40,19 @@
  */
 
 /**
+ * EKF prediction period
+ *
+ * EKF prediction period in microseconds. This should ideally be an integer multiple of the IMU time delta.
+ * Actual filter update will be an integer multiple of IMU update.
+ *
+ * @group EKF2
+ * @min 1000
+ * @max 20000
+ * @unit us
+ */
+PARAM_DEFINE_INT32(EKF2_PREDICT_US, 10000);
+
+/**
  * Magnetometer measurement delay relative to IMU measurements
  *
  * @group EKF2

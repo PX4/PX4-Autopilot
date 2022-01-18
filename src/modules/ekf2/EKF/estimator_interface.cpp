@@ -141,7 +141,7 @@ void EstimatorInterface::setMagData(const magSample &mag_sample)
 
 		mag_sample_new.time_us = mag_sample.time_us;
 		mag_sample_new.time_us -= static_cast<uint64_t>(_params.mag_delay_ms * 1000);
-		mag_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
+		mag_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 		mag_sample_new.mag = mag_sample.mag;
 
@@ -175,7 +175,7 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 		gpsSample gps_sample_new;
 
 		gps_sample_new.time_us = gps.time_usec - static_cast<uint64_t>(_params.gps_delay_ms * 1000);
-		gps_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
+		gps_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 		gps_sample_new.vel = gps.vel_ned;
 
@@ -237,7 +237,7 @@ void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 
 		baro_sample_new.time_us = baro_sample.time_us;
 		baro_sample_new.time_us -= static_cast<uint64_t>(_params.baro_delay_ms * 1000);
-		baro_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
+		baro_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 		_baro_buffer->push(baro_sample_new);
 	} else {
@@ -270,7 +270,7 @@ void EstimatorInterface::setAirspeedData(const airspeedSample &airspeed_sample)
 		airspeedSample airspeed_sample_new = airspeed_sample;
 
 		airspeed_sample_new.time_us -= static_cast<uint64_t>(_params.airspeed_delay_ms * 1000);
-		airspeed_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
+		airspeed_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 		_airspeed_buffer->push(airspeed_sample_new);
 	}
@@ -300,7 +300,7 @@ void EstimatorInterface::setRangeData(const rangeSample &range_sample)
 
 		rangeSample range_sample_new = range_sample;
 		range_sample_new.time_us -= static_cast<uint64_t>(_params.range_delay_ms * 1000);
-		range_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
+		range_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 		_range_buffer->push(range_sample_new);
 	}
@@ -331,7 +331,7 @@ void EstimatorInterface::setOpticalFlowData(const flowSample &flow)
 		flowSample optflow_sample_new = flow;
 
 		optflow_sample_new.time_us -= static_cast<uint64_t>(_params.flow_delay_ms * 1000);
-		optflow_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
+		optflow_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 		_flow_buffer->push(optflow_sample_new);
 	}
@@ -363,7 +363,7 @@ void EstimatorInterface::setExtVisionData(const extVisionSample &evdata)
 		extVisionSample ev_sample_new = evdata;
 		// calculate the system time-stamp for the mid point of the integration period
 		ev_sample_new.time_us -= static_cast<uint64_t>(_params.ev_delay_ms * 1000);
-		ev_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
+		ev_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 		_ext_vision_buffer->push(ev_sample_new);
 	}
@@ -394,7 +394,7 @@ void EstimatorInterface::setAuxVelData(const auxVelSample &auxvel_sample)
 		auxVelSample auxvel_sample_new = auxvel_sample;
 
 		auxvel_sample_new.time_us -= static_cast<uint64_t>(_params.auxvel_delay_ms * 1000);
-		auxvel_sample_new.time_us -= FILTER_UPDATE_PERIOD_MS * 1000 / 2;
+		auxvel_sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
 
 		_auxvel_buffer->push(auxvel_sample_new);
 	}
@@ -490,14 +490,16 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 		max_time_delay_ms = math::max(_params.ev_delay_ms, max_time_delay_ms);
 	}
 
-	// calculate the IMU buffer length required to accommodate the maximum delay with some allowance for jitter
-	_imu_buffer_length = ceilf(max_time_delay_ms / FILTER_UPDATE_PERIOD_MS);
+	const float filter_update_period_ms = _params.filter_update_interval_us / 1000.f;
+
+	// calculate the IMU buffer length required to accomodate the maximum delay with some allowance for jitter
+	_imu_buffer_length = ceilf(max_time_delay_ms / filter_update_period_ms);
 
 	// set the observation buffer length to handle the minimum time of arrival between observations in combination
 	// with the worst case delay from current time to ekf fusion time
 	// allow for worst case 50% extension of the ekf fusion time horizon delay due to timing jitter
 	const float ekf_delay_ms = max_time_delay_ms * 1.5f;
-	_obs_buffer_length = roundf(ekf_delay_ms / FILTER_UPDATE_PERIOD_MS);
+	_obs_buffer_length = roundf(ekf_delay_ms / filter_update_period_ms);
 
 	// limit to be no longer than the IMU buffer (we can't process data faster than the EKF prediction rate)
 	_obs_buffer_length = math::min(_obs_buffer_length, _imu_buffer_length);
@@ -558,6 +560,8 @@ void EstimatorInterface::printBufferAllocationFailed(const char *buffer_name)
 void EstimatorInterface::print_status()
 {
 	printf("IMU average dt: %.6f seconds\n", (double)_dt_imu_avg);
+	printf("EKF average dt: %.6f seconds\n", (double)_dt_ekf_avg);
+
 	printf("IMU buffer: %d (%d Bytes)\n", _imu_buffer.get_length(), _imu_buffer.get_total_size());
 
 	printf("minimum observation interval %d us\n", _min_obs_interval_us);

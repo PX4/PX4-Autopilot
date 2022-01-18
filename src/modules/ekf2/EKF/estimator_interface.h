@@ -253,6 +253,9 @@ public:
 	// Getter for the average imu update period in s
 	float get_dt_imu_avg() const { return _dt_imu_avg; }
 
+	// Getter for the average EKF update period in s
+	float get_dt_ekf_avg() const { return _dt_ekf_avg; }
+
 	// Getter for the imu sample on the delayed time horizon
 	const imuSample &get_imu_sample_delayed() const { return _imu_sample_delayed; }
 
@@ -263,9 +266,6 @@ public:
 	const MapProjection &global_origin() const { return _pos_ref; }
 
 	void print_status();
-
-	static constexpr unsigned FILTER_UPDATE_PERIOD_MS{10};	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
-	static constexpr float FILTER_UPDATE_PERIOD_S{FILTER_UPDATE_PERIOD_MS * 0.001f};
 
 protected:
 
@@ -293,7 +293,8 @@ protected:
 	*/
 	uint8_t _imu_buffer_length{0};
 
-	float _dt_imu_avg{0.0f};	// average imu update period in s
+	float _dt_imu_avg{0.005f};	// average imu update period in s
+	float _dt_ekf_avg{0.010f}; ///< average update rate of the ekf in s
 
 	imuSample _imu_sample_delayed{};	// captures the imu sample on the delayed time horizon
 
@@ -426,7 +427,7 @@ private:
 
 	void printBufferAllocationFailed(const char *buffer_name);
 
-	ImuDownSampler _imu_down_sampler{FILTER_UPDATE_PERIOD_S};
+	ImuDownSampler _imu_down_sampler{_params.filter_update_interval_us};
 
 	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)
 
