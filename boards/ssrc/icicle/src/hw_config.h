@@ -61,7 +61,8 @@
 #define SERIAL0_DEV    0x02
 #define SERIAL1_DEV    0x04
 
-#define APP_LOAD_ADDRESS               0x80000000llu
+#define APP_LOAD_ADDRESS               0xAFB00000llu
+#define FLASH_START_ADDRESS APP_LOAD_ADDRESS
 #define BOOTLOADER_DELAY               5000
 //#define INTERFACE_USB                  1
 //#define INTERFACE_USB_CONFIG           "/dev/ttyACM0"
@@ -70,7 +71,7 @@
 //#define USE_VBUS_PULL_DOWN
 #define INTERFACE_USART                1
 #define INTERFACE_USART_CONFIG         "/dev/ttyS1,2000000"
-#define BOOT_DELAY_ADDRESS             0x00000010
+#define BOOT_DELAY_ADDRESS             0x00000400
 #define BOARD_TYPE                     1500
 #define _FLASH_KBYTES                  2048
 #define BOARD_FLASH_SIZE               (_FLASH_KBYTES * 1024)

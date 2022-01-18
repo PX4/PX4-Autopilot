@@ -39,10 +39,10 @@
  * the beginning of signature
 */
 
-extern uint32_t  __reset_vec;
+extern uint32_t  __start;
 extern const int *_boot_signature;
 
-#define BOOT_ADDR &__reset_vec
+#define BOOT_ADDR &__start
 #define BOOT_END ((const void *)&_boot_signature)
 
 /* Boot signature start and end are defined by the

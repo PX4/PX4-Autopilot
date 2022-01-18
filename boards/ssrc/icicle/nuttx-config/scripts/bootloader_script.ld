@@ -74,23 +74,48 @@
 
 MEMORY
 {
-    ddr (rx)  : ORIGIN = 0x80000000, LENGTH = 2M    /* w/ cache */
-    envm (rx) : ORIGIN = 0x20220100, LENGTH = 128K - 256  /* 256 reserved for hss headers */
-    lim (rwx) : ORIGIN  = 0x08000000, LENGTH = 1024k
+    ddr  (rx)     : ORIGIN = 0x80000000, LENGTH = 4M          /* w/ cache */
+    envm (rx)     : ORIGIN = 0x20220100, LENGTH = 128K - 256  /* 256 reserved for hss headers */
+    l2lim  (rwx)  : ORIGIN = 0x08000000, LENGTH = 1024k
+    l2zerodevice (rwx) : ORIGIN = 0x0A000000, LENGTH = 512k
 }
 
 OUTPUT_ARCH("riscv")
 
 ENTRY(_stext)
 
-EXTERN(exception_common) /* todo: what was the magic with this again? */
-EXTERN(_main_toc)
+EXTERN(__start)
 
 SECTIONS
 {
+    .text.sbi : {
+      sbi*
+      riscv_atomic*
+      riscv_locks*
+      riscv_asm*
+    } > ddr
+
+    .ddrstorage : {
+      *(.ddrstorage)
+    } > ddr
+
+    .l2_scratchpad : ALIGN(0x10)
+    {
+        __l2_scratchpad_load = LOADADDR(.l2_scratchpad);
+        __l2_scratchpad_start = .;
+        __l2_scratchpad_vma_start = .;
+        *(.l2_scratchpad)
+
+        . = ALIGN(0x10);
+        __l2_scratchpad_end = .;
+        __l2_scratchpad_vma_end = .;
+    } > l2zerodevice
+
+    PROVIDE(__mpfs_nuttx_start = ORIGIN(l2lim));
+
     .text : {
         _stext = ABSOLUTE(.);
-        *(.text.vec)
+        *mpfs_head.o
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)
@@ -121,7 +146,7 @@ SECTIONS
         CONSTRUCTORS
         . = ALIGN(4);
         _edata = ABSOLUTE(.);
-    } > lim AT > envm
+    } > l2lim AT > envm
 
     PROVIDE(__global_pointer$ = _sdata + ((_edata - _sdata) / 2));
 
@@ -136,7 +161,9 @@ SECTIONS
         _ebss = ABSOLUTE(.);
         . = ALIGN(32);
         _default_stack_limit = ABSOLUTE(.);
-    } > lim
+    } > l2lim
+
+    PROVIDE(__mpfs_nuttx_end = .);
 
     /* Stabs debugging sections. */
 

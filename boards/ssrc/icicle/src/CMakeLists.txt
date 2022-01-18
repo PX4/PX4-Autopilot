@@ -31,17 +31,6 @@
 #
 ############################################################################
 
-add_custom_command(
-    OUTPUT  ${NUTTX_DIR}/arch/risc-v/src/mpfs_vectors.o
-    DEPENDS nuttx_arch
-)
-
-add_library(mpfs_head
-  ${NUTTX_DIR}/arch/risc-v/src/mpfs_vectors.o
-)
-
-set_target_properties(mpfs_head PROPERTIES LINKER_LANGUAGE ASM)
-
 if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 	add_library(drivers_board
 		bootloader_main.c
@@ -49,7 +38,6 @@ if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 	)
 	target_link_libraries(drivers_board
 		PRIVATE
-			mpfs_head
 			nuttx_arch
 			nuttx_drivers
 			bootloader
@@ -72,7 +60,6 @@ else()
 
 	target_link_libraries(drivers_board
 		PRIVATE
-			mpfs_head
 			drivers__led # drv_led_start
 			nuttx_arch
 			nuttx_drivers

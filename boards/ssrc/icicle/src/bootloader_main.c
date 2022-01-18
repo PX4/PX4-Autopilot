@@ -54,6 +54,7 @@ __EXPORT void board_on_reset(int status) {}
 
 static void configure_pmp(void)
 {
+#if 0
 	// SDCARD DMA: NB! sizes must be power of 2
 	const uint64_t mode_bits = 0x1Full << 56;
 
@@ -64,6 +65,22 @@ static void configure_pmp(void)
 	// 4MB from the start of DDR
 	base_range = (0x80000000ull | (0x400000ull - 1ull)) >> 2;
 	putreg64(mode_bits | base_range, 0x20005708);
+
+#else
+
+#define MPFS_PMPCFG_MMC_0             (MPFS_MPUCFG_BASE + 0x700)
+#define MPFS_PMPCFG_MMC_1             (MPFS_MPUCFG_BASE + 0x708)
+#define MPFS_PMPCFG_MMC_2             (MPFS_MPUCFG_BASE + 0x710)
+#define MPFS_PMPCFG_MMC_3             (MPFS_MPUCFG_BASE + 0x718)
+
+
+	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_MMC_0);
+	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_MMC_1);
+	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_MMC_2);
+	putreg64(0x1f00000fffffffff, MPFS_PMPCFG_MMC_3);
+
+#endif
+
 }
 
 __EXPORT void mpfs_boardinitialize(void)

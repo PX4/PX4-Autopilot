@@ -20,31 +20,33 @@
 
 MEMORY
 {
-  progmem (rx) : ORIGIN = 0x80000000, LENGTH = 2048K  /* w/ cache */
-  sram   (rwx) : ORIGIN = 0x80200000, LENGTH = 2048K  /* w/ cache */
+  progmem (rx) : ORIGIN = 0xAFB00000, LENGTH = 2048K  /* w/ cache */
+  sram   (rwx) : ORIGIN = 0xAFD00000, LENGTH = 2048K  /* w/ cache */
 }
 
 OUTPUT_ARCH("riscv")
 
 ENTRY(_stext)
 
-EXTERN(exception_common) /* todo: what was the magic with this again? */
+EXTERN(__start)
 EXTERN(_main_toc)
 
 SECTIONS
 {
     .text : {
         _stext = ABSOLUTE(.);
-        *(.text.vec)
+        *mpfs_head.o
 
         /*
         This signature provides the bootloader with a way to delay booting
         */
-        . = ALIGN(8);
+        . = 0x400;
         _bootdelay_signature = ABSOLUTE(.);
         FILL(0x01ecc2925d7d05c5)
         . += 8;
         *(.main_toc)
+        *riscv_vectors.o
+        *riscv_exception_common.o
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)

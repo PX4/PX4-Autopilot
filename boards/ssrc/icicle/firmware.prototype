@@ -1,10 +1,10 @@
 {
     "board_id": 1500,
-    "magic": "Saluki",
-    "description": "Firmware for the Saluki board",
+    "magic": "Icicle",
+    "description": "Firmware for the Icicle board",
     "image": "",
     "build_time": 0,
-    "summary": "SSRC/Saluki",
+    "summary": "SSRC/Icicle",
     "version": "0.1",
     "image_size": 0,
     "image_maxsize": 2097152,
