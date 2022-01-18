@@ -48,15 +48,16 @@ using namespace estimator;
 class ImuDownSampler
 {
 public:
-	explicit ImuDownSampler(float target_dt_sec);
+	explicit ImuDownSampler(int32_t &target_dt_us);
 	~ImuDownSampler() = default;
 
 	bool update(const imuSample &imu_sample_new);
 
 	imuSample getDownSampledImuAndTriggerReset()
 	{
-		_do_reset = true;
-		return _imu_down_sampled;
+		imuSample imu{_imu_down_sampled};
+		reset();
+		return imu;
 	}
 
 private:
@@ -64,8 +65,15 @@ private:
 
 	imuSample _imu_down_sampled{};
 	Quatf _delta_angle_accumulated{};
-	const float _target_dt;  // [sec]
-	float _imu_collection_time_adj{0.f};
-	bool _do_reset{true};
+
+	int _accumulated_samples{0};
+	int _required_samples{1};
+
+	int32_t &_target_dt_us;
+
+	float _target_dt_s{0.010f};
+	float _min_dt_s{0.005f};
+
+	float _delta_ang_dt_avg{0.005f};
 };
 #endif // !EKF_IMU_DOWN_SAMPLER_HPP
