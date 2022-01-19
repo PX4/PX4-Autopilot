@@ -321,8 +321,6 @@ void MulticopterPositionControl::Run()
 
 		// set _dt in controllib Block for BlockDerivative
 		setDt(dt);
-
-		const bool was_in_failsafe = _in_failsafe;
 		_in_failsafe = false;
 
 		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
@@ -478,14 +476,16 @@ void MulticopterPositionControl::Run()
 
 			} else {
 				// Failsafe
-				if ((time_stamp_now - _last_warn) > 2_s) {
+				const bool warn_failsafe = (time_stamp_now - _last_warn) > 2_s;
+
+				if (warn_failsafe) {
 					PX4_WARN("invalid setpoints");
 					_last_warn = time_stamp_now;
 				}
 
 				vehicle_local_position_setpoint_s failsafe_setpoint{};
 
-				failsafe(time_stamp_now, failsafe_setpoint, states, !was_in_failsafe);
+				failsafe(time_stamp_now, failsafe_setpoint, states, warn_failsafe);
 
 				// reset constraints
 				_vehicle_constraints = {0, NAN, NAN, false, {}};

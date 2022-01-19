@@ -143,7 +143,7 @@ bool Ekf::initialiseFilter()
 	}
 
 	// Sum the magnetometer measurements
-	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
+	if (_mag_buffer && _mag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
 		if (_mag_sample_delayed.time_us != 0) {
 			if (_mag_counter == 0) {
 				_mag_lpf.reset(_mag_sample_delayed.mag);
@@ -157,7 +157,7 @@ bool Ekf::initialiseFilter()
 	}
 
 	// accumulate enough height measurements to be confident in the quality of the data
-	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
+	if (_baro_buffer && _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 		if (_baro_sample_delayed.time_us != 0) {
 			if (_baro_counter == 0) {
 				_baro_hgt_offset = _baro_sample_delayed.hgt;
@@ -325,10 +325,13 @@ void Ekf::calculateOutputStates(const imuSample &imu)
 	// Note fixed coefficients are used to save operations. The exact time constant is not important.
 	_yaw_rate_lpf_ef = 0.95f * _yaw_rate_lpf_ef + 0.05f * spin_del_ang_D / imu.delta_ang_dt;
 
+
+	_output_new.time_us = imu.time_us;
+	_output_vert_new.time_us = imu.time_us;
+
 	const Quatf dq(AxisAnglef{delta_angle});
 
 	// rotate the previous INS quaternion by the delta quaternions
-	_output_new.time_us = imu.time_us;
 	_output_new.quat_nominal = _output_new.quat_nominal * dq;
 
 	// the quaternions must always be normalised after modification

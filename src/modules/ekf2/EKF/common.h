@@ -219,7 +219,8 @@ struct parameters {
 	int32_t vdist_sensor_type{VDIST_SENSOR_BARO};	///< selects the primary source for height data
 	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
 				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
-	int32_t sensor_interval_min_ms{20};		///< minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
+
+	int32_t sensor_interval_max_ms{10};		///< maximum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
 
 	// measurement time delays
 	float mag_delay_ms{0.0f};		///< magnetometer measurement delay relative to the IMU (mSec)
