@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1212,7 +1212,7 @@ int param_save_default()
 				if (res == PX4_OK) {
 					// reopen file to verify
 					int fd_verify = ::open(filename, O_RDONLY, PX4_O_MODE_666);
-					res = param_verify(fd_verify);
+					res = param_verify(fd_verify) || lseek(fd_verify, 0, SEEK_SET) || param_verify(fd_verify);
 					::close(fd_verify);
 				}
 			}

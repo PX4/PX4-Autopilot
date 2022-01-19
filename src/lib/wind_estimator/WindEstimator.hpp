@@ -124,7 +124,7 @@ private:
 
 	// initialise state and state covariance matrix
 	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas,
-			const matrix::Quatf q_att);
+			const matrix::Quatf &q_att);
 
 	void run_sanity_checks();
 };

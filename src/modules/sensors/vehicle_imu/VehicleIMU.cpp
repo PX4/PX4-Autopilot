@@ -128,7 +128,7 @@ bool VehicleIMU::ParametersUpdate(bool force)
 		if (accel_calibration_count != _accel_calibration.calibration_count()) {
 			// if calibration changed reset any existing learned calibration
 			_accel_cal_available = false;
-			_in_flight_calibration_check_timestamp_last = hrt_absolute_time();
+			_in_flight_calibration_check_timestamp_last = hrt_absolute_time() + INFLIGHT_CALIBRATION_QUIET_PERIOD_US;
 
 			for (auto &learned_cal : _accel_learned_calibration) {
 				learned_cal = {};
@@ -138,7 +138,7 @@ bool VehicleIMU::ParametersUpdate(bool force)
 		if (gyro_calibration_count != _gyro_calibration.calibration_count()) {
 			// if calibration changed reset any existing learned calibration
 			_gyro_cal_available = false;
-			_in_flight_calibration_check_timestamp_last = hrt_absolute_time();
+			_in_flight_calibration_check_timestamp_last = hrt_absolute_time() + INFLIGHT_CALIBRATION_QUIET_PERIOD_US;
 
 			for (auto &learned_cal : _gyro_learned_calibration) {
 				learned_cal = {};
@@ -701,11 +701,11 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &angular_velocity)
 
 void VehicleIMU::PrintStatus()
 {
-	PX4_INFO("%" PRIu8 " - Accel: %" PRIu32 ", interval: %.1f us (SD %.1f us), Gyro: %" PRIu32
-		 ", interval: %.1f us (SD %.1f us)",
-		 _instance,
-		 _accel_calibration.device_id(), (double)_accel_interval_us, (double)sqrtf(_accel_interval_best_variance),
-		 _gyro_calibration.device_id(), (double)_gyro_interval_us, (double)sqrtf(_gyro_interval_best_variance));
+	PX4_INFO_RAW("[vehicle_imu] %" PRIu8 " - Accel: %" PRIu32 ", interval: %.1f us (SD %.1f us), Gyro: %" PRIu32
+		     ", interval: %.1f us (SD %.1f us)\n",
+		     _instance,
+		     _accel_calibration.device_id(), (double)_accel_interval_us, (double)sqrtf(_accel_interval_best_variance),
+		     _gyro_calibration.device_id(), (double)_gyro_interval_us, (double)sqrtf(_gyro_interval_best_variance));
 
 	PX4_DEBUG("gyro update mean sample latency: %.6f s, publish latency %.6f s, gyro interval %.6f s",
 		  (double)_gyro_update_latency_mean.mean()(0), (double)_gyro_update_latency_mean.mean()(1),
@@ -797,6 +797,8 @@ void VehicleIMU::SensorCalibrationSaveAccel()
 				if (_accel_calibration.ParametersSave(_sensor_accel_sub.get_instance())) {
 					param_notify_changes();
 				}
+
+				_in_flight_calibration_check_timestamp_last = hrt_absolute_time() + INFLIGHT_CALIBRATION_QUIET_PERIOD_US;
 			}
 		}
 
@@ -847,6 +849,8 @@ void VehicleIMU::SensorCalibrationSaveGyro()
 				if (_gyro_calibration.ParametersSave(_sensor_gyro_sub.get_instance())) {
 					param_notify_changes();
 				}
+
+				_in_flight_calibration_check_timestamp_last = hrt_absolute_time() + INFLIGHT_CALIBRATION_QUIET_PERIOD_US;
 			}
 		}
 

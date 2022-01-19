@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,39 +31,49 @@
  *
  ****************************************************************************/
 
-/**
- * @file ControlAllocationTest.cpp
- *
- * Tests for Control Allocation Algorithms
- *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
- */
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-#include <gtest/gtest.h>
-#include <ControlAllocationPseudoInverse.hpp>
+#include "ICP10100.hpp"
 
-using namespace matrix;
-
-TEST(ControlAllocationTest, AllZeroCase)
+void
+ICP10100::print_usage()
 {
-	ControlAllocationPseudoInverse method;
+	PRINT_MODULE_USAGE_NAME("icp10100", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x63);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
 
-	matrix::Vector<float, 6> control_sp;
-	matrix::Vector<float, 6> control_allocated;
-	matrix::Vector<float, 6> control_allocated_expected;
-	matrix::Matrix<float, 6, 16> effectiveness;
-	matrix::Vector<float, 16> actuator_sp;
-	matrix::Vector<float, 16> actuator_trim;
-	matrix::Vector<float, 16> linearization_point;
-	matrix::Vector<float, 16> actuator_sp_expected;
+extern "C" int icp10100_main(int argc, char *argv[])
+{
+	using ThisDriver = ICP10100;
+	BusCLIArguments cli{true, false};
+	cli.i2c_address = I2C_ADDRESS_DEFAULT;
+	cli.default_i2c_frequency = I2C_SPEED;
 
-	method.setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, 16, false);
-	method.setControlSetpoint(control_sp);
-	method.allocate();
-	method.clipActuatorSetpoint();
-	actuator_sp = method.getActuatorSetpoint();
-	control_allocated_expected = method.getAllocatedControl();
+	const char *verb = cli.parseDefaultArguments(argc, argv);
 
-	EXPECT_EQ(actuator_sp, actuator_sp_expected);
-	EXPECT_EQ(control_allocated, control_allocated_expected);
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_BARO_DEVTYPE_ICP10100);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+
+	} else if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+
+	} else if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }

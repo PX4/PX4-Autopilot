@@ -60,8 +60,14 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 	// MC motors
 	configuration.selected_matrix = 0;
 	_mc_rotors.enableYawControl(!_tilts.hasYawControl());
-	_nontilted_motors = _mc_rotors.updateAxisFromTilts(_tilts, _last_tilt_control)
+
+	// Update matrix with tilts in vertical position when update is triggered by a manual
+	// configuration (parameter) change (=force update). This is to make sure the normalization
+	// scales are tilt-invariant. Note: force update only possible when disarm.
+	const float tilt_control_applied = force ? -1.f : _last_tilt_control;
+	_nontilted_motors = _mc_rotors.updateAxisFromTilts(_tilts, tilt_control_applied)
 			    << configuration.num_actuators[(int)ActuatorType::MOTORS];
+
 	_mc_rotors.getEffectivenessMatrix(configuration, true);
 
 	// Control Surfaces
@@ -75,7 +81,10 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 	_tilts.updateTorqueSign(_mc_rotors.geometry(), true /* disable pitch to avoid configuration errors */);
 	_tilts.getEffectivenessMatrix(configuration, true);
 
-	_updated = false;
+	// If it was a forced update (thus coming from a config change), then make sure to update matrix in
+	// the next iteration again with the correct tilt (but without updating the normalization scale).
+	_updated = force;
+
 	return true;
 }
 

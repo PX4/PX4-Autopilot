@@ -41,14 +41,14 @@
 
 #include <lib/circuit_breaker/circuit_breaker.h>
 
-UavcanBeep::UavcanBeep(uavcan::INode &node) :
+UavcanBeepController::UavcanBeepController(uavcan::INode &node) :
 	_beep_pub(node),
 	_timer(node)
 {
 	_beep_pub.setPriority(uavcan::TransferPriority::MiddleLower);
 }
 
-int UavcanBeep::init()
+int UavcanBeepController::init()
 {
 	// don't initialize if CBRK_BUZZER circuit breaker is enabled.
 	if (circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY)) {
@@ -59,14 +59,14 @@ int UavcanBeep::init()
 	 * Setup timer and call back function for periodic updates
 	 */
 	if (!_timer.isRunning()) {
-		_timer.setCallback(TimerCbBinder(this, &UavcanBeep::periodic_update));
+		_timer.setCallback(TimerCbBinder(this, &UavcanBeepController::periodic_update));
 		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	}
 
 	return 0;
 }
 
-void UavcanBeep::periodic_update(const uavcan::TimerEvent &)
+void UavcanBeepController::periodic_update(const uavcan::TimerEvent &)
 {
 	if (_tune_control_sub.updated()) {
 		_tune_control_sub.copy(&_tune);

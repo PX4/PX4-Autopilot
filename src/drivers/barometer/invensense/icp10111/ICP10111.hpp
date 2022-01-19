@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,39 +31,68 @@
  *
  ****************************************************************************/
 
-/**
- * @file ControlAllocationTest.cpp
- *
- * Tests for Control Allocation Algorithms
- *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
- */
+#pragma once
 
-#include <gtest/gtest.h>
-#include <ControlAllocationPseudoInverse.hpp>
+#include "Inven_Sense_ICP10111_registers.hpp"
 
-using namespace matrix;
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/device/i2c.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 
-TEST(ControlAllocationTest, AllZeroCase)
+using namespace Inven_Sense_ICP10111;
+
+class ICP10111 : public device::I2C, public I2CSPIDriver<ICP10111>
 {
-	ControlAllocationPseudoInverse method;
+public:
+	ICP10111(const I2CSPIDriverConfig &config);
+	~ICP10111() override;
 
-	matrix::Vector<float, 6> control_sp;
-	matrix::Vector<float, 6> control_allocated;
-	matrix::Vector<float, 6> control_allocated_expected;
-	matrix::Matrix<float, 6, 16> effectiveness;
-	matrix::Vector<float, 16> actuator_sp;
-	matrix::Vector<float, 16> actuator_trim;
-	matrix::Vector<float, 16> linearization_point;
-	matrix::Vector<float, 16> actuator_sp_expected;
+	static void print_usage();
 
-	method.setEffectivenessMatrix(effectiveness, actuator_trim, linearization_point, 16, false);
-	method.setControlSetpoint(control_sp);
-	method.allocate();
-	method.clipActuatorSetpoint();
-	actuator_sp = method.getActuatorSetpoint();
-	control_allocated_expected = method.getAllocatedControl();
+	void RunImpl();
 
-	EXPECT_EQ(actuator_sp, actuator_sp_expected);
-	EXPECT_EQ(control_allocated, control_allocated_expected);
-}
+	int init() override;
+	void print_status() override;
+
+private:
+	int probe() override;
+
+	bool Reset();
+
+	bool Measure();
+
+	int8_t cal_crc(uint8_t seed, uint8_t data);
+	int read_measure_results(uint8_t *buf, uint8_t len);
+	int read_response(Cmd cmd, uint8_t *buf, uint8_t len);
+	int send_command(Cmd cmd);
+	int send_command(Cmd cmd, uint8_t *data, uint8_t len);
+
+	PX4Barometer _px4_baro;
+
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+
+	hrt_abstime _reset_timestamp{0};
+	int _failure_count{0};
+
+	unsigned _measure_interval{0};
+	int16_t _scal[4];
+
+	enum class STATE : uint8_t {
+		RESET,
+		WAIT_FOR_RESET,
+		READ_OTP,
+		MEASURE,
+		READ
+	} _state{STATE::RESET};
+
+	enum class MODE : uint8_t {
+		FAST,
+		NORMAL,
+		ACCURATE,
+		VERY_ACCURATE
+	} _mode{MODE::VERY_ACCURATE};
+};

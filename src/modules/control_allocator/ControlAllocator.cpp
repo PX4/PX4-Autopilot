@@ -496,7 +496,7 @@ ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 			// Assign control effectiveness matrix
 			int total_num_actuators = config.num_actuators_matrix[i];
 			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
-					config.linearization_point[i], total_num_actuators);
+					config.linearization_point[i], total_num_actuators, force);
 		}
 
 		trims.timestamp = hrt_absolute_time();
