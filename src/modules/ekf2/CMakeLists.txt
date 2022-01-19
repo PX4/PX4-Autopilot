@@ -39,6 +39,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 		-fno-associative-math
+		#-DDEBUG_BUILD
 	INCLUDES
 		EKF
 	STACK_MAX
