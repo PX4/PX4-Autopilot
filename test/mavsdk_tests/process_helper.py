@@ -74,9 +74,17 @@ class Runner:
                 break
             if not line or line == "\n":
                 continue
+            line = self.add_prefix(10, self.name, line)
             self.output_queue.put(line)
             self.log_fd.write(line)
             self.log_fd.flush()
+
+    def add_prefix(self, width: int, name: str, text: str) -> str:
+        return "[" + self.seconds() + "|" + name.ljust(width) + "] " + text
+
+    def seconds(self) -> str:
+        dt = time.time() - self.start_time
+        return "{: 8.03f}".format(dt)
 
     def poll(self) -> Optional[int]:
         return self.process.poll()
@@ -336,8 +344,12 @@ class TestRunner(Runner):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
         self.cwd = workspace_dir
-        self.cmd = os.path.join(workspace_dir, build_dir,
-                                "mavsdk_tests/mavsdk_tests")
-        self.args = ["--url", mavlink_connection,
+        self.cmd = "nice"
+        self.args = ["-5",
+                     os.path.join(
+                         workspace_dir,
+                         build_dir,
+                         "mavsdk_tests/mavsdk_tests"),
+                     "--url", mavlink_connection,
                      "--speed-factor", str(speed_factor),
                      case]

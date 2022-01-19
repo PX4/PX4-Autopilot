@@ -45,7 +45,6 @@ LSM9DS1_MAG::LSM9DS1_MAG(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_mag(get_device_id(), config.rotation)
 {
-	_px4_mag.set_external(external());
 }
 
 LSM9DS1_MAG::~LSM9DS1_MAG()

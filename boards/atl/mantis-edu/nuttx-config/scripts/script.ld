@@ -103,7 +103,7 @@ SECTIONS
 		This signature provides the bootloader with a way to delay booting
 		*/
 		_bootdelay_signature = ABSOLUTE(.);
-		FILL(0xffecc2925d7d05c5)
+		FILL(0xb4ecc2925d7d05c5)
 		. += 8;
 		*(.main_toc)
 		*(.text .text.*)

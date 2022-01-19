@@ -501,14 +501,14 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 void FlightModeManager::limitAltitude(vehicle_local_position_setpoint_s &setpoint,
 				      const vehicle_local_position_s &vehicle_local_position)
 {
-	if (_vehicle_land_detected_sub.get().alt_max < 0.0f || !_home_position_sub.get().valid_alt
+	if (_param_lndmc_alt_max.get() < 0.0f || !_home_position_sub.get().valid_alt
 	    || !vehicle_local_position.z_valid || !vehicle_local_position.v_z_valid) {
 		// there is no altitude limitation present or the required information not available
 		return;
 	}
 
 	// maximum altitude == minimal z-value (NED)
-	const float min_z = _home_position_sub.get().z + (-_vehicle_land_detected_sub.get().alt_max);
+	const float min_z = _home_position_sub.get().z + (-_param_lndmc_alt_max.get());
 
 	if (vehicle_local_position.z < min_z) {
 		// above maximum altitude, only allow downwards flight == positive vz-setpoints (NED)

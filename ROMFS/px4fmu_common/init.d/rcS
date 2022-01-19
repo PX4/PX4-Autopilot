@@ -72,28 +72,7 @@ then
 			umount /fs/microsd
 
 		else
-			# very basic I/O test
-			set PX4_INIT_TEST_FILE "/fs/microsd/.px4_init_test_file"
-			date >> $PX4_INIT_TEST_FILE
-
-			if [ $? -eq 0 -a -f $PX4_INIT_TEST_FILE ]
-			then
-				cat $PX4_INIT_TEST_FILE
-				rm $PX4_INIT_TEST_FILE
-
-				if [ $? -eq 0 -a ! -f $PX4_INIT_TEST_FILE ]
-				then
-					set SDCARD_AVAILABLE yes
-				fi
-			fi
-			unset PX4_INIT_TEST_FILE
-
-			if [ $SDCARD_AVAILABLE = no ]
-			then
-				echo "ERROR [init] card I/O failure, formatting"
-				set SDCARD_FORMAT yes
-				umount /fs/microsd
-			fi
+			set SDCARD_AVAILABLE yes
 		fi
 	fi
 
@@ -179,6 +158,11 @@ else
 		# try importing from backup file
 		if [ -f "/fs/microsd/parameters_backup.bson" ]
 		then
+			echo "[init] importing from parameter backup"
+
+			# dump current backup file contents for comparison
+			param dump /fs/microsd/parameters_backup.bson
+
 			param import /fs/microsd/parameters_backup.bson
 		fi
 	fi
@@ -307,15 +291,9 @@ else
 		# Start core UAVCAN module.
 		if uavcan start
 		then
-			if param greater UAVCAN_ENABLE 1
+			if param greater UAVCAN_ENABLE 2
 			then
-				# Start UAVCAN firmware update server and dynamic node ID allocation server.
-				uavcan start fw
-
-				if param greater UAVCAN_ENABLE 2
-				then
-					set OUTPUT_MODE uavcan_esc
-				fi
+				set OUTPUT_MODE uavcan_esc
 			fi
 		else
 			tune_control play error
@@ -431,17 +409,6 @@ else
 		commander start
 	fi
 
-
-	#
-	# Play the startup tune (if not disabled or there is an error)
-	#
-	param compare CBRK_BUZZER 782090
-	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
-	then
-		tune_control play -t $STARTUP_TUNE
-	fi
-
-
 	# Pre-takeoff continuous magnetometer calibration
 	if param compare -s MBE_ENABLE 1
 	then
@@ -460,7 +427,7 @@ else
 	set BOARD_RC_MAVLINK ${R}etc/init.d/rc.board_mavlink
 	if [ -f $BOARD_RC_MAVLINK ]
 	then
-		echo "Board extras: ${BOARD_RC_MAVLINK}"
+		echo "Board mavlink: ${BOARD_RC_MAVLINK}"
 		. $BOARD_RC_MAVLINK
 	fi
 	unset BOARD_RC_MAVLINK
@@ -498,6 +465,15 @@ else
 	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 	#
 	. ${R}etc/init.d/rc.vehicle_setup
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ "$?" != "0" -o "$STARTUP_TUNE" != "1" ]
+	then
+		tune_control play -t $STARTUP_TUNE
+	fi
 
 	#
 	# Start the navigator.

@@ -158,6 +158,11 @@ else
 		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=UndefinedBehaviorSanitizer
 	endif
 
+	# Fuzz Testing
+	ifdef PX4_FUZZ
+		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=FuzzTesting
+	endif
+
 endif
 
 # Pick up specific Python path if set
@@ -482,7 +487,9 @@ shellcheck_all:
 	@make px4_fmu-v5_default shellcheck
 
 validate_module_configs:
-	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f -not -path "$(SRC_DIR)/src/lib/mixer_module/*" -print0 | xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
+	@find "$(SRC_DIR)"/src/modules "$(SRC_DIR)"/src/drivers "$(SRC_DIR)"/src/lib -name *.yaml -type f \
+	-not -path "$(SRC_DIR)/src/lib/mixer_module/*" -not -path "$(SRC_DIR)/src/lib/crypto/libtommath/*" -print0 | \
+	xargs -0 "$(SRC_DIR)"/Tools/validate_yaml.py --schema-file "$(SRC_DIR)"/validation/module_schema.yaml
 
 # Cleanup
 # --------------------------------------------------------------------

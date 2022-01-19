@@ -696,7 +696,14 @@ int I2CSPIDriverBase::module_start(const BusCLIArguments &cli, BusInstanceIterat
 	}
 
 	if (!started && !cli.quiet_start) {
-		PX4_WARN("%s: no instance started (no device on bus?)", px4_get_taskname());
+		static constexpr char no_instance_started[] {"no instance started (no device on bus?)"};
+
+		if (iterator.external()) {
+			PX4_WARN("%s: %s", px4_get_taskname(), no_instance_started);
+
+		} else {
+			PX4_ERR("%s: %s", px4_get_taskname(), no_instance_started);
+		}
 
 #if defined(CONFIG_I2C)
 

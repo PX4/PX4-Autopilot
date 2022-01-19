@@ -101,15 +101,6 @@
 	 (1 << ADC_AIRSPEED_IN_CHANNEL) | \
 	 (1 << ADC_RSSI_IN_CHANNEL))
 
-
-/* Define Battery 1 Voltage Divider and A per V
- */
-
-#define BOARD_BATTERY1_V_DIV         (11.0f)     /* measured with the provided PM board */
-#define BOARD_BATTERY1_A_PER_V       (40.0f)
-#define BOARD_BATTERY2_V_DIV         (11.0f)     /* measured with the provided PM board */
-
-
 /* CAN Silence
  *
  * Silent mode control \ ESC Mux select

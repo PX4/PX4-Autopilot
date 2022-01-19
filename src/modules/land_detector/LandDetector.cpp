@@ -122,7 +122,6 @@ void LandDetector::Run()
 	const bool ground_contactDetected = _ground_contact_hysteresis.get_state();
 	const bool maybe_landedDetected = _maybe_landed_hysteresis.get_state();
 	const bool landDetected = _landed_hysteresis.get_state();
-	const float alt_max = _get_max_altitude() > 0.0f ? _get_max_altitude() : (float)INFINITY;
 	const bool in_ground_effect = _ground_effect_hysteresis.get_state();
 
 	// publish at 1 Hz, very first time, or when the result has changed
@@ -131,8 +130,7 @@ void LandDetector::Run()
 	    (_land_detected.freefall != freefallDetected) ||
 	    (_land_detected.maybe_landed != maybe_landedDetected) ||
 	    (_land_detected.ground_contact != ground_contactDetected) ||
-	    (_land_detected.in_ground_effect != in_ground_effect) ||
-	    (fabsf(_land_detected.alt_max - alt_max) > FLT_EPSILON)) {
+	    (_land_detected.in_ground_effect != in_ground_effect)) {
 
 		if (!landDetected && _land_detected.landed && _takeoff_time == 0) { /* only set take off time once, until disarming */
 			// We did take off
@@ -143,7 +141,6 @@ void LandDetector::Run()
 		_land_detected.freefall = freefallDetected;
 		_land_detected.maybe_landed = maybe_landedDetected;
 		_land_detected.ground_contact = ground_contactDetected;
-		_land_detected.alt_max = alt_max;
 		_land_detected.in_ground_effect = in_ground_effect;
 		_land_detected.in_descend = _get_in_descend();
 		_land_detected.has_low_throttle = _get_has_low_throttle();

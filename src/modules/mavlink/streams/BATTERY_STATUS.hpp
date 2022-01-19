@@ -101,10 +101,34 @@ private:
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_FAILED;
 					break;
 
+				case (battery_status_s::BATTERY_STATE_UNHEALTHY):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNHEALTHY;
+					break;
+
+				case (battery_status_s::BATTERY_STATE_CHARGING):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CHARGING;
+					break;
+
 				default:
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNDEFINED;
 					break;
 				}
+
+				switch (battery_status.mode) {
+				case (battery_status_s::BATTERY_MODE_AUTO_DISCHARGING):
+					bat_msg.mode = MAV_BATTERY_MODE_AUTO_DISCHARGING;
+					break;
+
+				case (battery_status_s::BATTERY_MODE_HOT_SWAP):
+					bat_msg.mode = MAV_BATTERY_MODE_HOT_SWAP;
+					break;
+
+				default:
+					bat_msg.mode = MAV_BATTERY_MODE_UNKNOWN;
+					break;
+				}
+
+				bat_msg.fault_bitmask = battery_status.faults;
 
 				// check if temperature valid
 				if (battery_status.connected && PX4_ISFINITE(battery_status.temperature)) {

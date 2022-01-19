@@ -44,6 +44,7 @@ set(msg_files
 	actuator_motors.msg
 	actuator_outputs.msg
 	actuator_servos.msg
+	actuator_servos_trim.msg
 	actuator_test.msg
 	adc_report.msg
 	airspeed.msg
@@ -111,6 +112,7 @@ set(msg_files
 	mission_result.msg
 	mount_orientation.msg
 	navigator_mission_item.msg
+	npfg_status.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	onboard_computer_status.msg
@@ -144,6 +146,7 @@ set(msg_files
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
+	sensor_hygrometer.msg
 	sensor_mag.msg
 	sensor_preflight_mag.msg
 	sensor_selection.msg

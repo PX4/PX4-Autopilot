@@ -40,8 +40,6 @@
 
 using namespace matrix;
 
-static constexpr float SIGMA_NORM	= 0.001f;
-
 FlightTaskAuto::FlightTaskAuto() :
 	_obstacle_avoidance(this),
 	_sticks(this),
@@ -231,7 +229,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	// Slow down automatic descend close to ground
 	float land_speed = math::gradual(_dist_to_ground,
 					 _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
-					 _param_mpc_land_speed.get(), _constraints.speed_down);
+					 _param_mpc_land_speed.get(), _param_mpc_z_v_auto_dn.get());
 
 	if (_type_previous != WaypointType::land) {
 		// initialize xy-position and yaw to waypoint such that home is reached exactly without user input
@@ -455,7 +453,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 				_sub_triplet_setpoint.get().next.yaw,
 				_sub_triplet_setpoint.get().next.yawspeed_valid ? _sub_triplet_setpoint.get().next.yawspeed : (float)NAN,
 				_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active(), _sub_triplet_setpoint.get().current.type);
-		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt);
+		_obstacle_avoidance.checkAvoidanceProgress(
+			_position, _triplet_prev_wp, _target_acceptance_radius, Vector2f(_closest_pt));
 	}
 
 	// set heading
@@ -535,17 +534,18 @@ void FlightTaskAuto::_set_heading_from_mode()
 		break;
 	}
 
-	if (PX4_ISFINITE(v.length())) {
+	if (PX4_ISFINITE(v.norm_squared())) {
 		// We only adjust yaw if vehicle is outside of acceptance radius. Once we enter acceptance
 		// radius, lock yaw to current yaw.
 		// This prevents excessive yawing.
 		if (!_yaw_lock) {
-			if (v.length() < _target_acceptance_radius) {
+			if (v.longerThan(_target_acceptance_radius)) {
+				_compute_heading_from_2D_vector(_yaw_setpoint, v);
+
+			} else {
 				_yaw_setpoint = _yaw;
 				_yaw_lock = true;
 
-			} else {
-				_compute_heading_from_2D_vector(_yaw_setpoint, v);
 			}
 		}
 
@@ -617,11 +617,11 @@ Vector2f FlightTaskAuto::_getTargetVelocityXY()
 State FlightTaskAuto::_getCurrentState()
 {
 	// Calculate the vehicle current state based on the Navigator triplets and the current position.
-	Vector2f u_prev_to_target = Vector2f(_triplet_target - _triplet_prev_wp).unit_or_zero();
-	Vector2f pos_to_target(_triplet_target - _position);
-	Vector2f prev_to_pos(_position - _triplet_prev_wp);
+	const Vector3f u_prev_to_target = (_triplet_target - _triplet_prev_wp).unit_or_zero();
+	const Vector3f pos_to_target(_triplet_target - _position);
+	const Vector3f prev_to_pos(_position - _triplet_prev_wp);
 	// Calculate the closest point to the vehicle position on the line prev_wp - target
-	_closest_pt = Vector2f(_triplet_prev_wp) + u_prev_to_target * (prev_to_pos * u_prev_to_target);
+	_closest_pt = _triplet_prev_wp + u_prev_to_target * (prev_to_pos * u_prev_to_target);
 
 	State return_state = State::none;
 
@@ -629,11 +629,11 @@ State FlightTaskAuto::_getCurrentState()
 		// Target is behind.
 		return_state = State::target_behind;
 
-	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.length() > _target_acceptance_radius) {
+	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.longerThan(_target_acceptance_radius)) {
 		// Current position is more than cruise speed in front of previous setpoint.
 		return_state = State::previous_infront;
 
-	} else if (Vector2f(Vector2f(_position) - _closest_pt).length() > _target_acceptance_radius) {
+	} else if ((_position - _closest_pt).longerThan(_target_acceptance_radius)) {
 		// Vehicle is more than cruise speed off track.
 		return_state = State::offtrack;
 
@@ -664,7 +664,7 @@ void FlightTaskAuto::_updateInternalWaypoints()
 
 	case State::offtrack:
 		_next_wp = _triplet_target;
-		_target = matrix::Vector3f(_closest_pt(0), _closest_pt(1), _triplet_target(2));
+		_target = _closest_pt;
 		_prev_wp = _position;
 		break;
 
@@ -682,13 +682,13 @@ void FlightTaskAuto::_updateInternalWaypoints()
 
 bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
 {
-	if (PX4_ISFINITE(v.length()) && v.length() > SIGMA_NORM) {
+	if (PX4_ISFINITE(v.norm_squared()) && v.longerThan(1e-3f)) {
 		v.normalize();
 		// To find yaw: take dot product of x = (1,0) and v
 		// and multiply by the sign given of cross product of x and v.
 		// Dot product: (x(0)*v(0)+(x(1)*v(1)) = v(0)
 		// Cross product: x(0)*v(1) - v(0)*x(1) = v(1)
-		heading =  sign(v(1)) * wrap_pi(acosf(v(0)));
+		heading = sign(v(1)) * wrap_pi(acosf(v(0)));
 		return true;
 	}
 
@@ -757,8 +757,8 @@ bool FlightTaskAuto::_generateHeadingAlongTraj()
 	Vector2f vel_sp_xy(_velocity_setpoint);
 	Vector2f traj_to_target = Vector2f(_target) - Vector2f(_position);
 
-	if ((vel_sp_xy.length() > .1f) &&
-	    (traj_to_target.length() > 2.f)) {
+	if ((vel_sp_xy.longerThan(.1f)) &&
+	    (traj_to_target.longerThan(2.f))) {
 		// Generate heading from velocity vector, only if it is long enough
 		// and if the drone is far enough from the target
 		_compute_heading_from_2D_vector(_yaw_setpoint, vel_sp_xy);
@@ -801,12 +801,12 @@ void FlightTaskAuto::_updateTrajConstraints()
 		// If the current velocity is beyond the usual constraints, tell
 		// the controller to exceptionally increase its saturations to avoid
 		// cutting out the feedforward
-		_constraints.speed_down = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _param_mpc_z_vel_max_dn.get());
-		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _param_mpc_z_vel_max_up.get());
+		_constraints.speed_down = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_down);
+		_constraints.speed_up = math::max(fabsf(_position_smoothing.getCurrentVelocityZ()), _constraints.speed_up);
 
 	} else if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		float z_accel_constraint = _param_mpc_acc_up_max.get();
-		float z_vel_constraint = _param_mpc_z_vel_max_up.get();
+		float z_vel_constraint = _param_mpc_z_v_auto_up.get();
 
 		// The constraints are broken because they are used as hard limits by the position controller, so put this here
 		// until the constraints don't do things like cause controller integrators to saturate. Once the controller
@@ -827,8 +827,13 @@ void FlightTaskAuto::_updateTrajConstraints()
 
 	} else { // down
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
-		_position_smoothing.setMaxVelocityZ(_param_mpc_z_vel_max_dn.get());
+		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
 	}
+
+	// Stretch the constraints of the velocity controller to leave some room for an additional
+	// correction required by the altitude/vertical position controller
+	_constraints.speed_down = math::max(_constraints.speed_down, 1.2f * _param_mpc_z_v_auto_dn.get());;
+	_constraints.speed_up = math::max(_constraints.speed_up, 1.2f * _param_mpc_z_v_auto_up.get());;
 }
 
 bool FlightTaskAuto::_highEnoughForLandingGear()

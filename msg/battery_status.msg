@@ -22,7 +22,7 @@ uint16 cycle_count			# number of discharge cycles the battery has experienced
 uint16 average_time_to_empty	# predicted remaining battery capacity based on the average rate of discharge in min
 uint16 serial_number		# serial number of the battery pack
 uint16 manufacture_date		# manufacture date, part of serial number of the battery pack. formated as: Day + Month×32 + (Year–1980)×512
-uint16 state_of_health		# state of health. FullChargeCapacity/DesignCapacity.
+uint16 state_of_health		# state of health. FullChargeCapacity/DesignCapacity, 0-100%.
 uint16 max_error			# max error, expected margin of error in % in the state-of-charge calculation with a range of 1 to 100%
 uint8 id					# ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed.
 uint16 interface_error		# interface error counter
@@ -31,6 +31,7 @@ float32[14] voltage_cell_v		# Battery individual cell voltages, 0 if unknown
 float32 max_cell_voltage_delta	# Max difference between individual cell voltages
 
 bool is_powering_off			# Power off event imminent indication, false if unknown
+bool is_required			# Set if the battery is explicitly required before arming
 
 
 uint8 BATTERY_WARNING_NONE = 0		# no battery low voltage warning active
@@ -38,8 +39,31 @@ uint8 BATTERY_WARNING_LOW = 1		# warning of low voltage
 uint8 BATTERY_WARNING_CRITICAL = 2	# critical voltage, return / abort immediately
 uint8 BATTERY_WARNING_EMERGENCY = 3	# immediate landing required
 uint8 BATTERY_WARNING_FAILED = 4	# the battery has failed completely
+uint8 BATTERY_STATE_UNHEALTHY = 6 # Battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited. Possible causes (faults) are listed in faults field.
+uint8 BATTERY_STATE_CHARGING = 7 # Battery is charging
 
-uint8 warning						# current battery warning
+uint8 BATTERY_FAULT_DEEP_DISCHARGE = 0 # Battery has deep discharged
+uint8 BATTERY_FAULT_SPIKES = 1 # Voltage spikes
+uint8 BATTERY_FAULT_CELL_FAIL= 2 # One or more cells have failed
+uint8 BATTERY_FAULT_OVER_CURRENT = 3 # Over-current
+uint8 BATTERY_FAULT_OVER_TEMPERATURE = 4 # Over-temperature
+uint8 BATTERY_FAULT_UNDER_TEMPERATURE = 5 # Under-temperature fault
+uint8 BATTERY_FAULT_INCOMPATIBLE_VOLTAGE = 6 # Vehicle voltage is not compatible with battery one
+uint8 BATTERY_FAULT_INCOMPATIBLE_FIRMWARE = 7 # Battery firmware is not compatible with current autopilot firmware
+uint8 BATTERY_FAULT_INCOMPATIBLE_MODEL = 8 # Battery model is not supported by the system
+uint8 BATTERY_FAULT_HARDWARE_FAILURE = 9 # hardware problem
+uint8 BATTERY_WARNING_OVER_TEMPERATURE = 10 # Over-temperature
+uint8 BATTERY_FAULT_COUNT = 11 # Counter - keep it as last element!
+
+uint16 faults		# Smart battery supply status/fault flags (bitmask) for health indication.
+uint32 custom_faults 	# Bitmask indicating smart battery internal manufacturer faults, those are not user actionable.
+uint8 warning		# Current battery warning
+uint8 mode 		# Battery mode. Note, the normal operation mode
+
+uint8 BATTERY_MODE_UNKNOWN = 0 # Battery does not support a mode, or if it does, is operational
+uint8 BATTERY_MODE_AUTO_DISCHARGING = 1 # Battery is auto discharging (towards storage level)
+uint8 BATTERY_MODE_HOT_SWAP = 2 # Battery in hot-swap mode
+uint8 BATTERY_MODE_COUNT = 3 # Counter - keep it as last element (once we're fully migrated to events interface we can just comment this)!
 
 
 uint8 MAX_INSTANCES = 4

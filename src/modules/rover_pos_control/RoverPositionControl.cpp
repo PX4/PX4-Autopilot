@@ -496,6 +496,20 @@ RoverPositionControl::Run()
 			// timestamp and publish controls
 			_act_controls.timestamp = hrt_absolute_time();
 			_actuator_controls_pub.publish(_act_controls);
+
+			vehicle_thrust_setpoint_s v_thrust_sp{};
+			v_thrust_sp.timestamp = hrt_absolute_time();
+			v_thrust_sp.xyz[0] = _act_controls.control[actuator_controls_s::INDEX_THROTTLE];
+			v_thrust_sp.xyz[1] = 0.0f;
+			v_thrust_sp.xyz[2] = 0.0f;
+			_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
+
+			vehicle_torque_setpoint_s v_torque_sp{};
+			v_torque_sp.timestamp = hrt_absolute_time();
+			v_torque_sp.xyz[0] = _act_controls.control[actuator_controls_s::INDEX_ROLL];
+			v_torque_sp.xyz[1] = _act_controls.control[actuator_controls_s::INDEX_PITCH];
+			v_torque_sp.xyz[2] = _act_controls.control[actuator_controls_s::INDEX_YAW];
+			_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 		}
 	}
 }

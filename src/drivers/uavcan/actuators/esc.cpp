@@ -48,14 +48,9 @@ using namespace time_literals;
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
-	_uavcan_sub_status(node),
-	_orb_timer(node)
+	_uavcan_sub_status(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
-}
-
-UavcanEscController::~UavcanEscController()
-{
 }
 
 int
@@ -68,11 +63,6 @@ UavcanEscController::init()
 		PX4_ERR("ESC status sub failed %i", res);
 		return res;
 	}
-
-	// ESC status will be relayed from UAVCAN bus into ORB at this rate
-	_orb_timer.setCallback(TimerCbBinder(this, &UavcanEscController::orb_pub_timer_cb));
-	_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ESC_STATUS_UPDATE_RATE_HZ));
-	_esc_status_pub.advertise();
 
 	return res;
 }
@@ -136,10 +126,6 @@ void
 UavcanEscController::set_rotor_count(uint8_t count)
 {
 	_rotor_count = count;
-
-	if (_rotor_count != 0u) {
-		_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ESC_STATUS_UPDATE_RATE_HZ));
-	}
 }
 
 void
@@ -148,27 +134,22 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
 		auto &ref = _esc_status.esc[msg.esc_index];
 
-		ref.esc_address = msg.getSrcNodeID().get();
 		ref.timestamp       = hrt_absolute_time();
+		ref.esc_address = msg.getSrcNodeID().get();
 		ref.esc_voltage     = msg.voltage;
 		ref.esc_current     = msg.current;
 		ref.esc_temperature = msg.temperature;
 		ref.esc_rpm         = msg.rpm;
 		ref.esc_errorcount  = msg.error_count;
+
+		_esc_status.esc_count = _rotor_count;
+		_esc_status.counter += 1;
+		_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+		_esc_status.esc_online_flags = check_escs_status();
+		_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
+		_esc_status.timestamp = hrt_absolute_time();
+		_esc_status_pub.publish(_esc_status);
 	}
-}
-
-void
-UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
-{
-	_esc_status.timestamp = hrt_absolute_time();
-	_esc_status.esc_count = _rotor_count;
-	_esc_status.counter += 1;
-	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
-	_esc_status.esc_online_flags = check_escs_status();
-	_esc_status.esc_armed_flags = (1 << _rotor_count) - 1;
-
-	_esc_status_pub.publish(_esc_status);
 }
 
 uint8_t

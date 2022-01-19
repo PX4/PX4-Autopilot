@@ -196,6 +196,7 @@ private:
 		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
 		(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 
+		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en,
 		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>) _param_com_home_in_air,
@@ -343,6 +344,11 @@ private:
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float		_battery_current{0.0f};
+	uint8_t		_last_connected_batteries{0};
+	uint32_t	_last_battery_custom_fault[battery_status_s::MAX_INSTANCES] {};
+	uint16_t	_last_battery_fault[battery_status_s::MAX_INSTANCES] {};
+	uint8_t		_last_battery_mode[battery_status_s::MAX_INSTANCES] {};
+
 
 	Hysteresis	_auto_disarm_landed{false};
 	Hysteresis	_auto_disarm_killed{false};

@@ -208,8 +208,6 @@ private:
 	struct InFlightCalibration {
 		hrt_abstime last_us{0};         ///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
 		hrt_abstime total_time_us{0};   ///< accumulated calibration time since the last save
-		Vector3f last_bias{};           ///< last valid XYZ accelerometer bias estimates (Gauss)
-		Vector3f last_bias_variance{};  ///< variances for the last valid accelerometer XYZ bias estimates (m/s**2)**2
 		bool cal_available{false};      ///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
 	};
 
@@ -240,6 +238,8 @@ private:
 	Vector3f _last_accel_calibration_published{};
 	Vector3f _last_gyro_calibration_published{};
 	Vector3f _last_mag_calibration_published{};
+
+	hrt_abstime _last_sensor_bias_published{0};
 
 	float _last_baro_bias_published{};
 

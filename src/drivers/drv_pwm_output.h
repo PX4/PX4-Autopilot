@@ -170,14 +170,8 @@ typedef uint16_t	servo_position_t;
 /** start DSM bind */
 #define DSM_BIND_START	_PX4_IOC(_PWM_SERVO_BASE, 10)
 
-/** set the PWM value for failsafe */
-#define PWM_SERVO_SET_FAILSAFE_PWM	_PX4_IOC(_PWM_SERVO_BASE, 12)
-
 /** get the PWM value for failsafe */
 #define PWM_SERVO_GET_FAILSAFE_PWM	_PX4_IOC(_PWM_SERVO_BASE, 13)
-
-/** set the PWM value when disarmed - should be no PWM (zero) by default */
-#define PWM_SERVO_SET_DISARMED_PWM	_PX4_IOC(_PWM_SERVO_BASE, 14)
 
 /** get the PWM value when disarmed */
 #define PWM_SERVO_GET_DISARMED_PWM	_PX4_IOC(_PWM_SERVO_BASE, 15)
@@ -194,31 +188,11 @@ typedef uint16_t	servo_position_t;
 /** get the maximum PWM value the output will send */
 #define PWM_SERVO_GET_MAX_PWM	_PX4_IOC(_PWM_SERVO_BASE, 19)
 
-/** get the TRIM value the output will send */
-#define PWM_SERVO_GET_TRIM_PWM	_PX4_IOC(_PWM_SERVO_BASE, 21)
-
-/** set the lockdown override flag to enable outputs in HIL */
-#define PWM_SERVO_SET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 23)
-
-/** get the lockdown override flag to enable outputs in HIL */
-#define PWM_SERVO_GET_DISABLE_LOCKDOWN		_PX4_IOC(_PWM_SERVO_BASE, 24)
-
 /** force safety switch off (to disable use of safety switch) */
 #define PWM_SERVO_SET_FORCE_SAFETY_OFF		_PX4_IOC(_PWM_SERVO_BASE, 25)
 
-/** force failsafe mode (failsafe values are set immediately even if failsafe condition not met) */
-#define PWM_SERVO_SET_FORCE_FAILSAFE		_PX4_IOC(_PWM_SERVO_BASE, 26)
-
-/** make failsafe non-recoverable (termination) if it occurs */
-#define PWM_SERVO_SET_TERMINATION_FAILSAFE	_PX4_IOC(_PWM_SERVO_BASE, 27)
-
 /** force safety switch on (to enable use of safety switch) */
 #define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 28)
-
-/** set auxillary output mode */
-#define PWM_SERVO_ENTER_TEST_MODE  18
-#define PWM_SERVO_EXIT_TEST_MODE   19
-#define PWM_SERVO_SET_MODE         _PX4_IOC(_PWM_SERVO_BASE, 34)
 
 /*
  *
@@ -227,9 +201,6 @@ typedef uint16_t	servo_position_t;
  *
  *
  */
-
-/** set a single servo to a specific value */
-#define PWM_SERVO_SET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x30 + _servo)
 
 /** get a single specific servo value */
 #define PWM_SERVO_GET(_servo)	_PX4_IOC(_PWM_SERVO_BASE, 0x50 + _servo)

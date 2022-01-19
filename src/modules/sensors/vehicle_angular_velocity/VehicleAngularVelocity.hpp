@@ -86,11 +86,11 @@ private:
 	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
 
-	void ResetFilters();
+	void ResetFilters(const hrt_abstime &time_now_us);
 	void SensorBiasUpdate(bool force = false);
-	bool SensorSelectionUpdate(bool force = false);
-	void UpdateDynamicNotchEscRpm(bool force = false);
-	void UpdateDynamicNotchFFT(bool force = false);
+	bool SensorSelectionUpdate(const hrt_abstime &time_now_us, bool force = false);
+	void UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force = false);
+	void UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force = false);
 	bool UpdateSampleRate();
 
 	// scaled appropriately for current sensor
@@ -156,11 +156,9 @@ private:
 	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESC_RPM] {};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_esc_rpm_reset_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
 
 	perf_counter_t _dynamic_notch_filter_fft_disable_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_fft_reset_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
 
 	bool _dynamic_notch_esc_rpm_available{false};

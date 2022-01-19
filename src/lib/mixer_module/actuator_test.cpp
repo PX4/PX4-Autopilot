@@ -41,7 +41,7 @@ ActuatorTest::ActuatorTest(const OutputFunction function_assignments[MAX_ACTUATO
 	reset();
 }
 
-void ActuatorTest::update(int num_outputs, bool reversible_motors, float thrust_curve)
+void ActuatorTest::update(int num_outputs, float thrust_curve)
 {
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -74,7 +74,22 @@ void ActuatorTest::update(int num_outputs, bool reversible_motors, float thrust_
 
 					// handle motors
 					if (actuator_test.function >= (int)OutputFunction::Motor1 && actuator_test.function <= (int)OutputFunction::MotorMax) {
-						FunctionMotors::updateValues(reversible_motors, thrust_curve, &value, 1);
+						actuator_motors_s motors;
+						motors.reversible_flags = 0;
+						_actuator_motors_sub.copy(&motors);
+						int motor_idx = actuator_test.function - (int)OutputFunction::Motor1;
+						FunctionMotors::updateValues(motors.reversible_flags >> motor_idx, thrust_curve, &value, 1);
+					}
+
+					// handle servos: add trim
+					if (actuator_test.function >= (int)OutputFunction::Servo1 && actuator_test.function <= (int)OutputFunction::ServoMax) {
+						actuator_servos_trim_s trim{};
+						_actuator_servos_trim_sub.copy(&trim);
+						int idx = actuator_test.function - (int)OutputFunction::Servo1;
+
+						if (idx < actuator_servos_trim_s::NUM_CONTROLS) {
+							value += trim.trim[idx];
+						}
 					}
 
 					_current_outputs[i] = value;

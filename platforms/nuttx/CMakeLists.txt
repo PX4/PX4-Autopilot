@@ -103,7 +103,7 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 
 # only in the cygwin environment: convert absolute linker script path to mixed windows (C:/...)
 # because even relative linker script paths are different for linux, mac and windows
-CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
+CYGPATH(NUTTX_CONFIG_DIR NUTTX_CONFIG_DIR_CYG)
 
 target_link_libraries(nuttx_arch
 	INTERFACE
@@ -125,7 +125,7 @@ target_link_libraries(px4 PRIVATE
 
 	-fno-exceptions
 	-fno-rtti
-	-Wl,--script=${NUTTX_CONFIG_DIR}/scripts/${SCRIPT_PREFIX}script.ld
+	-Wl,--script=${NUTTX_CONFIG_DIR_CYG}/scripts/${SCRIPT_PREFIX}script.ld
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections

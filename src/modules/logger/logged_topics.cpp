@@ -75,6 +75,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("manual_control_switches");
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
+	add_topic("npfg_status", 100);
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
 	add_topic("parameter_update");
@@ -201,8 +202,8 @@ void LoggedTopics::add_default_topics()
 		add_topic("actuator_servos", 100);
 		add_topic("vehicle_angular_acceleration", 20);
 		add_topic("vehicle_angular_acceleration_setpoint", 20);
-		add_topic("vehicle_thrust_setpoint", 20);
-		add_topic("vehicle_torque_setpoint", 20);
+		add_topic_multi("vehicle_thrust_setpoint", 20, 2);
+		add_topic_multi("vehicle_torque_setpoint", 20, 2);
 	}
 }
 
@@ -393,6 +394,8 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 
 bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t instance, bool optional)
 {
+	interval_ms /= _rate_factor;
+
 	const orb_metadata *const *topics = orb_get_topics();
 	bool success = false;
 

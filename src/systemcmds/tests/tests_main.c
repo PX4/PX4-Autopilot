@@ -98,7 +98,6 @@ const struct {
 	{"parameters",		test_parameters,	0},
 	{"perf",		test_perf,		OPT_NOJIGTEST},
 	{"ppm",			test_ppm,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"ppm_loopback",	test_ppm_loopback,	OPT_NOALLTEST},
 	{"rc",			test_rc,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"search_min",		test_search_min,	0},
 	{"sleep",		test_sleep,		OPT_NOJIGTEST},

@@ -79,13 +79,14 @@
 #include "streams/GLOBAL_POSITION_INT.hpp"
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
 #include "streams/GPS_RAW_INT.hpp"
-#include "streams/GPS_STATUS.hpp"
 #include "streams/GPS_RTCM_DATA.hpp"
+#include "streams/GPS_STATUS.hpp"
 #include "streams/HEARTBEAT.hpp"
 #include "streams/HIGHRES_IMU.hpp"
 #include "streams/HIL_ACTUATOR_CONTROLS.hpp"
 #include "streams/HIL_STATE_QUATERNION.hpp"
 #include "streams/HOME_POSITION.hpp"
+#include "streams/HYGROMETER_SENSOR.hpp"
 #include "streams/LANDING_TARGET.hpp"
 #include "streams/LOCAL_POSITION_NED.hpp"
 #include "streams/MAG_CAL_REPORT.hpp"
@@ -420,6 +421,9 @@ static const StreamListItem streams_list[] = {
 #if defined(HOME_POSITION_HPP)
 	create_stream_list_item<MavlinkStreamHomePosition>(),
 #endif // HOME_POSITION_HPP
+#if defined(HYGROMETER_SENSOR_HPP)
+	create_stream_list_item<MavlinkStreamHygrometerSensor>(),
+#endif // HYGROMETER_SENSOR_HPP
 #if defined(SERVO_OUTPUT_RAW_HPP)
 	create_stream_list_item<MavlinkStreamServoOutputRaw<0> >(),
 	create_stream_list_item<MavlinkStreamServoOutputRaw<1> >(),

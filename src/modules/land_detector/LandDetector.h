@@ -127,11 +127,6 @@ protected:
 	virtual bool _get_freefall_state() { return false; }
 
 	/**
-	 *  @return maximum altitude that can be reached
-	 */
-	virtual float _get_max_altitude() { return INFINITY; }
-
-	/**
 	 *  @return true if vehicle could be in ground effect (close to ground)
 	 */
 	virtual bool _get_ground_effect_state() { return false; }
@@ -163,7 +158,6 @@ private:
 
 	vehicle_land_detected_s _land_detected = {
 		.timestamp = 0,
-		.alt_max = -1.0f,
 		.freefall = false,
 		.ground_contact = true,
 		.maybe_landed = true,

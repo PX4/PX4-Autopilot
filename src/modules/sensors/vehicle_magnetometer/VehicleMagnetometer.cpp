@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020, 2001 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -186,53 +186,18 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 					if (_param_sens_mag_autocal.get() && !_armed && mag_bias_est.stable[mag_index]
 					    && (_calibration[mag_index].device_id() != 0) && !_calibration[mag_index].calibrated()) {
 
-						if (_calibration[mag_index].calibration_index() < 0) {
-							// find available slots
-							uint32_t cal_device_ids[MAX_SENSOR_COUNT] {};
-							bool cal_slot_match = false;
+						// set initial mag calibration
+						const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
 
-							for (unsigned cal_index = 0; cal_index < MAX_SENSOR_COUNT; cal_index++) {
-								char str[20] {};
-								sprintf(str, "CAL_%s%u_ID", "MAG", cal_index);
-								int32_t device_id_val = 0;
+						if (_calibration[mag_index].set_offset(offset)) {
+							_calibration[mag_index].set_temperature(_last_data[mag_index].temperature);
 
-								if (param_get(param_find_no_notification(str), &device_id_val) == PX4_OK) {
-									cal_device_ids[cal_index] = device_id_val;
+							// save parameters with preferred calibration slot to current sensor index
+							_calibration[mag_index].ParametersSave(mag_index);
 
-									if (cal_device_ids[cal_index] == _calibration[mag_index].device_id()) {
-										cal_slot_match = true;
-										_calibration[mag_index].set_calibration_index(cal_index);
-									}
-								}
-							}
+							_calibration_estimator_bias[mag_index].zero();
 
-							if (!cal_slot_match) {
-								// prefer slot that matches sensor instance
-								if (cal_device_ids[mag_index] == 0) {
-									_calibration[mag_index].set_calibration_index(mag_index);
-
-								} else {
-									for (int cal_index = 0; cal_index < MAX_SENSOR_COUNT; cal_index++) {
-										if (cal_device_ids[mag_index] == 0) {
-											_calibration[mag_index].set_calibration_index(cal_index);
-											break;
-										}
-									}
-								}
-							}
-						}
-
-						// set initial mag calibration if calibration index is set successfully
-						if (_calibration[mag_index].calibration_index() >= 0) {
-							const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
-
-							if (_calibration[mag_index].set_offset(offset)) {
-								_calibration[mag_index].set_temperature(_last_data[mag_index].temperature);
-								_calibration[mag_index].ParametersSave();
-								_calibration_estimator_bias[mag_index].zero();
-
-								parameters_notify = true;
-							}
+							parameters_notify = true;
 						}
 					}
 				}
@@ -393,6 +358,8 @@ void VehicleMagnetometer::Run()
 {
 	perf_begin(_cycle_perf);
 
+	const hrt_abstime time_now_us = hrt_absolute_time();
+
 	ParametersUpdate();
 
 	// check vehicle status for changes to armed state
@@ -416,12 +383,12 @@ void VehicleMagnetometer::Run()
 
 		if (!_advertised[uorb_index]) {
 			// use data's timestamp to throttle advertisement checks
-			if ((_last_data[uorb_index].timestamp == 0) || (hrt_elapsed_time(&_last_data[uorb_index].timestamp) > 1_s)) {
+			if ((_last_data[uorb_index].timestamp == 0) || (time_now_us > _last_data[uorb_index].timestamp + 1_s)) {
 				if (_sensor_sub[uorb_index].advertised()) {
 					_advertised[uorb_index] = true;
 
 				} else {
-					_last_data[uorb_index].timestamp = hrt_absolute_time();
+					_last_data[uorb_index].timestamp = time_now_us;
 				}
 			}
 		}
@@ -432,7 +399,7 @@ void VehicleMagnetometer::Run()
 			while (_sensor_sub[uorb_index].update(&report)) {
 
 				if (_calibration[uorb_index].device_id() != report.device_id) {
-					_calibration[uorb_index].set_device_id(report.device_id, report.is_external);
+					_calibration[uorb_index].set_device_id(report.device_id);
 					_priority[uorb_index] = _calibration[uorb_index].priority();
 				}
 
@@ -480,7 +447,7 @@ void VehicleMagnetometer::Run()
 
 	// check for the current best sensor
 	int best_index = 0;
-	_voter.get_best(hrt_absolute_time(), &best_index);
+	_voter.get_best(time_now_us, &best_index);
 
 	if (best_index >= 0) {
 		if (_selected_sensor_sub_index != best_index) {
@@ -529,9 +496,8 @@ void VehicleMagnetometer::Run()
 
 			if (flags != DataValidator::ERROR_FLAG_NO_ERROR) {
 				if (failover_index != -1) {
-					const hrt_abstime now = hrt_absolute_time();
 
-					if (now - _last_error_message > 3_s) {
+					if (time_now_us > _last_error_message + 3_s) {
 						mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!\t",
 								      "MAG",
 								      failover_index,
@@ -561,7 +527,7 @@ void VehicleMagnetometer::Run()
 							events::ID("sensor_failover_mag"), events::Log::Emergency, "Magnetometer sensor #{1} failure: {2}", failover_index,
 							failover_reason);
 
-						_last_error_message = now;
+						_last_error_message = time_now_us;
 					}
 
 					// reduce priority of failed sensor to the minimum
@@ -667,8 +633,9 @@ void VehicleMagnetometer::calcMagInconsistency()
 void VehicleMagnetometer::PrintStatus()
 {
 	if (_selected_sensor_sub_index >= 0) {
-		PX4_INFO("selected magnetometer: %" PRIu32 " (%" PRId8 ")", _last_data[_selected_sensor_sub_index].device_id,
-			 _selected_sensor_sub_index);
+		PX4_INFO_RAW("[vehicle_magnetometer] selected magnetometer: %" PRIu32 " (%" PRId8 ")\n",
+			     _last_data[_selected_sensor_sub_index].device_id,
+			     _selected_sensor_sub_index);
 	}
 
 	_voter.print();

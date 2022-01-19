@@ -439,8 +439,9 @@ PARAM_DEFINE_FLOAT(SIH_T_TAU, 0.05f);
 /**
  * Vehicle type
  *
- * @value 0 MC
- * @value 1 FW
+ * @value 0 Multicopter
+ * @value 1 Fixed-Wing
+ * @value 2 Tailsitter
  * @reboot_required true
  * @group Simulation In Hardware
  */

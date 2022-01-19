@@ -47,6 +47,8 @@ ControlAllocationSequentialDesaturation::allocate()
 	//Compute new gains if needed
 	updatePseudoInverse();
 
+	_prev_actuator_sp = _actuator_sp;
+
 	switch (_param_mc_airmode.get()) {
 	case 1:
 		mixAirmodeRP();
@@ -60,9 +62,6 @@ ControlAllocationSequentialDesaturation::allocate()
 		mixAirmodeDisabled();
 		break;
 	}
-
-	// Clip
-	clipActuatorSetpoint(_actuator_sp);
 }
 
 void ControlAllocationSequentialDesaturation::desaturateActuators(

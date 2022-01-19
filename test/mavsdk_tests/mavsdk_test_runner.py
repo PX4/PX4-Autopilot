@@ -486,15 +486,12 @@ class Tester:
             runner.stop()
 
     def collect_runner_output(self) -> None:
-        max_name = max(len(runner.name) for runner in self.active_runners)
-
         for runner in self.active_runners:
             while True:
                 line = runner.get_output_line()
                 if not line:
                     break
 
-                line = self.add_name_prefix(max_name, runner.name, line)
                 self.add_to_combined_log(line)
                 if self.verbose:
                     print(line, end="")
@@ -571,10 +568,6 @@ class Tester:
     def get_combined_log(self, filename: str) -> str:
         with open(filename, 'r') as f:
             return f.read()
-
-    @staticmethod
-    def add_name_prefix(width: int, name: str, text: str) -> str:
-        return colorize("[" + name.ljust(width) + "] " + text, color.RESET)
 
     @staticmethod
     def determine_logfile_path(log_dir: str, desc: str) -> str:
