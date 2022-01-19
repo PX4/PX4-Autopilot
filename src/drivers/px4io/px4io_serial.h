@@ -32,17 +32,73 @@
  ****************************************************************************/
 
 /**
- * @file px4io_driver.h
+ * @file px4io_serial.h
  *
- * Interface for PX4IO
+ * Serial Interface definition for PX4IO
  */
 
 #pragma once
 
 #include <board_config.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/micro_hal.h>
 
-#ifdef PX4IO_SERIAL_BASE
+#include <perf/perf_counter.h>
+
 #include <drivers/device/device.h>
+#include <modules/px4iofirmware/protocol.h>
 
-device::Device	*PX4IO_serial_interface();
-#endif
+class PX4IO_serial
+{
+public:
+	PX4IO_serial();
+	~PX4IO_serial();
+
+	int init();
+
+	int read(unsigned offset, void *data, unsigned count);
+	int write(unsigned address, void *data, unsigned count);
+
+private:
+	/**
+	 * Start the transaction with IO and wait for it to complete.
+	 */
+	int	_bus_exchange(IOPacket *_packet);
+
+	/**
+	 * Performance counters.
+	 */
+	perf_counter_t		_pc_txns;
+	perf_counter_t		_pc_retries;
+	perf_counter_t		_pc_timeouts;
+	perf_counter_t		_pc_crcerrs;
+	perf_counter_t		_pc_protoerrs;
+	perf_counter_t		_pc_uerrs;
+	perf_counter_t		_pc_idle;
+	perf_counter_t		_pc_badidle;
+
+	/*
+	 * XXX tune this value
+	 *
+	 * At 1.5Mbps each register takes 13.3µs, and we always transfer a full packet.
+	 * Packet overhead is 26µs for the four-byte header.
+	 *
+	 * 32 registers = 451µs
+	 *
+	 * Maybe we can just send smaller packets (e.g. 8 regs) and loop for larger (less common)
+	 * transfers? Could cause issues with any regs expecting to be written atomically...
+	 */
+	IOPacket		*_io_buffer_ptr;
+
+	/** bus-ownership lock */
+	px4_sem_t			_bus_semaphore;
+
+	int _uart_fd{-1};
+
+	IOPacket *_current_packet;
+
+	/**
+	 * IO Buffer storage
+	 */
+	static uint8_t _io_buffer_storage[] px4_cache_aligned_data();
+};

@@ -57,26 +57,6 @@
  * Definitions
  ****************************************************************************************************/
 
-/* PX4IO connection configuration */
-
-#if 0 // There is no PX4IO Support on first out
-// This requires serial DMA driver
-#define BOARD_USES_PX4IO_VERSION       2
-#define PX4IO_SERIAL_DEVICE            "/dev/ttyS6"
-#define PX4IO_SERIAL_TX_GPIO           GPIO_LPUART8_TX_2
-#define PX4IO_SERIAL_RX_GPIO           GPIO_LPUART8_RX_2
-#define PX4IO_SERIAL_BASE              IMXRT_LPUART8_BASE
-#define PX4IO_SERIAL_VECTOR            IMXRT_IRQ_LPUART8
-#define PX4IO_SERIAL_TX_DMAMAP
-#define PX4IO_SERIAL_RX_DMAMAP
-#define PX4IO_SERIAL_RCC_REG
-#define PX4IO_SERIAL_RCC_EN
-#define PX4IO_SERIAL_CLOCK
-#define PX4IO_SERIAL_BITRATE           1500000               /* 1.5Mbps -> max rate for IO */
-#endif
-
-/* Configuration ************************************************************************************/
-
 /* FMURT1062 GPIOs ***********************************************************************************/
 /* LEDs */
 /* An RGB LED is connected through GPIO as shown below:
