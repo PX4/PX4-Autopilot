@@ -275,6 +275,9 @@ ArchPX4IOSerial::ioctl(unsigned operation, unsigned &arg)
 int
 ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 {
+	// to be paranoid ensure all previous DMA transfers are cleared
+	_abort_dma();
+
 	_current_packet = _packet;
 
 	/* clear data that may be in the RDR and clear overrun error: */
