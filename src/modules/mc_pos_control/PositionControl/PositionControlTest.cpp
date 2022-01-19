@@ -399,3 +399,23 @@ TEST_F(PositionControlBasicTest, UpdateHoverThrust)
 	// the output is still the same
 	EXPECT_EQ(_output_setpoint.thrust[2], -hover_thrust);
 }
+
+TEST_F(PositionControlBasicTest, IntegratorWindupWithInvalidSetpoint)
+{
+	// GIVEN: the controller was ran with an invalid setpoint containing some valid values
+	_input_setpoint.x = .1f;
+	_input_setpoint.y = .2f;
+	// all z-axis setpoints stay NAN
+	EXPECT_FALSE(runController());
+
+	// WHEN: we run the controller with a valid setpoint
+	resetInputSetpoint();
+	_input_setpoint.vx = 0.f;
+	_input_setpoint.vy = 0.f;
+	_input_setpoint.vz = 0.f;
+	EXPECT_TRUE(runController());
+
+	// THEN: the integral did not wind up and produce unexpected deviation
+	EXPECT_FLOAT_EQ(_attitude.roll_body, 0.f);
+	EXPECT_FLOAT_EQ(_attitude.pitch_body, 0.f);
+}
