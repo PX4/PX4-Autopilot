@@ -179,7 +179,7 @@ public:
 	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
 private:
-	bool _updateSuccessful();
+	bool _inputValid();
 
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control
