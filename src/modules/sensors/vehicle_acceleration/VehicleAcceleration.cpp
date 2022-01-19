@@ -256,9 +256,9 @@ void VehicleAcceleration::Run()
 
 void VehicleAcceleration::PrintStatus()
 {
-	PX4_INFO("selected sensor: %" PRIu32 ", rate: %.1f Hz, estimated bias: [%.4f %.4f %.4f]",
-		 _calibration.device_id(), (double)_filter_sample_rate,
-		 (double)_bias(0), (double)_bias(1), (double)_bias(2));
+	PX4_INFO_RAW("[vehicle_acceleration] selected sensor: %" PRIu32 ", rate: %.1f Hz, estimated bias: [%.4f %.4f %.4f]\n",
+		     _calibration.device_id(), (double)_filter_sample_rate,
+		     (double)_bias(0), (double)_bias(1), (double)_bias(2));
 
 	_calibration.PrintStatus();
 }

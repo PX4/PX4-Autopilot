@@ -48,10 +48,10 @@
 #include <uORB/topics/tune_control.h>
 #include <lib/tunes/tunes.h>
 
-class UavcanBeep
+class UavcanBeepController
 {
 public:
-	UavcanBeep(uavcan::INode &node);
+	UavcanBeepController(uavcan::INode &node);
 
 	/*
 	* setup periodic updater
@@ -69,7 +69,8 @@ private:
 	 */
 	void periodic_update(const uavcan::TimerEvent &);
 
-	typedef uavcan::MethodBinder<UavcanBeep *, void (UavcanBeep::*)(const uavcan::TimerEvent &)> TimerCbBinder;
+	typedef uavcan::MethodBinder<UavcanBeepController *, void (UavcanBeepController::*)(const uavcan::TimerEvent &)>
+	TimerCbBinder;
 
 	/*
 	 * Subscription tune_control
