@@ -54,6 +54,7 @@ px4_add_module(
 		EKF/ekf_helper.cpp
 		EKF/EKFGSF_yaw.cpp
 		EKF/estimator_interface.cpp
+		EKF/fake_pos_control.cpp
 		EKF/gps_checks.cpp
 		EKF/gps_control.cpp
 		EKF/gps_fusion.cpp
