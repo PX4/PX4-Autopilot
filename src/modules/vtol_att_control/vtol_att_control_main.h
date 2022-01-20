@@ -232,7 +232,6 @@ private:
 	void 		parameters_update();
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::VT_TYPE>) _param_vt_type,
-		(ParamBool<px4::params::VT_FW_PERM_STAB>) _param_vt_fw_perm_stab
+		(ParamInt<px4::params::VT_TYPE>) _param_vt_type
 	)
 };

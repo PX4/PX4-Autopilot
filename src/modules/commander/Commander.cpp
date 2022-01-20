@@ -2300,7 +2300,6 @@ Commander::run()
 		if (_vtol_vehicle_status_sub.updated()) {
 			/* vtol status changed */
 			_vtol_vehicle_status_sub.copy(&_vtol_status);
-			_status.vtol_fw_permanent_stab = _vtol_status.fw_permanent_stab;
 
 			/* Make sure that this is only adjusted if vehicle really is of type vtol */
 			if (is_vtol(_status)) {
@@ -3536,11 +3535,7 @@ Commander::update_control_mode()
 bool
 Commander::stabilization_required()
 {
-	return (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ||		// is a rotary wing, or
-		_status.vtol_fw_permanent_stab || 	// is a VTOL in fixed wing mode and stabilisation is on, or
-		(_vtol_status.vtol_in_trans_mode && 	// is currently a VTOL transitioning AND
-		 _status.vehicle_type ==
-		 vehicle_status_s::VEHICLE_TYPE_FIXED_WING));	// is a fixed wing, ie: transitioning back to rotary wing mode
+	return _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 }
 
 void
