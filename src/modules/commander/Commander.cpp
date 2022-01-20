@@ -827,7 +827,7 @@ Commander::Commander() :
 	_status_flags.rc_calibration_valid = true;
 
 	// default for vtol is rotary wing
-	_vtol_status.vtol_in_rw_mode = true;
+	_vtol_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
 	_vehicle_gps_position_valid.set_hysteresis_time_from(false, GPS_VALID_TIME);
 	_vehicle_gps_position_valid.set_hysteresis_time_from(true, GPS_VALID_TIME);
@@ -2083,8 +2083,10 @@ void Commander::updateParameters()
 	_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 	_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1_s);
 
-	const bool is_rotary = is_rotary_wing(_status) || (is_vtol(_status) && _vtol_status.vtol_in_rw_mode);
-	const bool is_fixed = is_fixed_wing(_status) || (is_vtol(_status) && !_vtol_status.vtol_in_rw_mode);
+	const bool is_rotary = is_rotary_wing(_status) || (is_vtol(_status)
+			       && _vtol_status.vehicle_vtol_state != vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+	const bool is_fixed = is_fixed_wing(_status) || (is_vtol(_status)
+			      && _vtol_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	const bool is_ground = is_ground_rover(_status);
 
 	/* disable manual override for all systems that rely on electronic stabilization */
@@ -2304,25 +2306,29 @@ Commander::run()
 			/* Make sure that this is only adjusted if vehicle really is of type vtol */
 			if (is_vtol(_status)) {
 
-				// Check if there has been any change while updating the flags
-				const auto new_vehicle_type = _vtol_status.vtol_in_rw_mode ?
-							      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING :
-							      vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+				// Check if there has been any change while updating the flags (transition = rotary wing status)
+				const auto new_vehicle_type = _vtol_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW ?
+							      vehicle_status_s::VEHICLE_TYPE_FIXED_WING :
+							      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 				if (new_vehicle_type != _status.vehicle_type) {
-					_status.vehicle_type = _vtol_status.vtol_in_rw_mode ?
-							       vehicle_status_s::VEHICLE_TYPE_ROTARY_WING :
-							       vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+					_status.vehicle_type = new_vehicle_type;
 					_status_changed = true;
 				}
 
-				if (_status.in_transition_mode != _vtol_status.vtol_in_trans_mode) {
-					_status.in_transition_mode = _vtol_status.vtol_in_trans_mode;
+				const bool new_in_transition = _vtol_status.vehicle_vtol_state ==
+							       vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW
+							       || _vtol_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC;
+
+				if (_status.in_transition_mode != new_in_transition) {
+					_status.in_transition_mode = new_in_transition;
 					_status_changed = true;
 				}
 
-				if (_status.in_transition_to_fw != _vtol_status.in_transition_to_fw) {
-					_status.in_transition_to_fw = _vtol_status.in_transition_to_fw;
+				if (_status.in_transition_to_fw != (_vtol_status.vehicle_vtol_state ==
+								    vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW)) {
+					_status.in_transition_to_fw = (_vtol_status.vehicle_vtol_state ==
+								       vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW);
 					_status_changed = true;
 				}
 
