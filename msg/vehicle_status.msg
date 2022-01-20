@@ -75,7 +75,6 @@ uint8 vehicle_type          # Type of vehicle (fixed-wing, rotary wing, ground)
 
 bool is_vtol				# True if the system is VTOL capable
 bool is_vtol_tailsitter                 # True if the system performs a 90° pitch down rotation during transition from MC to FW
-bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
 

@@ -52,17 +52,6 @@
 PARAM_DEFINE_INT32(VT_IDLE_PWM_MC, 900);
 
 /**
- * Permanent stabilization in fw mode
- *
- * If set to one this parameter will cause permanent attitude stabilization in fw mode.
- * This parameter has been introduced for pure convenience sake.
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
-
-/**
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
  *
  * @value 0 Tailsitter

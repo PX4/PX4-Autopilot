@@ -31,6 +31,8 @@ param set-default BAT1_R_INTERNAL 0.0025
 param set-default CBRK_AIRSPD_CHK 162128
 param set-default CBRK_IO_SAFETY 22027
 
+param set-default COM_FW_PERM_STAB 1
+
 param set-default EKF2_GPS_POS_X -0.12
 param set-default EKF2_IMU_POS_X -0.12
 param set-default EKF2_TAU_VEL 0.5
@@ -131,7 +133,6 @@ param set-default VT_F_TRANS_DUR 1
 param set-default VT_IDLE_PWM_MC 1025
 param set-default VT_B_REV_OUT 0.5
 param set-default VT_B_TRANS_THR 0.7
-param set-default VT_FW_PERM_STAB 1
 param set-default VT_TRANS_TIMEOUT 22
 param set-default VT_F_TRANS_RAMP 4
 

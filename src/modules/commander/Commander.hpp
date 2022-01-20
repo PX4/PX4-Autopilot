@@ -227,6 +227,7 @@ private:
 
 		// Quadchute
 		(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
+		(ParamBool<px4::params::COM_FW_PERM_STAB>) _param_com_fw_perm_stab,
 
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,

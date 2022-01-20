@@ -1077,3 +1077,15 @@ PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
+
+/**
+ * Permanent stabilization in fixed-wing mode
+ *
+ * If set to true this parameter will cause permanent attitude stabilization
+ * for fixed-wing planes or VTOLs in fixed-wing mode.
+ * This parameter has been introduced for pure convenience sake.
+ *
+ * @boolean
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_FW_PERM_STAB, 0);
