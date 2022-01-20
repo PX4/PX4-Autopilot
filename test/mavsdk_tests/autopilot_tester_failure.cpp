@@ -78,3 +78,23 @@ void AutopilotTesterFailure::inject_failure(mavsdk::Failure::FailureUnit failure
 {
 	CHECK(_failure->inject(failure_unit, failure_type, instance) == expected_result);
 }
+
+void AutopilotTesterFailure::enable_actuator_output_status()
+{
+	CHECK(getTelemetry()->set_rate_actuator_output_status(20.f) == Telemetry::Result::Success);
+}
+
+void AutopilotTesterFailure::ensure_motor_stopped(unsigned index, unsigned num_motors)
+{
+	const Telemetry::ActuatorOutputStatus &status = getTelemetry()->actuator_output_status();
+	CHECK(status.active >= num_motors);
+
+	for (unsigned i = 0; i < num_motors; ++i) {
+		if (i == index) {
+			CHECK(status.actuator[i] <= 901.f);
+
+		} else { // ensure all others are still running
+			CHECK(status.actuator[i] >= 999.f);
+		}
+	}
+}
