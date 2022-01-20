@@ -53,3 +53,10 @@ param set MPC_Z_VEL_MAX_UP 1.0
 # Smoothing trajectory a bit when using AutoLineSmoothVel
 param set MPC_JERK_AUTO 8
 param set MPC_ACC_HOR 3
+
+# Default Flight Modes and Kill Switch
+param set COM_FLTMODE1 0
+param set COM_FLTMODE4 2
+param set COM_FLTMODE6 11
+param set RC_MAP_FLTMODE 5
+param set RC_MAP_KILL_SW 7
