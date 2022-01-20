@@ -470,7 +470,7 @@ void Ekf::controlOpticalFlowFusion()
 		    && !_control_status.flags.opt_flow // we are not yet using flow data
 		    && !_inhibit_flow_use) {
 			// If the heading is valid and use is not inhibited , start using optical flow aiding
-			if (_control_status.flags.yaw_align) {
+			if (_control_status.flags.yaw_align || _params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
 				// set the flag and reset the fusion timeout
 				_control_status.flags.opt_flow = true;
 				_time_last_of_fuse = _time_last_imu;
