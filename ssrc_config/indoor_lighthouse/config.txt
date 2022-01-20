@@ -9,6 +9,8 @@ param set CAL_MAG0_PRIO 1
 param set CAL_MAG1_PRIO 0
 param set CAL_MAG2_PRIO 0
 param set CAL_MAG3_PRIO 0
+param set EKF2_MAG_TYPE 5
+param set SYS_HAS_MAG 0
 
 # Set waypoint acceptance radius to 0.5m
 param set NAV_ACC_RAD 0.5
