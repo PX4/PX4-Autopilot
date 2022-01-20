@@ -131,7 +131,6 @@ param set-default VT_F_TRANS_DUR 1
 param set-default VT_IDLE_PWM_MC 1025
 param set-default VT_B_REV_OUT 0.5
 param set-default VT_B_TRANS_THR 0.7
-param set-default VT_FW_PERM_STAB 1
 param set-default VT_TRANS_TIMEOUT 22
 param set-default VT_F_TRANS_RAMP 4
 
