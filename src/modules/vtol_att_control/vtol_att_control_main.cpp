@@ -59,7 +59,8 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle"))
 {
-	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
+	// start vtol in rotary wing mode
+	_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
 	parameters_update();
 
@@ -327,13 +328,19 @@ VtolAttitudeControl::Run()
 		// check in which mode we are in and call mode specific functions
 		switch (_vtol_type->get_mode()) {
 		case mode::TRANSITION_TO_FW:
-		case mode::TRANSITION_TO_MC:
-			// vehicle is doing a transition
-			_vtol_vehicle_status.vtol_in_trans_mode = true;
-			_vtol_vehicle_status.vtol_in_rw_mode = true; // making mc attitude controller work during transition
-			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == mode::TRANSITION_TO_FW);
+			// vehicle is doing a transition to FW
+			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_FW;
 
-			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
+			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
+				_vtol_type->update_transition_state();
+				_v_att_sp_pub.publish(_v_att_sp);
+			}
+
+			break;
+
+		case mode::TRANSITION_TO_MC:
+			// vehicle is doing a transition to MC
+			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_TRANSITION_TO_MC;
 
 			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
 				_vtol_type->update_transition_state();
@@ -344,20 +351,18 @@ VtolAttitudeControl::Run()
 
 		case mode::ROTARY_WING:
 			// vehicle is in rotary wing mode
-			_vtol_vehicle_status.vtol_in_rw_mode = true;
-			_vtol_vehicle_status.vtol_in_trans_mode = false;
-			_vtol_vehicle_status.in_transition_to_fw = false;
+			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
-			_vtol_type->update_mc_state();
-			_v_att_sp_pub.publish(_v_att_sp);
+			if (mc_att_sp_updated) {
+				_vtol_type->update_mc_state();
+				_v_att_sp_pub.publish(_v_att_sp);
+			}
 
 			break;
 
 		case mode::FIXED_WING:
 			// vehicle is in fw mode
-			_vtol_vehicle_status.vtol_in_rw_mode = false;
-			_vtol_vehicle_status.vtol_in_trans_mode = false;
-			_vtol_vehicle_status.in_transition_to_fw = false;
+			_vtol_vehicle_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 
 			if (fw_att_sp_updated) {
 				_vtol_type->update_fw_state();
