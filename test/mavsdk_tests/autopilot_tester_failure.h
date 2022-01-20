@@ -52,6 +52,9 @@ public:
 	void set_param_ca_failure_mode(int value);
 	void set_param_com_act_fail_act(int value);
 
+	void enable_actuator_output_status();
+	void ensure_motor_stopped(unsigned index, unsigned num_motors);
+
 	void inject_failure(mavsdk::Failure::FailureUnit failure_unit, mavsdk::Failure::FailureType failure_type, int instance,
 			    mavsdk::Failure::Result expected_result);
 	void connect(const std::string uri);

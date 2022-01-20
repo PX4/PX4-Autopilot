@@ -61,6 +61,7 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 	tester.set_rtl_altitude(flight_altitude);
 	tester.check_tracks_mission(5.f);
 	tester.store_home();
+	tester.enable_actuator_output_status();
 	std::this_thread::sleep_for(std::chrono::seconds(
 					    1));  // This is necessary for the takeoff altitude to be applied properly
 
@@ -74,12 +75,15 @@ TEST_CASE("Control Allocation - Remove one motor", "[controlallocation]")
 	// Motor failure mid-air
 	tester.start_checking_altitude(altitude_tolerance);
 	const int motor_instance = 1;
+	const unsigned num_motors = 6; // TODO: get from model
 	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, motor_instance,
 			      mavsdk::Failure::Result::Success);
 	std::this_thread::sleep_for(std::chrono::seconds(1));
+	tester.ensure_motor_stopped(motor_instance - 1, num_motors);
 
 	tester.execute_mission();
 	tester.stop_checking_altitude();
+	tester.ensure_motor_stopped(motor_instance - 1, num_motors); // just to be sure
 
 	// RTL
 	tester.execute_rtl();
