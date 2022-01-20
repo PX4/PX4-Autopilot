@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,17 +84,20 @@ void BMM150::print_status()
 
 int BMM150::probe()
 {
-	const uint8_t POWER_CONTROL = RegisterRead(Register::POWER_CONTROL);
-	const uint8_t CHIP_ID = RegisterRead(Register::CHIP_ID);
+	// 3 retries
+	for (int i = 0; i < 3; i++) {
+		const uint8_t POWER_CONTROL = RegisterRead(Register::POWER_CONTROL);
+		const uint8_t CHIP_ID = RegisterRead(Register::CHIP_ID);
 
-	PX4_DEBUG("POWER_CONTROL: 0x%02hhX, CHIP_ID: 0x%02hhX", POWER_CONTROL, CHIP_ID);
+		PX4_DEBUG("POWER_CONTROL: 0x%02hhX, CHIP_ID: 0x%02hhX", POWER_CONTROL, CHIP_ID);
 
-	// either power control bit is set and chip ID can be read, or both registers are 0x00
-	if ((POWER_CONTROL & POWER_CONTROL_BIT::PowerControl) && (CHIP_ID == chip_identification_number)) {
-		return PX4_OK;
+		// either power control bit is set and chip ID can be read, or both registers are 0x00
+		if ((POWER_CONTROL & POWER_CONTROL_BIT::PowerControl) && (CHIP_ID == chip_identification_number)) {
+			return PX4_OK;
 
-	} else if ((POWER_CONTROL == 0) && (CHIP_ID == 0)) {
-		return PX4_OK;
+		} else if ((POWER_CONTROL == 0) && (CHIP_ID == 0)) {
+			return PX4_OK;
+		}
 	}
 
 	return PX4_ERROR;
