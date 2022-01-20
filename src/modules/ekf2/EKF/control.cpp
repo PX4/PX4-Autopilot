@@ -1066,64 +1066,6 @@ void Ekf::controlDragFusion()
 	}
 }
 
-void Ekf::controlFakePosFusion()
-{
-	// if we aren't doing any aiding, fake position measurements at the last known position to constrain drift
-	// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
-
-	if (!isHorizontalAidingActive()
-	    && !(_control_status.flags.fuse_aspd && _control_status.flags.fuse_beta)) {
-
-		// We now need to use a synthetic position observation to prevent unconstrained drift of the INS states.
-		_using_synthetic_position = true;
-
-		// Fuse synthetic position observations every 200msec
-		if (isTimedOut(_time_last_fake_pos, (uint64_t)2e5)) {
-
-			// Reset position and velocity states if we re-commence this aiding method
-			if (isTimedOut(_time_last_fake_pos, (uint64_t)4e5)) {
-				_last_known_posNE = _state.pos.xy();
-				resetHorizontalPosition();
-				resetVelocity();
-				_fuse_hpos_as_odom = false;
-
-				if (_time_last_fake_pos != 0) {
-					_warning_events.flags.stopping_navigation = true;
-					ECL_WARN("stopping navigation");
-				}
-
-			}
-
-			_time_last_fake_pos = _time_last_imu;
-
-			Vector3f fake_pos_obs_var;
-
-			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-				fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise));
-
-			} else if (_control_status.flags.vehicle_at_rest) {
-				// Accelerate tilt fine alignment by fusing more
-				// aggressively when the vehicle is at rest
-				fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(0.1f);
-
-			} else {
-				fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(0.5f);
-			}
-
-			_gps_pos_innov.xy() = Vector2f(_state.pos) - _last_known_posNE;
-
-			const Vector2f fake_pos_innov_gate(3.0f, 3.0f);
-
-			fuseHorizontalPosition(_gps_pos_innov, fake_pos_innov_gate, fake_pos_obs_var,
-					       _gps_pos_innov_var, _gps_pos_test_ratio, true);
-		}
-
-	} else {
-		_using_synthetic_position = false;
-	}
-
-}
-
 void Ekf::controlAuxVelFusion()
 {
 	bool data_ready = false;
