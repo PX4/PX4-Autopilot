@@ -31,9 +31,7 @@
 #
 ############################################################################
 
-add_subdirectory(accelerometer)
 add_subdirectory(device)
-add_subdirectory(gyroscope)
 add_subdirectory(led)
 add_subdirectory(magnetometer)
 add_subdirectory(rangefinder)

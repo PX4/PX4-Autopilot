@@ -41,8 +41,6 @@
 #include <drivers/device/spi.h>
 #include <geo/geo.h>
 #include <lib/conversion/rotation.h>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -101,9 +99,6 @@ protected:
 	void exit_and_cleanup() override;
 
 private:
-
-	PX4Accelerometer	_px4_accel;
-	PX4Gyroscope		_px4_gyro;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_bad_transfers;

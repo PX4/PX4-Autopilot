@@ -40,7 +40,6 @@
 #pragma once
 
 #include <drivers/device/Device.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -211,7 +210,6 @@ protected:
 
 private:
 	device::Device *_interface;
-	PX4Gyroscope _px4_gyro;
 
 	unsigned _current_rate{800};
 

@@ -41,7 +41,6 @@
 
 #include <drivers/device/i2c.h>
 #include <drivers/device/spi.h>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -230,9 +229,6 @@ private:
 	 * @return		OK if the value can be supported.
 	 */
 	int			accel_set_samplerate(unsigned frequency);
-
-
-	PX4Accelerometer	_px4_accel;
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	PX4Magnetometer		_px4_mag;

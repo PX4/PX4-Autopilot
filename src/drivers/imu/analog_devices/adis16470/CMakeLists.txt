@@ -35,13 +35,12 @@ px4_add_module(
 	MODULE drivers__imu__analog_devices__adis16470
 	MAIN adis16470
 	COMPILE_FLAGS
+		-Wno-error
 	SRCS
 		ADIS16470.cpp
 		ADIS16470.hpp
 		adis16470_main.cpp
 		Analog_Devices_ADIS16470_registers.hpp
 	DEPENDS
-		drivers_accelerometer
-		drivers_gyroscope
 		px4_work_queue
 	)

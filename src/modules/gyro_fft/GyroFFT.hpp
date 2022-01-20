@@ -49,7 +49,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_gyro_fft.h>
-#include <uORB/topics/sensor_gyro_fifo.h>
+#include <uORB/topics/sensor_imu_fifo.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_imu_status.h>
 
@@ -120,7 +120,7 @@ private:
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub{this, ORB_ID(sensor_gyro)};
-	uORB::SubscriptionCallbackWorkItem _sensor_gyro_fifo_sub{this, ORB_ID(sensor_gyro_fifo)};
+	uORB::SubscriptionCallbackWorkItem _sensor_imu_fifo_sub{this, ORB_ID(sensor_imu_fifo)};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};

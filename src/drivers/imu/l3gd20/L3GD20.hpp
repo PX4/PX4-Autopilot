@@ -41,10 +41,12 @@
 
 #include <drivers/device/spi.h>
 #include <lib/conversion/rotation.h>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_gyro.h>
 
 /* Orientation on board */
 #define SENSOR_BOARD_ROTATION_000_DEG	0
@@ -184,7 +186,11 @@ protected:
 
 private:
 
-	PX4Gyroscope		_px4_gyro;
+	uORB::PublicationMulti<sensor_gyro_s> _sensor_gyro_pub{ORB_ID(sensor_gyro)};
+
+	const enum Rotation _rotation;
+	float _gyro_scale{0.f};
+	float _gyro_range{0.f};
 
 	unsigned		_orientation{SENSOR_BOARD_ROTATION_DEFAULT};
 

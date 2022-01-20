@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,6 +65,8 @@ static constexpr uint8_t WHOAMI = 0x71;
 
 static constexpr float TEMPERATURE_SENSITIVITY = 333.87f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 21.f; // C
+static constexpr float TEMPERATURE_SENSOR_MIN = -40.f; // °C
+static constexpr float TEMPERATURE_SENSOR_MAX = 85.f; // °C
 
 enum class Register : uint8_t {
 

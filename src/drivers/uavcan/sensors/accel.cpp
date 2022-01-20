@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,6 @@
  */
 
 #include "accel.hpp"
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 
 const char *const UavcanAccelBridge::NAME = "accel";
 
@@ -61,7 +60,7 @@ void UavcanAccelBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 {
 	uavcan_bridge::Channel *channel = get_channel_for_node(msg.getSrcNodeID().get());
 
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	//const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	if (channel == nullptr) {
 		// Something went wrong - no channel to publish on; return
@@ -69,37 +68,36 @@ void UavcanAccelBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::e
 	}
 
 	// Cast our generic CDev pointer to the sensor-specific driver class
-	PX4Accelerometer *accel = (PX4Accelerometer *)channel->h_driver;
 
-	if (accel == nullptr) {
-		return;
-	}
+	// if (accel == nullptr) {
+	// 	return;
+	// }
 
-	accel->set_error_count(0);
-	accel->update(timestamp_sample, msg.accelerometer_latest[0], msg.accelerometer_latest[1], msg.accelerometer_latest[2]);
+	// accel->set_error_count(0);
+	// accel->update(timestamp_sample, msg.accelerometer_latest[0], msg.accelerometer_latest[1], msg.accelerometer_latest[2]);
 }
 
 int UavcanAccelBridge::init_driver(uavcan_bridge::Channel *channel)
 {
-	// update device id as we now know our device node_id
-	DeviceId device_id{_device_id};
+	// // update device id as we now know our device node_id
+	// DeviceId device_id{_device_id};
 
-	device_id.devid_s.devtype = DRV_ACC_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
+	// device_id.devid_s.devtype = DRV_ACC_DEVTYPE_UAVCAN;
+	// device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
 
-	channel->h_driver = new PX4Accelerometer(device_id.devid);
+	channel->h_driver = new uORB::PublicationMulti<sensor_accel_s>(ORB_ID(sensor_accel));
 
 	if (channel->h_driver == nullptr) {
 		return PX4_ERROR;
 	}
 
-	PX4Accelerometer *accel = (PX4Accelerometer *)channel->h_driver;
+	auto *accel_pub = static_cast<uORB::PublicationMulti<sensor_accel_s> *>(channel->h_driver);
 
-	channel->instance = accel->get_instance();
+	channel->instance = accel_pub->get_instance();
 
 	if (channel->instance < 0) {
 		PX4_ERR("UavcanAccel: Unable to get a class instance");
-		delete accel;
+		delete accel_pub;
 		channel->h_driver = nullptr;
 		return PX4_ERROR;
 	}

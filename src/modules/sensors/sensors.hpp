@@ -51,6 +51,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include "voted_sensors_update.h"
 #include "vehicle_imu/VehicleIMU.hpp"
+#include "vehicle_imu/VehicleIMUFifo.hpp"
 
 #if defined(CONFIG_SENSORS_VEHICLE_ACCELERATION)
 # include "vehicle_acceleration/VehicleAcceleration.hpp"
@@ -127,6 +128,7 @@ private:
 	void		InitializeVehicleGPSPosition();
 
 	void		InitializeVehicleIMU();
+	void		InitializeVehicleIMUFifo();
 
 	void		InitializeVehicleMagnetometer();
 
@@ -137,6 +139,12 @@ private:
 	perf_counter_t	_loop_perf;	/**< loop performance counter */
 
 	VehicleIMU *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
+	VehicleIMUFifo  *_vehicle_imu_fifo_list[MAX_SENSOR_COUNT] {};
+
+	int _total_imu_count{0};
+
+	uint8_t _n_accel{0};
+	uint8_t _n_gyro{0};
 
 	VotedSensorsUpdate _voted_sensors_update;
 
@@ -144,9 +152,6 @@ private:
 
 	hrt_abstime     _last_config_update{0};
 	hrt_abstime     _sensor_combined_prev_timestamp{0};
-
-	uint8_t _n_accel{0};
-	uint8_t _n_gyro{0};
 
 	bool _armed{false};		/**< arming status of the vehicle */
 

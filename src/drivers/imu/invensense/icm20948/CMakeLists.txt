@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__imu__invensense__icm20948
 	MAIN icm20948
 	COMPILE_FLAGS
+		-Wno-error
 	SRCS
 		AKM_AK09916_registers.hpp
 		ICM20948.cpp
@@ -44,8 +45,6 @@ px4_add_module(
 		InvenSense_ICM20948_registers.hpp
 	DEPENDS
 		px4_work_queue
-		drivers_accelerometer
-		drivers_gyroscope
 		drivers_magnetometer
 	)
 

@@ -354,11 +354,13 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 	bool added = false;
 	int max_sensor_index = -1;
 
-	for (unsigned i = 0; i < sensor_count_max; i++) {
+	for (uint8_t i = 0; i < sensor_count_max; i++) {
+
+		uORB::SubscriptionData<vehicle_imu_s> imu_sub{ORB_ID(vehicle_imu), i};
 
 		max_sensor_index = i;
 
-		if (!sensor_data.advertised[i] && sensor_data.subscription[i].advertised()) {
+		if (!sensor_data.advertised[i] && imu_sub.advertised()) {
 			sensor_data.advertised[i] = true;
 			sensor_data.priority[i] = DEFAULT_PRIORITY;
 			sensor_data.priority_configured[i] = DEFAULT_PRIORITY;
@@ -369,7 +371,7 @@ void VotedSensorsUpdate::initSensorClass(SensorData &sensor_data, uint8_t sensor
 					added = true;
 
 				} else {
-					PX4_ERR("failed to add validator for sensor %s %i", sensor_data.subscription[i].get_topic()->o_name, i);
+					PX4_ERR("failed to add validator for sensor %i", i);
 				}
 			}
 		}

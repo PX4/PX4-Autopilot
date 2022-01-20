@@ -52,8 +52,6 @@
 #include "tune_publisher.h"
 
 #include <geo/geo.h>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <px4_platform_common/module_params.h>
@@ -92,8 +90,10 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gyro.h>
 #include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -337,8 +337,10 @@ private:
 	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
+	uORB::PublicationMulti<sensor_accel_s>			_sensor_accel_pub{ORB_ID(sensor_accel)};
 	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_gyro_s>			_sensor_gyro_pub{ORB_ID(sensor_gyro)};
 	uORB::PublicationMulti<sensor_optical_flow_s>         _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	// ORB publications (queue length > 1)
@@ -365,8 +367,6 @@ private:
 		BARO		= 0b1101000000000,
 		DIFF_PRESS	= 0b10000000000
 	};
-	PX4Accelerometer *_px4_accel{nullptr};
-	PX4Gyroscope *_px4_gyro{nullptr};
 	PX4Magnetometer *_px4_mag{nullptr};
 
 	float _global_local_alt0{NAN};

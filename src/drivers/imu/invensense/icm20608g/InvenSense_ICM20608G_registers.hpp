@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,8 @@
 
 #include <cstdint>
 
+namespace InvenSense_ICM20608G
+{
 // TODO: move to a central header
 static constexpr uint8_t Bit0 = (1 << 0);
 static constexpr uint8_t Bit1 = (1 << 1);
@@ -52,8 +54,6 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-namespace InvenSense_ICM20608G
-{
 static constexpr uint32_t SPI_SPEED = 8 * 1000 * 1000; // 8MHz SPI serial interface
 static constexpr uint8_t DIR_READ = 0x80;
 
@@ -61,8 +61,11 @@ static constexpr uint8_t WHOAMI = 0xAF;
 
 static constexpr float TEMPERATURE_SENSITIVITY = 326.8f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 25.f; // C
+static constexpr float TEMPERATURE_SENSOR_MIN = -40.f; // °C
+static constexpr float TEMPERATURE_SENSOR_MAX = 85.f; // °C
 
 enum class Register : uint8_t {
+
 	CONFIG            = 0x1A,
 	GYRO_CONFIG       = 0x1B,
 	ACCEL_CONFIG      = 0x1C,

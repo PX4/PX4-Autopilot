@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,10 @@
 
 #include "BMI088.hpp"
 
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-
 #include "Bosch_BMI088_Accelerometer_Registers.hpp"
+
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_accel.h>
 
 namespace Bosch::BMI088::Accelerometer
 {
@@ -55,11 +56,10 @@ private:
 	void exit_and_cleanup() override;
 
 	// Sensor Configuration
-	// static constexpr uint32_t RATE{1600}; // 1600 Hz
 	static constexpr uint32_t RATE{1600}; // 1600 Hz
 	static constexpr float FIFO_SAMPLE_DT{1e6f / RATE};
 
-	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{FIFO::SIZE / sizeof(FIFO::DATA)};
 
 	// Transfer data
 	struct FIFOTransferBuffer {
@@ -67,10 +67,6 @@ private:
 		uint8_t dummy{0};
 		uint8_t FIFO_LENGTH_0{0};
 		uint8_t FIFO_LENGTH_1{0};
-		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
-	};
-	// Transfer data without length
-	struct FIFOTransferBufferWithoutLength {
 		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
 	};
 	// ensure no struct padding
@@ -97,7 +93,7 @@ private:
 	bool RegisterCheck(const register_config_t &reg_cfg);
 
 	uint8_t RegisterRead(Register reg);
-	uint8_t RegisterWrite(Register reg, uint8_t value);
+	void RegisterWrite(Register reg, uint8_t value);
 	void RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t clearbits);
 
 	uint16_t FIFOReadCount();
@@ -105,16 +101,14 @@ private:
 	void FIFOReset();
 
 	void UpdateTemperature();
-	void UnpackSensorData(struct FIFO::bmi08x_sensor_data *sens_data, uint8_t *buffer);
-	bool SelfTest();
-	float *ReadAccelData();
-	float *ReadAccelDataFIFO();
-	float *SensorDataTomg(float *data);
-	uint8_t CheckSensorErrReg();
-	bool SimpleFIFORead(const hrt_abstime &timestamp_sample);
-	bool NormalRead(const hrt_abstime &timestamp_sample);
 
-	PX4Accelerometer _px4_accel;
+	uORB::PublicationMulti<sensor_accel_s> _sensor_accel_pub{ORB_ID(sensor_accel)};
+
+	const enum Rotation _rotation;
+	float _accel_scale{0.f};
+	float _accel_range{0.f};
+
+	float _temperature{NAN};
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: bad transfer")};
@@ -129,7 +123,7 @@ private:
 	static constexpr uint8_t size_register_cfg{10};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                        | Set bits, Clear bits
-		{ Register::ACC_PWR_CONF,          0, ACC_PWR_CONF_BIT::acc_pwr_save }, //
+		{ Register::ACC_PWR_CONF,          0, ACC_PWR_CONF_BIT::acc_pwr_save },
 		{ Register::ACC_PWR_CTRL,          ACC_PWR_CTRL_BIT::acc_enable, 0 },
 		{ Register::ACC_CONF,              ACC_CONF_BIT::acc_bwp_Normal | ACC_CONF_BIT::acc_odr_1600, Bit1 | Bit0 },
 		{ Register::ACC_RANGE,             ACC_RANGE_BIT::acc_range_24g, 0 },

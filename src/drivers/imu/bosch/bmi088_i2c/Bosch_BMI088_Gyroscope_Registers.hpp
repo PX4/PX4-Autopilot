@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,9 +48,7 @@ static constexpr uint8_t Bit7 = (1 << 7);
 
 static constexpr uint32_t SPI_SPEED = 10 * 1000 * 1000; // 10MHz SPI serial interface
 
-static constexpr uint32_t I2C_400_SPEED = 400 * 1000; // 400kHz I2C interface
-static constexpr uint32_t I2C_200_SPEED = 200 * 1000; // 200kHz I2C interface
-static constexpr uint32_t I2C_100_SPEED = 100 * 1000; // 100kHz I2C interface
+static constexpr uint32_t I2C_SPEED = 400 * 1000; // 400kHz I2C interface
 
 static constexpr uint8_t DIR_READ = 0x80;
 
@@ -76,8 +74,6 @@ enum class Register : uint8_t {
 	FIFO_CONFIG_0     = 0x3D,
 	FIFO_CONFIG_1     = 0x3E,
 	FIFO_DATA         = 0x3F,
-	SELF_TEST         = 0x3C,
-	READ_GYRO         = 0x02,
 };
 
 // FIFO_STATUS
@@ -97,9 +93,7 @@ enum GYRO_RANGE_BIT : uint8_t {
 
 // GYRO_BANDWIDTH
 enum GYRO_BANDWIDTH_BIT : uint8_t {
-	gyro_bw_100_Hz = Bit2 | Bit1 | Bit0,
-	gyro_bw_200_Hz = Bit4,
-	gyro_bw_2000_Hz = 0x00,
+	gyro_bw_532_Hz = Bit2 | Bit1 | Bit0
 };
 
 // GYRO_INT_CTRL
@@ -131,7 +125,6 @@ enum FIFO_WM_ENABLE_BIT : uint8_t {
 // FIFO_CONFIG_1
 enum FIFO_CONFIG_1_BIT : uint8_t {
 	FIFO_MODE = Bit6,
-	FIFO_MODE_STREAM = Bit7,
 };
 
 

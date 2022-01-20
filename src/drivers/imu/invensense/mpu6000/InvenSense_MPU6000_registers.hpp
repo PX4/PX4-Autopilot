@@ -62,6 +62,8 @@ static constexpr uint8_t WHOAMI = 0x68;
 
 static constexpr float TEMPERATURE_SENSITIVITY = 340.f; // LSB/C
 static constexpr float TEMPERATURE_OFFSET = 36.53f; // C
+static constexpr float TEMPERATURE_SENSOR_MIN = -40.f; // °C
+static constexpr float TEMPERATURE_SENSOR_MAX = 85.f; // °C
 
 enum class Register : uint8_t {
 	CONFIG            = 0x1A,

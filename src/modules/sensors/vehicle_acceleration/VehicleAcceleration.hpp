@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +48,7 @@
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_imu_fifo.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_acceleration.h>
 
@@ -62,18 +63,26 @@ public:
 	VehicleAcceleration();
 	~VehicleAcceleration() override;
 
+	void PrintStatus();
 	bool Start();
 	void Stop();
-
-	void PrintStatus();
 
 private:
 	void Run() override;
 
-	void CheckAndUpdateFilters();
+	bool CalibrateAndPublish(const hrt_abstime &timestamp_sample, const matrix::Vector3f &acceleration_uncalibrated);
+
+	inline float FilterAcceleration(int axis, float data[], int N = 1);
+
 	void ParametersUpdate(bool force = false);
+
+	void ResetFilters(const hrt_abstime &time_now_us);
 	void SensorBiasUpdate(bool force = false);
-	bool SensorSelectionUpdate(bool force = false);
+	bool SensorSelectionUpdate(const hrt_abstime &time_now_us, bool force = false);
+	bool UpdateSampleRate();
+
+	// scaled appropriately for current sensor
+	matrix::Vector3f GetResetAcceleration() const;
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
@@ -86,16 +95,30 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _sensor_selection_sub{this, ORB_ID(sensor_selection)};
 	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_accel)};
+	uORB::SubscriptionCallbackWorkItem _sensor_fifo_sub{this, ORB_ID(sensor_imu_fifo)};
 
 	calibration::Accelerometer _calibration{};
 
 	matrix::Vector3f _bias{};
 
-	matrix::Vector3f _acceleration_prev{};
+	matrix::Vector3f _acceleration{};
 
-	float _filter_sample_rate{NAN};
+	hrt_abstime _publish_interval_min_us{0};
+	hrt_abstime _last_publish{0};
 
-	math::LowPassFilter2p<matrix::Vector3f> _lp_filter{};
+	float _filter_sample_rate_hz{NAN};
+
+	math::LowPassFilter2p<float> _lp_filter[3] {};
+
+	uint32_t _selected_sensor_device_id{0};
+
+	bool _reset_filters{true};
+	bool _fifo_available{false};
+	bool _update_sample_rate{true};
+
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": accel filter")};
+	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel filter reset")};
+	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": accel selection changed")};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff,

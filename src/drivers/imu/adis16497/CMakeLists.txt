@@ -40,6 +40,5 @@ px4_add_module(
 		ADIS16497.hpp
 		adis16497_main.cpp
 	DEPENDS
-		drivers_accelerometer
-		drivers_gyroscope
+		px4_work_queue
 	)

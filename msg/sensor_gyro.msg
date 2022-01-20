@@ -7,12 +7,10 @@ float32 x                 # angular velocity in the FRD board frame X-axis in ra
 float32 y                 # angular velocity in the FRD board frame Y-axis in rad/s
 float32 z                 # angular velocity in the FRD board frame Z-axis in rad/s
 
+float32 range             # dynamic range in rad/s
+
 float32 temperature       # temperature in degrees Celsius
 
 uint32 error_count
-
-uint8[3] clip_counter     # clip count per axis in the sample period
-
-uint8 samples             # number of raw samples that went into this message
 
 uint8 ORB_QUEUE_LENGTH = 8

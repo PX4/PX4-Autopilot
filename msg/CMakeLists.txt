@@ -144,7 +144,6 @@ set(msg_files
 	rtl_time_estimate.msg
 	satellite_info.msg
 	sensor_accel.msg
-	sensor_accel_fifo.msg
 	sensor_baro.msg
 	sensor_combined.msg
 	sensor_correction.msg
@@ -152,8 +151,8 @@ set(msg_files
 	sensor_gps.msg
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
-	sensor_gyro_fifo.msg
 	sensor_hygrometer.msg
+	sensor_imu_fifo.msg
 	sensor_mag.msg
 	sensor_optical_flow.msg
 	sensor_preflight_mag.msg

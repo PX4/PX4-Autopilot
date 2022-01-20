@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +33,8 @@
 
 #include "LSM9DS1.hpp"
 
+#include <lib/parameters/param.h>
+
 using namespace time_literals;
 
 static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
@@ -43,10 +45,12 @@ static constexpr int16_t combine(uint8_t msb, uint8_t lsb)
 LSM9DS1::LSM9DS1(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation)
+	_rotation(config.rotation)
 {
-	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
+	int32_t imu_gyro_rate_max = 400;
+	param_get(param_find("IMU_GYRO_RATEMAX"), &imu_gyro_rate_max);
+
+	ConfigureSampleRate(imu_gyro_rate_max);
 }
 
 LSM9DS1::~LSM9DS1()
@@ -140,8 +144,8 @@ void LSM9DS1::RunImpl()
 				ScheduleDelayed(100_ms);
 
 			} else {
-				PX4_DEBUG("Reset not complete, check again in 10 ms");
-				ScheduleDelayed(10_ms);
+				PX4_DEBUG("Reset not complete, check again in 100 ms");
+				ScheduleDelayed(100_ms);
 			}
 		}
 
@@ -214,13 +218,14 @@ void LSM9DS1::RunImpl()
 
 				// full reset if things are failing consistently
 				if (_failure_count > 10) {
+					PX4_DEBUG("Full reset because things are failing consistently");
 					Reset();
 					return;
 				}
 			}
 
+			// check configuration registers periodically or immediately following any failure
 			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				// check configuration registers periodically or immediately following any failure
 				if (RegisterCheck(_register_cfg[_checked_register])) {
 					_last_config_check_timestamp = now;
 					_checked_register = (_checked_register + 1) % size_register_cfg;
@@ -228,13 +233,14 @@ void LSM9DS1::RunImpl()
 				} else {
 					// register check failed, force reset
 					perf_count(_bad_register_perf);
+					PX4_DEBUG("Force reset because register 0x%02hhX check failed ", (uint8_t)_register_cfg[_checked_register].reg);
 					Reset();
 				}
 
 			} else {
 				// periodically update temperature (~1 Hz)
 				if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
-					UpdateTemperature();
+					_temperature = ReadTemperature();
 					_temperature_update_timestamp = now;
 				}
 			}
@@ -271,14 +277,6 @@ bool LSM9DS1::Configure()
 			success = false;
 		}
 	}
-
-	// Gyroscope configuration 2000 degrees/second
-	_px4_gyro.set_scale(math::radians(70.f / 1000.f)); // 70 mdps/LSB
-	_px4_gyro.set_range(math::radians(2000.f));
-
-	// Accelerometer configuration 16 G range
-	_px4_accel.set_scale(0.732f * (CONSTANTS_ONE_G / 1000.f)); // 0.732 mg/LSB
-	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
 
 	return success;
 }
@@ -329,15 +327,15 @@ void LSM9DS1::RegisterSetAndClearBits(Register reg, uint8_t setbits, uint8_t cle
 
 bool LSM9DS1::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 {
-	sensor_gyro_fifo_s gyro{};
-	gyro.timestamp_sample = timestamp_sample;
-	gyro.samples = 0;
-	gyro.dt = FIFO_SAMPLE_DT;
+	sensor_imu_fifo_s sensor_imu_fifo{};
+	sensor_imu_fifo.timestamp_sample = timestamp_sample;
+	sensor_imu_fifo.samples = 0;
+	sensor_imu_fifo.dt = FIFO_SAMPLE_DT;
+	sensor_imu_fifo.accel_scale = ACCEL_SCALE;
+	sensor_imu_fifo.gyro_scale = GYRO_SCALE;
 
-	sensor_accel_fifo_s accel{};
-	accel.timestamp_sample = timestamp_sample;
-	accel.samples = 0;
-	accel.dt = FIFO_SAMPLE_DT;
+	int gyro_samples = 0;
+	int accel_samples = 0;
 
 	for (int i = 0; i < samples; i++) {
 		{
@@ -358,10 +356,10 @@ bool LSM9DS1::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				gyro.x[gyro.samples] = gyro_x;
-				gyro.y[gyro.samples] = gyro_y;
-				gyro.z[gyro.samples] = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
-				gyro.samples++;
+				sensor_imu_fifo.gyro_x[gyro_samples] = gyro_x;
+				sensor_imu_fifo.gyro_y[gyro_samples] = gyro_y;
+				sensor_imu_fifo.gyro_z[gyro_samples] = math::negate(gyro_z);
+				gyro_samples++;
 
 			} else {
 				perf_count(_bad_transfer_perf);
@@ -386,10 +384,10 @@ bool LSM9DS1::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				accel.x[accel.samples] = accel_x;
-				accel.y[accel.samples] = accel_y;
-				accel.z[accel.samples] = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
-				accel.samples++;
+				sensor_imu_fifo.accel_x[accel_samples] = accel_x;
+				sensor_imu_fifo.accel_y[accel_samples] = accel_y;
+				sensor_imu_fifo.accel_z[accel_samples] = math::negate(accel_z);
+				accel_samples++;
 
 			} else {
 				perf_count(_bad_transfer_perf);
@@ -397,19 +395,21 @@ bool LSM9DS1::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 		}
 	}
 
-	if (gyro.samples > 0) {
-		_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-					  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
-		_px4_gyro.updateFIFO(gyro);
+	if (gyro_samples > 0 && accel_samples > 0) {
+
+		sensor_imu_fifo.samples = math::min(gyro_samples, accel_samples);
+
+		sensor_imu_fifo.error_count = perf_event_count(_bad_register_perf) + perf_event_count(
+						      _bad_transfer_perf) + perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+
+		sensor_imu_fifo.timestamp = hrt_absolute_time();
+
+		_sensor_imu_fifo_pub.publish(sensor_imu_fifo);
+
+		return true;
 	}
 
-	if (accel.samples > 0) {
-		_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-					   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
-		_px4_accel.updateFIFO(accel);
-	}
-
-	return (accel.samples > 0) && (gyro.samples > 0);
+	return false;
 }
 
 void LSM9DS1::FIFOReset()
@@ -427,26 +427,28 @@ void LSM9DS1::FIFOReset()
 	}
 }
 
-void LSM9DS1::UpdateTemperature()
+float LSM9DS1::ReadTemperature()
 {
-	// read current temperature
+	// transfer buffer
 	struct TransferBuffer {
 		uint8_t cmd{static_cast<uint8_t>(Register::OUT_TEMP_L) | DIR_READ};
 		uint8_t OUT_TEMP_L{0};
 		uint8_t OUT_TEMP_H{0};
 	} buffer{};
 
+	// read current temperature
 	if (transfer((uint8_t *)&buffer, (uint8_t *)&buffer, sizeof(buffer)) != PX4_OK) {
 		perf_count(_bad_transfer_perf);
-		return;
+		return NAN;
 	}
 
 	// 16 bits in two’s complement format with a sensitivity of 256 LSB/°C. The output zero level corresponds to 25 °C.
 	const int16_t OUT_TEMP = combine(buffer.OUT_TEMP_H, buffer.OUT_TEMP_L);
-	const float temperature = (OUT_TEMP / 256.0f) + 25.0f;
+	const float temperature = (OUT_TEMP / 256.f) + 25.f;
 
 	if (PX4_ISFINITE(temperature)) {
-		_px4_accel.set_temperature(temperature);
-		_px4_gyro.set_temperature(temperature);
+		return temperature;
 	}
+
+	return NAN;
 }

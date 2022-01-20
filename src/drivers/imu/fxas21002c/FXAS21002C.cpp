@@ -68,7 +68,7 @@ using namespace time_literals;
 FXAS21002C::FXAS21002C(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_interface(interface),
-	_px4_gyro(_interface->get_device_id(), config.rotation),
+	_rotation(config.rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),
@@ -186,7 +186,7 @@ int FXAS21002C::set_range(unsigned max_dps)
 
 	set_standby(_current_rate, true);
 
-	_px4_gyro.set_scale(new_range_scale_dps_digit / 180.0f * M_PI_F);
+	_gyro_scale = new_range_scale_dps_digit / 180.0f * M_PI_F);
 
 	modify_reg(FXAS21002C_CTRL_REG0, CTRL_REG0_FS_MASK, bits);
 	set_standby(_current_rate, false);
@@ -378,9 +378,6 @@ void FXAS21002C::RunImpl()
 	}
 
 	// report the error count as the number of bad register reads. This allows the higher level
-	_px4_gyro.set_error_count(perf_event_count(_bad_registers));
-	_px4_gyro.update(timestamp_sample, x_raw, y_raw, z_raw);
-
 	if (hrt_elapsed_time(&_last_temperature_update) > 100_ms) {
 		/*
 		 * The TEMP register contains an 8-bit 2's complement temperature value with a range
@@ -389,9 +386,22 @@ void FXAS21002C::RunImpl()
 		 * mode and actively measuring the angular rate.
 		 */
 		const float temperature = read_reg(FXAS21002C_TEMP) * 1.0f;
-		_px4_gyro.set_temperature(temperature);
+		_last_temperature = temperature;
 		_last_temperature_update = timestamp_sample;
 	}
+
+	// sensor_gyro
+	sensor_gyro_s sensor_gyro{};
+	sensor_gyro.timestamp_sample = time_now_us;
+	sensor_gyro.device_id = 1;
+	sensor_gyro.x = gyro(0);
+	sensor_gyro.y = gyro(1);
+	sensor_gyro.z = gyro(2);
+	sensor_gyro.range = math::radians(2000.f);
+	sensor_gyro.temperature = NAN;
+	sensor_gyro.error_count = perf_event_count(_bad_registers);
+	sensor_gyro.timestamp = hrt_absolute_time();
+	_sensor_gyro_pub.publish(sensor_gyro);
 
 	/* stop the perf counter */
 	perf_end(_sample_perf);

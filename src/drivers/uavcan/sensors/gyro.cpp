@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,7 +36,6 @@
  */
 
 #include "gyro.hpp"
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 
 const char *const UavcanGyroBridge::NAME = "gyro";
 
@@ -67,33 +66,33 @@ void UavcanGyroBridge::imu_sub_cb(const uavcan::ReceivedDataStructure<uavcan::eq
 	}
 
 	// Cast our generic CDev pointer to the sensor-specific driver class
-	PX4Gyroscope *gyro = (PX4Gyroscope *)channel->h_driver;
+	uORB::PublicationMulti<sensor_gyro_s> *gyro = (uORB::PublicationMulti<sensor_gyro_s> *)channel->h_driver;
 
 	if (gyro == nullptr) {
 		return;
 	}
 
-	gyro->update(hrt_absolute_time(),
-		     msg.rate_gyro_latest[0],
-		     msg.rate_gyro_latest[1],
-		     msg.rate_gyro_latest[2]);
+	// gyro->update(hrt_absolute_time(),
+	// 	     msg.rate_gyro_latest[0],
+	// 	     msg.rate_gyro_latest[1],
+	// 	     msg.rate_gyro_latest[2]);
 }
 
 int UavcanGyroBridge::init_driver(uavcan_bridge::Channel *channel)
 {
-	// update device id as we now know our device node_id
-	DeviceId device_id{_device_id};
+	// // update device id as we now know our device node_id
+	// DeviceId device_id{_device_id};
 
-	device_id.devid_s.devtype = DRV_GYR_DEVTYPE_UAVCAN;
-	device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
+	// device_id.devid_s.devtype = DRV_GYR_DEVTYPE_UAVCAN;
+	// device_id.devid_s.address = static_cast<uint8_t>(channel->node_id);
 
-	channel->h_driver = new PX4Gyroscope(device_id.devid);
+	channel->h_driver = new uORB::PublicationMulti<sensor_gyro_s>(ORB_ID(sensor_gyro));
 
 	if (channel->h_driver == nullptr) {
 		return PX4_ERROR;
 	}
 
-	PX4Gyroscope *gyro = (PX4Gyroscope *)channel->h_driver;
+	uORB::PublicationMulti<sensor_gyro_s> *gyro = (uORB::PublicationMulti<sensor_gyro_s> *)channel->h_driver;
 
 	channel->instance = gyro->get_instance();
 

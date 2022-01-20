@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,10 @@
 
 #include "BMI055.hpp"
 
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-
 #include "Bosch_BMI055_Gyroscope_Registers.hpp"
+
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_gyro.h>
 
 namespace Bosch::BMI055::Gyroscope
 {
@@ -58,15 +59,7 @@ private:
 	static constexpr uint32_t RATE{2000}; // 2000 Hz
 	static constexpr float FIFO_SAMPLE_DT{1e6f / RATE};
 
-	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0]))};
-
-	// Transfer data
-	struct FIFOTransferBuffer {
-		uint8_t cmd{static_cast<uint8_t>(Register::FIFO_DATA) | DIR_READ};
-		FIFO::DATA f[FIFO_MAX_SAMPLES] {};
-	};
-	// ensure no struct padding
-	static_assert(sizeof(FIFOTransferBuffer) == (1 + FIFO_MAX_SAMPLES *sizeof(FIFO::DATA)));
+	static constexpr int32_t FIFO_MAX_SAMPLES{FIFO::SIZE / sizeof(FIFO::DATA)};
 
 	struct register_config_t {
 		Register reg;
@@ -95,7 +88,11 @@ private:
 	bool FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples);
 	void FIFOReset();
 
-	PX4Gyroscope _px4_gyro;
+	uORB::PublicationMulti<sensor_gyro_s> _sensor_gyro_pub{ORB_ID(sensor_gyro)};
+
+	const enum Rotation _rotation;
+	float _gyro_scale{0.f};
+	float _gyro_range{0.f};
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_gyro: bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME"_gyro: bad transfer")};

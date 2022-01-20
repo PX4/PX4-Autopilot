@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,6 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+#include "Utilities.hpp"
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
@@ -282,6 +284,66 @@ bool DeviceExternal(uint32_t device_id)
 	}
 
 	return external;
+}
+
+matrix::Vector3f AverageFifoGyro(const sensor_imu_fifo_s &sensor_imu_fifo)
+{
+	if (sensor_imu_fifo.samples > 0 && sensor_imu_fifo.samples <= sensor_imu_fifo_s::FIFO_SIZE) {
+		// X axis
+		int32_t x = 0;
+
+		for (int i = 0; i < sensor_imu_fifo.samples; i++) {
+			x += sensor_imu_fifo.gyro_x[i];
+		}
+
+		// Y axis
+		int32_t y = 0;
+
+		for (int i = 0; i < sensor_imu_fifo.samples; i++) {
+			y += sensor_imu_fifo.gyro_y[i];
+		}
+
+		// Z axis
+		int32_t z = 0;
+
+		for (int i = 0; i < sensor_imu_fifo.samples; i++) {
+			z += sensor_imu_fifo.gyro_z[i];
+		}
+
+		return (matrix::Vector3f{(float)x, (float)y, (float)z} * sensor_imu_fifo.accel_scale) / sensor_imu_fifo.samples;
+	}
+
+	return matrix::Vector3f{0, 0, 0};
+}
+
+matrix::Vector3f AverageFifoAccel(const sensor_imu_fifo_s &sensor_imu_fifo)
+{
+	if (sensor_imu_fifo.samples > 0 && sensor_imu_fifo.samples <= sensor_imu_fifo_s::FIFO_SIZE) {
+		// X axis
+		int32_t x = 0;
+
+		for (int i = 0; i < sensor_imu_fifo.samples; i++) {
+			x += sensor_imu_fifo.accel_x[i];
+		}
+
+		// Y axis
+		int32_t y = 0;
+
+		for (int i = 0; i < sensor_imu_fifo.samples; i++) {
+			y += sensor_imu_fifo.accel_y[i];
+		}
+
+		// Z axis
+		int32_t z = 0;
+
+		for (int i = 0; i < sensor_imu_fifo.samples; i++) {
+			z += sensor_imu_fifo.accel_z[i];
+		}
+
+		return (matrix::Vector3f{(float)x, (float)y, (float)z} * sensor_imu_fifo.gyro_scale) / sensor_imu_fifo.samples;
+	}
+
+	return matrix::Vector3f{0, 0, 0};
 }
 
 } // namespace calibration

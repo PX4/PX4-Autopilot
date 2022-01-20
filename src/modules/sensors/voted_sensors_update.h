@@ -107,10 +107,6 @@ private:
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
 
 	struct SensorData {
-		SensorData() = delete;
-		explicit SensorData(ORB_ID meta) : subscription{{meta, 0}, {meta, 1}, {meta, 2}, {meta, 3}} {}
-
-		uORB::Subscription subscription[MAX_SENSOR_COUNT]; /**< raw sensor data subscription */
 		DataValidatorGroup voter{1};
 		unsigned int last_failover_count{0};
 		int32_t priority[MAX_SENSOR_COUNT] {};
@@ -146,8 +142,8 @@ private:
 	 */
 	void calcGyroInconsistency();
 
-	SensorData _accel{ORB_ID::sensor_accel};
-	SensorData _gyro{ORB_ID::sensor_gyro};
+	SensorData _accel{};
+	SensorData _gyro{};
 
 	hrt_abstime _last_error_message{0};
 	orb_advert_t _mavlink_log_pub{nullptr};

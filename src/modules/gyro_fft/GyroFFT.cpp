@@ -172,14 +172,14 @@ bool GyroFFT::SensorSelectionUpdate(bool force)
 		_sensor_selection_sub.copy(&sensor_selection);
 
 		if ((sensor_selection.gyro_device_id != 0) && (_selected_sensor_device_id != sensor_selection.gyro_device_id)) {
-			// prefer sensor_gyro_fifo if available
+			// prefer sensor_imu_fifo if available
 			for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
-				uORB::SubscriptionData<sensor_gyro_fifo_s> sensor_gyro_fifo_sub{ORB_ID(sensor_gyro_fifo), i};
+				uORB::SubscriptionData<sensor_imu_fifo_s> sensor_imu_fifo_sub{ORB_ID(sensor_imu_fifo), i};
 
-				if (sensor_gyro_fifo_sub.get().device_id == sensor_selection.gyro_device_id) {
-					if (_sensor_gyro_fifo_sub.ChangeInstance(i) && _sensor_gyro_fifo_sub.registerCallback()) {
+				if (sensor_imu_fifo_sub.get().device_id == sensor_selection.gyro_device_id) {
+					if (_sensor_imu_fifo_sub.ChangeInstance(i) && _sensor_imu_fifo_sub.registerCallback()) {
 						_sensor_gyro_sub.unregisterCallback();
-						_sensor_gyro_fifo_sub.set_required_updates(sensor_gyro_fifo_s::ORB_QUEUE_LENGTH / 2);
+						_sensor_imu_fifo_sub.set_required_updates(sensor_imu_fifo_s::ORB_QUEUE_LENGTH / 2);
 						_selected_sensor_device_id = sensor_selection.gyro_device_id;
 						_gyro_fifo = true;
 
@@ -198,7 +198,7 @@ bool GyroFFT::SensorSelectionUpdate(bool force)
 
 				if (sensor_gyro_sub.get().device_id == sensor_selection.gyro_device_id) {
 					if (_sensor_gyro_sub.ChangeInstance(i) && _sensor_gyro_sub.registerCallback()) {
-						_sensor_gyro_fifo_sub.unregisterCallback();
+						_sensor_imu_fifo_sub.unregisterCallback();
 						_sensor_gyro_sub.set_required_updates(sensor_gyro_s::ORB_QUEUE_LENGTH / 2);
 						_selected_sensor_device_id = sensor_selection.gyro_device_id;
 						_gyro_fifo = false;
@@ -303,7 +303,7 @@ void GyroFFT::Run()
 {
 	if (should_exit()) {
 		_sensor_gyro_sub.unregisterCallback();
-		_sensor_gyro_fifo_sub.unregisterCallback();
+		_sensor_imu_fifo_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -331,10 +331,10 @@ void GyroFFT::Run()
 
 	if (_gyro_fifo) {
 		// run on sensor gyro fifo updates
-		sensor_gyro_fifo_s sensor_gyro_fifo;
+		sensor_imu_fifo_s sensor_imu_fifo;
 
-		while (_sensor_gyro_fifo_sub.update(&sensor_gyro_fifo)) {
-			if (_sensor_gyro_fifo_sub.get_last_generation() != _gyro_last_generation + 1) {
+		while (_sensor_imu_fifo_sub.update(&sensor_imu_fifo)) {
+			if (_sensor_imu_fifo_sub.get_last_generation() != _gyro_last_generation + 1) {
 				// force reset if we've missed a sample
 				_fft_buffer_index[0] = 0;
 				_fft_buffer_index[1] = 0;
@@ -343,19 +343,19 @@ void GyroFFT::Run()
 				perf_count(_gyro_fifo_generation_gap_perf);
 			}
 
-			_gyro_last_generation = _sensor_gyro_fifo_sub.get_last_generation();
+			_gyro_last_generation = _sensor_imu_fifo_sub.get_last_generation();
 
-			if (fabsf(sensor_gyro_fifo.scale - _fifo_last_scale) > FLT_EPSILON) {
+			if (fabsf(sensor_imu_fifo.gyro_scale - _fifo_last_scale) > FLT_EPSILON) {
 				// force reset if scale has changed
 				_fft_buffer_index[0] = 0;
 				_fft_buffer_index[1] = 0;
 				_fft_buffer_index[2] = 0;
 
-				_fifo_last_scale = sensor_gyro_fifo.scale;
+				_fifo_last_scale = sensor_imu_fifo.gyro_scale;
 			}
 
-			int16_t *input[] {sensor_gyro_fifo.x, sensor_gyro_fifo.y, sensor_gyro_fifo.z};
-			Update(sensor_gyro_fifo.timestamp_sample, input, sensor_gyro_fifo.samples);
+			int16_t *input[] {sensor_imu_fifo.gyro_x, sensor_imu_fifo.gyro_y, sensor_imu_fifo.gyro_z};
+			Update(sensor_imu_fifo.timestamp_sample, input, sensor_imu_fifo.samples);
 		}
 
 	} else {

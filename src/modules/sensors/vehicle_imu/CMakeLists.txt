@@ -34,6 +34,8 @@
 px4_add_library(vehicle_imu
 	VehicleIMU.cpp
 	VehicleIMU.hpp
+	VehicleIMUFifo.cpp
+	VehicleIMUFifo.hpp
 )
 
 target_compile_options(vehicle_imu

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,10 @@
 
 #include "BMI088.hpp"
 
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-
 #include "Bosch_BMI088_Gyroscope_Registers.hpp"
+
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_gyro.h>
 
 namespace Bosch::BMI088::Gyroscope
 {
@@ -55,10 +56,10 @@ private:
 	void exit_and_cleanup() override;
 
 	// Sensor Configuration
-	static constexpr uint32_t RATE{400}; // 2000 Hz
+	static constexpr uint32_t RATE{2000}; // 2000 Hz
 	static constexpr float FIFO_SAMPLE_DT{1e6f / RATE};
 
-	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0]))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{FIFO::SIZE / sizeof(FIFO::DATA)};
 
 	// Transfer data
 	struct FIFOTransferBuffer {
@@ -95,10 +96,11 @@ private:
 	bool FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples);
 	void FIFOReset();
 
-	bool SelfTest();
-	bool NormalRead(const hrt_abstime &timestamp_sample);
-	bool SimpleFIFORead(const hrt_abstime &timestamp_sample);
-	PX4Gyroscope _px4_gyro;
+	uORB::PublicationMulti<sensor_gyro_s> _sensor_gyro_pub{ORB_ID(sensor_gyro)};
+
+	const enum Rotation _rotation;
+	float _gyro_scale{0.f};
+	float _gyro_range{0.f};
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_gyro: bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME"_gyro: bad transfer")};
@@ -114,13 +116,13 @@ private:
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                         | Set bits, Clear bits
 		{ Register::GYRO_RANGE,             GYRO_RANGE_BIT::gyro_range_2000_dps, 0 },
-		{ Register::GYRO_BANDWIDTH,         0, GYRO_BANDWIDTH_BIT::gyro_bw_2000_Hz},
+		{ Register::GYRO_BANDWIDTH,         0, GYRO_BANDWIDTH_BIT::gyro_bw_532_Hz },
 		{ Register::GYRO_INT_CTRL,          GYRO_INT_CTRL_BIT::fifo_en, 0 },
 		{ Register::INT3_INT4_IO_CONF,      0, INT3_INT4_IO_CONF_BIT::Int3_od | INT3_INT4_IO_CONF_BIT::Int3_lvl },
 		{ Register::INT3_INT4_IO_MAP,       INT3_INT4_IO_MAP_BIT::Int3_fifo, 0 },
 		{ Register::FIFO_WM_ENABLE,         FIFO_WM_ENABLE_BIT::fifo_wm_enable, 0 },
 		{ Register::FIFO_CONFIG_0,          0, 0 }, // fifo_water_mark_level_trigger_retain<6:0>
-		{ Register::FIFO_CONFIG_1,          FIFO_CONFIG_1_BIT::FIFO_MODE_STREAM, 0 },
+		{ Register::FIFO_CONFIG_1,          FIFO_CONFIG_1_BIT::FIFO_MODE, 0 },
 	};
 };
 

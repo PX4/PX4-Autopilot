@@ -40,7 +40,5 @@ px4_add_module(
 		MPU6500.hpp
 		mpu6500_main.cpp
 	DEPENDS
-		drivers_accelerometer
-		drivers_gyroscope
 		px4_work_queue
 	)

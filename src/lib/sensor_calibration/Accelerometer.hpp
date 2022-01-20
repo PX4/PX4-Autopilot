@@ -84,6 +84,11 @@ public:
 		return _rotation * matrix::Vector3f{(data - _thermal_offset - _offset).emult(_scale)};
 	}
 
+	inline matrix::Vector3f Uncorrect(const matrix::Vector3f &corrected_data) const
+	{
+		return (_rotation.I() * corrected_data).edivide(_scale) + _thermal_offset + _offset;
+	}
+
 	// Compute sensor offset from bias (board frame)
 	matrix::Vector3f BiasCorrectedSensorOffset(const matrix::Vector3f &bias) const
 	{

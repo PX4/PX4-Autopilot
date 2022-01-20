@@ -41,7 +41,5 @@ px4_add_module(
 		lsm9ds1_main.cpp
 		ST_LSM9DS1_Registers.hpp
 	DEPENDS
-		drivers_accelerometer
-		drivers_gyroscope
 		px4_work_queue
 	)

@@ -42,8 +42,6 @@ px4_add_module(
 		sih.hpp
 	DEPENDS
 		mathlib
-		drivers_accelerometer
-		drivers_gyroscope
 	)
 
 if(PX4_PLATFORM MATCHES "posix")

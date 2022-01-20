@@ -40,7 +40,5 @@ px4_add_module(
 		FakeImu.cpp
 		FakeImu.hpp
 	DEPENDS
-		drivers_accelerometer
-		drivers_gyroscope
 		px4_work_queue
 )

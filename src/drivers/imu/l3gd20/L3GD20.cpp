@@ -38,7 +38,7 @@ constexpr uint8_t L3GD20::_checked_registers[];
 L3GD20::L3GD20(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_gyro(get_device_id(), config.rotation),
+	_rotation(config.rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad_reg")),
@@ -177,7 +177,7 @@ L3GD20::set_range(unsigned max_dps)
 		return -EINVAL;
 	}
 
-	_px4_gyro.set_scale(new_range_scale_dps_digit / 180.0f * M_PI_F);
+	_gyro_scale = new_range_scale_dps_digit / 180.0f * M_PI_F;
 
 	write_checked_reg(ADDR_CTRL_REG4, bits);
 
@@ -349,31 +349,30 @@ L3GD20::RunImpl()
 	 *	 	  the offset is 74 from the origin and subtracting
 	 *		  74 from all measurements centers them around zero.
 	 */
-	_px4_gyro.set_error_count(perf_event_count(_bad_registers));
-
-	_px4_gyro.set_temperature(L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp);
+	sensor_gyro_s sensor_gyro{};
+	sensor_gyro.timestamp_sample = timestamp_sample;
+	sensor_gyro.device_id = get_device_id();
 
 	switch (_orientation) {
 	case SENSOR_BOARD_ROTATION_090_DEG:
 		/* swap x and y */
-		_px4_gyro.update(timestamp_sample, raw_report.y, raw_report.x, raw_report.z);
+		sensor_gyro.x = raw_report.x * _gyro_scale;
+		sensor_gyro.y = raw_report.y * _gyro_scale;
+		sensor_gyro.z = raw_report.z * _gyro_scale;
 		break;
 
-	case SENSOR_BOARD_ROTATION_180_DEG: {
-			/* swap x and y and negate both */
-			int16_t x = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
-			int16_t y = ((raw_report.y == -32768) ? 32767 : -raw_report.y);
-			_px4_gyro.update(timestamp_sample, x, y, raw_report.z);
-		}
-
+	case SENSOR_BOARD_ROTATION_180_DEG:
+		/* swap x and y and negate both */
+		sensor_gyro.x = math::negate(raw_report.x) * _gyro_scale;
+		sensor_gyro.y = math::negate(raw_report.y) * _gyro_scale;
+		sensor_gyro.z = raw_report.z * _gyro_scale;
 		break;
 
-	case SENSOR_BOARD_ROTATION_270_DEG: {
-			/* swap x and y and negate y */
-			int16_t x = raw_report.y;
-			int16_t y = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
-			_px4_gyro.update(timestamp_sample, x, y, raw_report.z);
-		}
+	case SENSOR_BOARD_ROTATION_270_DEG:
+		/* swap x and y and negate y */
+		sensor_gyro.x = raw_report.y * _gyro_scale;
+		sensor_gyro.y = math::negate(raw_report.x) * _gyro_scale;
+		sensor_gyro.z = raw_report.z * _gyro_scale;
 		break;
 
 	case SENSOR_BOARD_ROTATION_000_DEG:
@@ -381,8 +380,19 @@ L3GD20::RunImpl()
 	// FALLTHROUGH
 	default:
 		// keep axes in place
-		_px4_gyro.update(timestamp_sample, raw_report.x, raw_report.y, raw_report.z);
+		sensor_gyro.x = raw_report.x * _gyro_scale;
+		sensor_gyro.y = raw_report.y * _gyro_scale;
+		sensor_gyro.z = raw_report.z * _gyro_scale;
 	}
+
+	rotate_3f(_rotation, sensor_gyro.x, sensor_gyro.y, sensor_gyro.z);
+
+	sensor_gyro.range = _gyro_range;
+	sensor_gyro.temperature = L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp;
+	sensor_gyro.error_count = perf_event_count(_bad_registers);
+
+	sensor_gyro.timestamp = hrt_absolute_time();
+	_sensor_gyro_pub.publish(sensor_gyro);
 
 	_read++;
 

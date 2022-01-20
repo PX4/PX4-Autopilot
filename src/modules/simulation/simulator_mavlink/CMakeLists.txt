@@ -48,8 +48,6 @@ px4_add_module(
 		mavlink_c_generate
 		conversion
 		geo
-		drivers_accelerometer
-		drivers_gyroscope
 		drivers_magnetometer
 	)
 

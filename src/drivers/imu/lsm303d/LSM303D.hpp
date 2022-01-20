@@ -42,8 +42,10 @@
 #include <geo/geo.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_accel.h>
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
@@ -262,8 +264,12 @@ private:
 	 */
 	int			mag_set_samplerate(unsigned frequency);
 
+	uORB::PublicationMulti<sensor_accel_s> _sensor_accel_pub{ORB_ID(sensor_accel)};
 
-	PX4Accelerometer	_px4_accel;
+	const enum Rotation _rotation;
+	float _accel_range{0.f};
+	float _accel_scale{0.f};
+
 	PX4Magnetometer		_px4_mag;
 
 	unsigned		_call_accel_interval{1000000 / LSM303D_ACCEL_DEFAULT_RATE};
@@ -282,7 +288,7 @@ private:
 
 	hrt_abstime		_mag_last_measure{0};
 
-	float			_last_temperature{0.0f};
+	float			_last_temperature{NAN};
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor

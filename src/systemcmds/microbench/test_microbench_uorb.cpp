@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *  Copyright (C) 2018-2021 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,7 +50,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/sensor_gyro_fifo.h>
+#include <uORB/topics/sensor_imu_fifo.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -108,7 +108,7 @@ private:
 	vehicle_status_s status;
 	vehicle_local_position_s lpos;
 	sensor_gyro_s gyro;
-	sensor_gyro_fifo_s gyro_fifo;
+	sensor_imu_fifo_s imu_fifo;
 };
 
 bool MicroBenchORB::run_tests()
@@ -139,7 +139,7 @@ void MicroBenchORB::reset()
 
 	gyro.timestamp = rand();
 
-	gyro_fifo.timestamp = rand();
+	imu_fifo.timestamp = rand();
 }
 
 ut_declare_test_c(test_microbench_uorb, MicroBenchORB)
@@ -149,7 +149,7 @@ bool MicroBenchORB::time_px4_uorb()
 	int fd_status = orb_subscribe(ORB_ID(vehicle_status));
 	int fd_lpos = orb_subscribe(ORB_ID(vehicle_local_position));
 	int fd_gyro = orb_subscribe(ORB_ID(sensor_gyro));
-	int fd_gyro_fifo = orb_subscribe(ORB_ID(sensor_gyro_fifo));
+	int fd_imu_fifo = orb_subscribe(ORB_ID(sensor_imu_fifo));
 
 	int ret = 0;
 	bool updated = false;
@@ -169,8 +169,8 @@ bool MicroBenchORB::time_px4_uorb()
 
 	printf("\n");
 
-	PERF("orb_check sensor_gyro_fifo", ret = orb_check(fd_gyro_fifo, &updated), 100);
-	PERF("orb_copy sensor_gyro_fifo", ret = orb_copy(ORB_ID(sensor_gyro_fifo), fd_gyro_fifo, &gyro_fifo), 100);
+	PERF("orb_check sensor_imu_fifo", ret = orb_check(fd_imu_fifo, &updated), 100);
+	PERF("orb_copy sensor_imu_fifo", ret = orb_copy(ORB_ID(sensor_imu_fifo), fd_imu_fifo, &imu_fifo), 100);
 
 	printf("\n");
 
@@ -189,7 +189,7 @@ bool MicroBenchORB::time_px4_uorb()
 	orb_unsubscribe(fd_status);
 	orb_unsubscribe(fd_lpos);
 	orb_unsubscribe(fd_gyro);
-	orb_unsubscribe(fd_gyro_fifo);
+	orb_unsubscribe(fd_imu_fifo);
 
 	return true;
 }
@@ -238,9 +238,9 @@ bool MicroBenchORB::time_px4_uorb_direct()
 
 	{
 		printf("\n");
-		uORB::Subscription sens_gyro_fifo0{ORB_ID(sensor_gyro_fifo), 0};
-		PERF("uORB::Subscription orb_check sensor_gyro_fifo:0", ret = sens_gyro_fifo0.updated(), 100);
-		PERF("uORB::Subscription orb_copy sensor_gyro_fifo:0", ret = sens_gyro_fifo0.copy(&gyro_fifo), 100);
+		uORB::Subscription sens_imu_fifo0{ORB_ID(sensor_imu_fifo), 0};
+		PERF("uORB::Subscription orb_check sensor_imu_fifo:0", ret = sens_imu_fifo0.updated(), 100);
+		PERF("uORB::Subscription orb_copy sensor_imu_fifo:0", ret = sens_imu_fifo0.copy(&imu_fifo), 100);
 	}
 
 	return true;

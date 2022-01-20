@@ -73,8 +73,7 @@ using namespace time_literals;
 ADIS16497::ADIS16497(const I2CSPIDriverConfig &config) :
 	SPI(config),
 	I2CSPIDriver(config),
-	_px4_accel(get_device_id(), config.rotation),
-	_px4_gyro(get_device_id(), config.rotation),
+	_rotation(config.rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_bad_transfers(perf_alloc(PC_COUNT, MODULE_NAME": bad transfers")),
 	_drdy_gpio(config.drdy_gpio)
@@ -308,23 +307,23 @@ ADIS16497::self_test()
 bool
 ADIS16497::set_measurement_range(uint16_t model)
 {
-	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f); // 1.25 mg/LSB
-	_px4_accel.set_range(40.0f * CONSTANTS_ONE_G); // 40g
+	_accel_scale = 1.25f * CONSTANTS_ONE_G / 1000.0f; // 1.25 mg/LSB
+	_accel_range = 40.0f * CONSTANTS_ONE_G; // 40g
 
 	switch (model) {
 	case RANG_MDL_1BMLZ:
-		_px4_gyro.set_scale(math::radians(0.00625f)); // 0.00625 °/sec/LSB
-		_px4_gyro.set_range(math::radians(125.0f)); // 125 °/s
+		_gyro_scale = math::radians(0.00625f); // 0.00625 °/sec/LSB
+		_gyro_range = math::radians(125.0f); // 125 °/s
 		break;
 
 	case RANG_MDL_2BMLZ:
-		_px4_gyro.set_scale(math::radians(0.025f)); // 0.025 °/sec/LSB
-		_px4_gyro.set_range(math::radians(450.0f)); // 450 °/s
+		_gyro_scale = math::radians(0.025f); // 0.025 °/sec/LSB
+		_gyro_range = math::radians(450.0f); // 450 °/s
 		break;
 
 	case RANG_MDL_3BMLZ:
-		_px4_gyro.set_scale(math::radians(0.1f)); // 0.1 °/sec/LSB
-		_px4_gyro.set_range(math::radians(2000.0f)); // 2000 °/s
+		_gyro_scale = math::radians(0.1f); // 0.1 °/sec/LSB
+		_gyro_range = math::radians(2000.0f); // 2000 °/s
 		break;
 
 	default:
@@ -470,26 +469,44 @@ ADIS16497::measure()
 	}
 
 	const uint64_t error_count = perf_event_count(_bad_transfers);
-	_px4_accel.set_error_count(error_count);
-	_px4_gyro.set_error_count(error_count);
-
 	const float temperature = (int16_t(adis_report.TEMP_OUT) * 0.0125f) + 25.0f; // 1 LSB = 0.0125°C, 0x0000 at 25°C
-	_px4_accel.set_temperature(temperature);
-	_px4_gyro.set_temperature(temperature);
+
 
 	// TODO check data counter here to see if we're missing samples/getting repeated samples
 	{
 		float xraw_f = (int32_t(adis_report.X_ACCEL_OUT) << 16 | adis_report.X_ACCEL_LOW) / 65536.0f;
 		float yraw_f = (int32_t(adis_report.Y_ACCEL_OUT) << 16 | adis_report.Y_ACCEL_LOW) / 65536.0f;
 		float zraw_f = (int32_t(adis_report.Z_ACCEL_OUT) << 16 | adis_report.Z_ACCEL_LOW) / 65536.0f;
-		_px4_accel.update(timestamp_sample, xraw_f, yraw_f, zraw_f);
+
+		sensor_accel_s sensor_accel{};
+		sensor_accel.timestamp_sample = timestamp_sample;
+		sensor_accel.device_id = get_device_id();
+		sensor_accel.x = xraw_f;
+		sensor_accel.y = yraw_f;
+		sensor_accel.z = zraw_f;
+		sensor_accel.range = 16.f * CONSTANTS_ONE_G;
+		sensor_accel.temperature = temperature;
+		sensor_accel.error_count = error_count;
+		sensor_accel.timestamp = hrt_absolute_time();
+		_sensor_accel_pub.publish(sensor_accel);
 	}
 
 	{
 		float xraw_f = (int32_t(adis_report.X_GYRO_OUT) << 16 | adis_report.X_GYRO_LOW) / 65536.0f;
 		float yraw_f = (int32_t(adis_report.Y_GYRO_OUT) << 16 | adis_report.Y_GYRO_LOW) / 65536.0f;
 		float zraw_f = (int32_t(adis_report.Z_GYRO_OUT) << 16 | adis_report.Z_GYRO_LOW) / 65536.0f;
-		_px4_gyro.update(timestamp_sample, xraw_f, yraw_f, zraw_f);
+
+		sensor_gyro_s sensor_gyro{};
+		sensor_gyro.timestamp_sample = timestamp_sample;
+		sensor_gyro.device_id = get_device_id();
+		sensor_gyro.x = xraw_f;
+		sensor_gyro.y = yraw_f;
+		sensor_gyro.z = zraw_f;
+		sensor_gyro.range = math::radians(2000.f);
+		sensor_gyro.temperature = temperature;
+		sensor_gyro.error_count = error_count;
+		sensor_gyro.timestamp = hrt_absolute_time();
+		_sensor_gyro_pub.publish(sensor_gyro);
 	}
 
 	perf_end(_sample_perf);

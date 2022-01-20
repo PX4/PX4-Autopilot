@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__imu__bosch__bmi055
 	MAIN bmi055
 	COMPILE_FLAGS
+		-O0
 	SRCS
 		Bosch_BMI055_Accelerometer_Registers.hpp
 		Bosch_BMI055_Gyroscope_Registers.hpp
@@ -48,7 +49,5 @@ px4_add_module(
 
 		bmi055_main.cpp
 	DEPENDS
-		drivers_accelerometer
-		drivers_gyroscope
 		px4_work_queue
 	)
