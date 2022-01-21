@@ -60,13 +60,13 @@ public:
 		v(1) = other(1);
 	}
 
-	Type cross(const Matrix21 &b) const
+	inline Type cross(const Matrix21 &b) const
 	{
 		const Vector2 &a(*this);
 		return a(0) * b(1, 0) - a(1) * b(0, 0);
 	}
 
-	Type operator%(const Matrix21 &b) const
+	inline Type operator%(const Matrix21 &b) const
 	{
 		return (*this).cross(b);
 	}

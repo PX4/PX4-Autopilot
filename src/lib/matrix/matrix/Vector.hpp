@@ -66,7 +66,7 @@ public:
 		return v(i, 0);
 	}
 
-	Type dot(const MatrixM1 &b) const
+	inline Type dot(const MatrixM1 &b) const
 	{
 		const Vector &a(*this);
 		Type r(0);
@@ -89,13 +89,13 @@ public:
 		return Vector(MatrixM1::operator*(b));
 	}
 
-	Type norm() const
+	inline Type norm() const
 	{
 		const Vector &a(*this);
 		return Type(matrix::sqrt(a.dot(a)));
 	}
 
-	Type norm_squared() const
+	inline Type norm_squared() const
 	{
 		const Vector &a(*this);
 		return a.dot(a);
@@ -111,12 +111,12 @@ public:
 		(*this) /= norm();
 	}
 
-	Vector unit() const
+	inline Vector unit() const
 	{
 		return (*this) / norm();
 	}
 
-	Vector unit_or_zero(const Type eps = Type(1e-5)) const
+	inline Vector unit_or_zero(const Type eps = Type(1e-5)) const
 	{
 		const Type n = norm();
 
@@ -132,12 +132,12 @@ public:
 		return unit();
 	}
 
-	bool longerThan(Type testVal) const
+	inline bool longerThan(Type testVal) const
 	{
 		return norm_squared() > testVal * testVal;
 	}
 
-	Vector sqrt() const
+	inline Vector sqrt() const
 	{
 		const Vector &a(*this);
 		Vector r;

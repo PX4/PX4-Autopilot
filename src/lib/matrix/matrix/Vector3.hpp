@@ -62,7 +62,7 @@ public:
 	{
 	}
 
-	Vector3 cross(const Matrix31 &b) const
+	inline Vector3 cross(const Matrix31 &b) const
 	{
 		const Vector3 &a(*this);
 		return {a(1) *b(2, 0) - a(2) *b(1, 0), -a(0) *b(2, 0) + a(2) *b(0, 0), a(0) *b(1, 0) - a(1) *b(0, 0)};
@@ -74,32 +74,38 @@ public:
 
 	inline Vector3 operator+(Vector3 other) const
 	{
-		return Matrix31::operator+(other);
+		const Vector3 &a(*this);
+		return Vector3{a(0) + other(0), a(1) + other(1), a(2) + other(2)};
 	}
 
 	inline Vector3 operator+(Type scalar) const
 	{
-		return Matrix31::operator+(scalar);
+		const Vector3 &a(*this);
+		return Vector3{a(0) + scalar, a(1) + scalar, a(2) + scalar};
 	}
 
 	inline Vector3 operator-(Vector3 other) const
 	{
-		return Matrix31::operator-(other);
+		const Vector3 &a(*this);
+		return Vector3{a(0) - other(0), a(1) - other(1), a(2) - other(2)};
 	}
 
 	inline Vector3 operator-(Type scalar) const
 	{
-		return Matrix31::operator-(scalar);
+		const Vector3 &a(*this);
+		return Vector3{a(0) - scalar, a(1) - scalar, a(2) - scalar};
 	}
 
 	inline Vector3 operator-() const
 	{
-		return Matrix31::operator-();
+		const Vector3 &a(*this);
+		return Vector3{-a(0), -a(1), -a(2)};
 	}
 
 	inline Vector3 operator*(Type scalar) const
 	{
-		return Matrix31::operator*(scalar);
+		const Vector3 &a(*this);
+		return Vector3{a(0) *scalar, a(1) *scalar, a(2) *scalar};
 	}
 
 	inline Type operator*(Vector3 b) const
