@@ -293,6 +293,8 @@ void FlightTaskOrbit::_generate_circle_approach_setpoints()
 
 	_position_setpoint = out_setpoints.position;
 	_velocity_setpoint = out_setpoints.velocity;
+	_acceleration_setpoint = out_setpoints.acceleration;
+	_jerk_setpoint = out_setpoints.jerk;
 }
 
 void FlightTaskOrbit::_generate_circle_setpoints()
