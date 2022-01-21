@@ -1111,7 +1111,7 @@ void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t batter
 	// User warning
 	switch (battery_warning) {
 	case battery_status_s::BATTERY_WARNING_LOW:
-		mavlink_log_warning(mavlink_log_pub, "Low %s, return advised\t", battery_level);
+		mavlink_log_critical(mavlink_log_pub, "Low %s, return advised\t", battery_level);
 		events::send(events::ID("commander_bat_low"), {events::Log::Warning, events::LogInternal::Info},
 			     "Low battery level, return advised");
 		break;
