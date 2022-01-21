@@ -49,7 +49,7 @@
 #include <lib/motion_planning/VelocitySmoothing.hpp>
 
 
-class FlightTaskOrbit : public FlightTaskManualAltitude
+class FlightTaskOrbit : public FlightTaskManualAltitudeSmoothVel
 {
 public:
 
@@ -119,7 +119,6 @@ private:
 
 	bool _in_circle_approach = false;
 	PositionSmoothing _position_smoothing;
-	VelocitySmoothing _altitude_velocity_smoothing;
 
 	/** yaw behaviour during the orbit flight according to MAVLink's ORBIT_YAW_BEHAVIOUR enum */
 	int _yaw_behaviour = orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER;
