@@ -872,6 +872,11 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 
 	_position_sp_type = position_sp_type;
 
+	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER
+	    || current_sp.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		publishOrbitStatus(current_sp);
+	}
+
 	switch (position_sp_type) {
 	case position_setpoint_s::SETPOINT_TYPE_IDLE:
 		_att_sp.thrust_body[0] = 0.0f;
@@ -889,8 +894,6 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
 		control_auto_loiter(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
-		publishOrbitStatus(current_sp);
-
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LAND:
