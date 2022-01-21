@@ -894,8 +894,6 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
 		control_auto_loiter(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
-		publishOrbitStatus(current_sp);
-
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LAND:
