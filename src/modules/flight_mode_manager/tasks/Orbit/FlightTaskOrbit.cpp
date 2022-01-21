@@ -188,9 +188,7 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 
 bool FlightTaskOrbit::update()
 {
-	// update altitude
-	bool ret = FlightTaskManualAltitude::update();
-
+	bool ret = true;
 	_updateTrajectoryBoundaries();
 
 	// stick input adjusts parameters within a fixed time frame
@@ -203,7 +201,10 @@ bool FlightTaskOrbit::update()
 	if (_is_position_on_circle()) {
 		if (_in_circle_approach) {
 			_in_circle_approach = false;
-			_altitude_velocity_smoothing.reset(0, _velocity(2), _position(2));
+			FlightTaskManualAltitudeSmoothVel::_smoothing.reset(
+				PX4_ISFINITE(_acceleration_setpoint(2)) ? _acceleration_setpoint(2) : 0.f,
+				PX4_ISFINITE(_velocity_setpoint(2)) ? _velocity_setpoint(2) : _velocity(2),
+				PX4_ISFINITE(_position_setpoint(2)) ? _position_setpoint(2) : _position(2));
 		}
 	}
 
@@ -211,20 +212,12 @@ bool FlightTaskOrbit::update()
 		_generate_circle_approach_setpoints();
 
 	} else {
+		// update altitude
+		ret = ret && FlightTaskManualAltitudeSmoothVel::update();
+
 		// this generates x / y setpoints
 		_generate_circle_setpoints();
 		_generate_circle_yaw_setpoints();
-
-		// in case we have a velocity setpoint in altititude (from altitude parent)
-		// smooth this
-		if (!PX4_ISFINITE(_position_setpoint(2))) {
-			_altitude_velocity_smoothing.updateDurations(_velocity_setpoint(2));
-			_altitude_velocity_smoothing.updateTraj(_deltatime);
-			_velocity_setpoint(2) = _altitude_velocity_smoothing.getCurrentVelocity();
-			_acceleration_setpoint(2) = _altitude_velocity_smoothing.getCurrentAcceleration();
-			// set orbit altitude center to expected new altitude
-			_center(2) = _altitude_velocity_smoothing.getCurrentPosition();
-		}
 	}
 
 	// Apply yaw smoothing
@@ -250,21 +243,14 @@ void FlightTaskOrbit::_updateTrajectoryBoundaries()
 	_position_smoothing.setMaxVelocityXY(_param_mpc_xy_vel_max.get());
 	float max_jerk = _param_mpc_jerk_auto.get();
 	_position_smoothing.setMaxJerk({max_jerk, max_jerk, max_jerk}); // TODO : Should be computed using heading
-	_altitude_velocity_smoothing.setMaxJerk(max_jerk);
-
-		const float z_accel_constraint = _param_mpc_acc_up_max.get();
 
 	if (_velocity_setpoint(2) < 0.f) { // up
 		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_up.get());
-		_position_smoothing.setMaxAccelerationZ(z_accel_constraint);
-		_altitude_velocity_smoothing.setMaxVel(_param_mpc_z_vel_max_up.get());
-		_altitude_velocity_smoothing.setMaxAccel(z_accel_constraint);
+		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_up_max.get());
 
 	} else { // down
 		_position_smoothing.setMaxAccelerationZ(_param_mpc_acc_down_max.get());
 		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_dn.get());
-		_altitude_velocity_smoothing.setMaxAccel(_param_mpc_acc_down_max.get());
-		_altitude_velocity_smoothing.setMaxVel(_param_mpc_z_vel_max_dn.get());
 	}
 
 }
