@@ -252,9 +252,9 @@ void FlightTaskOrbit::_updateTrajectoryBoundaries()
 	_position_smoothing.setMaxJerk({max_jerk, max_jerk, max_jerk}); // TODO : Should be computed using heading
 	_altitude_velocity_smoothing.setMaxJerk(max_jerk);
 
-	if (_unsmoothed_velocity_setpoint(2) < 0.f) { // up
 		const float z_accel_constraint = _param_mpc_acc_up_max.get();
 
+	if (_velocity_setpoint(2) < 0.f) { // up
 		_position_smoothing.setMaxVelocityZ(_param_mpc_z_v_auto_up.get());
 		_position_smoothing.setMaxAccelerationZ(z_accel_constraint);
 		_altitude_velocity_smoothing.setMaxVel(_param_mpc_z_vel_max_up.get());
