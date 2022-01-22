@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -37,8 +37,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 		boot_config.h
 		boot.c
 		led.c
-                led.h
-                usb.c
+		usb.c
 	)
 	target_link_libraries(drivers_board
 		PRIVATE
@@ -50,23 +49,22 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 
 else()
 	add_library(drivers_board
+		can.c
 		i2c.cpp
+		led.c
 		init.c
 		spi.cpp
-                autoled.cpp
-                led.c
-                timer_config.cpp
-                usb.c
-                can.c
+		timer_config.cpp
+		usb.c
 	)
 
 	target_link_libraries(drivers_board
 		PRIVATE
+			arch_spi
 			nuttx_arch
 			nuttx_drivers
 			px4_layer
-			arch_spi
-                        arch_io_pins
+			arch_io_pins
 			drivers__led
 	)
 endif()
