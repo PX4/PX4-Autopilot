@@ -35,10 +35,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
-#include "board_dma_map.h"
 
 #ifndef __ARCH_BOARD_BOARD_H
 #define __ARCH_BOARD_BOARD_H
+
+#include "board_dma_map.h"
+
+/************************************************************************************
+ * Included Files
+ ************************************************************************************/
 
 #include <nuttx/config.h>
 #ifndef __ASSEMBLY__
@@ -81,12 +86,12 @@
  * LSE - 32.768 kHz
  */
 
+#define STM32_BOARD_USEHSE      1
 #define STM32_BOARD_XTAL        8000000ul
+#define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
 
 #define STM32_HSI_FREQUENCY     16000000ul
 #define STM32_LSI_FREQUENCY     32000
-#define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
-#define STM32_LSE_FREQUENCY     32768
 
 /* Main PLL Configuration.
  *
@@ -163,36 +168,6 @@
 #define BOARD_TIM12_FREQUENCY   STM32_APB1_TIM12_CLKIN
 #define BOARD_TIM13_FREQUENCY   STM32_APB1_TIM13_CLKIN
 #define BOARD_TIM14_FREQUENCY   STM32_APB1_TIM14_CLKIN
-
-/* SDIO dividers.  Note that slower clocking is required when DMA is disabled
- * in order to avoid RX overrun/TX underrun errors due to delayed responses
- * to service FIFOs in interrupt driven mode.  These values have not been
- * tuned!!!
- *
- * SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(118+2)=400 KHz
- */
-
-#define SDIO_INIT_CLKDIV        (118 << SDIO_CLKCR_CLKDIV_SHIFT)
-
-/* DMA ON:  SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(1+2)=16 MHz
- * DMA OFF: SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(2+2)=12 MHz
- */
-
-#ifdef CONFIG_STM32_SDIO_DMA
-#  define SDIO_MMCXFR_CLKDIV    (1 << SDIO_CLKCR_CLKDIV_SHIFT)
-#else
-#  define SDIO_MMCXFR_CLKDIV    (2 << SDIO_CLKCR_CLKDIV_SHIFT)
-#endif
-
-/* DMA ON:  SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(1+2)=16 MHz
- * DMA OFF: SDIOCLK=48MHz, SDIO_CK=SDIOCLK/(2+2)=12 MHz
- */
-
-#ifdef CONFIG_STM32_SDIO_DMA
-#  define SDIO_SDXFR_CLKDIV     (1 << SDIO_CLKCR_CLKDIV_SHIFT)
-#else
-#  define SDIO_SDXFR_CLKDIV     (2 << SDIO_CLKCR_CLKDIV_SHIFT)
-#endif
 
 /* LED definitions ******************************************************************/
 /* If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any
@@ -299,16 +274,16 @@
 #define GPIO_SPI2_MISO	GPIO_SPI2_MISO_1
 #define GPIO_SPI2_MOSI	GPIO_SPI2_MOSI_1
 
-/* SPI3:
- *  CS: PB3 -- configured in board_config.h
- *  CLK: PC10
- *  MISO: PC11
- *  MOSI: PC12
+/* SPI3: SD CARD
+ *  CS: PC14 -- configured in board_config.h
+ *  CLK: PB3
+ *  MISO: PB4
+ *  MOSI: PB5
  */
 
-#define GPIO_SPI3_SCK  GPIO_SPI3_SCK_2
-#define GPIO_SPI3_MISO GPIO_SPI3_MISO_2
-#define GPIO_SPI3_MOSI GPIO_SPI3_MOSI_2
+#define GPIO_SPI3_SCK  GPIO_SPI3_SCK_1
+#define GPIO_SPI3_MISO GPIO_SPI3_MISO_1
+#define GPIO_SPI3_MOSI GPIO_SPI3_MOSI_1
 
 /*
  * I2C (external)
