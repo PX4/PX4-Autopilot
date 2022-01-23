@@ -102,6 +102,8 @@ typedef struct io_timers_t {
 typedef struct io_timers_channel_mapping_element_t {
 	uint32_t first_channel_index;
 	uint32_t channel_count;
+	uint32_t lowest_timer_channel;
+	uint32_t channel_count_including_gaps;
 } io_timers_channel_mapping_element_t;
 
 /* mapping for each io_timers to timer_io_channels */
