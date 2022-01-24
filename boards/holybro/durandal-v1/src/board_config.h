@@ -181,7 +181,6 @@
 
 #define BOARD_NUM_IO_TIMERS 4
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7, 9, 8};
 
 /* Power supply control and monitoring GPIOs */
 
