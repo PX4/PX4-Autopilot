@@ -51,10 +51,13 @@
 
 // subscriptions
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_motors.h>
 #include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_status.h>
@@ -76,6 +79,20 @@ union failure_detector_status_u {
 };
 
 using uORB::SubscriptionData;
+
+class FailureInjector
+{
+public:
+	void update();
+
+	void manipulateEscStatus(esc_status_s &status);
+private:
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
+
+	uint32_t _esc_blocked{};
+	uint32_t _esc_wrong{};
+};
 
 class FailureDetector : public ModuleParams
 {
@@ -120,6 +137,8 @@ private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 	uORB::Subscription _actuator_motors_sub{ORB_ID(actuator_motors)};
+
+	FailureInjector _failure_injector;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
