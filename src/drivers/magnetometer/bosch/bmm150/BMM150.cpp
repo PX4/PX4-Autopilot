@@ -92,11 +92,11 @@ int BMM150::probe()
 
 		PX4_DEBUG("POWER_CONTROL: 0x%02hhX, CHIP_ID: 0x%02hhX", POWER_CONTROL, CHIP_ID);
 
-		// either power control bit is set and chip ID can be read, or both registers are 0x00
-		if ((POWER_CONTROL & POWER_CONTROL_BIT::PowerControl) && (CHIP_ID == chip_identification_number)) {
+		if (CHIP_ID == chip_identification_number) {
 			return PX4_OK;
 
-		} else if ((POWER_CONTROL == 0) && (CHIP_ID == 0)) {
+		} else if ((CHIP_ID == 0) && !(POWER_CONTROL & POWER_CONTROL_BIT::PowerControl)) {
+			// in suspend Chip ID read (register 0x40) returns “0x00” (I²C) or high-Z (SPI).
 			return PX4_OK;
 		}
 	}
@@ -185,14 +185,15 @@ void BMM150::RunImpl()
 		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
 		perf_count(_reset_perf);
-		ScheduleDelayed(3_ms); // 3.0 ms start-up time from suspend to sleep
+		ScheduleDelayed(10_ms); // 3.0 ms start-up time from suspend to sleep
 		break;
 
 	case STATE::WAIT_FOR_RESET:
 
 		// Soft reset always brings the device into sleep mode (power off -> suspend -> sleep)
 		if ((RegisterRead(Register::CHIP_ID) == chip_identification_number)
-		    && (RegisterRead(Register::POWER_CONTROL) == POWER_CONTROL_BIT::PowerControl)
+		    && (RegisterRead(Register::POWER_CONTROL) & POWER_CONTROL_BIT::PowerControl)
+		    && !(RegisterRead(Register::POWER_CONTROL) & POWER_CONTROL_BIT::SoftReset)
 		    && (RegisterRead(Register::OP_MODE) == OP_MODE_BIT::Opmode_Sleep)) {
 
 			// if reset succeeded then start self test
@@ -220,23 +221,46 @@ void BMM150::RunImpl()
 			// After performing self test OpMode "Self test" bit is set to 0
 			const bool opmode_self_test_cleared = ((RegisterRead(Register::OP_MODE) & OP_MODE_BIT::Self_Test) == 0);
 
-			// When self-test is successful, the corresponding self-test result bits are set
-			//  “X-Self-Test” register 0x42 bit0
-			//  “Y-Self-Test” register 0x44 bit0
-			//  “Z-Self-Test” register 0x46 bit0
-			const bool x_success = RegisterRead(Register::DATAX_LSB) & Bit0;
-			const bool y_success = RegisterRead(Register::DATAY_LSB) & Bit0;
-			const bool z_success = RegisterRead(Register::DATAZ_LSB) & Bit0;
+			if (opmode_self_test_cleared) {
+				// When self-test is successful, the corresponding self-test result bits are set
+				//  “X-Self-Test” register 0x42 bit0
+				//  “Y-Self-Test” register 0x44 bit0
+				//  “Z-Self-Test” register 0x46 bit0
+				const bool x_success = RegisterRead(Register::DATAX_LSB) & Bit0;
+				const bool y_success = RegisterRead(Register::DATAY_LSB) & Bit0;
+				const bool z_success = RegisterRead(Register::DATAZ_LSB) & Bit0;
 
-			if (opmode_self_test_cleared && (!x_success || !y_success || !z_success)) {
-				PX4_DEBUG("self test failed, resetting");
-				perf_count(_self_test_failed_perf);
-				_state = STATE::RESET;
-				ScheduleDelayed(1000_ms);
+				if (x_success && y_success && z_success) {
+					_state = STATE::READ_TRIM;
+					ScheduleDelayed(10_ms);
+
+				} else {
+					if (perf_event_count(_self_test_failed_perf) >= 5) {
+						PX4_ERR("self test still failing after 5 attempts");
+
+						// reluctantly proceed
+						_state = STATE::READ_TRIM;
+						ScheduleDelayed(10_ms);
+
+					} else {
+						PX4_ERR("self test failed, resetting");
+						perf_count(_self_test_failed_perf);
+						_state = STATE::RESET;
+						ScheduleDelayed(1_s);
+					}
+				}
 
 			} else {
-				_state = STATE::READ_TRIM;
-				ScheduleDelayed(1_ms);
+				if (hrt_elapsed_time(&_reset_timestamp) < 3_s) {
+					// self test not complete, check again in 100 milliseconds
+					_state = STATE::SELF_TEST_CHECK;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					// full reset
+					_state = STATE::RESET;
+					ScheduleDelayed(10_ms);
+				}
 			}
 		}
 
@@ -353,7 +377,8 @@ void BMM150::RunImpl()
 						perf_count(_overflow_perf);
 
 					} else {
-						_px4_mag.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf));
+						_px4_mag.set_error_count(perf_event_count(_bad_register_perf)
+									 + perf_event_count(_bad_transfer_perf) + perf_event_count(_self_test_failed_perf));
 						_px4_mag.update(now, compensate_x(x, rhall), compensate_y(y, rhall), compensate_z(z, rhall));
 
 						success = true;
