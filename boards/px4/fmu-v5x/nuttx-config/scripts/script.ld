@@ -91,6 +91,7 @@ ENTRY(_stext)
 EXTERN(abort)
 EXTERN(_bootdelay_signature)
 EXTERN(board_get_manifest)
+EXTERN(_main_toc)
 
 SECTIONS
 {
@@ -104,6 +105,7 @@ SECTIONS
 		_bootdelay_signature = ABSOLUTE(.);
 		FILL(0xffecc2925d7d05c5)
 		. += 8;
+		*(.main_toc)
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
@@ -187,4 +189,11 @@ SECTIONS
 	} > ITCM_RAM AT > FLASH_AXIM
 
 	_framfuncs = LOADADDR(.ramfunc);
+
+    /* Start of the image signature. This
+     *  has to be in the end of the image
+     */
+	.signature : {
+		_boot_signature = ALIGN(4);
+	} > FLASH_AXIM
 }
