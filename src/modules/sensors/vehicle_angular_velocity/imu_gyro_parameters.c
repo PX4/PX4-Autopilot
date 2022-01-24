@@ -147,3 +147,14 @@ PARAM_DEFINE_INT32(IMU_GYRO_DNF_EN, 0);
 * @max 30
 */
 PARAM_DEFINE_FLOAT(IMU_GYRO_DNF_BW, 15.f);
+
+/**
+* IMU gyro dynamic notch filter harmonics
+*
+* ESC RPM number of harmonics (multiples of RPM) for ESC RPM dynamic notch filtering.
+*
+* @group Sensors
+* @min 1
+* @max 7
+*/
+PARAM_DEFINE_INT32(IMU_GYRO_DNF_HMC, 3);
