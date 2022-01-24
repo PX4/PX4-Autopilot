@@ -80,6 +80,7 @@ void BMM150::print_status()
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_overflow_perf);
+	perf_print_counter(_self_test_failed_perf);
 }
 
 int BMM150::probe()
