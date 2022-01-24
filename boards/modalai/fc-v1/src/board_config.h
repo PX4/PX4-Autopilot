@@ -143,6 +143,9 @@
 #define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
 #define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_GPIO(14)
 #define HW_INFO_INIT_PREFIX           "V1"
+#define V10006   HW_VER_REV(0x0,0x6) // V1006              Rev 6
+#define V10100   HW_VER_REV(0x1,0x0) // V1010              Rev 0
+
 
 /* PWM
  */

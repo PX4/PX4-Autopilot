@@ -200,6 +200,7 @@
 #define V5Xa0   HW_VER_REV(0xa,0x0) // NO USB (Q),             Rev 0
 #define V5Xa1   HW_VER_REV(0xa,0x1) // NO USB (Q) I2C2 BMP388, Rev 1
 #define V5Xa2   HW_VER_REV(0xa,0x2) // NO USB (Q) I2C2 BMP388, Rev 2
+#define V5X101  HW_VER_REV(0x10,0x1) // NO USB (Q) I2C2 BMP388, Rev 1
 
 /* HEATER
  * PWM in future

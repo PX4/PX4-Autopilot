@@ -85,6 +85,8 @@
 #define GPIO_HW_VER_SENSE     /* PA1 */ ADC1_GPIO(1)
 #define HW_INFO_INIT_PREFIX         "CANGPS"
 
+#define CANGPS00   HW_VER_REV(0x0,0x0) // CANGPS
+
 #define FLASH_BASED_PARAMS
 
 /* CAN Silence
