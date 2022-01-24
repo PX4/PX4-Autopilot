@@ -78,6 +78,8 @@ public:
 
 	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
 
+	esc_status_s &esc_status() { return _esc_status; }
+
 private:
 	/**
 	 * ESC status message reception will be reported via this callback.

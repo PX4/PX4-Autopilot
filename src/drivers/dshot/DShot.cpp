@@ -247,7 +247,10 @@ void DShot::update_telemetry_num_motors()
 
 	if (_mixing_output.useDynamicMixing()) {
 		for (unsigned i = 0; i < _num_outputs; ++i) {
-			motor_count += _mixing_output.isFunctionSet(i);
+			if (_mixing_output.isFunctionSet(i)) {
+				_telemetry->actuator_functions[motor_count] = (uint8_t)_mixing_output.outputFunction(i);
+				++motor_count;
+			}
 		}
 
 	} else {
@@ -281,24 +284,26 @@ void DShot::init_telemetry(const char *device)
 	update_telemetry_num_motors();
 }
 
-void DShot::handle_new_telemetry_data(const int motor_index, const DShotTelemetry::EscData &data)
+void DShot::handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data)
 {
 	// fill in new motor data
 	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
 
-	if (motor_index < esc_status_s::CONNECTED_ESC_MAX) {
-		esc_status.esc_online_flags |= 1 << motor_index;
+	if (telemetry_index < esc_status_s::CONNECTED_ESC_MAX) {
+		esc_status.esc_online_flags |= 1 << telemetry_index;
 
-		esc_status.esc[motor_index].timestamp       = data.time;
-		esc_status.esc[motor_index].esc_rpm         = (static_cast<int>(data.erpm) * 100) / (_param_mot_pole_count.get() / 2);
-		esc_status.esc[motor_index].esc_voltage     = static_cast<float>(data.voltage) * 0.01f;
-		esc_status.esc[motor_index].esc_current     = static_cast<float>(data.current) * 0.01f;
-		esc_status.esc[motor_index].esc_temperature = static_cast<float>(data.temperature);
+		esc_status.esc[telemetry_index].actuator_function = _telemetry->actuator_functions[telemetry_index];
+		esc_status.esc[telemetry_index].timestamp       = data.time;
+		esc_status.esc[telemetry_index].esc_rpm         = (static_cast<int>(data.erpm) * 100) /
+				(_param_mot_pole_count.get() / 2);
+		esc_status.esc[telemetry_index].esc_voltage     = static_cast<float>(data.voltage) * 0.01f;
+		esc_status.esc[telemetry_index].esc_current     = static_cast<float>(data.current) * 0.01f;
+		esc_status.esc[telemetry_index].esc_temperature = static_cast<float>(data.temperature);
 		// TODO: accumulate consumption and use for battery estimation
 	}
 
 	// publish when motor index wraps (which is robust against motor timeouts)
-	if (motor_index <= _telemetry->last_motor_index) {
+	if (telemetry_index <= _telemetry->last_telemetry_index) {
 		esc_status.timestamp = hrt_absolute_time();
 		esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 		esc_status.esc_count = _telemetry->handler.numMotors();
@@ -314,7 +319,7 @@ void DShot::handle_new_telemetry_data(const int motor_index, const DShotTelemetr
 		esc_status.esc_online_flags = 0;
 	}
 
-	_telemetry->last_motor_index = motor_index;
+	_telemetry->last_telemetry_index = telemetry_index;
 }
 
 int DShot::send_command_thread_safe(const dshot_command_t command, const int num_repetitions, const int motor_index)
