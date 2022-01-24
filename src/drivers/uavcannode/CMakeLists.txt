@@ -147,7 +147,7 @@ px4_add_module(
 
 		drivers_bootloaders
 		version
-
+		conversion
 		git_uavcan
 		uavcan_${UAVCAN_DRIVER}_driver
 
