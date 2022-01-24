@@ -289,7 +289,7 @@ clock_init(void)
 void
 clock_deinit(void)
 {
-	up_disable_irq(MPFS_IRQ_MTIMER);
+	up_disable_irq(RISCV_IRQ_MTIMER);
 }
 
 void arch_flash_lock(void)
