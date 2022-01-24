@@ -1195,7 +1195,9 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const fl
 		if (_control_mode.flag_control_offboard_enabled && PX4_ISFINITE(pos_sp_curr.vx) && PX4_ISFINITE(pos_sp_curr.vy)) {
 			// Navigate directly on position setpoint and path tangent
 			matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
-			_npfg.navigatePathTangent(curr_pos, curr_wp, velocity_2d.normalized(), ground_speed, _wind_vel, pos_sp_curr.yawspeed);
+			float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
+					  0.0f;
+			_npfg.navigatePathTangent(curr_pos, curr_wp, velocity_2d.normalized(), ground_speed, _wind_vel, curvature);
 
 		} else {
 			_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
@@ -2263,6 +2265,18 @@ FixedwingPositionControl::Run()
 					_pos_sp_triplet.current.vx = trajectory_setpoint.vx;
 					_pos_sp_triplet.current.vy = trajectory_setpoint.vy;
 					_pos_sp_triplet.current.vz = trajectory_setpoint.vz;
+
+					if (PX4_ISFINITE(trajectory_setpoint.acceleration[0]) && PX4_ISFINITE(trajectory_setpoint.acceleration[1])
+					    && PX4_ISFINITE(trajectory_setpoint.acceleration[2])) {
+						Vector2f velocity_sp_2d(trajectory_setpoint.vx, trajectory_setpoint.vy);
+						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
+						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(velocity_sp_2d) *
+									       velocity_sp_2d.normalized();
+						_pos_sp_triplet.current.loiter_radius = velocity_sp_2d.norm() * velocity_sp_2d.norm() / acceleration_normal.norm();
+
+					} else {
+						_pos_sp_triplet.current.loiter_radius = NAN;
+					}
 				}
 
 				if (!valid_setpoint) {
