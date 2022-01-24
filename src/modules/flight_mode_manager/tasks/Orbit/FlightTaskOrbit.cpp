@@ -192,8 +192,8 @@ bool FlightTaskOrbit::update()
 	_updateTrajectoryBoundaries();
 
 	// stick input adjusts parameters within a fixed time frame
-	float radius = _orbit_radius - _sticks.getPositionExpo()(0) * _deltatime * (_radius_max / 8.f);
-	float velocity = _orbit_velocity - _sticks.getPositionExpo()(1) * _deltatime * (_velocity_max / 4.f);
+	float radius = _orbit_radius - _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_xy_cruise.get();
+	float velocity = _orbit_velocity - _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_acc_hor.get();
 	_sanitizeParams(radius, velocity);
 	_orbit_radius = radius;
 	_orbit_velocity = velocity;
