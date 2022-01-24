@@ -196,7 +196,6 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   9
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7, 8};
 
 /* Power supply control and monitoring GPIOs */
 

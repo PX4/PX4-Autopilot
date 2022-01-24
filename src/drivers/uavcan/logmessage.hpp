@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,59 +31,62 @@
  *
  ****************************************************************************/
 
-#include "BMM150.hpp"
+#pragma once
 
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
+#include <px4_platform_common/log.h>
 
-void BMM150::print_usage()
+#include <uavcan/uavcan.hpp>
+#include <uavcan/protocol/debug/LogMessage.hpp>
+
+class UavcanLogMessage
 {
-	PRINT_MODULE_USAGE_NAME("bmm150", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("magnetometer");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x10);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
+public:
+	UavcanLogMessage(uavcan::INode &node) : _sub_logmessage(node) {}
+	~UavcanLogMessage() = default;
 
-extern "C" int bmm150_main(int argc, char *argv[])
-{
-	int ch;
-	using ThisDriver = BMM150;
-	BusCLIArguments cli{true, false};
-	cli.default_i2c_frequency = I2C_SPEED;
-	cli.i2c_address = I2C_ADDRESS_DEFAULT;
+	int init()
+	{
+		int res = _sub_logmessage.start(LogMessageCbBinder(this, &UavcanLogMessage::logmessage_sub_cb));
 
-	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
-		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
+		if (res < 0) {
+			PX4_ERR("LogMessage sub failed %i", res);
+			return res;
+		}
+
+		return 0;
+	}
+
+private:
+	typedef uavcan::MethodBinder < UavcanLogMessage *,
+		void (UavcanLogMessage::*)(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage> &) >
+		LogMessageCbBinder;
+
+	void logmessage_sub_cb(const uavcan::ReceivedDataStructure<uavcan::protocol::debug::LogMessage> &msg)
+	{
+		int px4_level = _PX4_LOG_LEVEL_INFO;
+
+		switch (msg.level.value) {
+		case uavcan::protocol::debug::LogLevel::DEBUG:
+			px4_level = _PX4_LOG_LEVEL_DEBUG;
+			break;
+
+		case uavcan::protocol::debug::LogLevel::INFO:
+			px4_level = _PX4_LOG_LEVEL_INFO;
+			break;
+
+		case uavcan::protocol::debug::LogLevel::WARNING:
+			px4_level = _PX4_LOG_LEVEL_WARN;
+			break;
+
+		case uavcan::protocol::debug::LogLevel::ERROR:
+			px4_level = _PX4_LOG_LEVEL_ERROR;
 			break;
 		}
+
+		char module_name_buffer[80];
+		snprintf(module_name_buffer, sizeof(module_name_buffer), "uavcan:%d:%s", msg.getSrcNodeID().get(), msg.source.c_str());
+		px4_log_modulename(px4_level, module_name_buffer, msg.text.c_str());
 	}
 
-	const char *verb = cli.optArg();
-
-	if (!verb) {
-		ThisDriver::print_usage();
-		return -1;
-	}
-
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MAG_DEVTYPE_BMM150);
-
-	if (!strcmp(verb, "start")) {
-		return ThisDriver::module_start(cli, iterator);
-	}
-
-	if (!strcmp(verb, "stop")) {
-		return ThisDriver::module_stop(iterator);
-	}
-
-	if (!strcmp(verb, "status")) {
-		return ThisDriver::module_status(iterator);
-	}
-
-	ThisDriver::print_usage();
-	return -1;
-}
+	uavcan::Subscriber<uavcan::protocol::debug::LogMessage, LogMessageCbBinder> _sub_logmessage;
+};
