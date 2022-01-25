@@ -14,10 +14,20 @@ then
   echo "Stopping agent_protocol_splitter before flashing"
   systemctl stop agent_protocol_splitter.service
   echo "Start flashing.. port /dev/ttyS${port}"
-  /opt/px4fwupdater/px_uploader.py --port /dev/ttyS${port} --baud-bootloader 115200 --baud-flightstack 1000000 /opt/px4fwupdater/px4_fmu-v5_ssrc.px4
+  /opt/px4fwupdater/px_uploader.py \
+    --port /dev/ttyS${port} \
+    --baud-bootloader 2000000 \
+    --baud-flightstack 57600,115200,1000000,2000000 \
+    --use-protocol-splitter-format \
+    /opt/px4fwupdater/px4_fmu-v5_ssrc.px4
   echo "Start agent_protocol_splitter"
   systemctl start agent_protocol_splitter.service
 else
   echo "Start flashing.. port /dev/ttyS{port}"
-  /opt/px4fwupdater/px_uploader.py --port /dev/ttyS${port} --baud-bootloader 115200 --baud-flightstack 1000000 /opt/px4fwupdater/px4_fmu-v5_ssrc.px4
+  /opt/px4fwupdater/px_uploader.py \
+    --port /dev/ttyS${port} \
+    --baud-bootloader 2000000 \
+    --baud-flightstack 57600,115200,1000000,2000000 \
+    --use-protocol-splitter-format \
+    /opt/px4fwupdater/px4_fmu-v5_ssrc.px4
 fi
