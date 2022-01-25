@@ -55,10 +55,6 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 	_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 	_vtol_schedule.transition_start = 0;
 
-	_mc_roll_weight = 1.0f;
-	_mc_pitch_weight = 1.0f;
-	_mc_yaw_weight = 1.0f;
-
 	_flag_was_in_trans_mode = false;
 }
 
@@ -269,10 +265,6 @@ void Tailsitter::update_transition_state()
 
 	_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
 
-	_mc_roll_weight = 1.0f;
-	_mc_pitch_weight = 1.0f;
-	_mc_yaw_weight = 1.0f;
-
 	_v_att_sp->timestamp = hrt_absolute_time();
 
 	const Eulerf euler_sp(_q_trans_sp);
@@ -331,9 +323,9 @@ void Tailsitter::fill_actuator_outputs()
 	_thrust_setpoint_1->xyz[2] = 0.f;
 
 
-	mc_out[actuator_controls_s::INDEX_ROLL]  = mc_in[actuator_controls_s::INDEX_ROLL]  * _mc_roll_weight;
-	mc_out[actuator_controls_s::INDEX_PITCH] = mc_in[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-	mc_out[actuator_controls_s::INDEX_YAW]   = mc_in[actuator_controls_s::INDEX_YAW]   * _mc_yaw_weight;
+	mc_out[actuator_controls_s::INDEX_ROLL]  = mc_in[actuator_controls_s::INDEX_ROLL];
+	mc_out[actuator_controls_s::INDEX_PITCH] = mc_in[actuator_controls_s::INDEX_PITCH];
+	mc_out[actuator_controls_s::INDEX_YAW]   = mc_in[actuator_controls_s::INDEX_YAW];
 
 	if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 		mc_out[actuator_controls_s::INDEX_THROTTLE] = fw_in[actuator_controls_s::INDEX_THROTTLE];
@@ -348,9 +340,9 @@ void Tailsitter::fill_actuator_outputs()
 		}
 
 	} else {
-		_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL]  * _mc_roll_weight;
-		_torque_setpoint_0->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-		_torque_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW]   * _mc_yaw_weight;
+		_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL];
+		_torque_setpoint_0->xyz[1] = mc_in[actuator_controls_s::INDEX_PITCH];
+		_torque_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_YAW];
 
 		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE];
 		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE];
