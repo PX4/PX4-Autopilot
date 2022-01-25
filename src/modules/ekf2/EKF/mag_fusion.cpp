@@ -45,7 +45,7 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::fuseMag()
+void Ekf::fuseMag(const Vector3f &mag)
 {
 	// assign intermediate variables
 	const float &q0 = _state.quat_nominal(0);
@@ -161,7 +161,7 @@ void Ekf::fuseMag()
 	const Vector3f mag_I_rot = R_to_body * _state.mag_I;
 
 	// compute magnetometer innovations
-	_mag_innov = mag_I_rot + _state.mag_B - _mag_sample_delayed.mag;
+	_mag_innov = mag_I_rot + _state.mag_B - mag;
 
 	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
 	if (_control_status.flags.synthetic_mag_z) {
@@ -714,149 +714,62 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 	}
 }
 
-void Ekf::fuseHeading()
+void Ekf::fuseHeading(float measured_hdg, float obs_var)
 {
-	Vector3f mag_earth_pred;
-	float measured_hdg;
-
-	// Calculate the observation variance
-	float R_YAW;
-
-	if (_control_status.flags.mag_hdg) {
-		// using magnetic heading tuning parameter
-		R_YAW = sq(_params.mag_heading_noise);
-
-	} else if (_control_status.flags.ev_yaw) {
-		// using error estimate from external vision data
-		R_YAW = _ev_sample_delayed.angVar;
-
-	} else {
-		// default value
-		R_YAW = 0.01f;
-	}
+	// observation variance
+	float R_YAW = PX4_ISFINITE(obs_var) ? obs_var : 0.01f;
 
 	// update transformation matrix from body to world frame using the current state estimate
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
-	if (shouldUse321RotationSequence(_R_to_earth)) {
-		const float predicted_hdg = getEuler321Yaw(_R_to_earth);
+	const bool use_321_rotation_seq = shouldUse321RotationSequence(_R_to_earth);
 
-		if (_control_status.flags.mag_hdg) {
-			// Rotate the measurements into earth frame using the zero yaw angle
-			const Dcmf R_to_earth = updateEuler321YawInRotMat(0.f, _R_to_earth);
-			mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
+	const float predicted_hdg = use_321_rotation_seq ? getEuler321Yaw(_R_to_earth) : getEuler312Yaw(_R_to_earth);
 
-			// the angle of the projection onto the horizontal gives the yaw angle
-			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+	if (!PX4_ISFINITE(measured_hdg)) {
+		measured_hdg = predicted_hdg;
+	}
 
-		} else if (_control_status.flags.ev_yaw) {
-			measured_hdg = getEuler321Yaw(_ev_sample_delayed.quat);
+	// handle special case where yaw measurement is unavailable
+	bool fuse_zero_innov = false;
 
-		} else {
-			measured_hdg = predicted_hdg;
-		}
+	if (_is_yaw_fusion_inhibited) {
+		// The yaw measurement cannot be trusted but we need to fuse something to prevent a badly
+		// conditioned covariance matrix developing over time.
+		if (!_control_status.flags.vehicle_at_rest) {
+			// Vehicle is not at rest so fuse a zero innovation if necessary to prevent
+			// unconstrained quaternion variance growth and record the predicted heading
+			// to use as an observation when movement ceases.
+			// TODO a better way of determining when this is necessary
+			const float sumQuatVar = P(0, 0) + P(1, 1) + P(2, 2) + P(3, 3);
 
-		// handle special case where yaw measurement is unavailable
-		bool fuse_zero_innov = false;
-
-		if (_is_yaw_fusion_inhibited) {
-			// The yaw measurement cannot be trusted but we need to fuse something to prevent a badly
-			// conditioned covariance matrix developing over time.
-			if (!_control_status.flags.vehicle_at_rest) {
-				// Vehicle is not at rest so fuse a zero innovation if necessary to prevent
-				// unconstrained quaternion variance growth and record the predicted heading
-				// to use as an observation when movement ceases.
-				// TODO a better way of determining when this is necessary
-				const float sumQuatVar = P(0, 0) + P(1, 1) + P(2, 2) + P(3, 3);
-
-				if (sumQuatVar > _params.quat_max_variance) {
-					fuse_zero_innov = true;
-					R_YAW = 0.25f;
-
-				}
-
-				_last_static_yaw = predicted_hdg;
-
-			} else {
-				// Vehicle is at rest so use the last moving prediction as an observation
-				// to prevent the heading from drifting and to enable yaw gyro bias learning
-				// before takeoff.
-
-				if (!PX4_ISFINITE(_last_static_yaw)) {
-					_last_static_yaw = predicted_hdg;
-				}
-
-				measured_hdg = _last_static_yaw;
-
+			if (sumQuatVar > _params.quat_max_variance) {
+				fuse_zero_innov = true;
+				R_YAW = 0.25f;
 			}
 
-		} else {
 			_last_static_yaw = predicted_hdg;
 
+		} else {
+			// Vehicle is at rest so use the last moving prediction as an observation
+			// to prevent the heading from drifting and to enable yaw gyro bias learning
+			// before takeoff.
+			if (!PX4_ISFINITE(_last_static_yaw)) {
+				_last_static_yaw = predicted_hdg;
+			}
+
+			measured_hdg = _last_static_yaw;
 		}
 
+	} else {
+		_last_static_yaw = predicted_hdg;
+	}
+
+	if (use_321_rotation_seq) {
 		fuseYaw321(measured_hdg, R_YAW, fuse_zero_innov);
 
 	} else {
-		const float predicted_hdg = getEuler312Yaw(_R_to_earth);
-
-		if (_control_status.flags.mag_hdg) {
-
-			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			const Dcmf R_to_earth = updateEuler312YawInRotMat(0.f, _R_to_earth);
-			mag_earth_pred = R_to_earth * (_mag_sample_delayed.mag - _state.mag_B);
-
-			// the angle of the projection onto the horizontal gives the yaw angle
-			measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
-
-		} else if (_control_status.flags.ev_yaw) {
-			measured_hdg = getEuler312Yaw(_ev_sample_delayed.quat);
-
-		} else {
-			measured_hdg = predicted_hdg;
-		}
-
-		// handle special case where yaw measurement is unavailable
-		bool fuse_zero_innov = false;
-
-		if (_is_yaw_fusion_inhibited) {
-			// The yaw measurement cannot be trusted but we need to fuse something to prevent a badly
-			// conditioned covariance matrix developing over time.
-			if (!_control_status.flags.vehicle_at_rest) {
-				// Vehicle is not at rest so fuse a zero innovation if necessary to prevent
-				// unconstrained quaterniion variance growth and record the predicted heading
-				// to use as an observation when movement ceases.
-				// TODO a better way of determining when this is necessary
-				const float sumQuatVar = P(0, 0) + P(1, 1) + P(2, 2) + P(3, 3);
-
-				if (sumQuatVar > _params.quat_max_variance) {
-					fuse_zero_innov = true;
-					R_YAW = 0.25f;
-
-				}
-
-				_last_static_yaw = predicted_hdg;
-
-			} else {
-				// Vehicle is at rest so use the last moving prediction as an observation
-				// to prevent the heading from drifting and to enable yaw gyro bias learning
-				// before takeoff.
-
-				if (!PX4_ISFINITE(_last_static_yaw)) {
-					_last_static_yaw = predicted_hdg;
-				}
-
-				measured_hdg = _last_static_yaw;
-
-			}
-
-		} else {
-			_last_static_yaw = predicted_hdg;
-
-		}
-
 		fuseYaw312(measured_hdg, R_YAW, fuse_zero_innov);
-
 	}
 }
 

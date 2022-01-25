@@ -376,7 +376,7 @@ void Ekf::alignOutputFilter()
 
 // Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 // It is used to align the yaw angle after launch or takeoff for fixed wing vehicle only.
-bool Ekf::realignYawGPS()
+bool Ekf::realignYawGPS(const Vector3f &mag)
 {
 	const float gpsSpeed = sqrtf(sq(_gps_sample_delayed.vel(0)) + sq(_gps_sample_delayed.vel(1)));
 
@@ -386,7 +386,7 @@ bool Ekf::realignYawGPS()
 
 	if (!gps_yaw_alignment_possible) {
 		// attempt a normal alignment using the magnetometer
-		return resetMagHeading(_mag_lpf.getState());
+		return resetMagHeading();
 	}
 
 	// check for excessive horizontal GPS velocity innovations
@@ -455,7 +455,7 @@ bool Ekf::realignYawGPS()
 		// Use the last magnetometer measurements to reset the field states
 		_state.mag_B.zero();
 		_R_to_earth = Dcmf(_state.quat_nominal);
-		_state.mag_I = _R_to_earth * _mag_sample_delayed.mag;
+		_state.mag_I = _R_to_earth * mag;
 
 		resetMagCov();
 
@@ -471,7 +471,7 @@ bool Ekf::realignYawGPS()
 		// align mag states only
 
 		// calculate initial earth magnetic field states
-		_state.mag_I = _R_to_earth * _mag_sample_delayed.mag;
+		_state.mag_I = _R_to_earth * mag;
 
 		resetMagCov();
 
@@ -483,18 +483,28 @@ bool Ekf::realignYawGPS()
 }
 
 // Reset heading and magnetic field states
-bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool update_buffer)
+bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
 {
 	// prevent a reset being performed more than once on the same frame
 	if (_imu_sample_delayed.time_us == _flt_mag_align_start_time) {
 		return true;
 	}
 
+	// low pass filtered mag required
+	if (_mag_counter == 0) {
+		return false;
+	}
+
+	const Vector3f mag_init = _mag_lpf.getState();
+
 	// calculate the observed yaw angle and yaw variance
 	float yaw_new;
 	float yaw_new_variance = 0.0f;
 
-	if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+	const bool heading_required_for_navigation = _control_status.flags.gps || _control_status.flags.ev_pos;
+
+	if ((_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) || ((_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR) && heading_required_for_navigation)) {
+
 		// rotate the magnetometer measurements into earth frame using a zero yaw angle
 		const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 
