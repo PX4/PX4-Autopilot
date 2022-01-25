@@ -66,7 +66,7 @@ bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setp
 	Vector3f accel_prev{last_setpoint.acceleration};
 
 	for (int i = 0; i < 3; i++) {
-		// If the position setpoint is unknown, set to the current postion
+		// If the position setpoint is unknown, set to the current position
 		if (!PX4_ISFINITE(pos_prev(i))) { pos_prev(i) = _position(i); }
 
 		// If the velocity setpoint is unknown, set to the current velocity
