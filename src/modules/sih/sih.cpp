@@ -254,7 +254,7 @@ void Sih::sensor_step()
 		send_gps();
 	}
 
-	if (_vehicle == VehicleType::FW && _now - _airspeed_time >= 50_ms) {
+	if ((_vehicle == VehicleType::FW || _vehicle == VehicleType::TS) && _now - _airspeed_time >= 50_ms) {
 		_airspeed_time = _now;
 		send_airspeed();
 	}

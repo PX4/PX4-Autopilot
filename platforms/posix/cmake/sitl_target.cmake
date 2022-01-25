@@ -180,6 +180,7 @@ set(models
 	uuv_bluerov2_heavy
 	uuv_hippocampus
 	omnicopter
+	xvert
 )
 
 set(worlds

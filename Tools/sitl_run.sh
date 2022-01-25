@@ -219,8 +219,8 @@ elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
 	JSBSIM_PID=$!
 elif [ "$program" == "sih_sim" ] && [ ! -n "$no_sim" ]; then
 	export SIM_MODE="sih_sim"
-	if [ "$model" != "airplane" ] && [ "$model" != "quadx" ]; then
-		echo "Model ${model} not compatible with with sih. sih supports [quadx,airplane]."
+	if [ "$model" != "airplane" ] && [ "$model" != "quadx" ] && [ "$model" != "xvert" ]; then
+		echo "Model ${model} not compatible with with sih. sih supports [quadx,airplane,xvert]."
 		exit 1
 	fi
 fi

@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# @name SIH Tailsitter Duo
+#
+# @type VTOL
+#
+# @maintainer Romain Chiappinelli <romain.chiap@gmail.com>
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+param set-default VT_ELEV_MC_LOCK 0
+param set-default VT_TYPE 0
+param set-default VT_FW_DIFTHR_EN 1
+param set-default VT_FW_DIFTHR_SC 0.3
+param set-default MPC_MAN_Y_MAX 60
+param set-default MC_PITCH_P 5
+
+param set-default MAV_TYPE 19
+set MAV_TYPE 19
+set MIXER vtol_tailsitter_duo_sat
+
+# disable some checks to allow to fly:
+# - with usb
+param set-default CBRK_USB_CHK 197848
+# - without real battery
+param set-default CBRK_SUPPLY_CHK 894281
+# - without safety switch
+param set-default COM_PREARM_MODE 0
+param set-default CBRK_IO_SAFETY 22027
+
+param set-default BAT_N_CELLS 3
+
+param set SIH_T_MAX 2.0
+param set SIH_Q_MAX 0.0165
+param set SIH_MASS 0.2
+# IXX and IZZ are inverted from the thesis as the body frame is pitched by 90 deg
+param set SIH_IXX 0.00354
+param set SIH_IYY 0.000625
+param set SIH_IZZ 0.00300
+param set SIH_IXZ 0.0
+param set SIH_KDV 0.2
+param set SIH_L_ROLL 0.145
+
+# sih as tailsitter
+param set SIH_VEHICLE_TYPE 2
