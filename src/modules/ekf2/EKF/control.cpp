@@ -812,6 +812,8 @@ void Ekf::checkVerticalAccelerationHealth()
 		_clip_counter--;
 	}
 
+	_fault_status.flags.bad_acc_clipping = _clip_counter > clip_count_limit / 2;
+
 	const bool is_clipping_frequently = _clip_counter > 0;
 
 	// if vertical velocity and position are independent and agree, then do not require evidence of clipping if
