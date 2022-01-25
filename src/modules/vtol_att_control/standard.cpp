@@ -54,7 +54,6 @@ Standard::Standard(VtolAttitudeControl *attc) :
 {
 	_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 	_vtol_schedule.transition_start = 0;
-	_pusher_active = false;
 
 	_mc_roll_weight = 1.0f;
 	_mc_pitch_weight = 1.0f;
