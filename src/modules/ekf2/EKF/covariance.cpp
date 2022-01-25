@@ -865,7 +865,7 @@ void Ekf::predictCovariance()
 
 	}
 
-	if (_terrain_initialised) {
+	if (_params.terrain_fusion_mode > 0) {
 		nextP(0,24) = P(0,24) - P(1,24)*PS11 + P(10,24)*PS6 + P(11,24)*PS7 + P(12,24)*PS9 - P(2,24)*PS12 - P(3,24)*PS13;
 		nextP(1,24) = P(0,24)*PS11 + P(1,24) - P(10,24)*PS34 + P(11,24)*PS9 - P(12,24)*PS7 + P(2,24)*PS13 - P(3,24)*PS12;
 		nextP(2,24) = P(0,24)*PS12 - P(1,24)*PS13 - P(10,24)*PS9 - P(11,24)*PS34 + P(12,24)*PS6 + P(2,24) + P(3,24)*PS11;
@@ -1093,17 +1093,12 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	}
 
 	// terrain vertical position
-	if (!_terrain_initialised) {
-		P.uncorrelateCovarianceSetVariance<1>(24, 0.0f);
+	// constrain variances
+	P(24, 24) = math::constrain(P(24, 24), 0.0f, P_lim[8]);
 
-	} else {
-		// constrain variances
-		P(24, 24) = math::constrain(P(24, 24), 0.0f, P_lim[8]);
-
-		// force symmetry
-		if (force_symmetry) {
-			P.makeRowColSymmetric<1>(24);
-		}
+	// force symmetry
+	if (force_symmetry) {
+		P.makeRowColSymmetric<1>(24);
 	}
 }
 

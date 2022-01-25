@@ -74,7 +74,7 @@ void Ekf::resetHorizontalVelocityToOpticalFlow()
 	_information_events.flags.reset_vel_to_flow = true;
 	ECL_INFO("reset velocity to flow");
 	// constrain height above ground to be above minimum possible
-	const float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
+	const float heightAboveGndEst = fmaxf((_state.posd_terrain - _state.pos(2)), _params.rng_gnd_clearance);
 
 	// calculate absolute distance from focal point to centre of frame assuming a flat earth
 	const float range = heightAboveGndEst / _range_sensor.getCosTilt();
@@ -781,7 +781,7 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv) const
 
 		if (_control_status.flags.opt_flow) {
 			float gndclearance = math::max(_params.rng_gnd_clearance, 0.1f);
-			vel_err_conservative = math::max((_terrain_vpos - _state.pos(2)), gndclearance) * _flow_innov.norm();
+			vel_err_conservative = math::max((_state.posd_terrain - _state.pos(2)), gndclearance) * _flow_innov.norm();
 		}
 
 		if (_control_status.flags.gps) {
@@ -818,7 +818,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 
 	// Calculate optical flow limits
 	// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-	const float flow_vxy_max = fmaxf(0.5f * _flow_max_rate * (_terrain_vpos - _state.pos(2)), 0.0f);
+	const float flow_vxy_max = fmaxf(0.5f * _flow_max_rate * (_state.posd_terrain - _state.pos(2)), 0.0f);
 	const float flow_hagl_min = _flow_min_distance;
 	const float flow_hagl_max = _flow_max_distance;
 
@@ -1304,7 +1304,7 @@ void Ekf::startRngAidHgtFusion()
 
 		// calculate height sensor offset such that current
 		// measurement matches our current height estimate
-		_hgt_sensor_offset = _terrain_vpos;
+		_hgt_sensor_offset = _state.posd_terrain;
 	}
 }
 

@@ -228,13 +228,13 @@ public:
 	uint8_t getTerrainEstimateSensorBitfield() const { return _hagl_sensor_status.value; }
 
 	// get the estimated terrain vertical position relative to the NED origin
-	float getTerrainVertPos() const { return _terrain_vpos; };
+	float getTerrainVertPos() const { return _state.posd_terrain; };
 
 	// get the number of times the vertical terrain position has been reset
 	uint8_t getTerrainVertPosResetCounter() const { return _terrain_vpos_reset_counter; };
 
 	// get the terrain variance
-	float get_terrain_var() const { return _terrain_var; }
+	float get_terrain_var() const { return P(24,24); }
 
 	Vector3f getGyroBias() const { return _state.delta_ang_bias / _dt_ekf_avg; } // get the gyroscope bias in rad/s
 	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; } // get the accelerometer bias in m/s**2
@@ -534,10 +534,9 @@ private:
 	Vector3f _prev_dvel_bias_var{};		///< saved delta velocity XYZ bias variances (m/sec)**2
 
 	// Terrain height state estimation
-	float _terrain_vpos{0.0f};		///< estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
-	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
-	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
-	uint64_t _time_last_hagl_fuse{0};		///< last system time that a range sample was fused by the terrain estimator
+	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _state.posd_terrain has been reset
+	uint64_t _time_last_hagl_fuse{0};	///< last system time that a range sample was fused by the terrain estimator
+	uint64_t _time_last_fake_hagl_fuse{0};	///< last system time that a fake range sample was fused by the terrain estimator
 	bool _hagl_valid{false};		///< true when the height above ground estimate is valid
 	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 
@@ -690,12 +689,10 @@ private:
 	// initialise the terrain vertical position estimator
 	void initHagl();
 
-	void runTerrainEstimator();
-	void predictHagl();
+	void controlHaglFusion();
 
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
 	void controlHaglRngFusion();
-	void fuseHaglRng();
 	void startHaglRngFusion();
 	void resetHaglRngIfNeeded();
 	void resetHaglRng();
@@ -707,7 +704,6 @@ private:
 	void startHaglFlowFusion();
 	void resetHaglFlow();
 	void stopHaglFlowFusion();
-	void fuseFlowForTerrain();
 
 	void controlHaglFakeFusion();
 	void resetHaglFake();
@@ -848,7 +844,7 @@ private:
 	bool otherHeadingSourcesHaveStopped();
 
 	void checkHaglYawResetReq();
-	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
+	float getTerrainVPos() const { return isTerrainEstimateValid() ? _state.posd_terrain : _last_on_ground_posD; }
 
 	void runOnGroundYawReset();
 	bool isYawResetAuthorized() const { return !_is_yaw_fusion_inhibited; }

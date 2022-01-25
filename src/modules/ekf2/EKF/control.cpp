@@ -909,8 +909,8 @@ void Ekf::controlHeightFusion()
 	}
 
 	// Fuse range finder data if available
-	const bool use_for_hagl = _terrain_initialised && shouldUseRangeFinderForHagl();
-	if ((use_for_hagl || _control_status.flags.rng_hgt) && _range_sensor.isDataHealthy()) {
+	controlHaglFusion();
+	if ((_control_status.flags.rng_hgt || _hagl_sensor_status.flags.range_finder) && _range_sensor.isDataHealthy()) {
 		fuseHaglAllStates();
 	}
 }
@@ -922,7 +922,7 @@ void Ekf::checkRangeAidSuitability()
 	    && isTerrainEstimateValid()) {
 		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
 		// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
-		const float range_hagl = _terrain_vpos - _state.pos(2);
+		const float range_hagl = _state.posd_terrain - _state.pos(2);
 		const float range_hagl_max = _is_range_aid_suitable ? _params.max_hagl_for_range_aid : (_params.max_hagl_for_range_aid * 0.7f);
 		const bool is_in_range = range_hagl < range_hagl_max;
 

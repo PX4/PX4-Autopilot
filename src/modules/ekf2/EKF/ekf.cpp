@@ -108,9 +108,6 @@ bool Ekf::update()
 		// control fusion of observation data
 		controlFusionModes();
 
-		// run a separate filter for terrain estimation
-		runTerrainEstimator();
-
 		updated = true;
 
 		// run EKF-GSF yaw estimator
