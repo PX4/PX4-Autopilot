@@ -42,7 +42,6 @@
 #include "airspeed.hpp"
 #include "baro.hpp"
 #include "battery.hpp"
-#include "cbat.hpp"
 #include "differential_pressure.hpp"
 #include "flow.hpp"
 #include "gnss.hpp"
@@ -77,11 +76,8 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	int32_t uavcan_sub_bat = 1;
 	param_get(param_find("UAVCAN_SUB_BAT"), &uavcan_sub_bat);
 
-	if (uavcan_sub_bat == 1) {
+	if (uavcan_sub_bat != 0) {
 		list.add(new UavcanBatteryBridge(node));
-
-	} else if (uavcan_sub_bat == 2) {
-		list.add(new UavcanCBATBridge(node));
 	}
 
 	// differential pressure
