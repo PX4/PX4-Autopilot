@@ -57,8 +57,9 @@ cp ${mod_dir}/build/px4_fmu-v5x_ssrc/*.px4 ./opt/px4fwupdater/
 
 mkdir DEBIAN
 cp -R ${mod_dir}/packaging/debian/* DEBIAN/
-cp ${mod_dir}/packaging/px4_update_fw.sh ./opt/px4fwupdater/px4_update_fw.sh
+cp ${mod_dir}/packaging/px4_update_fw.sh  ./opt/px4fwupdater/px4_update_fw.sh
 cp ${mod_dir}/packaging/detect_ttyS.sh    ./opt/px4fwupdater/detect_ttyS.sh
+cp ${mod_dir}/Tools/px_uploader.py        ./opt/px4fwupdater/px_uploader.py
 
 if [ -e ../px4fwupdater*.deb ]; then
 	rm -f ../px4fwupdater*.deb
