@@ -29,6 +29,11 @@ add_library(px4_board_ctrl
 
 add_dependencies(px4_board_ctrl nuttx_context px4_kernel_builtin_list_target)
 
+target_link_libraries(px4_layer
+	PUBLIC
+		board_bus_info
+)
+
 # Build the kernel side px4_kernel_layer
 
 add_library(px4_kernel_layer
@@ -41,6 +46,11 @@ target_link_libraries(px4_kernel_layer
 		nuttx_kc
 		nuttx_karch
 		nuttx_kmm
+)
+
+target_link_libraries(px4_kernel_layer
+	PUBLIC
+		board_bus_info
 )
 
 if (DEFINED PX4_CRYPTO)

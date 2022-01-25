@@ -31,14 +31,18 @@
 #
 ############################################################################
 
+add_library(board_bus_info
+	i2c.cpp
+	spi.cpp
+)
+add_dependencies(board_bus_info nuttx_context)
+
 add_library(drivers_board
 	can.c
-	i2c.cpp
 	init.c
 	led.c
 	manifest.c
 	sdio.c
-	spi.cpp
 	timer_config.cpp
 	usb.c
 	toc.c
@@ -57,7 +61,7 @@ target_link_libraries(drivers_board
 if (NOT DEFINED CONFIG_BUILD_FLAT)
 	target_link_libraries(drivers_board PRIVATE px4_kernel_layer)
 else()
-	target_link_libraries(drivers_board PRIVATE px4_layer)
+	target_link_libraries(drivers_board PRIVATE px4_layer board_bus_info)
 endif()
 
 add_library(drivers_userspace
