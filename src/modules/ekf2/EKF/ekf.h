@@ -852,8 +852,6 @@ private:
 	bool shouldInhibitMag() const;
 	void checkMagFieldStrength();
 	bool isStrongMagneticDisturbance() const { return _control_status.flags.mag_field_disturbed; }
-	bool isMeasuredMatchingGpsMagStrength() const;
-	bool isMeasuredMatchingAverageMagStrength() const;
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
 	void runMagAndMagDeclFusions();
 	void run3DMagAndDeclFusions();
