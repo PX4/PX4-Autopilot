@@ -9,7 +9,6 @@ add_custom_command(OUTPUT ${PX4_BINARY_DIR}/logs
 )
 add_custom_target(logs_symlink DEPENDS ${PX4_BINARY_DIR}/logs)
 add_dependencies(px4 logs_symlink)
-
 add_custom_target(run_config
 	COMMAND Tools/sitl_run.sh $<TARGET_FILE:px4> ${config_sitl_debugger} ${config_sitl_viewer} ${config_sitl_model} ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
 	WORKING_DIRECTORY ${SITL_WORKING_DIR}
@@ -47,6 +46,10 @@ endif()
 
 if(parallel_jobs GREATER NUMBER_OF_LOGICAL_CORES)
 	set(parallel_jobs ${NUMBER_OF_LOGICAL_CORES})
+endif()
+
+if(parallel_jobs LESS 1)
+	set(parallel_jobs 1)
 endif()
 
 message(DEBUG  "${NUMBER_OF_LOGICAL_CORES} logical cores detected and ${AVAILABLE_PHYSICAL_MEMORY} megabytes of memory available.
@@ -127,7 +130,6 @@ set(viewers
 	jmavsim
 	gazebo
 	ignition
-	sih
 )
 
 set(debuggers
@@ -140,7 +142,6 @@ set(debuggers
 
 set(models
 	none
-	airplane
 	believer
 	boat
 	cloudship
@@ -162,7 +163,6 @@ set(models
 	plane_catapult
 	plane_lidar
 	px4vision
-	quadx
 	r1_rover
 	rover
 	shell
@@ -176,7 +176,6 @@ set(models
 	typhoon_h480_ctrlalloc
 	uuv_bluerov2_heavy
 	uuv_hippocampus
-	xvert
 )
 
 set(worlds
@@ -221,8 +220,6 @@ foreach(viewer ${viewers})
 					if(viewer STREQUAL "gazebo")
 						add_dependencies(${_targ_name} px4 sitl_gazebo)
 					elseif(viewer STREQUAL "jmavsim")
-						add_dependencies(${_targ_name} px4 git_jmavsim)
-					elseif(viewer STREQUAL "sih")
 						add_dependencies(${_targ_name} px4 git_jmavsim)
 					elseif(viewer STREQUAL "ignition")
 						add_dependencies(${_targ_name} px4 simulation-ignition)
@@ -350,6 +347,72 @@ if(ENABLE_LOCKSTEP_SCHEDULER STREQUAL "no")
 	endforeach()
 endif()
 
+# create targets for sih
+set(models_sih
+	none
+	quadx
+	airplane
+	xvert
+)
+
+set(worlds_sih
+	none
+)
+
+foreach(debugger ${debuggers})
+	foreach(model ${models_sih})
+		foreach(world ${worlds_sih})
+			if(world STREQUAL "none")
+				if(debugger STREQUAL "none")
+					if(model STREQUAL "none")
+						set(_targ_name "sih")
+					else()
+						set(_targ_name "sih_${model}")
+					endif()
+				else()
+					if(model STREQUAL "none")
+						set(_targ_name "sih__${debugger}_${world}")
+					else()
+						set(_targ_name "sih_${model}_${debugger}_${world}")
+					endif()
+				endif()
+
+				add_custom_target(${_targ_name}
+					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh $<TARGET_FILE:px4> ${debugger} sih ${model} "LSZH" ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
+					WORKING_DIRECTORY ${SITL_WORKING_DIR}
+					USES_TERMINAL
+					DEPENDS logs_symlink
+				)
+				list(APPEND all_posix_vmd_make_targets ${_targ_name})
+				add_dependencies(${_targ_name} px4 git_jmavsim)
+			else()
+				if(debugger STREQUAL "none")
+					if(model STREQUAL "none")
+						set(_targ_name "sih___${world}")
+					else()
+						set(_targ_name "sih_${model}__${world}")
+					endif()
+				else()
+					if(model STREQUAL "none")
+						set(_targ_name "sih___${debugger}_${world}")
+					else()
+						set(_targ_name "sih_${model}_${debugger}_${world}")
+					endif()
+				endif()
+
+				add_custom_target(${_targ_name}
+					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh $<TARGET_FILE:px4> ${debugger} sih ${model} ${world} ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
+					WORKING_DIRECTORY ${SITL_WORKING_DIR}
+					USES_TERMINAL
+					DEPENDS logs_symlink
+				)
+				list(APPEND all_posix_vmd_make_targets ${_targ_name})
+				add_dependencies(${_targ_name} px4 git_jmavsim)
+			endif()
+		endforeach()
+	endforeach()
+endforeach()
+
 string(REPLACE ";" "," posix_vmd_make_target_list "${all_posix_vmd_make_targets}")
 
 add_custom_target(list_vmd_make_targets
@@ -357,3 +420,4 @@ add_custom_target(list_vmd_make_targets
 	COMMENT "List of acceptable '${PX4_BOARD}' <viewer_model_debugger> targets:"
 	VERBATIM
 	)
+
