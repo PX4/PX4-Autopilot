@@ -25,3 +25,7 @@ param set-default EKF2_MULTI_IMU 0
 param set-default SENS_IMU_MODE 1
 param set-default EKF2_MULTI_MAG 0
 param set-default SENS_MAG_MODE 1
+
+# log ekf2 replay data
+param set-default SDLOG_PROFILE 3
+param set-default SDLOG_MODE 2
