@@ -1197,13 +1197,13 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const fl
 			matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
 			float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
 					  0.0f;
-			_npfg.navigatePathTangent(curr_pos, curr_wp, velocity_2d.normalized(), ground_speed, _wind_vel, curvature);
+			_npfg.navigatePathTangent(curr_pos, curr_wp, velocity_2d.normalized(), get_nav_speed_2d(ground_speed), _wind_vel,
+						  curvature);
 
 		} else {
-			_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, ground_speed, _wind_vel);
+			_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed), _wind_vel);
 		}
 
-		_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed), _wind_vel);
 		_att_sp.roll_body = _npfg.getRollSetpoint();
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
