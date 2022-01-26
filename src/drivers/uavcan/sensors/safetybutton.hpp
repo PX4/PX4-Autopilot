@@ -45,35 +45,23 @@
 #include <ardupilot/indication/Button.hpp>
 #include "sensor_bridge.hpp"
 
-class UavcanSafetyBridge : public IUavcanSensorBridge
+class UavcanSafetyBridge : public UavcanSensorBridgeBase
 {
 public:
-	static const char *const NAME;
+    static const char *const NAME;
 
-	UavcanSafetyBridge(uavcan::INode &node);
-	~UavcanSafetyBridge() = default;
+    UavcanSafetyBridge(uavcan::INode &node);
 
-	const char *get_name() const override { return NAME; }
+    const char *get_name() const override { return NAME; }
 
-	int init() override;
+    int init() override;
 
-	unsigned get_num_redundant_channels() const override;
-
-	void print_status() const override;
 private:
-	safety_s _safety{};  //
-	bool _safety_disabled{false};
+    void safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg);
 
-	bool _safety_btn_off{false};		///< State of the safety button read from the HW button
-	void safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg);
+    typedef uavcan::MethodBinder < UavcanSafetyBridge *,
+        void (UavcanSafetyBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &) >
+        SafetyCbBinder;
 
-	typedef uavcan::MethodBinder < UavcanSafetyBridge *,
-		void (UavcanSafetyBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &) >
-		SafetyCommandCbBinder;
-
-	uavcan::INode &_node;
-	uavcan::Subscriber<ardupilot::indication::Button, SafetyCommandCbBinder> _sub_safety;
-	uavcan::Publisher<ardupilot::indication::Button> _pub_safety;
-
-	uORB::PublicationMulti<safety_s> _safety_pub{ORB_ID(safety)};
+    uavcan::Subscriber<ardupilot::indication::Button, SafetyCbBinder> _sub_safety;
 };

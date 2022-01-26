@@ -51,6 +51,7 @@
 #include "ice_status.hpp"
 #include "mag.hpp"
 #include "rangefinder.hpp"
+#include "safetybutton.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -147,6 +148,14 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 
 	if (uavcan_sub_rng != 0) {
 		list.add(new UavcanRangefinderBridge(node));
+	}
+
+	// safety button
+	int32_t uavcan_sub_safety = 1;
+	param_get(param_find("UAVCAN_SAFETY"), &uavcan_sub_safety);
+
+	if (uavcan_sub_safety != 0) {
+		list.add(new UavcanSafetyBridge(node));
 	}
 }
 

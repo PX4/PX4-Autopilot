@@ -335,3 +335,15 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 1);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);
+
+/**
+ * subscription safety button
+ *
+ * Enable UAVCAN Safety Button.
+ *  ardupilot::indication::Button
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SAFETY, 0);

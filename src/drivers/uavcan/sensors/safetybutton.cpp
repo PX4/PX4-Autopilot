@@ -45,53 +45,34 @@ using namespace time_literals;
 const char *const UavcanSafetyBridge::NAME = "safety";
 
 UavcanSafetyBridge::UavcanSafetyBridge(uavcan::INode &node) :
-	_node(node),
-	_sub_safety(node),
-	_pub_safety(node)
+    UavcanSensorBridgeBase("uavcan_safety", ORB_ID(safety)),
+    _sub_safety(node)
 {
 }
 
 int UavcanSafetyBridge::init()
 {
-	int res = _pub_safety.init(uavcan::TransferPriority::MiddleLower);
+    int res = _sub_safety.start(SafetyCbBinder(this, &UavcanSafetyBridge::safety_sub_cb));
 
-	if (res < 0) {
-		printf("safety pub failed %i", res);
-		return res;
-	}
+    if (res < 0) {
+        DEVICE_LOG("failed to start uavcan sub: %d", res);
+        return res;
+    }
 
-	res = _sub_safety.start(SafetyCommandCbBinder(this, &UavcanSafetyBridge::safety_sub_cb));
-
-	if (res < 0) {
-		printf("safety pub failed %i", res);
-		return res;
-	}
-
-	return 0;
-}
-
-unsigned UavcanSafetyBridge::get_num_redundant_channels() const
-{
-	return 0;
-}
-
-void UavcanSafetyBridge::print_status() const
-{
+    return 0;
 }
 
 void UavcanSafetyBridge::safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
 {
-	if (msg.press_time > 10 && msg.button == 1) {
-		if (_safety_disabled) { return; }
+    bool safety_off = false;
+    if (msg.press_time > 10 && msg.button == 1) {
+        safety_off = true;
+    }
 
-		_safety_disabled = true;
+    safety_s report{};
+    report.timestamp                = hrt_absolute_time();
+    report.safety_switch_available  = true;
+    report.safety_off               = safety_off;
 
-	} else {
-
-		_safety_disabled = false;
-	}
-
-
-
-
+    publish(msg.getSrcNodeID().get(), &report);
 }

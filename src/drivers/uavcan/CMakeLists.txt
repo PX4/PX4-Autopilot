@@ -167,6 +167,7 @@ px4_add_module(
 		sensors/cbat.cpp
 		sensors/ice_status.cpp
 		sensors/hygrometer.cpp
+		sensors/safetybutton.cpp
 
 	MODULE_CONFIG
 		module.yaml
