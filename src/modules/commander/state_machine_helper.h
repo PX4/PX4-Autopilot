@@ -142,7 +142,9 @@ typedef enum LOW_BAT_ACTION {
 	RETURN_OR_LAND = 3	// Return mode at critically low level, Land mode at current position if reaching dangerously low levels
 } low_battery_action_t;
 
-void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t battery_warning);
+void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t battery_warning,
+			     const uint8_t failsafe_action, const float param_com_bat_act_t,
+			     const char *failsafe_action_string, const events::px4::enums::navigation_mode_t failsafe_action_navigation_mode);
 uint8_t get_battery_failsafe_action(const commander_state_s &internal_state, const uint8_t battery_warning,
 				    const low_battery_action_t param_com_low_bat_act);
 

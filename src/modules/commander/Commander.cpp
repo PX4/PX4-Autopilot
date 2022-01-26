@@ -3885,19 +3885,17 @@ void Commander::battery_status_check()
 
 	// execute battery failsafe if the state has gotten worse while we are armed
 	if (battery_warning_level_increased_while_armed) {
-		warn_user_about_battery(&_mavlink_log_pub, _battery_warning);
-		_battery_failsafe_timestamp = hrt_absolute_time();
-
 		uint8_t failsafe_action = get_battery_failsafe_action(_internal_state, _battery_warning,
 					  (low_battery_action_t)_param_com_low_bat_act.get());
 
+		warn_user_about_battery(&_mavlink_log_pub, _battery_warning,
+					failsafe_action, _param_com_bat_act_t.get(),
+					main_state_str(failsafe_action), navigation_mode(failsafe_action));
+		_battery_failsafe_timestamp = hrt_absolute_time();
+
+		// Switch to loiter to wait for the reaction delay
 		if (_param_com_bat_act_t.get() > 0.f
 		    && failsafe_action != commander_state_s::MAIN_STATE_MAX) {
-			mavlink_log_critical(&_mavlink_log_pub, "Executing %s in %d seconds",
-					     main_state_str(failsafe_action), static_cast<uint16_t>(_param_com_bat_act_t.get()));
-			events::send<events::px4::enums::navigation_mode_t, uint16_t>(events::ID("commander_low_bat_action"), {events::Log::Critical, events::LogInternal::Warning},
-					"Executing {1} in {2} seconds",
-					navigation_mode(failsafe_action), static_cast<uint16_t>(_param_com_bat_act_t.get()));
 			main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, _internal_state);
 		}
 	}
