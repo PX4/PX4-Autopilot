@@ -64,9 +64,13 @@ int UavcanSafetyBridge::init()
 
 void UavcanSafetyBridge::safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
 {
+    // TODO: Right now this only handle the safety button but theoretically could handle any button type
+    bool is_safety_button = msg.button == 1;
     bool safety_off = false;
-    if (msg.press_time > 10 && msg.button == 1) {
+    if (is_safety_button && msg.press_time > 10) {
         safety_off = true;
+    } else {
+        return;
     }
 
     safety_s report{};
