@@ -1104,7 +1104,9 @@ void reset_offboard_loss_globals(actuator_armed_s &armed, const bool old_failsaf
 	}
 }
 
-void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t battery_warning)
+void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t battery_warning,
+			     const uint8_t failsafe_action, const float param_com_bat_act_t,
+			     const char *failsafe_action_string, const events::px4::enums::navigation_mode_t failsafe_action_navigation_mode)
 {
 	static constexpr char battery_level[] = "battery level";
 
@@ -1114,18 +1116,39 @@ void warn_user_about_battery(orb_advert_t *mavlink_log_pub, const uint8_t batter
 		mavlink_log_critical(mavlink_log_pub, "Low %s, return advised\t", battery_level);
 		events::send(events::ID("commander_bat_low"), {events::Log::Warning, events::LogInternal::Info},
 			     "Low battery level, return advised");
+
 		break;
 
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
-		mavlink_log_critical(mavlink_log_pub, "Critical %s, return now\t", battery_level);
-		events::send(events::ID("commander_bat_crit"), {events::Log::Critical, events::LogInternal::Info},
-			     "Critical battery level, return now");
+		if (failsafe_action == commander_state_s::MAIN_STATE_MAX) {
+			mavlink_log_critical(mavlink_log_pub, "Critical %s, return now\t", battery_level);
+			events::send(events::ID("commander_bat_crit"), {events::Log::Critical, events::LogInternal::Info},
+				     "Critical battery level, return now");
+
+		} else {
+			mavlink_log_critical(mavlink_log_pub, "Critical %s, executing %s in %d seconds\t", battery_level,
+					     failsafe_action_string, static_cast<uint16_t>(param_com_bat_act_t));
+			events::send<events::px4::enums::navigation_mode_t, uint16_t>(events::ID("commander_bat_crit_act"), {events::Log::Critical, events::LogInternal::Info},
+					"Critical battery level, executing {1} in {2} seconds",
+					failsafe_action_navigation_mode, static_cast<uint16_t>(param_com_bat_act_t));
+		}
+
 		break;
 
 	case battery_status_s::BATTERY_WARNING_EMERGENCY:
-		mavlink_log_emergency(mavlink_log_pub, "Dangerous %s, land now\t", battery_level);
-		events::send(events::ID("commander_bat_emerg"), {events::Log::Emergency, events::LogInternal::Info},
-			     "Dangerous battery level, land now");
+		if (failsafe_action == commander_state_s::MAIN_STATE_MAX) {
+			mavlink_log_emergency(mavlink_log_pub, "Dangerous %s, land now\t", battery_level);
+			events::send(events::ID("commander_bat_emerg"), {events::Log::Emergency, events::LogInternal::Info},
+				     "Dangerous battery level, land now");
+
+		} else {
+			mavlink_log_emergency(mavlink_log_pub, "Dangerous %s, executing %s in %d seconds\t", battery_level,
+					      failsafe_action_string, static_cast<uint16_t>(param_com_bat_act_t));
+			events::send<events::px4::enums::navigation_mode_t, uint16_t>(events::ID("commander_bat_emerg_act"), {events::Log::Emergency, events::LogInternal::Info},
+					"Dangerous battery level, executing {1} in {2} seconds",
+					failsafe_action_navigation_mode, static_cast<uint16_t>(param_com_bat_act_t));
+		}
+
 		break;
 
 	case battery_status_s::BATTERY_WARNING_FAILED:
@@ -1150,6 +1173,10 @@ uint8_t get_battery_failsafe_action(const commander_state_s &internal_state, con
 
 	// The main state is directly changed for the action because we need the fallbacks by the navigation state.
 	switch (battery_warning) {
+	case battery_status_s::BATTERY_WARNING_NONE:
+	case battery_status_s::BATTERY_WARNING_LOW:
+		break;
+
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
 		switch (param_com_low_bat_act) {
 		case LOW_BAT_ACTION::RETURN:
