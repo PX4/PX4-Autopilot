@@ -46,6 +46,7 @@ union geofence_violation_type_u {
 		bool dist_to_home_exceeded: 1;	///< 0 - distance to home exceeded
 		bool max_altitude_exceeded: 1;	///< 1 - maximum altitude exceeded
 		bool fence_violation: 1;	///< 2- violation of user defined fence
+		bool buffer_violation: 1;	///< 3- violation of user defined buffer zone
 	} flags;
 	uint8_t value;
 };

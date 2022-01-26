@@ -197,7 +197,9 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 	// as they both report being inside when not enabled
 	inside_fence = inside_fence && isInsidePolygonOrCircle(lat, lon, altitude);
 
-	if (inside_fence) {
+	bool inside_buffer = isInsideBufferZone(lat, lon, altitude);
+
+	if (inside_fence && !inside_buffer) {
 		_outside_counter = 0;
 		return inside_fence;
 
@@ -453,14 +455,151 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 	return dx * dx + dy * dy < circle_point.circle_radius * circle_point.circle_radius;
 }
 
-bool
-Geofence::valid()
+bool Geofence::valid()
 {
 	return true; // always valid
 }
 
-int
-Geofence::loadFromFile(const char *filename)
+bool Geofence::isInsideBufferZone(double lat, double lon, float altitude)
+{
+	// the following uses dm_read, so first we try to lock all items. If that fails, it (most likely) means
+	// the data is currently being updated (via a mavlink geofence transfer), and we do not check for a violation now
+	if (dm_trylock(DM_KEY_FENCE_POINTS) != 0) {
+		return false;
+	}
+
+	// we got the lock, now check if the fence data got updated
+	mission_stats_entry_s stats;
+	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+
+	if (ret == sizeof(mission_stats_entry_s) && _update_counter != stats.update_counter) {
+		_updateFence();
+	}
+
+	if (isEmpty()) {
+		dm_unlock(DM_KEY_FENCE_POINTS);
+		/* Empty fence -> accept all points */
+		return false;
+	}
+
+	float buffer_distance_m = _param_gf_buffer_dist.get();
+
+	/* Vertical check */
+	if (_altitude_max > _altitude_min) { // only enable vertical check if configured properly
+		if ((altitude < _altitude_max && altitude >= _altitude_max - buffer_distance_m) ||
+		    (altitude > _altitude_min && altitude <= _altitude_min + buffer_distance_m)) {
+			dm_unlock(DM_KEY_FENCE_POINTS);
+
+			PX4_INFO("Altitude check returned error!");
+			return true;
+		}
+	}
+
+	/* Horizontal check: iterate all polygons & circles */
+	bool inside_circle_buffer_zone  = false;
+	bool inside_polygon_buffer_zone = false;
+
+	for (int polygon_index = 0; polygon_index < _num_polygons; ++polygon_index) {
+
+		if (_polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_INCLUSION ||
+		    _polygons[polygon_index].fence_type == NAV_CMD_FENCE_CIRCLE_EXCLUSION) {
+			inside_circle_buffer_zone = insideCircleBufferZone(_polygons[polygon_index], lat, lon, altitude);
+		} else {
+			inside_polygon_buffer_zone = insidePolygonBufferZone(_polygons[polygon_index], lat, lon, altitude);
+		}
+	}
+
+	dm_unlock(DM_KEY_FENCE_POINTS);
+
+	if (inside_circle_buffer_zone || inside_polygon_buffer_zone) {
+		return true;
+	}
+
+	return false;
+}
+
+bool Geofence::insidePolygonBufferZone(const PolygonInfo &polygon, double lat, double lon, float altitude)
+{
+	mission_fence_point_s temp_vertex_i{};
+	mission_fence_point_s temp_vertex_j{};
+	crosstrack_error_s crosstrack_error{};
+
+	for (unsigned i = 0, j = polygon.vertex_count - 1; i < polygon.vertex_count; j = i++) {
+		if (dm_read(DM_KEY_FENCE_POINTS, polygon.dataman_index + i, &temp_vertex_i,
+			    sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s)) {
+			break;
+		}
+
+		if (dm_read(DM_KEY_FENCE_POINTS, polygon.dataman_index + j, &temp_vertex_j,
+			    sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s)) {
+			break;
+		}
+
+		if (temp_vertex_i.frame != NAV_FRAME_GLOBAL && temp_vertex_i.frame != NAV_FRAME_GLOBAL_INT
+		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
+		    && temp_vertex_i.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+			// TODO: handle different frames
+			PX4_ERR("Frame type %i not supported", (int)temp_vertex_i.frame);
+			break;
+		}
+
+		get_distance_to_line(&crosstrack_error, lat, lon,
+				     temp_vertex_i.lat, temp_vertex_i.lon,
+				     temp_vertex_j.lat, temp_vertex_j.lon);
+
+		if (!crosstrack_error.past_end &&
+		    fabs(crosstrack_error.distance) <= _param_gf_buffer_dist.get()) {
+
+			PX4_INFO("inside_polygon_buffer_zone! crosstrack distance to fence: %f", (double)crosstrack_error.distance);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool Geofence::insideCircleBufferZone(const PolygonInfo &polygon, double lat, double lon, float altitude)
+{
+	mission_fence_point_s circle_point{};
+	crosstrack_error_s crosstrack_error{};
+
+	if (dm_read(DM_KEY_FENCE_POINTS, polygon.dataman_index, &circle_point,
+		    sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s)) {
+		PX4_ERR("dm_read failed");
+		return false;
+	}
+
+	if (circle_point.frame != NAV_FRAME_GLOBAL && circle_point.frame != NAV_FRAME_GLOBAL_INT
+	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT
+	    && circle_point.frame != NAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
+		// TODO: handle different frames
+		PX4_ERR("Frame type %i not supported", (int)circle_point.frame);
+		return false;
+	}
+
+	if (!_projection_reference.isInitialized()) {
+		_projection_reference.initReference(lat, lon);
+	}
+
+	get_distance_to_arc(&crosstrack_error, lat, lon,
+			    circle_point.lat,
+			    circle_point.lon,
+			    circle_point.circle_radius, 0.f, 360.f);
+
+	PX4_INFO("lat = %f", (double)lat);
+	PX4_INFO("lat = %f", (double)lon);
+
+	PX4_INFO("distance_to_arc = %f", (double)crosstrack_error.distance);
+
+	if (fabs(crosstrack_error.distance) <= _param_gf_buffer_dist.get()) {
+		PX4_INFO("inside_circle_buffer_zone! crosstrack distance to fence: %f", (double)crosstrack_error.distance);
+		return true;
+	}
+
+	return false;
+}
+
+int Geofence::loadFromFile(const char *filename)
 {
 	FILE *fp;
 	char line[120];
@@ -472,7 +611,7 @@ Geofence::loadFromFile(const char *filename)
 	/* Make sure no data is left in the datamanager */
 	clearDm();
 
-	/* open the mixer definition file */
+	/* open the geofence file */
 	fp = fopen(GEOFENCE_FILENAME, "r");
 
 	if (fp == nullptr) {

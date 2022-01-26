@@ -711,7 +711,8 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 			return TRANSITION_DENIED;
 		}
 
-		if ((_param_geofence_action.get() == geofence_result_s::GF_ACTION_RTL)
+		if ((_param_geofence_action.get() == geofence_result_s::GF_ACTION_RTL
+		     || _param_geofence_buffer_action.get() == geofence_result_s::GF_ACTION_RTL)
 		    && !_status_flags.condition_home_position_valid) {
 			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Geofence RTL requires valid home\t");
 			events::send(events::ID("commander_arm_denied_geofence_rtl"),
@@ -2038,6 +2039,7 @@ Commander::run()
 			_arm_requirements.global_position = !_param_arm_without_gps.get();
 			_arm_requirements.mission = _param_arm_mission_required.get();
 			_arm_requirements.geofence = _param_geofence_action.get() > geofence_result_s::GF_ACTION_NONE;
+			_arm_requirements.geofence_buffer = _param_geofence_buffer_action.get() > geofence_result_s::GF_ACTION_NONE;
 
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1_s);
@@ -2322,13 +2324,14 @@ Commander::run()
 			_auto_disarm_killed.set_state_and_update(false, hrt_absolute_time());
 		}
 
-		if (_geofence_warning_action_on
+		if ((_geofence_warning_action_on || _geofence_buffer_warning_action_on)
 		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
 		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
 		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 
 			// reset flag again when we switched out of it
 			_geofence_warning_action_on = false;
+			_geofence_buffer_warning_action_on = false;
 		}
 
 		_cpuload_sub.update(&_cpuload);
@@ -2409,19 +2412,21 @@ Commander::run()
 		/* start geofence result check */
 		_geofence_result_sub.update(&_geofence_result);
 		_status.geofence_violated = _geofence_result.geofence_violated;
+		_status.geofence_buffer_violated = _geofence_result.geofence_buffer_violated;
 
 		const bool in_low_battery_failsafe_delay = _battery_failsafe_timestamp != 0;
 
 		// Geofence actions
 		const bool geofence_action_enabled = _geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
+		const bool geofence_buffer_action_enabled = _geofence_result.geofence_buffer_action !=
+				geofence_result_s::GF_ACTION_NONE;
 
 		if (_armed.armed
-		    && geofence_action_enabled
+		    && (geofence_action_enabled || geofence_buffer_action_enabled)
 		    && !in_low_battery_failsafe_delay) {
 
 			// check for geofence violation transition
 			if (_geofence_result.geofence_violated && !_geofence_violated_prev) {
-
 				switch (_geofence_result.geofence_action) {
 				case (geofence_result_s::GF_ACTION_NONE) : {
 						// do nothing
@@ -2476,9 +2481,68 @@ Commander::run()
 						break;
 					}
 				}
+
 			}
 
-			_geofence_violated_prev = _geofence_result.geofence_violated;
+			if (_geofence_result.geofence_buffer_violated && !_geofence_buffer_violated_prev) {
+				switch (_geofence_result.geofence_buffer_action) {
+				case (geofence_result_s::GF_ACTION_NONE) : {
+						// do nothing
+						break;
+					}
+
+				case (geofence_result_s::GF_ACTION_WARN) : {
+						// do nothing, mavlink critical messages are sent by navigator
+						break;
+					}
+
+				case (geofence_result_s::GF_ACTION_LOITER) : {
+						if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags,
+								_internal_state)) {
+							_geofence_loiter_on = true;
+						}
+
+						break;
+					}
+
+				case (geofence_result_s::GF_ACTION_RTL) : {
+						if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags,
+								_internal_state)) {
+							_geofence_rtl_on = true;
+						}
+
+						break;
+					}
+
+				case (geofence_result_s::GF_ACTION_LAND) : {
+						if (TRANSITION_CHANGED == main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LAND, _status_flags,
+								_internal_state)) {
+							_geofence_land_on = true;
+						}
+
+						break;
+					}
+
+				case (geofence_result_s::GF_ACTION_TERMINATE) : {
+						PX4_WARN("Flight termination because of geofence buffer violation");
+
+						if (!_flight_termination_triggered && !_lockdown_triggered) {
+							_flight_termination_triggered = true;
+							mavlink_log_critical(&_mavlink_log_pub, "Geofence buffer violation! Flight terminated\t");
+							events::send(events::ID("commander_geofence_buffer_termination"), {events::Log::Alert, events::LogInternal::Warning},
+								     "Geofence buffer violation! Flight terminated");
+							_armed.force_failsafe = true;
+							_status_changed = true;
+							send_parachute_command();
+						}
+
+						break;
+					}
+				}
+			}
+
+			_geofence_violated_prev        = _geofence_result.geofence_violated;
+			_geofence_buffer_violated_prev = _geofence_result.geofence_buffer_violated;
 
 			// reset if no longer in LOITER or if manually switched to LOITER
 			const bool in_loiter_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
@@ -2486,7 +2550,6 @@ Commander::run()
 			if (!in_loiter_mode) {
 				_geofence_loiter_on = false;
 			}
-
 
 			// reset if no longer in RTL or if manually switched to RTL
 			const bool in_rtl_mode = _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL;
@@ -2512,6 +2575,7 @@ Commander::run()
 			_geofence_land_on = false;
 			_geofence_warning_action_on = false;
 			_geofence_violated_prev = false;
+			_geofence_buffer_violated_prev = false;
 		}
 
 		/* Check for mission flight termination */
@@ -2598,7 +2662,8 @@ Commander::run()
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly
 			// but only if actually in air.
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-			    && !in_low_battery_failsafe_delay && !_geofence_warning_action_on
+			    && !in_low_battery_failsafe_delay
+			    && (!_geofence_warning_action_on || !_geofence_buffer_warning_action_on)
 			    && _armed.armed
 			    && !_status_flags.rc_calibration_in_progress
 			    && manual_control_setpoint.valid

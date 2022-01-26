@@ -771,6 +771,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 {
 	if (have_geofence_position_data &&
 	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+	    (_geofence.getGeofenceBufferAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
 
 		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
@@ -825,11 +826,16 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 				fence_violation_test_point(1),
 				_global_pos.alt);
 
+		gf_violation_type.flags.buffer_violation = _geofence.isInsideBufferZone(fence_violation_test_point(0),
+				fence_violation_test_point(1),
+				_global_pos.alt);
+
 		_last_geofence_check = hrt_absolute_time();
 		have_geofence_position_data = false;
 
 		_geofence_result.timestamp = hrt_absolute_time();
 		_geofence_result.geofence_action = _geofence.getGeofenceAction();
+		_geofence_result.geofence_buffer_action = _geofence.getGeofenceBufferAction();
 		_geofence_result.home_required = _geofence.isHomeRequired();
 
 		if (gf_violation_type.value) {
@@ -844,7 +850,8 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 				// we have predicted a geofence violation and if the action is to loiter then
 				// demand a reposition to a location which is inside the geofence
-				if (_geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
+				if (_geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER ||
+				    _geofence.getGeofenceBufferAction() == geofence_result_s::GF_ACTION_LOITER) {
 					position_setpoint_triplet_s *rep = get_reposition_triplet();
 
 					matrix::Vector2<double> loiter_center_lat_lon;

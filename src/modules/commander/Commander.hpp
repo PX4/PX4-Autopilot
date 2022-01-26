@@ -263,6 +263,7 @@ private:
 
 		// Geofence
 		(ParamInt<px4::params::GF_ACTION>) _param_geofence_action,
+		(ParamInt<px4::params::GF_BUFFER_ACTION>) _param_geofence_buffer_action,
 
 		// Mavlink
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
@@ -319,6 +320,8 @@ private:
 	bool		_geofence_land_on{false};
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
+	bool		_geofence_buffer_warning_action_on{false};
+	bool		_geofence_buffer_violated_prev{false};
 
 	bool		_rtl_time_actions_done{false};
 
