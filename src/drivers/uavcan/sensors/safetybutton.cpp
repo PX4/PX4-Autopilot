@@ -67,6 +67,8 @@ void UavcanSafetyBridge::safety_sub_cb(const uavcan::ReceivedDataStructure<ardup
     // TODO: Right now this only handle the safety button but theoretically could handle any button type
     bool is_safety_button = msg.button == 1;
     bool safety_off = false;
+
+    // If it's the safety button and it's pressed for more than a second
     if (is_safety_button && msg.press_time > 10) {
         safety_off = true;
     } else {
