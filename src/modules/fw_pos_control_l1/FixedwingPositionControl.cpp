@@ -795,7 +795,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 void
 FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &curr_pos,
 				       const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
-				       const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next)
+				       const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next, vehicle_local_path_setpoint_s &path_sp)
 {
 	const float dt = math::constrain((now - _control_position_last_called) * 1e-6f, 0.01f, 0.05f);
 	_control_position_last_called = now;
@@ -885,11 +885,11 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_POSITION:
-		control_auto_position(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp);
+		path_sp = control_auto_position(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_VELOCITY:
-		control_auto_velocity(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp);
+		path_sp = control_auto_velocity(now, dt, ground_speed, current_sp);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
@@ -904,6 +904,15 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		control_auto_takeoff(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
 	}
+
+	Vector2f path_point_sp(path_sp.x, path_sp.y);
+	Vector2f unit_path_tangent(path_sp.vx, path_sp.vy);
+	float curvature = path_sp.curvature;
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+	_npfg.navigatePathTangent(curr_pos_local, path_point_sp, unit_path_tangent, get_nav_speed_2d(ground_speed), _wind_vel,
+				  curvature);
+
+	_att_sp.roll_body = _npfg.getRollSetpoint();
 
 	/* reset landing state */
 	if (position_sp_type != position_setpoint_s::SETPOINT_TYPE_LAND) {
@@ -1101,7 +1110,7 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 	return position_sp_type;
 }
 
-void
+vehicle_local_path_setpoint_s
 FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
@@ -1187,24 +1196,12 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const fl
 	}
 
 	float target_airspeed = get_auto_airspeed_setpoint(now, pos_sp_curr.cruising_speed, ground_speed, dt);
+	float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
+			  0.0f;
 
 	if (_param_fw_use_npfg.get()) {
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-
-		if (_control_mode.flag_control_offboard_enabled && PX4_ISFINITE(pos_sp_curr.vx) && PX4_ISFINITE(pos_sp_curr.vy)) {
-			// Navigate directly on position setpoint and path tangent
-			matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
-			float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
-					  0.0f;
-			_npfg.navigatePathTangent(curr_pos, curr_wp, velocity_2d.normalized(), get_nav_speed_2d(ground_speed), _wind_vel,
-						  curvature);
-
-		} else {
-			_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed), _wind_vel);
-		}
-
-		_att_sp.roll_body = _npfg.getRollSetpoint();
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	} else {
@@ -1223,11 +1220,23 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const fl
 				   tecs_fw_mission_throttle,
 				   false,
 				   radians(_param_fw_p_lim_min.get()));
+	/* populate l1 control setpoint */
+	Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+	vehicle_local_path_setpoint_s setpoint;
+	setpoint.x = curr_wp_local(0);
+	setpoint.y = curr_wp_local(1);
+	setpoint.z = position_sp_alt;
+	setpoint.vx = pos_sp_curr.vx;
+	setpoint.vy = pos_sp_curr.vy;
+	setpoint.vz = pos_sp_curr.vz;
+	setpoint.airspeed = target_airspeed;
+	setpoint.curvature = curvature;
+	return setpoint;
 }
 
-void
-FixedwingPositionControl::control_auto_velocity(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
-		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
+vehicle_local_path_setpoint_s
+FixedwingPositionControl::control_auto_velocity(const hrt_abstime &now, const float dt, const Vector2f &ground_speed,
+		const position_setpoint_s &pos_sp_curr)
 {
 	float tecs_fw_thr_min;
 	float tecs_fw_thr_max;
@@ -1288,6 +1297,16 @@ FixedwingPositionControl::control_auto_velocity(const hrt_abstime &now, const fl
 				   radians(_param_fw_p_lim_min.get()),
 				   tecs_status_s::TECS_MODE_NORMAL,
 				   pos_sp_curr.vz);
+	vehicle_local_path_setpoint_s setpoint;
+	setpoint.x = NAN;
+	setpoint.y = NAN;
+	setpoint.z = NAN;
+	setpoint.vx = pos_sp_curr.vx;
+	setpoint.vy = pos_sp_curr.vy;
+	setpoint.vz = pos_sp_curr.vz;
+	setpoint.airspeed = target_airspeed;
+	setpoint.curvature = 0.0f;
+	return setpoint;
 }
 
 void
@@ -2227,44 +2246,36 @@ FixedwingPositionControl::Run()
 			_global_local_alt0 = _local_pos.ref_alt;
 		}
 
+		vehicle_local_path_setpoint_s path_sp;
+
 		if (_control_mode.flag_control_offboard_enabled) {
 			vehicle_local_position_setpoint_s trajectory_setpoint;
 
 			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
 				bool valid_setpoint = false;
-				_pos_sp_triplet = {}; // clear any existing
-				_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
-				_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
-				_pos_sp_triplet.current.cruising_speed = NAN; // ignored
-				_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
-				_pos_sp_triplet.current.vx = NAN;
-				_pos_sp_triplet.current.vy = NAN;
-				_pos_sp_triplet.current.vz = NAN;
-				_pos_sp_triplet.current.lat = static_cast<double>(NAN);
-				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
-				_pos_sp_triplet.current.alt = NAN;
+				path_sp = {}; // clear any existing
+				path_sp.timestamp = trajectory_setpoint.timestamp;
+				path_sp.vx = NAN;
+				path_sp.vy = NAN;
+				path_sp.vz = NAN;
+				path_sp.x = NAN;
+				path_sp.y = NAN;
+				path_sp.z = NAN;
+				path_sp.curvature = NAN;
 
 				if (PX4_ISFINITE(trajectory_setpoint.x) && PX4_ISFINITE(trajectory_setpoint.y) && PX4_ISFINITE(trajectory_setpoint.z)) {
-					if (_global_local_proj_ref.isInitialized()) {
-						double lat;
-						double lon;
-						_global_local_proj_ref.reproject(trajectory_setpoint.x, trajectory_setpoint.y, lat, lon);
-						valid_setpoint = true;
-						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-						_pos_sp_triplet.current.lat = lat;
-						_pos_sp_triplet.current.lon = lon;
-						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.z;
-					}
-
+					valid_setpoint = true;
+					path_sp.x = trajectory_setpoint.x;
+					path_sp.y = trajectory_setpoint.y;
+					path_sp.z = _global_local_alt0 - trajectory_setpoint.z;
 				}
 
 				if (PX4_ISFINITE(trajectory_setpoint.vx) && PX4_ISFINITE(trajectory_setpoint.vx)
 				    && PX4_ISFINITE(trajectory_setpoint.vz)) {
 					valid_setpoint = true;
-					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-					_pos_sp_triplet.current.vx = trajectory_setpoint.vx;
-					_pos_sp_triplet.current.vy = trajectory_setpoint.vy;
-					_pos_sp_triplet.current.vz = trajectory_setpoint.vz;
+					path_sp.vx = trajectory_setpoint.vx;
+					path_sp.vy = trajectory_setpoint.vy;
+					path_sp.vz = trajectory_setpoint.vz;
 
 					if (PX4_ISFINITE(trajectory_setpoint.acceleration[0]) && PX4_ISFINITE(trajectory_setpoint.acceleration[1])
 					    && PX4_ISFINITE(trajectory_setpoint.acceleration[2])) {
@@ -2272,10 +2283,8 @@ FixedwingPositionControl::Run()
 						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
 						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(velocity_sp_2d) *
 									       velocity_sp_2d.normalized();
-						_pos_sp_triplet.current.loiter_radius = velocity_sp_2d.norm() * velocity_sp_2d.norm() / acceleration_normal.norm();
+						path_sp.curvature = acceleration_normal.norm() / (velocity_sp_2d.norm() * velocity_sp_2d.norm());
 
-					} else {
-						_pos_sp_triplet.current.loiter_radius = NAN;
 					}
 				}
 
@@ -2321,7 +2330,7 @@ FixedwingPositionControl::Run()
 		switch (_control_mode_current) {
 		case FW_POSCTRL_MODE_AUTO: {
 				control_auto(_local_pos.timestamp, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current,
-					     _pos_sp_triplet.next);
+					     _pos_sp_triplet.next, path_sp);
 				break;
 			}
 

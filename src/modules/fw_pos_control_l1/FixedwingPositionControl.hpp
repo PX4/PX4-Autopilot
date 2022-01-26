@@ -88,6 +88,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_path_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
@@ -343,20 +344,19 @@ private:
 	uint8_t		handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr);
 	void		control_auto(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				     const position_setpoint_s &pos_sp_prev,
-				     const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+				     const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next, vehicle_local_path_setpoint_s &path_sp);
 
 	void		control_auto_fixed_bank_alt_hold(const hrt_abstime &now);
 	void		control_auto_descend(const hrt_abstime &now);
 
-	void		control_auto_position(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
-					      const Vector2f &ground_speed,
-					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	vehicle_local_path_setpoint_s		control_auto_position(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
+			const Vector2f &ground_speed,
+			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 	void		control_auto_loiter(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
 					    const Vector2f &ground_speed,
 					    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-	void		control_auto_velocity(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
-					      const Vector2f &ground_speed,
-					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	vehicle_local_path_setpoint_s		control_auto_velocity(const hrt_abstime &now, const float dt,
+			const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr);
 	void		control_auto_takeoff(const hrt_abstime &now, const float dt,  const Vector2d &curr_pos,
 					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,
