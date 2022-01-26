@@ -249,6 +249,21 @@ public:
 			    const matrix::Vector2f &wind_vel);
 
 	/*
+	 * Path following logic. Takes poisiton, path tangent, curvature and
+	 * then updates control setpoints to follow a path setpoint.
+	 *
+	 * @param[in] vehicle_pos vehicle_pos Vehicle position in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] position_setpoint closest point on a path in WGS84 coordinates (lat,lon) [deg]
+	 * @param[in] tangent_setpoint unit tangent vector of the path [m]
+	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
+	 * @param[in] wind_vel Wind velocity vector [m/s]
+	 * @param[in] curvature of the path setpoint [1/m]
+	 */
+	void navigatePathTangent(const matrix::Vector2d &vehicle_pos, const matrix::Vector2d &position_setpoint,
+				 const matrix::Vector2f &tangent_setpoint,
+				 const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
+
+	/*
 	 * Navigate on a fixed heading.
 	 *
 	 * This only holds a certain (air mass relative) direction and does not perform
