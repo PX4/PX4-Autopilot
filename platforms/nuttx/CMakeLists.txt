@@ -105,10 +105,13 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(NUTTX_CONFIG_DIR NUTTX_CONFIG_DIR_CYG)
 
+target_link_libraries(nuttx_c INTERFACE nuttx_sched) # nxsched_get_streams
+
 target_link_libraries(nuttx_arch
 	INTERFACE
 		drivers_board
 		arch_hrt
+		arch_board_reset
 )
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
