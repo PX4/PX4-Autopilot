@@ -912,6 +912,7 @@ void Ekf::controlHeightFusion()
 	if ((_control_status.flags.rng_hgt || _hagl_sensor_status.flags.range_finder) && _range_sensor.isDataHealthy()) {
 		fuseHaglAllStates();
 	}
+	updateTerrainValidity();
 }
 
 void Ekf::checkRangeAidSuitability()
