@@ -298,6 +298,10 @@ static param_t param_find_internal(const char *name, bool notification)
 		}
 	}
 
+	if (notification) {
+		PX4_ERR("unable to find '%s'", name);
+	}
+
 	/* not found */
 	return PARAM_INVALID;
 }
@@ -482,7 +486,7 @@ param_get(param_t param, void *val)
 	perf_count(param_get_perf);
 
 	if (!handle_in_range(param)) {
-		PX4_ERR("get: param %" PRId16 " invalid", param);
+		PX4_DEBUG("get: param %" PRId16 " invalid", param);
 		return PX4_ERROR;
 	}
 
