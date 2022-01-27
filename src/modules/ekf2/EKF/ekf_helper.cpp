@@ -998,6 +998,7 @@ void Ekf::fuse(const Vector25f &K, float innovation)
 	_state.mag_I -= K.slice<3, 1>(16, 0) * innovation;
 	_state.mag_B -= K.slice<3, 1>(19, 0) * innovation;
 	_state.wind_vel -= K.slice<2, 1>(22, 0) * innovation;
+	_state.posd_terrain -= K(24) * innovation;
 }
 
 void Ekf::uncorrelateQuatFromOtherStates()
