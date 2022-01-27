@@ -145,9 +145,9 @@ bool VehicleIMU::ParametersUpdate(bool force)
 			}
 		}
 
-		// constrain IMU integration time 1-10 milliseconds (100-1000 Hz)
+		// constrain IMU integration time 1-20 milliseconds (50-1000 Hz)
 		int32_t imu_integration_rate_hz = constrain(_param_imu_integ_rate.get(),
-						  (int32_t)100, math::max(_param_imu_gyro_ratemax.get(), (int32_t) 1000));
+						  (int32_t)50, math::max(_param_imu_gyro_ratemax.get(), (int32_t) 1000));
 
 		if (imu_integration_rate_hz != _param_imu_integ_rate.get()) {
 			PX4_WARN("IMU_INTEG_RATE updated %" PRId32 " -> %" PRIu32, _param_imu_integ_rate.get(), imu_integration_rate_hz);

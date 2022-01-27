@@ -70,7 +70,8 @@ uint8 MAX_INSTANCES = 4
 
 float32 average_power               # The average power of the current discharge
 float32 available_energy            # The predicted charge or energy remaining in the battery
-float32 remaining_capacity          # The compensated battery capacity remaining
+float32 full_charge_capacity_wh     # The compensated battery capacity
+float32 remaining_capacity_wh       # The compensated battery capacity remaining
 float32 design_capacity             # The design capacity of the battery
 uint16 average_time_to_full         # The predicted remaining time until the battery reaches full charge, in minutes
 uint16 over_discharge_count         # Number of battery overdischarge
