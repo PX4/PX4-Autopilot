@@ -48,7 +48,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/i2c_spi_buses.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_hygrometer.h>
 
 #define SHT3X_CMD_READ_STATUS			0xF32D
@@ -114,7 +114,7 @@ private:
 	int _last_state = sht3x_state::INIT;
 	uint32_t _time_in_state = hrt_absolute_time();
 	uint16_t _last_command = 0;
-	uORB::Publication<sensor_hygrometer_s> _sensor_hygrometer_pub{ORB_ID(sensor_hygrometer)};
+	uORB::PublicationMulti<sensor_hygrometer_s> _sensor_hygrometer_pub{ORB_ID(sensor_hygrometer)};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_EN_SHT3X>) _param_sens_en_sht3x

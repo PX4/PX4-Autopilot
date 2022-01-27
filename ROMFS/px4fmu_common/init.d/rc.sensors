@@ -133,10 +133,8 @@ fi
 # SHT3x temperature and hygrometer sensor, external I2C
 if param compare -s SENS_EN_SHT3X 1
 then
-	if ! sht3x start -X
-	then
-		sht3x start -X -a 0x45
-	fi
+	sht3x start -X
+	sht3x start -X -a 0x45
 fi
 
 # TE MS4525 differential pressure sensor external I2C
