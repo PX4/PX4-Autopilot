@@ -87,7 +87,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("safety");
 	add_topic("sensor_combined");
-	add_topic("sensor_hygrometer", 500);
 	add_optional_topic("sensor_correction");
 	add_optional_topic("sensor_gyro_fft", 50);
 	add_topic("sensor_selection");
@@ -123,6 +122,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("airspeed_wind", 1000, 4);
 	add_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
+	add_topic_multi("sensor_hygrometer", 500, 4);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
 	// EKF multi topics (currently max 9 estimators)
