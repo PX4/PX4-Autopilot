@@ -366,4 +366,5 @@ void Ekf::fuseHaglAllStates()
 			_innov_check_fail_status.flags.reject_ver_pos = true;
 		}
 	}
+	updateTerrainValidity();
 }

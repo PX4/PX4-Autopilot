@@ -21,13 +21,13 @@ void EkfLogger::writeStateToFile()
 		_file << "Timestamp";
 
 		if (_state_logging_enabled) {
-			for (int i = 0; i < 24; i++) {
+			for (int i = 0; i < 25; i++) {
 				_file << ",state[" << i << "]";
 			}
 		}
 
 		if (_variance_logging_enabled) {
-			for (int i = 0; i < 24; i++) {
+			for (int i = 0; i < 25; i++) {
 				_file << ",variance[" << i << "]";
 			}
 		}
@@ -52,15 +52,15 @@ void EkfLogger::writeState()
 		_file << time;
 
 		if (_state_logging_enabled) {
-			matrix::Vector<float, 24> state = _ekf->getStateAtFusionHorizonAsVector();
+			matrix::Vector<float, 25> state = _ekf->getStateAtFusionHorizonAsVector();
 
-			for (int i = 0; i < 24; i++) {
+			for (int i = 0; i < 25; i++) {
 				_file << "," << std::setprecision(3) << state(i);
 			}
 		}
 
 		if (_variance_logging_enabled) {
-			matrix::Vector<float, 24> variance = _ekf->covariances_diagonal();
+			matrix::Vector<float, 25> variance = _ekf->covariances_diagonal();
 
 			for (int i = 0; i < 24; i++) {
 				_file << "," << variance(i);

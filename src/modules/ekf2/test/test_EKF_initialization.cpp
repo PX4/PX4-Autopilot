@@ -169,7 +169,7 @@ TEST_F(EkfInitializationTest, gyroBias)
 		if (fabsf(accel_bias(2)) > 0.3f) {
 
 			// Print state covariance and correlation matrices for debugging
-			const matrix::SquareMatrix<float, 24> P = _ekf->covariances();
+			const matrix::SquareMatrix<float, 25> P = _ekf->covariances();
 
 			printf("State covariance:\n");
 

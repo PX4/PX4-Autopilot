@@ -1017,7 +1017,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 	static constexpr size_t VEL_URT_SIZE = sizeof(odom.velocity_covariance) / sizeof(odom.velocity_covariance[0]);
 
 	// Get covariances to vehicle odometry
-	float covariances[24];
+	float covariances[25];
 	_ekf.covariances_diagonal().copyTo(covariances);
 
 	// initially set pose covariances to 0
