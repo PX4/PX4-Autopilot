@@ -431,7 +431,8 @@ void Ekf::controlOpticalFlowFusion()
 		const bool preflight_motion_not_ok = !_control_status.flags.in_air
 						     && ((_imu_sample_delayed.time_us > (_time_good_motion_us + (uint64_t)1E5))
 								     || (_imu_sample_delayed.time_us < (_time_bad_motion_us + (uint64_t)5E6)));
-		const bool flight_condition_not_ok = _control_status.flags.in_air && !isTerrainEstimateValid();
+		/* const bool flight_condition_not_ok = _control_status.flags.in_air && !isTerrainEstimateValid(); */
+		const bool flight_condition_not_ok = !_control_status.flags.in_air;
 
 		_inhibit_flow_use = ((preflight_motion_not_ok || flight_condition_not_ok) && !is_flow_required)
 				    || !_control_status.flags.tilt_align;
@@ -471,10 +472,8 @@ void Ekf::controlOpticalFlowFusion()
 			if (_imu_sample_delayed.time_us > (_flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
 				// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
-				if (isRecent(_time_last_hagl_fuse, (uint64_t)10e6)) {
-					fuseOptFlow();
-					_last_known_posNE = _state.pos.xy();
-				}
+				fuseOptFlow();
+				_last_known_posNE = _state.pos.xy();
 
 				_flow_data_ready = false;
 			}
