@@ -285,16 +285,16 @@ void Ekf::predictState()
 	float input = 0.5f * (_imu_sample_delayed.delta_vel_dt + _imu_sample_delayed.delta_ang_dt);
 
 	// filter and limit input between -50% and +100% of nominal value
-	input = math::constrain(input, 0.5f * FILTER_UPDATE_PERIOD_S, 2.0f * FILTER_UPDATE_PERIOD_S);
+	const float filter_update_s = 1e-6f * _params.filter_update_interval_us;
+	input = math::constrain(input, 0.5f * filter_update_s, 2.f * filter_update_s);
 	_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
 
 	// some calculations elsewhere in code require a raw angular rate vector so calculate here to avoid duplication
-	// protect angainst possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate
+	// protect against possible small timesteps resulting from timing slip on previous frame that can drive spikes into the rate
 	// due to insufficient averaging
-	if (_imu_sample_delayed.delta_ang_dt > 0.25f * FILTER_UPDATE_PERIOD_S) {
+	if (_imu_sample_delayed.delta_ang_dt > 0.25f * _dt_ekf_avg) {
 		_ang_rate_delayed_raw = _imu_sample_delayed.delta_ang / _imu_sample_delayed.delta_ang_dt;
 	}
-
 }
 
 /*
