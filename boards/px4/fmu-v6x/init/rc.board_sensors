@@ -32,7 +32,7 @@ bmi088 -G -R 4 -s start
 # Internal SPI bus ICM42688p
 icm42688p -R 6 -s start
 
-if ver hwtypecmp V6X03 V6X13
+if ver hwtypecmp V6X000003 V6X001003
 then
 	# Internal SPI bus ICM-42670-P (hard-mounted)
 	icm42670p -R 14 -s start
@@ -50,7 +50,7 @@ ist8310 -X -b 1 -R 10 start
 # Possible internal Baro
 bmp388 -I -a 0x77 start
 
-if ver hwtypecmp V6X00 V6X10
+if ver hwtypecmp V6X000000 V6X001000
 then
 	bmp388 -I start
 else
