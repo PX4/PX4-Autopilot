@@ -188,9 +188,8 @@
 #define GPIO_HW_REV_SENSE    /* PC3   */ ADC1_GPIO(13)
 #define GPIO_HW_VER_DRIVE    /* PG0   */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_VER_SENSE    /* PC2   */ ADC1_GPIO(12)
-#define HW_INFO_INIT         {'V','5','x', 'x',0}
-#define HW_INFO_INIT_VER     2
-#define HW_INFO_INIT_REV     3
+
+#define HW_INFO_INIT_PREFIX         "V5"
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
 #define V500   HW_VER_REV(0x0,0x0) // FMUV5,                    Rev 0
 #define V515   HW_VER_REV(0x1,0x5) // CUAV V5,                  Rev 5

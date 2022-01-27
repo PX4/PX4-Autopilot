@@ -184,15 +184,16 @@
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
 #define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
 #define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_GPIO(14)
-#define HW_INFO_INIT           {'V','5','X','x', 'x',0}
-#define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
-#define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
+#define HW_INFO_INIT_PREFIX           "V5X"
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
 // Base                   FMUM
 #define V5X00   HW_VER_REV(0x0,0x0) // FMUV5X,                 Rev 0
 #define V5X10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0
 #define V5X01   HW_VER_REV(0x0,0x1) // FMUV5X I2C2 BMP388,     Rev 1
 #define V5X02   HW_VER_REV(0x0,0x2) // FMUV5X,                 Rev 2
+#define V5X80   HW_VER_REV(0x8,0x0) // USB (Q),                Rev 0
+#define V5X81   HW_VER_REV(0x8,0x1) // USB (Q) I2C2 BMP388,    Rev 1
+#define V5X82   HW_VER_REV(0x8,0x2) // USB (Q) I2C2 BMP388,    Rev 2
 #define V5X90   HW_VER_REV(0x9,0x0) // NO USB,                 Rev 0
 #define V5X91   HW_VER_REV(0x9,0x1) // NO USB I2C2 BMP388,     Rev 1
 #define V5X92   HW_VER_REV(0x9,0x2) // NO USB I2C2 BMP388,     Rev 2

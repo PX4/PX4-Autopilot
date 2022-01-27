@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2017, 2022 PX4 Development Team. All rights reserved.
  *   Author: @author David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -56,12 +56,16 @@
 #    define GPIO_HW_REV_DRIVE GPIO_HW_VER_REV_DRIVE
 #    define GPIO_HW_VER_DRIVE GPIO_HW_VER_REV_DRIVE
 #  endif
+
+#define HW_INFO_SIZE (int) arraySize(HW_INFO_INIT_PREFIX) + HW_INFO_VER_DIGITS + HW_INFO_REV_DIGITS
+
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 static int hw_version = 0;
 static int hw_revision = 0;
-static char hw_info[] = HW_INFO_INIT;
+static char hw_info[HW_INFO_SIZE] = {0};
 
 static const uint16_t mtd_mft_version = MTD_MFT_v0;	//< Current version of structure in EEPROM
 static const char *mtd_mft_path = "/fs/mtd_mft";
@@ -443,16 +447,25 @@ __EXPORT int board_get_hw_revision()
 
 int board_determine_hw_info()
 {
+	// ADC hw version range: {0x1 - 0xF}
 	int rv = determine_hw_info(&hw_revision, &hw_version);
 
 	if (rv == OK) {
 
-		hw_info[HW_INFO_INIT_REV] = board_get_hw_revision() < 10 ?
-					    board_get_hw_revision() + '0' :
-					    board_get_hw_revision() + 'a' - 10;
-		hw_info[HW_INFO_INIT_VER] = board_get_hw_version()  < 10 ?
-					    board_get_hw_version() + '0' :
-					    board_get_hw_version()  + 'a' - 10;
+		/* EEPROM hw version range: {0x10 - 0xFFFF} */
+		if (hw_version == HW_VERSION_EEPROM) {
+
+			mtd_mft_t mtd_mft;
+			rv = board_get_eeprom_hw_info(&mtd_mft);
+
+			if (rv == OK) {
+				hw_version = mtd_mft.hw_extended_ver;
+			}
+		}
+	}
+
+	if (rv == OK) {
+		snprintf(hw_info, sizeof(hw_info), HW_INFO_INIT_PREFIX HW_INFO_SUFFIX, hw_version, hw_revision);
 	}
 
 	return rv;
