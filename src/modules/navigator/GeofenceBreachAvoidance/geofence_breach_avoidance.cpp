@@ -87,42 +87,45 @@ matrix::Vector2<double> GeofenceBreachAvoidance::waypointFromBearingAndDistance(
 		test_point_bearing = matrix::wrap_2pi(test_point_bearing + M_PI_F);
 	}
 
-	double fence_violation_test_point_lat, fence_violation_test_point_lon;
+	double fence_violation_test_point_lat{};
+	double fence_violation_test_point_lon{};
+
 	waypoint_from_heading_and_distance(current_pos_lat_lon(0), current_pos_lat_lon(1), test_point_bearing,
 					   test_point_distance, &fence_violation_test_point_lat, &fence_violation_test_point_lon);
 
 	return Vector2d(fence_violation_test_point_lat, fence_violation_test_point_lon);
 }
 
-Vector2d
-GeofenceBreachAvoidance::getFenceViolationTestPoint()
+Vector2d GeofenceBreachAvoidance::getFenceViolationTestPoint()
 {
 	return waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, _test_point_distance);
 }
 
-Vector2d
-GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type_u violation_type, Geofence *geofence)
+Vector2d GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_result_s geofence_result, Geofence *geofence)
 {
-	if (violation_type.flags.fence_violation) {
+	if (geofence_result.primary_geofence_breached) {
 		const float bearing_90_left = matrix::wrap_2pi(_test_point_bearing - M_PI_F * 0.5f);
 		const float bearing_90_right = matrix::wrap_2pi(_test_point_bearing + M_PI_F * 0.5f);
 
-		double loiter_center_lat, loiter_center_lon;
-		double fence_violation_test_point_lat, fence_violation_test_point_lon;
+		double loiter_center_lat{};
+		double loiter_center_lon{};
+
+		double fence_violation_test_point_lat{};
+		double fence_violation_test_point_lon{};
 
 		waypoint_from_heading_and_distance(_current_pos_lat_lon(0), _current_pos_lat_lon(1), bearing_90_left,
 						   _test_point_distance, &fence_violation_test_point_lat, &fence_violation_test_point_lon);
 
-		const bool left_side_is_inside_fence = geofence->isInsidePolygonOrCircle(fence_violation_test_point_lat,
+		const bool left_side_is_inside_fence = geofence->isPrimaryGeofenceBreached(fence_violation_test_point_lat,
 						       fence_violation_test_point_lon, _current_alt_amsl);
 
 		waypoint_from_heading_and_distance(_current_pos_lat_lon(0), _current_pos_lat_lon(1), bearing_90_right,
 						   _test_point_distance, &fence_violation_test_point_lat, &fence_violation_test_point_lon);
 
-		const bool right_side_is_inside_fence = geofence->isInsidePolygonOrCircle(fence_violation_test_point_lat,
+		const bool right_side_is_inside_fence = geofence->isPrimaryGeofenceBreached(fence_violation_test_point_lat,
 							fence_violation_test_point_lon, _current_alt_amsl);
 
-		float bearing_to_loiter_point;
+		float bearing_to_loiter_point{};
 
 		if (right_side_is_inside_fence && !left_side_is_inside_fence) {
 			bearing_to_loiter_point = bearing_90_right;
@@ -139,7 +142,7 @@ GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type
 
 		return Vector2d(loiter_center_lat, loiter_center_lon);
 
-	} else if (violation_type.flags.dist_to_home_exceeded) {
+	} else if (geofence_result.max_distance_exceeded) {
 
 		return waypointFromHomeToTestPointAtDist(math::max(_max_hor_dist_home - 2 * _test_point_distance, 0.0f));
 
@@ -148,21 +151,21 @@ GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type
 	}
 }
 
-Vector2d
-GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_type_u violation_type, Geofence *geofence)
+Vector2d GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_result_s geofence_result,
+		Geofence *geofence)
 {
-
-	if (violation_type.flags.fence_violation) {
+	if (geofence_result.primary_geofence_breached) {
 		float current_distance = _test_point_distance * 0.5f;
-		float current_min = 0.0f;
-		float current_max = _test_point_distance;
-		Vector2d test_point;
+		float current_min{};
+		float current_max{};
+
+		Vector2d test_point{};
 
 		// binary search for the distance from the drone to the geofence in the given direction
 		while (abs(current_max - current_min) > 0.5f) {
 			test_point = waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, current_distance);
 
-			if (!geofence->isInsidePolygonOrCircle(test_point(0), test_point(1), _current_alt_amsl)) {
+			if (!geofence->isPrimaryGeofenceBreached(test_point(0), test_point(1), _current_alt_amsl)) {
 				current_max = current_distance;
 
 			} else {
@@ -181,7 +184,7 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 			return waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, _multirotor_braking_distance);
 		}
 
-	} else if (violation_type.flags.dist_to_home_exceeded) {
+	} else if (geofence_result.max_distance_exceeded) {
 
 		return waypointFromHomeToTestPointAtDist(math::max(_max_hor_dist_home - _min_hor_dist_to_fence_mc, 0.0f));
 
@@ -195,9 +198,9 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 	}
 }
 
-float GeofenceBreachAvoidance::generateLoiterAltitudeForFixedWing(geofence_violation_type_u violation_type)
+float GeofenceBreachAvoidance::generateLoiterAltitudeForFixedWing(geofence_result_s geofence_result)
 {
-	if (violation_type.flags.max_altitude_exceeded) {
+	if (geofence_result.max_altitude_exceeded) {
 		return _current_alt_amsl - 2.0f * _vertical_test_point_distance;
 
 	} else {
@@ -205,9 +208,9 @@ float GeofenceBreachAvoidance::generateLoiterAltitudeForFixedWing(geofence_viola
 	}
 }
 
-float GeofenceBreachAvoidance::generateLoiterAltitudeForMulticopter(geofence_violation_type_u violation_type)
+float GeofenceBreachAvoidance::generateLoiterAltitudeForMulticopter(geofence_result_s geofence_result)
 {
-	if (violation_type.flags.max_altitude_exceeded) {
+	if (geofence_result.max_altitude_exceeded) {
 		return _current_alt_amsl + _multirotor_vertical_braking_distance - _min_vert_dist_to_fence_mc;
 
 	} else {

@@ -71,14 +71,14 @@ Navigator::Navigator() :
 	ModuleParams(nullptr),
 	_loop_perf(perf_alloc(PC_ELAPSED, "navigator")),
 	_geofence(this),
-	_gf_breach_avoidance(this),
-	_mission(this),
-	_loiter(this),
-	_takeoff(this),
-	_vtol_takeoff(this),
+	_geofence_breach_avoidance(this),
 	_land(this),
+	_loiter(this),
+	_mission(this),
 	_precland(this),
-	_rtl(this)
+	_rtl(this),
+	_takeoff(this),
+	_vtol_takeoff(this)
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -913,148 +913,171 @@ void Navigator::run()
 	}
 }
 
+void Navigator::geofence_breach_notification()
+{
+	if (_geofence_result.primary_geofence_breached || _geofence_result.secondary_geofence_breached) {
+		// Issue a warning about the geofence violation once and only if we are armed.
+		if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			mavlink_log_critical(&_mavlink_log_pub, "%s", _geofence_violation_warning);
+			events::send(events::ID("navigator_geofence_violation"), {events::Log::Warning, events::LogInternal::Info},
+				     _geofence_violation_warning);
+
+			_geofence_violation_warning_sent = true;
+
+		}
+
+	} else {
+		// Reset the _geofence_violation_warning_sent field.
+		_geofence_violation_warning_sent = false;
+	}
+}
+
 void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 {
 	if (have_geofence_position_data &&
-	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
-	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
+	    (_geofence.getPrimaryGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+	    (_geofence.getSecondaryGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
+	    (hrt_elapsed_time(&_last_geofence_check_timestamp) > GEOFENCE_CHECK_INTERVAL_US)) {
 
-		const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
-
-		matrix::Vector2<double> fence_violation_test_point;
-		geofence_violation_type_u gf_violation_type{};
-		float test_point_bearing;
-		float test_point_distance;
-		float vertical_test_point_distance;
-
-		if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
-			const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
-			_gf_breach_avoidance.setHorizontalVelocity(velocity_hor_abs);
-			_gf_breach_avoidance.setClimbRate(-_local_pos.vz);
-			test_point_distance = _gf_breach_avoidance.computeBrakingDistanceMultirotor();
-			vertical_test_point_distance = _gf_breach_avoidance.computeVerticalBrakingDistanceMultirotor();
-
-		} else {
-			test_point_distance = 2.0f * get_loiter_radius();
-			vertical_test_point_distance = 5.0f;
-
-			if (hrt_absolute_time() - pos_ctrl_status.timestamp < 100000 && PX4_ISFINITE(pos_ctrl_status.nav_bearing)) {
-				test_point_bearing = pos_ctrl_status.nav_bearing;
-
-			} else {
-				test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
-			}
-		}
-
-		_gf_breach_avoidance.setHorizontalTestPointDistance(test_point_distance);
-		_gf_breach_avoidance.setVerticalTestPointDistance(vertical_test_point_distance);
-		_gf_breach_avoidance.setTestPointBearing(test_point_bearing);
-		_gf_breach_avoidance.setCurrentPosition(_global_pos.lat, _global_pos.lon, _global_pos.alt);
-		_gf_breach_avoidance.setMaxHorDistHome(_geofence.getMaxHorDistanceHome());
-		_gf_breach_avoidance.setMaxVerDistHome(_geofence.getMaxVerDistanceHome());
-
-		if (home_global_position_valid()) {
-			_gf_breach_avoidance.setHomePosition(_home_pos.lat, _home_pos.lon, _home_pos.alt);
-		}
-
-		if (_geofence.getPredict()) {
-			fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
-
-		} else {
-			fence_violation_test_point = matrix::Vector2d(_global_pos.lat, _global_pos.lon);
-			vertical_test_point_distance = 0;
-		}
-
-		gf_violation_type.flags.dist_to_home_exceeded = !_geofence.isCloserThanMaxDistToHome(fence_violation_test_point(0),
-				fence_violation_test_point(1),
-				_global_pos.alt);
-
-		gf_violation_type.flags.max_altitude_exceeded = !_geofence.isBelowMaxAltitude(_global_pos.alt +
-				vertical_test_point_distance);
-
-		gf_violation_type.flags.fence_violation = !_geofence.isInsidePolygonOrCircle(fence_violation_test_point(0),
-				fence_violation_test_point(1),
-				_global_pos.alt);
-
-		_last_geofence_check = hrt_absolute_time();
 		have_geofence_position_data = false;
 
-		_geofence_result.timestamp = hrt_absolute_time();
-		_geofence_result.primary_geofence_action = _geofence.getGeofenceAction();
+		_last_geofence_check_timestamp = hrt_absolute_time();
+		_geofence_result.timestamp     = _last_geofence_check_timestamp;
 		_geofence_result.home_required = _geofence.isHomeRequired();
 
-		if (gf_violation_type.value) {
-			/* inform other apps via the mission result */
-			_geofence_result.primary_geofence_breached = true;
-
-			using geofence_violation_reason_t = events::px4::enums::geofence_violation_reason_t;
-
-			if (gf_violation_type.flags.fence_violation) {
-				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::fence_violation;
-
-			} else if (gf_violation_type.flags.max_altitude_exceeded) {
-				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::max_altitude_exceeded;
-
-			} else if (gf_violation_type.flags.dist_to_home_exceeded) {
-				_geofence_result.geofence_violation_reason = (uint8_t)geofence_violation_reason_t::dist_to_home_exceeded;
-
-			}
-
-			/* Issue a warning about the geofence violation once and only if we are armed */
-			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-
-				// we have predicted a geofence violation and if the action is to loiter then
-				// demand a reposition to a location which is inside the geofence
-				if (_geofence.getGeofenceAction() == geofence_result_s::GF_ACTION_LOITER) {
-					position_setpoint_triplet_s *rep = get_reposition_triplet();
-
-					matrix::Vector2<double> loiter_center_lat_lon;
-					matrix::Vector2<double> current_pos_lat_lon(_global_pos.lat, _global_pos.lon);
-					float loiter_altitude_amsl = _global_pos.alt;
-
-
-					if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-						// the computation of the braking distance does not match the actual braking distance. Until we have a better model
-						// we set the loiter point to the current position, that will make sure that the vehicle will loiter inside the fence
-						loiter_center_lat_lon =  _gf_breach_avoidance.generateLoiterPointForMultirotor(gf_violation_type,
-									 &_geofence);
-
-						loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForMulticopter(gf_violation_type);
-
-					} else {
-
-						loiter_center_lat_lon = _gf_breach_avoidance.generateLoiterPointForFixedWing(gf_violation_type, &_geofence);
-						loiter_altitude_amsl = _gf_breach_avoidance.generateLoiterAltitudeForFixedWing(gf_violation_type);
-					}
-
-					rep->current.timestamp = hrt_absolute_time();
-					rep->current.yaw = get_local_position()->heading;
-					rep->current.yaw_valid = true;
-					rep->current.lat = loiter_center_lat_lon(0);
-					rep->current.lon = loiter_center_lat_lon(1);
-					rep->current.alt = loiter_altitude_amsl;
-					rep->current.valid = true;
-					rep->current.loiter_radius = get_loiter_radius();
-					rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
-					rep->current.cruising_throttle = get_cruising_throttle();
-					rep->current.acceptance_radius = get_acceptance_radius();
-					rep->current.cruising_speed = get_cruising_speed();
-
-				}
-
-				_geofence_violation_warning_sent = true;
-			}
+		if (_geofence.getPredict()) {
+			// Geofence breach avoidance checks
+			geofence_breach_avoidance_check();
 
 		} else {
-			/* inform other apps via the mission result */
-			_geofence_result.primary_geofence_breached = false;
 
-			/* Reset the _geofence_violation_warning_sent field */
-			_geofence_violation_warning_sent = false;
+			// Geofence breach checks
+			_geofence_result.max_altitude_exceeded       = _geofence.isMaxAltitudeBreached(_global_pos.alt);
+			_geofence_result.max_distance_exceeded       = _geofence.isMaxDistanceBreached(_home_pos.lat, _home_pos.lon,
+					_global_pos.alt);
+			_geofence_result.primary_geofence_action     = _geofence.getPrimaryGeofenceAction();
+			_geofence_result.secondary_geofence_action   = _geofence.getSecondaryGeofenceAction();
+			_geofence_result.primary_geofence_breached   = _geofence.isPrimaryGeofenceBreached(_global_pos.lat, _global_pos.lon,
+					_global_pos.alt);
+			_geofence_result.secondary_geofence_breached = _geofence.isSecondaryGeofenceBreached();
+
+			if (_geofence_result.max_altitude_exceeded) {
+				snprintf(_geofence_violation_warning, sizeof(_geofence_violation_warning), "Geofence Max Altitude breached");
+			}
+
+			if (_geofence_result.max_distance_exceeded) {
+				snprintf(_geofence_violation_warning, sizeof(_geofence_violation_warning), "Geofence Max Distance breached");
+			}
+
+			if (_geofence_result.primary_geofence_breached) {
+				snprintf(_geofence_violation_warning, sizeof(_geofence_violation_warning), "Primary Geofence breached");
+
+			}
+
+			if (_geofence_result.secondary_geofence_breached) {
+				snprintf(_geofence_violation_warning, sizeof(_geofence_violation_warning), "Secondary Geofence breached");
+
+			}
 		}
 
+		// Inform other modules via the geofence result.
 		_geofence_result_pub.publish(_geofence_result);
+
+		geofence_breach_notification();
+	}
+}
+
+void Navigator::geofence_breach_avoidance_check()
+{
+	float test_point_bearing{0};
+	float test_point_distance{0};
+	float test_point_altitude{0};
+
+	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
+
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
+
+		float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
+
+		_geofence_breach_avoidance.setHorizontalVelocity(velocity_hor_abs);
+		_geofence_breach_avoidance.setClimbRate(-_local_pos.vz);
+
+		test_point_altitude = _geofence_breach_avoidance.computeVerticalBrakingDistanceMultirotor() + _global_pos.alt;
+		test_point_distance = _geofence_breach_avoidance.computeBrakingDistanceMultirotor();
+
+	} else {
+		test_point_altitude = _global_pos.alt + 5.0f;
+		test_point_distance = 2.0f * get_loiter_radius();
+
+		if (hrt_absolute_time() - pos_ctrl_status.timestamp < 100000 &&
+		    PX4_ISFINITE(pos_ctrl_status.nav_bearing)) {
+			test_point_bearing = pos_ctrl_status.nav_bearing;
+
+		} else {
+			test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
+		}
+	}
+
+	_geofence_breach_avoidance.setHorizontalTestPointDistance(test_point_distance);
+	_geofence_breach_avoidance.setVerticalTestPointDistance(test_point_altitude);
+	_geofence_breach_avoidance.setTestPointBearing(test_point_bearing);
+	_geofence_breach_avoidance.setCurrentPosition(_global_pos.lat, _global_pos.lon, _global_pos.alt);
+	_geofence_breach_avoidance.setMaxHorDistHome(_geofence.getMaxHorDistanceHome());
+	_geofence_breach_avoidance.setMaxVerDistHome(_geofence.getMaxVerDistanceHome());
+
+	if (home_global_position_valid()) {
+		_geofence_breach_avoidance.setHomePosition(_home_pos.lat, _home_pos.lon, _home_pos.alt);
+	}
+
+	matrix::Vector2d fence_violation_test_point = _geofence_breach_avoidance.getFenceViolationTestPoint();
+
+	_geofence_result.max_altitude_exceeded       = _geofence.isMaxAltitudeBreached(test_point_altitude);
+	_geofence_result.max_distance_exceeded       = _geofence.isMaxDistanceBreached(_home_pos.lat, _home_pos.lon,
+			_global_pos.alt);
+	_geofence_result.primary_geofence_action     = _geofence.getPrimaryGeofenceAction();
+	_geofence_result.primary_geofence_breached   = _geofence.isPrimaryGeofenceBreached(fence_violation_test_point(0),
+			fence_violation_test_point(1), test_point_altitude);
+
+	if (_geofence_result.primary_geofence_breached) {
+		snprintf(_geofence_violation_warning, sizeof(_geofence_violation_warning), "Geofence avoidance enabled");
+
+		// We have predicted a geofence violation and if the action is to loiter then
+		// demand a reposition to a location which is inside the geofence
+		if (_geofence_result.primary_geofence_action == geofence_result_s::GF_ACTION_LOITER) {
+
+			matrix::Vector2<double> loiter_center_lat_lon;
+			float loiter_altitude_amsl = _global_pos.alt;
+
+			if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+				// the computation of the braking distance does not match the actual braking distance. Until we have a better model
+				// we set the loiter point to the current position, that will make sure that the vehicle will loiter inside the fence
+				loiter_center_lat_lon = _geofence_breach_avoidance.generateLoiterPointForMultirotor(_geofence_result, &_geofence);
+				loiter_altitude_amsl  = _geofence_breach_avoidance.generateLoiterAltitudeForMulticopter(_geofence_result);
+
+			} else {
+
+				loiter_center_lat_lon = _geofence_breach_avoidance.generateLoiterPointForFixedWing(_geofence_result, &_geofence);
+				loiter_altitude_amsl  = _geofence_breach_avoidance.generateLoiterAltitudeForFixedWing(_geofence_result);
+			}
+
+			position_setpoint_triplet_s *reposition_triplet = get_reposition_triplet();
+
+			reposition_triplet->current.timestamp         = hrt_absolute_time();
+			reposition_triplet->current.yaw               = get_local_position()->heading;
+			reposition_triplet->current.yaw_valid         = true;
+			reposition_triplet->current.lat               = loiter_center_lat_lon(0);
+			reposition_triplet->current.lon               = loiter_center_lat_lon(1);
+			reposition_triplet->current.alt               = loiter_altitude_amsl;
+			reposition_triplet->current.valid             = true;
+			reposition_triplet->current.loiter_radius     = get_loiter_radius();
+			reposition_triplet->current.alt_valid         = true;
+			reposition_triplet->current.type              = position_setpoint_s::SETPOINT_TYPE_LOITER;
+			reposition_triplet->current.loiter_direction  = 1;
+			reposition_triplet->current.cruising_throttle = get_cruising_throttle();
+			reposition_triplet->current.acceptance_radius = get_acceptance_radius();
+			reposition_triplet->current.cruising_speed    = get_cruising_speed();
+		}
 	}
 }
 
@@ -1490,8 +1513,10 @@ Navigator::stop_capturing_images()
 
 bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 {
-	if ((_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
-	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
+	if ((_geofence.getPrimaryGeofenceAction() != geofence_result_s::GF_ACTION_NONE &&
+	     _geofence.getPrimaryGeofenceAction() != geofence_result_s::GF_ACTION_WARN) ||
+	    (_geofence.getSecondaryGeofenceAction() != geofence_result_s::GF_ACTION_NONE &&
+	     _geofence.getSecondaryGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
 
 		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
 			return _geofence.check(pos, _gps_pos);

@@ -72,11 +72,13 @@ static constexpr float CONSTANTS_EARTH_SPIN_RATE = 7.2921150e-5f;				// radians/
 
 // XXX remove
 struct crosstrack_error_s {
-	bool past_end;		// Flag indicating we are past the end of the line/arc segment
-	float distance;		// Distance in meters to closest point on line/arc
-	float bearing;		// Bearing in radians to closest point on line/arc
+	bool before_start;	 // Flag indicating the vehicle is before the start of the line/arc segment
+	bool past_end;		 // Flag indicating the vehicle is past the end of the line/arc segment
+	float distance_to_start; // Distance in meters to closest endpoint on line/arc segment
+	float distance_to_end;	 // Distance in meters to closest endpoint on line/arc segment
+	float distance;		 // Distance in meters to closest point on line/arc
+	float bearing;		 // Bearing in radians to closest point on line/arc
 } ;
-
 
 /**
  * Returns the distance to the next waypoint in meters.
@@ -114,7 +116,8 @@ void create_waypoint_from_line_and_dist(double lat_A, double lon_A, double lat_B
  * @param lat_target latitude of target waypoint in degrees (47.1234567°, not 471234567°)
  * @param lon_target longitude of target waypoint in degrees (47.1234567°, not 471234567°)
  */
-void waypoint_from_heading_and_distance(double lat_start, double lon_start, float bearing, float dist,
+void waypoint_from_heading_and_distance(const double lat_start, const double lon_start, const float bearing,
+					const float dist,
 					double *lat_target, double *lon_target);
 
 /**

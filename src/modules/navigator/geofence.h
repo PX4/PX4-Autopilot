@@ -78,12 +78,6 @@ public:
 	};
 
 	/**
-	 * update the geofence from dataman.
-	 * It's generally not necessary to call this as it will automatically update when the data is changed.
-	 */
-	void updateFence();
-
-	/**
 	 * Return whether the system obeys the geofence.
 	 *
 	 * @return true: system is obeying fence, false: system is violating fence
@@ -103,17 +97,32 @@ public:
 	 *
 	 * @return false for a geofence violation
 	 */
-	bool checkAll(double lat, double lon, float altitude);
-
-	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
-
-	bool isBelowMaxAltitude(float altitude);
-
-	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
+	bool checkAll(const double lat, const double lon, const float altitude);
 
 	int clearDm();
+	int getSource() { return _param_gf_source.get(); }
 
-	bool valid();
+	int getPrimaryGeofenceAction() { return _param_gf_action.get(); }
+
+	int getSecondaryGeofenceAction() { return _param_gf2_action.get(); }
+
+	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
+
+	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
+
+	bool getPredict() { return _param_gf_predict.get(); }
+
+	bool isEmpty() { return _num_polygons == 0; }
+
+	bool isHomeRequired();
+
+	bool isMaxAltitudeBreached(const float altitude);
+
+	bool isMaxDistanceBreached(const double lat, const double lon, const float altitude);
+
+	bool isPrimaryGeofenceBreached(const double lat, const double lon, const float altitude);
+
+	bool isSecondaryGeofenceBreached();
 
 	/**
 	 * Load a single inclusion polygon, replacing any already existing polygons.
@@ -136,21 +145,18 @@ public:
 	 */
 	int loadFromFile(const char *filename);
 
-	bool isEmpty() { return _num_polygons == 0; }
-
-	int getSource() { return _param_gf_source.get(); }
-	int getGeofenceAction() { return _param_gf_action.get(); }
-
-	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
-	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
-	bool getPredict() { return _param_gf_predict.get(); }
-
-	bool isHomeRequired();
-
 	/**
 	 * print Geofence status to the console
 	 */
 	void printStatus();
+
+	/**
+	 * update the geofence from dataman.
+	 * It's generally not necessary to call this as it will automatically update when the data is changed.
+	 */
+	void updateFence();
+
+	bool valid() { return true; }	// always valid
 
 private:
 
@@ -163,28 +169,9 @@ private:
 		};
 	};
 
-	Navigator   *_navigator{nullptr};
-	PolygonInfo *_polygons{nullptr};
+	bool checkAll(const vehicle_global_position_s &global_position);
 
-	hrt_abstime _last_horizontal_range_warning{0};
-	hrt_abstime _last_vertical_range_warning{0};
-
-	float _altitude_min{0.0f};
-	float _altitude_max{0.0f};
-
-	int _num_polygons{0};
-
-	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
-
-	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
-
-	int _outside_counter{0};
-	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
-
-	/**
-	 * implementation of updateFence(), but without locking
-	 */
-	void _updateFence();
+	bool checkAll(const vehicle_global_position_s &global_position, const float baro_altitude_amsl);
 
 	/**
 	 * Check if a point passes the Geofence test.
@@ -196,25 +183,47 @@ private:
 	 *                  or: no polygon configured
 	 * @return result of the check above (false for a geofence violation)
 	 */
-	bool checkPolygons(double lat, double lon, float altitude);
-
-
-
-	bool checkAll(const vehicle_global_position_s &global_position);
-	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl);
-
-	/**
-	 * Check if a single point is within a polygon
-	 * @return true if within polygon
-	 */
-	bool insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude);
+	bool checkPolygons(const double lat, const double lon, const float altitude);
 
 	/**
 	 * Check if a single point is within a circle
 	 * @param polygon must be a circle!
 	 * @return true if within polygon the circle
 	 */
-	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
+	bool insideCircle(const PolygonInfo &polygon, const double lat, const double lon, const float altitude,
+			  const bool inclusion_fence = true);
+
+	/**
+	 * Check if a single point is within a polygon
+	 * @return true if within polygon
+	 */
+	bool insidePolygon(const PolygonInfo &polygon, const double lat, const double lon, const float altitude,
+			   const bool inclusion_fence = true);
+
+	/**
+	 * update the geofence from dataman.
+	 */
+	void _updateFence();
+
+	Navigator   *_navigator{nullptr};
+	PolygonInfo *_polygons{nullptr};
+
+	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
+
+	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
+
+	hrt_abstime _last_horizontal_range_warning{0};
+	hrt_abstime _last_vertical_range_warning{0};
+
+	float _altitude_min{0.0f};
+	float _altitude_max{0.0f};
+
+	int _num_polygons{0};
+	int _outside_counter{0};
+
+	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
+
+	bool _secondary_geofence_breach{false};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
@@ -223,6 +232,8 @@ private:
 		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
-		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict
+		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict,
+		(ParamInt<px4::params::GF2_ACTION>)        _param_gf2_action,
+		(ParamFloat<px4::params::GF2_OFFSET>)      _param_gf2_offset
 	)
 };

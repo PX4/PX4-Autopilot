@@ -339,7 +339,7 @@ private:
 		geofence_result_s geofence;
 
 		if (_geofence_sub.update(&geofence)) {
-			if (geofence.primary_geofence_breached) {
+			if (geofence.primary_geofence_breached || geofence.secondary_geofence_breached) {
 				msg->failure_flags |= HL_FAILURE_FLAG_GEOFENCE;
 			}
 

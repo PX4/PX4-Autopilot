@@ -62,6 +62,35 @@
 PARAM_DEFINE_INT32(GF_ACTION, 2);
 
 /**
+ * Secondary Geofence violation action.
+ *
+ * Note: Setting this value to 4 enables flight termination,
+ * which will kill the vehicle on violation of the fence.
+ *
+ * @min 0
+ * @max 5
+ * @value 0 None
+ * @value 1 Warning
+ * @value 2 Hold mode
+ * @value 3 Return mode
+ * @value 4 Terminate
+ * @value 5 Land mode
+ * @group Geofence
+ */
+PARAM_DEFINE_INT32(GF2_ACTION, 0);
+
+/**
+ * Secondary Geofence distance offset distance from the Primary Geofence, (m).
+ *
+ * Distance offset outside of primary Geofence to apply the GF2_ACTION.
+ * *
+ * @min 0
+ * @max 100
+ * @group Geofence
+ */
+PARAM_DEFINE_FLOAT(GF2_OFFSET, 0.f);
+
+/**
  * Geofence altitude mode
  *
  * Select which altitude (AMSL) source should be used for geofence calculations.
@@ -125,7 +154,7 @@ PARAM_DEFINE_FLOAT(GF_MAX_HOR_DIST, 0);
  * @increment 1
  * @group Geofence
  */
-PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0);
+PARAM_DEFINE_FLOAT(GF_MAX_VER_DIST, 0.f);
 
 /**
  * Use Pre-emptive geofence triggering

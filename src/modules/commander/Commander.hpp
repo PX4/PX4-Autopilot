@@ -113,27 +113,69 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	void enable_hil();
+	void enableHIL();
 
 private:
-	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
-	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
+	enum class ActuatorFailureActions {
+		DISABLED    = 0,
+		AUTO_LOITER = 1,
+		AUTO_LAND   = 2,
+		AUTO_RTL    = 3,
+		TERMINATE   = 4
+	};
 
-	transition_result_t disarm(arm_disarm_reason_t calling_reason, bool forced = false);
+	enum class PrearmedMode {
+		DISABLED      = 0,
+		SAFETY_BUTTON = 1,
+		ALWAYS        = 2
+	};
 
-	void battery_status_check();
+	enum class RcOverrideBits : int32_t {
+		AUTO_MODE_BIT     = (1 << 0),
+		OFFBOARD_MODE_BIT = (1 << 1)
+	};
 
-	void control_status_leds(bool changed, const uint8_t battery_warning);
+	typedef enum VEHICLE_MODE_FLAG {
+		VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED  = 1,   /* 0b00000001 Reserved for future use. | */
+		VEHICLE_MODE_FLAG_TEST_ENABLED         = 2,   /* 0b00000010 system has a test mode enabled. This flag is intended for temporary system tests and should not be used for stable implementations. | */
+		VEHICLE_MODE_FLAG_AUTO_ENABLED         = 4,   /* 0b00000100 autonomous mode enabled, system finds its own goal positions. Guided flag can be set or not, depends on the actual implementation. | */
+		VEHICLE_MODE_FLAG_GUIDED_ENABLED       = 8,   /* 0b00001000 guided mode enabled, system flies MISSIONs / mission items. | */
+		VEHICLE_MODE_FLAG_STABILIZE_ENABLED    = 16,  /* 0b00010000 system stabilizes electronically its attitude (and optionally position). It needs however further control inputs to move around. | */
+		VEHICLE_MODE_FLAG_HIL_ENABLED          = 32,  /* 0b00100000 hardware in the loop simulation. All motors / actuators are blocked, but internal software is full operational. | */
+		VEHICLE_MODE_FLAG_MANUAL_INPUT_ENABLED = 64,  /* 0b01000000 remote control input is enabled. | */
+		VEHICLE_MODE_FLAG_SAFETY_ARMED         = 128, /* 0b10000000 MAV safety set to armed. Motors are enabled / running / can start. Ready to fly. Additional note: this flag is to be ignore when sent in the command MAV_CMD_DO_SET_MODE and MAV_CMD_COMPONENT_ARM_DISARM shall be used instead. The flag can still be used to report the armed state. | */
+		VEHICLE_MODE_FLAG_ENUM_END             = 129, /*  | */
+	};
+
+	void answerCommand(const vehicle_command_s &cmd, const uint8_t result);
+
+	transition_result_t arm(const arm_disarm_reason_t calling_reason, const bool run_preflight_checks = true);
+
+	transition_result_t disarm(const arm_disarm_reason_t calling_reason, const bool forced = false);
+
+	void batteryStatusCheck();
+
+	void checkAndInformReadyForTakeoff();
+
+	void checkForMissionUpdate();
+
+	void checkGeofenceStatus();
+
+	void checkWindSpeedThresholds();
+
+	void checkWorkerThread();
+
+	void controlStatusLeds(bool changed, const uint8_t battery_warning);
 
 	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
 	 */
 	void dataLinkCheck();
 
-	void manualControlCheck();
+	void executeActionRequest(const action_request_s &action_request);
 
-	void offboardControlCheck();
+	void handleAutoDisarm();
 
 	/**
 	 * @brief Handle incoming vehicle command relavant to Commander
@@ -141,168 +183,178 @@ private:
 	 * It ignores irrelevant vehicle commands defined inside the switch case statement
 	 * in the function.
 	 *
-	 * @param cmd 		Vehicle command to handle
+	 * @param cmd           Vehicle command to handle
 	 */
-	bool handle_command(const vehicle_command_s &cmd);
+	bool handleCommand(const vehicle_command_s &cmd);
 
 	unsigned handleCommandActuatorTest(const vehicle_command_s &cmd);
 
-	void executeActionRequest(const action_request_s &action_request);
-
-	void printRejectMode(uint8_t nav_state);
-
-	void updateControlMode();
-
-	bool shutdownIfAllowed();
-
-	void send_parachute_command();
-
-	void checkForMissionUpdate();
+	bool handleModeIntentionAndFailsafe();
 
 	void handlePowerButtonState();
 
-	void systemPowerUpdate();
-
 	void landDetectorUpdate();
+
+	void manualControlUpdate();
+
+	void offboardControlUpdate();
+
+	void printRejectMode(uint8_t nav_state);
 
 	void safetyButtonUpdate();
 
-	void vtolStatusUpdate();
-
-	void updateTunes();
-
-	void checkWorkerThread();
-
 	bool getPrearmState() const;
 
-	void handleAutoDisarm();
+	void sendParachuteCommand();
 
-	bool handleModeIntentionAndFailsafe();
+	bool shutdownIfAllowed();
+
+	void systemPowerUpdate();
+
+	void updateControlMode();
 
 	void updateParameters();
 
-	void checkAndInformReadyForTakeoff();
+	void updateTunes();
 
-	enum class PrearmedMode {
-		DISABLED = 0,
-		SAFETY_BUTTON = 1,
-		ALWAYS = 2
-	};
+	void vtolStatusUpdate();
 
-	enum class RcOverrideBits : int32_t {
-		AUTO_MODE_BIT = (1 << 0),
-		OFFBOARD_MODE_BIT = (1 << 1),
-	};
 
-	/* Decouple update interval and hysteresis counters, all depends on intervals */
+	// Decouple update interval and hysteresis counters, all depends on intervals
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
-	vehicle_status_s        _vehicle_status{};
+	orb_advert_t   _mavlink_log_pub{nullptr};
+
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
 
 	ArmStateMachine		_arm_state_machine{};
 	Failsafe		_failsafe_instance{this};
 	FailsafeBase		&_failsafe{_failsafe_instance};
 	FailureDetector		_failure_detector{this};
 	HealthAndArmingChecks	_health_and_arming_checks{this, _vehicle_status};
+	HomePosition            _home_position{_vehicle_status_flags};
 	Safety			_safety{};
 	UserModeIntention	_user_mode_intention{this, _vehicle_status, _health_and_arming_checks};
 	WorkerThread 		_worker_thread{};
 
 	const failsafe_flags_s &_failsafe_flags{_health_and_arming_checks.failsafeFlags()};
-	HomePosition 		_home_position{_failsafe_flags};
 
+	actuator_armed_s        _actuator_armed{};
+	commander_state_s       _commander_state{};
+	geofence_result_s       _geofence_result{};
+	vehicle_control_mode_s  _vehicle_control_mode{};
+	vehicle_land_detected_s _vehicle_land_detected{};
+	vehicle_status_s        _vehicle_status{};
+	vehicle_status_flags_s  _vehicle_status_flags{};
+	vtol_vehicle_status_s   _vtol_vehicle_status{};
 
 	Hysteresis _auto_disarm_landed{false};
 	Hysteresis _auto_disarm_killed{false};
+	Hysteresis _offboard_available{false};
 
-	hrt_abstime _datalink_last_heartbeat_open_drone_id_system{0};
+	hrt_abstime _battery_failsafe_timestamp{0};
+	hrt_abstime _boot_timestamp{0};
+
 	hrt_abstime _datalink_last_heartbeat_avoidance_system{0};
 	hrt_abstime _datalink_last_heartbeat_gcs{0};
 	hrt_abstime _datalink_last_heartbeat_onboard_controller{0};
+	hrt_abstime _datalink_last_heartbeat_open_drone_id_system{0};
 	hrt_abstime _datalink_last_heartbeat_parachute_system{0};
-
-	hrt_abstime _last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
 	hrt_abstime _high_latency_datalink_heartbeat{0};
 	hrt_abstime _high_latency_datalink_lost{0};
 
-	hrt_abstime _boot_timestamp{0};
 	hrt_abstime _last_disarmed_timestamp{0};
-	hrt_abstime _overload_start{0};		///< time when CPU overload started
-
-#if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
-	hrt_abstime _led_armed_state_toggle {0};
-#endif
-	hrt_abstime _led_overload_toggle {0};
+	hrt_abstime _overload_start{0}; ///< time when CPU overload started
 
 	hrt_abstime _last_health_and_arming_check{0};
+	hrt_abstime _last_print_mode_reject_time{0}; ///< To remember when last notification was sent
+	hrt_abstime _last_termination_message_sent{0};
+	hrt_abstime _last_valid_manual_control_setpoint{0};
+	hrt_abstime _last_wind_warning{0};
 
-	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
+	hrt_abstime _led_overload_toggle{0};
 
-	bool _failsafe_user_override_request{false}; ///< override request due to stick movements
+#if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
+	hrt_abstime _led_armed_state_toggle{0};
+#endif
 
-	bool _flight_termination_triggered{false};
-	bool _lockdown_triggered{false};
+	hrt_abstime _overload_start{0}; ///< time when CPU overload started
 
-	bool _open_drone_id_system_lost{true};
+	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
+
 	bool _avoidance_system_lost{false};
-	bool _onboard_controller_lost{false};
-	bool _parachute_system_lost{true};
+	bool _circuit_breaker_flight_termination_disabled{false};
 
-	bool _last_overload{false};
-	bool _mode_switch_mapped{false};
+	bool _failsafe_old{false};
+	bool _failsafe_user_override_request{false}; ///< override request due to stick movements
+	bool _flight_termination_triggered{false};
 
+	bool _imbalanced_propeller_check_triggered{false};
 	bool _is_throttle_above_center{false};
 	bool _is_throttle_low{false};
 
-	bool _arm_tune_played{false};
-	bool _was_armed{false};
-	bool _have_taken_off_since_arming{false};
+	bool _last_overload{false};
+	bool _lockdown_triggered{false};
+	bool _mode_switch_mapped{false};
+
+	bool _open_drone_id_system_lost{true};
+	bool _onboard_controller_lost{false};
+	bool _parachute_system_lost{true};
+
+	bool _rtl_time_actions_done{false};
 	bool _status_changed{true};
 
-	vehicle_land_detected_s	_vehicle_land_detected{};
+	// Arming flags
+	bool _arm_tune_played{false};
+	bool _have_taken_off_since_arming{false};
+	bool _was_armed{false};
 
-	// commander publications
-	actuator_armed_s        _actuator_armed{};
-	vehicle_control_mode_s  _vehicle_control_mode{};
-	vtol_vehicle_status_s	_vtol_vehicle_status{};
+	// Geofence flags
+	bool _geofence_loiter_on{false};
+	bool _geofence_rtl_on{false};
+	bool _geofence_land_on{false};
+	bool _primary_geofence_warning_action_on{false};
+	bool _primary_geofence_breached_prev{false};
+	bool _secondary_geofence_warning_action_on{false};
+	bool _secondary_geofence_breached_prev{false};
 
 	// Subscriptions
-	uORB::Subscription					_action_request_sub{ORB_ID(action_request)};
-	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
-	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
-	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
-	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
-	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
-	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
-	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+	uORB::Subscription _action_request_sub{ORB_ID(action_request)};
+	uORB::Subscription _cpuload_sub{ORB_ID(cpuload)};
+	uORB::Subscription _geofence_result_sub{ORB_ID(geofence_result)};
+	uORB::Subscription _iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _system_power_sub{ORB_ID(system_power)};
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+	uORB::Subscription _wind_sub{ORB_ID(wind)};
 
-	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::SubscriptionMultiArray<telemetry_status_s>	_telemetry_status_subs{ORB_ID::telemetry_status};
+	uORB::SubscriptionMultiArray<telemetry_status_s> _telemetry_status_subs{ORB_ID::telemetry_status};
 
 #if defined(BOARD_HAS_POWER_CONTROL)
-	uORB::Subscription					_power_button_state_sub {ORB_ID(power_button_state)};
+	uORB::Subscription _power_button_state_sub {ORB_ID(power_button_state)};
 #endif // BOARD_HAS_POWER_CONTROL
 
-	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
-	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
+	uORB::SubscriptionData<mission_result_s>        _mission_result_sub{ORB_ID(mission_result)};
+	uORB::SubscriptionData<offboard_control_mode_s> _offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 
 	// Publications
-	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};
-	uORB::Publication<actuator_test_s>			_actuator_test_pub{ORB_ID(actuator_test)};
-	uORB::Publication<failure_detector_status_s>		_failure_detector_status_pub{ORB_ID(failure_detector_status)};
-	uORB::Publication<vehicle_command_ack_s>		_vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
-	uORB::Publication<vehicle_control_mode_s>		_vehicle_control_mode_pub{ORB_ID(vehicle_control_mode)};
-	uORB::Publication<vehicle_status_s>			_vehicle_status_pub{ORB_ID(vehicle_status)};
+	uORB::Publication<actuator_armed_s>          _actuator_armed_pub{ORB_ID(actuator_armed)};
+	uORB::Publication<actuator_test_s>           _actuator_test_pub{ORB_ID(actuator_test)};
+	uORB::Publication<commander_state_s>         _commander_state_pub{ORB_ID(commander_state)};
+	uORB::Publication<failure_detector_status_s> _failure_detector_status_pub{ORB_ID(failure_detector_status)};
+	uORB::Publication<vehicle_command_ack_s>     _vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_control_mode_s>    _vehicle_control_mode_pub{ORB_ID(vehicle_control_mode)};
+	uORB::Publication<vehicle_status_s>          _vehicle_status_pub{ORB_ID(vehicle_status)};
+	uORB::Publication<vehicle_status_flags_s>    _vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 
-	orb_advert_t _mavlink_log_pub{nullptr};
-
-	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
-
-	// optional parameters
+	// Optional parameters
 	param_t _param_mav_comp_id{PARAM_INVALID};
 	param_t _param_mav_sys_id{PARAM_INVALID};
 	param_t _param_mav_type{PARAM_INVALID};
