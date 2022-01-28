@@ -306,6 +306,7 @@ protected:
 	airspeedSample _airspeed_sample_delayed{};
 	flowSample _flow_sample_delayed{};
 	extVisionSample _ev_sample_delayed{};
+	extVisionSample _ev_sample_delayed_prev{};
 	dragSample _drag_sample_delayed{};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 	auxVelSample _auxvel_sample_delayed{};
