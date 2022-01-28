@@ -407,6 +407,11 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 
 	if (optional && orb_exists(topic, instance) != 0) {
 		PX4_DEBUG("Not adding non-existing optional topic %s %i", topic->o_name, instance);
+
+		if (instance == 0 && _subscriptions.num_excluded_optional_topic_ids < MAX_EXCLUDED_OPTIONAL_TOPICS_NUM) {
+			_subscriptions.excluded_optional_topic_ids[_subscriptions.num_excluded_optional_topic_ids++] = topic->o_id;
+		}
+
 		return false;
 	}
 
