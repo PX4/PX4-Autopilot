@@ -177,6 +177,7 @@ BatteryStatus::adc_poll()
 	/* Per Brick readings with default unread channels at 0 */
 	float bat_current_adc_readings[BOARD_NUMBER_BRICKS] {};
 	float bat_voltage_adc_readings[BOARD_NUMBER_BRICKS] {};
+	bool has_bat_voltage_adc_channel[BOARD_NUMBER_BRICKS] {};
 
 	int selected_source = -1;
 
@@ -201,16 +202,19 @@ BatteryStatus::adc_poll()
 
 				/* look for specific channels and process the raw voltage to measurement data */
 
-				if (adc_report.channel_id[i] == _analogBatteries[b]->get_voltage_channel()) {
-					/* Voltage in volts */
-					bat_voltage_adc_readings[b] = adc_report.raw_data[i] *
-								      adc_report.v_ref /
-								      adc_report.resolution;
+				if (adc_report.channel_id[i] >= 0) {
+					if (adc_report.channel_id[i] == _analogBatteries[b]->get_voltage_channel()) {
+						/* Voltage in volts */
+						bat_voltage_adc_readings[b] = adc_report.raw_data[i] *
+									      adc_report.v_ref /
+									      adc_report.resolution;
+						has_bat_voltage_adc_channel[b] = true;
 
-				} else if (adc_report.channel_id[i] == _analogBatteries[b]->get_current_channel()) {
-					bat_current_adc_readings[b] = adc_report.raw_data[i] *
-								      adc_report.v_ref /
-								      adc_report.resolution;
+					} else if (adc_report.channel_id[i] == _analogBatteries[b]->get_current_channel()) {
+						bat_current_adc_readings[b] = adc_report.raw_data[i] *
+									      adc_report.v_ref /
+									      adc_report.resolution;
+					}
 				}
 
 			}
@@ -218,11 +222,13 @@ BatteryStatus::adc_poll()
 
 		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
-			_analogBatteries[b]->updateBatteryStatusADC(
-				hrt_absolute_time(),
-				bat_voltage_adc_readings[b],
-				bat_current_adc_readings[b]
-			);
+			if (has_bat_voltage_adc_channel[b]) { // Do not publish if no voltage channel configured
+				_analogBatteries[b]->updateBatteryStatusADC(
+					hrt_absolute_time(),
+					bat_voltage_adc_readings[b],
+					bat_current_adc_readings[b]
+				);
+			}
 		}
 	}
 }
