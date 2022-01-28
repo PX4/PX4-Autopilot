@@ -59,16 +59,11 @@
 #include <px4_platform_common/tasks.h>
 #include <systemlib/mavlink_log.h>
 
-/**
- * navigator app start / stop handling function
- *
- * @ingroup apps
- */
-extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 using namespace time_literals;
+
 namespace navigator
 {
-Navigator	*g_navigator;
+Navigator *g_navigator;
 }
 
 Navigator::Navigator() :
@@ -116,8 +111,7 @@ Navigator::~Navigator()
 	orb_unsubscribe(_vehicle_status_sub);
 }
 
-void
-Navigator::params_update()
+void Navigator::params_update()
 {
 	updateParams();
 
@@ -138,8 +132,7 @@ Navigator::params_update()
 	}
 }
 
-void
-Navigator::run()
+void Navigator::run()
 {
 	bool have_geofence_position_data = false;
 
@@ -776,7 +769,6 @@ Navigator::run()
 
 void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 {
-
 	if (have_geofence_position_data &&
 	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_NONE) &&
 	    (hrt_elapsed_time(&_last_geofence_check) > GEOFENCE_CHECK_INTERVAL_US)) {
@@ -934,8 +926,7 @@ Navigator *Navigator::instantiate(int argc, char *argv[])
 	return instance;
 }
 
-int
-Navigator::print_status()
+int Navigator::print_status()
 {
 	PX4_INFO("Running");
 
@@ -943,22 +934,19 @@ Navigator::print_status()
 	return 0;
 }
 
-void
-Navigator::publish_position_setpoint_triplet()
+void Navigator::publish_position_setpoint_triplet()
 {
 	_pos_sp_triplet.timestamp = hrt_absolute_time();
 	_pos_sp_triplet_pub.publish(_pos_sp_triplet);
 	_pos_sp_triplet_updated = false;
 }
 
-float
-Navigator::get_default_acceptance_radius()
+float Navigator::get_default_acceptance_radius()
 {
 	return _param_nav_acc_rad.get();
 }
 
-float
-Navigator::get_default_altitude_acceptance_radius()
+float Navigator::get_default_altitude_acceptance_radius()
 {
 	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		return _param_nav_fw_alt_rad.get();
@@ -980,8 +968,7 @@ Navigator::get_default_altitude_acceptance_radius()
 	}
 }
 
-float
-Navigator::get_altitude_acceptance_radius()
+float Navigator::get_altitude_acceptance_radius()
 {
 	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
@@ -995,8 +982,7 @@ Navigator::get_altitude_acceptance_radius()
 	return get_default_altitude_acceptance_radius();
 }
 
-float
-Navigator::get_cruising_speed()
+float Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
@@ -1017,8 +1003,7 @@ Navigator::get_cruising_speed()
 	}
 }
 
-void
-Navigator::set_cruising_speed(float speed)
+void Navigator::set_cruising_speed(float speed)
 {
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_mission_cruising_speed_mc = speed;
@@ -1028,15 +1013,13 @@ Navigator::set_cruising_speed(float speed)
 	}
 }
 
-void
-Navigator::reset_cruising_speed()
+void Navigator::reset_cruising_speed()
 {
 	_mission_cruising_speed_mc = -1.0f;
 	_mission_cruising_speed_fw = -1.0f;
 }
 
-void
-Navigator::reset_triplets()
+void Navigator::reset_triplets()
 {
 	reset_position_setpoint(_pos_sp_triplet.previous);
 	reset_position_setpoint(_pos_sp_triplet.current);
@@ -1045,8 +1028,7 @@ Navigator::reset_triplets()
 	_pos_sp_triplet_updated = true;
 }
 
-void
-Navigator::reset_position_setpoint(position_setpoint_s &sp)
+void Navigator::reset_position_setpoint(position_setpoint_s &sp)
 {
 	sp = position_setpoint_s{};
 	sp.timestamp = hrt_absolute_time();
@@ -1061,8 +1043,7 @@ Navigator::reset_position_setpoint(position_setpoint_s &sp)
 	sp.disable_weather_vane = false;
 }
 
-float
-Navigator::get_cruising_throttle()
+float Navigator::get_cruising_throttle()
 {
 	/* Return the mission-requested cruise speed, or default FW_THR_CRUISE value */
 	if (_mission_throttle > FLT_EPSILON) {
@@ -1073,8 +1054,7 @@ Navigator::get_cruising_throttle()
 	}
 }
 
-float
-Navigator::get_acceptance_radius()
+float Navigator::get_acceptance_radius()
 {
 	float acceptance_radius = get_default_acceptance_radius(); // the value specified in the parameter NAV_ACC_RAD
 	const position_controller_status_s &pos_ctrl_status = _position_controller_status_sub.get();
@@ -1089,8 +1069,7 @@ Navigator::get_acceptance_radius()
 	return acceptance_radius;
 }
 
-float
-Navigator::get_yaw_acceptance(float mission_item_yaw)
+float Navigator::get_yaw_acceptance(float mission_item_yaw)
 {
 	float yaw = mission_item_yaw;
 
@@ -1105,20 +1084,17 @@ Navigator::get_yaw_acceptance(float mission_item_yaw)
 	return yaw;
 }
 
-void
-Navigator::load_fence_from_file(const char *filename)
+void Navigator::load_fence_from_file(const char *filename)
 {
 	_geofence.loadFromFile(filename);
 }
 
-/**
- * Creates a fake traffic measurement with supplied parameters.
- *
- */
 void Navigator::fake_traffic(const char *callsign, float distance, float direction, float traffic_heading,
 			     float altitude_diff, float hor_velocity, float ver_velocity, int emitter_type)
 {
-	double lat, lon;
+	double lat{0.0};
+	double lon{0.0};
+
 	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, direction, distance, &lat,
 					   &lon);
 	float alt = get_global_position()->alt + altitude_diff;
@@ -1147,9 +1123,6 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 		   (transponder_report_s::ADSB_EMITTER_TYPE_UAV & emitter_type ? 0 :
 		    transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN); // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
-
-
-
 
 #ifndef BOARD_HAS_NO_UUID
 	px4_guid_t px4_guid;
@@ -1370,8 +1343,7 @@ void Navigator::check_traffic()
 	}
 }
 
-bool
-Navigator::buffer_air_traffic(uint32_t icao_address)
+bool Navigator::buffer_air_traffic(uint32_t icao_address)
 {
 	bool action_needed = true;
 
@@ -1392,8 +1364,7 @@ Navigator::buffer_air_traffic(uint32_t icao_address)
 	return action_needed;
 }
 
-bool
-Navigator::abort_landing()
+bool Navigator::abort_landing()
 {
 	// only abort if currently landing and position controller status updated
 	bool should_abort = false;
@@ -1416,8 +1387,7 @@ Navigator::abort_landing()
 	return should_abort;
 }
 
-bool
-Navigator::force_vtol()
+bool Navigator::force_vtol()
 {
 	return _vstatus.is_vtol &&
 	       (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || _vstatus.in_transition_to_fw)
@@ -1448,13 +1418,7 @@ int Navigator::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int navigator_main(int argc, char *argv[])
-{
-	return Navigator::main(argc, argv);
-}
-
-void
-Navigator::publish_mission_result()
+void Navigator::publish_mission_result()
 {
 	_mission_result.timestamp = hrt_absolute_time();
 
@@ -1469,8 +1433,7 @@ Navigator::publish_mission_result()
 	_mission_result_updated = false;
 }
 
-void
-Navigator::set_mission_failure_heading_timeout()
+void Navigator::set_mission_failure_heading_timeout()
 {
 	if (!_mission_result.failure) {
 		_mission_result.failure = true;
@@ -1481,8 +1444,7 @@ Navigator::set_mission_failure_heading_timeout()
 	}
 }
 
-void
-Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
+void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 {
 	vcmd->timestamp = hrt_absolute_time();
 	vcmd->source_system = _vstatus.system_id;
@@ -1509,8 +1471,7 @@ Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 	_vehicle_cmd_pub.publish(*vcmd);
 }
 
-void
-Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result)
+void Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result)
 {
 	vehicle_command_ack_s command_ack = {};
 
@@ -1527,8 +1488,7 @@ Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t res
 	_vehicle_cmd_ack_pub.publish(command_ack);
 }
 
-void
-Navigator::acquire_gimbal_control()
+void Navigator::acquire_gimbal_control()
 {
 	vehicle_command_s vcmd = {};
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
@@ -1539,8 +1499,7 @@ Navigator::acquire_gimbal_control()
 	publish_vehicle_cmd(&vcmd);
 }
 
-void
-Navigator::release_gimbal_control()
+void Navigator::release_gimbal_control()
 {
 	vehicle_command_s vcmd = {};
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
@@ -1594,4 +1553,14 @@ controller.
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
+}
+
+/**
+ * navigator app start / stop handling function
+ *
+ * @ingroup apps
+ */
+extern "C" __EXPORT int navigator_main(int argc, char *argv[])
+{
+	return Navigator::main(argc, argv);
 }
