@@ -9,4 +9,7 @@ uint8 GF_ACTION_LAND = 5        # switch to AUTO|LAND
 bool geofence_violated          # true if the geofence is violated
 uint8 geofence_action           # action to take when geofence is violated
 
+bool geofence_buffer_violated   # true if the geofence buffer zone is violated
+uint8 geofence_buffer_action    # action to take when geofence buffer zone is violated
+
 bool home_required              # true if the geofence requires a valid home position

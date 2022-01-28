@@ -85,6 +85,7 @@ bool high_latency_data_link_lost 			# Set to true if the high latency data link 
 
 bool mission_failure				# Set to true if mission could not continue/finish
 bool geofence_violated
+bool geofence_buffer_violated
 
 uint16 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 

@@ -107,13 +107,18 @@ public:
 
 	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
 
+
+	bool isCloserThanBufferDistance(double lat, double lon, float altitude);
+
 	bool isBelowMaxAltitude(float altitude);
 
 	virtual bool isInsidePolygonOrCircle(double lat, double lon, float altitude);
 
+	virtual bool isInsideBufferZone(double lat, double lon, float altitude);
+
 	int clearDm();
 
-	bool valid();
+	bool valid() { return true; }	// always valid
 
 	/**
 	 * Load a single inclusion polygon, replacing any already existing polygons.
@@ -140,7 +145,7 @@ public:
 
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
-
+	int getGeofenceBufferAction() { return _param_gf_buffer_action.get(); }
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 	bool getPredict() { return _param_gf_predict.get(); }
@@ -179,6 +184,7 @@ private:
 	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
 
 	int _outside_counter{0};
+
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
 
 	/**
@@ -198,9 +204,8 @@ private:
 	 */
 	bool checkPolygons(double lat, double lon, float altitude);
 
-
-
 	bool checkAll(const vehicle_global_position_s &global_position);
+
 	bool checkAll(const vehicle_global_position_s &global_position, float baro_altitude_amsl);
 
 	/**
@@ -209,12 +214,16 @@ private:
 	 */
 	bool insidePolygon(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
+	bool insidePolygonBufferZone(const PolygonInfo &polygon, double lat, double lon, float altitude);
+
 	/**
 	 * Check if a single point is within a circle
 	 * @param polygon must be a circle!
 	 * @return true if within polygon the circle
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
+
+	bool insideCircleBufferZone(const PolygonInfo &polygon, double lat, double lon, float altitude);
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
@@ -223,6 +232,8 @@ private:
 		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
-		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict
+		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict,
+		(ParamInt<px4::params::GF_BUFFER_ACTION>)  _param_gf_buffer_action,
+		(ParamFloat<px4::params::GF_BUFFER_DIST>)  _param_gf_buffer_dist
 	)
 };

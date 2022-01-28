@@ -88,8 +88,8 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{home_global(0), home_global(1)};
 
-	geofence_violation_type_u gf_violation;
-	gf_violation.flags.fence_violation = true;
+	geofence_violation_type gf_violation;
+	gf_violation.fence_violation = true;
 
 	gf_avoidance.setHorizontalTestPointDistance(20.0f);
 	gf_avoidance.setTestPointBearing(0.0f);
@@ -121,7 +121,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForFixedWing)
 	EXPECT_FLOAT_EQ(loiter_point_lat_lon(0), loiter_point_lat_lon_expected(0));
 	EXPECT_FLOAT_EQ(loiter_point_lat_lon(1), loiter_point_lat_lon_expected(1));
 
-	gf_violation.flags.fence_violation = false;
+	gf_violation.fence_violation = false;
 	loiter_point_lat_lon = gf_avoidance.generateLoiterPointForFixedWing(gf_violation, &geo);
 
 	EXPECT_FLOAT_EQ(loiter_point_lat_lon(0), home_global(0));
@@ -148,8 +148,8 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 	value = 8;
 	param_set(param, &value);
 
-	geofence_violation_type_u gf_violation;
-	gf_violation.flags.fence_violation = true;
+	geofence_violation_type gf_violation;
+	gf_violation.fence_violation = true;
 
 	gf_avoidance.setHorizontalTestPointDistance(30.0f);
 	gf_avoidance.setTestPointBearing(0.0f);
@@ -184,7 +184,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterPointForMultirotor)
 
 	EXPECT_LE(error, 0.0f);
 
-	gf_violation.flags.fence_violation = false;
+	gf_violation.fence_violation = false;
 	loiter_point = gf_avoidance.generateLoiterPointForMultirotor(gf_violation, &geo);
 
 	EXPECT_LT(Vector2d(loiter_point - home_global).norm(), 1e-4);
@@ -198,14 +198,14 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForFixedWing)
 
 	gf_avoidance.setVerticalTestPointDistance(vertical_test_point_dist);
 	gf_avoidance.setCurrentPosition(0, 0, current_alt_amsl); // just care about altitude
-	geofence_violation_type_u gf_violation;
-	gf_violation.flags.max_altitude_exceeded = true;
+	geofence_violation_type gf_violation;
+	gf_violation.max_altitude_exceeded = true;
 
 	float loiter_alt = gf_avoidance.generateLoiterAltitudeForFixedWing(gf_violation);
 
 	EXPECT_EQ(loiter_alt, current_alt_amsl - 2 * vertical_test_point_dist);
 
-	gf_violation.flags.max_altitude_exceeded = false;
+	gf_violation.max_altitude_exceeded = false;
 
 	loiter_alt = gf_avoidance.generateLoiterAltitudeForFixedWing(gf_violation);
 
@@ -217,8 +217,8 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
 	GeofenceBreachAvoidance gf_avoidance(nullptr);
 	const float climbrate = 10.0f;
 	const float current_alt_amsl = 100.0f;
-	geofence_violation_type_u gf_violation;
-	gf_violation.flags.max_altitude_exceeded = true;
+	geofence_violation_type gf_violation;
+	gf_violation.max_altitude_exceeded = true;
 
 	gf_avoidance.setClimbRate(climbrate);
 	gf_avoidance.setCurrentPosition(0, 0, current_alt_amsl);
@@ -229,7 +229,7 @@ TEST_F(GeofenceBreachAvoidanceTest, generateLoiterAltitudeForMulticopter)
 	EXPECT_EQ(loiter_alt_amsl, current_alt_amsl + gf_avoidance.computeVerticalBrakingDistanceMultirotor() -
 		  gf_avoidance.getMinVertDistToFenceMultirotor());
 
-	gf_violation.flags.max_altitude_exceeded = false;
+	gf_violation.max_altitude_exceeded = false;
 
 	loiter_alt_amsl = gf_avoidance.generateLoiterAltitudeForMulticopter(gf_violation);
 
@@ -242,8 +242,8 @@ TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationMulticopter)
 	FakeGeofence geo;
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{home_global(0), home_global(1)};
-	geofence_violation_type_u gf_violation;
-	gf_violation.flags.dist_to_home_exceeded = true;
+	geofence_violation_type gf_violation;
+	gf_violation.dist_to_home_exceeded = true;
 
 	const float hor_vel = 8.0f;
 	const float test_point_distance = 30.0f;
@@ -274,8 +274,8 @@ TEST_F(GeofenceBreachAvoidanceTest, maxDistToHomeViolationFixedWing)
 	FakeGeofence geo;
 	Vector2d home_global(42.1, 8.2);
 	MapProjection ref{home_global(0), home_global(1)};
-	geofence_violation_type_u gf_violation;
-	gf_violation.flags.dist_to_home_exceeded = true;
+	geofence_violation_type gf_violation;
+	gf_violation.dist_to_home_exceeded = true;
 
 	const float test_point_distance = 30.0f;
 	const float max_dist_to_home = 100.0f;

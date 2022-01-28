@@ -41,13 +41,11 @@ class Geofence;
 
 #define GEOFENCE_CHECK_INTERVAL_US 200000
 
-union geofence_violation_type_u {
-	struct {
-		bool dist_to_home_exceeded: 1;	///< 0 - distance to home exceeded
-		bool max_altitude_exceeded: 1;	///< 1 - maximum altitude exceeded
-		bool fence_violation: 1;	///< 2- violation of user defined fence
-	} flags;
-	uint8_t value;
+struct geofence_violation_type {
+	bool dist_to_home_exceeded{false};
+	bool max_altitude_exceeded{false};
+	bool fence_violation{false};
+	bool buffer_violation{false};
 };
 
 class GeofenceBreachAvoidance : public ModuleParams
@@ -63,17 +61,17 @@ public:
 			float test_point_bearing, float test_point_distance);
 
 	matrix::Vector2<double>
-	generateLoiterPointForFixedWing(geofence_violation_type_u violation_type, Geofence *geofence);
+	generateLoiterPointForFixedWing(geofence_violation_type violation_type, Geofence *geofence);
 
 	float computeBrakingDistanceMultirotor();
 
 	float computeVerticalBrakingDistanceMultirotor();
 
-	matrix::Vector2<double> generateLoiterPointForMultirotor(geofence_violation_type_u violation_type, Geofence *geofence);
+	matrix::Vector2<double> generateLoiterPointForMultirotor(geofence_violation_type violation_type, Geofence *geofence);
 
-	float generateLoiterAltitudeForFixedWing(geofence_violation_type_u violation_type);
+	float generateLoiterAltitudeForFixedWing(geofence_violation_type violation_type);
 
-	float generateLoiterAltitudeForMulticopter(geofence_violation_type_u violation_type);
+	float generateLoiterAltitudeForMulticopter(geofence_violation_type violation_type);
 
 	float getMinHorDistToFenceMulticopter() {return _min_hor_dist_to_fence_mc;}
 

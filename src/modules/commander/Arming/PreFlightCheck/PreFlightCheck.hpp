@@ -91,6 +91,7 @@ public:
 		bool global_position = false;
 		bool mission = false;
 		bool geofence = false;
+		bool geofence_buffer = false;
 	};
 
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
