@@ -85,5 +85,4 @@ target_compile_definitions(version
 	)
 
 target_link_libraries(version PRIVATE git_ver)
-target_link_libraries(version PRIVATE drivers_board)
 add_dependencies(version prebuild_targets)

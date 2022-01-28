@@ -58,6 +58,7 @@ if(NOT PX4_BOARD MATCHES "io-v2")
 			arch_version
 			nuttx_apps
 			nuttx_sched
+			nuttx_mm
 			px4_work_queue
 			uORB
 	)
