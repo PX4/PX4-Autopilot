@@ -117,7 +117,13 @@ set_property(TARGET nuttx_apps PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_BINARY
 add_dependencies(nuttx_apps nuttx_apps_build)
 
 # helper for all targets
-function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
+function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra target)
+	if (${target} STREQUAL all)
+		set(nuttx_lib_target all)
+	else()
+		set(nuttx_lib_target lib${target}.a)
+	endif()
+
 	file(GLOB_RECURSE nuttx_lib_files LIST_DIRECTORIES false
 		${CMAKE_CURRENT_SOURCE_DIR}/nuttx/${nuttx_lib_dir}/*.c
 		${CMAKE_CURRENT_SOURCE_DIR}/nuttx/${nuttx_lib_dir}/*.h
@@ -126,7 +132,7 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		COMMAND find ${nuttx_lib_dir} -type f -name \*.o -delete
-		COMMAND make -C ${nuttx_lib_dir} --no-print-directory --silent all TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRAFLAGS=${extra}
+		COMMAND make -C ${nuttx_lib_dir} --no-print-directory --silent ${nuttx_lib_target} TOPDIR="${NUTTX_DIR}" KERNEL=${kernel} EXTRAFLAGS=${extra}
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a ${CMAKE_CURRENT_BINARY_DIR}/nuttx/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		DEPENDS
 			${nuttx_lib_files}
@@ -142,19 +148,35 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 endfunction()
 
 # add_nuttx_dir(NAME DIRECTORY KERNEL EXTRA)
-add_nuttx_dir(arch arch/${CONFIG_ARCH}/src y -D__KERNEL__)
-add_nuttx_dir(binfmt binfmt y -D__KERNEL__)
-add_nuttx_dir(boards boards y -D__KERNEL__)
-add_nuttx_dir(drivers drivers y -D__KERNEL__)
-add_nuttx_dir(fs fs y -D__KERNEL__)
-add_nuttx_dir(sched sched y -D__KERNEL__)
-add_nuttx_dir(c libs/libc n "")
-add_nuttx_dir(xx libs/libxx n "")
-add_nuttx_dir(mm mm n "")
-add_nuttx_dir(crypto crypto y -D__KERNEL__)
+add_nuttx_dir(binfmt binfmt y -D__KERNEL__ all)
+add_nuttx_dir(boards boards y -D__KERNEL__ all)
+add_nuttx_dir(drivers drivers y -D__KERNEL__ all)
+add_nuttx_dir(fs fs y -D__KERNEL__ all)
+add_nuttx_dir(sched sched y -D__KERNEL__ all)
+add_nuttx_dir(xx libs/libxx n "" all)
+add_nuttx_dir(crypto crypto y -D__KERNEL__ all)
+
+if (NOT CONFIG_BUILD_FLAT)
+	add_nuttx_dir(arch arch/${CONFIG_ARCH}/src n "" arch)
+	add_dependencies(nuttx_arch_build nuttx_karch_build) # can't build these in parallel
+	add_nuttx_dir(karch arch/arm/src y -D__KERNEL__ karch)
+	add_nuttx_dir(c libs/libc n "" c)
+	add_dependencies(nuttx_c_build nuttx_kc_build) # can't build these in parallel
+	add_nuttx_dir(kc libs/libc y -D__KERNEL__ kc)
+	add_nuttx_dir(mm mm n "" mm)
+	add_dependencies(nuttx_mm_build nuttx_kmm_build) # can't build these in parallel
+	add_nuttx_dir(kmm mm y -D__KERNEL__ kmm)
+	add_nuttx_dir(proxies syscall n "" proxies)
+	add_dependencies(nuttx_proxies_build nuttx_stubs_build) # can't build these in parallel
+	add_nuttx_dir(stubs syscall y -D__KERNEL__ stubs)
+else()
+	add_nuttx_dir(arch arch/${CONFIG_ARCH}/src y -D__KERNEL__ all)
+	add_nuttx_dir(c libs/libc n "" all)
+	add_nuttx_dir(mm mm n "" mm)
+endif()
 
 if(CONFIG_NET)
-	add_nuttx_dir(net net y -D__KERNEL__)
+	add_nuttx_dir(net net y -D__KERNEL__ all)
 endif()
 
 ###############################################################################

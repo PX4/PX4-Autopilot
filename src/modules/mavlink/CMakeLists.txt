@@ -123,3 +123,7 @@ px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
 		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 		LINKLIBS modules__mavlink
 	)
+
+if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
+	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask
+endif()
