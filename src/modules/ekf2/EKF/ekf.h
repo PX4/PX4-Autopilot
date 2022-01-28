@@ -252,6 +252,7 @@ public:
 	const auto &state_reset_status() const { return _state_reset_status; }
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
+	uint8_t get_posD_reset_count() const { return _state_reset_status.posD_counter; }
 	void get_posD_reset(float *delta, uint8_t *counter) const
 	{
 		*delta = _state_reset_status.posD_change;
@@ -259,6 +260,7 @@ public:
 	}
 
 	// return the amount the local vertical velocity changed in the last reset and the number of reset events
+	uint8_t get_velD_reset_count() const { return _state_reset_status.velD_counter; }
 	void get_velD_reset(float *delta, uint8_t *counter) const
 	{
 		*delta = _state_reset_status.velD_change;
@@ -266,6 +268,7 @@ public:
 	}
 
 	// return the amount the local horizontal position changed in the last reset and the number of reset events
+	uint8_t get_posNE_reset_count() const { return _state_reset_status.posNE_counter; }
 	void get_posNE_reset(float delta[2], uint8_t *counter) const
 	{
 		_state_reset_status.posNE_change.copyTo(delta);
@@ -273,6 +276,7 @@ public:
 	}
 
 	// return the amount the local horizontal velocity changed in the last reset and the number of reset events
+	uint8_t get_velNE_reset_count() const { return _state_reset_status.velNE_counter; }
 	void get_velNE_reset(float delta[2], uint8_t *counter) const
 	{
 		_state_reset_status.velNE_change.copyTo(delta);
@@ -280,6 +284,7 @@ public:
 	}
 
 	// return the amount the quaternion has changed in the last reset and the number of reset events
+	uint8_t get_quat_reset_count() const { return _state_reset_status.quat_counter; }
 	void get_quat_reset(float delta_quat[4], uint8_t *counter) const
 	{
 		_state_reset_status.quat_change.copyTo(delta_quat);
@@ -352,7 +357,6 @@ private:
 
 	// variables used when position data is being fused using a relative position odometry model
 	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
-	Vector3f _pos_meas_prev{};		///< previous value of NED position measurement fused using odometry assumption (m)
 	Vector2f _hpos_pred_prev{};		///< previous value of NE position state used by odometry fusion (m)
 	bool _hpos_prev_available{false};	///< true when previous values of the estimate and measurement are available for use
 	Dcmf _R_ev_to_ekf;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame, initialized with Identity
