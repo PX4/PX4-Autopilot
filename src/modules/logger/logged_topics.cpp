@@ -191,6 +191,25 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
+
+	// EKF replay
+	add_topic("ekf_gps_drift");
+	add_topic("estimator_baro_bias");
+	add_topic("estimator_event_flags");
+	add_topic("estimator_innovation_test_ratios");
+	add_topic("estimator_innovation_variances");
+	add_topic("estimator_innovations");
+	add_topic("estimator_optical_flow_vel");
+	add_topic("estimator_sensor_bias");
+	add_topic("estimator_states");
+	add_topic("estimator_status");
+	add_topic("estimator_status_flags");
+	add_topic("estimator_visual_odometry_aligned");
+	add_topic("vehicle_attitude");
+	add_topic("vehicle_global_position");
+	add_topic("vehicle_local_position");
+	add_topic("wind");
+	add_topic("yaw_estimator_status");
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 
 
