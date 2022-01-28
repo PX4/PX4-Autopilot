@@ -10,7 +10,7 @@ fi
 
 if [ ! -f replay_params.txt ]; then
 	echo "Creating $(pwd)/replay_params.txt"
-	ulog_params -i "${replay}" -d ' ' | grep -e '^EKF2' > replay_params.txt
+	ulog_params -i "${replay}" -l ' ' | grep -e '^EKF2' > replay_params.txt
 fi
 
 publisher_rules_file="orb_publisher.rules"
