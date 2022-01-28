@@ -21,6 +21,7 @@ ignore_others: false
 EOF
 
 param set SDLOG_DIRS_MAX 7
+param set SDLOG_PROFILE 3
 
 # apply all params before ekf starts, as some params cannot be changed after startup
 replay tryapplyparams
