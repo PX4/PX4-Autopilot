@@ -1048,6 +1048,10 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 	odom.velocity_covariance[odom.COVARIANCE_MATRIX_VY_VARIANCE] = covariances[5];
 	odom.velocity_covariance[odom.COVARIANCE_MATRIX_VZ_VARIANCE] = covariances[6];
 
+	odom.reset_counter = _ekf.get_quat_reset_count()
+			     + _ekf.get_velNE_reset_count() + _ekf.get_velD_reset_count()
+			     + _ekf.get_posNE_reset_count() + _ekf.get_posD_reset_count();
+
 	// publish vehicle odometry data
 	odom.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_odometry_pub.publish(odom);

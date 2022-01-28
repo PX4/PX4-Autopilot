@@ -152,6 +152,7 @@ struct extVisionSample {
 	Matrix3f velCov;	///< XYZ velocity covariances ((m/sec)**2)
 	float angVar;		///< angular heading variance (rad**2)
 	velocity_frame_t vel_frame = velocity_frame_t::BODY_FRAME_FRD;
+	uint8_t reset_counter{0};
 };
 
 struct dragSample {

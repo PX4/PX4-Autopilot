@@ -1566,7 +1566,7 @@ void Ekf::stopGpsFusion()
 
 	// We do not need to know the true North anymore
 	// EV yaw can start again
-	_inhibit_ev_yaw_use = false;;
+	_inhibit_ev_yaw_use = false;
 }
 
 void Ekf::stopGpsPosFusion()

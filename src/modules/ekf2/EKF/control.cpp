@@ -212,6 +212,12 @@ void Ekf::controlExternalVisionFusion()
 	// Check for new external vision data
 	if (_ev_data_ready) {
 
+		bool reset = false;
+
+		if (_ev_sample_delayed.reset_counter != _ev_sample_delayed_prev.reset_counter) {
+			reset = true;
+		}
+
 		if (_inhibit_ev_yaw_use) {
 			stopEvYawFusion();
 		}
@@ -257,6 +263,9 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the horizontal position observations
 		if (_control_status.flags.ev_pos) {
+			if (reset && _control_status_prev.flags.ev_pos) {
+				resetHorizontalPosition();
+			}
 
 			Vector3f ev_pos_obs_var;
 			Vector2f ev_pos_innov_gates;
@@ -281,10 +290,8 @@ void Ekf::controlExternalVisionFusion()
 
 				} else {
 					// calculate the change in position since the last measurement
-					Vector3f ev_delta_pos = _ev_sample_delayed.pos - _pos_meas_prev;
-
 					// rotate measurement into body frame is required when fusing with GPS
-					ev_delta_pos = _R_ev_to_ekf * ev_delta_pos;
+					Vector3f ev_delta_pos = _R_ev_to_ekf * Vector3f(_ev_sample_delayed.pos - _ev_sample_delayed_prev.pos);
 
 					// use the change in position since the last measurement
 					_ev_pos_innov(0) = _state.pos(0) - _hpos_pred_prev(0) - ev_delta_pos(0);
@@ -296,11 +303,6 @@ void Ekf::controlExternalVisionFusion()
 					ev_pos_obs_var(0) = fmaxf(ev_pos_var(0, 0), sq(0.5f));
 					ev_pos_obs_var(1) = fmaxf(ev_pos_var(1, 1), sq(0.5f));
 				}
-
-				// record observation and estimate for use next time
-				_pos_meas_prev = _ev_sample_delayed.pos;
-				_hpos_pred_prev = _state.pos.xy();
-
 			} else {
 				// use the absolute position
 				Vector3f ev_pos_meas = _ev_sample_delayed.pos;
@@ -337,6 +339,9 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the velocity observations
 		if (_control_status.flags.ev_vel) {
+			if (reset && _control_status_prev.flags.ev_vel) {
+				resetVelocity();
+			}
 
 			Vector2f ev_vel_innov_gates;
 
@@ -362,8 +367,16 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the yaw observation
 		if (_control_status.flags.ev_yaw) {
+			if (reset && _control_status_prev.flags.ev_yaw) {
+				resetYawToEv();
+			}
+
 			fuseHeading();
 		}
+
+		// record observation and estimate for use next time
+		_ev_sample_delayed_prev = _ev_sample_delayed;
+		_hpos_pred_prev = _state.pos.xy();
 
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel ||  _control_status.flags.ev_yaw)
 		   && isTimedOut(_time_last_ext_vision, (uint64_t)_params.reset_timeout_max)) {
