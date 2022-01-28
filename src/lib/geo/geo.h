@@ -68,9 +68,9 @@ static constexpr float  CONSTANTS_RADIUS_OF_EARTH_F = CONSTANTS_RADIUS_OF_EARTH;
 static constexpr float CONSTANTS_EARTH_SPIN_RATE = 7.2921150e-5f;				// radians/second (rad/s)
 
 
-// XXX remove
 struct crosstrack_error_s {
 	bool past_end;		// Flag indicating we are past the end of the line/arc segment
+	bool before_start;	// Flag indicating we are before the start of the line/arc segment
 	float distance;		// Distance in meters to closest point on line/arc
 	float bearing;		// Bearing in radians to closest point on line/arc
 } ;
@@ -136,6 +136,9 @@ void add_vector_to_global_position(double lat_now, double lon_now, float v_n, fl
 
 int get_distance_to_line(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
 			 double lat_start, double lon_start, double lat_end, double lon_end);
+
+int get_distance_to_segment(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
+			    double lat_start, double lon_start, double lat_end, double lon_end);
 
 int get_distance_to_arc(struct crosstrack_error_s *crosstrack_error, double lat_now, double lon_now,
 			double lat_center, double lon_center,

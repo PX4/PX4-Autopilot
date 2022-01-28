@@ -94,16 +94,15 @@ matrix::Vector2<double> GeofenceBreachAvoidance::waypointFromBearingAndDistance(
 	return Vector2d(fence_violation_test_point_lat, fence_violation_test_point_lon);
 }
 
-Vector2d
-GeofenceBreachAvoidance::getFenceViolationTestPoint()
+Vector2d GeofenceBreachAvoidance::getFenceViolationTestPoint()
 {
 	return waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, _test_point_distance);
 }
 
-Vector2d
-GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type_u violation_type, Geofence *geofence)
+Vector2d GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type violation_type,
+		Geofence *geofence)
 {
-	if (violation_type.flags.fence_violation) {
+	if (violation_type.fence_violation) {
 		const float bearing_90_left = matrix::wrap_2pi(_test_point_bearing - M_PI_F * 0.5f);
 		const float bearing_90_right = matrix::wrap_2pi(_test_point_bearing + M_PI_F * 0.5f);
 
@@ -139,7 +138,7 @@ GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type
 
 		return Vector2d(loiter_center_lat, loiter_center_lon);
 
-	} else if (violation_type.flags.dist_to_home_exceeded) {
+	} else if (violation_type.dist_to_home_exceeded) {
 
 		return waypointFromHomeToTestPointAtDist(math::max(_max_hor_dist_home - 2 * _test_point_distance, 0.0f));
 
@@ -148,11 +147,10 @@ GeofenceBreachAvoidance::generateLoiterPointForFixedWing(geofence_violation_type
 	}
 }
 
-Vector2d
-GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_type_u violation_type, Geofence *geofence)
+Vector2d GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_type violation_type,
+		Geofence *geofence)
 {
-
-	if (violation_type.flags.fence_violation) {
+	if (violation_type.fence_violation) {
 		float current_distance = _test_point_distance * 0.5f;
 		float current_min = 0.0f;
 		float current_max = _test_point_distance;
@@ -181,7 +179,7 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 			return waypointFromBearingAndDistance(_current_pos_lat_lon, _test_point_bearing, _multirotor_braking_distance);
 		}
 
-	} else if (violation_type.flags.dist_to_home_exceeded) {
+	} else if (violation_type.dist_to_home_exceeded) {
 
 		return waypointFromHomeToTestPointAtDist(math::max(_max_hor_dist_home - _min_hor_dist_to_fence_mc, 0.0f));
 
@@ -195,9 +193,9 @@ GeofenceBreachAvoidance::generateLoiterPointForMultirotor(geofence_violation_typ
 	}
 }
 
-float GeofenceBreachAvoidance::generateLoiterAltitudeForFixedWing(geofence_violation_type_u violation_type)
+float GeofenceBreachAvoidance::generateLoiterAltitudeForFixedWing(geofence_violation_type violation_type)
 {
-	if (violation_type.flags.max_altitude_exceeded) {
+	if (violation_type.max_altitude_exceeded) {
 		return _current_alt_amsl - 2.0f * _vertical_test_point_distance;
 
 	} else {
@@ -205,9 +203,9 @@ float GeofenceBreachAvoidance::generateLoiterAltitudeForFixedWing(geofence_viola
 	}
 }
 
-float GeofenceBreachAvoidance::generateLoiterAltitudeForMulticopter(geofence_violation_type_u violation_type)
+float GeofenceBreachAvoidance::generateLoiterAltitudeForMulticopter(geofence_violation_type violation_type)
 {
-	if (violation_type.flags.max_altitude_exceeded) {
+	if (violation_type.max_altitude_exceeded) {
 		return _current_alt_amsl + _multirotor_vertical_braking_distance - _min_vert_dist_to_fence_mc;
 
 	} else {
