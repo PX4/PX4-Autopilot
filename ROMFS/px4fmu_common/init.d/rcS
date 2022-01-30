@@ -35,7 +35,7 @@ set MIXER_AUX none
 set MIXER_FILE none
 set MIXER_EXTRA none
 set OUTPUT_MODE none
-set PARAM_FILE /fs/microsd/params
+set PARAM_FILE ""
 set PWM_OUT none
 set PWM_MAIN_RATE p:PWM_MAIN_RATE
 set PWM_AUX_OUT none
@@ -72,28 +72,7 @@ then
 			umount /fs/microsd
 
 		else
-			# very basic I/O test
-			set PX4_INIT_TEST_FILE "/fs/microsd/.px4_init_test_file"
-			date >> $PX4_INIT_TEST_FILE
-
-			if [ $? -eq 0 -a -f $PX4_INIT_TEST_FILE ]
-			then
-				cat $PX4_INIT_TEST_FILE
-				rm $PX4_INIT_TEST_FILE
-
-				if [ $? -eq 0 -a ! -f $PX4_INIT_TEST_FILE ]
-				then
-					set SDCARD_AVAILABLE yes
-				fi
-			fi
-			unset PX4_INIT_TEST_FILE
-
-			if [ $SDCARD_AVAILABLE = no ]
-			then
-				echo "ERROR [init] card I/O failure, formatting"
-				set SDCARD_FORMAT yes
-				umount /fs/microsd
-			fi
+			set SDCARD_AVAILABLE yes
 		fi
 	fi
 
@@ -129,6 +108,8 @@ then
 			fi
 		fi
 	fi
+
+	set PARAM_FILE /fs/microsd/params
 fi
 
 #
@@ -161,8 +142,36 @@ else
 	param select $PARAM_FILE
 	if ! param import
 	then
-		param reset_all
+		echo "ERROR [init] param import failed"
+		set STARTUP_TUNE 2 # tune 2 = ERROR_TUNE
+
+		param dump $PARAM_FILE
+
+		if [ -d "/fs/microsd" ]
+		then
+			dmesg >> /fs/microsd/param_import_fail.txt &
+
+			# try to make a backup copy
+			cp $PARAM_FILE /fs/microsd/param_import_fail.bson &
+		fi
+
+		# try importing from backup file
+		if [ -f "/fs/microsd/parameters_backup.bson" ]
+		then
+			echo "[init] importing from parameter backup"
+
+			# dump current backup file contents for comparison
+			param dump /fs/microsd/parameters_backup.bson
+
+			param import /fs/microsd/parameters_backup.bson
+		fi
 	fi
+
+	if [ $SDCARD_AVAILABLE = yes ]
+	then
+		param select-backup /fs/microsd/parameters_backup.bson
+	fi
+
 	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X
 	then
 		netman update -i eth0
@@ -210,7 +219,16 @@ else
 	# Waypoint storage.
 	# REBOOTWORK this needs to start in parallel.
 	#
-	dataman start
+	if param compare SYS_DM_BACKEND 1
+	then
+		dataman start -r
+	else
+		if param compare SYS_DM_BACKEND 0
+		then
+			# dataman start default
+			dataman start
+		fi
+	fi
 
 	#
 	# Start the socket communication send_event handler.
@@ -273,15 +291,9 @@ else
 		# Start core UAVCAN module.
 		if uavcan start
 		then
-			if param greater UAVCAN_ENABLE 1
+			if param greater UAVCAN_ENABLE 2
 			then
-				# Start UAVCAN firmware update server and dynamic node ID allocation server.
-				uavcan start fw
-
-				if param greater UAVCAN_ENABLE 2
-				then
-					set OUTPUT_MODE uavcan_esc
-				fi
+				set OUTPUT_MODE uavcan_esc
 			fi
 		else
 			tune_control play error
@@ -397,17 +409,6 @@ else
 		commander start
 	fi
 
-
-	#
-	# Play the startup tune (if not disabled or there is an error)
-	#
-	param compare CBRK_BUZZER 782090
-	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
-	then
-		tune_control play -t $STARTUP_TUNE
-	fi
-
-
 	# Pre-takeoff continuous magnetometer calibration
 	if param compare -s MBE_ENABLE 1
 	then
@@ -426,7 +427,7 @@ else
 	set BOARD_RC_MAVLINK ${R}etc/init.d/rc.board_mavlink
 	if [ -f $BOARD_RC_MAVLINK ]
 	then
-		echo "Board extras: ${BOARD_RC_MAVLINK}"
+		echo "Board mavlink: ${BOARD_RC_MAVLINK}"
 		. $BOARD_RC_MAVLINK
 	fi
 	unset BOARD_RC_MAVLINK
@@ -441,6 +442,12 @@ else
 	then
 		# Must be started after the serial config is read
 		rc_input start $RC_INPUT_ARGS
+	fi
+
+	# PPS capture driver (before pwm_out)
+	if param greater -s PPS_CAP_ENABLE 0
+	then
+		pps_capture start
 	fi
 
 	# Camera capture driver (before pwm_out)
@@ -458,6 +465,15 @@ else
 	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 	#
 	. ${R}etc/init.d/rc.vehicle_setup
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ "$?" != "0" -o "$STARTUP_TUNE" != "1" ]
+	then
+		tune_control play -t $STARTUP_TUNE
+	fi
 
 	#
 	# Start the navigator.

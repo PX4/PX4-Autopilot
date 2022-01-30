@@ -82,7 +82,7 @@ void EKF2Selector::PrintInstanceChange(const uint8_t old_instance, uint8_t new_i
 	} else if (_accel_fault_detected) {
 		old_reason = " (accel fault)";
 
-	} else if (!_instance[_selected_instance].healthy && (_instance[_selected_instance].healthy_count > 0)) {
+	} else if (!_instance[_selected_instance].healthy.get_state() && (_instance[_selected_instance].healthy_count > 0)) {
 		// skipped if previous instance was never healthy in the first place (eg initialization)
 		old_reason = " (unhealthy)";
 	}
@@ -255,13 +255,13 @@ bool EKF2Selector::UpdateErrorScores()
 
 	// calculate individual error scores
 	for (uint8_t i = 0; i < EKF2_MAX_INSTANCES; i++) {
-		const bool prev_healthy = _instance[i].healthy;
+		const bool prev_healthy = _instance[i].healthy.get_state();
 
 		estimator_status_s status;
 
 		if (_instance[i].estimator_status_sub.update(&status)) {
 
-			_instance[i].timestamp_sample_last = status.timestamp_sample;
+			_instance[i].timestamp_last = status.timestamp;
 
 			_instance[i].accel_device_id = status.accel_device_id;
 			_instance[i].gyro_device_id = status.gyro_device_id;
@@ -293,30 +293,38 @@ bool EKF2Selector::UpdateErrorScores()
 			float combined_test_ratio = fmaxf(0.5f * (status.vel_test_ratio + status.pos_test_ratio), status.hgt_test_ratio);
 
 			_instance[i].combined_test_ratio = combined_test_ratio;
-			_instance[i].healthy = (status.filter_fault_flags == 0) && (combined_test_ratio > 0.f) && (combined_test_ratio < 1.f);
+
+			const bool healthy = (status.filter_fault_flags == 0) && (combined_test_ratio > 0.f);
+			_instance[i].healthy.set_state_and_update(healthy, status.timestamp);
+
+			_instance[i].warning = (combined_test_ratio >= 1.f);
 			_instance[i].filter_fault = (status.filter_fault_flags != 0);
 			_instance[i].timeout = false;
+
+			if (!_instance[i].warning) {
+				_instance[i].time_last_no_warning = status.timestamp;
+			}
 
 			if (!PX4_ISFINITE(_instance[i].relative_test_ratio)) {
 				_instance[i].relative_test_ratio = 0;
 			}
 
-		} else if (!_instance[i].timeout && (hrt_elapsed_time(&_instance[i].timestamp_sample_last) > status_timeout)) {
-			_instance[i].healthy = false;
+		} else if (!_instance[i].timeout && (hrt_elapsed_time(&_instance[i].timestamp_last) > status_timeout)) {
+			_instance[i].healthy.set_state_and_update(false, hrt_absolute_time());
 			_instance[i].timeout = true;
 		}
 
 		// if the gyro used by the EKF is faulty, declare the EKF unhealthy without delay
 		if (_gyro_fault_detected && (faulty_gyro_id != 0) && (_instance[i].gyro_device_id == faulty_gyro_id)) {
-			_instance[i].healthy = false;
+			_instance[i].healthy.set_state_and_update(false, hrt_absolute_time());
 		}
 
 		// if the accelerometer used by the EKF is faulty, declare the EKF unhealthy without delay
 		if (_accel_fault_detected && (faulty_accel_id != 0) && (_instance[i].accel_device_id == faulty_accel_id)) {
-			_instance[i].healthy = false;
+			_instance[i].healthy.set_state_and_update(false, hrt_absolute_time());
 		}
 
-		if (prev_healthy != _instance[i].healthy) {
+		if (prev_healthy != _instance[i].healthy.get_state()) {
 			updated = true;
 			_selector_status_publish = true;
 
@@ -387,7 +395,7 @@ void EKF2Selector::PublishVehicleAttitude()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's attitude for system (vehicle_attitude) if it's stale
 		if ((attitude.timestamp_sample <= _attitude_last.timestamp_sample)
-		    || (attitude.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&attitude.timestamp) > 10_ms)) {
 
 			publish = false;
 		}
@@ -489,7 +497,7 @@ void EKF2Selector::PublishVehicleLocalPosition()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's local position for system (vehicle_local_position) if it's stale
 		if ((local_position.timestamp_sample <= _local_position_last.timestamp_sample)
-		    || (local_position.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&local_position.timestamp) > 20_ms)) {
 
 			publish = false;
 		}
@@ -528,7 +536,7 @@ void EKF2Selector::PublishVehicleOdometry()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's odometry for system (vehicle_odometry) if it's stale
 		if ((odometry.timestamp_sample <= _odometry_last.timestamp_sample)
-		    || (odometry.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&odometry.timestamp) > 20_ms)) {
 
 			publish = false;
 		}
@@ -594,7 +602,7 @@ void EKF2Selector::PublishVehicleGlobalPosition()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's global position for system (vehicle_global_position) if it's stale
 		if ((global_position.timestamp_sample <= _global_position_last.timestamp_sample)
-		    || (global_position.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&global_position.timestamp) > 20_ms)) {
 
 			publish = false;
 		}
@@ -625,7 +633,7 @@ void EKF2Selector::PublishWindEstimate()
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
 		//  estimator's wind for system (wind) if it's stale
 		if ((wind.timestamp_sample <= _wind_last.timestamp_sample)
-		    || (wind.timestamp_sample < _instance[_selected_instance].timestamp_sample_last)) {
+		    || (hrt_elapsed_time(&wind.timestamp) > 100_ms)) {
 
 			publish = false;
 		}
@@ -700,7 +708,7 @@ void EKF2Selector::Run()
 			// (has relative error less than selected instance and has not been the selected instance for at least 10 seconds
 			// OR
 			// selected instance has stopped updating
-			if (_instance[i].healthy && (i != _selected_instance)) {
+			if (_instance[i].healthy.get_state() && (i != _selected_instance)) {
 				const float test_ratio = _instance[i].combined_test_ratio;
 				const float relative_error = _instance[i].relative_test_ratio;
 
@@ -726,14 +734,18 @@ void EKF2Selector::Run()
 			}
 		}
 
-		if (!_instance[_selected_instance].healthy) {
+		if (!_instance[_selected_instance].healthy.get_state()) {
 			// prefer the best healthy instance using a different IMU
 			if (!SelectInstance(best_ekf_different_imu)) {
 				// otherwise switch to the healthy instance with best overall test ratio
 				SelectInstance(best_ekf);
 			}
 
-		} else if (lower_error_available && (hrt_elapsed_time(&_last_instance_change) > 10_s)) {
+		} else if (lower_error_available
+			   && ((hrt_elapsed_time(&_last_instance_change) > 10_s)
+			       || (_instance[_selected_instance].warning
+				   && (hrt_elapsed_time(&_instance[_selected_instance].time_last_no_warning) > 1_s)))) {
+
 			// if this instance has a significantly lower relative error to the active primary, we consider it as a
 			// better instance and would like to switch to it even if the current primary is healthy
 			SelectInstance(best_ekf_alternate);
@@ -789,7 +801,7 @@ void EKF2Selector::PublishEstimatorSelectorStatus()
 	for (int i = 0; i < EKF2_MAX_INSTANCES; i++) {
 		selector_status.combined_test_ratio[i] = _instance[i].combined_test_ratio;
 		selector_status.relative_test_ratio[i] = _instance[i].relative_test_ratio;
-		selector_status.healthy[i] = _instance[i].healthy;
+		selector_status.healthy[i] = _instance[i].healthy.get_state();
 	}
 
 	for (int i = 0; i < IMU_STATUS_SIZE; i++) {
@@ -815,7 +827,7 @@ void EKF2Selector::PrintStatus()
 
 		PX4_INFO("%" PRIu8 ": ACC: %" PRIu32 ", GYRO: %" PRIu32 ", MAG: %" PRIu32 ", %s, test ratio: %.7f (%.5f) %s",
 			 inst.instance, inst.accel_device_id, inst.gyro_device_id, inst.mag_device_id,
-			 inst.healthy ? "healthy" : "unhealthy",
+			 inst.healthy.get_state() ? "healthy" : "unhealthy",
 			 (double)inst.combined_test_ratio, (double)inst.relative_test_ratio,
 			 (_selected_instance == i) ? "*" : "");
 	}

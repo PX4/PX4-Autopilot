@@ -41,9 +41,7 @@
 #include <lib/perf/perf_counter.h>
 #include <battery/battery.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
@@ -338,10 +336,7 @@ private:
 	float _current_lsb;
 	int16_t _range;
 
-	actuator_controls_s _actuator_controls{};
-
 	Battery _battery;
-	uORB::Subscription _actuators_sub{ORB_ID(actuator_controls_0)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	int read(uint8_t address, uint16_t &data);

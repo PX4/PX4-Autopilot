@@ -15,6 +15,14 @@ ekf2 start &
 #                        End Estimator group selection                        #
 ###############################################################################
 
+if param compare SYS_CTRL_ALLOC 1
+then
+	#
+	# Start Control Allocator
+	#
+	control_allocator start
+fi
+
 airspeed_selector start
 
 vtol_att_control start

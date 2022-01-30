@@ -50,3 +50,9 @@ functions:
         condition: "CAM_CAP_FBACK==0"
         text: "Camera feedback needs to be enabled and configured via CAM_CAP_* parameters."
       exclude_from_actuator_testing: true
+    PPS_Input:
+      start: 2064
+      note:
+        condition: "PPS_CAP_ENABLE==0"
+        text: "PPS needs to be enabled via PPS_CAP_ENABLE parameter."
+      exclude_from_actuator_testing: true

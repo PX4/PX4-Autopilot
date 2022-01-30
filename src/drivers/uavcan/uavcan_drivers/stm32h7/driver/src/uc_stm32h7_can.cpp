@@ -263,7 +263,11 @@ int CanIface::computeTimings(const uavcan::uint32_t target_bitrate, Timings &out
 	/*
 	 * Hardware configuration
 	 */
+#ifdef STM32_FDCANCLK
 	const uavcan::uint32_t pclk = STM32_FDCANCLK;
+#else
+	const uavcan::uint32_t pclk = STM32_HSE_FREQUENCY;
+#endif
 
 	static const int MaxBS1 = 16;
 	static const int MaxBS2 = 8;

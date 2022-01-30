@@ -49,7 +49,7 @@
 #include <lib/motion_planning/VelocitySmoothing.hpp>
 
 
-class FlightTaskOrbit : public FlightTaskManualAltitude
+class FlightTaskOrbit : public FlightTaskManualAltitudeSmoothVel
 {
 public:
 
@@ -118,10 +118,7 @@ private:
 	matrix::Vector3f _center; /**< local frame coordinates of the center point */
 
 	bool _in_circle_approach = false;
-	Vector3f _circle_approach_start_position;
 	PositionSmoothing _position_smoothing;
-	VelocitySmoothing _altitude_velocity_smoothing;
-	Vector3f _unsmoothed_velocity_setpoint;
 
 	/** yaw behaviour during the orbit flight according to MAVLink's ORBIT_YAW_BEHAVIOUR enum */
 	int _yaw_behaviour = orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER;
@@ -140,6 +137,8 @@ private:
 		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
 		(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
 		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
+		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
+		(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
+		(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn
 	)
 };

@@ -1,5 +1,4 @@
 uint64 timestamp	# time since system start (microseconds)
-float32 alt_max 	# maximum altitude in [m] that can be reached
 bool freefall		# true if vehicle is currently in free-fall
 bool ground_contact	# true if vehicle has ground contact but is not landed (1. stage)
 bool maybe_landed	# true if the vehicle might have landed (2. stage)

@@ -40,7 +40,6 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/mixer/MixerGroup.hpp>
 #include <lib/perf/perf_counter.h>
-#include <lib/output_limit/output_limit.h>
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -82,7 +81,7 @@ public:
 				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
 
 	/** called whenever the mixer gets updated/reset */
-	virtual void mixerChanged() {};
+	virtual void mixerChanged() {}
 };
 
 /**
@@ -103,7 +102,7 @@ public:
 	};
 
 	/**
-	 * Contructor
+	 * Constructor
 	 * @param param_prefix for min/max/etc. params, e.g. "PWM_MAIN". This needs to match 'param_prefix' in the module.yaml
 	 * @param max_num_outputs maximum number of supported outputs
 	 * @param interface Parent module for scheduling, parameter updates and callbacks
@@ -215,6 +214,12 @@ public:
 
 	void setLowrateSchedulingInterval(hrt_abstime interval) { _lowrate_schedule_interval = interval; }
 
+	/**
+	 * Get the bitmask of reversible outputs (motors only).
+	 * This might change at any time (while disarmed), so output drivers requiring this should query this regularly.
+	 */
+	uint32_t reversibleOutputs() const { return _reversible_mask; }
+
 protected:
 	void updateParams() override;
 
@@ -247,6 +252,10 @@ private:
 	void initParamHandles();
 
 	void limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates);
+
+	uint16_t output_limit_calc_single(int i, float value) const;
+
+	void output_limit_calc(const bool armed, const int num_channels, const float outputs[MAX_ACTUATORS]);
 
 	struct ParamHandles {
 		param_t function{PARAM_INVALID};
@@ -291,7 +300,16 @@ private:
 	uint16_t _max_value[MAX_ACTUATORS] {};
 	uint16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
-	output_limit_t _output_limit;
+
+	enum class OutputLimitState {
+		OFF = 0,
+		INIT,
+		RAMP,
+		ON
+	} _output_state{OutputLimitState::INIT};
+
+	hrt_abstime _output_time_armed{0};
+	const bool _output_ramp_up; ///< if true, motors will ramp up from disarmed to min_output after arming
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::SubscriptionCallbackWorkItem _control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
@@ -338,12 +356,12 @@ private:
 	bool _need_function_update{true};
 	bool _use_dynamic_mixing{false}; ///< set to _param_sys_ctrl_alloc on init (avoid changing after startup)
 	bool _has_backup_schedule{false};
-	bool _reversible_motors =
-		false; ///< whether or not the output module supports reversible motors (range [-1, 0] for motors)
 	const char *const _param_prefix;
 	ParamHandles _param_handles[MAX_ACTUATORS];
+	param_t _param_handle_rev_range{PARAM_INVALID};
 	hrt_abstime _lowrate_schedule_interval{300_ms};
 	ActuatorTest _actuator_test{_function_assignment};
+	uint32_t _reversible_mask{0}; ///< per-output bits. If set, the output is configured to be reversible (motors only)
 
 	uORB::SubscriptionCallbackWorkItem *_subscription_callback{nullptr}; ///< current scheduling callback
 

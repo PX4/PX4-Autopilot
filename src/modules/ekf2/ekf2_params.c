@@ -40,17 +40,17 @@
  */
 
 /**
- * Minimum time of arrival delta between non-IMU observations before data is downsampled.
+ * EKF prediction period
  *
- * Baro and Magnetometer data will be averaged before downsampling, other data will be point sampled resulting in loss of information.
+ * EKF prediction period in microseconds. This should ideally be an integer multiple of the IMU time delta.
+ * Actual filter update will be an integer multiple of IMU update.
  *
  * @group EKF2
- * @min 10
- * @max 50
- * @reboot_required true
- * @unit ms
+ * @min 1000
+ * @max 20000
+ * @unit us
  */
-PARAM_DEFINE_INT32(EKF2_MIN_OBS_DT, 20);
+PARAM_DEFINE_INT32(EKF2_PREDICT_US, 10000);
 
 /**
  * Magnetometer measurement delay relative to IMU measurements
@@ -1358,7 +1358,7 @@ PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
  * @group EKF2
  * @boolean
  */
-PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 0);
+PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 1);
 
 /**
  * Enable synthetic magnetometer Z component measurement.

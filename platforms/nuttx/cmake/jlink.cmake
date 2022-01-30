@@ -60,6 +60,18 @@ if(JLinkGDBServerCLExe_PATH)
 		USES_TERMINAL
 	)
 
+	# jlink_gdb_backtrace_simple (attach, print current tasks, back trace, exit)
+	add_custom_target(jlink_gdb_backtrace_simple
+		COMMAND ${PX4_BINARY_DIR}/jlink_gdb_start.sh
+		COMMAND ${CMAKE_COMMAND} -E env WORKSPACE=${PX4_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_backtrace_simple.sh $<TARGET_FILE:px4>
+		DEPENDS
+			px4
+			${PX4_BINARY_DIR}/jlink_gdb_start.sh
+			${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_backtrace_simple.sh
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		USES_TERMINAL
+	)
+
 
 	# jlink_upload_bootloader
 	#   board directory supplied bootloader.bin

@@ -54,9 +54,9 @@
 class UavcanDynamicPortSubscriber : public UavcanBaseSubscriber
 {
 public:
-	UavcanDynamicPortSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, const char *subject_name,
-				    uint8_t instance = 0) :
-		UavcanBaseSubscriber(ins, subject_name, instance), _param_manager(pmgr) { };
+	UavcanDynamicPortSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, const char *prefix_name,
+				    const char *subject_name,  uint8_t instance = 0) :
+		UavcanBaseSubscriber(ins, prefix_name, subject_name, instance), _param_manager(pmgr) { };
 
 	void updateParam()
 	{
@@ -64,7 +64,7 @@ public:
 
 		while (curSubj != nullptr) {
 			char uavcan_param[90];
-			snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s.%d.id", curSubj->_subject_name, _instance);
+			snprintf(uavcan_param, sizeof(uavcan_param), "uavcan.sub.%s%s.%d.id", _prefix_name, curSubj->_subject_name, _instance);
 
 			// Set _port_id from _uavcan_param
 			uavcan_register_Value_1_0 value;
@@ -86,7 +86,8 @@ public:
 
 						// Subscribe on the new port ID
 						curSubj->_canard_sub.port_id = (CanardPortID)new_id;
-						PX4_INFO("Subscribing %s.%d on port %d", curSubj->_subject_name, _instance, curSubj->_canard_sub.port_id);
+						PX4_INFO("Subscribing %s%s.%d on port %d", _prefix_name, curSubj->_subject_name, _instance,
+							 curSubj->_canard_sub.port_id);
 						subscribe();
 					}
 				}

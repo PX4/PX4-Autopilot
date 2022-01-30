@@ -71,14 +71,13 @@ void Ekf::controlGpsFusion()
 					fuseGpsVelPos();
 
 					if (shouldResetGpsFusion()){
-						const bool is_yaw_failure = !isVelStateAlignedWithObs();
 						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1000000);
 
 						/* A reset is not performed when getting GPS back after a significant period of no data
 						 * because the timeout could have been caused by bad GPS.
 						 * The total number of resets allowed per boot cycle is limited.
 						 */
-						if (is_yaw_failure
+						if (isYawFailure()
 						    && _control_status.flags.in_air
 						    && !was_gps_signal_lost
 						    && _ekfgsf_yaw_reset_count < _params.EKFGSF_reset_count_limit) {
@@ -186,6 +185,20 @@ bool Ekf::shouldResetGpsFusion() const
 					     && (_time_last_hor_pos_fuse > _time_last_on_ground_us);
 
 	return (is_reset_required || is_recent_takeoff_nav_failure || is_inflight_nav_failure);
+}
+
+bool Ekf::isYawFailure() const
+{
+	if (!isYawEmergencyEstimateAvailable()) {
+		return false;
+	}
+
+	const float euler_yaw = shouldUse321RotationSequence(_R_to_earth)
+				? getEuler321Yaw(_R_to_earth)
+				: getEuler312Yaw(_R_to_earth);
+	const float yaw_error = wrap_pi(euler_yaw - _yawEstimator.getYaw());
+
+	return fabsf(yaw_error) > math::radians(25.f);
 }
 
 void Ekf::processYawEstimatorResetRequest()

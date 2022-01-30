@@ -26,12 +26,14 @@ set(COMMON_KCONFIG_ENV_SETTINGS
 	ROMFSROOT=${config_romfs_root}
 )
 
+set(config_user_list)
+
 if(EXISTS ${BOARD_DEFCONFIG})
 
     # Depend on BOARD_DEFCONFIG so that we reconfigure on config change
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOARD_DEFCONFIG})
 
-    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
+    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "recovery" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
         # Generate boardconfig from saved defconfig
         execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
                         ${DEFCONFIG_PATH} ${BOARD_DEFCONFIG}
@@ -77,6 +79,17 @@ if(EXISTS ${BOARD_DEFCONFIG})
                 set(${ConfigKey} ${Value})
                 message(STATUS "${ConfigKey} ${Value}")
             endif()
+        endif()
+
+        # Find variable name
+        string(REGEX MATCH "^CONFIG_USER[^=]+" Userspace ${NameAndValue})
+
+        if(Userspace)
+            # Find the value
+            string(REPLACE "${Name}=" "" Value ${NameAndValue})
+            string(REPLACE "CONFIG_USER_" "" module ${Name})
+            string(TOLOWER ${module} module)
+            list(APPEND config_user_list ${module})
         endif()
 
         # Find variable name
@@ -169,6 +182,16 @@ if(EXISTS ${BOARD_DEFCONFIG})
             list(APPEND config_module_list examples/${example})
         endif()
 
+    endforeach()
+
+    # Put every module not in userspace also to kernel list
+    foreach(modpath ${config_module_list})
+        get_filename_component(module ${modpath} NAME)
+        list(FIND config_user_list ${module} _index)
+
+        if (${_index} EQUAL -1)
+            list(APPEND config_kernel_list ${modpath})
+        endif()
     endforeach()
 
     if(PLATFORM)
@@ -298,12 +321,8 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	endif()
 
 	if(CRYPTO)
-		set(PX4_CRYPTO ${CRYPTO} CACHE STRING "PX4 crypto implementation" FORCE)
+		set(PX4_CRYPTO "1" CACHE INTERNAL "PX4 crypto implementation" FORCE)
 		add_definitions(-DPX4_CRYPTO)
-	endif()
-
-	if(KEYSTORE)
-		set(PX4_KEYSTORE ${KEYSTORE} CACHE STRING "PX4 keystore implementation" FORCE)
 	endif()
 
 	if(LINKER_PREFIX)
@@ -340,6 +359,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	list(APPEND config_module_list ${board_support_src_rel}/src)
 
 	set(config_module_list ${config_module_list})
+	set(config_kernel_list ${config_kernel_list})
 
 endif()
 

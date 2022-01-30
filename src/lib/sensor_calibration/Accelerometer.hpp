@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,26 +48,27 @@ public:
 	static constexpr int MAX_SENSOR_COUNT = 4;
 
 	static constexpr uint8_t DEFAULT_PRIORITY = 50;
-	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 25;
+	static constexpr uint8_t DEFAULT_EXTERNAL_PRIORITY = 75;
 
 	static constexpr const char *SensorString() { return "ACC"; }
 
 	Accelerometer();
-	explicit Accelerometer(uint32_t device_id, bool external = false);
+	explicit Accelerometer(uint32_t device_id);
 
 	~Accelerometer() = default;
 
 	void PrintStatus();
 
-	void set_calibration_index(uint8_t calibration_index) { _calibration_index = calibration_index; }
-	void set_device_id(uint32_t device_id, bool external = false);
-	void set_external(bool external = true);
+	bool set_calibration_index(int calibration_index);
+	void set_device_id(uint32_t device_id);
 	bool set_offset(const matrix::Vector3f &offset);
 	bool set_scale(const matrix::Vector3f &scale);
 	void set_rotation(Rotation rotation);
 	void set_temperature(float temperature) { _temperature = temperature; };
 
+	bool calibrated() const { return (_device_id != 0) && (_calibration_index >= 0); }
 	uint8_t calibration_count() const { return _calibration_count; }
+	int8_t calibration_index() const { return _calibration_index; }
 	uint32_t device_id() const { return _device_id; }
 	bool enabled() const { return (_priority > 0); }
 	bool external() const { return _external; }
@@ -90,7 +91,8 @@ public:
 		return (_rotation.I() * bias).edivide(_scale) + _thermal_offset + _offset;
 	}
 
-	bool ParametersSave();
+	bool ParametersLoad();
+	bool ParametersSave(int desired_calibration_index = -1, bool force = false);
 	void ParametersUpdate();
 
 	void Reset();

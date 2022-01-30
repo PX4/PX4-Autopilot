@@ -139,7 +139,7 @@ private:
 
 	// nrf chip schedules battery updates with SYSLINK_SEND_PERIOD_MS
 	static constexpr uint32_t SYSLINK_BATTERY_STATUS_INTERVAL_US = 10_ms;
-	Battery _battery{1, nullptr, SYSLINK_BATTERY_STATUS_INTERVAL_US};
+	Battery _battery{1, nullptr, SYSLINK_BATTERY_STATUS_INTERVAL_US, battery_status_s::BATTERY_SOURCE_POWER_MODULE};
 
 	int32_t _rssi;
 	battery_state _bstate;

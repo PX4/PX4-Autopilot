@@ -66,29 +66,36 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 		//got new command
 		_set_angle_setpoints(control_data);
 
-		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
-		vehicle_command.timestamp = hrt_absolute_time();
+		const bool configuration_changed =
+			(control_data->type != _previous_control_data_type);
+		_previous_control_data_type = control_data->type;
 
-		if (control_data->type == ControlData::Type::Neutral) {
-			vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
+		if (configuration_changed) {
 
-			vehicle_command.param5 = 0.0;
-			vehicle_command.param6 = 0.0;
-			vehicle_command.param7 = 0.0f;
+			vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
+			vehicle_command.timestamp = hrt_absolute_time();
 
-		} else {
-			vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+			if (control_data->type == ControlData::Type::Neutral) {
+				vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;
 
-			vehicle_command.param5 = static_cast<double>(control_data->type_data.angle.frames[0]);
-			vehicle_command.param6 = static_cast<double>(control_data->type_data.angle.frames[1]);
-			vehicle_command.param7 = static_cast<float>(control_data->type_data.angle.frames[2]);
+				vehicle_command.param5 = 0.0;
+				vehicle_command.param6 = 0.0;
+				vehicle_command.param7 = 0.0f;
+
+			} else {
+				vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
+
+				vehicle_command.param5 = static_cast<double>(control_data->type_data.angle.frames[0]);
+				vehicle_command.param6 = static_cast<double>(control_data->type_data.angle.frames[1]);
+				vehicle_command.param7 = static_cast<float>(control_data->type_data.angle.frames[2]);
+			}
+
+			vehicle_command.param2 = _stabilize[0] ? 1.0f : 0.0f;
+			vehicle_command.param3 = _stabilize[1] ? 1.0f : 0.0f;
+			vehicle_command.param4 = _stabilize[2] ? 1.0f : 0.0f;
+
+			_vehicle_command_pub.publish(vehicle_command);
 		}
-
-		vehicle_command.param2 = _stabilize[0] ? 1.0f : 0.0f;
-		vehicle_command.param3 = _stabilize[1] ? 1.0f : 0.0f;
-		vehicle_command.param4 = _stabilize[2] ? 1.0f : 0.0f;
-
-		_vehicle_command_pub.publish(vehicle_command);
 	}
 
 	_handle_position_update();
@@ -108,9 +115,32 @@ int OutputMavlinkV1::update(const ControlData *control_data)
 
 	_vehicle_command_pub.publish(vehicle_command);
 
+	_stream_device_attitude_status();
+
 	_last_update = t;
 
 	return 0;
+}
+
+void OutputMavlinkV1::_stream_device_attitude_status()
+{
+	// This enables the use case where the gimbal v2 protocol is used
+	// between the ground station and the drone, and the gimbal v1 protocol is
+	// used between the drone and the gimbal.
+	gimbal_device_attitude_status_s attitude_status{};
+	attitude_status.timestamp = hrt_absolute_time();
+	attitude_status.target_system = 0;
+	attitude_status.target_component = 0;
+	attitude_status.device_flags = gimbal_device_attitude_status_s::DEVICE_FLAGS_NEUTRAL |
+				       gimbal_device_attitude_status_s::DEVICE_FLAGS_ROLL_LOCK |
+				       gimbal_device_attitude_status_s::DEVICE_FLAGS_PITCH_LOCK;
+
+	matrix::Eulerf euler(_angle_outputs[0], _angle_outputs[1], _angle_outputs[2]);
+	matrix::Quatf q(euler);
+	q.copyTo(attitude_status.q);
+
+	attitude_status.failure_flags = 0;
+	_attitude_status_pub.publish(attitude_status);
 }
 
 void OutputMavlinkV1::print_status()

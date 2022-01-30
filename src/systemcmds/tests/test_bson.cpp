@@ -65,12 +65,12 @@ encode(bson_encoder_t encoder)
 		return 1;
 	}
 
-	if (bson_encoder_append_int(encoder, "int1", sample_small_int) != 0) {
+	if (bson_encoder_append_int32(encoder, "int1", sample_small_int) != 0) {
 		PX4_ERR("FAIL: encoder: append int failed");
 		return 1;
 	}
 
-	if (bson_encoder_append_int(encoder, "int2", sample_big_int) != 0) {
+	if (bson_encoder_append_int64(encoder, "int2", sample_big_int) != 0) {
 		PX4_ERR("FAIL: encoder: append int failed");
 		return 1;
 	}
@@ -96,7 +96,7 @@ encode(bson_encoder_t encoder)
 }
 
 static int
-decode_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
+decode_callback(bson_decoder_t decoder, bson_node_t node)
 {
 	unsigned len;
 
@@ -123,8 +123,8 @@ decode_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 			return 1;
 		}
 
-		if (node->i != sample_small_int) {
-			PX4_ERR("FAIL: decoder: int1 value %" PRIu64 ", expected %" PRIi32 "", node->i, sample_small_int);
+		if (node->i32 != sample_small_int) {
+			PX4_ERR("FAIL: decoder: int1 value %" PRIi32 ", expected %" PRIi32 "", node->i32, sample_small_int);
 			return 1;
 		}
 
@@ -138,8 +138,8 @@ decode_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 			return 1;
 		}
 
-		if (node->i != sample_big_int) {
-			PX4_ERR("FAIL: decoder: int2 value %" PRIu64 ", expected %" PRIu64, node->i, sample_big_int);
+		if (node->i64 != sample_big_int) {
+			PX4_ERR("FAIL: decoder: int2 value %" PRIi64 ", expected %" PRIu64, node->i64, sample_big_int);
 			return 1;
 		}
 
@@ -260,8 +260,8 @@ decode(bson_decoder_t decoder)
 int
 test_bson(int argc, char *argv[])
 {
-	struct bson_encoder_s encoder;
-	struct bson_decoder_s decoder;
+	bson_encoder_s encoder{};
+	bson_decoder_s decoder{};
 	void *buf;
 	int len;
 
@@ -287,7 +287,7 @@ test_bson(int argc, char *argv[])
 	}
 
 	/* now test-decode it */
-	if (bson_decoder_init_buf(&decoder, buf, len, decode_callback, nullptr)) {
+	if (bson_decoder_init_buf(&decoder, buf, len, decode_callback)) {
 		PX4_ERR("FAIL: bson_decoder_init_buf");
 		return 1;
 	}

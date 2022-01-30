@@ -174,7 +174,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		led_on(LED_BLUE);
-		return ret;
 	}
 
 #endif

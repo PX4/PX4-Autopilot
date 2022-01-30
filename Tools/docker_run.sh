@@ -19,7 +19,7 @@ if [ -z ${PX4_DOCKER_REPO+x} ]; then
 		PX4_DOCKER_REPO="px4io/px4-dev-clang:2021-02-04"
 	elif [[ $@ =~ .*tests* ]]; then
 		# run all tests with simulation
-		PX4_DOCKER_REPO="px4io/px4-dev-simulation-bionic:2021-02-04"
+		PX4_DOCKER_REPO="px4io/px4-dev-simulation-bionic:2021-12-11"
 	fi
 else
 	echo "PX4_DOCKER_REPO is set to '$PX4_DOCKER_REPO'";

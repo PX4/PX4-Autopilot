@@ -149,7 +149,7 @@ parameters:
                                 'celcius', 'gauss', 'gauss/s', 'mgauss', 'mgauss^2',
                                 'hPa', 'kg', 'kg/m^2', 'kg m^2',
                                 'mm', 'm', 'm/s', 'm^2', 'm/s^2', 'm/s^3', 'm/s^2/sqrt(Hz)', 'm/s/rad',
-                                'Ohm', 'V',
+                                'Ohm', 'V', 'A',
                                 'us', 'ms', 's',
                                 'S', 'A/%', '(m/s^2)^2',  'm/m',  'tan(rad)^2', '(m/s)^2', 'm/rad',
                                 'm/s^3/sqrt(Hz)', 'm/s/sqrt(Hz)', 's/(1000*PWM)', '%m/s', 'min', 'us/C', 
@@ -498,6 +498,12 @@ mixer:
                                     type: integer
                                 function:
                                     type: string
+                                identifier:
+                                    # for rules
+                                    type: string
+        rules:
+            # mixer rules, validated by the mavlink actuator component information schema
+            type: list
         config:
             # Airframe types
             type: dict
@@ -526,11 +532,20 @@ mixer:
                                     schema:
                                         actuator_type:
                                             type: string
+                                        group_label:
+                                            type: string
                                         count:
                                             # param name or fixed count
                                             oneof:
                                               - type: string
                                               - type: integer
+                                        item_label_prefix:
+                                            # optional per-item label prefix list or (indexed) string
+                                            oneof:
+                                              - type: list
+                                                schema:
+                                                    type: string
+                                              - type: string
                                         parameters:
                                             type: list
                                             minlength: 1
@@ -548,6 +563,8 @@ mixer:
                                                             schema:
                                                                 # position param names
                                                                 type: string
+                                                        index_offset:
+                                                            type: integer
                                                 extra:
                                                     type: list
                                                     schema: *mixer_parameter

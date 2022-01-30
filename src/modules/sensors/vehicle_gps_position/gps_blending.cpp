@@ -105,14 +105,23 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 	_np_gps_suitable_for_blending = 0;
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-		const float raw_dt = 1e-6f * ((float)_gps_state[i].timestamp - (float)_time_prev_us[i]);
-		const float present_dt = 1e-6f * ((float)hrt_now_us - (float)_gps_state[i].timestamp);
+
+		float raw_dt = 0.f;
+
+		if (_gps_state[i].timestamp > _time_prev_us[i]) {
+			raw_dt = 1e-6f * (_gps_state[i].timestamp - _time_prev_us[i]);
+		}
+
+		float present_dt = 0.f;
+
+		if (hrt_now_us > _gps_state[i].timestamp) {
+			present_dt = 1e-6f * (hrt_now_us - _gps_state[i].timestamp);
+		}
 
 		if (raw_dt > 0.0f && raw_dt < GPS_TIMEOUT_S) {
 			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];
 
-		} else if ((present_dt >= GPS_TIMEOUT_S)
-			   && (_gps_state[i].timestamp > 0)) {
+		} else if ((present_dt >= GPS_TIMEOUT_S) && (_gps_state[i].timestamp > 0)) {
 			// Timed out - kill the stored fix for this receiver and don't track its (stale) gps_dt
 			_gps_state[i].timestamp = 0;
 			_gps_state[i].fix_type = 0;

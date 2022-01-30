@@ -447,13 +447,13 @@ bool Geofence::insideCircle(const PolygonInfo &polygon, double lat, double lon, 
 		return false;
 	}
 
-	if (!map_projection_initialized(&_projection_reference)) {
-		map_projection_init(&_projection_reference, lat, lon);
+	if (!_projection_reference.isInitialized()) {
+		_projection_reference.initReference(lat, lon);
 	}
 
 	float x1, y1, x2, y2;
-	map_projection_project(&_projection_reference, lat, lon, &x1, &y1);
-	map_projection_project(&_projection_reference, circle_point.lat, circle_point.lon, &x2, &y2);
+	_projection_reference.project(lat, lon, x1, y1);
+	_projection_reference.project(circle_point.lat, circle_point.lon, x2, y2);
 	float dx = x1 - x2, dy = y1 - y2;
 	return dx * dx + dy * dy < circle_point.circle_radius * circle_point.circle_radius;
 }
@@ -537,8 +537,7 @@ Geofence::loadFromFile(const char *filename)
 				}
 			}
 
-			if (dm_write(DM_KEY_FENCE_POINTS, pointCounter + 1, DM_PERSIST_POWER_ON_RESET, &vertex,
-				     sizeof(vertex)) != sizeof(vertex)) {
+			if (dm_write(DM_KEY_FENCE_POINTS, pointCounter + 1, &vertex, sizeof(vertex)) != sizeof(vertex)) {
 				goto error;
 			}
 
@@ -571,14 +570,13 @@ Geofence::loadFromFile(const char *filename)
 			if (dm_read(DM_KEY_FENCE_POINTS, seq, &mission_fence_point, sizeof(mission_fence_point_s)) ==
 			    sizeof(mission_fence_point_s)) {
 				mission_fence_point.vertex_count = pointCounter;
-				dm_write(DM_KEY_FENCE_POINTS, seq, DM_PERSIST_POWER_ON_RESET, &mission_fence_point,
-					 sizeof(mission_fence_point_s));
+				dm_write(DM_KEY_FENCE_POINTS, seq, &mission_fence_point, sizeof(mission_fence_point_s));
 			}
 		}
 
 		mission_stats_entry_s stats;
 		stats.num_items = pointCounter;
-		rc = dm_write(DM_KEY_FENCE_POINTS, 0, DM_PERSIST_POWER_ON_RESET, &stats, sizeof(mission_stats_entry_s));
+		rc = dm_write(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
 
 	} else {
 		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Geofence: import error\t");

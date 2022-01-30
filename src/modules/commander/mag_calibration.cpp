@@ -540,7 +540,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 		uORB::SubscriptionData<sensor_mag_s> mag_sub{ORB_ID(sensor_mag), cur_mag};
 
 		if (mag_sub.advertised() && (mag_sub.get().device_id != 0) && (mag_sub.get().timestamp > 0)) {
-			worker_data.calibration[cur_mag].set_device_id(mag_sub.get().device_id, mag_sub.get().is_external);
+			worker_data.calibration[cur_mag].set_device_id(mag_sub.get().device_id);
 		}
 
 		// reset calibration index to match uORB numbering
@@ -914,11 +914,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 				current_cal.set_temperature(worker_data.temperature[cur_mag]);
 
-				current_cal.set_calibration_index(cur_mag);
-
 				current_cal.PrintStatus();
 
-				if (current_cal.ParametersSave()) {
+				if (current_cal.ParametersSave(cur_mag, true)) {
 					param_save = true;
 					failed = false;
 
@@ -1016,10 +1014,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 
 			if (mag_sub.advertised() && (mag.timestamp != 0) && (mag.device_id != 0)) {
 
-				calibration::Magnetometer cal{mag.device_id, mag.is_external};
-
-				// force calibration index to uORB index
-				cal.set_calibration_index(cur_mag);
+				calibration::Magnetometer cal{mag.device_id};
 
 				// use any existing scale and store the offset to the expected earth field
 				const Vector3f offset = Vector3f{mag.x, mag.y, mag.z} - (cal.scale().I() * cal.rotation().transpose() * expected_field);
@@ -1027,7 +1022,7 @@ int do_mag_calibration_quick(orb_advert_t *mavlink_log_pub, float heading_radian
 				cal.set_temperature(mag.temperature);
 
 				// save new calibration
-				if (cal.ParametersSave()) {
+				if (cal.ParametersSave(cur_mag)) {
 					cal.PrintStatus();
 					param_save = true;
 					failed = false;

@@ -67,50 +67,47 @@ private:
 	int _head{0};
 	int _tail{0};
 	px4_sem_t _lock = SEM_INITIALIZER(1);
-	bool _is_printing{false};
-	pthread_t _printing_task;
 };
 
 void ConsoleBuffer::print(bool follow)
 {
-	lock();
-	_printing_task = pthread_self();
-	int i = _head;
+	// print to stdout, but with a buffer in between to avoid nested locking and potential dead-locks
+	// (which could happen in combination with the MAVLink shell: dmesg writing to the pipe waiting
+	// mavlink to read, while mavlink calls printf, waiting for the console lock)
+	const int buffer_length = 512;
+	char buffer[buffer_length];
+	int offset = -1;
 
-	while (true) {
-		_is_printing = true;
+	do {
 
-		if (i < _tail) {
-			::write(1, _buffer + i, _tail - i);
+		// print the full buffer or what's newly added
+		int total_size_read = 0;
 
-		} else if (_tail < i) {
-			::write(1, _buffer + i, BOARD_CONSOLE_BUFFER_SIZE - i);
-			::write(1, _buffer, _tail);
-		}
+		do {
+			int read_size = read(buffer, buffer_length, &offset);
 
-		i = _tail;
+			if (read_size <= 0) {
+				break;
+			}
 
-		_is_printing = false;
+			::write(1, buffer, read_size);
+
+			if (read_size < buffer_length) {
+				break;
+			}
+
+			total_size_read += read_size;
+		} while (total_size_read < BOARD_CONSOLE_BUFFER_SIZE);
+
 
 		if (follow) {
-			unlock();
 			usleep(10000);
-			lock();
-
-		} else {
-			break;
 		}
-	}
-
-	unlock();
+	} while (follow);
 }
 
 void ConsoleBuffer::write(const char *buffer, size_t len)
 {
-	if (_is_printing && pthread_self() == _printing_task) { // avoid adding to the buffer while we are printing it
-		return;
-	}
-
 	lock(); // same rule as for printf: this cannot be used from IRQ handlers
 
 	for (size_t i = 0; i < len; ++i) {

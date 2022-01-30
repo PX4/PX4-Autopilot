@@ -115,27 +115,32 @@ MS5611_SPI::init()
 
 	if (ret != OK) {
 		PX4_DEBUG("SPI init failed");
-		goto out;
+		return PX4_ERROR;
 	}
 
-	/* send reset command */
-	ret = _reset();
+	// reset and read PROM (try up to 3 times)
+	for (int i = 0; i < 3; i++) {
+		/* send reset command */
+		ret = _reset();
 
-	if (ret != OK) {
-		PX4_DEBUG("reset failed");
-		goto out;
+		if (ret != OK) {
+			PX4_DEBUG("reset failed");
+			continue;
+		}
+
+		/* read PROM */
+		ret = _read_prom();
+
+		if (ret == OK) {
+			return PX4_OK;
+
+		} else {
+			PX4_DEBUG("prom readout failed");
+			continue;
+		}
 	}
 
-	/* read PROM */
-	ret = _read_prom();
-
-	if (ret != OK) {
-		PX4_DEBUG("prom readout failed");
-		goto out;
-	}
-
-out:
-	return ret;
+	return PX4_ERROR;
 }
 
 int

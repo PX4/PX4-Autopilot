@@ -89,7 +89,7 @@ inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, co
 		const float safe_alpha = constrain(alpha, 0.f, M_PI_F - FLT_EPSILON);
 		float accel_tmp = config.max_acc_xy_radius_scale * config.max_acc_xy;
 		float max_speed_in_turn = computeMaxSpeedInWaypoint(safe_alpha, accel_tmp, config.xy_accept_rad);
-		speed_at_target = min(min(max_speed_in_turn, exit_speed), config.max_speed_xy);
+		speed_at_target = min(max_speed_in_turn, exit_speed, config.max_speed_xy);
 	}
 
 	float start_to_target = (start_position - target).xy().norm();

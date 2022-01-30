@@ -1,0 +1,6 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+param set-default CANNODE_GPS_RTCM 1

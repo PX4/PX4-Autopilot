@@ -92,7 +92,7 @@ PARAM_DEFINE_INT32(CAL_MAG_ROT_AUTO, 1);
  * @reboot_required true
  *
  */
-PARAM_DEFINE_FLOAT(SENS_MAG_RATE, 50.0f);
+PARAM_DEFINE_FLOAT(SENS_MAG_RATE, 15.0f);
 
 /**
  * Sensors hub mag mode
@@ -105,3 +105,15 @@ PARAM_DEFINE_FLOAT(SENS_MAG_RATE, 50.0f);
  * @group Sensors
  */
 PARAM_DEFINE_INT32(SENS_MAG_MODE, 1);
+
+/**
+ * Magnetometer auto calibration
+ *
+ * Automatically initialize magnetometer calibration from bias estimate if available.
+ *
+ * @boolean
+ *
+ * @category system
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(SENS_MAG_AUTOCAL, 0);

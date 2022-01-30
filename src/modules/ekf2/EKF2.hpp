@@ -208,8 +208,6 @@ private:
 	struct InFlightCalibration {
 		hrt_abstime last_us{0};         ///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
 		hrt_abstime total_time_us{0};   ///< accumulated calibration time since the last save
-		Vector3f last_bias{};           ///< last valid XYZ accelerometer bias estimates (Gauss)
-		Vector3f last_bias_variance{};  ///< variances for the last valid accelerometer XYZ bias estimates (m/s**2)**2
 		bool cal_available{false};      ///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
 	};
 
@@ -240,6 +238,8 @@ private:
 	Vector3f _last_accel_calibration_published{};
 	Vector3f _last_gyro_calibration_published{};
 	Vector3f _last_mag_calibration_published{};
+
+	hrt_abstime _last_sensor_bias_published{0};
 
 	float _last_baro_bias_published{};
 
@@ -315,8 +315,7 @@ private:
 	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
 
 	DEFINE_PARAMETERS(
-		(ParamExtInt<px4::params::EKF2_MIN_OBS_DT>)
-		_param_ekf2_min_obs_dt,	///< Maximum time delay of any sensor used to increase buffer length to handle large timing jitter (mSec)
+		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
 		(ParamExtFloat<px4::params::EKF2_MAG_DELAY>)
 		_param_ekf2_mag_delay,	///< magnetometer measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>)

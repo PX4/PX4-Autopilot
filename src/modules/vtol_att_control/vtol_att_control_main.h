@@ -62,6 +62,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/action_request.h>
@@ -80,6 +81,8 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
@@ -139,10 +142,14 @@ public:
 	struct vehicle_local_position_setpoint_s	*get_local_pos_sp() {return &_local_pos_sp;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
 
+	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_0() {return &_torque_setpoint_0;}
+	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_1() {return &_torque_setpoint_1;}
+	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_0() {return &_thrust_setpoint_0;}
+	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
+
 	struct Params 					*get_params() {return &_params;}
 
 private:
-
 	void Run() override;
 
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
@@ -168,6 +175,10 @@ private:
 	uORB::Publication<actuator_controls_s>		_actuators_1_pub{ORB_ID(actuator_controls_1)};
 	uORB::Publication<vehicle_attitude_setpoint_s>	_v_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vtol_vehicle_status_s>	_vtol_vehicle_status_pub{ORB_ID(vtol_vehicle_status)};
+	uORB::PublicationMulti<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint0_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::PublicationMulti<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint0_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::PublicationMulti<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint1_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::PublicationMulti<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint1_pub{ORB_ID(vehicle_torque_setpoint)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
 
@@ -179,6 +190,11 @@ private:
 	actuator_controls_s			_actuators_mc_in{};	//actuator controls from mc_att_control
 	actuator_controls_s			_actuators_out_0{};	//actuator controls going to the mc mixer
 	actuator_controls_s			_actuators_out_1{};	//actuator controls going to the fw mixer (used for elevons)
+
+	vehicle_torque_setpoint_s		_torque_setpoint_0{};
+	vehicle_torque_setpoint_s		_torque_setpoint_1{};
+	vehicle_thrust_setpoint_s		_thrust_setpoint_0{};
+	vehicle_thrust_setpoint_s		_thrust_setpoint_1{};
 
 	airspeed_validated_s 				_airspeed_validated{};			// airspeed
 	position_setpoint_triplet_s		_pos_sp_triplet{};
@@ -226,6 +242,7 @@ private:
 		param_t vt_forward_thrust_enable_mode;
 		param_t mpc_land_alt1;
 		param_t mpc_land_alt2;
+		param_t sys_ctrl_alloc;
 	} _params_handles{};
 
 	hrt_abstime _last_run_timestamp{0};

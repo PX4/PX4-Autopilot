@@ -72,7 +72,6 @@
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -154,8 +153,6 @@ private:
 
 	void executeActionRequest(const action_request_s &action_request);
 
-	void mission_init();
-
 	void offboard_control_update();
 
 	void print_reject_mode(uint8_t main_state);
@@ -199,6 +196,7 @@ private:
 		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
 		(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 
+		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en,
 		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>) _param_com_home_in_air,
@@ -346,6 +344,11 @@ private:
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float		_battery_current{0.0f};
+	uint8_t		_last_connected_batteries{0};
+	uint32_t	_last_battery_custom_fault[battery_status_s::MAX_INSTANCES] {};
+	uint16_t	_last_battery_fault[battery_status_s::MAX_INSTANCES] {};
+	uint8_t		_last_battery_mode[battery_status_s::MAX_INSTANCES] {};
+
 
 	Hysteresis	_auto_disarm_landed{false};
 	Hysteresis	_auto_disarm_killed{false};
@@ -444,7 +447,6 @@ private:
 	uORB::Publication<vehicle_control_mode_s>		_control_mode_pub{ORB_ID(vehicle_control_mode)};
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
-	uORB::Publication<mission_s>				_mission_pub{ORB_ID(mission)};
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 

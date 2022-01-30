@@ -225,14 +225,10 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_BARO, 0);
  * subscription battery
  *
  * Enable UAVCAN battery subscription.
- *  1) uavcan::equipment::power::BatteryInfo
- *  2) cuav::equipment::power::CBAT
+ *  uavcan::equipment::power::BatteryInfo
+ *  ardupilot::equipment::power::BatteryInfoAux
  *
- * @min 0
- * @max 2
- * @value 0 disabled
- * @value 1 default
- * @value 2 CUAV battery monitor
+ * @boolean
  * @reboot_required true
  * @group UAVCAN
  */
@@ -274,6 +270,18 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_FLOW, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_SUB_GPS, 1);
+
+/**
+ * subscription hygrometer
+ *
+ * Enable UAVCAN hygrometer subscriptions.
+ *  dronecan::sensors::hygrometer::Hygrometer
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_HYGRO, 0);
 
 /**
  * subscription ICE

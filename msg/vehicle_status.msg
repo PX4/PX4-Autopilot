@@ -92,9 +92,10 @@ bool geofence_violated
 uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 
 # see SYS_STATUS mavlink message for the following
-uint32 onboard_control_sensors_present
-uint32 onboard_control_sensors_enabled
-uint32 onboard_control_sensors_health
+# lower 32 bits are for the base flags, higher 32 bits are or the extended flags
+uint64 onboard_control_sensors_present
+uint64 onboard_control_sensors_enabled
+uint64 onboard_control_sensors_health
 
 
 uint8 ARM_DISARM_REASON_TRANSITION_TO_STANDBY = 0

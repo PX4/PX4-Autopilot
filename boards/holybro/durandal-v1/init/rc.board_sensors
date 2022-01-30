@@ -11,6 +11,18 @@ icm20689 -R 2 -s start
 bmi088 -A -R 2 -s start
 bmi088 -G -R 2 -s start
 
+if ver hwtypecmp  VD00
+then
+	# Internal SPI BMI088
+	bmi088 -A -R 2 -s start
+	bmi088 -G -R 2 -s start
+fi
+if ver hwtypecmp  VD01
+then
+	# Internal SPI ICM-20602
+	icm20602 -R 2 -s start
+fi
+
 # internal compass
 ist8310 -I -R 10 start
 

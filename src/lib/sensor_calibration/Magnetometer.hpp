@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,15 +54,14 @@ public:
 	static constexpr const char *SensorString() { return "MAG"; }
 
 	Magnetometer();
-	explicit Magnetometer(uint32_t device_id, bool external = false);
+	explicit Magnetometer(uint32_t device_id);
 
 	~Magnetometer() = default;
 
 	void PrintStatus();
 
-	void set_calibration_index(uint8_t calibration_index) { _calibration_index = calibration_index; }
-	void set_device_id(uint32_t device_id, bool external = false);
-	void set_external(bool external = true);
+	bool set_calibration_index(int calibration_index);
+	void set_device_id(uint32_t device_id);
 	bool set_offset(const matrix::Vector3f &offset);
 	bool set_scale(const matrix::Vector3f &scale);
 	bool set_offdiagonal(const matrix::Vector3f &offdiagonal);
@@ -94,7 +93,8 @@ public:
 		return _scale.I() * _rotation.I() * bias + _offset;
 	}
 
-	bool ParametersSave();
+	bool ParametersLoad();
+	bool ParametersSave(int desired_calibration_index = -1, bool force = false);
 	void ParametersUpdate();
 
 	void Reset();

@@ -46,10 +46,17 @@
 # define ECL_INFO PX4_DEBUG
 # define ECL_WARN PX4_DEBUG
 # define ECL_ERR  PX4_DEBUG
+# define ECL_DEBUG PX4_DEBUG
 #else
 # define ECL_INFO(X, ...) printf(X "\n", ##__VA_ARGS__)
 # define ECL_WARN(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
 # define ECL_ERR(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
+
+# if defined(DEBUG_BUILD)
+#  define ECL_DEBUG(X, ...) fprintf(stderr, X "\n", ##__VA_ARGS__)
+# else
+#  define ECL_DEBUG(X, ...)
+#endif
 
 #endif
 
@@ -246,6 +253,9 @@ public:
 	// Getter for the average imu update period in s
 	float get_dt_imu_avg() const { return _dt_imu_avg; }
 
+	// Getter for the average EKF update period in s
+	float get_dt_ekf_avg() const { return _dt_ekf_avg; }
+
 	// Getter for the imu sample on the delayed time horizon
 	const imuSample &get_imu_sample_delayed() const { return _imu_sample_delayed; }
 
@@ -253,17 +263,14 @@ public:
 	const baroSample &get_baro_sample_delayed() const { return _baro_sample_delayed; }
 
 	const bool &global_origin_valid() const { return _NED_origin_initialised; }
-	const map_projection_reference_s &global_origin() const { return _pos_ref; }
+	const MapProjection &global_origin() const { return _pos_ref; }
 
 	void print_status();
-
-	static constexpr unsigned FILTER_UPDATE_PERIOD_MS{10};	// ekf prediction period in milliseconds - this should ideally be an integer multiple of the IMU time delta
-	static constexpr float FILTER_UPDATE_PERIOD_S{FILTER_UPDATE_PERIOD_MS * 0.001f};
 
 protected:
 
 	EstimatorInterface() = default;
-	virtual ~EstimatorInterface() = default;
+	virtual ~EstimatorInterface();
 
 	virtual bool init(uint64_t timestamp) = 0;
 
@@ -286,7 +293,8 @@ protected:
 	*/
 	uint8_t _imu_buffer_length{0};
 
-	float _dt_imu_avg{0.0f};	// average imu update period in s
+	float _dt_imu_avg{0.005f};	// average imu update period in s
+	float _dt_ekf_avg{0.010f}; ///< average update rate of the ekf in s
 
 	imuSample _imu_sample_delayed{};	// captures the imu sample on the delayed time horizon
 
@@ -324,8 +332,8 @@ protected:
 	bool _gps_speed_valid{false};
 	float _gps_origin_eph{0.0f}; // horizontal position uncertainty of the GPS origin
 	float _gps_origin_epv{0.0f}; // vertical position uncertainty of the GPS origin
-	struct map_projection_reference_s _pos_ref {};   // Contains WGS-84 position latitude and longitude (radians) of the EKF origin
-	struct map_projection_reference_s _gps_pos_prev {};   // Contains WGS-84 position latitude and longitude (radians) of the previous GPS message
+	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
+	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
 	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
 	float _gps_yaw_offset{0.0f};	// Yaw offset angle for dual GPS antennas used for yaw estimation (radians).
 
@@ -338,8 +346,8 @@ protected:
 	Vector2f _ev_vel_test_ratio{};		// EV velocity innovation consistency check ratios
 	Vector2f _ev_pos_test_ratio{};		// EV position innovation consistency check ratios
 	Vector2f _aux_vel_test_ratio{};		// Auxiliary horizontal velocity innovation consistency check ratio
-	Vector2f _baro_hgt_test_ratio{};	// baro height innovation consistency check ratios
-	Vector2f _rng_hgt_test_ratio{};		// range finder height innovation consistency check ratios
+	float _baro_hgt_test_ratio{};	// baro height innovation consistency check ratios
+	float _rng_hgt_test_ratio{};		// range finder height innovation consistency check ratios
 	float _optflow_test_ratio{};		// Optical flow innovation consistency check ratio
 	float _tas_test_ratio{};		// tas innovation consistency check ratio
 	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio
@@ -365,15 +373,15 @@ protected:
 	RingBuffer<outputSample> _output_buffer{12};
 	RingBuffer<outputVert> _output_vert_buffer{12};
 
-	RingBuffer<gpsSample> _gps_buffer;
-	RingBuffer<magSample> _mag_buffer;
-	RingBuffer<baroSample> _baro_buffer;
-	RingBuffer<rangeSample> _range_buffer;
-	RingBuffer<airspeedSample> _airspeed_buffer;
-	RingBuffer<flowSample> 	_flow_buffer;
-	RingBuffer<extVisionSample> _ext_vision_buffer;
-	RingBuffer<dragSample> _drag_buffer;
-	RingBuffer<auxVelSample> _auxvel_buffer;
+	RingBuffer<gpsSample> *_gps_buffer{nullptr};
+	RingBuffer<magSample> *_mag_buffer{nullptr};
+	RingBuffer<baroSample> *_baro_buffer{nullptr};
+	RingBuffer<rangeSample> *_range_buffer{nullptr};
+	RingBuffer<airspeedSample> *_airspeed_buffer{nullptr};
+	RingBuffer<flowSample> 	*_flow_buffer{nullptr};
+	RingBuffer<extVisionSample> *_ext_vision_buffer{nullptr};
+	RingBuffer<dragSample> *_drag_buffer{nullptr};
+	RingBuffer<auxVelSample> *_auxvel_buffer{nullptr};
 
 	// timestamps of latest in buffer saved measurement in microseconds
 	uint64_t _time_last_imu{0};
@@ -419,7 +427,7 @@ private:
 
 	void printBufferAllocationFailed(const char *buffer_name);
 
-	ImuDownSampler _imu_down_sampler{FILTER_UPDATE_PERIOD_S};
+	ImuDownSampler _imu_down_sampler{_params.filter_update_interval_us};
 
 	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)
 
@@ -429,30 +437,11 @@ private:
 					// [1] high frequency vibration level in the IMU delta angle data (rad)
 					// [2] high frequency vibration level in the IMU delta velocity data (m/s)
 
-	// Used to down sample barometer data
-	uint64_t _baro_timestamp_sum{0};	// summed timestamp to provide the timestamp of the averaged sample
-	float _baro_alt_sum{0.0f};			// summed pressure altitude readings (m)
-	uint8_t _baro_sample_count{0};		// number of barometric altitude measurements summed
-
 	// Used by the multi-rotor specific drag force fusion
 	uint8_t _drag_sample_count{0};	// number of drag specific force samples assumulated at the filter prediction rate
 	float _drag_sample_time_dt{0.0f};	// time integral across all samples used to form _drag_down_sampled (sec)
 
-	// Used to downsample magnetometer data
-	uint64_t _mag_timestamp_sum{0};
-	Vector3f _mag_data_sum{};
-	uint8_t _mag_sample_count{0};
-
 	// observation buffer final allocation failed
-	bool _gps_buffer_fail{false};
-	bool _mag_buffer_fail{false};
-	bool _baro_buffer_fail{false};
-	bool _range_buffer_fail{false};
-	bool _airspeed_buffer_fail{false};
-	bool _flow_buffer_fail{false};
-	bool _ev_buffer_fail{false};
-	bool _drag_buffer_fail{false};
-	bool _auxvel_buffer_fail{false};
-
+	uint64_t _last_allocation_fail_print{0};
 };
 #endif // !EKF_ESTIMATOR_INTERFACE_H

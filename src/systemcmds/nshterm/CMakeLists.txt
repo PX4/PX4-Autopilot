@@ -36,7 +36,7 @@ px4_add_module(
 	PRIORITY "SCHED_PRIORITY_DEFAULT-30"
 	COMPILE_FLAGS
 	SRCS
-		nshterm.c
+		nshterm.cpp
 	DEPENDS
 	)
 

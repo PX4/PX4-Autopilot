@@ -55,7 +55,7 @@ class UavcanGetInfoResponse : public UavcanBaseSubscriber
 {
 public:
 	UavcanGetInfoResponse(CanardInstance &ins) :
-		UavcanBaseSubscriber(ins, "GetInfo", 0) { };
+		UavcanBaseSubscriber(ins, "", "GetInfo", 0) { };
 
 	void subscribe() override
 	{

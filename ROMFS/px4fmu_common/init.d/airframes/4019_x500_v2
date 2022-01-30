@@ -1,0 +1,23 @@
+#!/bin/sh
+#
+# @name Holybro X500 V2
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Farhang Naderi <farhang.nba@gmail.com>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default IMU_GYRO_CUTOFF 30
+
+param set-default MC_ROLLRATE_P 0.14
+param set-default MC_PITCHRATE_P 0.14
+param set-default MC_ROLLRATE_I 0.3
+param set-default MC_PITCHRATE_I 0.3
+param set-default MC_ROLLRATE_D 0.004
+param set-default MC_PITCHRATE_D 0.004

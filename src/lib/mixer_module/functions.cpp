@@ -35,7 +35,6 @@
 
 FunctionMotors::FunctionMotors(const Context &context)
 	: _topic(&context.work_item, ORB_ID(actuator_motors)),
-	  _reversible_motors(context.reversible_motors),
 	  _thrust_factor(context.thrust_factor)
 {
 	for (int i = 0; i < actuator_motors_s::NUM_CONTROLS; ++i) {
@@ -45,7 +44,7 @@ FunctionMotors::FunctionMotors(const Context &context)
 void FunctionMotors::update()
 {
 	if (_topic.update(&_data)) {
-		updateValues(_reversible_motors, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
+		updateValues(_data.reversible_flags, _thrust_factor, _data.control, actuator_motors_s::NUM_CONTROLS);
 	}
 }
 

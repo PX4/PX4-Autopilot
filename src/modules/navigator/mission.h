@@ -105,6 +105,8 @@ public:
 	void set_execution_mode(const uint8_t mode);
 private:
 
+	void mission_init();
+
 	/**
 	 * Update mission topic
 	 */
@@ -217,11 +219,6 @@ private:
 	 * Returns true if we need to reset the mission (call this only when inactive)
 	 */
 	bool need_to_reset_mission();
-
-	/**
-	 * Project current location with heading to far away location and fill setpoint.
-	 */
-	void generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw);
 
 	/**
 	 * Find and store the index of the landing sequence (DO_LAND_START)

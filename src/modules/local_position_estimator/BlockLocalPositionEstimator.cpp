@@ -24,9 +24,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(nullptr, "LPE"),
 
-	// map projection
-	_map_ref(),
-
 	// flow gyro
 	_flow_gyro_x_high_pass(this, "FGYRO_HP"),
 	_flow_gyro_y_high_pass(this, "FGYRO_HP"),
@@ -123,9 +120,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_u.setZero();
 	initSS();
 
-	// map
-	_map_ref.init_done = false;
-
 	// print fusion settings to console
 	PX4_INFO("fuse gps: %d, flow: %d, vis_pos: %d, "
 		 "landing_target: %d, land: %d, pub_agl_z: %d, flow_gyro: %d, "
@@ -176,7 +170,7 @@ void BlockLocalPositionEstimator::Run()
 				const double longitude = vehicle_command.param6;
 				const float altitude = vehicle_command.param7;
 
-				map_projection_init_timestamped(&_global_local_proj_ref, latitude, longitude, vehicle_command.timestamp);
+				_global_local_proj_ref.initReference(latitude, longitude, vehicle_command.timestamp);
 				_global_local_alt0 = altitude;
 
 				PX4_INFO("New NED origin (LLA): %3.10f, %3.10f, %4.3f\n", latitude, longitude, static_cast<double>(altitude));
@@ -351,10 +345,10 @@ void BlockLocalPositionEstimator::Run()
 	checkTimeouts();
 
 	// if we have no lat, lon initialize projection to LPE_LAT, LPE_LON parameters
-	if (!_map_ref.init_done && (_estimatorInitialized & EST_XY) && _param_lpe_fake_origin.get()) {
-		map_projection_init(&_map_ref,
-				    (double)_param_lpe_lat.get(),
-				    (double)_param_lpe_lon.get());
+	if (!_map_ref.isInitialized() && (_estimatorInitialized & EST_XY) && _param_lpe_fake_origin.get()) {
+		_map_ref.initReference(
+			(double)_param_lpe_lat.get(),
+			(double)_param_lpe_lon.get());
 
 		// set timestamp when origin was set to current time
 		_time_origin = _timeStamp;
@@ -519,7 +513,7 @@ void BlockLocalPositionEstimator::Run()
 		_pub_innov_var.get().timestamp = hrt_absolute_time();
 		_pub_innov_var.update();
 
-		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _param_lpe_fake_origin.get())) {
+		if ((_estimatorInitialized & EST_XY) && (_map_ref.isInitialized() || _param_lpe_fake_origin.get())) {
 			publishGlobalPos();
 		}
 	}
@@ -623,8 +617,8 @@ void BlockLocalPositionEstimator::publishLocalPos()
 		_pub_lpos.get().xy_global = _estimatorInitialized & EST_XY;
 		_pub_lpos.get().z_global = !(_sensorTimeout & SENSOR_BARO) && _altOriginGlobal;
 		_pub_lpos.get().ref_timestamp = _time_origin;
-		_pub_lpos.get().ref_lat = _map_ref.lat_rad * 180 / M_PI;
-		_pub_lpos.get().ref_lon = _map_ref.lon_rad * 180 / M_PI;
+		_pub_lpos.get().ref_lat = _map_ref.getProjectionReferenceLat();
+		_pub_lpos.get().ref_lon = _map_ref.getProjectionReferenceLon();
 		_pub_lpos.get().ref_alt = _altOrigin;
 		_pub_lpos.get().dist_bottom = _aglLowPass.getState();
 		// we estimate agl even when we don't have terrain info
@@ -785,7 +779,7 @@ void BlockLocalPositionEstimator::publishGlobalPos()
 	double lat = 0;
 	double lon = 0;
 	const Vector<float, n_x> &xLP = _xLowPass.getState();
-	map_projection_reproject(&_map_ref, xLP(X_x), xLP(X_y), &lat, &lon);
+	_map_ref.reproject(xLP(X_x), xLP(X_y), lat, lon);
 	float alt = -xLP(X_z) + _altOrigin;
 
 	// lie about eph/epv to allow visual odometry only navigation when velocity est. good

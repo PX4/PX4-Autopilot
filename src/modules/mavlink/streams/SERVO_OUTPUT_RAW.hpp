@@ -51,6 +51,8 @@ public:
 		case 1:
 			return "SERVO_OUTPUT_RAW_1";
 		}
+
+		return "SERVO_OUTPUT_RAW";
 	}
 
 	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_SERVO_OUTPUT_RAW; }

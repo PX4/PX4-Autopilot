@@ -188,7 +188,7 @@ PARAM_DEFINE_INT32(MNT_DO_STAB, 0);
 * @decimal 1
 * @group Mount
 */
-PARAM_DEFINE_FLOAT(MNT_RANGE_PITCH, 360.0f);
+PARAM_DEFINE_FLOAT(MNT_RANGE_PITCH, 90.0f);
 
 /**
 * Range of roll channel output in degrees (only in AUX output mode).
@@ -198,7 +198,7 @@ PARAM_DEFINE_FLOAT(MNT_RANGE_PITCH, 360.0f);
 * @decimal 1
 * @group Mount
 */
-PARAM_DEFINE_FLOAT(MNT_RANGE_ROLL, 360.0f);
+PARAM_DEFINE_FLOAT(MNT_RANGE_ROLL, 90.0f);
 
 /**
 * Range of yaw channel output in degrees (only in AUX output mode).
@@ -261,3 +261,14 @@ PARAM_DEFINE_FLOAT(MNT_RATE_PITCH, 30.0f);
  * @group Mount
  */
 PARAM_DEFINE_FLOAT(MNT_RATE_YAW, 30.0f);
+
+/**
+ * Input mode for RC gimbal input
+ *
+ * @value 0 Angle
+ * @value 1 Angular rate
+ * @min 0
+ * @max 1
+ * @group Mount
+ */
+PARAM_DEFINE_INT32(MNT_RC_IN_MODE, 1);

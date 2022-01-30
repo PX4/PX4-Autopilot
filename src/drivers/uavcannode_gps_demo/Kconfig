@@ -1,5 +1,0 @@
-menuconfig DRIVERS_UAVCANNODE_GPS_DEMO
-	bool "uavcannode_gps_demo"
-	default n
-	---help---
-		Enable support for uavcannode_gps_demo

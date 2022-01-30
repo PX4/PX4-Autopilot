@@ -197,9 +197,9 @@ PARAM_DEFINE_FLOAT(RTL_TIME_FACTOR, 1.1f);
  *
  * @unit s
  * @min 0
- * @max 300
+ * @max 3600
  * @decimal 1
  * @increment 1
  * @group Return To Land
  */
-PARAM_DEFINE_INT32(RTL_TIME_MARGIN, 110);
+PARAM_DEFINE_INT32(RTL_TIME_MARGIN, 100);

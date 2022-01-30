@@ -227,7 +227,32 @@ constexpr T negate(T value)
 template<>
 constexpr int16_t negate<int16_t>(int16_t value)
 {
-	return (value == INT16_MIN) ? INT16_MAX : -value;
+	if (value == INT16_MAX) {
+		return INT16_MIN;
+
+	} else if (value == INT16_MIN) {
+		return INT16_MAX;
+	}
+
+	return -value;
+}
+
+/*
+ * This function calculates the Hamming weight, i.e. counts the number of bits that are set
+ * in a given integer.
+ */
+
+template<typename T>
+int countSetBits(T n)
+{
+	int count = 0;
+
+	while (n) {
+		count += n & 1;
+		n >>= 1;
+	}
+
+	return count;
 }
 
 inline bool isFinite(const float &value)

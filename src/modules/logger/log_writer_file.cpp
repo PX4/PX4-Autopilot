@@ -86,6 +86,7 @@ LogWriterFile::~LogWriterFile()
 bool LogWriterFile::init_logfile_encryption(const char *filename)
 {
 	if (_algorithm == CRYPTO_NONE) {
+		_min_blocksize = 1;
 		return true;
 	}
 

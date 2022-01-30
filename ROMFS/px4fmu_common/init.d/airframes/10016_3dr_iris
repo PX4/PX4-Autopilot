@@ -35,6 +35,6 @@ param set-default MC_YAWRATE_P 0.25
 param set-default MC_YAWRATE_I 0.25
 
 param set-default BAT1_V_DIV 12.27559
-param set-default BAT1_A_PER_V 15.39103
+param set-default BAT1_A_PER_V 15.391030303103
 
 set MIXER quad_w

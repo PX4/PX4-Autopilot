@@ -53,7 +53,7 @@ class UavcanLegacyBatteryInfoSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
 	UavcanLegacyBatteryInfoSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(ins, pmgr, "legacy_bms", instance) { };
+		UavcanDynamicPortSubscriber(ins, pmgr, "legacy.", "legacy_bms", instance) { };
 
 	void subscribe() override
 	{

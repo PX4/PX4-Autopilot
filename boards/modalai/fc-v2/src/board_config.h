@@ -171,12 +171,6 @@
 
 #define SYSTEM_ADC_BASE STM32_ADC1_BASE
 
-/* Define Battery 1 Voltage Divider and A per V
- */
-
-#define BOARD_BATTERY1_V_DIV         (18.1f)     /* measured with the provided PM board */
-#define BOARD_BATTERY1_A_PER_V       (36.367515152f)
-
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
@@ -205,7 +199,6 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
 
 /* Power supply control and monitoring GPIOs */
 #define GPIO_nVDD_USB_VALID             /* PF13 */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTF|GPIO_PIN13) /* Low for USB power, High for DC power */

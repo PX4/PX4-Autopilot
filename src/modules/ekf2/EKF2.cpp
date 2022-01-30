@@ -57,7 +57,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
 	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
 	_params(_ekf.getParamHandle()),
-	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
+	_param_ekf2_predict_us(_params->filter_update_interval_us),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
 	_param_ekf2_baro_delay(_params->baro_delay_ms),
 	_param_ekf2_gps_delay(_params->gps_delay_ms),
@@ -229,8 +229,10 @@ bool EKF2::multi_init(int imu, int mag)
 
 int EKF2::print_status()
 {
-	PX4_INFO_RAW("ekf2:%d attitude: %d, local position: %d, global position: %d\n", _instance, _ekf.attitude_valid(),
+	PX4_INFO_RAW("ekf2:%d EKF dt: %.4fs, IMU dt: %.4fs, attitude: %d, local position: %d, global position: %d\n",
+		     _instance, (double)_ekf.get_dt_ekf_avg(), (double)_ekf.get_dt_imu_avg(), _ekf.attitude_valid(),
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
+
 	perf_print_counter(_ecl_ekf_update_perf);
 	perf_print_counter(_ecl_ekf_update_full_perf);
 	perf_print_counter(_msg_missed_imu_perf);
@@ -242,6 +244,10 @@ int EKF2::print_status()
 	perf_print_counter(_msg_missed_magnetometer_perf);
 	perf_print_counter(_msg_missed_odometry_perf);
 	perf_print_counter(_msg_missed_optical_flow_perf);
+
+#if defined(DEBUG_BUILD)
+	_ekf.print_status();
+#endif // DEBUG_BUILD
 
 	return 0;
 }
@@ -271,6 +277,38 @@ void EKF2::Run()
 
 		if (param_aspd_scale != PARAM_INVALID) {
 			param_get(param_aspd_scale, &_airspeed_scale_factor);
+		}
+
+		// if using baro ensure sensor interval minimum is sufficient to accommodate system averaged baro output
+		if (_params->vdist_sensor_type == 0) {
+			float sens_baro_rate = 0.f;
+
+			if (param_get(param_find("SENS_BARO_RATE"), &sens_baro_rate) == PX4_OK) {
+				if (sens_baro_rate > 0) {
+					float interval_ms = roundf(1000.f / sens_baro_rate);
+
+					if (PX4_ISFINITE(interval_ms) && (interval_ms > _params->sensor_interval_max_ms)) {
+						PX4_DEBUG("updating sensor_interval_max_ms %.3f -> %.3f", (double)_params->sensor_interval_max_ms, (double)interval_ms);
+						_params->sensor_interval_max_ms = interval_ms;
+					}
+				}
+			}
+		}
+
+		// if using mag ensure sensor interval minimum is sufficient to accommodate system averaged mag output
+		if (_params->mag_fusion_type != MAG_FUSE_TYPE_NONE) {
+			float sens_mag_rate = 0.f;
+
+			if (param_get(param_find("SENS_MAG_RATE"), &sens_mag_rate) == PX4_OK) {
+				if (sens_mag_rate > 0) {
+					float interval_ms = roundf(1000.f / sens_mag_rate);
+
+					if (PX4_ISFINITE(interval_ms) && (interval_ms > _params->sensor_interval_max_ms)) {
+						PX4_DEBUG("updating sensor_interval_max_ms %.3f -> %.3f", (double)_params->sensor_interval_max_ms, (double)interval_ms);
+						_params->sensor_interval_max_ms = interval_ms;
+					}
+				}
+			}
 		}
 	}
 
@@ -325,61 +363,63 @@ void EKF2::Run()
 			perf_count(_msg_missed_imu_perf);
 		}
 
-		imu_sample_new.time_us = imu.timestamp_sample;
-		imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
-		imu_sample_new.delta_ang = Vector3f{imu.delta_angle};
-		imu_sample_new.delta_vel_dt = imu.delta_velocity_dt * 1.e-6f;
-		imu_sample_new.delta_vel = Vector3f{imu.delta_velocity};
+		if (imu_updated) {
+			imu_sample_new.time_us = imu.timestamp_sample;
+			imu_sample_new.delta_ang_dt = imu.delta_angle_dt * 1.e-6f;
+			imu_sample_new.delta_ang = Vector3f{imu.delta_angle};
+			imu_sample_new.delta_vel_dt = imu.delta_velocity_dt * 1.e-6f;
+			imu_sample_new.delta_vel = Vector3f{imu.delta_velocity};
 
-		if (imu.delta_velocity_clipping > 0) {
-			imu_sample_new.delta_vel_clipping[0] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_X;
-			imu_sample_new.delta_vel_clipping[1] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Y;
-			imu_sample_new.delta_vel_clipping[2] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Z;
-		}
-
-		imu_dt = imu.delta_angle_dt;
-
-		if ((_device_id_accel == 0) || (_device_id_gyro == 0)) {
-			_device_id_accel = imu.accel_device_id;
-			_device_id_gyro = imu.gyro_device_id;
-			_accel_calibration_count = imu.accel_calibration_count;
-			_gyro_calibration_count = imu.gyro_calibration_count;
-
-		} else {
-			bool reset_actioned = false;
-
-			if ((imu.accel_calibration_count != _accel_calibration_count)
-			    || (imu.accel_device_id != _device_id_accel)) {
-
-				PX4_DEBUG("%d - resetting accelerometer bias", _instance);
-				_device_id_accel = imu.accel_device_id;
-
-				_ekf.resetAccelBias();
-				_accel_calibration_count = imu.accel_calibration_count;
-
-				// reset bias learning
-				_accel_cal = {};
-
-				reset_actioned = true;
+			if (imu.delta_velocity_clipping > 0) {
+				imu_sample_new.delta_vel_clipping[0] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_X;
+				imu_sample_new.delta_vel_clipping[1] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Y;
+				imu_sample_new.delta_vel_clipping[2] = imu.delta_velocity_clipping & vehicle_imu_s::CLIPPING_Z;
 			}
 
-			if ((imu.gyro_calibration_count != _gyro_calibration_count)
-			    || (imu.gyro_device_id != _device_id_gyro)) {
+			imu_dt = imu.delta_angle_dt;
 
-				PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+			if ((_device_id_accel == 0) || (_device_id_gyro == 0)) {
+				_device_id_accel = imu.accel_device_id;
 				_device_id_gyro = imu.gyro_device_id;
-
-				_ekf.resetGyroBias();
+				_accel_calibration_count = imu.accel_calibration_count;
 				_gyro_calibration_count = imu.gyro_calibration_count;
 
-				// reset bias learning
-				_gyro_cal = {};
+			} else {
+				bool reset_actioned = false;
 
-				reset_actioned = true;
-			}
+				if ((imu.accel_calibration_count != _accel_calibration_count)
+				    || (imu.accel_device_id != _device_id_accel)) {
 
-			if (reset_actioned) {
-				SelectImuStatus();
+					PX4_DEBUG("%d - resetting accelerometer bias", _instance);
+					_device_id_accel = imu.accel_device_id;
+
+					_ekf.resetAccelBias();
+					_accel_calibration_count = imu.accel_calibration_count;
+
+					// reset bias learning
+					_accel_cal = {};
+
+					reset_actioned = true;
+				}
+
+				if ((imu.gyro_calibration_count != _gyro_calibration_count)
+				    || (imu.gyro_device_id != _device_id_gyro)) {
+
+					PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+					_device_id_gyro = imu.gyro_device_id;
+
+					_ekf.resetGyroBias();
+					_gyro_calibration_count = imu.gyro_calibration_count;
+
+					// reset bias learning
+					_gyro_cal = {};
+
+					reset_actioned = true;
+				}
+
+				if (reset_actioned) {
+					SelectImuStatus();
+				}
 			}
 		}
 
@@ -392,19 +432,21 @@ void EKF2::Run()
 			perf_count(_msg_missed_imu_perf);
 		}
 
-		imu_sample_new.time_us = sensor_combined.timestamp;
-		imu_sample_new.delta_ang_dt = sensor_combined.gyro_integral_dt * 1.e-6f;
-		imu_sample_new.delta_ang = Vector3f{sensor_combined.gyro_rad} * imu_sample_new.delta_ang_dt;
-		imu_sample_new.delta_vel_dt = sensor_combined.accelerometer_integral_dt * 1.e-6f;
-		imu_sample_new.delta_vel = Vector3f{sensor_combined.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
+		if (imu_updated) {
+			imu_sample_new.time_us = sensor_combined.timestamp;
+			imu_sample_new.delta_ang_dt = sensor_combined.gyro_integral_dt * 1.e-6f;
+			imu_sample_new.delta_ang = Vector3f{sensor_combined.gyro_rad} * imu_sample_new.delta_ang_dt;
+			imu_sample_new.delta_vel_dt = sensor_combined.accelerometer_integral_dt * 1.e-6f;
+			imu_sample_new.delta_vel = Vector3f{sensor_combined.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
 
-		if (sensor_combined.accelerometer_clipping > 0) {
-			imu_sample_new.delta_vel_clipping[0] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_X;
-			imu_sample_new.delta_vel_clipping[1] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Y;
-			imu_sample_new.delta_vel_clipping[2] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Z;
+			if (sensor_combined.accelerometer_clipping > 0) {
+				imu_sample_new.delta_vel_clipping[0] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_X;
+				imu_sample_new.delta_vel_clipping[1] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Y;
+				imu_sample_new.delta_vel_clipping[2] = sensor_combined.accelerometer_clipping & sensor_combined_s::CLIPPING_Z;
+			}
+
+			imu_dt = sensor_combined.gyro_integral_dt;
 		}
-
-		imu_dt = sensor_combined.gyro_integral_dt;
 
 		if (_sensor_selection_sub.updated() || (_device_id_accel == 0 || _device_id_gyro == 0)) {
 			sensor_selection_s sensor_selection;
@@ -667,7 +709,7 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 
 	if (information_event_updated || warning_event_updated) {
 		estimator_event_flags_s event_flags{};
-		event_flags.timestamp_sample = timestamp;
+		event_flags.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 		event_flags.information_event_changes           = _filter_information_event_changes;
 		event_flags.gps_checks_passed                   = _ekf.information_event_flags().gps_checks_passed;
@@ -716,7 +758,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 		global_pos.timestamp_sample = timestamp;
 
 		// Position of local NED origin in GPS / WGS84 frame
-		map_projection_reproject(&_ekf.global_origin(), position(0), position(1), &global_pos.lat, &global_pos.lon);
+		_ekf.global_origin().reproject(position(0), position(1), global_pos.lat, global_pos.lon);
 
 		float delta_xy[2];
 		_ekf.get_posNE_reset(delta_xy, &global_pos.lat_lon_reset_counter);
@@ -752,7 +794,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp, const imuSample &imu
 {
 	// publish estimator innovation data
 	estimator_innovations_s innovations{};
-	innovations.timestamp_sample = timestamp;
+	innovations.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 	_ekf.getGpsVelPosInnov(innovations.gps_hvel, innovations.gps_vvel, innovations.gps_hpos, innovations.gps_vpos);
 	_ekf.getEvVelPosInnov(innovations.ev_hvel, innovations.ev_vvel, innovations.ev_hpos, innovations.ev_vpos);
 	_ekf.getBaroHgtInnov(innovations.baro_vpos);
@@ -787,7 +829,7 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 {
 	// publish estimator innovation test ratio data
 	estimator_innovations_s test_ratios{};
-	test_ratios.timestamp_sample = timestamp;
+	test_ratios.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 	_ekf.getGpsVelPosInnovRatio(test_ratios.gps_hvel[0], test_ratios.gps_vvel, test_ratios.gps_hpos[0],
 				    test_ratios.gps_vpos);
 	_ekf.getEvVelPosInnovRatio(test_ratios.ev_hvel[0], test_ratios.ev_vvel, test_ratios.ev_hpos[0], test_ratios.ev_vpos);
@@ -812,7 +854,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 {
 	// publish estimator innovation variance data
 	estimator_innovations_s variances{};
-	variances.timestamp_sample = timestamp;
+	variances.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 	_ekf.getGpsVelPosInnovVar(variances.gps_hvel, variances.gps_vvel, variances.gps_hpos, variances.gps_vpos);
 	_ekf.getEvVelPosInnovVar(variances.ev_hvel, variances.ev_vvel, variances.ev_hpos, variances.ev_vpos);
 	_ekf.getBaroHgtInnovVar(variances.baro_vpos);
@@ -867,9 +909,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 
 	// Position of local NED origin in GPS / WGS84 frame
 	if (_ekf.global_origin_valid()) {
-		lpos.ref_timestamp = _ekf.global_origin().timestamp;
-		lpos.ref_lat = math::degrees(_ekf.global_origin().lat_rad); // Reference point latitude in degrees
-		lpos.ref_lon = math::degrees(_ekf.global_origin().lon_rad); // Reference point longitude in degrees
+		lpos.ref_timestamp = _ekf.global_origin().getProjectionReferenceTimestamp();
+		lpos.ref_lat = _ekf.global_origin().getProjectionReferenceLat(); // Reference point latitude in degrees
+		lpos.ref_lon = _ekf.global_origin().getProjectionReferenceLon(); // Reference point longitude in degrees
 		lpos.ref_alt = _ekf.getEkfGlobalOriginAltitude();           // Reference point in MSL altitude meters
 		lpos.xy_global = true;
 		lpos.z_global = true;
@@ -1057,17 +1099,18 @@ void EKF2::PublishOdometryAligned(const hrt_abstime &timestamp, const vehicle_od
 void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 {
 	// estimator_sensor_bias
-	estimator_sensor_bias_s bias{};
-	bias.timestamp_sample = timestamp;
-
 	const Vector3f gyro_bias{_ekf.getGyroBias()};
 	const Vector3f accel_bias{_ekf.getAccelBias()};
 	const Vector3f mag_bias{_ekf.getMagBias()};
 
-	// only publish on change
+	// publish at ~1 Hz, or sooner if there's a change
 	if ((gyro_bias - _last_gyro_bias_published).longerThan(0.001f)
 	    || (accel_bias - _last_accel_bias_published).longerThan(0.001f)
-	    || (mag_bias - _last_mag_bias_published).longerThan(0.001f)) {
+	    || (mag_bias - _last_mag_bias_published).longerThan(0.001f)
+	    || (timestamp >= _last_sensor_bias_published + 1_s)) {
+
+		estimator_sensor_bias_s bias{};
+		bias.timestamp_sample = timestamp;
 
 		// take device ids from sensor_selection_s if not using specific vehicle_imu_s
 		if (_device_id_gyro != 0) {
@@ -1102,6 +1145,8 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 
 		bias.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_sensor_bias_pub.publish(bias);
+
+		_last_sensor_bias_published = bias.timestamp;
 	}
 }
 
@@ -1109,7 +1154,7 @@ void EKF2::PublishStates(const hrt_abstime &timestamp)
 {
 	// publish estimator states
 	estimator_states_s states;
-	states.timestamp_sample = timestamp;
+	states.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 	states.n_states = Ekf::_k_num_states;
 	_ekf.getStateAtFusionHorizonAsVector().copyTo(states.states);
 	_ekf.covariances_diagonal().copyTo(states.covariances);
@@ -1120,7 +1165,7 @@ void EKF2::PublishStates(const hrt_abstime &timestamp)
 void EKF2::PublishStatus(const hrt_abstime &timestamp)
 {
 	estimator_status_s status{};
-	status.timestamp_sample = timestamp;
+	status.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 	_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
 
@@ -1199,7 +1244,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 
 	if (update) {
 		estimator_status_flags_s status_flags{};
-		status_flags.timestamp_sample = timestamp;
+		status_flags.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 		status_flags.control_status_changes   = _filter_control_status_changes;
 		status_flags.cs_tilt_align            = _ekf.control_status_flags().tilt_align;
@@ -1297,7 +1342,7 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 	if (_ekf.get_wind_status()) {
 		// Publish wind estimate only if ekf declares them valid
 		wind_s wind{};
-		wind.timestamp_sample = timestamp;
+		wind.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 		const Vector2f wind_vel = _ekf.getWindVelocity();
 		const Vector2f wind_vel_var = _ekf.getWindVelocityVariance();
@@ -1380,12 +1425,17 @@ void EKF2::UpdateImuStatus()
 			return;
 		}
 
+		const float dt = _ekf.get_dt_imu_avg();
+
 		// accel -> delta velocity
-		_ekf.setDeltaVelocityHighFrequencyVibrationMetric(imu_status.accel_vibration_metric * _ekf.get_dt_imu_avg());
+		_ekf.setDeltaVelocityHighFrequencyVibrationMetric(imu_status.accel_vibration_metric * dt);
 
 		// gyro -> delta angle
-		_ekf.setDeltaAngleHighFrequencyVibrationMetric(imu_status.gyro_vibration_metric * _ekf.get_dt_imu_avg());
-		_ekf.setDeltaAngleConingMetric(imu_status.gyro_coning_vibration * _ekf.get_dt_imu_avg());
+		_ekf.setDeltaAngleHighFrequencyVibrationMetric(imu_status.gyro_vibration_metric * dt);
+
+		// note: the coning metric uses the cross product of two consecutive angular velocities
+		// this is why the conversion to delta angle requires dt^2
+		_ekf.setDeltaAngleConingMetric(imu_status.gyro_coning_vibration * dt * dt);
 	}
 }
 
@@ -1774,18 +1824,33 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 {
+	if (_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS) {
+		_accel_cal.cal_available = false;
+		return;
+	}
+
+	static constexpr float max_var_allowed = 1e-3f;
+	static constexpr float max_var_ratio = 1e2f;
+
+	const Vector3f bias_variance{_ekf.getAccelBiasVariance()};
+
 	// Check if conditions are OK for learning of accelerometer bias values
 	// the EKF is operating in the correct mode and there are no filter faults
-	if (_ekf.control_status_flags().in_air && (_ekf.fault_status().value == 0)
-	    && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
+	if ((_ekf.fault_status().value == 0)
+	    && !_ekf.accel_bias_inhibited()
+	    && !_preflt_checker.hasHorizFailed() && !_preflt_checker.hasVertFailed()
+	    && (_ekf.control_status_flags().baro_hgt || _ekf.control_status_flags().rng_hgt
+		|| _ekf.control_status_flags().gps_hgt || _ekf.control_status_flags().ev_hgt)
+	    && !_ekf.warning_event_flags().height_sensor_timeout && !_ekf.warning_event_flags().invalid_accel_bias_cov_reset
+	    && !_ekf.innov_check_fail_status_flags().reject_ver_pos && !_ekf.innov_check_fail_status_flags().reject_ver_vel
+	    && (bias_variance.max() < max_var_allowed) && (bias_variance.max() < max_var_ratio * bias_variance.min())
+	   ) {
 
 		if (_accel_cal.last_us != 0) {
 			_accel_cal.total_time_us += timestamp - _accel_cal.last_us;
 
-			// Start checking accel bias estimates when we have accumulated sufficient calibration time
+			// consider bias estimates stable when we have accumulated sufficient time
 			if (_accel_cal.total_time_us > 30_s) {
-				_accel_cal.last_bias = _ekf.getAccelBias();
-				_accel_cal.last_bias_variance = _ekf.getAccelBiasVariance();
 				_accel_cal.cal_available = true;
 			}
 		}
@@ -1793,31 +1858,28 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 		_accel_cal.last_us = timestamp;
 
 	} else {
-		// conditions are NOT OK for learning accelerometer bias, reset timestamp
-		// but keep the accumulated calibration time
-		_accel_cal.last_us = 0;
-
-		if (_ekf.fault_status().value != 0) {
-			// if a filter fault has occurred, assume previous learning was invalid and do not
-			// count it towards total learning time.
-			_accel_cal.total_time_us = 0;
-		}
+		_accel_cal = {};
 	}
 }
 
 void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 {
+	static constexpr float max_var_allowed = 1e-3f;
+	static constexpr float max_var_ratio = 1e2f;
+
+	const Vector3f bias_variance{_ekf.getGyroBiasVariance()};
+
 	// Check if conditions are OK for learning of gyro bias values
 	// the EKF is operating in the correct mode and there are no filter faults
-	if (_ekf.control_status_flags().in_air && (_ekf.fault_status().value == 0)) {
+	if ((_ekf.fault_status().value == 0)
+	    && (bias_variance.max() < max_var_allowed) && (bias_variance.max() < max_var_ratio * bias_variance.min())
+	   ) {
 
 		if (_gyro_cal.last_us != 0) {
 			_gyro_cal.total_time_us += timestamp - _gyro_cal.last_us;
 
-			// Start checking gyro bias estimates when we have accumulated sufficient calibration time
+			// consider bias estimates stable when we have accumulated sufficient time
 			if (_gyro_cal.total_time_us > 30_s) {
-				_gyro_cal.last_bias = _ekf.getGyroBias();
-				_gyro_cal.last_bias_variance = _ekf.getGyroBiasVariance();
 				_gyro_cal.cal_available = true;
 			}
 		}
@@ -1825,15 +1887,8 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 		_gyro_cal.last_us = timestamp;
 
 	} else {
-		// conditions are NOT OK for learning gyro bias, reset timestamp
-		// but keep the accumulated calibration time
-		_gyro_cal.last_us = 0;
-
-		if (_ekf.fault_status().value != 0) {
-			// if a filter fault has occurred, assume previous learning was invalid and do not
-			// count it towards total learning time.
-			_gyro_cal.total_time_us = 0;
-		}
+		// conditions are NOT OK for learning bias, reset
+		_gyro_cal = {};
 	}
 }
 
@@ -1841,15 +1896,24 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
 	// Check if conditions are OK for learning of magnetometer bias values
 	// the EKF is operating in the correct mode and there are no filter faults
-	if (_ekf.control_status_flags().in_air && _ekf.control_status_flags().mag_3D && (_ekf.fault_status().value == 0)) {
+
+	static constexpr float max_var_allowed = 1e-3f;
+	static constexpr float max_var_ratio = 1e2f;
+
+	const Vector3f bias_variance{_ekf.getMagBiasVariance()};
+
+	bool valid = _ekf.control_status_flags().in_air
+		     && (_ekf.fault_status().value == 0)
+		     && (bias_variance.max() < max_var_allowed)
+		     && (bias_variance.max() < max_var_ratio * bias_variance.min());
+
+	if (valid && _ekf.control_status_flags().mag_3D) {
 
 		if (_mag_cal.last_us != 0) {
 			_mag_cal.total_time_us += timestamp - _mag_cal.last_us;
 
-			// Start checking mag bias estimates when we have accumulated sufficient calibration time
+			// consider bias estimates stable when we have accumulated sufficient time
 			if (_mag_cal.total_time_us > 30_s) {
-				_mag_cal.last_bias = _ekf.getMagBias();
-				_mag_cal.last_bias_variance = _ekf.getMagBiasVariance();
 				_mag_cal.cal_available = true;
 			}
 		}
@@ -1861,12 +1925,13 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 		// but keep the accumulated calibration time
 		_mag_cal.last_us = 0;
 
-		if (_ekf.fault_status().value != 0) {
+		if (!valid) {
 			// if a filter fault has occurred, assume previous learning was invalid and do not
 			// count it towards total learning time.
 			_mag_cal.total_time_us = 0;
 		}
 	}
+
 
 	if (!_armed) {
 		// update stored declination value

@@ -166,39 +166,45 @@ const wq_config_t &
 serial_port_to_wq(const char *serial)
 {
 	if (serial == nullptr) {
-		return wq_configurations::hp_default;
+		return wq_configurations::ttyUnknown;
 
 	} else if (strstr(serial, "ttyS0")) {
-		return wq_configurations::UART0;
+		return wq_configurations::ttyS0;
 
 	} else if (strstr(serial, "ttyS1")) {
-		return wq_configurations::UART1;
+		return wq_configurations::ttyS1;
 
 	} else if (strstr(serial, "ttyS2")) {
-		return wq_configurations::UART2;
+		return wq_configurations::ttyS2;
 
 	} else if (strstr(serial, "ttyS3")) {
-		return wq_configurations::UART3;
+		return wq_configurations::ttyS3;
 
 	} else if (strstr(serial, "ttyS4")) {
-		return wq_configurations::UART4;
+		return wq_configurations::ttyS4;
 
 	} else if (strstr(serial, "ttyS5")) {
-		return wq_configurations::UART5;
+		return wq_configurations::ttyS5;
 
 	} else if (strstr(serial, "ttyS6")) {
-		return wq_configurations::UART6;
+		return wq_configurations::ttyS6;
 
 	} else if (strstr(serial, "ttyS7")) {
-		return wq_configurations::UART7;
+		return wq_configurations::ttyS7;
 
 	} else if (strstr(serial, "ttyS8")) {
-		return wq_configurations::UART8;
+		return wq_configurations::ttyS8;
+
+	} else if (strstr(serial, "ttyS9")) {
+		return wq_configurations::ttyS9;
+
+	} else if (strstr(serial, "ttyACM0")) {
+		return wq_configurations::ttyACM0;
 	}
 
 	PX4_DEBUG("unknown serial port: %s", serial);
 
-	return wq_configurations::UART_UNKNOWN;
+	return wq_configurations::ttyUnknown;
 }
 
 const wq_config_t &ins_instance_to_wq(uint8_t instance)
@@ -235,6 +241,17 @@ WorkQueueRunner(void *context)
 	return nullptr;
 }
 
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+// Wrapper for px4_task_spawn_cmd interface
+inline static int
+WorkQueueRunner(int argc, char *argv[])
+{
+	wq_config_t *context = (wq_config_t *)strtoul(argv[argc - 1], nullptr, 16);
+	WorkQueueRunner(context);
+	return 0;
+}
+#endif
+
 static int
 WorkQueueManagerRun(int, char **)
 {
@@ -248,8 +265,32 @@ WorkQueueManagerRun(int, char **)
 		if (wq != nullptr) {
 			// create new work queue
 
+			// stack size
+#if defined(__PX4_QURT)
+			const size_t stacksize = math::max(8 * 1024, PX4_STACK_ADJUSTED(wq->stacksize));
+#elif defined(__PX4_NUTTX)
+			const size_t stacksize = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
+#elif defined(__PX4_POSIX)
+			// On posix system , the desired stacksize round to the nearest multiplier of the system pagesize
+			// It is a requirement of the  pthread_attr_setstacksize* function
+			const unsigned int page_size = sysconf(_SC_PAGESIZE);
+			const size_t stacksize_adj = math::max((int)PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
+			const size_t stacksize = (stacksize_adj + page_size - (stacksize_adj % page_size));
+#endif
+
+			// priority
+			int sched_priority = sched_get_priority_max(SCHED_FIFO) + wq->relative_priority;
+
+			// use pthreads for NuttX flat and posix builds. For NuttX protected build, use tasks or kernel threads
+#if !defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT)
 			pthread_attr_t attr;
 			int ret_attr_init = pthread_attr_init(&attr);
+
+			int ret_setstacksize = pthread_attr_setstacksize(&attr, stacksize);
+
+			if (ret_setstacksize != 0) {
+				PX4_ERR("setting stack size for %s failed (%i)", wq->name, ret_setstacksize);
+			}
 
 			if (ret_attr_init != 0) {
 				PX4_ERR("attr init for %s failed (%i)", wq->name, ret_attr_init);
@@ -260,24 +301,6 @@ WorkQueueManagerRun(int, char **)
 
 			if (ret_getschedparam != 0) {
 				PX4_ERR("getting sched param for %s failed (%i)", wq->name, ret_getschedparam);
-			}
-
-			// stack size
-#if defined(__PX4_QURT)
-			const size_t stacksize = math::max(8 * 1024, PX4_STACK_ADJUSTED(wq->stacksize));
-#elif defined(__PX4_NUTTX)
-			const size_t stacksize = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
-#elif defined(__PX4_POSIX)
-			// On posix system , the desired stacksize round to the nearest multiplier of the system pagesize
-			// It is a requirement of the  pthread_attr_setstacksize* function
-			const unsigned int page_size = sysconf(_SC_PAGESIZE);
-			const size_t stacksize_adj = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
-			const size_t stacksize = (stacksize_adj + page_size - (stacksize_adj % page_size));
-#endif
-			int ret_setstacksize = pthread_attr_setstacksize(&attr, stacksize);
-
-			if (ret_setstacksize != 0) {
-				PX4_ERR("setting stack size for %s failed (%i)", wq->name, ret_setstacksize);
 			}
 
 #ifndef __PX4_QURT
@@ -292,7 +315,7 @@ WorkQueueManagerRun(int, char **)
 #endif // ! QuRT
 
 			// priority
-			param.sched_priority = sched_get_priority_max(SCHED_FIFO) + wq->relative_priority;
+			param.sched_priority = sched_priority;
 			int ret_setschedparam = pthread_attr_setschedparam(&attr, &param);
 
 			if (ret_setschedparam != 0) {
@@ -316,6 +339,30 @@ WorkQueueManagerRun(int, char **)
 			if (ret_destroy != 0) {
 				PX4_ERR("failed to destroy thread attributes for %s (%i)", wq->name, ret_create);
 			}
+
+#else
+			// create thread
+
+			// pack wq struct pointer into string, this is compatible with px4_task_spawn_cmd
+			char arg1[sizeof(void *) * 3];
+			sprintf(arg1, "%lx", (long unsigned)wq);
+			const char *arg[2] = {arg1, nullptr};
+
+			int pid = px4_task_spawn_cmd(wq->name,
+						     SCHED_FIFO,
+						     sched_priority,
+						     stacksize,
+						     WorkQueueRunner,
+						     (char *const *)arg);
+
+			if (pid > 0) {
+				PX4_DEBUG("starting: %s, priority: %d, stack: %zu bytes", wq->name, sched_priority, stacksize);
+
+			} else {
+				PX4_ERR("failed to create thread for %s (%i): %s", wq->name, pid, strerror(pid));
+			}
+
+#endif
 		}
 	}
 

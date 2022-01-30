@@ -31,79 +31,76 @@
  *
  ****************************************************************************/
 
-/**
- * @file ActuatorEffectivenessStandardVTOL.hpp
- *
- * Actuator effectiveness for standard VTOL
- *
- * @author Julien Lecoeur <julien.lecoeur@gmail.com>
- */
-
 #include "ActuatorEffectivenessStandardVTOL.hpp"
+#include <ControlAllocation/ControlAllocation.hpp>
 
-ActuatorEffectivenessStandardVTOL::ActuatorEffectivenessStandardVTOL()
+using namespace matrix;
+
+ActuatorEffectivenessStandardVTOL::ActuatorEffectivenessStandardVTOL(ModuleParams *parent)
+	: ModuleParams(parent), _mc_rotors(this), _control_surfaces(this)
 {
-	setFlightPhase(FlightPhase::HOVER_FLIGHT);
 }
 
 bool
-ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &matrix,
-		bool force)
+ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(Configuration &configuration, bool force)
 {
-	if (!(_updated || force)) {
+	if (!force) {
 		return false;
 	}
 
-	switch (_flight_phase) {
-	case FlightPhase::HOVER_FLIGHT:  {
-			const float standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
-				{-0.5f,  0.5f,  0.5f, -0.5f, 0.f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.5f, -0.5f,  0.5f, -0.5f, 0.f, 0.f, 0.f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.25f,  0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-			};
-			matrix = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(standard_vtol);
-			break;
-		}
+	// MC motors
+	configuration.selected_matrix = 0;
+	_mc_rotors.getEffectivenessMatrix(configuration, true);
+	_mc_motors_mask = (1u << _mc_rotors.geometry().num_rotors) - 1;
 
-	case FlightPhase::FORWARD_FLIGHT: {
-			const float standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
-				{ 0.f, 0.f, 0.f, 0.f, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-			};
-			matrix = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(standard_vtol);
-			break;
-		}
+	// Pusher/Puller
+	configuration.selected_matrix = 1;
 
-	case FlightPhase::TRANSITION_HF_TO_FF:
-	case FlightPhase::TRANSITION_FF_TO_HF: {
-			const float standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
-				{ -0.5f,  0.5f,  0.5f, -0.5f, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{  0.5f, -0.5f,  0.5f, -0.5f, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{  0.25f,  0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{  0.f,  0.f,  0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-			};
-			matrix = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(standard_vtol);
-			break;
-		}
+	for (int i = 0; i < _param_ca_stdvtol_n_p.get(); ++i) {
+		configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{1.f, 0.f, 0.f});
 	}
 
-	_updated = false;
+	// Control Surfaces
+	configuration.selected_matrix = 1;
+	_first_control_surface_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
+	_control_surfaces.getEffectivenessMatrix(configuration, true);
+
 	return true;
 }
 
-void
-ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phase)
+void ActuatorEffectivenessStandardVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
+		int matrix_index, ActuatorVector &actuator_sp)
 {
-	ActuatorEffectiveness::setFlightPhase(flight_phase);
-	_updated = true;
+	// apply flaps
+	if (matrix_index == 1) {
+		actuator_controls_s actuator_controls_1;
 
+		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
+			float control_flaps = actuator_controls_1.control[actuator_controls_s::INDEX_FLAPS];
+			float airbrakes_control = actuator_controls_1.control[actuator_controls_s::INDEX_AIRBRAKES];
+			_control_surfaces.applyFlapsAndAirbrakes(control_flaps, airbrakes_control, _first_control_surface_idx, actuator_sp);
+		}
+	}
+}
+
+void ActuatorEffectivenessStandardVTOL::setFlightPhase(const FlightPhase &flight_phase)
+{
+	if (_flight_phase == flight_phase) {
+		return;
+	}
+
+	ActuatorEffectiveness::setFlightPhase(flight_phase);
+
+	// update stopped motors
+	switch (flight_phase) {
+	case FlightPhase::FORWARD_FLIGHT:
+		_stopped_motors = _mc_motors_mask;
+		break;
+
+	case FlightPhase::HOVER_FLIGHT:
+	case FlightPhase::TRANSITION_FF_TO_HF:
+	case FlightPhase::TRANSITION_HF_TO_FF:
+		_stopped_motors = 0;
+		break;
+	}
 }

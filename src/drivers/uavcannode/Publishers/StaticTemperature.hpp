@@ -53,7 +53,9 @@ public:
 		UavcanPublisherBase(uavcan::equipment::air_data::StaticTemperature::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_baro)),
 		uavcan::Publisher<uavcan::equipment::air_data::StaticTemperature>(node)
-	{}
+	{
+		this->setPriority(uavcan::TransferPriority::MiddleLower);
+	}
 
 	void PrintInfo() override
 	{

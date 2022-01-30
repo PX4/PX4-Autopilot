@@ -69,7 +69,7 @@ const struct {
 	{"microbench_matrix",	test_microbench_matrix,	0},
 	{"microbench_uorb",	test_microbench_uorb,	0},
 
-	{NULL,			NULL, 		0}
+	{nullptr,			nullptr, 		0}
 };
 
 #define NMICROBENCHMARKS (sizeof(microbenchmarks) / sizeof(microbenchmarks[0]))
@@ -93,7 +93,7 @@ static int microbench_all(int argc, char *argv[])
 static int microbench_runner(unsigned option)
 {
 	size_t i;
-	char *args[2] = {"all", NULL};
+	char *args[2] = {"all", nullptr};
 	unsigned int failcount = 0;
 	unsigned int testcount = 0;
 	unsigned int passed[NMICROBENCHMARKS];
