@@ -1,0 +1,26 @@
+name: Build docker
+
+on:
+  pull_request:
+
+jobs:
+  build-docker:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      #- name: Login to Github Registry
+        #uses: docker/login-action@v1
+        #with:
+          #registry: ghrc.io
+          #username: ${{ github.actor }}
+          #password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build image
+        uses: docker/build-push-action@v2
+        with:
+          file: Tools/setup/Dockerfile
+          push: false
+
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
