@@ -299,7 +299,6 @@ protected:
 	imuSample _imu_sample_delayed{};	// captures the imu sample on the delayed time horizon
 
 	// measurement samples capturing measurements on the delayed time horizon
-	magSample _mag_sample_delayed{};
 	baroSample _baro_sample_delayed{};
 	gpsSample _gps_sample_delayed{};
 	sensor::SensorRangeFinder _range_sensor{};

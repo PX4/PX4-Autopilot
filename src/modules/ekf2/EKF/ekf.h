@@ -364,7 +364,6 @@ private:
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
-	bool _mag_data_ready{false};	///< true when new magnetometer data has fallen behind the fusion time horizon and is available to be fused
 	bool _baro_data_ready{false};	///< true when new baro height data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 	bool _ev_data_ready{false};	///< true when new external vision system data has fallen behind the fusion time horizon and is available to be fused
@@ -577,22 +576,22 @@ private:
 	void predictCovariance();
 
 	// ekf sequential fusion of magnetometer measurements
-	void fuseMag();
+	void fuseMag(const Vector3f &mag);
 
 	// fuse the first euler angle from either a 321 or 312 rotation sequence as the observation (currently measures yaw using the magnetometer)
-	void fuseHeading();
+	void fuseHeading(float measured_hdg = NAN, float obs_var = NAN);
 
 	// fuse the yaw angle defined as the first rotation in a 321 Tait-Bryan rotation sequence
 	// yaw : angle observation defined as the first rotation in a 321 Tait-Bryan rotation sequence (rad)
 	// yaw_variance : variance of the yaw angle observation (rad^2)
 	// zero_innovation : Fuse data with innovation set to zero
-	void fuseYaw321(const float yaw, const float yaw_variance, bool zero_innovation);
+	void fuseYaw321(const float yaw, const float yaw_variance, bool zero_innovation = false);
 
 	// fuse the yaw angle defined as the first rotation in a 312 Tait-Bryan rotation sequence
 	// yaw : angle observation defined as the first rotation in a 312 Tait-Bryan rotation sequence (rad)
 	// yaw_variance : variance of the yaw angle observation (rad^2)
 	// zero_innovation : Fuse data with innovation set to zero
-	void fuseYaw312(const float yaw, const float yaw_variance, bool zero_innovation);
+	void fuseYaw312(const float yaw, const float yaw_variance, bool zero_innovation = false);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	// innovation : prediction - measurement
@@ -700,7 +699,7 @@ private:
 
 	// reset the heading and magnetic field states using the declination and magnetometer measurements
 	// return true if successful
-	bool resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var = true, bool update_buffer = true);
+	bool resetMagHeading(bool increase_yaw_var = true, bool update_buffer = true);
 
 	// reset the heading using the external vision measurements
 	// return true if successful
@@ -708,7 +707,7 @@ private:
 
 	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
-	bool realignYawGPS();
+	bool realignYawGPS(const Vector3f &mag);
 
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
@@ -839,7 +838,7 @@ private:
 	void runOnGroundYawReset();
 	bool isYawResetAuthorized() const { return !_is_yaw_fusion_inhibited; }
 	bool canResetMagHeading() const;
-	void runInAirYawReset();
+	void runInAirYawReset(const Vector3f &mag);
 	bool canRealignYawUsingGps() const { return _control_status.flags.fixed_wing; }
 	void runVelPosReset();
 
@@ -854,11 +853,11 @@ private:
 	void checkMagDeclRequired();
 	void checkMagInhibition();
 	bool shouldInhibitMag() const;
-	void checkMagFieldStrength();
+	void checkMagFieldStrength(const Vector3f &mag);
 	bool isStrongMagneticDisturbance() const { return _control_status.flags.mag_field_disturbed; }
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
-	void runMagAndMagDeclFusions();
-	void run3DMagAndDeclFusions();
+	void runMagAndMagDeclFusions(const Vector3f &mag);
+	void run3DMagAndDeclFusions(const Vector3f &mag);
 
 	// control fusion of range finder observations
 	void controlRangeFinderFusion();
