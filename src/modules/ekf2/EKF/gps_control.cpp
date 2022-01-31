@@ -70,7 +70,7 @@ void Ekf::controlGpsFusion()
 
 					fuseGpsVelPos();
 
-					if (shouldResetGpsFusion()){
+					if (shouldResetGpsFusion()) {
 						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1000000);
 
 						/* A reset is not performed when getting GPS back after a significant period of no data
@@ -88,7 +88,7 @@ void Ekf::controlGpsFusion()
 							// use GPS velocity data to check and correct yaw angle if a FW vehicle
 							if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
 								// if flying a fixed wing aircraft, do a complete reset that includes yaw
-								_control_status.flags.mag_aligned_in_flight = realignYawGPS();
+								_mag_yaw_reset_req = true;
 							}
 
 							_warning_events.flags.gps_fusion_timout = true;
@@ -131,8 +131,7 @@ void Ekf::controlGpsFusion()
 					startGpsFusion();
 				}
 
-			} else if(!_control_status.flags.yaw_align
-		                  && (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE)) {
+			} else if (!_control_status.flags.yaw_align && (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE)) {
 				// If no mag is used, align using the yaw estimator
 				_do_ekfgsf_yaw_reset = true;
 			}
@@ -208,7 +207,7 @@ void Ekf::processYawEstimatorResetRequest()
 	 * to improve its estimate if the previous reset was not successful.
 	 */
 	if (_do_ekfgsf_yaw_reset
-	    && isTimedOut(_ekfgsf_yaw_reset_time, 5000000)){
+	    && isTimedOut(_ekfgsf_yaw_reset_time, 5000000)) {
 		if (resetYawToEKFGSF()) {
 			_ekfgsf_yaw_reset_time = _time_last_imu;
 			_time_last_hor_pos_fuse = _time_last_imu;
