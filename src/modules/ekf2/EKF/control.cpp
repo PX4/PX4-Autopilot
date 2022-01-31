@@ -110,31 +110,6 @@ void Ekf::controlFusionModes()
 		_gps_data_ready = _gps_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
 	}
 
-
-	if (_mag_buffer) {
-		_mag_data_ready = _mag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed);
-
-		if (_mag_data_ready) {
-			_mag_lpf.update(_mag_sample_delayed.mag);
-
-			// if enabled, use knowledge of theoretical magnetic field vector to calculate a synthetic magnetomter Z component value.
-			// this is useful if there is a lot of interference on the sensor measurement.
-			if (_params.synthesize_mag_z && (_params.mag_declination_source & MASK_USE_GEO_DECL)
-			    && (_NED_origin_initialised || PX4_ISFINITE(_mag_declination_gps))
-			   ) {
-
-				const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -_mag_inclination_gps, _mag_declination_gps)) * Vector3f(_mag_strength_gps, 0, 0);
-				_mag_sample_delayed.mag(2) = calculate_synthetic_mag_z_measurement(_mag_sample_delayed.mag, mag_earth_pred);
-				_control_status.flags.synthetic_mag_z = true;
-
-			} else {
-				_control_status.flags.synthetic_mag_z = false;
-			}
-		}
-
-
-	}
-
 	if (_range_buffer) {
 		// Get range data from buffer and check validity
 		bool is_rng_data_ready = _range_buffer->pop_first_older_than(_imu_sample_delayed.time_us, _range_sensor.getSampleAddress());
@@ -212,6 +187,12 @@ void Ekf::controlExternalVisionFusion()
 	// Check for new external vision data
 	if (_ev_data_ready) {
 
+		bool reset = false;
+
+		if (_ev_sample_delayed.reset_counter != _ev_sample_delayed_prev.reset_counter) {
+			reset = true;
+		}
+
 		if (_inhibit_ev_yaw_use) {
 			stopEvYawFusion();
 		}
@@ -257,6 +238,9 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the horizontal position observations
 		if (_control_status.flags.ev_pos) {
+			if (reset && _control_status_prev.flags.ev_pos) {
+				resetHorizontalPosition();
+			}
 
 			Vector3f ev_pos_obs_var;
 			Vector2f ev_pos_innov_gates;
@@ -281,10 +265,8 @@ void Ekf::controlExternalVisionFusion()
 
 				} else {
 					// calculate the change in position since the last measurement
-					Vector3f ev_delta_pos = _ev_sample_delayed.pos - _pos_meas_prev;
-
 					// rotate measurement into body frame is required when fusing with GPS
-					ev_delta_pos = _R_ev_to_ekf * ev_delta_pos;
+					Vector3f ev_delta_pos = _R_ev_to_ekf * Vector3f(_ev_sample_delayed.pos - _ev_sample_delayed_prev.pos);
 
 					// use the change in position since the last measurement
 					_ev_pos_innov(0) = _state.pos(0) - _hpos_pred_prev(0) - ev_delta_pos(0);
@@ -296,11 +278,6 @@ void Ekf::controlExternalVisionFusion()
 					ev_pos_obs_var(0) = fmaxf(ev_pos_var(0, 0), sq(0.5f));
 					ev_pos_obs_var(1) = fmaxf(ev_pos_var(1, 1), sq(0.5f));
 				}
-
-				// record observation and estimate for use next time
-				_pos_meas_prev = _ev_sample_delayed.pos;
-				_hpos_pred_prev = _state.pos.xy();
-
 			} else {
 				// use the absolute position
 				Vector3f ev_pos_meas = _ev_sample_delayed.pos;
@@ -337,6 +314,9 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the velocity observations
 		if (_control_status.flags.ev_vel) {
+			if (reset && _control_status_prev.flags.ev_vel) {
+				resetVelocity();
+			}
 
 			Vector2f ev_vel_innov_gates;
 
@@ -362,8 +342,23 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the yaw observation
 		if (_control_status.flags.ev_yaw) {
-			fuseHeading();
+			if (reset && _control_status_prev.flags.ev_yaw) {
+				resetYawToEv();
+			}
+
+			if (shouldUse321RotationSequence(_R_to_earth)) {
+				float measured_hdg = getEuler321Yaw(_ev_sample_delayed.quat);
+				fuseYaw321(measured_hdg, _ev_sample_delayed.angVar);
+
+			} else {
+				float measured_hdg = getEuler312Yaw(_ev_sample_delayed.quat);
+				fuseYaw312(measured_hdg, _ev_sample_delayed.angVar);
+			}
 		}
+
+		// record observation and estimate for use next time
+		_ev_sample_delayed_prev = _ev_sample_delayed;
+		_hpos_pred_prev = _state.pos.xy();
 
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel ||  _control_status.flags.ev_yaw)
 		   && isTimedOut(_time_last_ext_vision, (uint64_t)_params.reset_timeout_max)) {

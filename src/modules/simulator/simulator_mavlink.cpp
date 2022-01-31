@@ -1358,6 +1358,8 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 			odom.velocity_covariance[i] = odom_msg.velocity_covariance[i];
 		}
 
+		odom.reset_counter = odom_msg.reset_counter;
+
 		/* Publish the odometry based on the source */
 		if (odom_msg.estimator_type == MAV_ESTIMATOR_TYPE_VISION || odom_msg.estimator_type == MAV_ESTIMATOR_TYPE_VIO) {
 			_visual_odometry_pub.publish(odom);
@@ -1402,6 +1404,8 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 
 		/* The velocity covariance URT - unknown */
 		odom.velocity_covariance[0] = NAN;
+
+		odom.reset_counter = ev.reset_counter;
 
 		/* Publish the odometry */
 		_visual_odometry_pub.publish(odom);

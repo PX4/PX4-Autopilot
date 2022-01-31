@@ -299,13 +299,13 @@ protected:
 	imuSample _imu_sample_delayed{};	// captures the imu sample on the delayed time horizon
 
 	// measurement samples capturing measurements on the delayed time horizon
-	magSample _mag_sample_delayed{};
 	baroSample _baro_sample_delayed{};
 	gpsSample _gps_sample_delayed{};
 	sensor::SensorRangeFinder _range_sensor{};
 	airspeedSample _airspeed_sample_delayed{};
 	flowSample _flow_sample_delayed{};
 	extVisionSample _ev_sample_delayed{};
+	extVisionSample _ev_sample_delayed_prev{};
 	dragSample _drag_sample_delayed{};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
 	auxVelSample _auxvel_sample_delayed{};

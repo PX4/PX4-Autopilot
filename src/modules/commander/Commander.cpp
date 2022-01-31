@@ -274,11 +274,16 @@ int Commander::custom_command(int argc, char *argv[])
 		vehicle_status_flags_s vehicle_status_flags{};
 		vehicle_status_flags_sub.copy(&vehicle_status_flags);
 
-		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, vehicle_status, vehicle_status_flags, true, true,
-					   30_s);
+		uORB::Subscription vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+		vehicle_control_mode_s vehicle_control_mode{};
+		vehicle_control_mode_sub.copy(&vehicle_control_mode);
+
+		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, vehicle_status, vehicle_status_flags,
+					   vehicle_control_mode,
+					   true, true, 30_s);
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
 
-		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, vehicle_status_flags, safety_s{},
+		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, vehicle_status_flags, vehicle_control_mode, safety_s{},
 					PreFlightCheck::arm_requirements_t{}, vehicle_status);
 		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
@@ -468,7 +473,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 bool Commander::shutdown_if_allowed()
 {
-	return TRANSITION_DENIED != arming_state_transition(_status, _safety, vehicle_status_s::ARMING_STATE_SHUTDOWN,
+	return TRANSITION_DENIED != arming_state_transition(_status, _vehicle_control_mode, _safety,
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			_armed, false /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags, _arm_requirements,
 			hrt_elapsed_time(&_boot_timestamp), arm_disarm_reason_t::shutdown);
 }
@@ -716,15 +722,10 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		}
 	}
 
-	transition_result_t arming_res = arming_state_transition(_status,
-					 _safety,
-					 vehicle_status_s::ARMING_STATE_ARMED,
-					 _armed,
-					 run_preflight_checks,
-					 &_mavlink_log_pub,
-					 _status_flags,
-					 _arm_requirements,
-					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
+	transition_result_t arming_res = arming_state_transition(_status, _vehicle_control_mode, _safety,
+					 vehicle_status_s::ARMING_STATE_ARMED, _armed, run_preflight_checks,
+					 &_mavlink_log_pub, _status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+					 calling_reason);
 
 	if (arming_res == TRANSITION_CHANGED) {
 		mavlink_log_info(&_mavlink_log_pub, "Armed by %s\t", arm_disarm_reason_str(calling_reason));
@@ -763,14 +764,9 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 		}
 	}
 
-	transition_result_t arming_res = arming_state_transition(_status,
-					 _safety,
-					 vehicle_status_s::ARMING_STATE_STANDBY,
-					 _armed,
-					 false,
-					 &_mavlink_log_pub,
-					 _status_flags,
-					 _arm_requirements,
+	transition_result_t arming_res = arming_state_transition(_status, _vehicle_control_mode, _safety,
+					 vehicle_status_s::ARMING_STATE_STANDBY, _armed, false,
+					 &_mavlink_log_pub, _status_flags, _arm_requirements,
 					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
 
 	if (arming_res == TRANSITION_CHANGED) {
@@ -1334,7 +1330,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			} else {
 
 				/* try to go to INIT/PREFLIGHT arming state */
-				if (TRANSITION_DENIED == arming_state_transition(_status, safety_s{}, vehicle_status_s::ARMING_STATE_INIT, _armed,
+				if (TRANSITION_DENIED == arming_state_transition(_status, _vehicle_control_mode, safety_s{},
+						vehicle_status_s::ARMING_STATE_INIT, _armed,
 						false /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
 						PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
 						30_s, // time since boot not relevant for switching to ARMING_STATE_INIT
@@ -1988,9 +1985,8 @@ Commander::run()
 	arm_auth_init(&_mavlink_log_pub, &_status.system_id);
 
 	// run preflight immediately to find all relevant parameters, but don't report
-	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, false,
-				       true,
-				       hrt_elapsed_time(&_boot_timestamp));
+	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, _vehicle_control_mode,
+				       false, true, hrt_elapsed_time(&_boot_timestamp));
 
 	while (!should_exit()) {
 
@@ -2347,7 +2343,7 @@ Commander::run()
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!_status_flags.condition_calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
-			arming_state_transition(_status, _safety, vehicle_status_s::ARMING_STATE_STANDBY, _armed,
+			arming_state_transition(_status, _vehicle_control_mode, _safety, vehicle_status_s::ARMING_STATE_STANDBY, _armed,
 						true /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
 						_arm_requirements, hrt_elapsed_time(&_boot_timestamp),
 						arm_disarm_reason_t::transition_to_standby);
@@ -2942,13 +2938,14 @@ Commander::run()
 
 			// Evaluate current prearm status
 			if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
-				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, false, true,
-							   hrt_elapsed_time(&_boot_timestamp));
+				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, _vehicle_control_mode,
+							   false, true, hrt_elapsed_time(&_boot_timestamp));
 
 				// skip arm authorization check until actual arming attempt
 				PreFlightCheck::arm_requirements_t arm_req = _arm_requirements;
 				arm_req.arm_authorization = false;
-				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, _status_flags, _safety, arm_req, _status, false);
+				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, _status_flags, _vehicle_control_mode, _safety, arm_req,
+							_status, false);
 
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, (preflight_check_res
 						 && prearm_check_res), _status);
@@ -3584,8 +3581,8 @@ void Commander::data_link_check()
 
 					if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
 						// make sure to report preflight check failures to a connecting GCS
-						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, true, false,
-									       hrt_elapsed_time(&_boot_timestamp));
+						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, _vehicle_control_mode,
+									       true, false, hrt_elapsed_time(&_boot_timestamp));
 					}
 				}
 

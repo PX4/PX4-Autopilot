@@ -154,7 +154,8 @@ void reset_offboard_loss_globals(actuator_armed_s &armed, const bool old_failsaf
 				 const offboard_loss_actions_t offboard_loss_act,
 				 const offboard_loss_rc_actions_t offboard_loss_rc_act);
 
-transition_result_t arming_state_transition(vehicle_status_s &status, const safety_s &safety,
+transition_result_t arming_state_transition(vehicle_status_s &status,
+		const vehicle_control_mode_s &control_mode, const safety_s &safety,
 		const arming_state_t new_arming_state, actuator_armed_s &armed, const bool fRunPreArmChecks,
 		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s &status_flags,
 		const PreFlightCheck::arm_requirements_t &arm_requirements,
@@ -186,8 +187,8 @@ transition_result_t arming_state_transition(vehicle_status_s &status, const safe
 		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 		    && !hil_enabled) {
 
-			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, status, status_flags, true, true,
-					      time_since_boot);
+			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, status, status_flags, control_mode,
+					      true, true, time_since_boot);
 
 			if (preflight_check_ret) {
 				status_flags.condition_system_sensors_initialized = true;
@@ -206,7 +207,7 @@ transition_result_t arming_state_transition(vehicle_status_s &status, const safe
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
 				status_flags.condition_system_sensors_initialized = PreFlightCheck::preflightCheck(mavlink_log_pub, status,
-						status_flags, false, status.arming_state != vehicle_status_s::ARMING_STATE_ARMED,
+						status_flags, control_mode, false, status.arming_state != vehicle_status_s::ARMING_STATE_ARMED,
 						time_since_boot);
 
 				last_preflight_check = hrt_absolute_time();
@@ -228,7 +229,8 @@ transition_result_t arming_state_transition(vehicle_status_s &status, const safe
 
 					if (fRunPreArmChecks && preflight_check_ret) {
 						// only bother running prearm if preflight was successful
-						prearm_check_ret = PreFlightCheck::preArmCheck(mavlink_log_pub, status_flags, safety, arm_requirements, status);
+						prearm_check_ret = PreFlightCheck::preArmCheck(mavlink_log_pub, status_flags, control_mode, safety, arm_requirements,
+								   status);
 					}
 
 					if (!preflight_check_ret || !prearm_check_ret) {
