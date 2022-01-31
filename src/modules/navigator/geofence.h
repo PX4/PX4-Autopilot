@@ -46,6 +46,7 @@
 #include <px4_platform_common/module_params.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
@@ -188,6 +189,9 @@ private:
 
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
+
+	perf_counter_t	_gf_check_all_perf;			/**< checkAll performance counter */
+	perf_counter_t	_gf_update_perf;			/**< updateFence performance counter */
 
 	/**
 	 * implementation of updateFence(), but without locking
