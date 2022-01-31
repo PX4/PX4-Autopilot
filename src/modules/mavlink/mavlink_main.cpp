@@ -2834,7 +2834,7 @@ Mavlink::display_status()
 	_receiver.enable_message_statistics();
 #endif // !CONSTRAINED_FLASH
 
-	if (_tstatus.heartbeat_type_gcs) {
+	if (_tstatus.heartbeat_gcs) {
 		printf("\tGCS heartbeat valid\n");
 	}
 

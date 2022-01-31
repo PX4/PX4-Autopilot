@@ -48,14 +48,14 @@ bool PreFlightCheck::parachuteCheck(orb_advert_t *mavlink_log_pub, const bool re
 	const bool parachute_required = param_com_parachute != 0;
 
 	if (parachute_required) {
-		if (!status_flags.parachute_system_present) {
+		if (!status_flags.system_present_parachute) {
 			success = false;
 
 			if (report_fail) {
 				mavlink_log_critical(mavlink_log_pub, "Fail: Parachute system missing");
 			}
 
-		} else if (!status_flags.parachute_system_healthy) {
+		} else if (!status_flags.system_valid_parachute) {
 			success = false;
 
 			if (report_fail) {
