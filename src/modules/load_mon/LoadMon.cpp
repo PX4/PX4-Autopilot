@@ -223,7 +223,10 @@ void LoadMon::cpuload()
 	struct mallinfo mem = mallinfo();
 	cpuload.ram_usage = (float)mem.uordblks / mem.arena;
 	cpuload.load = 1.f - interval_idletime / interval;
+
 #endif
+
+	cpuload.load_average = _cpuload_average.apply(cpuload.load);
 	cpuload.timestamp = hrt_absolute_time();
 
 	_cpuload_pub.publish(cpuload);

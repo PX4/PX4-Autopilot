@@ -37,6 +37,7 @@
 #include <malloc.h>
 #endif
 #include <drivers/drv_hrt.h>
+#include <lib/mathlib/math/filter/MovingAverage.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -101,6 +102,8 @@ private:
 	hrt_abstime _last_idle_time {0};
 	hrt_abstime _last_idle_time_sample{0};
 #endif
+
+	MovingAverage<float, 10> _cpuload_average{};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
