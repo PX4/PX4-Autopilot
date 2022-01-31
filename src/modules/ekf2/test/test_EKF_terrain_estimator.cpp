@@ -114,7 +114,7 @@ TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainRngFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainFlowFusion());
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
-	EXPECT_NEAR(estimated_distance_to_ground, simulated_distance_to_ground, 1e-4);
+	EXPECT_NEAR(estimated_distance_to_ground, simulated_distance_to_ground, 1e-3f);
 
 	// WHEN: rng fusion is disabled
 	_ekf_wrapper.disableTerrainRngFusion();
@@ -138,6 +138,7 @@ TEST_F(EkfTerrainTest, testFlowForTerrainFusion)
 	// GIVEN: flow for terrain enabled but not range finder
 	_ekf_wrapper.enableTerrainFlowFusion();
 	_ekf_wrapper.disableTerrainRngFusion();
+	_ekf_wrapper.enableFlowFusion();
 
 	// WHEN: the sensors do not agree
 	const float rng_height = 1.f;
