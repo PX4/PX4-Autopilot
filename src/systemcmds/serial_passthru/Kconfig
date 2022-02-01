@@ -1,0 +1,6 @@
+menuconfig SYSTEMCMDS_SERIAL_PASSTHRU
+	bool "serial_passthru"
+	default n
+	---help---
+		Enable support for passing one sevice to another
+		i.e ttyACM to ttyS5
