@@ -93,7 +93,7 @@ public:
 	static int computeEffectivenessMatrix(const Geometry &geometry,
 					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
 
-	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+	bool addActuators(Configuration &configuration);
 
 	const char *name() const override { return "Multirotor"; }
 
@@ -117,8 +117,6 @@ public:
 
 private:
 	void updateParams() override;
-
-	bool _updated{true};
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
 

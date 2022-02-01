@@ -69,7 +69,7 @@ public:
 	ActuatorEffectivenessControlSurfaces(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessControlSurfaces() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+	bool addActuators(Configuration &configuration);
 
 	const char *name() const override { return "Control Surfaces"; }
 

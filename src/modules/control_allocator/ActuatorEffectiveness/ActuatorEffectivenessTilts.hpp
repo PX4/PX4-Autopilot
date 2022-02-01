@@ -67,7 +67,7 @@ public:
 	ActuatorEffectivenessTilts(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessTilts() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+	bool addActuators(Configuration &configuration);
 
 	const char *name() const override { return "Tilts"; }
 
