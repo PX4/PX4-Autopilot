@@ -622,7 +622,7 @@ private:
 	void fuseSideslip();
 
 	// fuse body frame drag specific forces for multi-rotor wind estimation
-	void fuseDrag();
+	void fuseDrag(const dragSample &drag_sample);
 
 	void fuseBaroHgt();
 	void fuseGpsHgt();
