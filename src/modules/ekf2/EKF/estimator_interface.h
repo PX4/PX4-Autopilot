@@ -296,7 +296,6 @@ protected:
 	extVisionSample _ev_sample_delayed{};
 	extVisionSample _ev_sample_delayed_prev{};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
-	auxVelSample _auxvel_sample_delayed{};
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
 
