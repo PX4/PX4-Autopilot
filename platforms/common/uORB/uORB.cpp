@@ -439,7 +439,7 @@ void orb_print_message_internal(const orb_metadata *meta, const void *data, bool
 			}
 
 			memcpy(topic_name, meta->o_fields + format_idx, topic_name_len);
-			field_name[topic_name_len] = '\0';
+			topic_name[topic_name_len] = '\0';
 
 			// find the metadata
 			const orb_metadata *const *topics = orb_get_topics();

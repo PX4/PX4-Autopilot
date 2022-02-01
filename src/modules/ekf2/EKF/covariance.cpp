@@ -56,7 +56,7 @@ void Ekf::initialiseCovariance()
 	_delta_angle_bias_var_accum.setZero();
 	_delta_vel_bias_var_accum.setZero();
 
-	const float dt = FILTER_UPDATE_PERIOD_S;
+	const float dt = _dt_ekf_avg;
 
 	resetQuatCov();
 
@@ -122,8 +122,8 @@ void Ekf::predictCovariance()
 	const float &dvz_b = _state.delta_vel_bias(2);
 
 	// Use average update interval to reduce accumulated covariance prediction errors due to small single frame dt values
-	const float dt = FILTER_UPDATE_PERIOD_S;
-	const float dt_inv = 1.0f / dt;
+	const float dt = _dt_ekf_avg;
+	const float dt_inv = 1.f / dt;
 
 	// convert rate of change of rate gyro bias (rad/s**2) as specified by the parameter to an expected change in delta angle (rad) since the last update
 	const float d_ang_bias_sig = dt * dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1.0f);
@@ -237,24 +237,19 @@ void Ekf::predictCovariance()
 	dvxVar = dvyVar = dvzVar = sq(dt * accel_noise);
 
 	// Accelerometer Clipping
-	_fault_status.flags.bad_acc_clipping = false; // reset flag
-
 	// delta velocity X: increase process noise if sample contained any X axis clipping
 	if (_imu_sample_delayed.delta_vel_clipping[0]) {
 		dvxVar = sq(dt * BADACC_BIAS_PNOISE);
-		_fault_status.flags.bad_acc_clipping = true;
 	}
 
 	// delta velocity Y: increase process noise if sample contained any Y axis clipping
 	if (_imu_sample_delayed.delta_vel_clipping[1]) {
 		dvyVar = sq(dt * BADACC_BIAS_PNOISE);
-		_fault_status.flags.bad_acc_clipping = true;
 	}
 
 	// delta velocity Z: increase process noise if sample contained any Z axis clipping
 	if (_imu_sample_delayed.delta_vel_clipping[2]) {
 		dvzVar = sq(dt * BADACC_BIAS_PNOISE);
-		_fault_status.flags.bad_acc_clipping = true;
 	}
 
 	// predict the covariance

@@ -199,7 +199,6 @@
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS   8
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
 
 /* Power supply control and monitoring GPIOs */
 #define GPIO_nVDD_USB_VALID             /* PF13 */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTF|GPIO_PIN13) /* Low for USB power, High for DC power */

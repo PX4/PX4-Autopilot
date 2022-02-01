@@ -95,10 +95,10 @@ struct outputVert {
 
 struct imuSample {
 	uint64_t    time_us{0};		///< timestamp of the measurement (uSec)
-	Vector3f    delta_ang;		///< delta angle in body frame (integrated gyro measurements) (rad)
-	Vector3f    delta_vel;		///< delta velocity in body frame (integrated accelerometer measurements) (m/sec)
-	float       delta_ang_dt;	///< delta angle integration period (sec)
-	float       delta_vel_dt;	///< delta velocity integration period (sec)
+	Vector3f    delta_ang{};		///< delta angle in body frame (integrated gyro measurements) (rad)
+	Vector3f    delta_vel{};		///< delta velocity in body frame (integrated accelerometer measurements) (m/sec)
+	float       delta_ang_dt{0.f};	///< delta angle integration period (sec)
+	float       delta_vel_dt{0.f};	///< delta velocity integration period (sec)
 	bool        delta_vel_clipping[3] {}; ///< true (per axis) if this sample contained any accelerometer clipping
 };
 
@@ -152,6 +152,7 @@ struct extVisionSample {
 	Matrix3f velCov;	///< XYZ velocity covariances ((m/sec)**2)
 	float angVar;		///< angular heading variance (rad**2)
 	velocity_frame_t vel_frame = velocity_frame_t::BODY_FRAME_FRD;
+	uint8_t reset_counter{0};
 };
 
 struct dragSample {
@@ -214,12 +215,16 @@ enum TerrainFusionMask : int32_t {
 #define GNDEFFECT_TIMEOUT	10E6	///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
 
 struct parameters {
+
+	int32_t filter_update_interval_us{10000}; ///< filter update interval in microseconds
+
 	// measurement source control
 	int32_t fusion_mode{MASK_USE_GPS};		///< bitmasked integer that selects which aiding sources will be used
 	int32_t vdist_sensor_type{VDIST_SENSOR_BARO};	///< selects the primary source for height data
 	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
 				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
-	int32_t sensor_interval_min_ms{20};		///< minimum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
+
+	int32_t sensor_interval_max_ms{10};		///< maximum time of arrival difference between non IMU sensor updates. Sets the size of the observation buffers. (mSec)
 
 	// measurement time delays
 	float mag_delay_ms{0.0f};		///< magnetometer measurement delay relative to the IMU (mSec)

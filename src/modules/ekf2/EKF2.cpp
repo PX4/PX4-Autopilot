@@ -57,7 +57,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_odometry_pub(multi_mode ? ORB_ID(estimator_odometry) : ORB_ID(vehicle_odometry)),
 	_wind_pub(multi_mode ? ORB_ID(estimator_wind) : ORB_ID(wind)),
 	_params(_ekf.getParamHandle()),
-	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
+	_param_ekf2_predict_us(_params->filter_update_interval_us),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
 	_param_ekf2_baro_delay(_params->baro_delay_ms),
 	_param_ekf2_gps_delay(_params->gps_delay_ms),
@@ -228,8 +228,10 @@ bool EKF2::multi_init(int imu, int mag)
 
 int EKF2::print_status()
 {
-	PX4_INFO_RAW("ekf2:%d attitude: %d, local position: %d, global position: %d\n", _instance, _ekf.attitude_valid(),
+	PX4_INFO_RAW("ekf2:%d EKF dt: %.4fs, IMU dt: %.4fs, attitude: %d, local position: %d, global position: %d\n",
+		     _instance, (double)_ekf.get_dt_ekf_avg(), (double)_ekf.get_dt_imu_avg(), _ekf.attitude_valid(),
 		     _ekf.local_position_is_valid(), _ekf.global_position_is_valid());
+
 	perf_print_counter(_ecl_ekf_update_perf);
 	perf_print_counter(_ecl_ekf_update_full_perf);
 	perf_print_counter(_msg_missed_imu_perf);
@@ -241,6 +243,10 @@ int EKF2::print_status()
 	perf_print_counter(_msg_missed_magnetometer_perf);
 	perf_print_counter(_msg_missed_odometry_perf);
 	perf_print_counter(_msg_missed_optical_flow_perf);
+
+#if defined(DEBUG_BUILD)
+	_ekf.print_status();
+#endif // DEBUG_BUILD
 
 	return 0;
 }
@@ -270,6 +276,38 @@ void EKF2::Run()
 
 		if (param_aspd_scale != PARAM_INVALID) {
 			param_get(param_aspd_scale, &_airspeed_scale_factor);
+		}
+
+		// if using baro ensure sensor interval minimum is sufficient to accommodate system averaged baro output
+		if (_params->vdist_sensor_type == 0) {
+			float sens_baro_rate = 0.f;
+
+			if (param_get(param_find("SENS_BARO_RATE"), &sens_baro_rate) == PX4_OK) {
+				if (sens_baro_rate > 0) {
+					float interval_ms = roundf(1000.f / sens_baro_rate);
+
+					if (PX4_ISFINITE(interval_ms) && (interval_ms > _params->sensor_interval_max_ms)) {
+						PX4_DEBUG("updating sensor_interval_max_ms %.3f -> %.3f", (double)_params->sensor_interval_max_ms, (double)interval_ms);
+						_params->sensor_interval_max_ms = interval_ms;
+					}
+				}
+			}
+		}
+
+		// if using mag ensure sensor interval minimum is sufficient to accommodate system averaged mag output
+		if (_params->mag_fusion_type != MAG_FUSE_TYPE_NONE) {
+			float sens_mag_rate = 0.f;
+
+			if (param_get(param_find("SENS_MAG_RATE"), &sens_mag_rate) == PX4_OK) {
+				if (sens_mag_rate > 0) {
+					float interval_ms = roundf(1000.f / sens_mag_rate);
+
+					if (PX4_ISFINITE(interval_ms) && (interval_ms > _params->sensor_interval_max_ms)) {
+						PX4_DEBUG("updating sensor_interval_max_ms %.3f -> %.3f", (double)_params->sensor_interval_max_ms, (double)interval_ms);
+						_params->sensor_interval_max_ms = interval_ms;
+					}
+				}
+			}
 		}
 	}
 
@@ -993,6 +1031,10 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 	odom.velocity_covariance[odom.COVARIANCE_MATRIX_VX_VARIANCE] = covariances[4];
 	odom.velocity_covariance[odom.COVARIANCE_MATRIX_VY_VARIANCE] = covariances[5];
 	odom.velocity_covariance[odom.COVARIANCE_MATRIX_VZ_VARIANCE] = covariances[6];
+
+	odom.reset_counter = _ekf.get_quat_reset_count()
+			     + _ekf.get_velNE_reset_count() + _ekf.get_velD_reset_count()
+			     + _ekf.get_posNE_reset_count() + _ekf.get_posD_reset_count();
 
 	// publish vehicle odometry data
 	odom.timestamp = _replay_mode ? timestamp : hrt_absolute_time();

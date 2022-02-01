@@ -325,12 +325,18 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 	_manual_control_setpoint_altitude = _manual_control_setpoint.x;
 	_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
 
-	if (_param_fw_posctl_inv_st.get()) {
+	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_SWAP_STICKS_BIT) {
 		/* Alternate stick allocation (similar concept as for multirotor systems:
 		 * demanding up/down with the throttle stick, and move faster/break with the pitch one.
 		 */
 		_manual_control_setpoint_altitude = -(math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f) * 2.f - 1.f);
 		_manual_control_setpoint_airspeed = math::constrain(_manual_control_setpoint.x, -1.0f, 1.0f) / 2.f + 0.5f;
+	}
+
+	// send neutral setpoints if no update for 1 s
+	if (hrt_elapsed_time(&_manual_control_setpoint.timestamp) > 1_s) {
+		_manual_control_setpoint_altitude = 0.f;
+		_manual_control_setpoint_airspeed = 0.5f;
 	}
 }
 
@@ -375,20 +381,22 @@ FixedwingPositionControl::vehicle_attitude_poll()
 float
 FixedwingPositionControl::get_manual_airspeed_setpoint()
 {
-	float altctrl_airspeed = 0;
+	float altctrl_airspeed = _param_fw_airspd_trim.get();
 
-	// neutral throttle corresponds to trim airspeed
-	if (_manual_control_setpoint_airspeed < 0.5f) {
-		// lower half of throttle is min to trim airspeed
-		altctrl_airspeed = _param_fw_airspd_min.get() +
-				   (_param_fw_airspd_trim.get() - _param_fw_airspd_min.get()) *
-				   _manual_control_setpoint_airspeed * 2;
+	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT) {
+		// neutral throttle corresponds to trim airspeed
+		if (_manual_control_setpoint_airspeed < 0.5f) {
+			// lower half of throttle is min to trim airspeed
+			altctrl_airspeed = _param_fw_airspd_min.get() +
+					   (_param_fw_airspd_trim.get() - _param_fw_airspd_min.get()) *
+					   _manual_control_setpoint_airspeed * 2;
 
-	} else {
-		// upper half of throttle is trim to max airspeed
-		altctrl_airspeed = _param_fw_airspd_trim.get() +
-				   (_param_fw_airspd_max.get() - _param_fw_airspd_trim.get()) *
-				   (_manual_control_setpoint_airspeed * 2 - 1);
+		} else {
+			// upper half of throttle is trim to max airspeed
+			altctrl_airspeed = _param_fw_airspd_trim.get() +
+					   (_param_fw_airspd_max.get() - _param_fw_airspd_trim.get()) *
+					   (_manual_control_setpoint_airspeed * 2 - 1);
+		}
 	}
 
 	return altctrl_airspeed;
@@ -835,10 +843,6 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	_att_sp.pitch_reset_integral = false;
 	_att_sp.yaw_reset_integral = false;
 
-	if (pos_sp_curr.valid && pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-		publishOrbitStatus(pos_sp_curr);
-	}
-
 	position_setpoint_s current_sp = pos_sp_curr;
 
 	if (_vehicle_status.in_transition_to_fw) {
@@ -868,6 +872,11 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 
 	_position_sp_type = position_sp_type;
 
+	if (position_sp_type == position_setpoint_s::SETPOINT_TYPE_LOITER
+	    || current_sp.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+		publishOrbitStatus(current_sp);
+	}
+
 	switch (position_sp_type) {
 	case position_setpoint_s::SETPOINT_TYPE_IDLE:
 		_att_sp.thrust_body[0] = 0.0f;
@@ -880,7 +889,7 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_VELOCITY:
-		control_auto_velocity(now, dt, curr_pos, ground_speed, pos_sp_prev, pos_sp_curr);
+		control_auto_velocity(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp);
 		break;
 
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:

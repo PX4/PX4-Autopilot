@@ -318,7 +318,7 @@ Vector2f NPFG::bearingVec(const Vector2f &unit_path_tangent, const float look_ah
 	const float cos_look_ahead_ang = cosf(look_ahead_ang);
 	const float sin_look_ahead_ang = sinf(look_ahead_ang);
 
-	Vector2f unit_path_normal(-unit_path_tangent(1.0f), unit_path_tangent(0.0f)); // right handed 90 deg (clockwise) turn
+	Vector2f unit_path_normal(-unit_path_tangent(1), unit_path_tangent(0)); // right handed 90 deg (clockwise) turn
 	Vector2f unit_track_error = -((signed_track_error < 0.0f) ? -1.0f : 1.0f) * unit_path_normal;
 
 	return cos_look_ahead_ang * unit_track_error + sin_look_ahead_ang * unit_path_tangent;

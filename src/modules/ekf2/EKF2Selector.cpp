@@ -531,6 +531,24 @@ void EKF2Selector::PublishVehicleOdometry()
 	vehicle_odometry_s odometry;
 
 	if (_instance[_selected_instance].estimator_odometry_sub.update(&odometry)) {
+
+		bool instance_change = false;
+
+		if (_instance[_selected_instance].estimator_odometry_sub.get_instance() != _odometry_instance_prev) {
+			_odometry_instance_prev = _instance[_selected_instance].estimator_odometry_sub.get_instance();
+			instance_change = true;
+		}
+
+		if (_odometry_last.timestamp != 0) {
+			// reset
+			if (instance_change || (odometry.reset_counter != _odometry_last.reset_counter)) {
+				++_odometry_reset_counter;
+			}
+
+		} else {
+			_odometry_reset_counter = odometry.reset_counter;
+		}
+
 		bool publish = true;
 
 		// ensure monotonically increasing timestamp_sample through reset, don't publish
@@ -541,10 +559,13 @@ void EKF2Selector::PublishVehicleOdometry()
 			publish = false;
 		}
 
-		// save last primary estimator_odometry
+		// save last primary estimator_odometry as published with original resets
 		_odometry_last = odometry;
 
 		if (publish) {
+			// republish with total reset count and current timestamp
+			odometry.reset_counter = _odometry_reset_counter;
+
 			odometry.timestamp = hrt_absolute_time();
 			_vehicle_odometry_pub.publish(odometry);
 		}

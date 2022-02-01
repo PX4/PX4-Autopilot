@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,49 +30,69 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @author Mengxiao Li <mengxiao@cuav.net>
- */
-
 
 #pragma once
 
-#include "sensor_bridge.hpp"
-#include <uORB/topics/battery_status.h>
-#include <cuav/equipment/power/CBAT.hpp>
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/module_params.h>
-#include <mathlib/mathlib.h>
+#include "Inven_Sense_ICP10111_registers.hpp"
 
-class UavcanCBATBridge : public UavcanSensorBridgeBase, public ModuleParams
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/device/i2c.h>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+
+using namespace Inven_Sense_ICP10111;
+
+class ICP10111 : public device::I2C, public I2CSPIDriver<ICP10111>
 {
 public:
-	static const char *const NAME;
+	ICP10111(const I2CSPIDriverConfig &config);
+	~ICP10111() override;
 
-	UavcanCBATBridge(uavcan::INode &node);
+	static void print_usage();
 
-	const char *get_name() const override { return NAME; }
+	void RunImpl();
 
 	int init() override;
+	void print_status() override;
 
 private:
+	int probe() override;
 
-	void battery_sub_cb(const uavcan::ReceivedDataStructure<cuav::equipment::power::CBAT> &msg);
-	void determineWarning(float remaining);
+	bool Reset();
 
-	typedef uavcan::MethodBinder < UavcanCBATBridge *,
-		void (UavcanCBATBridge::*)
-		(const uavcan::ReceivedDataStructure<cuav::equipment::power::CBAT> &) >
-		CBATCbBinder;
+	bool Measure();
 
-	uavcan::Subscriber<cuav::equipment::power::CBAT, CBATCbBinder> _sub_battery;
+	int8_t cal_crc(uint8_t seed, uint8_t data);
+	int read_measure_results(uint8_t *buf, uint8_t len);
+	int read_response(Cmd cmd, uint8_t *buf, uint8_t len);
+	int send_command(Cmd cmd);
+	int send_command(Cmd cmd, uint8_t *data, uint8_t len);
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
-		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
-		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr
-	)
+	PX4Barometer _px4_baro;
 
-	uint8_t _warning;
-	float _max_cell_voltage_delta = 0.f;
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+
+	hrt_abstime _reset_timestamp{0};
+	int _failure_count{0};
+
+	unsigned _measure_interval{0};
+	int16_t _scal[4];
+
+	enum class STATE : uint8_t {
+		RESET,
+		WAIT_FOR_RESET,
+		READ_OTP,
+		MEASURE,
+		READ
+	} _state{STATE::RESET};
+
+	enum class MODE : uint8_t {
+		FAST,
+		NORMAL,
+		ACCURATE,
+		VERY_ACCURATE
+	} _mode{MODE::VERY_ACCURATE};
 };

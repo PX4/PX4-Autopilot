@@ -39,7 +39,7 @@ function spawn_model() {
 
 	echo "Spawning ${MODEL}_${N} at ${X} ${Y}"
 
-	gz model --spawn-file=/tmp/${MODEL}_${N}.sdf --model-name=${MODEL}_${N} -x ${X} -y ${Y} -z 0.0
+	gz model --spawn-file=/tmp/${MODEL}_${N}.sdf --model-name=${MODEL}_${N} -x ${X} -y ${Y} -z 0.83
 
 	popd &>/dev/null
 

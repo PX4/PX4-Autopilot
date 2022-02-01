@@ -67,7 +67,7 @@ public:
 	SensorSimulator _sensor_simulator;
 
 	// Duration of initalization with only providing baro,mag and IMU
-	const uint32_t _init_duration_s{4};
+	const uint32_t _init_duration_s{5};
 
 protected:
 	double _latitude  {0.0};

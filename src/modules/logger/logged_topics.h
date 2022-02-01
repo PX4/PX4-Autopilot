@@ -53,7 +53,8 @@ enum class SDLogProfileMask : int32_t {
 	SENSOR_COMPARISON =     1 << 6,
 	VISION_AND_AVOIDANCE =  1 << 7,
 	RAW_IMU_GYRO_FIFO =     1 << 8,
-	RAW_IMU_ACCEL_FIFO =    1 << 9
+	RAW_IMU_ACCEL_FIFO =    1 << 9,
+	MAVLINK_TUNNEL =        1 << 10
 };
 
 enum class MissionLogType : int32_t {
@@ -76,6 +77,8 @@ class LoggedTopics
 public:
 	static constexpr int MAX_TOPICS_NUM = 255; /**< Maximum number of logged topics */
 
+	static constexpr int MAX_EXCLUDED_OPTIONAL_TOPICS_NUM = 40;
+
 	struct RequestedSubscription {
 		uint16_t interval_ms;
 		uint8_t instance;
@@ -84,6 +87,9 @@ public:
 	struct RequestedSubscriptionArray {
 		RequestedSubscription sub[MAX_TOPICS_NUM];
 		int count{0};
+
+		uint8_t excluded_optional_topic_ids[MAX_EXCLUDED_OPTIONAL_TOPICS_NUM];
+		int num_excluded_optional_topic_ids{0};
 	};
 
 	LoggedTopics() = default;
@@ -168,6 +174,7 @@ private:
 	void add_vision_and_avoidance_topics();
 	void add_raw_imu_gyro_fifo();
 	void add_raw_imu_accel_fifo();
+	void add_mavlink_tunnel();
 
 	/**
 	 * add a logged topic (called by add_topic() above).

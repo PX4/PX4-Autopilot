@@ -141,7 +141,7 @@ private:
 	/*
 	 * Tilt check
 	 */
-	float _cos_tilt_rng_to_earth{};		///< 2,2 element of the rotation matrix from sensor frame to earth frame
+	float _cos_tilt_rng_to_earth{1.f};		///< 2,2 element of the rotation matrix from sensor frame to earth frame
 	float _range_cos_max_tilt{0.7071f};	///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
 	float _pitch_offset_rad{3.14f}; 		///< range finder tilt rotation about the Y body axis
 	float _sin_pitch_offset{0.0f}; 		///< sine of the range finder tilt rotation about the Y body axis

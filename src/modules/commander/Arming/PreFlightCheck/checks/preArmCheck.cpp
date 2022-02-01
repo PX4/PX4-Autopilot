@@ -39,9 +39,45 @@
 #include <HealthFlags.h>
 
 bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
+				 const vehicle_control_mode_s &control_mode,
 				 const safety_s &safety, const arm_requirements_t &arm_requirements, vehicle_status_s &status, bool report_fail)
 {
 	bool prearm_ok = true;
+
+	// rate control mode require valid angular velocity
+	if (control_mode.flag_control_rates_enabled && !status_flags.condition_angular_velocity_valid) {
+		if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! angular velocity invalid"); }
+
+		prearm_ok = false;
+	}
+
+	// attitude control mode require valid attitude
+	if (control_mode.flag_control_attitude_enabled && !status_flags.condition_attitude_valid) {
+		if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! attitude invalid"); }
+
+		prearm_ok = false;
+	}
+
+	// velocity control mode require valid velocity
+	if (control_mode.flag_control_velocity_enabled && !status_flags.condition_local_velocity_valid) {
+		if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! velocity invalid"); }
+
+		prearm_ok = false;
+	}
+
+	// position control mode require valid position
+	if (control_mode.flag_control_position_enabled && !status_flags.condition_local_position_valid) {
+		if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! position invalid"); }
+
+		prearm_ok = false;
+	}
+
+	// manual control mode require valid manual control (rc)
+	if (control_mode.flag_control_manual_enabled && status.rc_signal_lost) {
+		if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! manual control lost"); }
+
+		prearm_ok = false;
+	}
 
 	// USB not connected
 	if (!status_flags.circuit_breaker_engaged_usb_check && status_flags.usb_connected) {

@@ -117,9 +117,9 @@ public:
 	/**
 	 * Load fence from file
 	 */
-	void		load_fence_from_file(const char *filename);
+	void load_fence_from_file(const char *filename);
 
-	void		publish_vehicle_cmd(vehicle_command_s *vcmd);
+	void publish_vehicle_cmd(vehicle_command_s *vcmd);
 
 	/**
 	 * Generate an artificial traffic indication
@@ -132,83 +132,87 @@ public:
 	 * @param ver_velocity Vertical velocity of traffic, in m/s
 	 * @param emitter_type, Type of vehicle, as a number
 	 */
-	void		fake_traffic(const char *callsign, float distance, float direction, float traffic_heading, float altitude_diff,
-				     float hor_velocity, float ver_velocity, int emitter_type);
+	void fake_traffic(const char *callsign, float distance, float direction, float traffic_heading, float altitude_diff,
+			  float hor_velocity, float ver_velocity, int emitter_type);
 
 	/**
 	 * Check nearby traffic for potential collisions
 	 */
-	void		check_traffic();
+	void check_traffic();
 
 	/**
 	 * Buffer for air traffic to control the amount of messages sent to a user
 	 */
-	bool		buffer_air_traffic(uint32_t icao_address);
+	bool buffer_air_traffic(uint32_t icao_address);
 
 	/**
 	 * Setters
 	 */
-	void		set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
-	void		set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
-	void		set_mission_result_updated() { _mission_result_updated = true; }
+	void set_can_loiter_at_sp(bool can_loiter) { _can_loiter_at_sp = can_loiter; }
+	void set_position_setpoint_triplet_updated() { _pos_sp_triplet_updated = true; }
+	void set_mission_result_updated() { _mission_result_updated = true; }
 
 	/**
 	 * Getters
 	 */
-	struct home_position_s *get_home_position() { return &_home_pos; }
-	struct mission_result_s *get_mission_result() { return &_mission_result; }
-	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
-	struct position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
-	struct position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
-	struct vehicle_global_position_s *get_global_position() { return &_global_pos; }
-	struct vehicle_land_detected_s *get_land_detected() { return &_land_detected; }
-	struct vehicle_local_position_s *get_local_position() { return &_local_pos; }
-	struct vehicle_status_s *get_vstatus() { return &_vstatus; }
+	home_position_s             *get_home_position() { return &_home_pos; }
+	mission_result_s            *get_mission_result() { return &_mission_result; }
+	position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
+	position_setpoint_triplet_s *get_reposition_triplet() { return &_reposition_triplet; }
+	position_setpoint_triplet_s *get_takeoff_triplet() { return &_takeoff_triplet; }
+	vehicle_global_position_s   *get_global_position() { return &_global_pos; }
+	vehicle_land_detected_s     *get_land_detected() { return &_land_detected; }
+	vehicle_local_position_s    *get_local_position() { return &_local_pos; }
+	vehicle_status_s            *get_vstatus() { return &_vstatus; }
+
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
+
 	void reset_vroi() { _vroi = {}; }
 
 	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
+
 	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos && _home_pos.valid_lpos); }
 
-	Geofence	&get_geofence() { return _geofence; }
+	Geofence &get_geofence() { return _geofence; }
 
-	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
-	float		get_loiter_radius() { return _param_nav_loiter_rad.get(); }
+	bool get_can_loiter_at_sp() { return _can_loiter_at_sp; }
+
+	float get_loiter_radius() { return _param_nav_loiter_rad.get(); }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
 	 */
-	float		get_default_acceptance_radius();
+	float get_default_acceptance_radius();
 
 	/**
 	 * Get the acceptance radius
 	 *
 	 * @return the distance at which the next waypoint should be used
 	 */
-	float		get_acceptance_radius();
+	float get_acceptance_radius();
 
 	/**
 	 * Get the default altitude acceptance radius (i.e. from parameters)
 	 *
 	 * @return the distance from the target altitude before considering the waypoint reached
 	 */
-	float		get_default_altitude_acceptance_radius();
+	float get_default_altitude_acceptance_radius();
 
 	/**
 	 * Get the altitude acceptance radius
 	 *
 	 * @return the distance from the target altitude before considering the waypoint reached
 	 */
-	float		get_altitude_acceptance_radius();
+	float get_altitude_acceptance_radius();
 
 	/**
 	 * Get the cruising speed
 	 *
 	 * @return the desired cruising speed for this mission
 	 */
-	float		get_cruising_speed();
+	float get_cruising_speed();
 
 	/**
 	 * Set the cruising speed
@@ -219,36 +223,36 @@ public:
 	 * For VTOL: sets cruising speed for current mode only (multirotor or fixed-wing).
 	 *
 	 */
-	void		set_cruising_speed(float speed = -1.0f);
+	void set_cruising_speed(float speed = -1.0f);
 
 	/**
 	 * Reset cruising speed to default values
 	 *
 	 * For VTOL: resets both cruising speeds.
 	 */
-	void		reset_cruising_speed();
+	void reset_cruising_speed();
 
 	/**
 	 *  Set triplets to invalid
 	 */
-	void 		reset_triplets();
+	void reset_triplets();
 
 	/**
 	 *  Set position setpoint to safe defaults
 	 */
-	void		reset_position_setpoint(position_setpoint_s &sp);
+	void reset_position_setpoint(position_setpoint_s &sp);
 
 	/**
 	 * Get the target throttle
 	 *
 	 * @return the desired throttle for this mission
 	 */
-	float		get_cruising_throttle();
+	float get_cruising_throttle();
 
 	/**
 	 * Set the target throttle
 	 */
-	void		set_cruising_throttle(float throttle = NAN) { _mission_throttle = throttle; }
+	void set_cruising_throttle(float throttle = NAN) { _mission_throttle = throttle; }
 
 	/**
 	 * Get the yaw acceptance given the current mission item
@@ -258,92 +262,75 @@ public:
 	 * @return the yaw at which the next waypoint should be used or NaN if the yaw at a waypoint
 	 * should be ignored
 	 */
-	float 		get_yaw_acceptance(float mission_item_yaw);
+	float get_yaw_acceptance(float mission_item_yaw);
 
+	orb_advert_t *get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
-	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
+	void increment_mission_instance_count() { _mission_result.instance_count++; }
 
-	void		increment_mission_instance_count() { _mission_result.instance_count++; }
-	int		mission_instance_count() const { return _mission_result.instance_count; }
+	int mission_instance_count() const { return _mission_result.instance_count; }
 
-	void 		set_mission_failure_heading_timeout();
+	void set_mission_failure_heading_timeout();
 
-	void 		setMissionLandingInProgress(bool in_progress) { _mission_landing_in_progress = in_progress; }
+	void setMissionLandingInProgress(bool in_progress) { _mission_landing_in_progress = in_progress; }
 
-	bool 		getMissionLandingInProgress() { return _mission_landing_in_progress; }
+	bool getMissionLandingInProgress() { return _mission_landing_in_progress; }
 
-	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
-	bool		on_mission_landing() { return _mission.landing(); }
-	bool		start_mission_landing() { return _mission.land_start(); }
-	bool		get_mission_start_land_available() { return _mission.get_land_start_available(); }
-	int 		get_mission_landing_index() { return _mission.get_land_start_index(); }
-	double 	get_mission_landing_start_lat() { return _mission.get_landing_start_lat(); }
-	double 	get_mission_landing_start_lon() { return _mission.get_landing_start_lon(); }
-	float 	get_mission_landing_start_alt() { return _mission.get_landing_start_alt(); }
+	bool is_planned_mission() const { return _navigation_mode == &_mission; }
 
-	double 	get_mission_landing_lat() { return _mission.get_landing_lat(); }
-	double 	get_mission_landing_lon() { return _mission.get_landing_lon(); }
-	float 	get_mission_landing_alt() { return _mission.get_landing_alt(); }
+	bool on_mission_landing() { return _mission.landing(); }
+
+	bool start_mission_landing() { return _mission.land_start(); }
+
+	bool get_mission_start_land_available() { return _mission.get_land_start_available(); }
+
+	int  get_mission_landing_index() { return _mission.get_land_start_index(); }
+
+	double get_mission_landing_start_lat() { return _mission.get_landing_start_lat(); }
+	double get_mission_landing_start_lon() { return _mission.get_landing_start_lon(); }
+	float  get_mission_landing_start_alt() { return _mission.get_landing_start_alt(); }
+
+	double get_mission_landing_lat() { return _mission.get_landing_lat(); }
+	double get_mission_landing_lon() { return _mission.get_landing_lon(); }
+	float  get_mission_landing_alt() { return _mission.get_landing_alt(); }
 
 	// RTL
-	bool		mission_landing_required() { return _rtl.get_rtl_type() == RTL::RTL_TYPE_MISSION_LANDING; }
-	bool		in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
+	bool mission_landing_required() { return _rtl.get_rtl_type() == RTL::RTL_TYPE_MISSION_LANDING; }
 
-	bool		abort_landing();
+	bool in_rtl_state() const { return _vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL; }
+
+	bool abort_landing();
 
 	void geofence_breach_check(bool &have_geofence_position_data);
 
 	// Param access
-	float		get_loiter_min_alt() const { return _param_mis_ltrmin_alt.get(); }
-	float		get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
-	bool		get_takeoff_required() const { return _param_mis_takeoff_req.get(); }
-	float		get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
-	float		get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
-	float		get_lndmc_alt_max() const { return _param_lndmc_alt_max.get(); }
+	float get_loiter_min_alt() const { return _param_mis_ltrmin_alt.get(); }
+	float get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
+	bool  get_takeoff_required() const { return _param_mis_takeoff_req.get(); }
+	float get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
+	float get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
+	float get_lndmc_alt_max() const { return _param_lndmc_alt_max.get(); }
 
-	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
-	float		get_vtol_reverse_delay() const { return _param_reverse_delay; }
+	float get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
+	float get_vtol_reverse_delay() const { return _param_reverse_delay; }
 
-	bool		force_vtol();
+	bool force_vtol();
 
-	void		acquire_gimbal_control();
-	void		release_gimbal_control();
+	void acquire_gimbal_control();
+	void release_gimbal_control();
 
 private:
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
-		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,	/**< acceptance for takeoff */
-		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)
-		_param_nav_fw_alt_rad,	/**< acceptance radius for fixedwing altitude */
-		(ParamFloat<px4::params::NAV_FW_ALTL_RAD>)
-		_param_nav_fw_altl_rad,	/**< acceptance radius for fixedwing altitude before landing*/
-		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
-		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
-		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
-		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
-		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
-		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
-
-		// non-navigator parameters
-		// Mission (MIS_*)
-		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_mis_ltrmin_alt,
-		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt,
-		(ParamBool<px4::params::MIS_TAKEOFF_REQ>) _param_mis_takeoff_req,
-		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_mis_yaw_tmt,
-		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err,
-
-		(ParamFloat<px4::params::LNDMC_ALT_MAX>)    _param_lndmc_alt_max
-
-	)
 
 	struct traffic_buffer_s {
 		uint32_t 	icao_address;
 		hrt_abstime timestamp;
 	};
 
-	int		_local_pos_sub{-1};
-	int		_mission_sub{-1};
-	int		_vehicle_status_sub{-1};
+	int _local_pos_sub{-1};
+	int _mission_sub{-1};
+	int _vehicle_status_sub{-1};
+
+	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -355,17 +342,14 @@ private:
 	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
 
-	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
-
 	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
 	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
 	uORB::Publication<position_setpoint_triplet_s>	_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
+	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_s>		_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
-
-	uORB::Publication<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
-	uORB::Publication<vehicle_command_s>	_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 
 	// Subscriptions
 	home_position_s					_home_pos{};		/**< home position for RTL */
@@ -388,26 +372,28 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
-	bool		_geofence_violation_warning_sent{false}; /**< prevents spaming to mavlink */
+
 	GeofenceBreachAvoidance _gf_breach_avoidance;
+
 	hrt_abstime _last_geofence_check = 0;
 
+	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
 	bool		_can_loiter_at_sp{false};			/**< flags if current position SP can be used to loiter */
-	bool		_pos_sp_triplet_updated{false};		/**< flags if position SP triplet needs to be published */
+	bool		_pos_sp_triplet_updated{false};			/**< flags if position SP triplet needs to be published */
 	bool 		_pos_sp_triplet_published_invalid_once{false};	/**< flags if position SP triplet has been published once to UORB */
-	bool		_mission_result_updated{false};		/**< flags if mission result has seen an update */
+	bool		_mission_result_updated{false};			/**< flags if mission result has seen an update */
 
-	NavigatorMode	*_navigation_mode{nullptr};		/**< abstract pointer to current navigation mode class */
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
-	Land		_land;			/**< class for handling land commands */
+	Land		_land;				/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
 	FollowTarget	_follow_target;
 
-	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
+	NavigatorMode *_navigation_mode{nullptr};	/**< abstract pointer to current navigation mode class */
+	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE] {};	/**< array of navigation modes */
 
 	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
 	param_t _handle_reverse_delay{PARAM_INVALID};
@@ -416,32 +402,54 @@ private:
 
 	float _param_back_trans_dec_mss{0.f};
 	float _param_reverse_delay{0.f};
-	float _param_mpc_jerk_auto{4.f}; /**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
-	float _param_mpc_acc_hor{3.f}; /**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
+	float _param_mpc_jerk_auto{4.f}; 	/**< initialized with the default jerk auto value to prevent division by 0 if the parameter is accidentally set to 0 */
+	float _param_mpc_acc_hor{3.f};		/**< initialized with the default horizontal acc value to prevent division by 0 if the parameter is accidentally set to 0 */
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
 	float _mission_throttle{NAN};
 
-	bool _mission_landing_in_progress{false};	// this flag gets set if the mission is currently executing on a landing pattern
-	// if mission mode is inactive, this flag will be cleared after 2 seconds
+	bool _mission_landing_in_progress{false};	/**< this flag gets set if the mission is currently executing on a landing pattern
+							 * if mission mode is inactive, this flag will be cleared after 2 seconds */
 
 	traffic_buffer_s _traffic_buffer{};
 
 	// update subscriptions
-	void		params_update();
+	void params_update();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers
 	 */
-	void		publish_position_setpoint_triplet();
+	void publish_position_setpoint_triplet();
 
 	/**
 	 * Publish the mission result so commander and mavlink know what is going on
 	 */
-	void		publish_mission_result();
+	void publish_mission_result();
 
-	void		publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
+	void publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
 
-	bool 		geofence_allows_position(const vehicle_global_position_s &pos);
+	bool geofence_allows_position(const vehicle_global_position_s &pos);
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
+		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,		/**< acceptance for takeoff */
+		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)   _param_nav_fw_alt_rad,	/**< acceptance rad for fixedwing alt */
+		(ParamFloat<px4::params::NAV_FW_ALTL_RAD>)
+		_param_nav_fw_altl_rad,	/**< acceptance rad for fixedwing alt before landing*/
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)   _param_nav_mc_alt_rad,	/**< acceptance rad for multicopter alt */
+		(ParamInt<px4::params::NAV_FORCE_VT>)       _param_nav_force_vt,	/**< acceptance radius for multicopter alt */
+		(ParamInt<px4::params::NAV_TRAFF_AVOID>)    _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
+
+		// non-navigator parameters
+		// Mission (MIS_*)
+		(ParamFloat<px4::params::MIS_LTRMIN_ALT>)  _param_mis_ltrmin_alt,
+		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt,
+		(ParamBool<px4::params::MIS_TAKEOFF_REQ>)  _param_mis_takeoff_req,
+		(ParamFloat<px4::params::MIS_YAW_TMT>)     _param_mis_yaw_tmt,
+		(ParamFloat<px4::params::MIS_YAW_ERR>)     _param_mis_yaw_err,
+		(ParamFloat<px4::params::LNDMC_ALT_MAX>)   _param_lndmc_alt_max
+
+	)
 };
