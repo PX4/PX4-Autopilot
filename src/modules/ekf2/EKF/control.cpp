@@ -318,10 +318,7 @@ void Ekf::controlExternalVisionFusion()
 				resetVelocity();
 			}
 
-			Vector2f ev_vel_innov_gates;
-
-			_last_vel_obs = getVisionVelocityInEkfFrame();
-			_ev_vel_innov = _state.vel - _last_vel_obs;
+			_ev_vel_innov = _state.vel - getVisionVelocityInEkfFrame();
 
 			// check if we have been deadreckoning too long
 			if (isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)) {
@@ -332,12 +329,13 @@ void Ekf::controlExternalVisionFusion()
 				}
 			}
 
-			_last_vel_obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
+			const Vector3f obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
 
-			ev_vel_innov_gates.setAll(fmaxf(_params.ev_vel_innov_gate, 1.0f));
+			const float innov_gate = fmaxf(_params.ev_vel_innov_gate, 1.f);
+			const Vector2f ev_vel_innov_gates{innov_gate, innov_gate};
 
-			fuseHorizontalVelocity(_ev_vel_innov, ev_vel_innov_gates, _last_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
-			fuseVerticalVelocity(_ev_vel_innov, ev_vel_innov_gates, _last_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			fuseHorizontalVelocity(_ev_vel_innov, ev_vel_innov_gates, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			fuseVerticalVelocity(_ev_vel_innov, ev_vel_innov_gates, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
 		}
 
 		// determine if we should use the yaw observation
@@ -1077,9 +1075,7 @@ void Ekf::controlAuxVelFusion()
 
 				const Vector2f aux_vel_innov_gate(_params.auxvel_gate, _params.auxvel_gate);
 
-				_last_vel_obs = auxvel_sample_delayed.vel;
-				_aux_vel_innov = _state.vel - _last_vel_obs;
-				_last_vel_obs_var = _aux_vel_innov_var;
+				_aux_vel_innov = _state.vel - auxvel_sample_delayed.vel;
 
 				fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, auxvel_sample_delayed.velVar,
 						       _aux_vel_innov_var, _aux_vel_test_ratio);

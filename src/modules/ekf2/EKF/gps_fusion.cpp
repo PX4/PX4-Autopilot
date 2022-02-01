@@ -41,8 +41,6 @@
 
 void Ekf::fuseGpsVelPos()
 {
-	Vector2f gps_vel_innov_gates; // [horizontal vertical]
-	Vector2f gps_pos_innov_gates; // [horizontal vertical]
 	Vector3f gps_pos_obs_var;
 
 	// correct velocity for offset relative to IMU
@@ -72,20 +70,21 @@ void Ekf::fuseGpsVelPos()
 
 	_gps_sample_delayed.sacc = fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise);
 
-	_last_vel_obs_var.setAll(sq(_gps_sample_delayed.sacc));
-	_last_vel_obs_var(2) *= sq(1.5f);
+	const float vel_var = sq(_gps_sample_delayed.sacc);
+	const Vector3f gps_vel_obs_var{vel_var, vel_var, vel_var * sq(1.5f)};
 
 	// calculate innovations
-	_last_vel_obs = _gps_sample_delayed.vel;
-	_gps_vel_innov = _state.vel - _last_vel_obs;
+	_gps_vel_innov = _state.vel - _gps_sample_delayed.vel;
 	_gps_pos_innov.xy() = Vector2f(_state.pos) - _gps_sample_delayed.pos;
 
 	// set innovation gate size
-	gps_pos_innov_gates(0) = fmaxf(_params.gps_pos_innov_gate, 1.0f);
-	gps_vel_innov_gates(0) = gps_vel_innov_gates(1) = fmaxf(_params.gps_vel_innov_gate, 1.0f);
+	const Vector2f gps_pos_innov_gates{fmaxf(_params.gps_pos_innov_gate, 1.f), 0.f};
+
+	const float vel_innov_gate = fmaxf(_params.gps_vel_innov_gate, 1.f);
+	const Vector2f gps_vel_innov_gates{vel_innov_gate, vel_innov_gate};
 
 	// fuse GPS measurement
-	fuseHorizontalVelocity(_gps_vel_innov, gps_vel_innov_gates, _last_vel_obs_var, _gps_vel_innov_var, _gps_vel_test_ratio);
-	fuseVerticalVelocity(_gps_vel_innov, gps_vel_innov_gates, _last_vel_obs_var, _gps_vel_innov_var, _gps_vel_test_ratio);
+	fuseHorizontalVelocity(_gps_vel_innov, gps_vel_innov_gates, gps_vel_obs_var, _gps_vel_innov_var, _gps_vel_test_ratio);
+	fuseVerticalVelocity(_gps_vel_innov, gps_vel_innov_gates, gps_vel_obs_var, _gps_vel_innov_var, _gps_vel_test_ratio);
 	fuseHorizontalPosition(_gps_pos_innov, gps_pos_innov_gates, gps_pos_obs_var, _gps_pos_innov_var, _gps_pos_test_ratio);
 }
