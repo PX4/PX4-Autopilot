@@ -1,11 +1,18 @@
-# Build docker image
-# Always builds by default
-# Only pushes to registry if:
+# build docker images on:
+# * every pull request
+# * push to master
+# * stable release published
+# * tag name is:
+#   - commit sha if pull request
+#   - 'latest' if push to master
+#   - release name if release
+
+# pushes to registry if:
 # * is not a pull request
 # * is master branch
-#   * tag as 'latest'
 # * is the result of release
-#   * tag with release name
+
+# builds all nuttx targets and deploys metadata
 
 name: Build docker
 
@@ -17,10 +24,21 @@ on:
       - 'main'
   pull_request:
 
+env:
+  TAG_NAME: |
+    ${{
+      github.event_name == 'pull_request' && github.sha ||
+        (
+          github.event_name == 'push' && 'latest' ||
+          github.event.release.name
+        )
+    }}
+
 jobs:
-  build-docker:
+  build_docker:
     name: Build Docker image
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -38,8 +56,15 @@ jobs:
         id: docker_build
         with:
           file: Tools/setup/Dockerfile
-          push: github.event_name != 'pull_request'
-          tags: px4io/px4-dev:${{ github.event_name == 'push' && github.event.release.name || 'latest' }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: "px4io/px4-dev:${{ env.TAG_NAME }}"
+          outputs: type=tar,dest=/tmp/px4image.tar
+
+      - name: Save container to artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: px4image
+          path: /tmp/px4image.tar
 
       - name: Push to Github Registry
         uses: docker/build-push-action@v2
@@ -47,3 +72,42 @@ jobs:
 
       - name: Image Digest
         run: echo ${{ steps.docker_build.outputs.digest }}
+
+  enumerate_targets:
+    runs-on: ubuntu-latest
+    needs: build_docker
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - id: set-matrix
+        name: Get all nuttx targets
+        run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py -a)"
+
+  build_px4:
+    runs-on: ubuntu-latest
+    needs: enumerate_targets
+    strategy:
+      matrix: ${{ fromJson(needs.enumerate_targets.outputs.matrix) }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get container from artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: px4image
+          path: /tmp
+
+      - name: Load Docker image
+        run: |
+          docker load --input /tmpt/px4image.tar
+          docker image ls -a
+
+      - name: Build the world
+        run: |
+          DOCKER_TAG="px4io/px4-dev:${{ env.TAG_NAME }}" ./Tools/docker.run.sh make ${{ matrix.target }}
