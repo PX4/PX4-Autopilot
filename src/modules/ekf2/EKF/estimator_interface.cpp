@@ -47,6 +47,7 @@
 EstimatorInterface::~EstimatorInterface()
 {
 	delete _gps_buffer;
+	delete _gps_heading_buffer;
 	delete _mag_buffer;
 	delete _baro_buffer;
 	delete _range_buffer;
@@ -164,15 +165,6 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 
 		gps_sample_new.hgt = (float)gps.alt * 1e-3f;
 
-		gps_sample_new.yaw = gps.yaw;
-
-		if (PX4_ISFINITE(gps.yaw_offset)) {
-			_gps_yaw_offset = gps.yaw_offset;
-
-		} else {
-			_gps_yaw_offset = 0.0f;
-		}
-
 		// Only calculate the relative position if the WGS-84 location of the origin is set
 		if (collect_gps(gps)) {
 			gps_sample_new.pos = _pos_ref.project((gps.lat / 1.0e7), (gps.lon / 1.0e7));
@@ -183,8 +175,45 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 		}
 
 		_gps_buffer->push(gps_sample_new);
+
 	} else {
 		ECL_ERR("GPS data too fast %" PRIu64, gps.time_usec - _time_last_gps);
+	}
+}
+
+void EstimatorInterface::setGpsHeadingData(const gpsHeadingSample &gps_heading_sample)
+{
+	if (!_initialised) {
+		return;
+	}
+
+	// Allocate the required buffer size if not previously done
+	if (_gps_heading_buffer == nullptr) {
+		_gps_heading_buffer = new RingBuffer<gpsHeadingSample>(_obs_buffer_length);
+
+		if (_gps_heading_buffer == nullptr || !_gps_heading_buffer->valid()) {
+			delete _gps_heading_buffer;
+			_gps_heading_buffer = nullptr;
+			printBufferAllocationFailed("GPS heading");
+			return;
+		}
+	}
+
+	if ((gps_heading_sample.time_us - _time_last_gps_heading) > _min_obs_interval_us) {
+		_time_last_gps_heading = gps_heading_sample.time_us;
+
+		gpsHeadingSample sample_new;
+
+		sample_new.time_us = gps_heading_sample.time_us - static_cast<uint64_t>(_params.gps_delay_ms * 1000);
+		sample_new.time_us -= static_cast<uint64_t>(_dt_ekf_avg * 5e5f); // seconds to microseconds divided by 2
+
+		sample_new.yaw = gps_heading_sample.yaw;
+		sample_new.yaw_offset = PX4_ISFINITE(gps_heading_sample.yaw_offset) ? gps_heading_sample.yaw_offset : 0.f;
+
+		_gps_heading_buffer->push(sample_new);
+
+	} else {
+		ECL_ERR("GPS heading data too fast %" PRIu64, gps_heading_sample.time_us - _time_last_gps_heading);
 	}
 }
 
@@ -546,6 +575,10 @@ void EstimatorInterface::print_status()
 
 	if (_gps_buffer) {
 		printf("gps buffer: %d/%d (%d Bytes)\n", _gps_buffer->entries(), _gps_buffer->get_length(), _gps_buffer->get_total_size());
+	}
+
+	if (_gps_heading_buffer) {
+		printf("gps buffer: %d/%d (%d Bytes)\n", _gps_heading_buffer->entries(), _gps_heading_buffer->get_length(), _gps_heading_buffer->get_total_size());
 	}
 
 	if (_mag_buffer) {

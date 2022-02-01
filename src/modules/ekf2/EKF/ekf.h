@@ -602,11 +602,11 @@ private:
 			      const Vector4f &yaw_jacobian);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
-	void fuseGpsYaw();
+	void fuseGpsYaw(const gpsHeadingSample &gps_heading_sample_delayed);
 
 	// reset the quaternions states using the yaw angle obtained from a dual antenna GPS unit
 	// return true if the reset was successful
-	bool resetYawToGps();
+	bool resetYawToGps(const gpsHeadingSample &gps_heading_sample_delayed);
 
 	// fuse magnetometer declination measurement
 	// argument passed in is the declination uncertainty in radians
@@ -989,7 +989,7 @@ private:
 	void stopGpsPosFusion();
 	void stopGpsVelFusion();
 
-	void startGpsYawFusion();
+	void startGpsYawFusion(const gpsHeadingSample &gps_heading_sample_delayed);
 	void stopGpsYawFusion();
 
 	void startEvPosFusion();

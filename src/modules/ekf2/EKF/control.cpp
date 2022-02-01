@@ -535,16 +535,15 @@ void Ekf::resetOnGroundMotionForOpticalFlowChecks()
 
 void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 {
-	if (!(_params.fusion_mode & MASK_USE_GPSYAW)
-	    || _control_status.flags.gps_yaw_fault) {
+	if (!(_params.fusion_mode & MASK_USE_GPSYAW) || _control_status.flags.gps_yaw_fault || !_gps_heading_buffer) {
 
 		stopGpsYawFusion();
 		return;
 	}
 
-	const bool is_new_data_available = PX4_ISFINITE(_gps_sample_delayed.yaw);
+	gpsHeadingSample gps_heading_sample_delayed;
 
-	if (is_new_data_available) {
+	if (_gps_heading_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &gps_heading_sample_delayed)) {
 
 		const bool continuing_conditions_passing = !gps_checks_failing;
 
@@ -562,14 +561,14 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 
 			if (continuing_conditions_passing) {
 
-				fuseGpsYaw();
+				fuseGpsYaw(gps_heading_sample_delayed);
 
 				const bool is_fusion_failing = isTimedOut(_time_last_gps_yaw_fuse, _params.reset_timeout_max);
 
 				if (is_fusion_failing) {
 					if (_nb_gps_yaw_reset_available > 0) {
 						// Data seems good, attempt a reset
-						resetYawToGps();
+						resetYawToGps(gps_heading_sample_delayed);
 
 						if (_control_status.flags.in_air) {
 							_nb_gps_yaw_reset_available--;
@@ -598,7 +597,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 		} else {
 			if (starting_conditions_passing) {
 				// Try to activate GPS yaw fusion
-				startGpsYawFusion();
+				startGpsYawFusion(gps_heading_sample_delayed);
 
 				if (_control_status.flags.gps_yaw) {
 					_nb_gps_yaw_reset_available = 1;
@@ -613,9 +612,8 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 
 	// Before takeoff, we do not want to continue to rely on the current heading
 	// if we had to stop the fusion
-	if (!_control_status.flags.in_air
-	    && !_control_status.flags.gps_yaw
-	    && _control_status_prev.flags.gps_yaw) {
+	if (!_control_status.flags.in_air && !_control_status.flags.gps_yaw && _control_status_prev.flags.gps_yaw) {
+
 		_control_status.flags.yaw_align = false;
 	}
 }

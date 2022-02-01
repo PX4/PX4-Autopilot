@@ -84,6 +84,7 @@ public:
 	void setMagData(const magSample &mag_sample);
 
 	void setGpsData(const gps_message &gps);
+	void setGpsHeadingData(const gpsHeadingSample &gps_heading_sample);
 
 	void setBaroData(const baroSample &baro_sample);
 
@@ -324,7 +325,6 @@ protected:
 	MapProjection _pos_ref{}; // Contains WGS-84 position latitude and longitude of the EKF origin
 	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
 	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
-	float _gps_yaw_offset{0.0f};	// Yaw offset angle for dual GPS antennas used for yaw estimation (radians).
 
 	// innovation consistency check monitoring ratios
 	float _yaw_test_ratio{};		// yaw innovation consistency check ratio
@@ -363,6 +363,7 @@ protected:
 	RingBuffer<outputVert> _output_vert_buffer{12};
 
 	RingBuffer<gpsSample> *_gps_buffer{nullptr};
+	RingBuffer<gpsHeadingSample> *_gps_heading_buffer{nullptr};
 	RingBuffer<magSample> *_mag_buffer{nullptr};
 	RingBuffer<baroSample> *_baro_buffer{nullptr};
 	RingBuffer<rangeSample> *_range_buffer{nullptr};
@@ -375,6 +376,7 @@ protected:
 	// timestamps of latest in buffer saved measurement in microseconds
 	uint64_t _time_last_imu{0};
 	uint64_t _time_last_gps{0};
+	uint64_t _time_last_gps_heading{0};
 	uint64_t _time_last_mag{0}; ///< measurement time of last magnetomter sample (uSec)
 	uint64_t _time_last_baro{0};
 	uint64_t _time_last_range{0};

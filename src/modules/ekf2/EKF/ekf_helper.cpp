@@ -1599,9 +1599,9 @@ void Ekf::stopGpsVelFusion()
 	_gps_vel_test_ratio.setZero();
 }
 
-void Ekf::startGpsYawFusion()
+void Ekf::startGpsYawFusion(const gpsHeadingSample &gps_heading_sample_delayed)
 {
-	if (resetYawToGps()) {
+	if (resetYawToGps(gps_heading_sample_delayed)) {
 		_control_status.flags.yaw_align = true;
 		_control_status.flags.mag_dec = false;
 		stopEvYawFusion();

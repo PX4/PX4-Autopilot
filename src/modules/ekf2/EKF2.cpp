@@ -553,6 +553,7 @@ void EKF2::Run()
 		UpdateAuxVelSample(ekf2_timestamps);
 		UpdateBaroSample(ekf2_timestamps);
 		UpdateGpsSample(ekf2_timestamps);
+		UpdateGpsHeadingSample(ekf2_timestamps);
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
 
@@ -1631,8 +1632,6 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.lat = vehicle_gps_position.lat,
 			.lon = vehicle_gps_position.lon,
 			.alt = vehicle_gps_position.alt,
-			.yaw = vehicle_gps_position.heading,
-			.yaw_offset = vehicle_gps_position.heading_offset,
 			.fix_type = vehicle_gps_position.fix_type,
 			.eph = vehicle_gps_position.eph,
 			.epv = vehicle_gps_position.epv,
@@ -1650,8 +1649,40 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		};
 		_ekf.setGpsData(gps_msg);
 
+		if (PX4_ISFINITE(vehicle_gps_position.heading)) {
+			gpsHeadingSample sample {
+				.time_us = vehicle_gps_position.timestamp,
+				.yaw = vehicle_gps_position.heading,
+				.yaw_offset = vehicle_gps_position.heading_offset
+			};
+			_ekf.setGpsHeadingData(sample);
+		}
+
 		_gps_time_usec = gps_msg.time_usec;
 		_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;
+	}
+}
+
+void EKF2::UpdateGpsHeadingSample(ekf2_timestamps_s &ekf2_timestamps)
+{
+	// EKF GPS message
+	const unsigned last_generation = _sensor_gps_relative_sub.get_last_generation();
+	sensor_gps_relative_s sensor_gps_relative;
+
+	if (_sensor_gps_relative_sub.update(&sensor_gps_relative)) {
+		if (_msg_missed_gps_heading_perf == nullptr) {
+			_msg_missed_gps_heading_perf = perf_alloc(PC_COUNT, MODULE_NAME": sensor_gps_relative messages missed");
+
+		} else if (_sensor_gps_relative_sub.get_last_generation() != last_generation + 1) {
+			perf_count(_msg_missed_gps_heading_perf);
+		}
+
+		gpsHeadingSample sample {
+			.time_us = sensor_gps_relative.timestamp_sample,
+			.yaw = sensor_gps_relative.heading,
+			.yaw_offset = sensor_gps_relative.heading_offset
+		};
+		_ekf.setGpsHeadingData(sample);
 	}
 }
 

@@ -63,6 +63,7 @@
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gps_relative.h>
 
 #ifndef CONSTRAINED_FLASH
 # include "devices/src/ashtech.h"
@@ -178,10 +179,16 @@ private:
 	GPS_Sat_Info			*_sat_info{nullptr};				///< instance of GPS sat info data object
 
 	sensor_gps_s			_report_gps_pos{};				///< uORB topic for gps position
+	sensor_gps_relative_s		_sensor_gps_relative{};
 	satellite_info_s		*_p_report_sat_info{nullptr};			///< pointer to uORB topic for satellite info
 
-	uORB::PublicationMulti<sensor_gps_s>	_report_gps_pos_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
-	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
+	hrt_abstime _sensor_gps_timestamp_last_publish{0};
+	hrt_abstime _sensor_gps_relative_last_publish{0};
+
+	uORB::PublicationMulti<sensor_gps_s> _report_gps_pos_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
+	uORB::PublicationMulti<sensor_gps_relative_s> _sensor_gps_relative_pub{ORB_ID(sensor_gps_relative)};
+
+	uORB::PublicationMulti<satellite_info_s> _report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
 	float				_rate{0.0f};					///< position update rate
 	float				_rate_rtcm_injection{0.0f};			///< RTCM message injection rate
@@ -805,7 +812,8 @@ GPS::run()
 
 		/* FALLTHROUGH */
 		case gps_driver_mode_t::UBX:
-			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
+			_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, &_sensor_gps_relative,
+						   _p_report_sat_info,
 						   gps_ubx_dynmodel, heading_offset, ubx_mode);
 			set_device_type(DRV_GPS_DEVTYPE_UBX);
 			break;
@@ -1123,13 +1131,26 @@ void
 GPS::publish()
 {
 	if (_instance == Instance::Main || _is_gps_main_advertised.load()) {
-		_report_gps_pos.device_id = get_device_id();
 
-		_report_gps_pos_pub.publish(_report_gps_pos);
-		// Heading/yaw data can be updated at a lower rate than the other navigation data.
-		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
-		_report_gps_pos.heading = NAN;
-		_is_gps_main_advertised.store(true);
+		if (_report_gps_pos.timestamp != _sensor_gps_timestamp_last_publish) {
+			_report_gps_pos.device_id = get_device_id();
+
+			_report_gps_pos_pub.publish(_report_gps_pos);
+			// Heading/yaw data can be updated at a lower rate than the other navigation data.
+			// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
+			_report_gps_pos.heading = NAN;
+			_is_gps_main_advertised.store(true);
+
+			_sensor_gps_timestamp_last_publish = _report_gps_pos.timestamp;
+		}
+
+		if (_sensor_gps_relative.timestamp_sample > _sensor_gps_relative_last_publish) {
+			_sensor_gps_relative.device_id = get_device_id();
+			_sensor_gps_relative.timestamp = hrt_absolute_time();
+			_sensor_gps_relative_pub.publish(_sensor_gps_relative);
+
+			_sensor_gps_relative_last_publish = _sensor_gps_relative.timestamp_sample;
+		}
 	}
 }
 

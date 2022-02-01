@@ -57,12 +57,12 @@ void Gps::setVelocity(const Vector3f &vel)
 
 void Gps::setYaw(const float yaw)
 {
-	_gps_data.yaw = yaw;
+	//_gps_data.yaw = yaw;
 }
 
 void Gps::setYawOffset(const float yaw_offset)
 {
-	_gps_data.yaw_offset = yaw_offset;
+	//_gps_data.yaw_offset = yaw_offset;
 }
 
 void Gps::setFixType(const int fix_type)
@@ -115,8 +115,8 @@ gps_message Gps::getDefaultGpsData()
 	gps_data.lat = 473566094;
 	gps_data.lon = 85190237;
 	gps_data.alt = 422056;
-	gps_data.yaw = NAN;
-	gps_data.yaw_offset = 0.0f;
+	// gps_data.yaw = NAN;
+	// gps_data.yaw_offset = 0.0f;
 	gps_data.fix_type = 3;
 	gps_data.eph = 0.5f;
 	gps_data.epv = 0.8f;
