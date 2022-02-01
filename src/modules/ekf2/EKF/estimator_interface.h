@@ -81,17 +81,6 @@ public:
 
 	void setIMUData(const imuSample &imu_sample);
 
-	/*
-	Returns  following IMU vibration metrics in the following array locations
-	0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
-	1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
-	2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
-	*/
-	const Vector3f &getImuVibrationMetrics() const { return _vibe_metrics; }
-	void setDeltaAngleConingMetric(float delta_angle_coning_metric) { _vibe_metrics(0) = delta_angle_coning_metric; }
-	void setDeltaAngleHighFrequencyVibrationMetric(float delta_angle_vibration_metric) { _vibe_metrics(1) = delta_angle_vibration_metric; }
-	void setDeltaVelocityHighFrequencyVibrationMetric(float delta_velocity_vibration_metric) { _vibe_metrics(2) = delta_velocity_vibration_metric; }
-
 	void setMagData(const magSample &mag_sample);
 
 	void setGpsData(const gps_message &gps);
@@ -126,6 +115,8 @@ public:
 
 		_control_status.flags.in_air = in_air;
 	}
+
+	void set_vehicle_at_rest(bool at_rest) { _control_status.flags.vehicle_at_rest = at_rest; }
 
 	// return true if the attitude is usable
 	bool attitude_valid() const { return PX4_ISFINITE(_output_new.quat_nominal(0)) && _control_status.flags.tilt_align; }
@@ -248,8 +239,6 @@ public:
 	const decltype(information_event_status_u::flags) &information_event_flags() const { return _information_events.flags; }
 	void clear_information_events() { _information_events.value = 0; }
 
-	bool isVehicleAtRest() const { return _control_status.flags.vehicle_at_rest; }
-
 	// Getter for the average imu update period in s
 	float get_dt_imu_avg() const { return _dt_imu_avg; }
 
@@ -363,7 +352,7 @@ protected:
 					// [0] Horizontal position drift rate (m/s)
 					// [1] Vertical position drift rate (m/s)
 					// [2] Filtered horizontal velocity (m/s)
-	uint64_t _time_last_move_detect_us{0};	// timestamp of last movement detection event in microseconds
+
 	uint64_t _time_last_on_ground_us{0};	///< last time we were on the ground (uSec)
 	uint64_t _time_last_in_air{0};		///< last time we were in air (uSec)
 	bool _gps_drift_updated{false};	// true when _gps_drift_metrics has been updated and is ready for retrieval
@@ -422,26 +411,14 @@ private:
 
 	inline void setDragData(const imuSample &imu);
 
-	inline void computeVibrationMetric(const imuSample &imu);
-	inline bool checkIfVehicleAtRest(float dt, const imuSample &imu);
-
 	void printBufferAllocationFailed(const char *buffer_name);
 
 	ImuDownSampler _imu_down_sampler{_params.filter_update_interval_us};
 
 	unsigned _min_obs_interval_us{0}; // minimum time interval between observations that will guarantee data is not lost (usec)
 
-	// IMU vibration and movement monitoring
-	Vector3f _vibe_metrics{};	// IMU vibration metrics
-					// [0] Level of coning vibration in the IMU delta angles (rad^2)
-					// [1] high frequency vibration level in the IMU delta angle data (rad)
-					// [2] high frequency vibration level in the IMU delta velocity data (m/s)
-
 	// Used by the multi-rotor specific drag force fusion
 	uint8_t _drag_sample_count{0};	// number of drag specific force samples assumulated at the filter prediction rate
 	float _drag_sample_time_dt{0.0f};	// time integral across all samples used to form _drag_down_sampled (sec)
-
-	// observation buffer final allocation failed
-	uint64_t _last_allocation_fail_print{0};
 };
 #endif // !EKF_ESTIMATOR_INTERFACE_H
