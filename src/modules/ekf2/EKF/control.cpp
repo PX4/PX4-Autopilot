@@ -1068,27 +1068,27 @@ void Ekf::controlDragFusion()
 
 void Ekf::controlAuxVelFusion()
 {
-	bool data_ready = false;
-
 	if (_auxvel_buffer) {
-		data_ready = _auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_auxvel_sample_delayed);
-	}
+		auxVelSample auxvel_sample_delayed;
 
-	if (data_ready && isHorizontalAidingActive()) {
+		if (_auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &auxvel_sample_delayed)) {
 
-		const Vector2f aux_vel_innov_gate(_params.auxvel_gate, _params.auxvel_gate);
+			if (isHorizontalAidingActive()) {
 
-		_last_vel_obs = _auxvel_sample_delayed.vel;
-		_aux_vel_innov = _state.vel - _last_vel_obs;
-		_last_vel_obs_var = _aux_vel_innov_var;
+				const Vector2f aux_vel_innov_gate(_params.auxvel_gate, _params.auxvel_gate);
 
-		fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, _auxvel_sample_delayed.velVar,
-				       _aux_vel_innov_var, _aux_vel_test_ratio);
+				_last_vel_obs = auxvel_sample_delayed.vel;
+				_aux_vel_innov = _state.vel - _last_vel_obs;
+				_last_vel_obs_var = _aux_vel_innov_var;
 
-		// Can be enabled after bit for this is added to EKF_AID_MASK
-		// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, _auxvel_sample_delayed.velVar,
-		//		_aux_vel_innov_var, _aux_vel_test_ratio);
+				fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, auxvel_sample_delayed.velVar,
+						       _aux_vel_innov_var, _aux_vel_test_ratio);
 
+				// Can be enabled after bit for this is added to EKF_AID_MASK
+				// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, auxvel_sample_delayed.velVar,
+				//		_aux_vel_innov_var, _aux_vel_test_ratio);
+			}
+		}
 	}
 }
 
