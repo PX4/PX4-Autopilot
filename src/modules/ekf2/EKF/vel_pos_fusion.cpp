@@ -65,8 +65,6 @@ bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_ga
 		return true;
 
 	} else {
-		_last_fail_hvel_innov(0) = innov(0);
-		_last_fail_hvel_innov(1) = innov(1);
 		_innov_check_fail_status.flags.reject_hor_vel = true;
 		return false;
 	}
