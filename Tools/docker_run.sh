@@ -8,7 +8,15 @@
 #Delete all 'untagged/dangling' (<none>) images
 #docker rmi $(docker images -q -f dangling=true)
 
-PX4_DOCKER_REPO="px4io/px4-dev"
+if [[ -z "${DOCKER_TAG}" ]]; then
+  TAG_NAME=""
+else
+  TAG_NAME=":${DOCKER_TAG}"
+fi
+
+PX4_DOCKER_REPO="px4io/px4-dev$TAG_NAME"
+
+echo $PX4_DOCKER_REPO
 
 PWD=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 SRC_DIR=$PWD/../
