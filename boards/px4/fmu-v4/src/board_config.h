@@ -179,7 +179,6 @@
 
 #define BOARD_HAS_ON_RESET 1
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5};
 
 __BEGIN_DECLS
 

@@ -358,6 +358,8 @@ void VehicleMagnetometer::Run()
 {
 	perf_begin(_cycle_perf);
 
+	const hrt_abstime time_now_us = hrt_absolute_time();
+
 	ParametersUpdate();
 
 	// check vehicle status for changes to armed state
@@ -381,12 +383,12 @@ void VehicleMagnetometer::Run()
 
 		if (!_advertised[uorb_index]) {
 			// use data's timestamp to throttle advertisement checks
-			if ((_last_data[uorb_index].timestamp == 0) || (hrt_elapsed_time(&_last_data[uorb_index].timestamp) > 1_s)) {
+			if ((_last_data[uorb_index].timestamp == 0) || (time_now_us > _last_data[uorb_index].timestamp + 1_s)) {
 				if (_sensor_sub[uorb_index].advertised()) {
 					_advertised[uorb_index] = true;
 
 				} else {
-					_last_data[uorb_index].timestamp = hrt_absolute_time();
+					_last_data[uorb_index].timestamp = time_now_us;
 				}
 			}
 		}
@@ -445,7 +447,7 @@ void VehicleMagnetometer::Run()
 
 	// check for the current best sensor
 	int best_index = 0;
-	_voter.get_best(hrt_absolute_time(), &best_index);
+	_voter.get_best(time_now_us, &best_index);
 
 	if (best_index >= 0) {
 		if (_selected_sensor_sub_index != best_index) {
@@ -494,9 +496,8 @@ void VehicleMagnetometer::Run()
 
 			if (flags != DataValidator::ERROR_FLAG_NO_ERROR) {
 				if (failover_index != -1) {
-					const hrt_abstime now = hrt_absolute_time();
 
-					if (now - _last_error_message > 3_s) {
+					if (time_now_us > _last_error_message + 3_s) {
 						mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!\t",
 								      "MAG",
 								      failover_index,
@@ -526,7 +527,7 @@ void VehicleMagnetometer::Run()
 							events::ID("sensor_failover_mag"), events::Log::Emergency, "Magnetometer sensor #{1} failure: {2}", failover_index,
 							failover_reason);
 
-						_last_error_message = now;
+						_last_error_message = time_now_us;
 					}
 
 					// reduce priority of failed sensor to the minimum
@@ -632,8 +633,9 @@ void VehicleMagnetometer::calcMagInconsistency()
 void VehicleMagnetometer::PrintStatus()
 {
 	if (_selected_sensor_sub_index >= 0) {
-		PX4_INFO("selected magnetometer: %" PRIu32 " (%" PRId8 ")", _last_data[_selected_sensor_sub_index].device_id,
-			 _selected_sensor_sub_index);
+		PX4_INFO_RAW("[vehicle_magnetometer] selected magnetometer: %" PRIu32 " (%" PRId8 ")\n",
+			     _last_data[_selected_sensor_sub_index].device_id,
+			     _selected_sensor_sub_index);
 	}
 
 	_voter.print();

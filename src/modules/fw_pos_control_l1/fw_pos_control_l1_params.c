@@ -885,17 +885,17 @@ PARAM_DEFINE_FLOAT(FW_T_TAS_TC, 5.0f);
 PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
 
 /**
- * RC stick mapping fixed-wing.
+ * RC stick configuraton fixed-wing.
  *
- * Set RC/joystick configuration for fixed-wing position and altitude controlled flight.
+ * Set RC/joystick configuration for fixed-wing manual position and altitude controlled flight.
  *
  * @min 0
- * @max 1
- * @value 0 Normal stick configuration (airspeed on throttle stick, altitude on pitch stick)
- * @value 1 Alternative stick configuration (altitude on throttle stick, airspeed on pitch stick)
+ * @max 3
+ * @bit 0 Alternative stick configuration (height rate on throttle stick, airspeed on pitch stick)
+ * @bit 1 Enable airspeed setpoint via sticks in altitude and position flight mode
  * @group FW L1 Control
  */
-PARAM_DEFINE_INT32(FW_POSCTL_INV_ST, 0);
+PARAM_DEFINE_INT32(FW_POS_STK_CONF, 2);
 
 /**
  * Specific total energy rate first order filter time constant.

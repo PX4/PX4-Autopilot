@@ -180,7 +180,7 @@ uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 		/* don't wait for more than 10us, since that means something broke
 		 *  should reset here if we see this
 		 */
-		if ((hrt_absolute_time() - now) > 10) {
+		if ((hrt_absolute_time() - now) > 30) {
 			px4_leave_critical_section(flags);
 			return UINT32_MAX;
 		}
