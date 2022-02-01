@@ -1,6 +1,20 @@
+# Build docker image
+# Always builds by default
+# Only pushes to registry if:
+# * is not a pull request
+# * is master branch
+#   * tag as 'latest'
+# * is the result of release
+#   * tag with release name
+
 name: Build docker
 
 on:
+  release:
+    types: [released]
+  push:
+    branches:
+      - 'main'
   pull_request:
 
 jobs:
@@ -10,17 +24,26 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      #- name: Login to Github Registry
-        #uses: docker/login-action@v1
-        #with:
-          #registry: ghrc.io
-          #username: ${{ github.actor }}
-          #password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Github Registry
+        uses: docker/login-action@v1
+        if: github.event_name == 'push'
+        with:
+          registry: ghrc.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build image
         uses: docker/build-push-action@v2
+        id: docker_build
         with:
           file: Tools/setup/Dockerfile
-          push: false
+          push: github.event_name != 'pull_request'
+          tags: px4io/px4-dev:${{ github.event_name == 'push' && github.event.release.name || 'latest' }}
 
-      - name: Image digest
+      - name: Push to Github Registry
+        uses: docker/build-push-action@v2
+        if: github.event_name == 'push'
+
+      - name: Image Digest
         run: echo ${{ steps.docker_build.outputs.digest }}
