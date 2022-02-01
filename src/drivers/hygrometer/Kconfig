@@ -1,5 +1,5 @@
 menu "Hygrometers"
-    menuconfig HYGROMETERS
+    menuconfig COMMON_HYGROMETERS
         bool "Hygrometer sensors"
         default n
         select DRIVERS_HYGROMETER_SHT3x
