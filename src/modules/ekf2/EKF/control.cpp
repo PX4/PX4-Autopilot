@@ -243,7 +243,6 @@ void Ekf::controlExternalVisionFusion()
 			}
 
 			Vector3f ev_pos_obs_var;
-			Vector2f ev_pos_innov_gates;
 
 			// correct position and height for offset relative to IMU
 			const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
@@ -307,9 +306,9 @@ void Ekf::controlExternalVisionFusion()
 			}
 
 			// innovation gate size
-			ev_pos_innov_gates(0) = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+			const float ev_pos_innov_gate = fmaxf(_params.ev_pos_innov_gate, 1.0f);
 
-			fuseHorizontalPosition(_ev_pos_innov, ev_pos_innov_gates, ev_pos_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
+			fuseHorizontalPosition(_ev_pos_innov, ev_pos_innov_gate, ev_pos_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
 		}
 
 		// determine if we should use the velocity observations
@@ -332,10 +331,9 @@ void Ekf::controlExternalVisionFusion()
 			const Vector3f obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
 
 			const float innov_gate = fmaxf(_params.ev_vel_innov_gate, 1.f);
-			const Vector2f ev_vel_innov_gates{innov_gate, innov_gate};
 
-			fuseHorizontalVelocity(_ev_vel_innov, ev_vel_innov_gates, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
-			fuseVerticalVelocity(_ev_vel_innov, ev_vel_innov_gates, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			fuseHorizontalVelocity(_ev_vel_innov, innov_gate, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			fuseVerticalVelocity(_ev_vel_innov, innov_gate, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
 		}
 
 		// determine if we should use the yaw observation
@@ -1073,7 +1071,7 @@ void Ekf::controlAuxVelFusion()
 
 			if (isHorizontalAidingActive()) {
 
-				const Vector2f aux_vel_innov_gate(_params.auxvel_gate, _params.auxvel_gate);
+				const float aux_vel_innov_gate = fmaxf(_params.auxvel_gate, 1.f);
 
 				_aux_vel_innov = _state.vel - auxvel_sample_delayed.vel;
 
