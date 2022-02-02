@@ -636,27 +636,27 @@ private:
 
 	void resetVelocityToGps();
 
-	inline void resetHorizontalVelocityToOpticalFlow();
+	void resetHorizontalVelocityToOpticalFlow();
 
-	inline void resetVelocityToVision();
+	void resetVelocityToVision();
 
-	inline void resetHorizontalVelocityToZero();
+	void resetHorizontalVelocityToZero();
 
-	inline void resetVelocityTo(const Vector3f &vel);
+	void resetVelocityTo(const Vector3f &vel);
 
-	inline void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
+	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
 
-	inline void resetVerticalVelocityTo(float new_vert_vel);
+	void resetVerticalVelocityTo(float new_vert_vel);
 
 	void resetHorizontalPosition();
 
 	void resetHorizontalPositionToGps();
 
-	inline void resetHorizontalPositionToVision();
+	void resetHorizontalPositionToVision();
 
-	inline void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
+	void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
 
-	inline void resetVerticalPositionTo(const float &new_vert_pos);
+	void resetVerticalPositionTo(const float &new_vert_pos);
 
 	void resetHeight();
 
