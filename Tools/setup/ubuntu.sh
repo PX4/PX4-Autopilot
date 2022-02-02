@@ -175,6 +175,8 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
     vim-common \
     g++-arm-linux-gnueabihf \
     gcc-arm-linux-gnueabihf \
+    g++-aarch64-linux-gnu \
+    gcc-aarch64-linux-gnu \
     ;
 
   if [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
