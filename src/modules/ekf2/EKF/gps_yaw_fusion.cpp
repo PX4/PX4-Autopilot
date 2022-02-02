@@ -48,10 +48,10 @@
 void Ekf::fuseGpsYaw()
 {
 	// assign intermediate state variables
-	const float &q0 = _state.quat_nominal(0);
-	const float &q1 = _state.quat_nominal(1);
-	const float &q2 = _state.quat_nominal(2);
-	const float &q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
 	// calculate the observed yaw angle of antenna array, converting a from body to antenna yaw measurement
 	const float measured_hdg = wrap_pi(_gps_sample_delayed.yaw + _gps_yaw_offset);

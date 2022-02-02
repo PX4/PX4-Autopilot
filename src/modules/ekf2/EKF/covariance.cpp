@@ -100,26 +100,26 @@ void Ekf::initialiseCovariance()
 void Ekf::predictCovariance()
 {
 	// assign intermediate state variables
-	const float &q0 = _state.quat_nominal(0);
-	const float &q1 = _state.quat_nominal(1);
-	const float &q2 = _state.quat_nominal(2);
-	const float &q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
-	const float &dax = _imu_sample_delayed.delta_ang(0);
-	const float &day = _imu_sample_delayed.delta_ang(1);
-	const float &daz = _imu_sample_delayed.delta_ang(2);
+	const float dax = _imu_sample_delayed.delta_ang(0);
+	const float day = _imu_sample_delayed.delta_ang(1);
+	const float daz = _imu_sample_delayed.delta_ang(2);
 
-	const float &dvx = _imu_sample_delayed.delta_vel(0);
-	const float &dvy = _imu_sample_delayed.delta_vel(1);
-	const float &dvz = _imu_sample_delayed.delta_vel(2);
+	const float dvx = _imu_sample_delayed.delta_vel(0);
+	const float dvy = _imu_sample_delayed.delta_vel(1);
+	const float dvz = _imu_sample_delayed.delta_vel(2);
 
-	const float &dax_b = _state.delta_ang_bias(0);
-	const float &day_b = _state.delta_ang_bias(1);
-	const float &daz_b = _state.delta_ang_bias(2);
+	const float dax_b = _state.delta_ang_bias(0);
+	const float day_b = _state.delta_ang_bias(1);
+	const float daz_b = _state.delta_ang_bias(2);
 
-	const float &dvx_b = _state.delta_vel_bias(0);
-	const float &dvy_b = _state.delta_vel_bias(1);
-	const float &dvz_b = _state.delta_vel_bias(2);
+	const float dvx_b = _state.delta_vel_bias(0);
+	const float dvy_b = _state.delta_vel_bias(1);
+	const float dvz_b = _state.delta_vel_bias(2);
 
 	// Use average update interval to reduce accumulated covariance prediction errors due to small single frame dt values
 	const float dt = _dt_ekf_avg;
