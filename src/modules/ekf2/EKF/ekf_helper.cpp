@@ -428,7 +428,7 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 		if (!_control_status.flags.mag_aligned_in_flight) {
 			// This is our first flight alignment so we can assume that the recent change in velocity has occurred due to a
 			// forward direction takeoff or launch and therefore the inertial and GPS ground course discrepancy is due to yaw error
-			const float current_yaw = getEuler321Yaw(_state.quat_nominal);
+			const float current_yaw = getEulerYaw(_R_to_earth);
 			yaw_new = current_yaw + courseYawError;
 			_control_status.flags.mag_aligned_in_flight = true;
 
@@ -454,7 +454,6 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 
 		// Use the last magnetometer measurements to reset the field states
 		_state.mag_B.zero();
-		_R_to_earth = Dcmf(_state.quat_nominal);
 		_state.mag_I = _R_to_earth * mag;
 
 		resetMagCov();
@@ -541,7 +540,7 @@ bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
 
 bool Ekf::resetYawToEv()
 {
-	const float yaw_new = getEuler312Yaw(_ev_sample_delayed.quat);
+	const float yaw_new = getEulerYaw(_ev_sample_delayed.quat);
 	const float yaw_new_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
 
 	resetQuatStateYaw(yaw_new, yaw_new_variance, true);
@@ -1695,10 +1694,8 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 	const Quatf quat_before_reset = _state.quat_nominal;
 
 	// update transformation matrix from body to world frame using the current estimate
-	_R_to_earth = Dcmf(_state.quat_nominal);
-
 	// update the rotation matrix using the new yaw value
-	_R_to_earth = updateYawInRotMat(yaw, _R_to_earth);
+	_R_to_earth = updateYawInRotMat(yaw, Dcmf(_state.quat_nominal));
 
 	// calculate the amount that the quaternion has changed by
 	const Quatf quat_after_reset(_R_to_earth);

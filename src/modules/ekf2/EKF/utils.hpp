@@ -27,13 +27,23 @@ matrix::Dcmf quatToInverseRotMat(const matrix::Quatf &quat);
 // We should use a 3-2-1 Tait-Bryan (yaw-pitch-roll) rotation sequence
 // when there is more roll than pitch tilt and a 3-1-2 rotation sequence
 // when there is more pitch than roll tilt to avoid gimbal lock.
-bool shouldUse321RotationSequence(const matrix::Dcmf &R);
+inline bool shouldUse321RotationSequence(const matrix::Dcmf &R) { return fabsf(R(2, 0)) < fabsf(R(2, 1)); }
+
+inline float getEuler321Yaw(const matrix::Dcmf &R) { return atan2f(R(1, 0), R(0, 0)); }
+inline float getEuler312Yaw(const matrix::Dcmf &R) { return atan2f(-R(0, 1), R(1, 1)); }
 
 float getEuler321Yaw(const matrix::Quatf &q);
-float getEuler321Yaw(const matrix::Dcmf &R);
-
 float getEuler312Yaw(const matrix::Quatf &q);
-float getEuler312Yaw(const matrix::Dcmf &R);
+
+inline float getEulerYaw(const matrix::Dcmf &R)
+{
+	if (shouldUse321RotationSequence(R)) {
+		return getEuler321Yaw(R);
+
+	} else {
+		return getEuler312Yaw(R);
+	}
+}
 
 matrix::Dcmf updateEuler321YawInRotMat(float yaw, const matrix::Dcmf &rot_in);
 matrix::Dcmf updateEuler312YawInRotMat(float yaw, const matrix::Dcmf &rot_in);
