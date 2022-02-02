@@ -268,25 +268,13 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 }
 
 void
-MavlinkMissionManager::send_mission_current(int32_t seq)
+MavlinkMissionManager::send_mission_current(uint16_t seq)
 {
-	int32_t item_count = _count[MAV_MISSION_TYPE_MISSION];
+	mavlink_mission_current_t wpc{};
+	wpc.seq = seq;
+	mavlink_msg_mission_current_send_struct(_mavlink->get_channel(), &wpc);
 
-	if (seq < item_count) {
-		mavlink_mission_current_t wpc{};
-		wpc.seq = seq;
-		mavlink_msg_mission_current_send_struct(_mavlink->get_channel(), &wpc);
-
-	} else if (seq <= 0 && item_count == 0) {
-		/* don't broadcast if no WPs */
-
-	} else {
-		PX4_DEBUG("WPM: Send MISSION_CURRENT ERROR: seq %d out of bounds", seq);
-
-		_mavlink->send_statustext_critical("ERROR: wp index out of bounds\t");
-		events::send<int32_t, int32_t>(events::ID("mavlink_mission_wp_index_out_of_bounds"), events::Log::Error,
-					       "Waypoint index out of bounds ({1} \\< {2})", seq, item_count);
-	}
+	PX4_DEBUG("WPM: Send MISSION_CURRENT seq %d", seq);
 }
 
 void
@@ -488,36 +476,50 @@ MavlinkMissionManager::send()
 	if (_mission_result_sub.update(&mission_result)) {
 
 		if (_current_seq != mission_result.seq_current) {
+
 			_current_seq = mission_result.seq_current;
 
 			PX4_DEBUG("WPM: got mission result, new current_seq: %u", _current_seq);
+
+			if (mission_result.seq_total > 0) {
+				if (mission_result.seq_current < mission_result.seq_total) {
+					send_mission_current(_current_seq);
+
+				} else {
+					_mavlink->send_statustext_critical("ERROR: wp index out of bounds\t");
+					events::send<int32_t, int32_t>(events::ID("mavlink_mission_wp_index_out_of_bounds"), events::Log::Error,
+								       "Waypoint index out of bounds ({1} \\< {2})", mission_result.seq_current, mission_result.seq_total);
+				}
+			}
 		}
 
 		if (_last_reached != mission_result.seq_reached) {
+
 			_last_reached = mission_result.seq_reached;
 			_reached_sent_count = 0;
 
-			if (_last_reached >= 0) {
-				send_mission_item_reached((uint16_t)mission_result.seq_reached);
-			}
-
 			PX4_DEBUG("WPM: got mission result, new seq_reached: %d", _last_reached);
+
+			if ((mission_result.seq_total > 0) && (_last_reached >= 0)) {
+				send_mission_item_reached((uint16_t)_last_reached);
+			}
 		}
 
-		send_mission_current(_current_seq);
+		if (mission_result.item_do_jump_changed
+		    && (mission_result.seq_total > 0)
+		    && (mission_result.item_changed_index < mission_result.seq_total)) {
 
-		if (mission_result.item_do_jump_changed) {
 			/* Send a mission item again if the remaining DO_JUMPs has changed, but don't interfere
-			 * if there are ongoing transfers happening already. */
+			* if there are ongoing transfers happening already. */
 			if (_state == MAVLINK_WPM_STATE_IDLE) {
 				_mission_type = MAV_MISSION_TYPE_MISSION;
-				send_mission_item(_transfer_partner_sysid, _transfer_partner_compid,
-						  (uint16_t)mission_result.item_changed_index);
+				send_mission_item(_transfer_partner_sysid, _transfer_partner_compid, mission_result.item_changed_index);
 			}
 		}
 
-	} else {
-		if (_slow_rate_limiter.check(hrt_absolute_time())) {
+	} else if (_slow_rate_limiter.check(hrt_absolute_time())) {
+		if ((_count[MAV_MISSION_TYPE_MISSION] > 0) && (_current_seq >= 0)) {
+
 			send_mission_current(_current_seq);
 
 			// send the reached message another 10 times
@@ -555,7 +557,6 @@ MavlinkMissionManager::send()
 		_time_last_recv = 0;
 	}
 }
-
 
 void
 MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
