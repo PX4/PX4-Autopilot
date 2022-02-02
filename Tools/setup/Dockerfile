@@ -33,7 +33,7 @@ COPY *gcc-arm-none-eabi-9-2020-q2-update-linux.tar.bz2 /tmp/gcc-arm-none-eabi-9-
 # with the filesystem the env variable does not persist
 ENV PATH="/opt/gcc-arm-none-eabi-9-2020-q2-update/bin:$PATH"
 ENV PATH="/opt/jdk-14.0.2+12/bin:$PATH"
-RUN bash /tmp/ubuntu.sh --from-docker --with-java --with-rtps
+RUN bash /tmp/ubuntu.sh --from-docker --with-java --with-rtps --no-sim-tools
 
 ENV DISPLAY :99
 
