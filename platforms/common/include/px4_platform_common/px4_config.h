@@ -52,3 +52,6 @@
 #include <board_config.h>
 
 #endif
+
+/* PX4 board kconfig symbols */
+#include <px4_boardconfig.h>
