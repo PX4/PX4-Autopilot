@@ -44,14 +44,14 @@
 #include <mathlib/mathlib.h>
 #include "ekf.h"
 
-bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const float innov_gate, const Vector3f &obs_var,
 				 Vector3f &innov_var, Vector2f &test_ratio)
 {
 
 	innov_var(0) = P(4, 4) + obs_var(0);
 	innov_var(1) = P(5, 5) + obs_var(1);
-	test_ratio(0) = fmaxf(sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
-			      sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
+	test_ratio(0) = fmaxf(sq(innov(0)) / (sq(innov_gate) * innov_var(0)),
+			      sq(innov(1)) / (sq(innov_gate) * innov_var(1)));
 
 	const bool innov_check_pass = (test_ratio(0) <= 1.0f);
 
@@ -70,12 +70,12 @@ bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_ga
 	}
 }
 
-bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const float innov_gate, const Vector3f &obs_var,
 			       Vector3f &innov_var, Vector2f &test_ratio)
 {
 
 	innov_var(2) = P(6, 6) + obs_var(2);
-	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
+	test_ratio(1) = sq(innov(2)) / (sq(innov_gate) * innov_var(2));
 	_vert_vel_innov_ratio = innov(2) / sqrtf(innov_var(2));
 	_vert_vel_fuse_time_us = _time_last_imu;
 	bool innov_check_pass = (test_ratio(1) <= 1.0f);
@@ -85,7 +85,7 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 	float innovation;
 
 	if (_fault_status.flags.bad_acc_vertical && !innov_check_pass) {
-		const float innov_limit = innov_gate(1) * sqrtf(innov_var(2));
+		const float innov_limit = innov_gate * sqrtf(innov_var(2));
 		innovation = math::constrain(innov(2), -innov_limit, innov_limit);
 		innov_check_pass = true;
 
@@ -107,19 +107,19 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 	}
 }
 
-bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const float innov_gate, const Vector3f &obs_var,
 				 Vector3f &innov_var, Vector2f &test_ratio, bool inhibit_gate)
 {
 
 	innov_var(0) = P(7, 7) + obs_var(0);
 	innov_var(1) = P(8, 8) + obs_var(1);
-	test_ratio(0) = fmaxf(sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
-			      sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
+	test_ratio(0) = fmaxf(sq(innov(0)) / (sq(innov_gate) * innov_var(0)),
+			      sq(innov(1)) / (sq(innov_gate) * innov_var(1)));
 
 	const bool innov_check_pass = test_ratio(0) <= 1.0f;
 
 	if (innov_check_pass || inhibit_gate) {
-		if (inhibit_gate && test_ratio(0) > sq(100.0f / innov_gate(0))) {
+		if (inhibit_gate && test_ratio(0) > sq(100.0f / innov_gate)) {
 			// always protect against extreme values that could result in a NaN
 			return false;
 		}
