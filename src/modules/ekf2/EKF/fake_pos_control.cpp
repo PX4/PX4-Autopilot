@@ -116,7 +116,7 @@ void Ekf::fuseFakePosition()
 
 	_gps_pos_innov.xy() = Vector2f(_state.pos) - _last_known_posNE;
 
-	const Vector2f fake_pos_innov_gate(3.0f, 3.0f);
+	const float fake_pos_innov_gate = 3.f;
 
 	if (fuseHorizontalPosition(_gps_pos_innov, fake_pos_innov_gate, fake_pos_obs_var,
 	                           _gps_pos_innov_var, _gps_pos_test_ratio, true)) {
