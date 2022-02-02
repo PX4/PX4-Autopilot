@@ -285,10 +285,9 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	}
 
 	// Next look if all rotation angles are not moving.
-	vehicle_angular_velocity_s vehicle_angular_velocity{};
-	_vehicle_angular_velocity_sub.copy(&vehicle_angular_velocity);
-	const Vector2f angular_velocity{vehicle_angular_velocity.xyz[0], vehicle_angular_velocity.xyz[1]};
 	const float max_rotation_scaled = math::radians(_param_lndmc_rot_max.get()) * landThresholdFactor;
+
+	matrix::Vector2f angular_velocity{_angular_velocity(0), _angular_velocity(1)};
 
 	if (angular_velocity.norm() > max_rotation_scaled) {
 		return false;

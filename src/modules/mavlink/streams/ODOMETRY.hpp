@@ -159,6 +159,8 @@ private:
 				msg.velocity_covariance[i] = odom.velocity_covariance[i];
 			}
 
+			msg.reset_counter = odom.reset_counter;
+
 			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;

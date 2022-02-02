@@ -296,11 +296,14 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		status_flags.circuit_breaker_engaged_power_check = true;
 		safety.safety_switch_available = test->safety_switch_available;
 		safety.safety_off = test->safety_off;
+
 		armed.armed = test->current_state.armed;
 		armed.ready_to_arm = test->current_state.ready_to_arm;
 
+		vehicle_control_mode_s control_mode{};
+
 		// Attempt transition
-		transition_result_t result = arming_state_transition(status, safety, test->requested_state, armed,
+		transition_result_t result = arming_state_transition(status, control_mode, safety, test->requested_state, armed,
 					     true /* enable pre-arm checks */,
 					     nullptr /* no mavlink_log_pub */,
 					     status_flags,

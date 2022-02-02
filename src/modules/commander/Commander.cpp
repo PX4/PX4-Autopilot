@@ -274,11 +274,16 @@ int Commander::custom_command(int argc, char *argv[])
 		vehicle_status_flags_s vehicle_status_flags{};
 		vehicle_status_flags_sub.copy(&vehicle_status_flags);
 
-		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, vehicle_status, vehicle_status_flags, true, true,
-					   30_s);
+		uORB::Subscription vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+		vehicle_control_mode_s vehicle_control_mode{};
+		vehicle_control_mode_sub.copy(&vehicle_control_mode);
+
+		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, vehicle_status, vehicle_status_flags,
+					   vehicle_control_mode,
+					   true, true, 30_s);
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
 
-		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, vehicle_status_flags, safety_s{},
+		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, vehicle_status_flags, vehicle_control_mode, safety_s{},
 					PreFlightCheck::arm_requirements_t{}, vehicle_status);
 		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
@@ -468,7 +473,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 bool Commander::shutdown_if_allowed()
 {
-	return TRANSITION_DENIED != arming_state_transition(_status, _safety, vehicle_status_s::ARMING_STATE_SHUTDOWN,
+	return TRANSITION_DENIED != arming_state_transition(_status, _vehicle_control_mode, _safety,
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			_armed, false /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags, _arm_requirements,
 			hrt_elapsed_time(&_boot_timestamp), arm_disarm_reason_t::shutdown);
 }
@@ -716,15 +722,10 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		}
 	}
 
-	transition_result_t arming_res = arming_state_transition(_status,
-					 _safety,
-					 vehicle_status_s::ARMING_STATE_ARMED,
-					 _armed,
-					 run_preflight_checks,
-					 &_mavlink_log_pub,
-					 _status_flags,
-					 _arm_requirements,
-					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
+	transition_result_t arming_res = arming_state_transition(_status, _vehicle_control_mode, _safety,
+					 vehicle_status_s::ARMING_STATE_ARMED, _armed, run_preflight_checks,
+					 &_mavlink_log_pub, _status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+					 calling_reason);
 
 	if (arming_res == TRANSITION_CHANGED) {
 		mavlink_log_info(&_mavlink_log_pub, "Armed by %s\t", arm_disarm_reason_str(calling_reason));
@@ -763,14 +764,9 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 		}
 	}
 
-	transition_result_t arming_res = arming_state_transition(_status,
-					 _safety,
-					 vehicle_status_s::ARMING_STATE_STANDBY,
-					 _armed,
-					 false,
-					 &_mavlink_log_pub,
-					 _status_flags,
-					 _arm_requirements,
+	transition_result_t arming_res = arming_state_transition(_status, _vehicle_control_mode, _safety,
+					 vehicle_status_s::ARMING_STATE_STANDBY, _armed, false,
+					 &_mavlink_log_pub, _status_flags, _arm_requirements,
 					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
 
 	if (arming_res == TRANSITION_CHANGED) {
@@ -791,8 +787,6 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_failure_detector(this)
 {
-	_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
-
 	_land_detector.landed = true;
 
 	// XXX for now just set sensors as initialized
@@ -1334,7 +1328,8 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			} else {
 
 				/* try to go to INIT/PREFLIGHT arming state */
-				if (TRANSITION_DENIED == arming_state_transition(_status, safety_s{}, vehicle_status_s::ARMING_STATE_INIT, _armed,
+				if (TRANSITION_DENIED == arming_state_transition(_status, _vehicle_control_mode, safety_s{},
+						vehicle_status_s::ARMING_STATE_INIT, _armed,
 						false /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
 						PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
 						30_s, // time since boot not relevant for switching to ARMING_STATE_INIT
@@ -1988,9 +1983,8 @@ Commander::run()
 	arm_auth_init(&_mavlink_log_pub, &_status.system_id);
 
 	// run preflight immediately to find all relevant parameters, but don't report
-	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, false,
-				       true,
-				       hrt_elapsed_time(&_boot_timestamp));
+	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, _vehicle_control_mode,
+				       false, true, hrt_elapsed_time(&_boot_timestamp));
 
 	while (!should_exit()) {
 
@@ -2046,6 +2040,7 @@ Commander::run()
 			_arm_requirements.geofence = _param_geofence_action.get() > geofence_result_s::GF_ACTION_NONE;
 
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
+			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1_s);
 
 			// disable arm gesture if an arm switch is configured
 			if (param_man_arm_gesture != PARAM_INVALID && param_rc_map_arm_sw != PARAM_INVALID) {
@@ -2082,8 +2077,6 @@ Commander::run()
 						     "Yaw Airmode requires disabling the stick arm gesture");
 				}
 			}
-
-			_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1e6f);
 
 			param_init_forced = false;
 		}
@@ -2347,7 +2340,7 @@ Commander::run()
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!_status_flags.condition_calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
-			arming_state_transition(_status, _safety, vehicle_status_s::ARMING_STATE_STANDBY, _armed,
+			arming_state_transition(_status, _vehicle_control_mode, _safety, vehicle_status_s::ARMING_STATE_STANDBY, _armed,
 						true /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
 						_arm_requirements, hrt_elapsed_time(&_boot_timestamp),
 						arm_disarm_reason_t::transition_to_standby);
@@ -2417,14 +2410,14 @@ Commander::run()
 		_geofence_result_sub.update(&_geofence_result);
 		_status.geofence_violated = _geofence_result.geofence_violated;
 
-		const bool in_low_battery_failsafe = _battery_warning > battery_status_s::BATTERY_WARNING_LOW;
+		const bool in_low_battery_failsafe_delay = _battery_failsafe_timestamp != 0;
 
 		// Geofence actions
 		const bool geofence_action_enabled = _geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
 
 		if (_armed.armed
 		    && geofence_action_enabled
-		    && !in_low_battery_failsafe) {
+		    && !in_low_battery_failsafe_delay) {
 
 			// check for geofence violation transition
 			if (_geofence_result.geofence_violated && !_geofence_violated_prev) {
@@ -2605,7 +2598,7 @@ Commander::run()
 			// Abort autonomous mode and switch to position mode if sticks are moved significantly
 			// but only if actually in air.
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-			    && !in_low_battery_failsafe && !_geofence_warning_action_on
+			    && !in_low_battery_failsafe_delay && !_geofence_warning_action_on
 			    && _armed.armed
 			    && !_status_flags.rc_calibration_in_progress
 			    && manual_control_setpoint.valid
@@ -2942,13 +2935,14 @@ Commander::run()
 
 			// Evaluate current prearm status
 			if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
-				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, false, true,
-							   hrt_elapsed_time(&_boot_timestamp));
+				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, _vehicle_control_mode,
+							   false, true, hrt_elapsed_time(&_boot_timestamp));
 
 				// skip arm authorization check until actual arming attempt
 				PreFlightCheck::arm_requirements_t arm_req = _arm_requirements;
 				arm_req.arm_authorization = false;
-				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, _status_flags, _safety, arm_req, _status, false);
+				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, _status_flags, _vehicle_control_mode, _safety, arm_req,
+							_status, false);
 
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, (preflight_check_res
 						 && prearm_check_res), _status);
@@ -3584,8 +3578,8 @@ void Commander::data_link_check()
 
 					if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
 						// make sure to report preflight check failures to a connecting GCS
-						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, true, false,
-									       hrt_elapsed_time(&_boot_timestamp));
+						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, _vehicle_control_mode,
+									       true, false, hrt_elapsed_time(&_boot_timestamp));
 					}
 				}
 
@@ -3879,7 +3873,6 @@ void Commander::battery_status_check()
 		_battery_warning = worst_warning;
 	}
 
-
 	_status_flags.condition_battery_healthy =
 		// All connected batteries are regularly being published
 		(hrt_elapsed_time(&oldest_update) < 5_s)
@@ -3892,8 +3885,34 @@ void Commander::battery_status_check()
 
 	// execute battery failsafe if the state has gotten worse while we are armed
 	if (battery_warning_level_increased_while_armed) {
-		battery_failsafe(&_mavlink_log_pub, _status, _status_flags, _internal_state, _battery_warning,
-				 (low_battery_action_t)_param_com_low_bat_act.get());
+		uint8_t failsafe_action = get_battery_failsafe_action(_internal_state, _battery_warning,
+					  (low_battery_action_t)_param_com_low_bat_act.get());
+
+		warn_user_about_battery(&_mavlink_log_pub, _battery_warning,
+					failsafe_action, _param_com_bat_act_t.get(),
+					main_state_str(failsafe_action), navigation_mode(failsafe_action));
+		_battery_failsafe_timestamp = hrt_absolute_time();
+
+		// Switch to loiter to wait for the reaction delay
+		if (_param_com_bat_act_t.get() > 0.f
+		    && failsafe_action != commander_state_s::MAIN_STATE_MAX) {
+			main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, _internal_state);
+		}
+	}
+
+	if (_battery_failsafe_timestamp != 0
+	    && hrt_elapsed_time(&_battery_failsafe_timestamp) > _param_com_bat_act_t.get() * 1_s
+	    && (_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER
+		|| _vehicle_control_mode.flag_control_auto_enabled)) {
+		_battery_failsafe_timestamp = 0;
+		uint8_t failsafe_action = get_battery_failsafe_action(_internal_state, _battery_warning,
+					  (low_battery_action_t)_param_com_low_bat_act.get());
+
+		if (failsafe_action != commander_state_s::MAIN_STATE_MAX) {
+			_internal_state.main_state = failsafe_action;
+			_internal_state.main_state_changes++;
+			_internal_state.timestamp = hrt_absolute_time();
+		}
 	}
 
 	// Handle shutdown request from emergency battery action

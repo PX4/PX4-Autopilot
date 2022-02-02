@@ -98,6 +98,13 @@ public:
 	 */
 	bool check(const struct mission_item_s &mission_item);
 
+	/**
+	 * Check if a point passes the Geofence test.
+	 * In addition to checkPolygons(), this takes all additional parameters into account.
+	 *
+	 * @return false for a geofence violation
+	 */
+	bool checkAll(double lat, double lon, float altitude);
 
 	bool isCloserThanMaxDistToHome(double lat, double lon, float altitude);
 
@@ -132,21 +139,13 @@ public:
 
 	bool isEmpty() { return _num_polygons == 0; }
 
-	int getAltitudeMode() { return _param_gf_altmode.get(); }
 	int getSource() { return _param_gf_source.get(); }
 	int getGeofenceAction() { return _param_gf_action.get(); }
+
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
 
 	bool isHomeRequired();
-
-	/**
-	 * Check if a point passes the Geofence test.
-	 * In addition to checkPolygons(), this takes all additional parameters into account.
-	 *
-	 * @return false for a geofence violation
-	 */
-	bool checkAll(double lat, double lon, float altitude);
 
 	/**
 	 * print Geofence status to the console
@@ -154,13 +153,6 @@ public:
 	void printStatus();
 
 private:
-	Navigator	*_navigator{nullptr};
-
-	hrt_abstime _last_horizontal_range_warning{0};
-	hrt_abstime _last_vertical_range_warning{0};
-
-	float _altitude_min{0.0f};
-	float _altitude_max{0.0f};
 
 	struct PolygonInfo {
 		uint16_t fence_type; ///< one of MAV_CMD_NAV_FENCE_* (can also be a circular region)
@@ -170,21 +162,21 @@ private:
 			float circle_radius;
 		};
 	};
+
+	Navigator   *_navigator{nullptr};
 	PolygonInfo *_polygons{nullptr};
+
+	hrt_abstime _last_horizontal_range_warning{0};
+	hrt_abstime _last_vertical_range_warning{0};
+
+	float _altitude_min{0.0f};
+	float _altitude_max{0.0f};
+
 	int _num_polygons{0};
 
 	MapProjection _projection_reference{}; ///< class to convert (lon, lat) to local [m]
 
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::GF_ACTION>) _param_gf_action,
-		(ParamInt<px4::params::GF_ALTMODE>) _param_gf_altmode,
-		(ParamInt<px4::params::GF_SOURCE>) _param_gf_source,
-		(ParamInt<px4::params::GF_COUNT>) _param_gf_count,
-		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
-	)
-
-	uORB::SubscriptionData<vehicle_air_data_s>	_sub_airdata;
+	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
 
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated
@@ -223,4 +215,13 @@ private:
 	 * @return true if within polygon the circle
 	 */
 	bool insideCircle(const PolygonInfo &polygon, double lat, double lon, float altitude);
+
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::GF_ACTION>)         _param_gf_action,
+		(ParamInt<px4::params::GF_ALTMODE>)        _param_gf_altmode,
+		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
+		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
+		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
+	)
 };
