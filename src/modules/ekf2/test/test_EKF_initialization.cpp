@@ -50,7 +50,7 @@ public:
 	SensorSimulator _sensor_simulator;
 	EkfWrapper _ekf_wrapper;
 
-	const float _init_tilt_period = 1.0; // seconds
+	const float _init_tilt_period = 0.3f; // seconds
 
 	// GTests is calling this
 	void SetUp() override
@@ -106,12 +106,12 @@ public:
 		const Vector3f pos_var = _ekf->getPositionVariance();
 		const Vector3f vel_var = _ekf->getVelocityVariance();
 
-		const float pos_variance_limit = 0.1f;
+		const float pos_variance_limit = 0.01f; // Fake fusion obs var when at rest
 		EXPECT_TRUE(pos_var(0) > pos_variance_limit) << "pos_var(0)" << pos_var(0);
 		EXPECT_TRUE(pos_var(1) > pos_variance_limit) << "pos_var(1)" << pos_var(1);
 		EXPECT_TRUE(pos_var(2) > pos_variance_limit) << "pos_var(2)" << pos_var(2);
 
-		const float vel_variance_limit = 0.3f;
+		const float vel_variance_limit = 0.16f;
 		EXPECT_TRUE(vel_var(0) > vel_variance_limit) << "vel_var(0)" << vel_var(0);
 		EXPECT_TRUE(vel_var(1) > vel_variance_limit) << "vel_var(1)" << vel_var(1);
 		EXPECT_TRUE(vel_var(2) > vel_variance_limit) << "vel_var(2)" << vel_var(2);

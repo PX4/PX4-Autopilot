@@ -34,6 +34,7 @@
 #pragma once
 
 #include "log_writer.h"
+#include "logged_topics.h"
 #include "messages.h"
 #include <containers/Array.hpp>
 #include "util.h"
@@ -248,6 +249,8 @@ private:
 
 	void write_version(LogType type);
 
+	void write_excluded_optional_topics(LogType type);
+
 	void write_info(LogType type, const char *name, const char *value);
 	void write_info_multiple(LogType type, const char *name, const char *value, bool is_continued);
 	void write_info(LogType type, const char *name, int32_t value);
@@ -341,6 +344,9 @@ private:
 	LoggerSubscription				_event_subscription; ///< Subscription for the event topic (handled separately)
 	uint16_t 					_event_sequence_offset{0}; ///< event sequence offset to account for skipped (not logged) messages
 	uint16_t 					_event_sequence_offset_mission{0};
+
+	uint8_t						_excluded_optional_topic_ids[LoggedTopics::MAX_EXCLUDED_OPTIONAL_TOPICS_NUM];
+	int						_num_excluded_optional_topic_ids{0};
 
 	LogWriter					_writer;
 	uint32_t					_log_interval{0};
