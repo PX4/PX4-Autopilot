@@ -261,7 +261,6 @@ void Ekf::predictState()
 
 	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
 	_state.quat_nominal = (_state.quat_nominal * dq).normalized();
-
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// Calculate an earth frame delta velocity

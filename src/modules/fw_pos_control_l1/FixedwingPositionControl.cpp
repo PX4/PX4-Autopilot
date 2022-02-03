@@ -1191,7 +1191,19 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const fl
 	if (_param_fw_use_npfg.get()) {
 		_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 		_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-		_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed), _wind_vel);
+
+		if (_control_mode.flag_control_offboard_enabled && PX4_ISFINITE(pos_sp_curr.vx) && PX4_ISFINITE(pos_sp_curr.vy)) {
+			// Navigate directly on position setpoint and path tangent
+			matrix::Vector2f velocity_2d(pos_sp_curr.vx, pos_sp_curr.vy);
+			float curvature = PX4_ISFINITE(_pos_sp_triplet.current.loiter_radius) ? 1 / _pos_sp_triplet.current.loiter_radius :
+					  0.0f;
+			_npfg.navigatePathTangent(curr_pos, curr_wp, velocity_2d.normalized(), get_nav_speed_2d(ground_speed), _wind_vel,
+						  curvature);
+
+		} else {
+			_npfg.navigateWaypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed), _wind_vel);
+		}
+
 		_att_sp.roll_body = _npfg.getRollSetpoint();
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -2219,44 +2231,61 @@ FixedwingPositionControl::Run()
 			vehicle_local_position_setpoint_s trajectory_setpoint;
 
 			if (_trajectory_setpoint_sub.update(&trajectory_setpoint)) {
+				bool valid_setpoint = false;
+				_pos_sp_triplet = {}; // clear any existing
+				_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
+				_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
+				_pos_sp_triplet.current.cruising_speed = NAN; // ignored
+				_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
+				_pos_sp_triplet.current.vx = NAN;
+				_pos_sp_triplet.current.vy = NAN;
+				_pos_sp_triplet.current.vz = NAN;
+				_pos_sp_triplet.current.lat = static_cast<double>(NAN);
+				_pos_sp_triplet.current.lon = static_cast<double>(NAN);
+				_pos_sp_triplet.current.alt = NAN;
+
 				if (PX4_ISFINITE(trajectory_setpoint.x) && PX4_ISFINITE(trajectory_setpoint.y) && PX4_ISFINITE(trajectory_setpoint.z)) {
-					double lat;
-					double lon;
-
 					if (_global_local_proj_ref.isInitialized()) {
+						double lat;
+						double lon;
 						_global_local_proj_ref.reproject(trajectory_setpoint.x, trajectory_setpoint.y, lat, lon);
-						_pos_sp_triplet = {}; // clear any existing
-
-						_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
-						_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
-						_pos_sp_triplet.current.valid = true;
+						valid_setpoint = true;
 						_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 						_pos_sp_triplet.current.lat = lat;
 						_pos_sp_triplet.current.lon = lon;
 						_pos_sp_triplet.current.alt = _global_local_alt0 - trajectory_setpoint.z;
-						_pos_sp_triplet.current.cruising_speed = NAN; // ignored
-						_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
 					}
 
-				} else if (PX4_ISFINITE(trajectory_setpoint.vx) && PX4_ISFINITE(trajectory_setpoint.vx)
-					   && PX4_ISFINITE(trajectory_setpoint.vz)) {
-					_pos_sp_triplet = {}; // clear any existing
+				}
 
-					_pos_sp_triplet.timestamp = trajectory_setpoint.timestamp;
-					_pos_sp_triplet.current.timestamp = trajectory_setpoint.timestamp;
-					_pos_sp_triplet.current.valid = true;
+				if (PX4_ISFINITE(trajectory_setpoint.vx) && PX4_ISFINITE(trajectory_setpoint.vx)
+				    && PX4_ISFINITE(trajectory_setpoint.vz)) {
+					valid_setpoint = true;
 					_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 					_pos_sp_triplet.current.vx = trajectory_setpoint.vx;
 					_pos_sp_triplet.current.vy = trajectory_setpoint.vy;
 					_pos_sp_triplet.current.vz = trajectory_setpoint.vz;
-					_pos_sp_triplet.current.alt = NAN;
-					_pos_sp_triplet.current.cruising_speed = NAN; // ignored
-					_pos_sp_triplet.current.cruising_throttle = NAN; // ignored
 
-				} else {
+					if (PX4_ISFINITE(trajectory_setpoint.acceleration[0]) && PX4_ISFINITE(trajectory_setpoint.acceleration[1])
+					    && PX4_ISFINITE(trajectory_setpoint.acceleration[2])) {
+						Vector2f velocity_sp_2d(trajectory_setpoint.vx, trajectory_setpoint.vy);
+						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
+						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(velocity_sp_2d) *
+									       velocity_sp_2d.normalized();
+						_pos_sp_triplet.current.loiter_radius = velocity_sp_2d.norm() * velocity_sp_2d.norm() / acceleration_normal.norm();
+
+					} else {
+						_pos_sp_triplet.current.loiter_radius = NAN;
+					}
+				}
+
+				if (!valid_setpoint) {
 					mavlink_log_critical(&_mavlink_log_pub, "Invalid offboard setpoint\t");
 					events::send(events::ID("fixedwing_position_control_invalid_offboard_sp"), events::Log::Error,
 						     "Invalid offboard setpoint");
+
+				} else {
+					_pos_sp_triplet.current.valid = valid_setpoint;
 				}
 			}
 
@@ -2576,7 +2605,15 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 {
 	orbit_status_s orbit_status{};
 	orbit_status.timestamp = hrt_absolute_time();
-	orbit_status.radius = static_cast<float>(pos_sp.loiter_direction) * pos_sp.loiter_radius;
+	float loiter_radius = pos_sp.loiter_radius;
+	uint8_t loiter_direction = pos_sp.loiter_direction;
+
+	if (fabsf(loiter_radius) < FLT_EPSILON) {
+		loiter_radius = _param_nav_loiter_rad.get();
+		loiter_direction = (loiter_radius > 0) ? 1 : -1;
+	}
+
+	orbit_status.radius = static_cast<float>(loiter_direction) * loiter_radius;
 	orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
 	orbit_status.x = static_cast<double>(pos_sp.lat);
 	orbit_status.y = static_cast<double>(pos_sp.lon);

@@ -720,11 +720,7 @@ void Ekf::fuseHeading(float measured_hdg, float obs_var)
 	float R_YAW = PX4_ISFINITE(obs_var) ? obs_var : 0.01f;
 
 	// update transformation matrix from body to world frame using the current state estimate
-	_R_to_earth = Dcmf(_state.quat_nominal);
-
-	const bool use_321_rotation_seq = shouldUse321RotationSequence(_R_to_earth);
-
-	const float predicted_hdg = use_321_rotation_seq ? getEuler321Yaw(_R_to_earth) : getEuler312Yaw(_R_to_earth);
+	const float predicted_hdg = getEulerYaw(_R_to_earth);
 
 	if (!PX4_ISFINITE(measured_hdg)) {
 		measured_hdg = predicted_hdg;
@@ -765,7 +761,7 @@ void Ekf::fuseHeading(float measured_hdg, float obs_var)
 		_last_static_yaw = predicted_hdg;
 	}
 
-	if (use_321_rotation_seq) {
+	if (shouldUse321RotationSequence(_R_to_earth)) {
 		fuseYaw321(measured_hdg, R_YAW, fuse_zero_innov);
 
 	} else {

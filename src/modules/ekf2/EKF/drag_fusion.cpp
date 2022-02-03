@@ -44,7 +44,7 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::fuseDrag()
+void Ekf::fuseDrag(const dragSample &drag_sample)
 {
 	SparseVector24f<0,1,2,3,4,5,6,22,23> Hfusion;  // Observation Jacobians
 	Vector24f Kfusion; // Kalman gain vector
@@ -89,7 +89,7 @@ void Ekf::fuseDrag()
 	// perform sequential fusion of XY specific forces
 	for (uint8_t axis_index = 0; axis_index < 2; axis_index++) {
 		// measured drag acceleration corrected for sensor bias
-		const float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
+		const float mea_acc = drag_sample.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
 
 		// predicted drag force sign is opposite to predicted wind relative velocity
 		const float drag_sign = (rel_wind_body(axis_index) >= 0.f) ? -1.f : 1.f;

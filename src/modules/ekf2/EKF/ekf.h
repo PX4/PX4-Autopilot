@@ -420,9 +420,6 @@ private:
 	Vector3f _delta_vel_bias_var_accum{};		///< kahan summation algorithm accumulator for delta velocity bias variance
 	Vector3f _delta_angle_bias_var_accum{};	///< kahan summation algorithm accumulator for delta angle bias variance
 
-	Vector3f _last_vel_obs{};			///< last velocity observation (m/s)
-	Vector3f _last_vel_obs_var{};		///< last velocity observation variance (m/s)**2
-	Vector2f _last_fail_hvel_innov{};		///< last failed horizontal velocity innovation (m/s)**2
 	float _vert_pos_innov_ratio{0.f};	///< vertical position innovation divided by estimated standard deviation of innovation
 	uint64_t _vert_pos_fuse_attempt_time_us{0};	///< last system time in usec vertical position measurement fuson was attempted
 	float _vert_vel_innov_ratio{0.f};		///< standard deviation of vertical velocity innovation
@@ -622,7 +619,7 @@ private:
 	void fuseSideslip();
 
 	// fuse body frame drag specific forces for multi-rotor wind estimation
-	void fuseDrag();
+	void fuseDrag(const dragSample &drag_sample);
 
 	void fuseBaroHgt();
 	void fuseGpsHgt();
@@ -636,43 +633,43 @@ private:
 
 	void resetVelocityToGps();
 
-	inline void resetHorizontalVelocityToOpticalFlow();
+	void resetHorizontalVelocityToOpticalFlow();
 
-	inline void resetVelocityToVision();
+	void resetVelocityToVision();
 
-	inline void resetHorizontalVelocityToZero();
+	void resetHorizontalVelocityToZero();
 
-	inline void resetVelocityTo(const Vector3f &vel);
+	void resetVelocityTo(const Vector3f &vel);
 
-	inline void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
+	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
 
-	inline void resetVerticalVelocityTo(float new_vert_vel);
+	void resetVerticalVelocityTo(float new_vert_vel);
 
 	void resetHorizontalPosition();
 
 	void resetHorizontalPositionToGps();
 
-	inline void resetHorizontalPositionToVision();
+	void resetHorizontalPositionToVision();
 
-	inline void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
+	void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
 
-	inline void resetVerticalPositionTo(const float &new_vert_pos);
+	void resetVerticalPositionTo(float new_vert_pos);
 
 	void resetHeight();
 
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
 
-	bool fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+	bool fuseHorizontalVelocity(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
 				    Vector3f &innov_var, Vector2f &test_ratio);
 
-	bool fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+	bool fuseVerticalVelocity(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
 				  Vector3f &innov_var, Vector2f &test_ratio);
 
-	bool fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+	bool fuseHorizontalPosition(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
 				    Vector3f &innov_var, Vector2f &test_ratiov, bool inhibit_gate = false);
 
-	bool fuseVerticalPosition(const float innov, const float innov_gate, const float obs_var,
+	bool fuseVerticalPosition(float innov, float innov_gate, float obs_var,
 				  float &innov_var, float &test_ratio);
 
 	void fuseGpsVelPos();
