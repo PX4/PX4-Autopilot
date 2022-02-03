@@ -90,7 +90,8 @@ jobs:
           python-version: 3.9
 
       - name: Install Python packages
-        run: pip install -r Tools/setup/requirements.txt
+        #run: pip install -r Tools/setup/requirements.txt
+        run: pip install kconfiglib
 
       - id: set-matrix
         name: Get all nuttx targets
