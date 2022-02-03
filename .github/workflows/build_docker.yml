@@ -112,7 +112,7 @@ jobs:
 
       - name: Load Docker image
         run: |
-          docker import /tmp/px4image
+          docker import /tmp/px4image.tar
           docker image ls -a
 
       - name: Build the world
