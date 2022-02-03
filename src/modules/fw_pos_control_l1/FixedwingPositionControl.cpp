@@ -2605,7 +2605,15 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 {
 	orbit_status_s orbit_status{};
 	orbit_status.timestamp = hrt_absolute_time();
-	orbit_status.radius = static_cast<float>(pos_sp.loiter_direction) * pos_sp.loiter_radius;
+	float loiter_radius = pos_sp.loiter_radius;
+	uint8_t loiter_direction = pos_sp.loiter_direction;
+
+	if (fabsf(loiter_radius) < FLT_EPSILON) {
+		loiter_radius = _param_nav_loiter_rad.get();
+		loiter_direction = (loiter_radius > 0) ? 1 : -1;
+	}
+
+	orbit_status.radius = static_cast<float>(loiter_direction) * loiter_radius;
 	orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
 	orbit_status.x = static_cast<double>(pos_sp.lat);
 	orbit_status.y = static_cast<double>(pos_sp.lon);
