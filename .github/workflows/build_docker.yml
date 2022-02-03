@@ -25,7 +25,7 @@ on:
   pull_request:
 
 env:
-  TAG_NAME: |
+  DOCKER_TAG: |
     ${{
       github.event_name == 'pull_request' && github.sha ||
         (
@@ -57,7 +57,7 @@ jobs:
         with:
           file: Tools/setup/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: "px4io/px4-dev:${{ env.TAG_NAME }}"
+          tags: "px4io/px4-dev:${{ env.DOCKER_TAG }}"
           outputs: type=tar,dest=/tmp/px4image.tar
 
       - name: Save container to artifacts
@@ -120,4 +120,9 @@ jobs:
 
       - name: Build the world
         run: |
-          DOCKER_TAG="${{ env.TAG_NAME }}" ./Tools/docker_run.sh make ${{ matrix.target }}
+          docker run --rm -w "${SRC_DIR}" \
+            --env=LOCAL_USER_ID="$(id -u)" \
+            --publish 14556:14556/udp \
+            --volume=/tmp:/tmp:rw \
+            --volume=${SRC_DIR}:${SRC_DIR}:rw \
+            px4io/px4-dev:${{ env.DOCKER_TAG }} /bin/bash -c "make ${{ matrix.target }}"
