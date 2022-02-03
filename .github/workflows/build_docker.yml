@@ -90,7 +90,7 @@ jobs:
           python-version: 3.7
 
       - name: Install Python packages
-        run: pip install kconfiglib
+        run: pip install -r Tools/setup/requirements.txt
 
       - id: set-matrix
         name: Get all nuttx targets
@@ -115,6 +115,9 @@ jobs:
           docker import /tmp/px4image.tar
           docker image ls -a
 
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
       - name: Build the world
         run: |
-          DOCKER_TAG="${{ env.TAG_NAME }}" ./Tools/docker.run.sh make ${{ matrix.target }}
+          DOCKER_TAG="${{ env.TAG_NAME }}" ./Tools/docker_run.sh make ${{ matrix.target }}
