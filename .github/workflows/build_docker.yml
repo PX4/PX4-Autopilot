@@ -120,9 +120,8 @@ jobs:
 
       - name: Build the world
         run: |
-          docker run --rm -w "${SRC_DIR}" \
+          docker run --rm -w "${GITHUB_ACTION_PATH}" \
             --env=LOCAL_USER_ID="$(id -u)" \
-            --publish 14556:14556/udp \
             --volume=/tmp:/tmp:rw \
-            --volume=${SRC_DIR}:${SRC_DIR}:rw \
+            --volume=${GITHUB_ACTION_PATH}:${GITHUB_ACTION_PATH}:rw \
             px4io/px4-dev:${{ env.DOCKER_TAG }} /bin/bash -c "make ${{ matrix.target }}"
