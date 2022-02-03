@@ -739,7 +739,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  * Altitude for 3. step of slow landing
  *
  * Below this altitude descending velocity gets
- * limited to "MPC_CRWL_SPEED", if LIDAR available.
+ * limited to "MPC_LAND_CRWL", if LIDAR available.
  * No effect if LIDAR not available
  *
  * @unit m
