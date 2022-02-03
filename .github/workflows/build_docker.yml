@@ -26,13 +26,13 @@ on:
 
 env:
   DOCKER_TAG: |
-    ${{
+    "px4io/px4-dev:${{
       github.event_name == 'pull_request' && github.sha ||
         (
           github.event_name == 'push' && 'latest' ||
           github.event.release.name
         )
-    }}
+    }}"
 
 jobs:
   build_docker:
@@ -57,7 +57,7 @@ jobs:
         with:
           file: Tools/setup/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: "px4io/px4-dev:${{ env.DOCKER_TAG }}"
+          tags: ${{ env.DOCKER_TAG }}
           outputs: type=tar,dest=/tmp/px4image.tar
 
       - name: Save container to artifacts
@@ -101,8 +101,8 @@ jobs:
     name: Build targets with Docker
     runs-on: ubuntu-latest
     needs: enumerate_targets
-    strategy:
-      matrix: ${{ fromJson(needs.enumerate_targets.outputs.matrix) }}
+    #strategy:
+      #matrix: ${{ fromJson(needs.enumerate_targets.outputs.matrix) }}
 
     steps:
       - name: Get container from artifacts
@@ -116,13 +116,26 @@ jobs:
           docker import /tmp/px4image.tar
           docker image ls -a
 
+      - name: Check disk space
+        run: |
+          df -h
+          docker buildx du
+          rm /tmp/px4image.tar
+          df -h
+
       - name: Checkout Code
         uses: actions/checkout@v2
 
       - name: Build the world
+        #run: |
+          #docker run --rm -w "${GITHUB_ACTION_PATH}" \
+            #--env=LOCAL_USER_ID="$(id -u)" \
+            #--volume=/tmp:/tmp:rw \
+            #--volume=${GITHUB_ACTION_PATH}:${GITHUB_ACTION_PATH}:rw \
+            #px4io/px4-dev:${{ env.DOCKER_TAG }} /bin/bash -c "make ${{ matrix.target }}"
         run: |
           docker run --rm -w "${GITHUB_ACTION_PATH}" \
             --env=LOCAL_USER_ID="$(id -u)" \
             --volume=/tmp:/tmp:rw \
             --volume=${GITHUB_ACTION_PATH}:${GITHUB_ACTION_PATH}:rw \
-            px4io/px4-dev:${{ env.DOCKER_TAG }} /bin/bash -c "make ${{ matrix.target }}"
+            ${{ env.DOCKER_TAG }} /bin/bash -c "make px4_fmu-v6x"
