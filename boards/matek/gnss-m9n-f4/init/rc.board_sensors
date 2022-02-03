@@ -3,8 +3,6 @@
 # Matek M9NF4 CAN specific board sensors init
 #------------------------------------------------------------------------------
 
-gps start -d /dev/ttyS2
-
 icm20602 -s start
 
 rm3100 -b 2 -s start
