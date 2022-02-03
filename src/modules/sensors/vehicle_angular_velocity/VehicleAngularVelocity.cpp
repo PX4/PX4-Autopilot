@@ -333,6 +333,8 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 
 			if (device_id != 0) {
 				PX4_ERR("unable to find or subscribe to selected sensor (%" PRIu32 ")", device_id);
+
+				print_message(ORB_ID(sensor_selection), sensor_selection);
 			}
 
 			_selected_sensor_device_id = 0;

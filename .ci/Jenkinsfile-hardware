@@ -74,7 +74,7 @@ pipeline {
               }
               post {
                 failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                 }
                 always {
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf || true'
@@ -146,7 +146,7 @@ pipeline {
               }
               post {
                 failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                 }
                 always {
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cuav_x7pro_test/cuav_x7pro_test.elf || true'
@@ -218,7 +218,7 @@ pipeline {
               }
               post {
                 failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                 }
                 always {
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf || true'
@@ -289,7 +289,7 @@ pipeline {
               }
               post {
                 failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                 }
                 always {
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf || true'
@@ -361,7 +361,7 @@ pipeline {
               }
               post {
                 failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                 }
                 always {
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf || true'
@@ -453,7 +453,7 @@ pipeline {
               }
               post {
                 failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                 }
                 always {
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf || true'
@@ -537,7 +537,7 @@ pipeline {
               }
               post {
                 failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                 }
                 always {
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf || true'
@@ -609,7 +609,7 @@ pipeline {
               }
               post {
                 failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                 }
                 always {
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf || true'
@@ -681,7 +681,7 @@ pipeline {
               }
               post {
                 failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                 }
                 always {
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf || true'

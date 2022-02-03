@@ -192,9 +192,7 @@ bool Ekf::isYawFailure() const
 		return false;
 	}
 
-	const float euler_yaw = shouldUse321RotationSequence(_R_to_earth)
-				? getEuler321Yaw(_R_to_earth)
-				: getEuler312Yaw(_R_to_earth);
+	const float euler_yaw = getEulerYaw(_R_to_earth);
 	const float yaw_error = wrap_pi(euler_yaw - _yawEstimator.getYaw());
 
 	return fabsf(yaw_error) > math::radians(25.f);

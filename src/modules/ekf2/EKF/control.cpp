@@ -243,7 +243,6 @@ void Ekf::controlExternalVisionFusion()
 			}
 
 			Vector3f ev_pos_obs_var;
-			Vector2f ev_pos_innov_gates;
 
 			// correct position and height for offset relative to IMU
 			const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
@@ -307,9 +306,9 @@ void Ekf::controlExternalVisionFusion()
 			}
 
 			// innovation gate size
-			ev_pos_innov_gates(0) = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+			const float ev_pos_innov_gate = fmaxf(_params.ev_pos_innov_gate, 1.0f);
 
-			fuseHorizontalPosition(_ev_pos_innov, ev_pos_innov_gates, ev_pos_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
+			fuseHorizontalPosition(_ev_pos_innov, ev_pos_innov_gate, ev_pos_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
 		}
 
 		// determine if we should use the velocity observations
@@ -318,10 +317,7 @@ void Ekf::controlExternalVisionFusion()
 				resetVelocity();
 			}
 
-			Vector2f ev_vel_innov_gates;
-
-			_last_vel_obs = getVisionVelocityInEkfFrame();
-			_ev_vel_innov = _state.vel - _last_vel_obs;
+			_ev_vel_innov = _state.vel - getVisionVelocityInEkfFrame();
 
 			// check if we have been deadreckoning too long
 			if (isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)) {
@@ -332,12 +328,12 @@ void Ekf::controlExternalVisionFusion()
 				}
 			}
 
-			_last_vel_obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
+			const Vector3f obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
 
-			ev_vel_innov_gates.setAll(fmaxf(_params.ev_vel_innov_gate, 1.0f));
+			const float innov_gate = fmaxf(_params.ev_vel_innov_gate, 1.f);
 
-			fuseHorizontalVelocity(_ev_vel_innov, ev_vel_innov_gates, _last_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
-			fuseVerticalVelocity(_ev_vel_innov, ev_vel_innov_gates, _last_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			fuseHorizontalVelocity(_ev_vel_innov, innov_gate, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			fuseVerticalVelocity(_ev_vel_innov, innov_gate, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
 		}
 
 		// determine if we should use the yaw observation
@@ -1047,45 +1043,46 @@ void Ekf::controlBetaFusion()
 
 void Ekf::controlDragFusion()
 {
-	if ((_params.fusion_mode & MASK_USE_DRAG) &&
-	    !_using_synthetic_position &&
-	    _control_status.flags.in_air &&
-	    !_mag_inhibit_yaw_reset_req) {
+	if ((_params.fusion_mode & MASK_USE_DRAG) && _drag_buffer &&
+	    !_using_synthetic_position && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
 
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
 			resetWind();
 
-		} else if (_drag_buffer && _drag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_drag_sample_delayed)) {
-			fuseDrag();
+		}
+
+
+		dragSample drag_sample;
+
+		if (_drag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &drag_sample)) {
+			fuseDrag(drag_sample);
 		}
 	}
 }
 
 void Ekf::controlAuxVelFusion()
 {
-	bool data_ready = false;
-
 	if (_auxvel_buffer) {
-		data_ready = _auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_auxvel_sample_delayed);
-	}
+		auxVelSample auxvel_sample_delayed;
 
-	if (data_ready && isHorizontalAidingActive()) {
+		if (_auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &auxvel_sample_delayed)) {
 
-		const Vector2f aux_vel_innov_gate(_params.auxvel_gate, _params.auxvel_gate);
+			if (isHorizontalAidingActive()) {
 
-		_last_vel_obs = _auxvel_sample_delayed.vel;
-		_aux_vel_innov = _state.vel - _last_vel_obs;
-		_last_vel_obs_var = _aux_vel_innov_var;
+				const float aux_vel_innov_gate = fmaxf(_params.auxvel_gate, 1.f);
 
-		fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, _auxvel_sample_delayed.velVar,
-				       _aux_vel_innov_var, _aux_vel_test_ratio);
+				_aux_vel_innov = _state.vel - auxvel_sample_delayed.vel;
 
-		// Can be enabled after bit for this is added to EKF_AID_MASK
-		// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, _auxvel_sample_delayed.velVar,
-		//		_aux_vel_innov_var, _aux_vel_test_ratio);
+				fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, auxvel_sample_delayed.velVar,
+						       _aux_vel_innov_var, _aux_vel_test_ratio);
 
+				// Can be enabled after bit for this is added to EKF_AID_MASK
+				// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, auxvel_sample_delayed.velVar,
+				//		_aux_vel_innov_var, _aux_vel_test_ratio);
+			}
+		}
 	}
 }
 
