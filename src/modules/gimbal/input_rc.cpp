@@ -42,7 +42,7 @@
 #include <px4_platform_common/defines.h>
 
 
-namespace vmount
+namespace gimbal
 {
 
 InputRC::InputRC(Parameters &parameters) :
@@ -219,4 +219,4 @@ void InputRC::print_status() const
 		 _parameters.mnt_man_pitch, _parameters.mnt_man_yaw);
 }
 
-} /* namespace vmount */
+} /* namespace gimbal */

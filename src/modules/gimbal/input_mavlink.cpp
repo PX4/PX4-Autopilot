@@ -43,7 +43,7 @@
 #include <math.h>
 #include <matrix/matrix/math.hpp>
 
-namespace vmount
+namespace gimbal
 {
 
 InputMavlinkROI::InputMavlinkROI(Parameters &parameters) :
@@ -273,9 +273,9 @@ InputMavlinkCmdMount::_process_command(ControlData &control_data, const vehicle_
 				control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 				control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
-				// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
+				// gimbal spec has roll on channel 0, MAVLink spec has pitch on channel 0
 				const float roll = math::radians(vehicle_command.param2);
-				// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
+				// gimbal spec has pitch on channel 1, MAVLink spec has roll on channel 1
 				const float pitch = math::radians(vehicle_command.param1);
 				// both specs have yaw on channel 2
 				float yaw = math::radians(vehicle_command.param3);
@@ -694,9 +694,9 @@ InputMavlinkGimbalV2::_process_command(ControlData &control_data, const vehicle_
 				control_data.type_data.angle.frames[1] = ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 				control_data.type_data.angle.frames[2] = ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
-				// vmount spec has roll on channel 0, MAVLink spec has pitch on channel 0
+				// gimbal spec has roll on channel 0, MAVLink spec has pitch on channel 0
 				const float roll = math::radians(vehicle_command.param2);
-				// vmount spec has pitch on channel 1, MAVLink spec has roll on channel 1
+				// gimbal spec has pitch on channel 1, MAVLink spec has roll on channel 1
 				const float pitch = math::radians(vehicle_command.param1);
 				// both specs have yaw on channel 2
 				float yaw = math::radians(vehicle_command.param3);
@@ -970,4 +970,4 @@ void InputMavlinkGimbalV2::_read_control_data_from_position_setpoint_sub(Control
 	control_data.type_data.lonlat.altitude = position_setpoint_triplet.current.alt;
 }
 
-} /* namespace vmount */
+} /* namespace gimbal */

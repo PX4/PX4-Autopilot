@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <lib/parameters/param.h>
 
-namespace vmount
+namespace gimbal
 {
 
 struct Parameters {
@@ -88,4 +88,4 @@ struct ParameterHandles {
 	param_t mnt_rc_in_mode;
 };
 
-} /* namespace vmount */
+} /* namespace gimbal */

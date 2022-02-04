@@ -40,7 +40,7 @@
 
 using math::constrain;
 
-namespace vmount
+namespace gimbal
 {
 
 OutputRC::OutputRC(const Parameters &parameters)
@@ -109,4 +109,4 @@ void OutputRC::_stream_device_attitude_status()
 	_attitude_status_pub.publish(attitude_status);
 }
 
-} /* namespace vmount */
+} /* namespace gimbal */
