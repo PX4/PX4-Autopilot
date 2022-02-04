@@ -96,11 +96,12 @@ enum POWER_CONTROL_BIT : uint8_t {
 // OP_MODE
 enum OP_MODE_BIT : uint8_t {
 	// 5:3 Data rate control
-	ODR_20Hz     = Bit5 | Bit3, // ODR 20 Hz
+	ODR_20HZ_SET   = Bit5 | Bit3,
+	ODR_20HZ_CLEAR = Bit4,
 
 	// 2:1 Operation mode control
-	Opmode_Sleep = Bit2 | Bit1, // Sleep mode
-	Self_Test    = Bit0,
+	Opmode_Sleep   = Bit2 | Bit1, // Sleep mode
+	Self_Test      = Bit0,
 };
 
 // STATUS
