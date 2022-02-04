@@ -49,7 +49,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/tasks.h>
 
-#include "vmount_params.h"
+#include "gimbal_params.h"
 #include "input_mavlink.h"
 #include "input_rc.h"
 #include "input_test.h"
@@ -64,7 +64,7 @@
 #include <px4_platform_common/atomic.h>
 
 using namespace time_literals;
-using namespace vmount;
+using namespace gimbal;
 
 static px4::atomic<bool> thread_should_exit {false};
 static px4::atomic<bool> thread_running {false};
@@ -85,10 +85,10 @@ static void usage();
 static void update_params(ParameterHandles &param_handles, Parameters &params);
 static bool initialize_params(ParameterHandles &param_handles, Parameters &params);
 
-static int vmount_thread_main(int argc, char *argv[]);
-extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
+static int gimbal_thread_main(int argc, char *argv[]);
+extern "C" __EXPORT int gimbal_main(int argc, char *argv[]);
 
-static int vmount_thread_main(int argc, char *argv[])
+static int gimbal_thread_main(int argc, char *argv[])
 {
 	ParameterHandles param_handles;
 	Parameters params {};
@@ -302,7 +302,7 @@ static int vmount_thread_main(int argc, char *argv[])
 	return 0;
 }
 
-int vmount_main(int argc, char *argv[])
+int gimbal_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		PX4_ERR("missing command");
@@ -319,16 +319,16 @@ int vmount_main(int argc, char *argv[])
 
 		thread_should_exit.store(false);
 
-		int vmount_task = px4_task_spawn_cmd("vmount",
+		int gimbal_task = px4_task_spawn_cmd("gimbal",
 						     SCHED_DEFAULT,
 						     SCHED_PRIORITY_DEFAULT,
 						     2100,
-						     vmount_thread_main,
+						     gimbal_thread_main,
 						     nullptr);
 
 		int counter = 0;
 
-		while (!thread_running.load() && vmount_task >= 0) {
+		while (!thread_running.load() && gimbal_task >= 0) {
 			px4_usleep(5000);
 
 			if (++counter >= 100) {
@@ -336,7 +336,7 @@ int vmount_main(int argc, char *argv[])
 			}
 		}
 
-		if (vmount_task < 0) {
+		if (gimbal_task < 0) {
 			PX4_ERR("failed to start");
 			return -1;
 		}
@@ -529,12 +529,12 @@ Documentation how to use it is on the [gimbal_control](https://docs.px4.io/maste
 
 ### Examples
 Test the output by setting a angles (all omitted axes are set to 0):
-$ vmount test pitch -45 yaw 30
+$ gimbal test pitch -45 yaw 30
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("vmount", "driver");
+	PRINT_MODULE_USAGE_NAME("gimbal", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one or multiple axes (vmount must be running)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one or multiple axes (gimbal must be running)");
 	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }

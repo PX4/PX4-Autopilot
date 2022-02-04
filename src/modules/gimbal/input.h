@@ -31,35 +31,40 @@
 *
 ****************************************************************************/
 
-
 #pragma once
 
-#include "output.h"
+#include "common.h"
+#include "math.h"
+#include "gimbal_params.h"
 
-#include <uORB/Publication.hpp>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/gimbal_device_attitude_status.h>
-
-namespace vmount
+namespace gimbal
 {
 
-class OutputRC : public OutputBase
+struct Parameters;
+
+class InputBase
 {
 public:
-	OutputRC() = delete;
-	explicit OutputRC(const Parameters &parameters);
-	virtual ~OutputRC() = default;
+	enum class UpdateResult {
+		NoUpdate,
+		UpdatedActive,
+		UpdatedActiveOnce,
+		UpdatedNotActive,
+	};
 
-	virtual void update(const ControlData &control_data, bool new_setpoints);
-	virtual void print_status() const;
+	InputBase() = delete;
+	explicit InputBase(Parameters &parameters);
+	virtual ~InputBase() = default;
 
-private:
-	void _stream_device_attitude_status();
+	virtual int initialize() = 0;
+	virtual UpdateResult update(unsigned int timeout_ms, ControlData &control_data, bool already_active) = 0;
+	virtual void print_status() const = 0;
+protected:
+	void control_data_set_lon_lat(ControlData &control_data, double lon, double lat, float altitude, float roll_angle = NAN,
+				      float pitch_fixed_angle = NAN);
 
-	uORB::Publication <actuator_controls_s>	_actuator_controls_pub{ORB_ID(actuator_controls_2)};
-	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
-
-	bool _retract_gimbal = true;
+	Parameters &_parameters;
 };
 
-} /* namespace vmount */
+
+} /* namespace gimbal */

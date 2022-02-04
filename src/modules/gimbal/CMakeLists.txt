@@ -31,8 +31,8 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__vmount
-	MAIN vmount
+	MODULE drivers__gimbal
+	MAIN gimbal
 	COMPILE_FLAGS
 	SRCS
 		input.cpp
@@ -42,7 +42,7 @@ px4_add_module(
 		output.cpp
 		output_mavlink.cpp
 		output_rc.cpp
-		vmount.cpp
+		gimbal.cpp
 	DEPENDS
 		geo
 	)

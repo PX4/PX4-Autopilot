@@ -43,7 +43,7 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
-namespace vmount
+namespace gimbal
 {
 
 OutputBase::OutputBase(const Parameters &parameters)
@@ -241,5 +241,5 @@ void OutputBase::set_stabilize(bool roll_stabilize, bool pitch_stabilize, bool y
 	_stabilize[2] = yaw_stabilize;
 }
 
-} /* namespace vmount */
+} /* namespace gimbal */
 

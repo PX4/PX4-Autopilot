@@ -36,12 +36,12 @@
 
 #include <stdint.h>
 
-namespace vmount
+namespace gimbal
 {
 
 /**
  * @struct ControlData
- * This defines the common API between an input and an output of the vmount driver.
+ * This defines the common API between an input and an output of the gimbal driver.
  * Each output must support the (full) set of the commands, and an input can create all
  * or a subset of the types.
  */
@@ -87,4 +87,4 @@ struct ControlData {
 };
 
 
-} /* namespace vmount */
+} /* namespace gimbal */
