@@ -229,7 +229,7 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos)
 	_state_reset_status.posNE_counter++;
 }
 
-void Ekf::resetVerticalPositionTo(const float &new_vert_pos)
+void Ekf::resetVerticalPositionTo(const float new_vert_pos)
 {
 	const float old_vert_pos = _state.pos(2);
 	_state.pos(2) = new_vert_pos;
@@ -376,7 +376,7 @@ void Ekf::alignOutputFilter()
 
 // Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 // It is used to align the yaw angle after launch or takeoff for fixed wing vehicle only.
-bool Ekf::realignYawGPS()
+bool Ekf::realignYawGPS(const Vector3f &mag)
 {
 	const float gpsSpeed = sqrtf(sq(_gps_sample_delayed.vel(0)) + sq(_gps_sample_delayed.vel(1)));
 
@@ -386,7 +386,7 @@ bool Ekf::realignYawGPS()
 
 	if (!gps_yaw_alignment_possible) {
 		// attempt a normal alignment using the magnetometer
-		return resetMagHeading(_mag_lpf.getState());
+		return resetMagHeading();
 	}
 
 	// check for excessive horizontal GPS velocity innovations
@@ -428,7 +428,7 @@ bool Ekf::realignYawGPS()
 		if (!_control_status.flags.mag_aligned_in_flight) {
 			// This is our first flight alignment so we can assume that the recent change in velocity has occurred due to a
 			// forward direction takeoff or launch and therefore the inertial and GPS ground course discrepancy is due to yaw error
-			const float current_yaw = getEuler321Yaw(_state.quat_nominal);
+			const float current_yaw = getEulerYaw(_R_to_earth);
 			yaw_new = current_yaw + courseYawError;
 			_control_status.flags.mag_aligned_in_flight = true;
 
@@ -454,8 +454,7 @@ bool Ekf::realignYawGPS()
 
 		// Use the last magnetometer measurements to reset the field states
 		_state.mag_B.zero();
-		_R_to_earth = Dcmf(_state.quat_nominal);
-		_state.mag_I = _R_to_earth * _mag_sample_delayed.mag;
+		_state.mag_I = _R_to_earth * mag;
 
 		resetMagCov();
 
@@ -471,7 +470,7 @@ bool Ekf::realignYawGPS()
 		// align mag states only
 
 		// calculate initial earth magnetic field states
-		_state.mag_I = _R_to_earth * _mag_sample_delayed.mag;
+		_state.mag_I = _R_to_earth * mag;
 
 		resetMagCov();
 
@@ -483,18 +482,28 @@ bool Ekf::realignYawGPS()
 }
 
 // Reset heading and magnetic field states
-bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool update_buffer)
+bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
 {
 	// prevent a reset being performed more than once on the same frame
 	if (_imu_sample_delayed.time_us == _flt_mag_align_start_time) {
 		return true;
 	}
 
+	// low pass filtered mag required
+	if (_mag_counter == 0) {
+		return false;
+	}
+
+	const Vector3f mag_init = _mag_lpf.getState();
+
 	// calculate the observed yaw angle and yaw variance
 	float yaw_new;
 	float yaw_new_variance = 0.0f;
 
-	if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+	const bool heading_required_for_navigation = _control_status.flags.gps || _control_status.flags.ev_pos;
+
+	if ((_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) || ((_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR) && heading_required_for_navigation)) {
+
 		// rotate the magnetometer measurements into earth frame using a zero yaw angle
 		const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
 
@@ -531,7 +540,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 
 bool Ekf::resetYawToEv()
 {
-	const float yaw_new = getEuler312Yaw(_ev_sample_delayed.quat);
+	const float yaw_new = getEulerYaw(_ev_sample_delayed.quat);
 	const float yaw_new_variance = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
 
 	resetQuatStateYaw(yaw_new, yaw_new_variance, true);
@@ -1566,7 +1575,7 @@ void Ekf::stopGpsFusion()
 
 	// We do not need to know the true North anymore
 	// EV yaw can start again
-	_inhibit_ev_yaw_use = false;;
+	_inhibit_ev_yaw_use = false;
 }
 
 void Ekf::stopGpsPosFusion()
@@ -1685,10 +1694,8 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 	const Quatf quat_before_reset = _state.quat_nominal;
 
 	// update transformation matrix from body to world frame using the current estimate
-	_R_to_earth = Dcmf(_state.quat_nominal);
-
 	// update the rotation matrix using the new yaw value
-	_R_to_earth = updateYawInRotMat(yaw, _R_to_earth);
+	_R_to_earth = updateYawInRotMat(yaw, Dcmf(_state.quat_nominal));
 
 	// calculate the amount that the quaternion has changed by
 	const Quatf quat_after_reset(_R_to_earth);

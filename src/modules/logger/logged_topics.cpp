@@ -122,6 +122,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("airspeed_wind", 1000, 4);
 	add_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
+	add_topic_multi("sensor_hygrometer", 500, 4);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
 	// EKF multi topics (currently max 9 estimators)
@@ -406,6 +407,11 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 
 	if (optional && orb_exists(topic, instance) != 0) {
 		PX4_DEBUG("Not adding non-existing optional topic %s %i", topic->o_name, instance);
+
+		if (instance == 0 && _subscriptions.num_excluded_optional_topic_ids < MAX_EXCLUDED_OPTIONAL_TOPICS_NUM) {
+			_subscriptions.excluded_optional_topic_ids[_subscriptions.num_excluded_optional_topic_ids++] = topic->o_id;
+		}
+
 		return false;
 	}
 

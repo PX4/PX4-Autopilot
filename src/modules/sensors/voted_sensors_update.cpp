@@ -219,7 +219,9 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	}
 
 	// write data for the best sensor to output variables
-	if ((accel_best_index >= 0) && (gyro_best_index >= 0)) {
+	if ((accel_best_index >= 0) && (accel_best_index < MAX_SENSOR_COUNT)
+	    && (gyro_best_index >= 0) && (gyro_best_index < MAX_SENSOR_COUNT)) {
+
 		raw.timestamp = _last_sensor_data[gyro_best_index].timestamp;
 		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[accel_best_index].accelerometer_m_s2,
 		       sizeof(raw.accelerometer_m_s2));

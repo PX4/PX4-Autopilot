@@ -48,7 +48,18 @@ namespace land_detector
 LandDetector::LandDetector() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
-{}
+{
+	_land_detected.ground_contact = true;
+	_land_detected.maybe_landed = true;
+	_land_detected.landed = true;
+	_land_detected.in_ground_effect = true;
+	_land_detected.in_descend = false;
+	_land_detected.has_low_throttle = false;
+	_land_detected.vertical_movement = false;
+	_land_detected.horizontal_movement = false;
+	_land_detected.close_to_ground_or_skipped_check = true;
+	_land_detected.at_rest = true;
+}
 
 LandDetector::~LandDetector()
 {
@@ -91,6 +102,18 @@ void LandDetector::Run()
 		_acceleration = matrix::Vector3f{vehicle_acceleration.xyz};
 	}
 
+	vehicle_angular_velocity_s vehicle_angular_velocity{};
+
+	if (_vehicle_angular_velocity_sub.update(&vehicle_angular_velocity)) {
+		_angular_velocity = matrix::Vector3f{vehicle_angular_velocity.xyz};
+
+		static constexpr float GYRO_NORM_MAX = math::radians(3.f); // 3 degrees/second
+
+		if (_angular_velocity.norm() > GYRO_NORM_MAX) {
+			_time_last_move_detect_us = vehicle_angular_velocity.timestamp_sample;
+		}
+	}
+
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_vehicle_status_sub.update(&_vehicle_status);
 
@@ -124,13 +147,18 @@ void LandDetector::Run()
 	const bool landDetected = _landed_hysteresis.get_state();
 	const bool in_ground_effect = _ground_effect_hysteresis.get_state();
 
+	UpdateVehicleAtRest();
+
+	const bool at_rest = landDetected && _at_rest;
+
 	// publish at 1 Hz, very first time, or when the result has changed
 	if ((hrt_elapsed_time(&_land_detected.timestamp) >= 1_s) ||
 	    (_land_detected.landed != landDetected) ||
 	    (_land_detected.freefall != freefallDetected) ||
 	    (_land_detected.maybe_landed != maybe_landedDetected) ||
 	    (_land_detected.ground_contact != ground_contactDetected) ||
-	    (_land_detected.in_ground_effect != in_ground_effect)) {
+	    (_land_detected.in_ground_effect != in_ground_effect) ||
+	    (_land_detected.at_rest != at_rest)) {
 
 		if (!landDetected && _land_detected.landed && _takeoff_time == 0) { /* only set take off time once, until disarming */
 			// We did take off
@@ -147,6 +175,7 @@ void LandDetector::Run()
 		_land_detected.horizontal_movement = _get_horizontal_movement();
 		_land_detected.vertical_movement = _get_vertical_movement();
 		_land_detected.close_to_ground_or_skipped_check = _get_close_to_ground_or_skipped_check();
+		_land_detected.at_rest = at_rest;
 		_land_detected.timestamp = hrt_absolute_time();
 		_vehicle_land_detected_pub.publish(_land_detected);
 	}
@@ -176,6 +205,53 @@ void LandDetector::Run()
 		ScheduleClear();
 		exit_and_cleanup();
 	}
+}
+
+void LandDetector::UpdateVehicleAtRest()
+{
+	if (_sensor_selection_sub.updated()) {
+		sensor_selection_s sensor_selection{};
+		_sensor_selection_sub.copy(&sensor_selection);
+
+		if (sensor_selection.gyro_device_id != _device_id_gyro) {
+
+			bool gyro_status_found = false;
+
+			// find corresponding vehicle_imu_status instance
+			for (uint8_t imu_instance = 0; imu_instance < 4; imu_instance++) {
+				uORB::Subscription imu_status_sub{ORB_ID(vehicle_imu_status), imu_instance};
+
+				vehicle_imu_status_s imu_status{};
+				imu_status_sub.copy(&imu_status);
+
+				if ((imu_status.gyro_device_id != 0) && (imu_status.gyro_device_id == sensor_selection.gyro_device_id)) {
+					_vehicle_imu_status_sub.ChangeInstance(imu_instance);
+					_device_id_gyro = sensor_selection.gyro_device_id;
+					gyro_status_found = true;
+					break;
+				}
+			}
+
+			if (!gyro_status_found) {
+				PX4_WARN("IMU status not found for gyro %" PRId32, sensor_selection.gyro_device_id);
+			}
+		}
+	}
+
+	vehicle_imu_status_s imu_status;
+
+	if (_vehicle_imu_status_sub.update(&imu_status)) {
+		static constexpr float GYRO_VIBE_METRIC_MAX = 0.02f; // gyro_vibration_metric * dt * 4.0e4f > is_moving_scaler)
+		static constexpr float ACCEL_VIBE_METRIC_MAX = 1.2f; // accel_vibration_metric * dt * 2.1e2f > is_moving_scaler
+
+		if ((imu_status.gyro_vibration_metric > GYRO_VIBE_METRIC_MAX)
+		    || (imu_status.accel_vibration_metric > ACCEL_VIBE_METRIC_MAX)) {
+
+			_time_last_move_detect_us = imu_status.timestamp;
+		}
+	}
+
+	_at_rest = (hrt_elapsed_time(&_time_last_move_detect_us) > 1_s);
 }
 
 } // namespace land_detector

@@ -1,0 +1,23 @@
+menu "SERIAL_PASSTHRU Configuration"
+config SERIAL_PASSTHRU_UBLOX
+	bool "Detect and Auto Connect on U-Center messages"
+	default n
+	---help---
+		This option will enable the cdc_acm_check to launch
+		The passthru driver.
+
+config SERIAL_PASSTHRU_UBLOX_DEV
+	string "Device path of the GPS"
+	depends on SERIAL_PASSTHRU_UBLOX
+	default "/dev/ttyS2"
+	---help---
+		This is the path of the device used as the right side
+		of the passthru.
+
+config SERIAL_PASSTHRU_UBLOX_BAUDRATE
+	string "baudrate"
+	depends on SERIAL_PASSTHRU_UBLOX
+	default "115200"
+	---help---
+		This option sets the baudrate for the passthru.
+endmenu
