@@ -234,7 +234,7 @@ fi
 
 if param greater -s MNT_MODE_IN -1
 then
-	vmount start
+	gimbal start
 fi
 
 if param greater -s TRIG_MODE 0

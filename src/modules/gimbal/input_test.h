@@ -31,29 +31,34 @@
 *
 ****************************************************************************/
 
+#pragma once
+
 #include "input.h"
+#include <px4_platform_common/atomic.h>
 
-
-namespace vmount
+namespace gimbal
 {
 
-InputBase::InputBase(Parameters &parameters) :
-	_parameters(parameters)
-{}
-
-void InputBase::control_data_set_lon_lat(ControlData &control_data, double lon, double lat, float altitude,
-		float roll_angle,
-		float pitch_fixed_angle)
+class InputTest : public InputBase
 {
-	control_data.type = ControlData::Type::LonLat;
-	control_data.type_data.lonlat.lon = lon;
-	control_data.type_data.lonlat.lat = lat;
-	control_data.type_data.lonlat.altitude = altitude;
-	control_data.type_data.lonlat.roll_offset = roll_angle;
-	control_data.type_data.lonlat.pitch_fixed_angle = pitch_fixed_angle;
-	control_data.type_data.lonlat.pitch_offset = 0.f;
-	control_data.type_data.lonlat.yaw_offset = 0.f;
-}
+public:
+	InputTest() = delete;
+	explicit InputTest(Parameters &parameters);
+	virtual ~InputTest() = default;
+
+	UpdateResult update(unsigned int timeout_ms, ControlData &control_data, bool already_active) override;
+	int initialize() override;
+	void print_status() const override;
+
+	void set_test_input(int roll_deg, int pitch_deg, int yaw_deg);
+
+private:
+	int _roll_deg {0};
+	int _pitch_deg {0};
+	int _yaw_deg {0};
+
+	px4::atomic<bool> _has_been_set {false};
+};
 
 
-} /* namespace vmount */
+} /* namespace gimbal */

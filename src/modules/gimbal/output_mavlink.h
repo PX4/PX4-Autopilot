@@ -31,40 +31,59 @@
 *
 ****************************************************************************/
 
+
 #pragma once
 
-#include "common.h"
-#include "math.h"
-#include "vmount_params.h"
+#include "output.h"
 
-namespace vmount
+#include <uORB/Publication.hpp>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/gimbal_device_set_attitude.h>
+#include <uORB/topics/gimbal_device_information.h>
+#include <uORB/topics/gimbal_device_attitude_status.h>
+
+
+namespace gimbal
 {
-
-struct Parameters;
-
-class InputBase
+class OutputMavlinkV1 : public OutputBase
 {
 public:
-	enum class UpdateResult {
-		NoUpdate,
-		UpdatedActive,
-		UpdatedActiveOnce,
-		UpdatedNotActive,
-	};
+	OutputMavlinkV1(const Parameters &parameters);
+	virtual ~OutputMavlinkV1() = default;
 
-	InputBase() = delete;
-	explicit InputBase(Parameters &parameters);
-	virtual ~InputBase() = default;
+	virtual void update(const ControlData &control_data, bool new_setpoints);
 
-	virtual int initialize() = 0;
-	virtual UpdateResult update(unsigned int timeout_ms, ControlData &control_data, bool already_active) = 0;
-	virtual void print_status() const = 0;
-protected:
-	void control_data_set_lon_lat(ControlData &control_data, double lon, double lat, float altitude, float roll_angle = NAN,
-				      float pitch_fixed_angle = NAN);
+	virtual void print_status() const;
 
-	Parameters &_parameters;
+private:
+	void _stream_device_attitude_status();
+	uORB::Publication<vehicle_command_s> _gimbal_v1_command_pub{ORB_ID(gimbal_v1_command)};
+	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
+
+	ControlData::Type _previous_control_data_type {ControlData::Type::Neutral};
 };
 
+class OutputMavlinkV2 : public OutputBase
+{
+public:
+	OutputMavlinkV2(const Parameters &parameters);
+	virtual ~OutputMavlinkV2() = default;
 
-} /* namespace vmount */
+	virtual void update(const ControlData &control_data, bool new_setpoints);
+
+	virtual void print_status() const;
+
+private:
+	void _publish_gimbal_device_set_attitude();
+	void _request_gimbal_device_information();
+	void _check_for_gimbal_device_information();
+
+	uORB::Publication<gimbal_device_set_attitude_s> _gimbal_device_set_attitude_pub{ORB_ID(gimbal_device_set_attitude)};
+	uORB::Subscription _gimbal_device_information_sub{ORB_ID(gimbal_device_information)};
+
+	uint8_t _gimbal_device_compid{0};
+	hrt_abstime _last_gimbal_device_checked{0};
+	bool _gimbal_device_found {false};
+};
+
+} /* namespace gimbal */

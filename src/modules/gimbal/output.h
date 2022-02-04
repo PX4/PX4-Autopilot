@@ -35,7 +35,7 @@
 #pragma once
 
 #include "common.h"
-#include "vmount_params.h"
+#include "gimbal_params.h"
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>
 #include <uORB/Publication.hpp>
@@ -44,7 +44,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-namespace vmount
+namespace gimbal
 {
 
 class OutputBase
@@ -98,4 +98,4 @@ private:
 };
 
 
-} /* namespace vmount */
+} /* namespace gimbal */

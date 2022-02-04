@@ -39,7 +39,7 @@
 #include <px4_platform_common/defines.h>
 
 
-namespace vmount
+namespace gimbal
 {
 
 OutputMavlinkV1::OutputMavlinkV1(const Parameters &parameters)
@@ -97,8 +97,8 @@ void OutputMavlinkV1::update(const ControlData &control_data, bool new_setpoints
 	vehicle_command.timestamp = t;
 	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL;
 
-	// vmount spec has roll, pitch on channels 0, 1, respectively; MAVLink spec has roll, pitch on channels 1, 0, respectively
-	// vmount uses radians, MAVLink uses degrees
+	// gimbal spec has roll, pitch on channels 0, 1, respectively; MAVLink spec has roll, pitch on channels 1, 0, respectively
+	// gimbal uses radians, MAVLink uses degrees
 	vehicle_command.param1 = math::degrees(_angle_outputs[1] + math::radians(_parameters.mnt_off_pitch));
 	vehicle_command.param2 = math::degrees(_angle_outputs[0] + math::radians(_parameters.mnt_off_roll));
 	vehicle_command.param3 = math::degrees(_angle_outputs[2] + math::radians(_parameters.mnt_off_yaw));
@@ -238,4 +238,4 @@ void OutputMavlinkV2::_publish_gimbal_device_set_attitude()
 	_gimbal_device_set_attitude_pub.publish(set_attitude);
 }
 
-} /* namespace vmount */
+} /* namespace gimbal */

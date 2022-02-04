@@ -51,7 +51,7 @@
 #include <lib/geo/geo.h>
 
 
-namespace vmount
+namespace gimbal
 {
 
 class InputMavlinkROI : public InputBase
@@ -130,4 +130,4 @@ private:
 	uint8_t _cur_roi_mode = vehicle_roi_s::ROI_NONE;
 };
 
-} /* namespace vmount */
+} /* namespace gimbal */

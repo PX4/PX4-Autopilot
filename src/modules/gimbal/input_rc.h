@@ -35,10 +35,10 @@
 #pragma once
 
 #include "input.h"
-#include "vmount_params.h"
+#include "gimbal_params.h"
 #include <uORB/topics/manual_control_setpoint.h>
 
-namespace vmount
+namespace gimbal
 {
 
 class InputRC : public InputBase
@@ -64,4 +64,4 @@ private:
 	float _last_set_aux_values[3] {};
 };
 
-} /* namespace vmount */
+} /* namespace gimbal */

@@ -486,11 +486,11 @@ else
 	. ${R}etc/init.d/rc.thermal_cal
 
 	#
-	# Start vmount to control mounts such as gimbals, disabled by default.
+	# Start gimbal to control mounts such as gimbals, disabled by default.
 	#
 	if param greater -s MNT_MODE_IN -1
 	then
-		vmount start
+		gimbal start
 	fi
 
 	# Check for flow sensor

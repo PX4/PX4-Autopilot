@@ -38,7 +38,7 @@
 #include <lib/mathlib/mathlib.h>
 
 
-namespace vmount
+namespace gimbal
 {
 
 InputTest::InputTest(Parameters &parameters) :
@@ -101,4 +101,4 @@ void InputTest::set_test_input(int roll_deg, int pitch_deg, int yaw_deg)
 	_has_been_set.store(true);
 }
 
-} /* namespace vmount */
+} /* namespace gimbal */
