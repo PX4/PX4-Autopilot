@@ -283,7 +283,7 @@ TEST_F(EkfExternalVisionTest, velocityFrameBody)
 	// THEN: As the drone is turned 90 degrees, velocity variance
 	//       along local y axis is expected to be bigger
 	const Vector3f velVar_new = _ekf->getVelocityVariance();
-	EXPECT_NEAR(velVar_new(1) / velVar_new(0), 80.f, 15.f);
+	EXPECT_NEAR(velVar_new(1) / velVar_new(0), 40.f, 15.f);
 
 	const Vector3f vel_earth_est = _ekf->getVelocity();
 	EXPECT_NEAR(vel_earth_est(0), 0.0f, 0.1f);
@@ -319,7 +319,7 @@ TEST_F(EkfExternalVisionTest, velocityFrameLocal)
 	// THEN: Independently on drones heading, velocity variance
 	//       along local x axis is expected to be bigger
 	const Vector3f velVar_new = _ekf->getVelocityVariance();
-	EXPECT_NEAR(velVar_new(0) / velVar_new(1), 80.f, 15.f);
+	EXPECT_NEAR(velVar_new(0) / velVar_new(1), 40.f, 15.f);
 
 	const Vector3f vel_earth_est = _ekf->getVelocity();
 	EXPECT_NEAR(vel_earth_est(0), 1.0f, 0.1f);
@@ -357,7 +357,7 @@ TEST_F(EkfExternalVisionTest, positionFrameLocal)
 	// WHEN: the measurement in EV FRD frame changes
 	pos_earth = Vector3f(0.3f, 0.0f, 0.0f);
 	_sensor_simulator._vio.setPosition(pos_earth);
-	_sensor_simulator.runSeconds(4);
+	_sensor_simulator.runSeconds(8);
 
 	// THEN: the position should converge to the EV position
 	// Note that the estimate is now in the EV frame because it is

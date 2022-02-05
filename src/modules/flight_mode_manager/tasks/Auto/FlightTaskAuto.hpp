@@ -171,11 +171,14 @@ protected:
 					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
 					(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+					(ParamFloat<px4::params::MPC_LAND_CRWL>) _param_mpc_land_crawl_speed,
 					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>)
-					_param_mpc_land_alt1, // altitude at which speed limit downwards reaches maximum speed
+					_param_mpc_land_alt1, // altitude at which we start ramping down speed
 					(ParamFloat<px4::params::MPC_LAND_ALT2>)
-					_param_mpc_land_alt2, // altitude at which speed limit downwards reached minimum speed
+					_param_mpc_land_alt2, // altitude at which we descend at land speed
+					(ParamFloat<px4::params::MPC_LAND_ALT3>)
+					_param_mpc_land_alt3, // altitude where we switch to crawl speed, if LIDAR available
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
 					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
