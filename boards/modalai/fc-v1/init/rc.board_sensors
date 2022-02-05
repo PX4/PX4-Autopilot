@@ -3,55 +3,21 @@
 # ModalAI FC-v1 specific board sensors init
 #------------------------------------------------------------------------------
 
-# UART ESC
-if param greater UART_ESC_CONFIG 0
-then
-	modalai_esc -d /dev/ttyS1 start
-fi
-
-adc start
+board_adc start
 
 # Start Digital power monitors
-voxlpm -X -b 3 -K -T VBATT start
+voxlpm -X -b 3 -k -T VBATT start
 voxlpm -X -b 3 -T P5VDC start
 
-# Flight Core
-if ver hwtypecmp V106
-then
-	# Internal SPI bus ICM-42688
-	icm42688p -R 12 -s start
+# Internal SPI bus ICM-20602
+icm20602 -R 12 -s start
 
-	# Internal SPI bus ICM-20602
-	icm20602 -R 12 -s start
+# Internal SPI bus ICM-42688
+icm42688p -R 12 -s start
 
-	# Internal SPI4 BMI088
-	bmi088 -A -R 12 -s start
-	bmi088 -G -R 12 -s start
-fi
-
-# VOXL Flight
-if ver hwtypecmp V110
-then
-	# Internal SPI bus ICM-42688
-	icm42688p -R 12 -s start
-
-	# Internal SPI bus ICM-20602
-	icm20602 -R 12 -s start
-
-	# Internal SPI4 BMI088
-	bmi088 -A -R 12 -s start
-	bmi088 -G -R 12 -s start
-fi
-
-# M0051
-if ver hwtypecmp V120
-then
-	# Internal SPI bus ICM-42688
-	icm42688p -R 8 -s start
-fi
+# Internal SPI4 BMI088
+bmi088 -A -R 12 -s start
+bmi088 -G -R 12 -s start
 
 # Internal I2C Baro
 bmp388 -I start
-
-# GPS LED
-rgbled_ncp5623c start -X -a 0x38
