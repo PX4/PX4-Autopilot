@@ -95,6 +95,7 @@ private:
 		param_t hoverThrottle;
 		param_t minManThrottle;
 		param_t landSpeed;
+		param_t crawlSpeed;
 		param_t useHoverThrustEstimate;
 	} _paramHandle{};
 
@@ -103,6 +104,7 @@ private:
 		float hoverThrottle;
 		float minManThrottle;
 		float landSpeed;
+		float crawlSpeed;
 		bool useHoverThrustEstimate;
 	} _params{};
 
