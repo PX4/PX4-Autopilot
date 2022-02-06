@@ -12,13 +12,13 @@ voxlpm -X -b 3 -T P5VDC start
 # Internal SPI1 ICM-20602
 icm20602 -R 12 -s start
 
-# External SPI1 ICM-20948
-icm20948 -S -b 1 -R 12 start
+# External SPI1 ICM-42688p
+#icm42688p -S -b 1 -R 12 start
 
-# Internal SPI2 ICM-42688
+# Internal SPI2 ICM-42688p
 icm42688p -R 12 -s start
 
-# External SPI10 ICM-42688
+# External SPI10 ICM-42688p
 # icm42688p -S -b 10 -R 12 start
 
 # Internal SPI6 BMI088
