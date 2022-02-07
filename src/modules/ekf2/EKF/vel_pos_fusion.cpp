@@ -218,10 +218,10 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 		// apply the covariance corrections
 		P -= KHP;
 
-		fixCovarianceErrors(true);
-
 		// apply the state corrections
 		fuse(Kfusion, innov);
+
+		_covariance_updated = true;
 	}
 }
 

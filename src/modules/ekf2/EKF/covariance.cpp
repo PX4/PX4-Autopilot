@@ -884,54 +884,38 @@ void Ekf::predictCovariance()
 	for (unsigned i = 0; i < _k_num_states; i++) {
 		P(i, i) = nextP(i, i);
 	}
-
-	// fix gross errors in the covariance matrix and ensure rows and
-	// columns for un-used states are zero
-	fixCovarianceErrors(false);
-
 }
 
-void Ekf::fixCovarianceErrors(bool force_symmetry)
+void Ekf::fixCovarianceErrors()
 {
 	// NOTE: This limiting is a last resort and should not be relied on
 	// TODO: Split covariance prediction into separate F*P*transpose(F) and Q contributions
 	// and set corresponding entries in Q to zero when states exceed 50% of the limit
 	// Covariance diagonal limits. Use same values for states which
 	// belong to the same group (e.g. vel_x, vel_y, vel_z)
-	float P_lim[8] = {};
-	P_lim[0] = 1.0f;		// quaternion max var
-	P_lim[1] = 1e6f;		// velocity max var
-	P_lim[2] = 1e6f;		// positiion max var
-	P_lim[3] = 1.0f;		// gyro bias max var
-	P_lim[4] = 1.0f;		// delta velocity z bias max var
-	P_lim[5] = 1.0f;		// earth mag field max var
-	P_lim[6] = 1.0f;		// body mag field max var
-	P_lim[7] = 1e6f;		// wind max var
 
 	for (int i = 0; i <= 3; i++) {
 		// quaternion states
-		P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[0]);
+		P(i, i) = math::constrain(P(i, i), 0.f, 1.f);
 	}
 
 	for (int i = 4; i <= 6; i++) {
 		// NED velocity states
-		P(i, i) = math::constrain(P(i, i), 1e-6f, P_lim[1]);
+		P(i, i) = math::constrain(P(i, i), 1e-6f, 1e6f);
 	}
 
 	for (int i = 7; i <= 9; i++) {
 		// NED position states
-		P(i, i) = math::constrain(P(i, i), 1e-6f, P_lim[2]);
+		P(i, i) = math::constrain(P(i, i), 1e-6f, 1e6f);
 	}
 
 	for (int i = 10; i <= 12; i++) {
 		// gyro bias states
-		P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[3]);
+		P(i, i) = math::constrain(P(i, i), 0.f, 1.f);
 	}
 
 	// force symmetry on the quaternion, velocity and position state covariances
-	if (force_symmetry) {
-		P.makeRowColSymmetric<13>(0);
-	}
+	P.makeRowColSymmetric<13>(0);
 
 	// the following states are optional and are deactivated when not required
 	// by ensuring the corresponding covariance matrix values are kept at zero
@@ -1012,7 +996,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 			_warning_events.flags.invalid_accel_bias_cov_reset = true;
 			ECL_WARN("invalid accel bias - covariance reset");
 
-		} else if (force_symmetry) {
+		} else {
 			// ensure the covariance values are symmetrical
 			P.makeRowColSymmetric<3>(13);
 		}
@@ -1026,19 +1010,16 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	} else {
 		// constrain variances
 		for (int i = 16; i <= 18; i++) {
-			P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[5]);
+			P(i, i) = math::constrain(P(i, i), 0.f, 1.f);
 		}
 
 		for (int i = 19; i <= 21; i++) {
-			P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[6]);
+			P(i, i) = math::constrain(P(i, i), 0.f, 1.f);
 		}
 
 		// force symmetry
-		if (force_symmetry) {
-			P.makeRowColSymmetric<3>(16);
-			P.makeRowColSymmetric<3>(19);
-		}
-
+		P.makeRowColSymmetric<3>(16);
+		P.makeRowColSymmetric<3>(19);
 	}
 
 	// wind velocity states
@@ -1048,13 +1029,11 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 	} else {
 		// constrain variances
 		for (int i = 22; i <= 23; i++) {
-			P(i, i) = math::constrain(P(i, i), 0.0f, P_lim[7]);
+			P(i, i) = math::constrain(P(i, i), 0.f, 1e6f);
 		}
 
 		// force symmetry
-		if (force_symmetry) {
-			P.makeRowColSymmetric<2>(22);
-		}
+		P.makeRowColSymmetric<2>(22);
 	}
 }
 

@@ -770,10 +770,10 @@ private:
 			// apply the covariance corrections
 			P -= KHP;
 
-			fixCovarianceErrors(true);
-
 			// apply the state corrections
 			fuse(K, innovation);
+
+			_covariance_updated = true;
 		}
 
 		return is_healthy;
@@ -785,7 +785,7 @@ private:
 
 	// limit the diagonal of the covariance matrix
 	// force symmetry when the argument is true
-	void fixCovarianceErrors(bool force_symmetry);
+	void fixCovarianceErrors();
 
 	// constrain the ekf states
 	void constrainStates();
@@ -1038,6 +1038,8 @@ private:
 	bool isYawEmergencyEstimateAvailable() const;
 
 	void resetGpsDriftCheckFilters();
+
+	bool _covariance_updated{true};
 };
 
 #endif // !EKF_EKF_H

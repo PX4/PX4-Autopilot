@@ -101,6 +101,13 @@ bool Ekf::update()
 
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
+		// fix gross errors in the covariance matrix and ensure rows and
+		// columns for un-used states are zero
+		if (_covariance_updated) {
+			fixCovarianceErrors();
+			_covariance_updated = false;
+		}
+
 		// perform state and covariance prediction for the main filter
 		predictState();
 		predictCovariance();

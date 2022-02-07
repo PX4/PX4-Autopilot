@@ -706,11 +706,10 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 		// apply the covariance corrections
 		P -= KHP;
 
-		fixCovarianceErrors(true);
-
 		// apply the state corrections
 		fuse(Kfusion, _heading_innov);
 
+		_covariance_updated = true;
 	}
 }
 
