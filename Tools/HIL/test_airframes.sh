@@ -35,7 +35,6 @@ do
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_0_CONFIG 101' || true
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_1_CONFIG 102' || true
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_2_CONFIG 103' || true
-	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set MAV_3_CONFIG 104' || true
 
 	# enable all GPS
 	${DIR}/run_nsh_cmd.py --device ${SERIAL_DEVICE} --cmd 'param set GPS_1_CONFIG 201' || true
