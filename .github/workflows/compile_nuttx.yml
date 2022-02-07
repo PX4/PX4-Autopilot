@@ -37,6 +37,7 @@ jobs:
           holybro_pix32v5,
           matek_h743-slim,
           matek_h743-mini,
+          matek_gnss-m9n-f4,
           modalai_fc-v1,
           modalai_fc-v2,
           mro_ctrl-zero-f7,
