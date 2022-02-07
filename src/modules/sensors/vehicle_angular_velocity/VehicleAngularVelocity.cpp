@@ -259,21 +259,20 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 			for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 				uORB::SubscriptionData<sensor_gyro_fifo_s> sensor_gyro_fifo_sub{ORB_ID(sensor_gyro_fifo), i};
 
-				if (sensor_gyro_fifo_sub.get().device_id != 0) {
+				if ((time_now_us < sensor_gyro_fifo_sub.get().timestamp + 1_s) && (sensor_gyro_fifo_sub.get().device_id != 0)) {
 					// if no gyro was selected use the first valid sensor_gyro_fifo
-					if (!device_id_valid && (time_now_us < sensor_gyro_fifo_sub.get().timestamp + 1_s)) {
+					if (!device_id_valid) {
 						device_id = sensor_gyro_fifo_sub.get().device_id;
+						PX4_WARN("no gyro selected, using sensor_gyro_fifo:%" PRIu8 " %" PRIu32, i, sensor_gyro_fifo_sub.get().device_id);
 					}
 
-					if ((sensor_gyro_fifo_sub.get().device_id == device_id)
-					    && _sensor_fifo_sub.ChangeInstance(i) && _sensor_fifo_sub.registerCallback()) {
+					if (sensor_gyro_fifo_sub.get().device_id == device_id) {
+						if (_sensor_fifo_sub.ChangeInstance(i) && _sensor_fifo_sub.registerCallback()) {
+							// make sure non-FIFO sub is unregistered
+							_sensor_sub.unregisterCallback();
 
-						// make sure non-FIFO sub is unregistered
-						_sensor_sub.unregisterCallback();
+							_calibration.set_device_id(sensor_gyro_fifo_sub.get().device_id);
 
-						_calibration.set_device_id(sensor_gyro_fifo_sub.get().device_id);
-
-						if (_calibration.enabled()) {
 							_selected_sensor_device_id = sensor_gyro_fifo_sub.get().device_id;
 
 							_timestamp_sample_last = 0;
@@ -288,7 +287,8 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 							return true;
 
 						} else {
-							_selected_sensor_device_id = 0;
+							PX4_ERR("unable to register callback for sensor_gyro_fifo:%" PRIu8 " %" PRIu32,
+								i, sensor_gyro_fifo_sub.get().device_id);
 						}
 					}
 				}
@@ -297,20 +297,20 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 			for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 				uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
 
-				if (sensor_gyro_sub.get().device_id != 0) {
+				if ((time_now_us < sensor_gyro_sub.get().timestamp + 1_s) && (sensor_gyro_sub.get().device_id != 0)) {
 					// if no gyro was selected use the first valid sensor_gyro
-					if (!device_id_valid && (time_now_us < sensor_gyro_sub.get().timestamp + 1_s)) {
+					if (!device_id_valid) {
 						device_id = sensor_gyro_sub.get().device_id;
+						PX4_WARN("no gyro selected, using sensor_gyro:%" PRIu8 " %" PRIu32, i, sensor_gyro_sub.get().device_id);
 					}
 
-					if ((sensor_gyro_sub.get().device_id == device_id)
-					    && _sensor_sub.ChangeInstance(i) && _sensor_sub.registerCallback()) {
-						// make sure FIFO sub is unregistered
-						_sensor_fifo_sub.unregisterCallback();
+					if (sensor_gyro_sub.get().device_id == device_id) {
+						if (_sensor_sub.ChangeInstance(i) && _sensor_sub.registerCallback()) {
+							// make sure FIFO sub is unregistered
+							_sensor_fifo_sub.unregisterCallback();
 
-						_calibration.set_device_id(sensor_gyro_sub.get().device_id);
+							_calibration.set_device_id(sensor_gyro_sub.get().device_id);
 
-						if (_calibration.enabled()) {
 							_selected_sensor_device_id = sensor_gyro_sub.get().device_id;
 
 							_timestamp_sample_last = 0;
@@ -325,7 +325,8 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 							return true;
 
 						} else {
-							_selected_sensor_device_id = 0;
+							PX4_ERR("unable to register callback for sensor_gyro:%" PRIu8 " %" PRIu32,
+								i, sensor_gyro_sub.get().device_id);
 						}
 					}
 				}
@@ -333,8 +334,6 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 
 			if (device_id != 0) {
 				PX4_ERR("unable to find or subscribe to selected sensor (%" PRIu32 ")", device_id);
-
-				print_message(ORB_ID(sensor_selection), sensor_selection);
 			}
 
 			_selected_sensor_device_id = 0;
