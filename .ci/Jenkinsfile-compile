@@ -60,7 +60,6 @@ pipeline {
                      "holybro_kakutef7_default",
                      "holybro_pix32v5_default",
                      "matek_h743-slim",
-                     "matek_h743-mini",
                      "matek_gnss-m9n-f4_canbootloader",
                      "matek_gnss-m9n-f4_default",              
                      "modalai_fc-v1_default",
