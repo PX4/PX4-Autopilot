@@ -87,7 +87,8 @@ void VotedSensorsUpdate::parametersUpdate()
 		uORB::SubscriptionData<vehicle_imu_s> imu{ORB_ID(vehicle_imu), uorb_index};
 		imu.update();
 
-		if (imu.get().timestamp > 0 && imu.get().accel_device_id > 0 && imu.get().gyro_device_id > 0) {
+		if (imu.advertised() && (imu.get().timestamp != 0)
+		    && (imu.get().accel_device_id != 0) && (imu.get().gyro_device_id != 0)) {
 
 			// find corresponding configured accel priority
 			int8_t accel_cal_index = calibration::FindCurrentCalibrationIndex("ACC", imu.get().accel_device_id);
