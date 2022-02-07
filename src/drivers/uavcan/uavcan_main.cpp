@@ -130,6 +130,10 @@ UavcanNode::~UavcanNode()
 		} while (_instance);
 	}
 
+	_node.removeRxFrameListener();
+	delete _rx_frame_listener_uorb;
+	_rx_frame_listener_uorb = nullptr;
+
 	// Removing the sensor bridges
 	_sensor_bridges.clear();
 
@@ -498,6 +502,17 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	fill_node_info();
 
+	// install frame listener
+	int32_t uavcan_frame_dbg = 0;
+	param_get(param_find("UAVCAN_FRAME_DBG"), &uavcan_frame_dbg);
+
+	if (uavcan_frame_dbg == 1) {
+		PX4_INFO("UAVCAN FRAME DBG enabled");
+		_rx_frame_listener_uorb = new RxFrameUorbPublisher();
+		_node.getDispatcher().installRxFrameListener(_rx_frame_listener_uorb);
+		_mirror_to_uorb = true;
+	}
+
 	int ret = _beep_controller.init();
 
 	if (ret < 0) {
@@ -689,6 +704,22 @@ UavcanNode::Run()
 		update_params();
 	}
 
+	if (_mirror_to_uorb && _can_frame_in_sub.updated()) {
+		can_frame_s can_frame;
+
+		if (_can_frame_in_sub.copy(&can_frame)) {
+			uavcan::CanFrame frame{};
+			frame.id = can_frame.id;
+			memcpy(frame.data, can_frame.data, sizeof(can_frame.data));
+			frame.dlc = can_frame.dlc;
+
+			uavcan::MonotonicTime tx_deadline = _node.getMonotonicTime() + uavcan::MonotonicDuration::fromUSec(1000);
+			uint8_t iface_mask = 3;
+
+			_node.injectTxFrame(frame, tx_deadline, iface_mask, uavcan::CanTxQueue::Volatile);
+		}
+	}
+
 	// Check for parameter requests (get/set/list)
 	if (_param_request_sub.updated() && !_param_list_in_progress && !_param_in_progress && !_count_in_progress) {
 		uavcan_parameter_request_s request{};
@@ -876,6 +907,13 @@ UavcanNode::Run()
 					param_opcode(get_next_dirty_node_id(1));
 					break;
 				}
+			}
+
+		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_CAN_FORWARD) {
+			if (_rx_frame_listener_uorb == nullptr) {
+				_rx_frame_listener_uorb = new RxFrameUorbPublisher();
+				_node.getDispatcher().installRxFrameListener(_rx_frame_listener_uorb);
+				_mirror_to_uorb = true;
 			}
 		}
 

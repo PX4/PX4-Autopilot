@@ -78,6 +78,18 @@ PARAM_DEFINE_INT32(UAVCAN_NODE_ID, 1);
 PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
 
 /**
+ * UAVCAN CAN frame debug
+ *
+ * Publish UAVCAN CAN frames to ORB_ID(can_frame_out)
+ * CAN frames published to ORB_ID(can_frame_in) are injected into UAVCAN
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_FRAME_DBG, 0);
+
+/**
  * UAVCAN rangefinder minimum range
  *
  * This parameter defines the minimum valid range for a rangefinder connected via UAVCAN.

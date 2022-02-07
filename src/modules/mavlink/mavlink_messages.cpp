@@ -66,6 +66,7 @@
 #include "streams/BATTERY_STATUS.hpp"
 #include "streams/CAMERA_IMAGE_CAPTURED.hpp"
 #include "streams/CAMERA_TRIGGER.hpp"
+#include "streams/CAN_FRAME.hpp"
 #include "streams/COLLISION.hpp"
 #include "streams/COMMAND_LONG.hpp"
 #include "streams/COMPONENT_INFORMATION.hpp"
@@ -474,6 +475,9 @@ static const StreamListItem streams_list[] = {
 #if defined(NAV_CONTROLLER_OUTPUT_HPP)
 	create_stream_list_item<MavlinkStreamNavControllerOutput>(),
 #endif // NAV_CONTROLLER_OUTPUT_HPP
+#if defined(CAN_FRAME_HPP)
+	create_stream_list_item<MavlinkStreamCanFrame>(),
+#endif // CAN_FRAME_HPP
 #if defined(CAMERA_TRIGGER_HPP)
 	create_stream_list_item<MavlinkStreamCameraTrigger>(),
 #endif // CAMERA_TRIGGER_HPP
