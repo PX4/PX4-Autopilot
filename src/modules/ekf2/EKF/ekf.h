@@ -386,6 +386,7 @@ private:
 	uint64_t _time_last_fake_pos_fuse{0};	///< last time we faked position measurements to constrain tilt errors during operation without external aiding (uSec)
 	uint64_t _time_last_gps_yaw_fuse{0};	///< time the last fusion of GPS yaw measurements were performed (uSec)
 	uint64_t _time_last_gps_yaw_data{0};	///< time the last GPS yaw measurement was available (uSec)
+	uint64_t _time_last_healthy_rng_data{0};
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
 
 	Vector2f _last_known_posNE{};		///< last known local NE position vector (m)
@@ -535,8 +536,6 @@ private:
 	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
 	uint8_t _terrain_vpos_reset_counter{0};	///< number of times _terrain_vpos has been reset
 	uint64_t _time_last_hagl_fuse{0};		///< last system time that a range sample was fused by the terrain estimator
-	uint64_t _time_last_fake_hagl_fuse{0};	///< last system time that a fake range sample was fused by the terrain estimator
-	bool _terrain_initialised{false};	///< true when the terrain estimator has been initialized
 	bool _hagl_valid{false};		///< true when the height above ground estimate is valid
 	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 
@@ -679,20 +678,28 @@ private:
 	bool calcOptFlowBodyRateComp();
 
 	// initialise the terrain vertical position estimator
-	// return true if the initialisation is successful
-	bool initHagl();
+	void initHagl();
 
-	bool shouldUseRangeFinderForHagl() const { return (_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseRangeFinder); }
 	bool shouldUseOpticalFlowForHagl() const { return (_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow); }
 
-	// run the terrain estimator
 	void runTerrainEstimator();
+	void predictHagl();
 
 	// update the terrain vertical position estimate using a height above ground measurement from the range finder
-	void fuseHagl();
+	void controlHaglRngFusion();
+	void fuseHaglRng();
+	void startHaglRngFusion();
+	void resetHaglRngIfNeeded();
+	void resetHaglRng();
+	void stopHaglRngFusion();
+	float getRngVar();
 
 	// update the terrain vertical position estimate using an optical flow measurement
 	void fuseFlowForTerrain();
+	void resetHaglFlow();
+
+	void controlHaglFakeFusion();
+	void resetHaglFake();
 
 	// reset the heading and magnetic field states using the declination and magnetometer measurements
 	// return true if successful
