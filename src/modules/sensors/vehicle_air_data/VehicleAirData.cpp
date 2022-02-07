@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -127,7 +127,7 @@ void VehicleAirData::AirTemperatureUpdate()
 	}
 }
 
-void VehicleAirData::ParametersUpdate()
+bool VehicleAirData::ParametersUpdate()
 {
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
@@ -136,7 +136,10 @@ void VehicleAirData::ParametersUpdate()
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
+		return true;
 	}
+
+	return false;
 }
 
 void VehicleAirData::Run()
@@ -145,7 +148,7 @@ void VehicleAirData::Run()
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
-	ParametersUpdate();
+	const bool parameter_update = ParametersUpdate();
 
 	SensorCorrectionsUpdate();
 
@@ -203,7 +206,8 @@ void VehicleAirData::Run()
 	_voter.get_best(time_now_us, &best_index);
 
 	if (best_index >= 0) {
-		if (_selected_sensor_sub_index != best_index) {
+		// handle selection change (don't process on same iteration as parameter update)
+		if ((_selected_sensor_sub_index != best_index) && !parameter_update) {
 			// clear all registered callbacks
 			for (auto &sub : _sensor_sub) {
 				sub.unregisterCallback();
@@ -281,8 +285,8 @@ void VehicleAirData::Run()
 		}
 	}
 
-	// check failover and report
-	if (_last_failover_count != _voter.failover_count()) {
+	// check failover and report (save failover report for a cycle where parameters didn't update)
+	if (_last_failover_count != _voter.failover_count() && !parameter_update) {
 		uint32_t flags = _voter.failover_state();
 		int failover_index = _voter.failover_index();
 
