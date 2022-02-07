@@ -110,31 +110,6 @@ void Ekf::controlFusionModes()
 		_gps_data_ready = _gps_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
 	}
 
-
-	if (_mag_buffer) {
-		_mag_data_ready = _mag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed);
-
-		if (_mag_data_ready) {
-			_mag_lpf.update(_mag_sample_delayed.mag);
-
-			// if enabled, use knowledge of theoretical magnetic field vector to calculate a synthetic magnetomter Z component value.
-			// this is useful if there is a lot of interference on the sensor measurement.
-			if (_params.synthesize_mag_z && (_params.mag_declination_source & MASK_USE_GEO_DECL)
-			    && (_NED_origin_initialised || PX4_ISFINITE(_mag_declination_gps))
-			   ) {
-
-				const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -_mag_inclination_gps, _mag_declination_gps)) * Vector3f(_mag_strength_gps, 0, 0);
-				_mag_sample_delayed.mag(2) = calculate_synthetic_mag_z_measurement(_mag_sample_delayed.mag, mag_earth_pred);
-				_control_status.flags.synthetic_mag_z = true;
-
-			} else {
-				_control_status.flags.synthetic_mag_z = false;
-			}
-		}
-
-
-	}
-
 	if (_range_buffer) {
 		// Get range data from buffer and check validity
 		bool is_rng_data_ready = _range_buffer->pop_first_older_than(_imu_sample_delayed.time_us, _range_sensor.getSampleAddress());
@@ -212,6 +187,12 @@ void Ekf::controlExternalVisionFusion()
 	// Check for new external vision data
 	if (_ev_data_ready) {
 
+		bool reset = false;
+
+		if (_ev_sample_delayed.reset_counter != _ev_sample_delayed_prev.reset_counter) {
+			reset = true;
+		}
+
 		if (_inhibit_ev_yaw_use) {
 			stopEvYawFusion();
 		}
@@ -257,9 +238,11 @@ void Ekf::controlExternalVisionFusion()
 
 		// determine if we should use the horizontal position observations
 		if (_control_status.flags.ev_pos) {
+			if (reset && _control_status_prev.flags.ev_pos) {
+				resetHorizontalPosition();
+			}
 
 			Vector3f ev_pos_obs_var;
-			Vector2f ev_pos_innov_gates;
 
 			// correct position and height for offset relative to IMU
 			const Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
@@ -281,10 +264,8 @@ void Ekf::controlExternalVisionFusion()
 
 				} else {
 					// calculate the change in position since the last measurement
-					Vector3f ev_delta_pos = _ev_sample_delayed.pos - _pos_meas_prev;
-
 					// rotate measurement into body frame is required when fusing with GPS
-					ev_delta_pos = _R_ev_to_ekf * ev_delta_pos;
+					Vector3f ev_delta_pos = _R_ev_to_ekf * Vector3f(_ev_sample_delayed.pos - _ev_sample_delayed_prev.pos);
 
 					// use the change in position since the last measurement
 					_ev_pos_innov(0) = _state.pos(0) - _hpos_pred_prev(0) - ev_delta_pos(0);
@@ -296,11 +277,6 @@ void Ekf::controlExternalVisionFusion()
 					ev_pos_obs_var(0) = fmaxf(ev_pos_var(0, 0), sq(0.5f));
 					ev_pos_obs_var(1) = fmaxf(ev_pos_var(1, 1), sq(0.5f));
 				}
-
-				// record observation and estimate for use next time
-				_pos_meas_prev = _ev_sample_delayed.pos;
-				_hpos_pred_prev = _state.pos.xy();
-
 			} else {
 				// use the absolute position
 				Vector3f ev_pos_meas = _ev_sample_delayed.pos;
@@ -330,18 +306,18 @@ void Ekf::controlExternalVisionFusion()
 			}
 
 			// innovation gate size
-			ev_pos_innov_gates(0) = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+			const float ev_pos_innov_gate = fmaxf(_params.ev_pos_innov_gate, 1.0f);
 
-			fuseHorizontalPosition(_ev_pos_innov, ev_pos_innov_gates, ev_pos_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
+			fuseHorizontalPosition(_ev_pos_innov, ev_pos_innov_gate, ev_pos_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
 		}
 
 		// determine if we should use the velocity observations
 		if (_control_status.flags.ev_vel) {
+			if (reset && _control_status_prev.flags.ev_vel) {
+				resetVelocity();
+			}
 
-			Vector2f ev_vel_innov_gates;
-
-			_last_vel_obs = getVisionVelocityInEkfFrame();
-			_ev_vel_innov = _state.vel - _last_vel_obs;
+			_ev_vel_innov = _state.vel - getVisionVelocityInEkfFrame();
 
 			// check if we have been deadreckoning too long
 			if (isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)) {
@@ -352,18 +328,33 @@ void Ekf::controlExternalVisionFusion()
 				}
 			}
 
-			_last_vel_obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
+			const Vector3f obs_var = matrix::max(getVisionVelocityVarianceInEkfFrame(), sq(0.05f));
 
-			ev_vel_innov_gates.setAll(fmaxf(_params.ev_vel_innov_gate, 1.0f));
+			const float innov_gate = fmaxf(_params.ev_vel_innov_gate, 1.f);
 
-			fuseHorizontalVelocity(_ev_vel_innov, ev_vel_innov_gates, _last_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
-			fuseVerticalVelocity(_ev_vel_innov, ev_vel_innov_gates, _last_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			fuseHorizontalVelocity(_ev_vel_innov, innov_gate, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			fuseVerticalVelocity(_ev_vel_innov, innov_gate, obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
 		}
 
 		// determine if we should use the yaw observation
 		if (_control_status.flags.ev_yaw) {
-			fuseHeading();
+			if (reset && _control_status_prev.flags.ev_yaw) {
+				resetYawToEv();
+			}
+
+			if (shouldUse321RotationSequence(_R_to_earth)) {
+				float measured_hdg = getEuler321Yaw(_ev_sample_delayed.quat);
+				fuseYaw321(measured_hdg, _ev_sample_delayed.angVar);
+
+			} else {
+				float measured_hdg = getEuler312Yaw(_ev_sample_delayed.quat);
+				fuseYaw312(measured_hdg, _ev_sample_delayed.angVar);
+			}
 		}
+
+		// record observation and estimate for use next time
+		_ev_sample_delayed_prev = _ev_sample_delayed;
+		_hpos_pred_prev = _state.pos.xy();
 
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel ||  _control_status.flags.ev_yaw)
 		   && isTimedOut(_time_last_ext_vision, (uint64_t)_params.reset_timeout_max)) {
@@ -1052,45 +1043,46 @@ void Ekf::controlBetaFusion()
 
 void Ekf::controlDragFusion()
 {
-	if ((_params.fusion_mode & MASK_USE_DRAG) &&
-	    !_using_synthetic_position &&
-	    _control_status.flags.in_air &&
-	    !_mag_inhibit_yaw_reset_req) {
+	if ((_params.fusion_mode & MASK_USE_DRAG) && _drag_buffer &&
+	    !_using_synthetic_position && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
 
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
 			resetWind();
 
-		} else if (_drag_buffer && _drag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_drag_sample_delayed)) {
-			fuseDrag();
+		}
+
+
+		dragSample drag_sample;
+
+		if (_drag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &drag_sample)) {
+			fuseDrag(drag_sample);
 		}
 	}
 }
 
 void Ekf::controlAuxVelFusion()
 {
-	bool data_ready = false;
-
 	if (_auxvel_buffer) {
-		data_ready = _auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_auxvel_sample_delayed);
-	}
+		auxVelSample auxvel_sample_delayed;
 
-	if (data_ready && isHorizontalAidingActive()) {
+		if (_auxvel_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &auxvel_sample_delayed)) {
 
-		const Vector2f aux_vel_innov_gate(_params.auxvel_gate, _params.auxvel_gate);
+			if (isHorizontalAidingActive()) {
 
-		_last_vel_obs = _auxvel_sample_delayed.vel;
-		_aux_vel_innov = _state.vel - _last_vel_obs;
-		_last_vel_obs_var = _aux_vel_innov_var;
+				const float aux_vel_innov_gate = fmaxf(_params.auxvel_gate, 1.f);
 
-		fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, _auxvel_sample_delayed.velVar,
-				       _aux_vel_innov_var, _aux_vel_test_ratio);
+				_aux_vel_innov = _state.vel - auxvel_sample_delayed.vel;
 
-		// Can be enabled after bit for this is added to EKF_AID_MASK
-		// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, _auxvel_sample_delayed.velVar,
-		//		_aux_vel_innov_var, _aux_vel_test_ratio);
+				fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, auxvel_sample_delayed.velVar,
+						       _aux_vel_innov_var, _aux_vel_test_ratio);
 
+				// Can be enabled after bit for this is added to EKF_AID_MASK
+				// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, auxvel_sample_delayed.velVar,
+				//		_aux_vel_innov_var, _aux_vel_test_ratio);
+			}
+		}
 	}
 }
 

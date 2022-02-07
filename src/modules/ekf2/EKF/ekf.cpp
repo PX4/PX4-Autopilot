@@ -82,6 +82,8 @@ void Ekf::reset()
 
 	_prev_dvel_bias_var.zero();
 
+	_control_status.flags.vehicle_at_rest = true;
+
 	resetGpsDriftCheckFilters();
 }
 
@@ -143,16 +145,20 @@ bool Ekf::initialiseFilter()
 	}
 
 	// Sum the magnetometer measurements
-	if (_mag_buffer && _mag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		if (_mag_sample_delayed.time_us != 0) {
-			if (_mag_counter == 0) {
-				_mag_lpf.reset(_mag_sample_delayed.mag);
+	if (_mag_buffer) {
+		magSample mag_sample;
 
-			} else {
-				_mag_lpf.update(_mag_sample_delayed.mag);
+		if (_mag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &mag_sample)) {
+			if (mag_sample.time_us != 0) {
+				if (_mag_counter == 0) {
+					_mag_lpf.reset(mag_sample.mag);
+
+				} else {
+					_mag_lpf.update(mag_sample.mag);
+				}
+
+				_mag_counter++;
 			}
-
-			_mag_counter++;
 		}
 	}
 
@@ -192,7 +198,7 @@ bool Ekf::initialiseFilter()
 	// calculate the initial magnetic field and yaw alignment
 	// but do not mark the yaw alignement complete as it needs to be
 	// reset once the leveling phase is done
-	resetMagHeading(_mag_lpf.getState(), false, false);
+	resetMagHeading(false, false);
 
 	// initialise the state covariance matrix now we have starting values for all the states
 	initialiseCovariance();
@@ -255,7 +261,6 @@ void Ekf::predictState()
 
 	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
 	_state.quat_nominal = (_state.quat_nominal * dq).normalized();
-
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// Calculate an earth frame delta velocity

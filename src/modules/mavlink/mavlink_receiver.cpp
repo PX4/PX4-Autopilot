@@ -1377,6 +1377,8 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	visual_odom.yawspeed = NAN;
 	visual_odom.velocity_covariance[0] = NAN;
 
+	visual_odom.reset_counter = ev.reset_counter;
+
 	_visual_odometry_pub.publish(visual_odom);
 }
 
@@ -1443,6 +1445,8 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	} else {
 		PX4_ERR("Body frame %" PRIu8 " not supported. Unable to publish velocity", odom.child_frame_id);
 	}
+
+	odometry.reset_counter = odom.reset_counter;
 
 	/**
 	 * Supported local frame of reference is MAV_FRAME_LOCAL_NED or MAV_FRAME_LOCAL_FRD

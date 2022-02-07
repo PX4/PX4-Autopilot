@@ -55,8 +55,8 @@ static constexpr unsigned max_mandatory_baro_count = 1;
 static constexpr unsigned max_optional_baro_count = 4;
 
 bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
-				    vehicle_status_flags_s &status_flags, bool report_failures, const bool prearm,
-				    const hrt_abstime &time_since_boot)
+				    vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
+				    bool report_failures, const bool prearm, const hrt_abstime &time_since_boot)
 {
 	report_failures = (report_failures && status_flags.condition_system_hotplug_timeout
 			   && !status_flags.condition_calibration_enabled);
@@ -256,7 +256,13 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, true, ekf_healthy, status);
 		}
 
-		failed |= !ekf_healthy;
+
+		if (control_mode.flag_control_attitude_enabled
+		    || control_mode.flag_control_velocity_enabled
+		    || control_mode.flag_control_position_enabled) {
+			// healthy estimator only required for dependent control modes
+			failed |= !ekf_healthy;
+		}
 	}
 
 	/* ---- Failure Detector ---- */

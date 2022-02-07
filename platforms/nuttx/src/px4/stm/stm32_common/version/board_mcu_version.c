@@ -99,6 +99,10 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 		*revstr = "STM32F76xxx";
 		break;
 
+	case STM32F40x_41x:
+		*revstr = "STM32F40x";
+		break;
+
 	case STM32F42x_43x:
 		*revstr = "STM32F42x";
 		/* Set possible errata */

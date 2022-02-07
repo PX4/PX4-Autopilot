@@ -33,6 +33,7 @@
 
 #if defined(CONFIG_SYSTEM_CDCACM)
 __BEGIN_DECLS
+#include <arch/board/board.h>
 #include <syslog.h>
 #include <nuttx/wqueue.h>
 #include <builtin/builtin.h>
@@ -120,7 +121,8 @@ static void mavlink_usb_check(void *arg)
 						if (nread > 0) {
 							bool launch_mavlink = false;
 							bool launch_nshterm = false;
-
+							bool launch_passthru = false;
+							struct termios uart_config;
 							static constexpr int MAVLINK_HEARTBEAT_MIN_LENGTH = 9;
 
 							if (nread >= MAVLINK_HEARTBEAT_MIN_LENGTH) {
@@ -166,14 +168,44 @@ static void mavlink_usb_check(void *arg)
 								}
 							}
 
-							if (launch_mavlink || launch_nshterm) {
+#if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
+
+							if (!launch_mavlink && !launch_nshterm && (nread >= 4)) {
+								// passthru Ublox
+								// scan buffer looking for 0xb5 0x62
+								for (int i = 0; i < nread; i++) {
+									bool ub = buffer[i] == 0xb5 && buffer[i + 1] == 0x62;
+
+									if (ub && ((buffer[i + 2 ] == 0x6 && (buffer[i + 3 ] == 0xb8 || buffer[i + 3 ] == 0x13)) ||
+										   (buffer[i + 2 ] == 0xa && buffer[i + 3 ] == 0x4))) {
+										syslog(LOG_INFO, "%s: launching serial_passthru\n", USB_DEVICE_PATH);
+										launch_passthru = true;
+										break;
+									}
+								}
+							}
+
+#endif
+
+							if (launch_mavlink || launch_nshterm || launch_passthru) {
+
+								// Get the current settings
+								tcgetattr(ttyacm_fd, &uart_config);
+
 								// cleanup serial port
 								close(ttyacm_fd);
 								ttyacm_fd = -1;
 
 								static const char *mavlink_argv[] {"mavlink", "start", "-d", USB_DEVICE_PATH, nullptr};
 								static const char *nshterm_argv[] {"nshterm", USB_DEVICE_PATH, nullptr};
+#if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
+								speed_t baudrate = cfgetspeed(&uart_config);
+								char baudstring[16];
+								snprintf(baudstring, sizeof(baudstring), "%d", baudrate);
+								static const char *gps_argv[] {"gps", "stop", nullptr};
 
+								static const char *passthru_argv[] {"serial_passthru", "start", "-t", "-b", baudstring, "-e", USB_DEVICE_PATH, "-d", CONFIG_SERIAL_PASSTHRU_UBLOX_DEV,   nullptr};
+#endif
 								char **exec_argv = nullptr;
 
 								if (launch_nshterm) {
@@ -182,6 +214,18 @@ static void mavlink_usb_check(void *arg)
 								} else if (launch_mavlink) {
 									exec_argv = (char **)mavlink_argv;
 								}
+
+#if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
+
+								else if (launch_passthru) {
+									sched_lock();
+									exec_argv = (char **)gps_argv;
+									exec_builtin(exec_argv[0], exec_argv, nullptr, 0);
+									sched_unlock();
+									exec_argv = (char **)passthru_argv;
+								}
+
+#endif
 
 								sched_lock();
 

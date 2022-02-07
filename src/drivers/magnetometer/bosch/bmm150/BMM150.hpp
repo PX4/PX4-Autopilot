@@ -128,7 +128,7 @@ private:
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register                | Set bits, Clear bits
 		{ Register::POWER_CONTROL, POWER_CONTROL_BIT::PowerControl, POWER_CONTROL_BIT::SoftReset },
-		{ Register::OP_MODE,       OP_MODE_BIT::ODR_20Hz, OP_MODE_BIT::Opmode_Sleep | OP_MODE_BIT::Self_Test },
+		{ Register::OP_MODE,       OP_MODE_BIT::ODR_20HZ_SET, OP_MODE_BIT::ODR_20HZ_CLEAR | OP_MODE_BIT::Opmode_Sleep | OP_MODE_BIT::Self_Test },
 		{ Register::REPXY,         REPXY_BIT::XY_HA_SET, REPXY_BIT::XY_HA_CLEAR },
 		{ Register::REPZ,          REPZ_BIT::Z_HA_SET, REPZ_BIT::Z_HA_CLEAR },
 	};

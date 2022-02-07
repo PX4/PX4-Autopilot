@@ -548,7 +548,7 @@ void DevCommon::scan_for_packets()
 
 		perf_set_count(header_bytes_received_count, _read_buffer->header_bytes_received);
 
-		i += payload_len;
+		i += Sp2HeaderSize + payload_len;
 
 	}
 }
