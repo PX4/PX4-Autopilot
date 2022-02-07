@@ -365,8 +365,6 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 {
 	GPS *gps = (GPS *)user;
 
-	timespec rtc_system_time;
-
 	switch (type) {
 	case GPSCallbackType::readDeviceData: {
 			int timeout;
@@ -395,22 +393,6 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 	case GPSCallbackType::surveyInStatus:
 		/* not used */
-		break;
-
-	case GPSCallbackType::setClock:
-
-		px4_clock_gettime(CLOCK_REALTIME, &rtc_system_time);
-		timespec rtc_gps_time = *(timespec *)data1;
-		int drift_time = abs(rtc_system_time.tv_sec - rtc_gps_time.tv_sec);
-
-		if (drift_time >= SET_CLOCK_DRIFT_TIME_S) {
-			// as of 2021 setting the time on Nuttx temporarily pauses interrupts
-			// so only set the time if it is very wrong.
-			// TODO: clock slewing of the RTC for small time differences
-			px4_clock_settime(CLOCK_REALTIME, &rtc_gps_time);
-		}
-
-
 		break;
 	}
 
@@ -1124,7 +1106,7 @@ GPS::publish()
 {
 	if (_instance == Instance::Main || _is_gps_main_advertised.load()) {
 		_report_gps_pos.device_id = get_device_id();
-
+		_report_gps_pos.timestamp = hrt_absolute_time();
 		_report_gps_pos_pub.publish(_report_gps_pos);
 		// Heading/yaw data can be updated at a lower rate than the other navigation data.
 		// The uORB message definition requires this data to be set to a NAN if no new valid data is available.
@@ -1138,6 +1120,7 @@ GPS::publishSatelliteInfo()
 {
 	if (_instance == Instance::Main) {
 		if (_p_report_sat_info != nullptr) {
+			_p_report_sat_info->timestamp = hrt_absolute_time();
 			_report_sat_info_pub.publish(*_p_report_sat_info);
 		}
 
@@ -1282,7 +1265,7 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 	}
 
 	int task_id = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, TASK_STACK_SIZE,
+				   SCHED_PRIORITY_FAST_DRIVER, TASK_STACK_SIZE,
 				   entry_point, (char *const *)argv);
 
 	if (task_id < 0) {

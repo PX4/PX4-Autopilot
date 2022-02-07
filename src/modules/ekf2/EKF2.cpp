@@ -1627,7 +1627,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 		}
 
 		gps_message gps_msg{
-			.time_usec = vehicle_gps_position.timestamp,
+			.time_usec = vehicle_gps_position.timestamp_sample,
 			.lat = vehicle_gps_position.lat,
 			.lon = vehicle_gps_position.lon,
 			.alt = vehicle_gps_position.alt,
@@ -1645,8 +1645,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			},
 			.vel_ned_valid = vehicle_gps_position.vel_ned_valid,
 			.nsats = vehicle_gps_position.satellites_used,
-			.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
-				      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
+			.pdop = vehicle_gps_position.pdop,
 		};
 		_ekf.setGpsData(gps_msg);
 

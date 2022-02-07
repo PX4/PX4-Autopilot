@@ -41,6 +41,7 @@ target_link_libraries(vehicle_gps_position
 	PRIVATE
 		geo
 		px4_work_queue
+		timesync
 )
 
 px4_add_unit_gtest(SRC gps_blending_test.cpp LINKLIBS vehicle_gps_position)

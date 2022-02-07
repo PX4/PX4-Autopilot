@@ -87,8 +87,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink_ftp(parent),
 	_mavlink_log_handler(parent),
 	_mission_manager(parent),
-	_parameters_manager(parent),
-	_mavlink_timesync(parent)
+	_parameters_manager(parent)
 {
 	_handle_sens_flow_maxhgt = param_find("SENS_FLOW_MAXHGT");
 	_handle_sens_flow_maxr = param_find("SENS_FLOW_MAXR");
@@ -302,6 +301,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_REQUEST_EVENT:
 		handle_message_request_event(msg);
+		break;
+
+	case MAVLINK_MSG_ID_TIMESYNC:
+		handle_message_timesync(msg);
+		break;
+
+	case MAVLINK_MSG_ID_SYSTEM_TIME:
+		handle_message_system_time(msg);
 		break;
 
 	default:
@@ -967,7 +974,7 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	vehicle_odometry_s mocap_odom{};
 
 	mocap_odom.timestamp = hrt_absolute_time();
-	mocap_odom.timestamp_sample = _mavlink_timesync.sync_stamp(mocap.time_usec);
+	mocap_odom.timestamp_sample = _timesync.sync_stamp(mocap.time_usec);
 
 	mocap_odom.x = mocap.x;
 	mocap_odom.y = mocap.y;
@@ -1350,7 +1357,7 @@ MavlinkReceiver::handle_message_vision_position_estimate(mavlink_message_t *msg)
 	vehicle_odometry_s visual_odom{};
 
 	visual_odom.timestamp = hrt_absolute_time();
-	visual_odom.timestamp_sample = _mavlink_timesync.sync_stamp(ev.usec);
+	visual_odom.timestamp_sample = _timesync.sync_stamp(ev.usec);
 
 	visual_odom.x = ev.x;
 	visual_odom.y = ev.y;
@@ -1391,7 +1398,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	vehicle_odometry_s odometry{};
 
 	odometry.timestamp = hrt_absolute_time();
-	odometry.timestamp_sample = _mavlink_timesync.sync_stamp(odom.time_usec);
+	odometry.timestamp_sample = _timesync.sync_stamp(odom.time_usec);
 
 	/* The position is in a local FRD frame */
 	odometry.x = odom.x;
@@ -1931,7 +1938,7 @@ MavlinkReceiver::handle_message_trajectory_representation_bezier(mavlink_message
 
 	vehicle_trajectory_bezier_s trajectory_bezier{};
 
-	trajectory_bezier.timestamp =  _mavlink_timesync.sync_stamp(trajectory.time_usec);
+	trajectory_bezier.timestamp =  _timesync.sync_stamp(trajectory.time_usec);
 
 	for (int i = 0; i < vehicle_trajectory_bezier_s::NUMBER_POINTS; ++i) {
 		trajectory_bezier.control_points[i].position[0] = trajectory.pos_x[i];
@@ -2387,7 +2394,6 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 				hil_gps.cog * 1e-2f))); // cdeg -> rad
 	gps.vel_ned_valid = true;
 
-	gps.timestamp_time_relative = 0;
 	gps.time_utc_usec = hil_gps.time_usec;
 
 	gps.satellites_used = hil_gps.satellites_visible;
@@ -2428,7 +2434,7 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 	if (landing_target.position_valid && landing_target.frame == MAV_FRAME_LOCAL_NED) {
 		landing_target_pose_s landing_target_pose{};
 
-		landing_target_pose.timestamp = _mavlink_timesync.sync_stamp(landing_target.time_usec);
+		landing_target_pose.timestamp = _timesync.sync_stamp(landing_target.time_usec);
 		landing_target_pose.abs_pos_valid = true;
 		landing_target_pose.x_abs = landing_target.x;
 		landing_target_pose.y_abs = landing_target.y;
@@ -2918,6 +2924,82 @@ void MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
 	}
 }
 
+void MavlinkReceiver::handle_message_system_time(mavlink_message_t *msg)
+{
+	mavlink_system_time_t system_time;
+	mavlink_msg_system_time_decode(msg, &system_time);
+
+	timespec tv{};
+	px4_clock_gettime(CLOCK_REALTIME, &tv);
+
+	// date -d @1234567890: Sat Feb 14 02:31:30 MSK 2009
+	bool onb_unix_valid = (unsigned long long)tv.tv_sec > PX4_EPOCH_SECS;
+	bool ofb_unix_valid = system_time.time_unix_usec > PX4_EPOCH_SECS * 1000000ULL;
+
+	if (!onb_unix_valid && ofb_unix_valid) {
+
+		const time_t tv_sec = system_time.time_unix_usec / 1000000ULL;
+
+		if (llabs(tv.tv_sec - tv_sec) > 5) {
+			tv.tv_sec = system_time.time_unix_usec / 1000000ULL;
+			tv.tv_nsec = (system_time.time_unix_usec % 1000000ULL) * 1000ULL;
+
+			if (px4_clock_settime(CLOCK_REALTIME, &tv) == OK) {
+				// convert to date time
+				char datetime_buf[40] {};
+				struct tm date_time;
+				time_t utc_time_sec_current = tv.tv_sec + (tv.tv_nsec / 1e9);
+				localtime_r(&utc_time_sec_current, &date_time);
+				strftime(datetime_buf, sizeof(datetime_buf), "%a %Y-%m-%d %H:%M:%S %Z", &date_time);
+				PX4_INFO("[SYSTEM_TIME] setting time: %s", datetime_buf);
+
+			} else {
+				PX4_ERR("[SYSTEM_TIME] Failed setting realtime clock");
+			}
+		}
+	}
+}
+
+void MavlinkReceiver::handle_message_timesync(mavlink_message_t *msg)
+{
+	const hrt_abstime now = hrt_absolute_time();
+
+	mavlink_timesync_t tsync{};
+	mavlink_msg_timesync_decode(msg, &tsync);
+
+	if (tsync.tc1 == 0) {
+		// Message originating from remote system, timestamp and return it
+		mavlink_timesync_t rsync{};
+		rsync.ts1 = tsync.ts1;
+		rsync.tc1 = now * 1000ULL;
+		mavlink_msg_timesync_send_struct(_mavlink->get_channel(), &rsync);
+
+	} else if (tsync.tc1 > 0) {
+		// Message originating from this system, compute time offset from it
+
+		// Calculate the round trip time (RTT) it took the timesync packet to bounce back to us from remote system
+		uint64_t rtt_us = now - (tsync.ts1 / 1000ULL);
+
+		// Samples with round-trip time higher than 10 milliseconds are not used to update the filter.
+		if (rtt_us > 10_ms) {
+			// More than 5 number of such events in a row will throw a warning
+			if (++_high_rtt_count > 5) {
+				PX4_WARN("[timesync] RTT too high for timesync: %llu ms (sender: %i)", rtt_us / 1000ULL, msg->compid);
+				// Reset counter to rate-limit warnings
+				_high_rtt_count = 0;
+			}
+
+		} else {
+			_timesync.set_source(timesync_status_s::SOURCE_PROTOCOL_MAVLINK);
+			// Calculate time offset between this system and the remote system, assuming RTT for
+			// the timesync packet is roughly equal both ways.
+			int64_t offset_us = (int64_t)((tsync.ts1 / 1000ULL) + now - (tsync.tc1 / 1000ULL) * 2) / 2;
+
+			_timesync.update(offset_us);
+		}
+	}
+}
+
 void MavlinkReceiver::CheckHeartbeats(const hrt_abstime &t, bool force)
 {
 	// check HEARTBEATs for timeout
@@ -3185,9 +3267,6 @@ MavlinkReceiver::run()
 
 						/* handle packet with log component */
 						_mavlink_log_handler.handle_message(&msg);
-
-						/* handle packet with timesync component */
-						_mavlink_timesync.handle_message(&msg);
 
 						/* handle packet with parent object */
 						_mavlink->handle_message(&msg);

@@ -101,11 +101,11 @@ typedef struct {
 #endif
 
 // PX4 work queue starting high priority
-#define PX4_WQ_HP_BASE (SCHED_PRIORITY_MAX - 15)
+#define PX4_WQ_HP_BASE (SCHED_PRIORITY_MAX - 19)
 
 // Fast drivers - they need to run as quickly as possible to minimize control
 // latency.
-#define SCHED_PRIORITY_FAST_DRIVER		(SCHED_PRIORITY_MAX - 0)
+#define SCHED_PRIORITY_FAST_DRIVER		(PX4_WQ_HP_BASE + 1)
 
 // Actuator outputs should run as soon as the rate controller publishes
 // the actuator controls topic
@@ -136,7 +136,7 @@ typedef struct {
 
 // Slow drivers should run at a rate where they do not impact the overall
 // system execution
-#define SCHED_PRIORITY_SLOW_DRIVER		(PX4_WQ_HP_BASE - 35)
+#define SCHED_PRIORITY_SLOW_DRIVER		(PX4_WQ_HP_BASE - 18)
 
 // The navigation system needs to execute regularly but has no realtime needs
 #define SCHED_PRIORITY_NAVIGATION		(SCHED_PRIORITY_DEFAULT + 5)

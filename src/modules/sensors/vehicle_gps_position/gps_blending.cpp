@@ -108,22 +108,22 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 
 		float raw_dt = 0.f;
 
-		if (_gps_state[i].timestamp > _time_prev_us[i]) {
-			raw_dt = 1e-6f * (_gps_state[i].timestamp - _time_prev_us[i]);
+		if (_gps_state[i].timestamp_sample > _time_prev_us[i]) {
+			raw_dt = 1e-6f * (_gps_state[i].timestamp_sample - _time_prev_us[i]);
 		}
 
 		float present_dt = 0.f;
 
-		if (hrt_now_us > _gps_state[i].timestamp) {
-			present_dt = 1e-6f * (hrt_now_us - _gps_state[i].timestamp);
+		if (hrt_now_us > _gps_state[i].timestamp_sample) {
+			present_dt = 1e-6f * (hrt_now_us - _gps_state[i].timestamp_sample);
 		}
 
 		if (raw_dt > 0.0f && raw_dt < GPS_TIMEOUT_S) {
 			_gps_dt[i] = 0.1f * raw_dt + 0.9f * _gps_dt[i];
 
-		} else if ((present_dt >= GPS_TIMEOUT_S) && (_gps_state[i].timestamp > 0)) {
+		} else if ((present_dt >= GPS_TIMEOUT_S) && (_gps_state[i].timestamp_sample > 0)) {
 			// Timed out - kill the stored fix for this receiver and don't track its (stale) gps_dt
-			_gps_state[i].timestamp = 0;
+			_gps_state[i].timestamp_sample = 0;
 			_gps_state[i].fix_type = 0;
 			_gps_state[i].satellites_used = 0;
 			_gps_state[i].vel_ned_valid = 0;
@@ -160,13 +160,13 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 		// Find largest and smallest times
-		if (_gps_state[i].timestamp > max_us) {
-			max_us = _gps_state[i].timestamp;
+		if (_gps_state[i].timestamp_sample > max_us) {
+			max_us = _gps_state[i].timestamp_sample;
 			_gps_newest_index = i;
 		}
 
-		if ((_gps_state[i].timestamp < min_us) && (_gps_state[i].timestamp > 0)) {
-			min_us = _gps_state[i].timestamp;
+		if ((_gps_state[i].timestamp_sample < min_us) && (_gps_state[i].timestamp_sample > 0)) {
+			min_us = _gps_state[i].timestamp_sample;
 		}
 	}
 
@@ -197,7 +197,7 @@ bool GpsBlending::blend_gps_data(uint64_t hrt_now_us)
 		// both receivers running at different rates
 		_gps_time_ref_index = _gps_slowest_index;
 
-		if (_gps_state[_gps_time_ref_index].timestamp > _time_prev_us[_gps_time_ref_index]) {
+		if (_gps_state[_gps_time_ref_index].timestamp_sample > _time_prev_us[_gps_time_ref_index]) {
 			// blend data at the rate of the slower receiver
 			gps_new_output_data = true;
 		}
@@ -360,7 +360,7 @@ sensor_gps_s GpsBlending::gps_blend_states(float blend_weights[GPS_MAX_RECEIVERS
 	// combine the the GPS states into a blended solution using the weights calculated in calc_blend_weights()
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
 		// blend the timing data
-		gps_blended_state.timestamp += (uint64_t)((double)_gps_state[i].timestamp * (double)blend_weights[i]);
+		gps_blended_state.timestamp_sample += (uint64_t)((double)_gps_state[i].timestamp_sample * (double)blend_weights[i]);
 
 		// use the highest status
 		if (_gps_state[i].fix_type > gps_blended_state.fix_type) {
@@ -499,12 +499,12 @@ void GpsBlending::update_gps_offsets(const sensor_gps_s &gps_blended_state)
 	float omega_lpf = 1.0f / fmaxf(_blending_time_constant, 1.0f);
 
 	for (uint8_t i = 0; i < GPS_MAX_RECEIVERS_BLEND; i++) {
-		if (_gps_state[i].timestamp - _time_prev_us[i] > 0) {
+		if (_gps_state[i].timestamp_sample - _time_prev_us[i] > 0) {
 			// calculate the filter coefficient that achieves the time constant specified by the user adjustable parameter
-			alpha[i] = constrain(omega_lpf * 1e-6f * (float)(_gps_state[i].timestamp - _time_prev_us[i]),
+			alpha[i] = constrain(omega_lpf * 1e-6f * (float)(_gps_state[i].timestamp_sample - _time_prev_us[i]),
 					     0.0f, 1.0f);
 
-			_time_prev_us[i] = _gps_state[i].timestamp;
+			_time_prev_us[i] = _gps_state[i].timestamp_sample;
 		}
 	}
 
