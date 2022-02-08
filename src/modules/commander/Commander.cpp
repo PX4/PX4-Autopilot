@@ -4143,7 +4143,7 @@ Commander::offboard_control_update()
 {
 	bool offboard_available = false;
 
-	if (_offboard_control_mode_sub.updated()) {
+	if (_offboard_control_mode_sub.updated() && _offboard_trajectory_setpoint_sub.updated()) {
 		const offboard_control_mode_s old = _offboard_control_mode_sub.get();
 
 		if (_offboard_control_mode_sub.update()) {
