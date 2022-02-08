@@ -75,6 +75,9 @@ void Ekf::reset()
 	_control_status.value = 0;
 	_control_status_prev.value = 0;
 
+	_control_status.flags.in_air = true;
+	_control_status_prev.flags.in_air = true;
+
 	_ang_rate_delayed_raw.zero();
 
 	_fault_status.value = 0;

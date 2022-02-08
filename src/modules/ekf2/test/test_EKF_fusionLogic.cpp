@@ -59,7 +59,12 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
+		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+
 		_sensor_simulator.runSeconds(7);
 	}
 
@@ -204,6 +209,8 @@ TEST_F(EkfFusionLogicTest, fallbackFromGpsToFlow)
 TEST_F(EkfFusionLogicTest, doFlowFusion)
 {
 	// GIVEN: a tilt and heading aligned filter
+	EXPECT_TRUE(_ekf->attitude_valid());
+
 	// WHEN: sending flow data without having the flow fusion enabled
 	//       flow measurement fusion should not be intended.
 	const float max_flow_rate = 5.f;
@@ -211,6 +218,9 @@ TEST_F(EkfFusionLogicTest, doFlowFusion)
 	const float max_ground_distance = 50.f;
 	_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
 	_sensor_simulator.startFlow();
+	_sensor_simulator.startRangeFinder();
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->set_in_air_status(true);
 	_sensor_simulator.runSeconds(4);
 
 	// THEN: EKF should not intend to fuse flow measurements
@@ -373,6 +383,8 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
 	reset_logging_checker.capturePreResetState();
 
 	_sensor_simulator._baro.setData(100.f);
+	_ekf->set_vehicle_at_rest(false);
+	_ekf->set_in_air_status(true);
 	_sensor_simulator.runSeconds(6);
 
 	reset_logging_checker.capturePostResetState();
@@ -390,7 +402,7 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
 
 	// AND: the baro data jumps by a lot
 	_sensor_simulator._baro.setData(800.f);
-	_sensor_simulator.runSeconds(6);
+	_sensor_simulator.runSeconds(20);
 	reset_logging_checker.capturePostResetState();
 
 	// THEN: EKF should fallback to GPS height

@@ -56,6 +56,7 @@ add_library(ecl_EKF
 	terrain_estimator.cpp
 	utils.cpp
 	vel_pos_fusion.cpp
+	zero_velocity_update.cpp
 )
 
 add_dependencies(ecl_EKF prebuild_targets)

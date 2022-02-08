@@ -69,6 +69,7 @@ px4_add_module(
 		EKF/terrain_estimator.cpp
 		EKF/utils.cpp
 		EKF/vel_pos_fusion.cpp
+		EKF/zero_velocity_update.cpp
 
 		EKF2.cpp
 		EKF2.hpp
