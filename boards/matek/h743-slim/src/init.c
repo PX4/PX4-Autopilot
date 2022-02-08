@@ -60,6 +60,10 @@
 #include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
 
+// # if defined(FLASH_BASED_PARAMS)
+// #  include <parameters/flashparams/flashfs.h>
+// #endif
+
 __BEGIN_DECLS
 extern void led_init(void);
 extern void led_on(int led);
@@ -173,6 +177,25 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif
+
+
+// #if defined(FLASH_BASED_PARAMS)
+// 	static sector_descriptor_t params_sector_map[] = {
+// 		{6, 128 * 1024, 0x081C0000},
+// 		{7, 128 * 1024, 0x081E0000},
+// 		{0, 0, 0},
+// 	};
+
+// 	/* Initialize the flashfs layer to use heap allocated memory */
+// 	int result = parameter_flashfs_init(params_sector_map, NULL, 0);
+
+// 	if (result != OK) {
+// 		syslog(LOG_ERR, "[boot] FAILED to init params in FLASH %d\n", result);
+// 		led_on(LED_BLUE);
+// 		return -ENODEV;
+// 	}
+
+// #endif
 
 	/* Configure the HW based on the manifest */
 	px4_platform_configure();
