@@ -65,7 +65,6 @@ LIS3MDL::LIS3MDL(device::Device *interface, const I2CSPIDriverConfig &config) :
 	_temperature_counter(0),
 	_temperature_error_count(0)
 {
-	_px4_mag.set_external(_interface->external());
 }
 
 LIS3MDL::~LIS3MDL()

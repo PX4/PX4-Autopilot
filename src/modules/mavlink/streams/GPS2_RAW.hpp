@@ -90,7 +90,11 @@ private:
 					msg.yaw = 36000; // Use 36000 for north.
 
 				} else {
-					msg.yaw = math::degrees(gps.heading) * 100.f; // centidegrees
+					msg.yaw = math::degrees(matrix::wrap_2pi(gps.heading)) * 100.0f; // centidegrees
+				}
+
+				if (PX4_ISFINITE(gps.heading_accuracy)) {
+					msg.hdg_acc = math::degrees(gps.heading_accuracy) * 1e5f; // Heading / track uncertainty in degE5
 				}
 			}
 

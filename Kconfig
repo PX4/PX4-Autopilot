@@ -114,14 +114,14 @@ config BOARD_ETHERNET
         flag to indicate that ethernet is enabled
 
 config BOARD_CRYPTO
-    string "Crypto"
+    bool "Crypto support"
     help
-        Crypto implementation selection
+        Enable PX4 Crypto Support. Select the implementation under drivers
 
-config BOARD_KEYSTORE
-    string "Keystore"
+config BOARD_PROTECTED
+    bool "Memory protection"
     help
-        Keystore implememntation selection
+        Enable memory protection via MPU/MMU
 
 menu "Serial ports"
 

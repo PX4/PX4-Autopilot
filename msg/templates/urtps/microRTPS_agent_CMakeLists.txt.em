@@ -53,3 +53,11 @@ endif()
 file(GLOB MICRORTPS_AGENT_SOURCES src/*.cpp src/*.h)
 add_executable(micrortps_agent ${MICRORTPS_AGENT_SOURCES})
 target_link_libraries(micrortps_agent fastrtps fastcdr)
+
+# Install to '/usr/local/bin' if `make install` is used
+install(
+  TARGETS micrortps_agent
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+)

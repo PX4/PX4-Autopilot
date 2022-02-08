@@ -44,15 +44,12 @@ public:
 	PX4Magnetometer(uint32_t device_id, enum Rotation rotation = ROTATION_NONE);
 	~PX4Magnetometer();
 
-	bool external() { return _external; }
-
 	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
 	void set_error_count(uint32_t error_count) { _error_count = error_count; }
 	void increase_error_count() { _error_count++; }
 	void set_scale(float scale) { _scale = scale; }
 	void set_temperature(float temperature) { _temperature = temperature; }
-	void set_external(bool external) { _external = external; }
 
 	void update(const hrt_abstime &timestamp_sample, float x, float y, float z);
 
@@ -67,6 +64,4 @@ private:
 	float			_scale{1.f};
 	float			_temperature{NAN};
 	uint32_t		_error_count{0};
-
-	bool _external{false};
 };

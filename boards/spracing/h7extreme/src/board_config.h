@@ -88,11 +88,6 @@
 
 #define ADC_CHANNELS (1 << 4) | (1 << 10) | (1 << 11)
 
-/* Define Battery 1 Voltage Divider and A per V
- */
-#define BOARD_BATTERY1_V_DIV         (10.9f)
-#define BOARD_BATTERY1_A_PER_V       (17.f)
-
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS  8
@@ -138,7 +133,6 @@
 
 #define BOARD_NUM_IO_TIMERS 3
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {1, 2, 3, 0, 4, 5, 6, 7};
 
 __BEGIN_DECLS
 

@@ -65,6 +65,10 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_actuators_out_1 = _attc->get_actuators_out1();
 	_actuators_mc_in = _attc->get_actuators_mc_in();
 	_actuators_fw_in = _attc->get_actuators_fw_in();
+	_torque_setpoint_0 = _attc->get_torque_setpoint_0();
+	_torque_setpoint_1 = _attc->get_torque_setpoint_1();
+	_thrust_setpoint_0 = _attc->get_thrust_setpoint_0();
+	_thrust_setpoint_1 = _attc->get_thrust_setpoint_1();
 	_local_pos = _attc->get_local_pos();
 	_local_pos_sp = _attc->get_local_pos_sp();
 	_airspeed_validated = _attc->get_airspeed();
@@ -83,50 +87,52 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 
 bool VtolType::init()
 {
-	const char *dev = _params->vt_mc_on_fmu ? PWM_OUTPUT1_DEVICE_PATH : PWM_OUTPUT0_DEVICE_PATH;
+	if (_params->ctrl_alloc != 1) {
+		const char *dev = _params->vt_mc_on_fmu ? PWM_OUTPUT1_DEVICE_PATH : PWM_OUTPUT0_DEVICE_PATH;
 
-	int fd = px4_open(dev, 0);
+		int fd = px4_open(dev, 0);
 
-	if (fd < 0) {
-		PX4_ERR("can't open %s", dev);
-		return false;
-	}
+		if (fd < 0) {
+			PX4_ERR("can't open %s", dev);
+			return false;
+		}
 
-	int ret = px4_ioctl(fd, PWM_SERVO_GET_MAX_PWM, (long unsigned int)&_max_mc_pwm_values);
-	_current_max_pwm_values = _max_mc_pwm_values;
+		int ret = px4_ioctl(fd, PWM_SERVO_GET_MAX_PWM, (long unsigned int)&_max_mc_pwm_values);
+		_current_max_pwm_values = _max_mc_pwm_values;
 
-	if (ret != PX4_OK) {
-		PX4_ERR("failed getting max values");
+		if (ret != PX4_OK) {
+			PX4_ERR("failed getting max values");
+			px4_close(fd);
+			return false;
+		}
+
+		ret = px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&_min_mc_pwm_values);
+
+		if (ret != PX4_OK) {
+			PX4_ERR("failed getting min values");
+			px4_close(fd);
+			return false;
+		}
+
+		ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&_disarmed_pwm_values);
+
+		if (ret != PX4_OK) {
+			PX4_ERR("failed getting disarmed values");
+			px4_close(fd);
+			return false;
+		}
+
 		px4_close(fd);
-		return false;
-	}
 
-	ret = px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&_min_mc_pwm_values);
-
-	if (ret != PX4_OK) {
-		PX4_ERR("failed getting min values");
-		px4_close(fd);
-		return false;
-	}
-
-	ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&_disarmed_pwm_values);
-
-	if (ret != PX4_OK) {
-		PX4_ERR("failed getting disarmed values");
-		px4_close(fd);
-		return false;
-	}
-
-	px4_close(fd);
-
-	_main_motor_channel_bitmap = generate_bitmap_from_channel_numbers(_params->vtol_motor_id);
-	_alternate_motor_channel_bitmap = generate_bitmap_from_channel_numbers(_params->fw_motors_off);
+		_main_motor_channel_bitmap = generate_bitmap_from_channel_numbers(_params->vtol_motor_id);
+		_alternate_motor_channel_bitmap = generate_bitmap_from_channel_numbers(_params->fw_motors_off);
 
 
-	// in order to get the main motors we take all motors and clear the alternate motor bits
-	for (int i = 0; i < 8; i++) {
-		if (_alternate_motor_channel_bitmap & (1 << i)) {
-			_main_motor_channel_bitmap &= ~(1 << i);
+		// in order to get the main motors we take all motors and clear the alternate motor bits
+		for (int i = 0; i < 8; i++) {
+			if (_alternate_motor_channel_bitmap & (1 << i)) {
+				_main_motor_channel_bitmap &= ~(1 << i);
+			}
 		}
 	}
 
@@ -322,6 +328,10 @@ void VtolType::check_quadchute_condition()
 
 bool VtolType::set_idle_mc()
 {
+	if (_params->ctrl_alloc == 1) {
+		return true;
+	}
+
 	unsigned pwm_value = _params->idle_pwm_mc;
 	struct pwm_output_values pwm_values {};
 
@@ -341,6 +351,10 @@ bool VtolType::set_idle_mc()
 
 bool VtolType::set_idle_fw()
 {
+	if (_params->ctrl_alloc == 1) {
+		return true;
+	}
+
 	struct pwm_output_values pwm_values {};
 
 	for (int i = 0; i < num_outputs_max; i++) {
@@ -390,12 +404,20 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 
 void VtolType::set_all_motor_state(const motor_state target_state, const int value)
 {
+	if (_params->ctrl_alloc == 1) {
+		return;
+	}
+
 	set_main_motor_state(target_state, value);
 	set_alternate_motor_state(target_state, value);
 }
 
 void VtolType::set_main_motor_state(const motor_state target_state, const int value)
 {
+	if (_params->ctrl_alloc == 1) {
+		return;
+	}
+
 	if (_main_motor_state != target_state || target_state == motor_state::VALUE) {
 
 		if (set_motor_state(target_state, _main_motor_channel_bitmap, value)) {
@@ -406,6 +428,10 @@ void VtolType::set_main_motor_state(const motor_state target_state, const int va
 
 void VtolType::set_alternate_motor_state(const motor_state target_state, const int value)
 {
+	if (_params->ctrl_alloc == 1) {
+		return;
+	}
+
 	if (_alternate_motor_state != target_state || target_state == motor_state::VALUE) {
 
 		if (set_motor_state(target_state, _alternate_motor_channel_bitmap, value)) {

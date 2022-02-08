@@ -55,7 +55,7 @@ class UavcanEscSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
 	UavcanEscSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(ins, pmgr, "esc", instance) { };
+		UavcanDynamicPortSubscriber(ins, pmgr, "ds_015.", "esc", instance) { };
 
 	void subscribe() override
 	{

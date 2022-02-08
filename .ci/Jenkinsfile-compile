@@ -60,14 +60,19 @@ pipeline {
                      "holybro_kakutef7_default",
                      "holybro_pix32v5_default",
                      "matek_h743-slim",
+                     "matek_gnss-m9n-f4_canbootloader",
+                     "matek_gnss-m9n-f4_default",
                      "modalai_fc-v1_default",
                      "modalai_fc-v1_rtps",
                      "modalai_fc-v2_default",
                      "mro_ctrl-zero-f7_default",
                      "mro_ctrl-zero-f7-oem_default",
                      "mro_ctrl-zero-h7_default",
+                     "mro_ctrl-zero-h7_rtps",
                      "mro_ctrl-zero-h7-oem_default",
+                     "mro_ctrl-zero-h7-oem_rtps",
                      "mro_pixracerpro_default",
+                     "mro_pixracerpro_rtps",
                      "mro_x21-777_default",
                      "mro_x21_default",
                      "nxp_fmuk66-e_default",
@@ -94,7 +99,6 @@ pipeline {
                      "px4_fmu-v5_stackcheck",
                      "px4_fmu-v5_uavcanv0periph",
                      "px4_fmu-v5_uavcanv1",
-                     "px4_fmu-v5x_base_phy_DP83848C",
                      "px4_fmu-v5x_default",
                      "px4_fmu-v6u_default",
                      "px4_fmu-v6x_default",
@@ -168,7 +172,7 @@ def createBuildNode(Boolean archive, String docker_image, String target) {
             try {
               sh('export')
               checkout(scm)
-              sh('make distclean')
+              sh('make distclean; git clean -ff -x -d .')
               sh('git fetch --tags')
               sh('ccache -s')
               sh('make ' + target)
@@ -185,7 +189,7 @@ def createBuildNode(Boolean archive, String docker_image, String target) {
               throw (exc)
             }
             finally {
-              sh('make distclean')
+              sh('make distclean; git clean -ff -x -d .')
             }
           }
         }

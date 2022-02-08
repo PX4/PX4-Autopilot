@@ -86,6 +86,7 @@ parameters:
 
             type: enum
             values:
+                1: 1S Battery
                 2: 2S Battery
                 3: 3S Battery
                 4: 4S Battery

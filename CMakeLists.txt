@@ -125,6 +125,11 @@ define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  FULL_DOCS "List of all PX4 module libraries"
                  )
 
+define_property(GLOBAL PROPERTY PX4_KERNEL_MODULE_LIBRARIES
+                 BRIEF_DOCS "PX4 kernel side module libs"
+                 FULL_DOCS "List of all PX4 kernel module libraries"
+                 )
+
 define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
                  BRIEF_DOCS "PX4 module paths"
                  FULL_DOCS "List of paths to all PX4 modules"
@@ -142,6 +147,7 @@ set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 
 include(px4_add_module)
 set(config_module_list)
+set(config_kernel_list)
 
 # Find Python
 # If using catkin, Python 2 is found since it points
@@ -423,6 +429,8 @@ endforeach()
 
 # add events lib after modules and libs as it needs to know all source files (PX4_SRC_FILES)
 add_subdirectory(src/lib/events EXCLUDE_FROM_ALL)
+# metadata needs PX4_MODULE_CONFIG_FILES
+add_subdirectory(src/lib/metadata EXCLUDE_FROM_ALL)
 
 # must be the last module before firmware
 add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)

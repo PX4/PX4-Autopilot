@@ -55,6 +55,11 @@ public:
 	void setAccelData(const Vector3f &accel);
 	void setGyroData(const Vector3f &gyro);
 
+	bool moving()
+	{
+		return ((fabsf(_accel_data.norm() - CONSTANTS_ONE_G) > 0.01f) || (_gyro_data.norm() > 0.01f));
+	}
+
 private:
 	Vector3f _accel_data;
 	Vector3f _gyro_data;

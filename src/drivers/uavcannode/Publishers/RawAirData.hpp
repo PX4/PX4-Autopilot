@@ -53,7 +53,9 @@ public:
 		UavcanPublisherBase(uavcan::equipment::air_data::RawAirData::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(differential_pressure)),
 		uavcan::Publisher<uavcan::equipment::air_data::RawAirData>(node)
-	{}
+	{
+		this->setPriority(uavcan::TransferPriority::Default);
+	}
 
 	void PrintInfo() override
 	{

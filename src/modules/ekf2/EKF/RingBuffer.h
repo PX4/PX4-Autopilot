@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,7 +46,7 @@ class RingBuffer
 {
 public:
 	explicit RingBuffer(size_t size) { allocate(size); }
-	RingBuffer() { allocate(1); }
+	RingBuffer() = delete;
 	~RingBuffer() { delete[] _buffer; }
 
 	// no copy, assignment, move, move assignment
@@ -154,6 +154,19 @@ public:
 	}
 
 	int get_total_size() const { return sizeof(*this) + sizeof(data_type) * _size; }
+
+	int entries() const
+	{
+		int count = 0;
+
+		for (uint8_t i = 0; i < _size; i++) {
+			if (_buffer[i].time_us != 0) {
+				count++;
+			}
+		}
+
+		return count;
+	}
 
 private:
 	data_type *_buffer{nullptr};

@@ -41,13 +41,14 @@
 
 #include <lib/circuit_breaker/circuit_breaker.h>
 
-UavcanBeep::UavcanBeep(uavcan::INode &node) :
+UavcanBeepController::UavcanBeepController(uavcan::INode &node) :
 	_beep_pub(node),
 	_timer(node)
 {
+	_beep_pub.setPriority(uavcan::TransferPriority::MiddleLower);
 }
 
-int UavcanBeep::init()
+int UavcanBeepController::init()
 {
 	// don't initialize if CBRK_BUZZER circuit breaker is enabled.
 	if (circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY)) {
@@ -58,21 +59,24 @@ int UavcanBeep::init()
 	 * Setup timer and call back function for periodic updates
 	 */
 	if (!_timer.isRunning()) {
-		_timer.setCallback(TimerCbBinder(this, &UavcanBeep::periodic_update));
+		_timer.setCallback(TimerCbBinder(this, &UavcanBeepController::periodic_update));
 		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
 	}
 
 	return 0;
 }
 
-void UavcanBeep::periodic_update(const uavcan::TimerEvent &)
+void UavcanBeepController::periodic_update(const uavcan::TimerEvent &)
 {
 	if (_tune_control_sub.updated()) {
 		_tune_control_sub.copy(&_tune);
 
 		if (_tune.timestamp > 0) {
 			Tunes::ControlResult result = _tunes.set_control(_tune);
-			_play_tone = (result == Tunes::ControlResult::Success) || (result == Tunes::ControlResult::AlreadyPlaying);
+
+			if (result == Tunes::ControlResult::Success) {
+				_play_tone = true;
+			}
 		}
 	}
 
@@ -88,23 +92,13 @@ void UavcanBeep::periodic_update(const uavcan::TimerEvent &)
 		_duration = _silence_length;
 		_silence_length = 0;
 
-	} else if (_play_tone) {
-		Tunes::Status parse_ret_val = _tunes.get_next_note(_frequency, _duration, _silence_length);
+	} else if (_play_tone && (_tunes.get_next_note(_frequency, _duration, _silence_length) == Tunes::Status::Continue)) {
 
-		if (parse_ret_val == Tunes::Status::Continue) {
-			// Continue playing.
-			_play_tone = true;
-
-			if (_frequency > 0) {
-				// Start playing the note.
-				uavcan::equipment::indication::BeepCommand cmd{};
-				cmd.frequency = _frequency;
-				cmd.duration = _duration / 1000000.f;
-				_beep_pub.broadcast(cmd);
-			}
-
-		} else {
-			_play_tone = false;
-		}
+		// Start playing the note.
+		// A frequency of 0 corresponds to ToneAlarmInterface::stop_note()
+		uavcan::equipment::indication::BeepCommand cmd{};
+		cmd.frequency = _frequency;
+		cmd.duration = _duration / 1000000.f;
+		_beep_pub.broadcast(cmd);
 	}
 }

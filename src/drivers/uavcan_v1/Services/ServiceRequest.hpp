@@ -59,8 +59,9 @@ public:
 class UavcanServiceRequest : public UavcanBaseSubscriber
 {
 public:
-	UavcanServiceRequest(CanardInstance &ins, const char *subject_name, CanardPortID portID, size_t extent) :
-		UavcanBaseSubscriber(ins, subject_name, 0), _portID(portID), _extent(extent) { };
+	UavcanServiceRequest(CanardInstance &ins, const char *prefix_name, const char *subject_name, CanardPortID portID,
+			     size_t extent) :
+		UavcanBaseSubscriber(ins, prefix_name, subject_name, 0), _portID(portID), _extent(extent) { };
 
 
 	void subscribe() override

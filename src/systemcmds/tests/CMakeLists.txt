@@ -55,8 +55,7 @@ set(srcs
 	test_parameters.cpp
 	test_perf.c
 	test_ppm.cpp
-	test_ppm_loopback.c
-	test_rc.c
+	test_rc.cpp
 	test_search_min.cpp
 	test_sleep.c
 	test_uart_baudchange.c
@@ -95,7 +94,6 @@ px4_add_module(
 	SRCS
 		${srcs}
 	DEPENDS
-		output_limit
 		version
 	)
 

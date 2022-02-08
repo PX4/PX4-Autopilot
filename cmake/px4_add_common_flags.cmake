@@ -157,7 +157,6 @@ function(px4_add_common_flags)
 	set(cxx_flags)
 	list(APPEND cxx_flags
 		-fno-exceptions
-		-fno-rtti
 		-fno-threadsafe-statics
 
 		-Wreorder
@@ -165,6 +164,13 @@ function(px4_add_common_flags)
 		# disabled warnings
 		-Wno-overloaded-virtual # TODO: fix and remove
 	)
+
+	if(NOT CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
+		list(APPEND cxx_flags
+			-fno-rtti
+		)
+	endif()
+
 	foreach(flag ${cxx_flags})
 		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:${flag}>)
 	endforeach()

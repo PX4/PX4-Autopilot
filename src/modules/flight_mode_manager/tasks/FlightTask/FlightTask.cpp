@@ -154,12 +154,11 @@ void FlightTask::_evaluateVehicleLocalPosition()
 
 		// global frame reference coordinates to enable conversions
 		if (_sub_vehicle_local_position.get().xy_global && _sub_vehicle_local_position.get().z_global) {
-			if (!map_projection_initialized(&_global_local_proj_ref)
-			    || (_global_local_proj_ref.timestamp != _sub_vehicle_local_position.get().ref_timestamp)) {
+			if (!_geo_projection.isInitialized()
+			    || (_geo_projection.getProjectionReferenceTimestamp() != _sub_vehicle_local_position.get().ref_timestamp)) {
 
-				map_projection_init_timestamped(&_global_local_proj_ref,
-								_sub_vehicle_local_position.get().ref_lat, _sub_vehicle_local_position.get().ref_lon,
-								_sub_vehicle_local_position.get().ref_timestamp);
+				_geo_projection.initReference(_sub_vehicle_local_position.get().ref_lat, _sub_vehicle_local_position.get().ref_lon,
+							      _sub_vehicle_local_position.get().ref_timestamp);
 
 				_global_local_alt0 = _sub_vehicle_local_position.get().ref_alt;
 			}

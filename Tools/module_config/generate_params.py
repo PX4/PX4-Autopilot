@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" Script to params from module.yaml config file(s)
+""" Script to generate params from module.yaml config file(s)
     Note: serial params are handled in Tools/serial/generate_config.py
 """
 
@@ -50,10 +50,15 @@ board = args.board
 root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),"../..")
 output_functions_file = os.path.join(root_dir,"src/lib/mixer_module/output_functions.yaml")
 
+def process_module_name(module_name):
+    if module_name == '${PWM_MAIN_OR_AUX}':
+        if board_with_io: return 'PWM AUX'
+        return 'PWM MAIN'
+    if '${' in module_name:
+        raise Exception('unhandled variable in {:}'.format(module_name))
+    return module_name
+
 def process_param_prefix(param_prefix):
-    if param_prefix == '${PWM_MAIN_OR_HIL}':
-        if board == 'px4_sitl': return 'PWM_MAIN'
-        return 'HIL_ACT'
     if param_prefix == '${PWM_MAIN_OR_AUX}':
         if board_with_io: return 'PWM_AUX'
         return 'PWM_MAIN'
@@ -61,16 +66,16 @@ def process_param_prefix(param_prefix):
         raise Exception('unhandled variable in {:}'.format(param_prefix))
     return param_prefix
 
-def process_channel_label(channel_label):
-    if channel_label == '${PWM_MAIN_OR_HIL}':
-        if board == 'px4_sitl': return 'PWM Sim'
-        return 'HIL actuator'
+def process_channel_label(module_name, channel_label, no_prefix):
+    if channel_label == '${PWM_MAIN_OR_AUX_CAP}':
+        return 'PWM Capture'
     if channel_label == '${PWM_MAIN_OR_AUX}':
         if board_with_io: return 'PWM Aux'
         return 'PWM Main'
     if '${' in channel_label:
         raise Exception('unhandled variable in {:}'.format(channel_label))
-    return channel_label
+    if no_prefix: return channel_label
+    return module_name + ' ' + channel_label
 
 
 def parse_yaml_parameters_config(yaml_config, ethernet_supported):
@@ -105,6 +110,13 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                     param_type = 'INT32'
                     for key in param['values']:
                         tags += '\n * @value {:} {:}'.format(key, param['values'][key])
+                elif param['type'] == 'bitmask':
+                    param_type = 'INT32'
+                    for key in param['bit']:
+                        tags += '\n * @bit {:} {:}'.format(key, param['bit'][key])
+                    max_val = max(key for key in param['bit'])
+                    tags += '\n * @min 0'
+                    tags += '\n * @max {:}'.format((1<<(max_val+1)) - 1)
                 elif param['type'] == 'boolean':
                     param_type = 'INT32'
                     tags += '\n * @boolean'
@@ -115,7 +127,7 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                 else:
                     raise Exception("unknown param type {:}".format(param['type']))
 
-                for tag in ['decimal', 'increment', 'category', 'volatile', 'bit',
+                for tag in ['decimal', 'increment', 'category', 'volatile',
                             'min', 'max', 'unit', 'reboot_required']:
                     if tag in param:
                         tags += '\n * @{:} {:}'.format(tag, param[tag])
@@ -145,7 +157,7 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
  */
 PARAM_DEFINE_{param_type}({name}, {default_value});
 '''.format(short_descr=param['description']['short'].replace("\n", "\n * "),
-           long_descr=param['description']['long'].replace("\n", "\n * "),
+           long_descr=param['description'].get('long', "").replace("\n", "\n * "),
            tags=tags,
            param_type=param_type,
            name=param_name.replace('${i}', str(i+instance_start)),
@@ -162,8 +174,11 @@ def get_actuator_output_params(yaml_config, output_functions,
     if not 'actuator_output' in yaml_config:
         return {}
     output_groups = yaml_config['actuator_output']['output_groups']
+    module_name = process_module_name(yaml_config['module_name'])
     all_params = {}
     group_idx = 0
+
+    all_param_prefixes = {}
 
     def add_local_param(param_name, param_def):
         nonlocal all_params
@@ -183,7 +198,9 @@ def get_actuator_output_params(yaml_config, output_functions,
         if 'generator' in group:
             if group['generator'] == 'pwm':
                 param_prefix = process_param_prefix(group['param_prefix'])
-                channel_labels = [process_channel_label(label) for label in group['channel_labels']]
+                no_prefix = not group.get('channel_label_module_name_prefix', True)
+                channel_labels = [process_channel_label(module_name, label, no_prefix)
+                    for label in group['channel_labels']]
                 standard_params = group.get('standard_params', [])
                 extra_function_groups = group.get('extra_function_groups', [])
                 pwm_timer_param = group.get('pwm_timer_param', None)
@@ -219,7 +236,8 @@ def get_actuator_output_params(yaml_config, output_functions,
 
         num_channels = group['num_channels']
         param_prefix = process_param_prefix(group['param_prefix'])
-        channel_label = process_channel_label(group['channel_label'])
+        no_prefix = not group.get('channel_label_module_name_prefix', True)
+        channel_label = process_channel_label(module_name, group['channel_label'], no_prefix)
         standard_params = group.get('standard_params', {})
         instance_start = group.get('instance_start', 1)
         instance_start_label = group.get('instance_start_label', instance_start)
@@ -235,11 +253,18 @@ def get_actuator_output_params(yaml_config, output_functions,
                 function_name_label = function_name.replace('_', ' ')
                 if isinstance(group[function_name], int):
                     output_function_values[group[function_name]] = function_name_label
+                elif not 'count' in group[function_name]:
+                    output_function_values[group[function_name]['start']] = function_name_label
                 else:
                     start = group[function_name]['start']
                     count = group[function_name]['count']
                     for i in range(count):
                         output_function_values[start+i] = function_name_label+' '+str(i+1)
+
+        if param_prefix not in all_param_prefixes:
+            all_param_prefixes[param_prefix] = []
+        all_param_prefixes[param_prefix].append((instance_start,
+            instance_start_label, num_channels, channel_label))
 
         # function param
         param = {
@@ -273,13 +298,9 @@ Note that non-motor outputs might already be active in prearm state if COM_PREAR
 '''
         minimum_description = \
 '''Minimum output value (when not disarmed).
-
-The output range can be reversed by setting Min > Max.
 '''
         maximum_description = \
 '''Maxmimum output value (when not disarmed).
-
-The output range can be reversed by setting Min > Max.
 '''
         failsafe_description = \
 '''This is the output value that is set when in failsafe mode.
@@ -319,6 +340,30 @@ When set to -1 (default), the value depends on the function (see {:}).
                     'default': standard_params[key]['default'],
                     }
                 add_local_param(param_prefix+'_'+param_suffix+'${i}', param)
+
+    # add reverse range param
+    for param_prefix in all_param_prefixes:
+        groups = all_param_prefixes[param_prefix]
+        # collect the bits
+        channel_bits = {}
+        for instance_start, instance_start_label, num_instances, label in groups:
+            for instance in range(instance_start, instance_start+num_instances):
+                instance_label = instance - instance_start + instance_start_label
+                channel_bits[instance-1] = label + ' ' + str(instance_label)
+
+        param = {
+            'description': {
+                'short': 'Reverse Output Range for '+module_name,
+                'long':
+'''Allows to reverse the output range for each channel.
+Note: this is only useful for servos.
+'''.format(channel_label),
+                },
+            'type': 'bitmask',
+            'default': 0,
+            'bit': channel_bits
+            }
+        add_local_param(param_prefix+'_REV', param)
 
     if verbose: print('adding actuator params: {:}'.format(all_params))
     return all_params

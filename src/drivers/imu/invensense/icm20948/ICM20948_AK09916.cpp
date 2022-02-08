@@ -51,7 +51,6 @@ ICM20948_AK09916::ICM20948_AK09916(ICM20948 &icm20948, enum Rotation rotation) :
 	_px4_mag(icm20948.get_device_id(), rotation)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK09916);
-	_px4_mag.set_external(icm20948.external());
 
 	// mag resolution is 1.5 milli Gauss per bit (0.15 μT/LSB)
 	_px4_mag.set_scale(1.5e-3f);

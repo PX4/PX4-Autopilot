@@ -114,6 +114,8 @@ static void cam_pwr_on_pulse(void)
 	static bool pwr_on_flag = false;
 
 	if (pwr_on_flag == false) {
+		// This is now done in the bootloader.
+		// However, for transition we can leave it in.
 		up_mdelay(700);
 		stm32_configgpio(GPIO_CAM_PWR_ON_H);
 		up_mdelay(20);
@@ -240,7 +242,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		led_on(LED_RED);
-		return ret;
 	}
 
 #endif /* CONFIG_MMCSD */

@@ -5,6 +5,7 @@ https://json-schema.org/"""
 import argparse
 import sys
 import json
+import os
 
 try:
     from jsonschema import validate
@@ -21,6 +22,8 @@ parser = argparse.ArgumentParser(description='Validate JSON file(s) against a sc
 parser.add_argument('json_file', nargs='+', help='JSON config file(s)')
 parser.add_argument('--schema-file', type=str, action='store',
                     help='JSON schema file', required=True)
+parser.add_argument('--skip-if-no-schema', dest='skip_if_no_schema', action='store_true',
+                    help='Skip test if schema file does not exist')
 parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                     help='Verbose Output')
 
@@ -28,6 +31,9 @@ args = parser.parse_args()
 schema_file = args.schema_file
 json_files = args.json_file
 verbose = args.verbose
+
+if args.skip_if_no_schema and not os.path.isfile(schema_file):
+    sys.exit(0)
 
 # load the schema
 with open(schema_file, 'r') as stream:

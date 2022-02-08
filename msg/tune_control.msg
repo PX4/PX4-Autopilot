@@ -22,7 +22,8 @@ uint8 TUNE_ID_SD_ERROR             = 15
 uint8 TUNE_ID_PROG_PX4IO           = 16
 uint8 TUNE_ID_PROG_PX4IO_OK        = 17
 uint8 TUNE_ID_PROG_PX4IO_ERR       = 18
-uint8 NUMBER_OF_TUNES              = 19
+uint8 TUNE_ID_POWER_OFF            = 19
+uint8 NUMBER_OF_TUNES              = 20
 
 uint8 tune_id        # tune_id corresponding to TuneID::* from the tune_defaults.h in the tunes library
 bool tune_override   # if true the tune which is playing will be stopped and the new started

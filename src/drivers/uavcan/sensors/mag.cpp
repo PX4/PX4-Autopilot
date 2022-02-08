@@ -144,7 +144,5 @@ int UavcanMagnetometerBridge::init_driver(uavcan_bridge::Channel *channel)
 		return PX4_ERROR;
 	}
 
-	mag->set_external(true);
-
 	return PX4_OK;
 }

@@ -55,7 +55,10 @@ static constexpr uint8_t clipping(const int16_t samples[], uint8_t len)
 	unsigned clip_count = 0;
 
 	for (int n = 0; n < len; n++) {
-		if ((samples[n] == INT16_MIN) || (samples[n] == INT16_MAX)) {
+		// - consider data clipped/saturated if it's INT16_MIN/INT16_MAX or within 1
+		// - this accommodates rotated data (|INT16_MIN| = INT16_MAX + 1)
+		//   and sensors that may re-use the lowest bit for other purposes (sync indicator, etc)
+		if ((samples[n] <= INT16_MIN + 1) || (samples[n] >= INT16_MAX - 1)) {
 			clip_count++;
 		}
 	}

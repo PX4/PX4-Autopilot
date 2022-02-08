@@ -45,7 +45,6 @@ VCM1193L::VCM1193L(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_mag(get_device_id(), config.rotation)
 {
-	_px4_mag.set_external(external());
 }
 
 VCM1193L::~VCM1193L()

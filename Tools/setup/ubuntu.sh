@@ -77,7 +77,6 @@ sudo apt-get update -y --quiet
 sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
 	astyle \
 	build-essential \
-	ccache \
 	cmake \
 	cppcheck \
 	file \
@@ -100,12 +99,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends i
 	unzip \
 	zip \
 	;
-
-if [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
-	echo "Installing Ubuntu 16.04 PX4-compatible ccache version"
-	wget -O /tmp/ccache_3.4.1-1_amd64.deb http://launchpadlibrarian.net/356662933/ccache_3.4.1-1_amd64.deb
-	sudo dpkg -i /tmp/ccache_3.4.1-1_amd64.deb
-fi
 
 # Python3 dependencies
 echo
@@ -136,7 +129,6 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		genromfs \
 		gettext \
 		gperf \
-		kconfig-frontends \
 		libelf-dev \
 		libexpat-dev \
 		libgmp-dev \
@@ -154,6 +146,12 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		util-linux \
 		vim-common \
 		;
+	if [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
+		sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
+		kconfig-frontends \
+		;
+	fi
+
 
 	if [ -n "$USER" ]; then
 		# add user to dialout group (serial port access)

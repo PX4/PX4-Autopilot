@@ -311,7 +311,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi1) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 1);
 		led_on(LED_RED);
-		return -ENODEV;
 	}
 
 	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
@@ -327,7 +326,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi2) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 2);
 		led_on(LED_RED);
-		return -ENODEV;
 	}
 
 	/* Default SPI2 to 12MHz and de-assert the known chip selects.
@@ -345,7 +343,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi5) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 5);
 		led_on(LED_RED);
-		return -ENODEV;
 	}
 
 	/* Default SPI5 to 1MHz and de-assert the known chip selects. */
@@ -360,7 +357,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi6) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 6);
 		led_on(LED_RED);
-		return -ENODEV;
 	}
 
 	/* Default SPI6 to 1MHz and de-assert the known chip selects. */
@@ -375,9 +371,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!sdio) {
 		led_on(LED_RED);
-		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
-		       CONFIG_NSH_MMCSDSLOTNO);
-		return -ENODEV;
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", CONFIG_NSH_MMCSDSLOTNO);
 	}
 
 	/* Now bind the SDIO interface to the MMC/SD driver */
@@ -386,7 +380,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (ret != OK) {
 		led_on(LED_RED);
 		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
-		return ret;
 	}
 
 	/* Then let's guess and say that there is a card in the slot. There is no card detect GPIO. */

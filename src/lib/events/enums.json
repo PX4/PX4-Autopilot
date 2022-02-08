@@ -244,6 +244,138 @@
                             "description": "[Unknown]"
                         }
                     }
+                },
+                "battery_fault_reason_t": {
+                    "type": "uint8_t",
+                    "description": "Reason for battery fault",
+                    "entries": {
+                        "0": {
+                            "name": "deep_discharge",
+                            "description": "Battery has deep discharged"
+                        },
+                        "1": {
+                            "name": "voltage_spikes",
+                            "description": "Battery detected voltage spikes"
+                        },
+                        "2": {
+                            "name": "cell_fail",
+                            "description": "One or more battery cells have failed"
+                        },
+                        "3": {
+                            "name": "over_current",
+                            "description": "Battery reported over-current"
+                        },
+                        "4": {
+                            "name": "fault_temperature",
+                            "description": "Battery has reached a critical temperature which can result in a critical failure"
+                        },
+                        "5": {
+                            "name": "under_temperature",
+                            "description": "Battery temperature is below operating range"
+                        },
+                        "6": {
+                            "name": "incompatible_voltage",
+                            "description": "Vehicle voltage is not compatible with battery one"
+                        },
+                        "7": {
+                            "name": "incompatible_firmware",
+                            "description": "Battery firmware is not compatible with current autopilot firmware"
+                        },
+                        "8": {
+                            "name": "incompatible_model",
+                            "description": "Battery model is not supported by the system"
+                        },
+                        "9": {
+                            "name": "hardware_fault",
+                            "description": "Battery reported an hardware problem"
+                        },
+                        "10": {
+                            "name": "over_temperature",
+                            "description": "Battery is over-heating"
+                        }
+                    }
+                },
+                "battery_mode_t": {
+                    "type": "uint8_t",
+                    "description": "Smart battery modes of operation",
+                    "entries": {
+                        "0": {
+                            "name": "unknown",
+                            "description": "unknown"
+                        },
+                        "1": {
+                            "name": "autodischarging",
+                            "description": "auto discharging towards storage level"
+                        },
+                        "2": {
+                            "name": "hotswap",
+                            "description": "hot-swap"
+                        }
+                    }
+                },
+                "esc_fault_reason_t": {
+                    "type": "uint8_t",
+                    "description": "Bitfield for ESC failure reason",
+                    "entries": {
+                        "0": {
+                            "name": "over_current",
+                            "description": "detected over current"
+                        },
+                        "1": {
+                            "name": "over_voltage",
+                            "description": "detected over voltage"
+                        },
+                        "2": {
+                            "name": "motor_over_temp",
+                            "description": "Motor has reached a critical temperature"
+                        },
+                        "3": {
+                            "name": "over_rpm",
+                            "description": "Motor RPM is exceeding the limits"
+                        },
+                        "4": {
+                            "name": "inconsistent_cmd",
+                            "description": "received an invalid control command"
+                        },
+                        "5": {
+                            "name": "motor_stuck",
+                            "description": "Motor stalled"
+                        },
+                        "6": {
+                            "name": "failure_generic",
+                            "description": "detected a generic hardware failure"
+                        },
+                        "7": {
+                            "name": "motor_warn_temp",
+                            "description": "Motor is over-heating"
+                        },
+                        "8": {
+                            "name": "esc_warn_temp",
+                            "description": "is over-heating"
+                        },
+                        "9": {
+                            "name": "esc_over_temp",
+                            "description": "reached a critical temperature"
+                        }
+                    }
+                },
+                "suggested_action_t": {
+                    "type": "uint8_t",
+                    "description": "Suggested actions for the user in case of a safety critical event is triggered",
+                    "entries": {
+                        "0": {
+                            "name": "none",
+                            "description": ""
+                        },
+                        "1": {
+                            "name": "land",
+                            "description": "Land now!"
+                        },
+                        "2": {
+                            "name": "reduce_throttle",
+                            "description": "Reduce throttle!"
+                        }
+                    }
                 }
             }
         }

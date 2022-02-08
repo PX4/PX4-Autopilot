@@ -117,6 +117,11 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		--board ${PX4_BOARD}
 		#--verbose
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
+		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/parameter.schema.json
+		${parameters_json}
+		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
+		#--verbose
 	DEPENDS
 		${param_src_files}
 		${generated_serial_params_file}
@@ -162,10 +167,12 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 		px4_parameters.hpp
 	)
 
-	target_link_libraries(parameters PRIVATE perf tinybson px4_layer)
+	target_link_libraries(parameters PRIVATE perf tinybson px4_platform)
+
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
 	target_compile_options(parameters
 		PRIVATE
+			#-DDEBUG_BUILD
 			-Wno-cast-align		# TODO: fix and enable
 			-Wno-sign-compare	# TODO: fix and enable
 	)
@@ -174,7 +181,7 @@ else()
 endif()
 add_dependencies(parameters prebuild_targets)
 
-if(${PX4_PLATFORM} STREQUAL "nuttx")
+if(${PX4_PLATFORM} STREQUAL "nuttx" AND CONFIG_BUILD_FLAT)
 	target_link_libraries(parameters PRIVATE flashparams tinybson)
 endif()
 

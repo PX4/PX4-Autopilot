@@ -85,6 +85,15 @@ private:
 
 	uORB::Publication<action_request_s> _action_request_pub{ORB_ID(action_request)};
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
+
+	enum class CameraMode {
+		Image = 0,
+		Video = 1
+	};
+	void send_camera_mode_command(CameraMode camera_mode);
+	void send_photo_command();
+	void send_video_command();
+
 	uORB::Publication<manual_control_setpoint_s> _manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
@@ -120,13 +129,18 @@ private:
 		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
 		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
 		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_com_rc_stick_ov,
-		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
+		(ParamBool<px4::params::MAN_ARM_GESTURE>) _param_man_arm_gesture,
+		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_com_rc_arm_hyst,
 		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_com_arm_swisbtn,
 		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
 		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
 		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,
 		(ParamInt<px4::params::COM_FLTMODE4>) _param_fltmode_4,
 		(ParamInt<px4::params::COM_FLTMODE5>) _param_fltmode_5,
-		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6
+		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6,
+		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id
 	)
+
+	unsigned _image_sequence {0};
+	bool _video_recording {false}; // TODO: hopefully there is a command soon to toggle without keeping state
 };

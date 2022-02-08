@@ -387,9 +387,9 @@ TEST_F(EkfFusionLogicTest, doRangeHeightFusion)
 	// THEN: EKF should intend to fuse range height
 	EXPECT_TRUE(_ekf_wrapper.isIntendingRangeHeightFusion());
 
-	const float dt = 8e-3f;
+	const float dt = 5e-3f;
 
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 10; i++) {
 		_sensor_simulator.runSeconds(dt);
 		// THEN: EKF should intend to fuse range height, even if
 		// there is no new data at each EKF iteration (EKF rate > sensor rate)

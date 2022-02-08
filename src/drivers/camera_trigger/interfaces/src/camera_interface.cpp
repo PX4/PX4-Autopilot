@@ -35,12 +35,6 @@
 #include <px4_platform_common/log.h>
 #include <board_config.h>
 
-#ifdef BOARD_WITH_IO
-# define PARAM_PREFIX "PWM_AUX"
-#else
-# define PARAM_PREFIX "PWM_MAIN"
-#endif
-
 void CameraInterface::get_pins()
 {
 	// Set all pins as invalid

@@ -33,6 +33,7 @@
 
 #include "ManualControl.hpp"
 #include <uORB/topics/commander_state.h>
+#include <uORB/topics/vehicle_command.h>
 
 ManualControl::ManualControl() :
 	ModuleParams(nullptr),
@@ -71,9 +72,9 @@ void ManualControl::Run()
 
 		updateParams();
 
-		_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
-		_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
-		_button_hysteresis.set_hysteresis_time_from(false, _param_rc_arm_hyst.get() * 1_ms);
+		_stick_arm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+		_stick_disarm_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
+		_button_hysteresis.set_hysteresis_time_from(false, _param_com_rc_arm_hyst.get() * 1_ms);
 
 		_selector.setRcInMode(_param_com_rc_in_mode.get());
 		_selector.setTimeout(_param_com_rc_loss_t.get() * 1_s);
@@ -200,6 +201,20 @@ void ManualControl::Run()
 						}
 					}
 
+					if (switches.photo_switch != _previous_switches.photo_switch) {
+						if (switches.photo_switch == manual_control_switches_s::SWITCH_POS_ON) {
+							send_camera_mode_command(CameraMode::Image);
+							send_photo_command();
+						}
+					}
+
+					if (switches.video_switch != _previous_switches.video_switch) {
+						if (switches.video_switch == manual_control_switches_s::SWITCH_POS_ON) {
+							send_camera_mode_command(CameraMode::Video);
+							send_video_command();
+						}
+					}
+
 				} else {
 					// Send an initial request to switch to the mode requested by RC
 					evaluateModeSlot(switches.mode_slot);
@@ -267,7 +282,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	const bool previous_stick_arm_hysteresis = _stick_arm_hysteresis.get_state();
 	_stick_arm_hysteresis.set_state_and_update(left_stick_lower_right && right_stick_centered, input.timestamp);
 
-	if (!previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
+	if (_param_man_arm_gesture.get() && !previous_stick_arm_hysteresis && _stick_arm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_ARM, action_request_s::SOURCE_RC_STICK_GESTURE);
 	}
 
@@ -277,7 +292,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	const bool previous_stick_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
 	_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);
 
-	if (!previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
+	if (_param_man_arm_gesture.get() && !previous_stick_disarm_hysteresis && _stick_disarm_hysteresis.get_state()) {
 		sendActionRequest(action_request_s::ACTION_DISARM, action_request_s::SOURCE_RC_STICK_GESTURE);
 	}
 }
@@ -320,6 +335,11 @@ void ManualControl::evaluateModeSlot(uint8_t mode_slot)
 
 void ManualControl::sendActionRequest(int8_t action, int8_t source, int8_t mode)
 {
+	// We catch default unassigned mode slots which have value -1
+	if (action == action_request_s::ACTION_SWITCH_MODE && mode < 0) {
+		return;
+	}
+
 	action_request_s action_request{};
 	action_request.action = action;
 	action_request.source = source;
@@ -334,6 +354,55 @@ void ManualControl::publishLandingGear(int8_t action)
 	landing_gear.landing_gear = action;
 	landing_gear.timestamp = hrt_absolute_time();
 	_landing_gear_pub.publish(landing_gear);
+}
+
+void ManualControl::send_camera_mode_command(CameraMode camera_mode)
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_SET_CAMERA_MODE;
+	command.param2 = static_cast<float>(camera_mode);
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = 100; // any camera
+
+	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+	command.timestamp = hrt_absolute_time();
+	command_pub.publish(command);
+}
+
+void ManualControl::send_photo_command()
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_IMAGE_START_CAPTURE;
+	command.param3 = 1; // one picture
+	command.param4 = _image_sequence++;
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = 100; // any camera
+
+	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+	command.timestamp = hrt_absolute_time();
+	command_pub.publish(command);
+}
+
+void ManualControl::send_video_command()
+{
+	vehicle_command_s command{};
+
+	if (_video_recording) {
+		command.command = vehicle_command_s::VEHICLE_CMD_VIDEO_STOP_CAPTURE;
+		command.param2 = 1; // status at 1 Hz
+
+	} else {
+		command.command = vehicle_command_s::VEHICLE_CMD_VIDEO_START_CAPTURE;
+	}
+
+	command.target_system = _param_mav_sys_id.get();
+	command.target_component = 100; // any camera
+
+	uORB::Publication<vehicle_command_s> command_pub{ORB_ID(vehicle_command)};
+	command.timestamp = hrt_absolute_time();
+	command_pub.publish(command);
+
+	_video_recording = !_video_recording;
 }
 
 int ManualControl::task_spawn(int argc, char *argv[])

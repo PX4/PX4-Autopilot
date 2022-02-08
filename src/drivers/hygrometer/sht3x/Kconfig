@@ -1,0 +1,5 @@
+menuconfig DRIVERS_HYGROMETER_SHT3x
+	bool "SHT3x temperature and humidity sensor"
+	default n
+	---help---
+		Enable support SHT35 temperature/humidity sensor

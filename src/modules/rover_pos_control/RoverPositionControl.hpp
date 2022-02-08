@@ -73,6 +73,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 
 using matrix::Dcmf;
 
@@ -127,6 +129,8 @@ private:
 	actuator_controls_s				_act_controls{};		/**< direct control of actuators */
 	vehicle_attitude_s				_vehicle_att{};
 	vehicle_local_position_setpoint_s       _trajectory_setpoint{};
+	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
 	uORB::SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
@@ -135,7 +139,7 @@ private:
 	hrt_abstime _control_position_last_called{0}; 	/**<last call of control_position  */
 	hrt_abstime _manual_setpoint_last_called{0};
 
-	map_projection_reference_s _global_local_proj_ref{};
+	MapProjection _global_local_proj_ref{};
 	float                      _global_local_alt0{NAN};
 
 	/* Pid controller for the speed. Here we assume we can control airspeed but the control variable is actually on

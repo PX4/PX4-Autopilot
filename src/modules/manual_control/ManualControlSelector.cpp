@@ -54,6 +54,11 @@ void ManualControlSelector::updateWithNewInputSample(uint64_t now, const manual_
 		_setpoint = input;
 		_setpoint.valid = true;
 		_instance = instance;
+
+		if (_first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN) {
+			// initialize first valid source once
+			_first_valid_source = _setpoint.data_source;
+		}
 	}
 }
 
@@ -73,9 +78,12 @@ bool ManualControlSelector::isInputValid(const manual_control_setpoint_s &input,
 					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_4
 					     || input.data_source == manual_control_setpoint_s::SOURCE_MAVLINK_5);
 	const bool source_any_matched = (_rc_in_mode == 2);
+	const bool source_first_matched = (_rc_in_mode == 3) &&
+					  (input.data_source == _first_valid_source
+					   || _first_valid_source == manual_control_setpoint_s::SOURCE_UNKNOWN);
 
 	return sample_from_the_past && sample_newer_than_timeout
-	       && (source_rc_matched || source_mavlink_matched || source_any_matched);
+	       && (source_rc_matched || source_mavlink_matched || source_any_matched || source_first_matched);
 }
 
 manual_control_setpoint_s &ManualControlSelector::setpoint()

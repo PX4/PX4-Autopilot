@@ -171,11 +171,16 @@ protected:
 					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
 					(ParamFloat<px4::params::MPC_XY_ERR_MAX>) _param_mpc_xy_err_max,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+					(ParamFloat<px4::params::MPC_LAND_CRWL>) _param_mpc_land_crawl_speed,
 					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>)
-					_param_mpc_land_alt1, // altitude at which speed limit downwards reaches maximum speed
+					_param_mpc_land_alt1, // altitude at which we start ramping down speed
 					(ParamFloat<px4::params::MPC_LAND_ALT2>)
-					_param_mpc_land_alt2, // altitude at which speed limit downwards reached minimum speed
+					_param_mpc_land_alt2, // altitude at which we descend at land speed
+					(ParamFloat<px4::params::MPC_LAND_ALT3>)
+					_param_mpc_land_alt3, // altitude where we switch to crawl speed, if LIDAR available
+					(ParamFloat<px4::params::MPC_Z_V_AUTO_UP>) _param_mpc_z_v_auto_up,
+					(ParamFloat<px4::params::MPC_Z_V_AUTO_DN>) _param_mpc_z_v_auto_dn,
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 					(ParamFloat<px4::params::MPC_TKO_RAMP_T>)
 					_param_mpc_tko_ramp_t, // time constant for smooth takeoff ramp
@@ -194,10 +199,10 @@ private:
 	_triplet_prev_wp; /**< previous triplet from navigator which may differ from the intenal one (_prev_wp) depending on the vehicle state.*/
 	matrix::Vector3f
 	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
-	matrix::Vector2f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
+	matrix::Vector3f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
-	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */
-	float _reference_altitude{NAN};  /**< Altitude relative to ground. */
+	MapProjection _reference_position{}; /**< Class used to project lat/lon setpoint into local frame. */
+	float _reference_altitude{NAN}; /**< Altitude relative to ground. */
 	hrt_abstime _time_stamp_reference{0}; /**< time stamp when last reference update occured. */
 
 	WeatherVane *_ext_yaw_handler{nullptr};	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */

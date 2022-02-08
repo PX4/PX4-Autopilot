@@ -292,7 +292,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi1) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 1\n");
 		led_on(LED_RED);
-		return -ENODEV;
 	}
 
 
@@ -308,7 +307,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (!spi2) {
 		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port 2\n");
 		led_on(LED_RED);
-		return -ENODEV;
 	}
 
 	/**
@@ -350,9 +348,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!sdio) {
 		led_on(LED_RED);
-		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
-		       CONFIG_NSH_MMCSDSLOTNO);
-		return -ENODEV;
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n", CONFIG_NSH_MMCSDSLOTNO);
 	}
 
 	// Now bind the SDIO interface to the MMC/SD driver.
@@ -361,7 +357,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (ret != OK) {
 		led_on(LED_RED);
 		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
-		return ret;
 	}
 
 	// Then let's guess and say that there is a card in the slot. There is no card detect GPIO.

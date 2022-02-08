@@ -44,7 +44,6 @@
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/hover_thrust_estimate.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/takeoff_status.h>
@@ -76,12 +75,9 @@ protected:
 	bool _get_horizontal_movement() override { return _horizontal_movement; }
 	bool _get_vertical_movement() override { return _vertical_movement; }
 	bool _get_close_to_ground_or_skipped_check() override { return _close_to_ground_or_skipped_check; }
-	float _get_max_altitude() override;
 
 	void _set_hysteresis_factor(const int factor) override;
 private:
-
-	float _get_gnd_effect_altitude();
 	bool _is_close_to_ground();
 
 	/** Time in us that freefall has to hold before triggering freefall */
@@ -99,6 +95,7 @@ private:
 		param_t hoverThrottle;
 		param_t minManThrottle;
 		param_t landSpeed;
+		param_t crawlSpeed;
 		param_t useHoverThrustEstimate;
 	} _paramHandle{};
 
@@ -107,6 +104,7 @@ private:
 		float hoverThrottle;
 		float minManThrottle;
 		float landSpeed;
+		float crawlSpeed;
 		bool useHoverThrustEstimate;
 	} _params{};
 
@@ -114,6 +112,7 @@ private:
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _offboard_trajectory_setpoint_sub {ORB_ID(offboard_trajectory_setpoint)};
+
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
@@ -143,7 +142,6 @@ private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
 		(ParamFloat<px4::params::LNDMC_TRIG_TIME>)   _param_lndmc_trig_time,
-		(ParamFloat<px4::params::LNDMC_ALT_MAX>)    _param_lndmc_alt_max,
 		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
 		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
 		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max,

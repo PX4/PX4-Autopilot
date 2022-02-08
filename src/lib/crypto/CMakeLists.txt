@@ -99,4 +99,14 @@ target_link_libraries(libtomcrypt
 # "der_encode_asn1_identifier.c:39:18: error: comparison is always false due to limited range of data type"
 target_compile_options(libtomcrypt PRIVATE -Wno-type-limits)
 
+# Re-define memory allocation macros if we are building for
+# memory protected build in nuttx. All allocations happen in
+# kernel heap there
+
+if (NOT DEFINED CONFIG_BUILD_FLAT AND "${PX4_PLATFORM}" MATCHES "nuttx")
+	target_compile_options(libtomcrypt PUBLIC -DXMALLOC=kmm_malloc -DXFREE=kmm_free -DXREALLOC=kmm_realloc -DXCALLOC=kmm_calloc)
+	target_compile_options(libtommath PUBLIC -DMP_MALLOC=kmm_malloc -DMP_FREE\(p,s\)=kmm_free\(p\) -DMP_REALLOC\(p,o,n\)=kmm_realloc\(p,n\) -DMP_CALLOC=kmm_calloc)
+	target_link_libraries(libtommath PRIVATE nuttx_kmm)
+endif()
+
 endif()

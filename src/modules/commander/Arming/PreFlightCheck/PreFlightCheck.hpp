@@ -41,8 +41,8 @@
 #pragma once
 
 #include <uORB/topics/safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status_flags.h>
-
 #include <uORB/topics/vehicle_status.h>
 #include <drivers/drv_hrt.h>
 
@@ -78,8 +78,8 @@ public:
 	*   true if the system power should be checked
 	**/
 	static bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
-				   vehicle_status_flags_s &status_flags, bool reportFailures, const bool prearm,
-				   const hrt_abstime &time_since_boot);
+				   vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
+				   bool reportFailures, const bool prearm, const hrt_abstime &time_since_boot);
 
 	struct arm_requirements_t {
 		bool arm_authorization = false;
@@ -90,6 +90,7 @@ public:
 	};
 
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
+				const vehicle_control_mode_s &control_mode,
 				const safety_s &safety, const arm_requirements_t &arm_requirements, vehicle_status_s &status,
 				bool report_fail = true);
 
@@ -106,7 +107,7 @@ private:
 	static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
 	static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool optional,
 				  const bool report_fail, const bool prearm, const bool max_airspeed_check_en, const float arming_max_airspeed_allowed);
-	static int rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL);
+	static int rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail);
 	static bool powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
 			       const bool prearm);
 	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,

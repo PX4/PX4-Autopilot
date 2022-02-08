@@ -34,6 +34,7 @@
 #ifndef _uORBManager_hpp_
 #define _uORBManager_hpp_
 
+#include "uORBDeviceNode.hpp"
 #include "uORBCommon.hpp"
 #include "uORBDeviceMaster.hpp"
 
@@ -54,6 +55,7 @@
 namespace uORB
 {
 class Manager;
+class SubscriptionCallback;
 }
 
 /**
@@ -165,7 +167,7 @@ public:
 	 * @param handle  handle returned by orb_advertise or orb_advertise_multi.
 	 * @return 0 on success
 	 */
-	int orb_unadvertise(orb_advert_t handle);
+	static int orb_unadvertise(orb_advert_t handle);
 
 	/**
 	 * Publish new data to a topic.
@@ -180,7 +182,7 @@ public:
 	 * @param data    A pointer to the data to be published.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data);
+	static int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data);
 
 	/**
 	 * Subscribe to a topic.
@@ -301,7 +303,7 @@ public:
 	 * @param instance  ORB instance
 	 * @return    OK if the topic exists, PX4_ERROR otherwise.
 	 */
-	int  orb_exists(const struct orb_metadata *meta, int instance);
+	static int  orb_exists(const struct orb_metadata *meta, int instance);
 
 	/**
 	 * Set the minimum interval between which updates are seen for a subscription.
@@ -334,6 +336,26 @@ public:
 	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
 	int	orb_get_interval(int handle, unsigned *interval);
+
+	static bool orb_device_node_exists(ORB_ID orb_id, uint8_t instance);
+
+	static void *orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation);
+
+	static void orb_remove_internal_subscriber(void *node_handle);
+
+	static uint8_t orb_get_queue_size(const void *node_handle);
+
+	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation);
+
+	static bool register_callback(void *node_handle, SubscriptionCallback *callback_sub);
+
+	static void unregister_callback(void *node_handle, SubscriptionCallback *callback_sub);
+
+	static uint8_t orb_get_instance(const void *node_handle);
+
+	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation); }
+
+	static bool is_advertised(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->is_advertised(); }
 
 #ifdef ORB_COMMUNICATOR
 	/**

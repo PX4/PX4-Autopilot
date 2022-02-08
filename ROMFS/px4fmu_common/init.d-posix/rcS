@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # PX4 commands need the 'px4-' prefix in bash.
 # (px4-alias.sh is expected to be in the PATH)
 # shellcheck disable=SC1091
@@ -232,7 +234,7 @@ fi
 
 if param greater -s MNT_MODE_IN -1
 then
-	vmount start
+	gimbal start
 fi
 
 if param greater -s TRIG_MODE 0

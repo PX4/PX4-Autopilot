@@ -325,43 +325,47 @@ int Sensors::parameters_update()
 		uint32_t device_id_mag   = calibration::GetCalibrationParamInt32("MAG",  "ID", i);
 
 		if (device_id_accel != 0) {
-			bool external_accel = (calibration::GetCalibrationParamInt32("ACC", "ROT", i) >= 0);
-			calibration::Accelerometer accel_cal(device_id_accel, external_accel);
+			calibration::Accelerometer accel_cal(device_id_accel);
 		}
 
 		if (device_id_gyro != 0) {
-			bool external_gyro = (calibration::GetCalibrationParamInt32("GYRO", "ROT", i) >= 0);
-			calibration::Gyroscope gyro_cal(device_id_gyro, external_gyro);
+			calibration::Gyroscope gyro_cal(device_id_gyro);
 		}
 
 		if (device_id_mag != 0) {
-			bool external_mag = (calibration::GetCalibrationParamInt32("MAG", "ROT", i) >= 0);
-			calibration::Magnetometer mag_cal(device_id_mag, external_mag);
+			calibration::Magnetometer mag_cal(device_id_mag);
 		}
 	}
 
 	// ensure calibration slots are active for the number of sensors currently available
 	// this to done to eliminate differences in the active set of parameters before and after sensor calibration
-	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-		if (orb_exists(ORB_ID(sensor_accel), i) == PX4_OK) {
-			bool external = (calibration::GetCalibrationParamInt32("ACC", "ROT", i) >= 0);
-			calibration::Accelerometer cal{0, external};
+	for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
+
+		// sensor_accel
+		uORB::SubscriptionData<sensor_accel_s> sensor_accel_sub{ORB_ID(sensor_accel), i};
+
+		if (sensor_accel_sub.get().device_id != 0) {
+			calibration::Accelerometer cal;
 			cal.set_calibration_index(i);
-			cal.ParametersUpdate();
+			cal.ParametersLoad();
 		}
 
-		if (orb_exists(ORB_ID(sensor_gyro), i) == PX4_OK) {
-			bool external = (calibration::GetCalibrationParamInt32("GYRO", "ROT", i) >= 0);
-			calibration::Gyroscope cal{0, external};
+		// sensor_gyro
+		uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
+
+		if (sensor_gyro_sub.get().device_id != 0) {
+			calibration::Gyroscope cal;
 			cal.set_calibration_index(i);
-			cal.ParametersUpdate();
+			cal.ParametersLoad();
 		}
 
-		if (orb_exists(ORB_ID(sensor_mag), i) == PX4_OK) {
-			bool external = (calibration::GetCalibrationParamInt32("MAG", "ROT", i) >= 0);
-			calibration::Magnetometer cal{0, external};
+		// sensor_mag
+		uORB::SubscriptionData<sensor_mag_s> sensor_mag_sub{ORB_ID(sensor_mag), i};
+
+		if (sensor_mag_sub.get().device_id != 0) {
+			calibration::Magnetometer cal;
 			cal.set_calibration_index(i);
-			cal.ParametersUpdate();
+			cal.ParametersLoad();
 		}
 	}
 
@@ -765,7 +769,7 @@ int Sensors::print_status()
 	}
 
 	PX4_INFO_RAW("\n");
-	PX4_INFO("Airspeed status:");
+	PX4_INFO_RAW("Airspeed status:\n");
 	_airspeed_validator.print();
 
 	PX4_INFO_RAW("\n");

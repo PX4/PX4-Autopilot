@@ -51,7 +51,7 @@ class UavcanGnssPublisher : public UavcanPublisher
 {
 public:
 	UavcanGnssPublisher(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanPublisher(ins, pmgr, "gps", instance)
+		UavcanPublisher(ins, pmgr, "ds_015", "gps", instance)
 	{
 
 	};

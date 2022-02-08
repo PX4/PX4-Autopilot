@@ -60,28 +60,23 @@ __END_DECLS
 static constexpr int TASK_STACK_SIZE = 1220;
 
 /* Private File based Operations */
-static ssize_t _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
-			   size_t count);
+static ssize_t _file_write(dm_item_t item, unsigned index, const void *buf, size_t count);
 static ssize_t _file_read(dm_item_t item, unsigned index, void *buf, size_t count);
 static int  _file_clear(dm_item_t item);
-static int  _file_restart(dm_reset_reason reason);
 static int _file_initialize(unsigned max_offset);
 static void _file_shutdown();
 
 /* Private Ram based Operations */
-static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
-			  size_t count);
+static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_t count);
 static ssize_t _ram_read(dm_item_t item, unsigned index, void *buf, size_t count);
 static int  _ram_clear(dm_item_t item);
-static int  _ram_restart(dm_reset_reason reason);
 static int _ram_initialize(unsigned max_offset);
 static void _ram_shutdown();
 
 typedef struct dm_operations_t {
-	ssize_t (*write)(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count);
+	ssize_t (*write)(dm_item_t item, unsigned index, const void *buf, size_t count);
 	ssize_t (*read)(dm_item_t item, unsigned index, void *buf, size_t count);
 	int (*clear)(dm_item_t item);
-	int (*restart)(dm_reset_reason reason);
 	int (*initialize)(unsigned max_offset);
 	void (*shutdown)();
 	int (*wait)(px4_sem_t *sem);
@@ -91,7 +86,6 @@ static constexpr dm_operations_t dm_file_operations = {
 	.write   = _file_write,
 	.read    = _file_read,
 	.clear   = _file_clear,
-	.restart = _file_restart,
 	.initialize = _file_initialize,
 	.shutdown = _file_shutdown,
 	.wait = px4_sem_wait,
@@ -101,7 +95,6 @@ static constexpr dm_operations_t dm_ram_operations = {
 	.write   = _ram_write,
 	.read    = _ram_read,
 	.clear   = _ram_clear,
-	.restart = _ram_restart,
 	.initialize = _ram_initialize,
 	.shutdown = _ram_shutdown,
 	.wait = px4_sem_wait,
@@ -127,7 +120,6 @@ typedef enum {
 	dm_write_func = 0,
 	dm_read_func,
 	dm_clear_func,
-	dm_restart_func,
 	dm_number_of_funcs
 } dm_function_t;
 
@@ -142,7 +134,6 @@ typedef struct {
 		struct {
 			dm_item_t item;
 			unsigned index;
-			dm_persitence_t persistence;
 			const void *buf;
 			size_t count;
 		} write_params;
@@ -155,9 +146,6 @@ typedef struct {
 		struct {
 			dm_item_t item;
 		} clear_params;
-		struct {
-			dm_reset_reason reason;
-		} restart_params;
 	};
 } work_q_item_t;
 
@@ -172,7 +160,6 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 	DM_KEY_FENCE_POINTS_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_0_MAX,
 	DM_KEY_WAYPOINTS_OFFBOARD_1_MAX,
-	DM_KEY_WAYPOINTS_ONBOARD_MAX,
 	DM_KEY_MISSION_STATE_MAX,
 	DM_KEY_COMPAT_MAX
 };
@@ -183,7 +170,6 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
 	sizeof(struct mission_safe_point_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_fence_point_s) + DM_SECTOR_HDR_SIZE,
-	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_s) + DM_SECTOR_HDR_SIZE,
@@ -393,7 +379,7 @@ calculate_offset(dm_item_t item, unsigned index)
 /* Each data item is stored as follows
  *
  * byte 0: Length of user data item
- * byte 1: Persistence of this data item
+ * byte 1: Unused (previously persistence of this data item)
  * byte 2: Unused (for future use)
  * byte 3: Unused (for future use)
  * byte DM_SECTOR_HDR_SIZE... : data item value
@@ -402,10 +388,8 @@ calculate_offset(dm_item_t item, unsigned index)
  */
 
 /* write to the data manager RAM buffer  */
-static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
-			  size_t count)
+static ssize_t _ram_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 {
-
 	/* Get the offset for this item */
 	int offset = calculate_offset(item, index);
 
@@ -425,9 +409,9 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persis
 		return -1;
 	}
 
-	/* Write out the data, prefixed with length and persistence level */
+	/* Write out the data, prefixed with length */
 	buffer[0] = count;
-	buffer[1] = persistence;
+	buffer[1] = 0;
 	buffer[2] = 0;
 	buffer[3] = 0;
 
@@ -441,7 +425,7 @@ static ssize_t _ram_write(dm_item_t item, unsigned index, dm_persitence_t persis
 
 /* write to the data manager file */
 static ssize_t
-_file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count)
+_file_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 {
 	unsigned char buffer[g_per_item_size[item]];
 
@@ -458,9 +442,9 @@ _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const v
 		return -E2BIG;
 	}
 
-	/* Write out the data, prefixed with length and persistence level */
+	/* Write out the data, prefixed with length */
 	buffer[0] = count;
-	buffer[1] = persistence;
+	buffer[1] = 0;
 	buffer[2] = 0;
 	buffer[3] = 0;
 
@@ -470,11 +454,39 @@ _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const v
 
 	count += DM_SECTOR_HDR_SIZE;
 
-	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
-		return -1;
+	bool write_success = false;
+
+	for (int i = 0; i < 2; i++) {
+		int ret_seek = lseek(dm_operations_data.file.fd, offset, SEEK_SET);
+
+		if (ret_seek < 0) {
+			PX4_ERR("file write lseek failed %d", errno);
+			continue;
+		}
+
+		if (ret_seek != offset) {
+			PX4_ERR("file write lseek failed, incorrect offset %d vs %d", ret_seek, offset);
+			continue;
+		}
+
+		int ret_write = write(dm_operations_data.file.fd, buffer, count);
+
+		if (ret_write < 0) {
+			PX4_ERR("file write failed %d", errno);
+			continue;
+		}
+
+		if (ret_write != (ssize_t)count) {
+			PX4_ERR("file write failed, wrote %d bytes, expected %zu", ret_write, count);
+			continue;
+
+		} else {
+			write_success = true;
+			break;
+		}
 	}
 
-	if ((write(dm_operations_data.file.fd, buffer, count)) != (ssize_t)count) {
+	if (!write_success) {
 		return -1;
 	}
 
@@ -547,16 +559,37 @@ _file_read(dm_item_t item, unsigned index, void *buf, size_t count)
 		return -E2BIG;
 	}
 
-	/* Read the prefix and data */
 	int len = -1;
+	bool read_success = false;
 
-	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) == offset) {
+	for (int i = 0; i < 2; i++) {
+		int ret_seek = lseek(dm_operations_data.file.fd, offset, SEEK_SET);
+
+		if (ret_seek < 0) {
+			PX4_ERR("file read lseek failed %d", errno);
+			continue;
+		}
+
+		if (ret_seek != offset) {
+			PX4_ERR("file read lseek failed, incorrect offset %d vs %d", ret_seek, offset);
+			continue;
+		}
+
+		/* Read the prefix and data */
 		len = read(dm_operations_data.file.fd, buffer, count + DM_SECTOR_HDR_SIZE);
+
+		/* Check for read error */
+		if (len >= 0) {
+			read_success = true;
+			break;
+
+		} else {
+			PX4_ERR("file read failed %d", errno);
+		}
 	}
 
-	/* Check for read error */
-	if (len < 0) {
-		return -errno;
+	if (!read_success) {
+		return -1;
 	}
 
 	/* A zero length entry is a empty entry */
@@ -658,118 +691,6 @@ _file_clear(dm_item_t item)
 	return result;
 }
 
-/* Tell the data manager about the type of the last reset */
-static int  _ram_restart(dm_reset_reason reason)
-{
-	uint8_t *buffer = dm_operations_data.ram.data;
-
-	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
-
-	/* Loop through all of the data segments and delete those that are not persistent */
-
-	for (int item = (int)DM_KEY_SAFE_POINTS; item < (int)DM_KEY_NUM_KEYS; item++) {
-		for (unsigned i = 0; i < g_per_item_max_index[item]; i++) {
-			/* check if segment contains data */
-			if (buffer[0]) {
-				bool clear_entry = false;
-
-				/* Whether data gets deleted depends on reset type and data segment's persistence setting */
-				if (reason == DM_INIT_REASON_POWER_ON) {
-					if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
-						clear_entry = true;
-					}
-
-				} else {
-					if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
-						clear_entry = true;
-					}
-				}
-
-				/* Set segment to unused if data does not persist */
-				if (clear_entry) {
-					buffer[0] = 0;
-				}
-			}
-
-			buffer += g_per_item_size[item];
-		}
-	}
-
-	return 0;
-}
-
-static int
-_file_restart(dm_reset_reason reason)
-{
-	int offset = 0;
-	int result = 0;
-	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
-
-	/* Loop through all of the data segments and delete those that are not persistent */
-	for (int item = (int)DM_KEY_SAFE_POINTS; item < (int)DM_KEY_NUM_KEYS; item++) {
-		for (unsigned i = 0; i < g_per_item_max_index[item]; i++) {
-			/* Get data segment at current offset */
-			if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
-				result = -1;
-				item = DM_KEY_NUM_KEYS;
-				break;
-			}
-
-			uint8_t buffer[2];
-			ssize_t len = read(dm_operations_data.file.fd, buffer, sizeof(buffer));
-
-			if (len != sizeof(buffer)) {
-				result = -1;
-				item = DM_KEY_NUM_KEYS;
-				break;
-			}
-
-			/* check if segment contains data */
-			if (buffer[0]) {
-				bool clear_entry = false;
-
-				/* Whether data gets deleted depends on reset type and data segment's persistence setting */
-				if (reason == DM_INIT_REASON_POWER_ON) {
-					if (buffer[1] > DM_PERSIST_POWER_ON_RESET) {
-						clear_entry = true;
-					}
-
-				} else {
-					if (buffer[1] > DM_PERSIST_IN_FLIGHT_RESET) {
-						clear_entry = true;
-					}
-				}
-
-				/* Set segment to unused if data does not persist */
-				if (clear_entry) {
-					if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
-						result = -1;
-						item = DM_KEY_NUM_KEYS;
-						break;
-					}
-
-					buffer[0] = 0;
-
-					len = write(dm_operations_data.file.fd, buffer, 1);
-
-					if (len != 1) {
-						result = -1;
-						item = DM_KEY_NUM_KEYS;
-						break;
-					}
-				}
-			}
-
-			offset += g_per_item_size[item];
-		}
-	}
-
-	fsync(dm_operations_data.file.fd);
-
-	/* tell the caller how it went */
-	return result;
-}
-
 static int
 _file_initialize(unsigned max_offset)
 {
@@ -815,7 +736,7 @@ _file_initialize(unsigned max_offset)
 	/* Write current compat info */
 	struct dataman_compat_s compat_state;
 	compat_state.key = DM_COMPAT_KEY;
-	int ret = g_dm_ops->write(DM_KEY_COMPAT, 0, DM_PERSIST_POWER_ON_RESET, &compat_state, sizeof(compat_state));
+	int ret = g_dm_ops->write(DM_KEY_COMPAT, 0, &compat_state, sizeof(compat_state));
 
 	if (ret != sizeof(compat_state)) {
 		PX4_ERR("Failed writing compat: %d", ret);
@@ -862,7 +783,7 @@ _ram_shutdown()
 
 /** Write to the data manager file */
 __EXPORT ssize_t
-dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count)
+dm_write(dm_item_t item, unsigned index, const void *buf, size_t count)
 {
 	work_q_item_t *work;
 
@@ -875,6 +796,7 @@ dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void
 
 	/* get a work item and queue up a write request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_write create_work_item failed");
 		perf_end(_dm_write_perf);
 		return -1;
 	}
@@ -882,7 +804,6 @@ dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void
 	work->func = dm_write_func;
 	work->write_params.item = item;
 	work->write_params.index = index;
-	work->write_params.persistence = persistence;
 	work->write_params.buf = buf;
 	work->write_params.count = count;
 
@@ -907,6 +828,7 @@ dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 
 	/* get a work item and queue up a read request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_read create_work_item failed");
 		perf_end(_dm_read_perf);
 		return -1;
 	}
@@ -936,6 +858,7 @@ dm_clear(dm_item_t item)
 
 	/* get a work item and queue up a clear request */
 	if ((work = create_work_item()) == nullptr) {
+		PX4_ERR("dm_clear create_work_item failed");
 		return -1;
 	}
 
@@ -1006,29 +929,6 @@ dm_unlock(dm_item_t item)
 	if (g_item_locks[item]) {
 		px4_sem_post(g_item_locks[item]);
 	}
-}
-
-/** Tell the data manager about the type of the last reset */
-__EXPORT int
-dm_restart(dm_reset_reason reason)
-{
-	work_q_item_t *work;
-
-	/* Make sure data manager has been started and is not shutting down */
-	if (!is_running() || g_task_should_exit) {
-		return -1;
-	}
-
-	/* get a work item and queue up a restart request */
-	if ((work = create_work_item()) == nullptr) {
-		return -1;
-	}
-
-	work->func = dm_restart_func;
-	work->restart_params.reason = reason;
-
-	/* Enqueue the item on the work queue and wait for the worker thread to complete processing it */
-	return enqueue_work_item_and_wait_for_result(work);
 }
 
 static int
@@ -1131,9 +1031,7 @@ task_main(int argc, char *argv[])
 			case dm_write_func:
 				g_func_counts[dm_write_func]++;
 				work->result =
-					g_dm_ops->write(work->write_params.item, work->write_params.index, work->write_params.persistence,
-							work->write_params.buf,
-							work->write_params.count);
+					g_dm_ops->write(work->write_params.item, work->write_params.index, work->write_params.buf, work->write_params.count);
 				break;
 
 			case dm_read_func:
@@ -1145,11 +1043,6 @@ task_main(int argc, char *argv[])
 			case dm_clear_func:
 				g_func_counts[dm_clear_func]++;
 				work->result = g_dm_ops->clear(work->clear_params.item);
-				break;
-
-			case dm_restart_func:
-				g_func_counts[dm_restart_func]++;
-				work->result = g_dm_ops->restart(work->restart_params.reason);
 				break;
 
 			default: /* should never happen */
@@ -1231,7 +1124,6 @@ status()
 	PX4_INFO("Writes   %u", g_func_counts[dm_write_func]);
 	PX4_INFO("Reads    %u", g_func_counts[dm_read_func]);
 	PX4_INFO("Clears   %u", g_func_counts[dm_clear_func]);
-	PX4_INFO("Restarts %u", g_func_counts[dm_restart_func]);
 	PX4_INFO("Max Q lengths work %u, free %u", g_work_q.max_size, g_free_q.max_size);
 	perf_print_counter(_dm_read_perf);
 	perf_print_counter(_dm_write_perf);
@@ -1275,9 +1167,6 @@ check for geofence violations.
 	PRINT_MODULE_USAGE_PARAM_STRING('f', nullptr, "<file>", "Storage file", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Use RAM backend (NOT persistent)", true);
 	PRINT_MODULE_USAGE_PARAM_COMMENT("The options -f and -r are mutually exclusive. If nothing is specified, a file 'dataman' is used");
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("poweronrestart", "Restart dataman (on power on)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("inflightrestart", "Restart dataman (in flight)");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -1371,12 +1260,6 @@ dataman_main(int argc, char *argv[])
 
 	} else if (!strcmp(argv[1], "status")) {
 		status();
-
-	} else if (!strcmp(argv[1], "poweronrestart")) {
-		dm_restart(DM_INIT_REASON_POWER_ON);
-
-	} else if (!strcmp(argv[1], "inflightrestart")) {
-		dm_restart(DM_INIT_REASON_IN_FLIGHT);
 
 	} else {
 		usage();

@@ -72,38 +72,27 @@ div.frame_variant td, div.frame_variant th {
 
             # check if all outputs are equal for the group: if so, show them
             # only once
-            outputs_prev = ['', ''] # split into MAINx and others (AUXx)
-            outputs_match = [True, True]
+            all_outputs = {}
+            num_configs = len(group.GetParams())
             for param in group.GetParams():
                 if not self.IsExcluded(param, board):
-                    outputs_current = ['', '']
                     for output_name in param.GetOutputCodes():
                         value = param.GetOutputValue(output_name)
-                        if output_name.lower().startswith('main'):
-                            idx = 0
-                        else:
-                            idx = 1
-                        outputs_current[idx] += '<li><b>%s</b>: %s</li>' % (output_name, value)
-                    for i in range(2):
-                        if len(outputs_current[i]) != 0:
-                            if outputs_prev[i] == '':
-                                outputs_prev[i] = outputs_current[i]
-                            elif outputs_current[i] != outputs_prev[i]:
-                                outputs_match[i] = False
+                        key_value_pair = (output_name, value)
+                        if key_value_pair not in all_outputs:
+                            all_outputs[key_value_pair] = 0
+                        all_outputs[key_value_pair] += 1
+            has_common_outputs = any(all_outputs[k] == num_configs for k in all_outputs)
 
-            for i in range(2):
-                if len(outputs_prev[i]) == 0:
-                    outputs_match[i] = False
-                if not outputs_match[i]:
-                    outputs_prev[i] = ''
-
-            if outputs_match[0] or outputs_match[1]:
+            if has_common_outputs:
+                outputs_common = ''.join(['<li><b>{:}</b>: {:}</li>'.format(k[0], k[1]) \
+                    for k in all_outputs if all_outputs[k] == num_configs])
                 result += '<table>\n'
                 result += ' <thead>\n'
                 result += '   <tr><th>Common Outputs</th></tr>\n'
                 result += ' </thead>\n'
                 result += ' <tbody>\n'
-                result += '<tr>\n <td><ul>%s%s</ul></td>\n</tr>\n' % (outputs_prev[0], outputs_prev[1])
+                result += '<tr>\n <td><ul>%s</ul></td>\n</tr>\n' % (outputs_common)
                 result += '</tbody></table>\n'
 
             result += '</div>\n\n'
@@ -138,11 +127,8 @@ div.frame_variant td, div.frame_variant th {
                     for output_name in param.GetOutputCodes():
                         value = param.GetOutputValue(output_name)
                         valstrs = value.split(";")
-                        if output_name.lower().startswith('main'):
-                            idx = 0
-                        else:
-                            idx = 1
-                        if not outputs_match[idx]:
+                        key_value_pair = (output_name, value)
+                        if all_outputs[key_value_pair] < num_configs:
                             outputs += '<li><b>%s</b>: %s</li>' % (output_name, value)
                             has_outputs = True
 

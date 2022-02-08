@@ -85,14 +85,17 @@ private:
 			msg.h_acc = gps.eph * 1e3f;              // position uncertainty in mm
 			msg.v_acc = gps.epv * 1e3f;              // altitude uncertainty in mm
 			msg.vel_acc = gps.s_variance_m_s * 1e3f; // speed uncertainty in mm
-			msg.hdg_acc = math::degrees(gps.c_variance_rad) * 1e5f; // Heading / track uncertainty in degE5
 
 			if (PX4_ISFINITE(gps.heading)) {
 				if (fabsf(gps.heading) < FLT_EPSILON) {
 					msg.yaw = 36000; // Use 36000 for north.
 
 				} else {
-					msg.yaw = math::degrees(gps.heading) * 100.f; // centidegrees
+					msg.yaw = math::degrees(matrix::wrap_2pi(gps.heading)) * 100.0f; // centidegrees
+				}
+
+				if (PX4_ISFINITE(gps.heading_accuracy)) {
+					msg.hdg_acc = math::degrees(gps.heading_accuracy) * 1e5f; // Heading / track uncertainty in degE5
 				}
 			}
 

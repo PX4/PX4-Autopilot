@@ -51,7 +51,7 @@ class UavcanHeartbeatSubscriber : public UavcanBaseSubscriber
 {
 public:
 	UavcanHeartbeatSubscriber(CanardInstance &ins) :
-		UavcanBaseSubscriber(ins, "Heartbeat", 0) { };
+		UavcanBaseSubscriber(ins, "", "Heartbeat", 0) { };
 
 	void subscribe() override
 	{

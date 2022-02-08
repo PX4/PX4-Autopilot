@@ -1,7 +1,0 @@
-
-module_name: PWM Sim
-actuator_output:
-  output_groups:
-    - param_prefix: ${PWM_MAIN_OR_HIL}
-      channel_label: ${PWM_MAIN_OR_HIL}
-      num_channels: 16

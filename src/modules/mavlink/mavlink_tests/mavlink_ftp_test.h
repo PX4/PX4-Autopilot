@@ -98,12 +98,13 @@ private:
 	bool _removefile_test(void);
 
 	void _receive_message_handler_generic(const mavlink_file_transfer_protocol_t *ftp_req);
-	void _setup_ftp_msg(const MavlinkFTP::PayloadHeader *payload_header, uint8_t size, const uint8_t *data,
+	bool _setup_ftp_msg(const MavlinkFTP::PayloadHeader *payload_header,
+			    const uint8_t *data, const uint8_t data_len,
 			    mavlink_message_t *msg);
 	bool _decode_message(const mavlink_file_transfer_protocol_t *ftp_msg, const MavlinkFTP::PayloadHeader **payload);
 	bool _send_receive_msg(MavlinkFTP::PayloadHeader	*payload_header,
-			       uint8_t				size,
 			       const uint8_t			*data,
+			       const size_t			data_len,
 			       const MavlinkFTP::PayloadHeader	**payload_reply);
 	void _cleanup_microsd(void);
 

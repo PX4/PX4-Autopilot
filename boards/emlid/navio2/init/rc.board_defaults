@@ -1,0 +1,8 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+param set-default BAT1_V_DIV 10.177939394
+param set-default BAT1_A_PER_V 15.391030303
+

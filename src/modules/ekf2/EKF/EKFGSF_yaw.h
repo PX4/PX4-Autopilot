@@ -48,9 +48,9 @@ public:
 			float innov_VE[N_MODELS_EKFGSF],
 			float weight[N_MODELS_EKFGSF]) const;
 
-	// get yaw estimate and the corresponding variance
-	// return false if no yaw estimate available
-	bool getYawData(float *yaw, float *yaw_variance) const;
+	bool isActive() const { return _ekf_gsf_vel_fuse_started; }
+	float getYaw() const { return _gsf_yaw; }
+	float getYawVar() const { return _gsf_yaw_variance; }
 
 private:
 
