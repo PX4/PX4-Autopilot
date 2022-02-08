@@ -1,0 +1,5 @@
+menuconfig MODULES_GIMBAL
+	bool "gimbal"
+	default n
+	---help---
+		Enable support for GIMBAL

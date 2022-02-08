@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,46 +31,61 @@
 *
 ****************************************************************************/
 
-/**
- * @file output_rc.h
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
 
 #pragma once
 
-#include "output.h"
+#include <stdint.h>
+#include <lib/parameters/param.h>
 
-#include <uORB/Publication.hpp>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/gimbal_device_attitude_status.h>
-
-namespace vmount
+namespace gimbal
 {
 
-
-/**
- ** class OutputRC
- *  Output via actuator_controls_2 topic
- */
-class OutputRC : public OutputBase
-{
-public:
-	OutputRC(const OutputConfig &output_config);
-	virtual ~OutputRC() = default;
-
-	virtual int update(const ControlData *control_data);
-
-	virtual void print_status();
-
-private:
-	void _stream_device_attitude_status();
-
-	uORB::Publication <actuator_controls_s>	_actuator_controls_pub{ORB_ID(actuator_controls_2)};
-	uORB::Publication <gimbal_device_attitude_status_s>	_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
-
-	bool _retract_gimbal = true;
+struct Parameters {
+	int32_t mnt_mode_in;
+	int32_t mnt_mode_out;
+	int32_t mnt_mav_sysid_v1;
+	int32_t mnt_mav_compid_v1;
+	float mnt_ob_lock_mode;
+	float mnt_ob_norm_mode;
+	int32_t mnt_man_pitch;
+	int32_t mnt_man_roll;
+	int32_t mnt_man_yaw;
+	int32_t mnt_do_stab;
+	float mnt_range_pitch;
+	float mnt_range_roll;
+	float mnt_range_yaw;
+	float mnt_off_pitch;
+	float mnt_off_roll;
+	float mnt_off_yaw;
+	int32_t mav_sysid;
+	int32_t mav_compid;
+	float mnt_rate_pitch;
+	float mnt_rate_yaw;
+	int32_t mnt_rc_in_mode;
 };
 
+struct ParameterHandles {
+	param_t mnt_mode_in;
+	param_t mnt_mode_out;
+	param_t mnt_mav_sysid_v1;
+	param_t mnt_mav_compid_v1;
+	param_t mnt_ob_lock_mode;
+	param_t mnt_ob_norm_mode;
+	param_t mnt_man_pitch;
+	param_t mnt_man_roll;
+	param_t mnt_man_yaw;
+	param_t mnt_do_stab;
+	param_t mnt_range_pitch;
+	param_t mnt_range_roll;
+	param_t mnt_range_yaw;
+	param_t mnt_off_pitch;
+	param_t mnt_off_roll;
+	param_t mnt_off_yaw;
+	param_t mav_sysid;
+	param_t mav_compid;
+	param_t mnt_rate_pitch;
+	param_t mnt_rate_yaw;
+	param_t mnt_rc_in_mode;
+};
 
-} /* namespace vmount */
+} /* namespace gimbal */
