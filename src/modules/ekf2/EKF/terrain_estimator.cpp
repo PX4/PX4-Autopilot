@@ -57,15 +57,8 @@ void Ekf::runTerrainEstimator()
 
 	predictHagl();
 
-	// Fuse range finder data if available
 	controlHaglRngFusion();
-
-	if (shouldUseOpticalFlowForHagl()
-	    && _flow_for_terrain_data_ready) {
-		fuseFlowForTerrain();
-		_flow_for_terrain_data_ready = false;
-	}
-
+	controlHaglFlowFusion();
 	controlHaglFakeFusion();
 
 	// constrain _terrain_vpos to be a minimum of _params.rng_gnd_clearance larger than _state.pos(2)
@@ -239,8 +232,68 @@ void Ekf::fuseHaglRng()
 	}
 }
 
+void Ekf::controlHaglFlowFusion()
+{
+	if (!(_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow)) {
+		stopHaglFlowFusion();
+		return;
+	}
+
+	if (_flow_data_ready) {
+		const bool continuing_conditions_passing = _control_status.flags.in_air
+		                                           && !_control_status.flags.opt_flow
+							   && _control_status.flags.gps
+							   && isTimedOut(_time_last_hagl_fuse, 5e6f); // TODO: check for range_finder hagl aiding instead?
+							   /* && !_hagl_sensor_status.flags.range_finder; */
+		const bool starting_conditions_passing = continuing_conditions_passing;
+
+		if (_hagl_sensor_status.flags.flow) {
+			if (continuing_conditions_passing) {
+
+				// TODO: wait until the midpoint of the flow sample has fallen behind the fusion time horizon
+				fuseFlowForTerrain();
+				_flow_data_ready = false;
+
+				// TODO: do something when failing continuously the innovation check
+				/* const bool is_fusion_failing = isTimedOut(_time_last_flow_terrain_fuse, _params.reset_timeout_max); */
+
+				/* if (is_fusion_failing) { */
+				/* 	resetHaglFlow(); */
+				/* } */
+
+			} else {
+				stopHaglFlowFusion();
+			}
+
+		} else {
+			if (starting_conditions_passing) {
+				startHaglFlowFusion();
+			}
+		}
+
+	} else if (_hagl_sensor_status.flags.flow
+		   && (_imu_sample_delayed.time_us >  _flow_sample_delayed.time_us + (uint64_t)5e6)) {
+		// No data anymore. Stop until it comes back.
+		stopHaglFlowFusion();
+	}
+}
+
+void Ekf::startHaglFlowFusion()
+{
+	_hagl_sensor_status.flags.flow = true;
+	// TODO: do a reset instead of trying to fuse the data?
+	fuseFlowForTerrain();
+	_flow_data_ready = false;
+}
+
+void Ekf::stopHaglFlowFusion()
+{
+	_hagl_sensor_status.flags.flow = false;
+}
+
 void Ekf::resetHaglFlow()
 {
+	// TODO: use the flow data
 	_terrain_vpos = fmaxf(0.0f,  _state.pos(2));
 	_terrain_var = 100.0f;
 	_terrain_vpos_reset_counter++;
@@ -374,6 +427,4 @@ void Ekf::updateTerrainValidity()
 	const bool recent_flow_for_terrain_fusion = isRecent(_time_last_flow_terrain_fuse, (uint64_t)5e6);
 
 	_hagl_valid = (recent_range_fusion || recent_flow_for_terrain_fusion);
-
-	_hagl_sensor_status.flags.flow = shouldUseOpticalFlowForHagl() && recent_flow_for_terrain_fusion;
 }
