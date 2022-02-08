@@ -680,8 +680,6 @@ private:
 	// initialise the terrain vertical position estimator
 	void initHagl();
 
-	bool shouldUseOpticalFlowForHagl() const { return (_params.terrain_fusion_mode & TerrainFusionMask::TerrainFuseOpticalFlow); }
-
 	void runTerrainEstimator();
 	void predictHagl();
 
@@ -695,8 +693,11 @@ private:
 	float getRngVar();
 
 	// update the terrain vertical position estimate using an optical flow measurement
-	void fuseFlowForTerrain();
+	void controlHaglFlowFusion();
+	void startHaglFlowFusion();
 	void resetHaglFlow();
+	void stopHaglFlowFusion();
+	void fuseFlowForTerrain();
 
 	void controlHaglFakeFusion();
 	void resetHaglFake();
