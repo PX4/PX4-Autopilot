@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,13 +42,13 @@ namespace Bosch::BMI088::Accelerometer
 
 BMI088_Accelerometer::BMI088_Accelerometer(const I2CSPIDriverConfig &config) :
 	BMI088(config),
-	_px4_accel(get_device_id(), config.rotation)
+	_rotation(config.rotation)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_accel: DRDY missed");
 	}
 
-	ConfigureSampleRate(_px4_accel.get_max_rate_hz());
+	ConfigureSampleRate(RATE);
 }
 
 BMI088_Accelerometer::~BMI088_Accelerometer()
@@ -218,12 +218,6 @@ void BMI088_Accelerometer::RunImpl()
 				} else {
 					samples = fifo_byte_counter / sizeof(FIFO::DATA);
 
-					// tolerate minor jitter, leave sample to next iteration if behind by only 1
-					if (samples == _fifo_samples + 1) {
-						timestamp_sample -= static_cast<int>(FIFO_SAMPLE_DT);
-						samples--;
-					}
-
 					if (samples > FIFO_MAX_SAMPLES) {
 						// not technically an overflow, but more samples than we expected or can publish
 						FIFOReset();
@@ -286,23 +280,23 @@ void BMI088_Accelerometer::ConfigureAccel()
 
 	switch (ACC_RANGE) {
 	case acc_range_3g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(3.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f;
+		_accel_range = 3.f * CONSTANTS_ONE_G;
 		break;
 
 	case acc_range_6g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(6.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f;
+		_accel_range = 6.f * CONSTANTS_ONE_G;
 		break;
 
 	case acc_range_12g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(12.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f;
+		_accel_range = 12.f * CONSTANTS_ONE_G;
 		break;
 
 	case acc_range_24g:
-		_px4_accel.set_scale(CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f);
-		_px4_accel.set_range(24.f * CONSTANTS_ONE_G);
+		_accel_scale = CONSTANTS_ONE_G * (powf(2, ACC_RANGE + 1) * 1.5f) / 32768.f;
+		_accel_range = 24.f * CONSTANTS_ONE_G;
 		break;
 	}
 }
@@ -483,14 +477,16 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 		return false;
 	}
 
-	sensor_accel_fifo_s accel{};
-	accel.timestamp_sample = timestamp_sample;
-	accel.samples = 0;
-	accel.dt = FIFO_SAMPLE_DT;
+	sensor_accel_s sensor_accel{};
+	sensor_accel.timestamp_sample = timestamp_sample;
+	sensor_accel.device_id = get_device_id();
 
 	// first find all sensor data frames in the buffer
 	uint8_t *data_buffer = (uint8_t *)&buffer.f[0];
 	unsigned fifo_buffer_index = 0; // start of buffer
+
+	float accel_sum[3] {};
+	int accel_samples = 0;
 
 	while (fifo_buffer_index < math::min(fifo_byte_counter, transfer_size - 4)) {
 		// look for header signature (first 6 bits) followed by two bits indicating the status of INT1 and INT2
@@ -500,16 +496,23 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 				// Frame length: 7 bytes (1 byte header + 6 bytes payload)
 
 				FIFO::DATA *fifo_sample = (FIFO::DATA *)&data_buffer[fifo_buffer_index];
-				const int16_t accel_x = combine(fifo_sample->ACC_X_MSB, fifo_sample->ACC_X_LSB);
-				const int16_t accel_y = combine(fifo_sample->ACC_Y_MSB, fifo_sample->ACC_Y_LSB);
-				const int16_t accel_z = combine(fifo_sample->ACC_Z_MSB, fifo_sample->ACC_Z_LSB);
+				int16_t accel_x = combine(fifo_sample->ACC_X_MSB, fifo_sample->ACC_X_LSB);
+				int16_t accel_y = combine(fifo_sample->ACC_Y_MSB, fifo_sample->ACC_Y_LSB);
+				int16_t accel_z = combine(fifo_sample->ACC_Z_MSB, fifo_sample->ACC_Z_LSB);
 
 				// sensor's frame is +x forward, +y left, +z up
 				//  flip y & z to publish right handed with z down (x forward, y right, z down)
-				accel.x[accel.samples] = accel_x;
-				accel.y[accel.samples] = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
-				accel.z[accel.samples] = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
-				accel.samples++;
+				// accel_x = accel_x;
+				accel_y = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
+				accel_z = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
+
+				rotate_3i(_rotation, accel_x, accel_y, accel_z);
+
+				accel_sum[0] += accel_x;
+				accel_sum[1] += accel_y;
+				accel_sum[2] += accel_z;
+
+				accel_samples++;
 
 				fifo_buffer_index += 7; // move forward to next record
 			}
@@ -549,11 +552,20 @@ bool BMI088_Accelerometer::FIFORead(const hrt_abstime &timestamp_sample, uint8_t
 		}
 	}
 
-	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+	if (accel_samples > 0) {
+		sensor_accel.x = (accel_sum[0] / accel_samples) * _accel_scale;
+		sensor_accel.y = (accel_sum[1] / accel_samples) * _accel_scale;
+		sensor_accel.z = (accel_sum[2] / accel_samples) * _accel_scale;
 
-	if (accel.samples > 0) {
-		_px4_accel.updateFIFO(accel);
+		sensor_accel.range = _accel_range;
+		sensor_accel.samples = accel_samples;
+		sensor_accel.temperature = _temperature;
+		sensor_accel.error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
+					   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+
+		sensor_accel.timestamp = hrt_absolute_time();
+		_sensor_accel_pub.publish(sensor_accel);
+
 		return true;
 	}
 
@@ -600,7 +612,7 @@ void BMI088_Accelerometer::UpdateTemperature()
 	float temperature = (Temp_int11 * 0.125f) + 23.f; // Temp_int11 * 0.125°C/LSB + 23°C
 
 	if (PX4_ISFINITE(temperature)) {
-		_px4_accel.set_temperature(temperature);
+		_temperature = temperature;
 
 	} else {
 		perf_count(_bad_transfer_perf);

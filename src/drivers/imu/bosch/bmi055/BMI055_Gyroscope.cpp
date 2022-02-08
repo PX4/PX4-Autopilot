@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,8 +33,6 @@
 
 #include "BMI055_Gyroscope.hpp"
 
-#include <px4_platform/board_dma_alloc.h>
-
 using namespace time_literals;
 
 namespace Bosch::BMI055::Gyroscope
@@ -42,13 +40,13 @@ namespace Bosch::BMI055::Gyroscope
 
 BMI055_Gyroscope::BMI055_Gyroscope(const I2CSPIDriverConfig &config) :
 	BMI055(config),
-	_px4_gyro(get_device_id(), config.rotation)
+	_rotation(config.rotation)
 {
 	if (config.drdy_gpio != 0) {
 		_drdy_missed_perf = perf_alloc(PC_COUNT, MODULE_NAME"_gyro: DRDY missed");
 	}
 
-	ConfigureSampleRate(_px4_gyro.get_max_rate_hz());
+	ConfigureSampleRate(RATE);
 }
 
 BMI055_Gyroscope::~BMI055_Gyroscope()
@@ -202,16 +200,6 @@ void BMI055_Gyroscope::RunImpl()
 
 					uint8_t samples = fifo_frame_counter;
 
-					// tolerate minor jitter, leave sample to next iteration if behind by only 1
-					if (samples == _fifo_samples + 1) {
-						// sample timestamp set from data ready already corresponds to _fifo_samples
-						if (timestamp_sample == 0) {
-							timestamp_sample = now - static_cast<int>(FIFO_SAMPLE_DT);
-						}
-
-						samples--;
-					}
-
 					if (FIFORead((timestamp_sample == 0) ? now : timestamp_sample, samples)) {
 						success = true;
 
@@ -256,28 +244,28 @@ void BMI055_Gyroscope::ConfigureGyro()
 
 	switch (RANGE) {
 	case gyro_range_2000_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 16.384f));
-		_px4_gyro.set_range(math::radians(2000.f));
+		_gyro_scale = math::radians(1.f / 16.384f);
+		_gyro_range = math::radians(2000.f);
 		break;
 
 	case gyro_range_1000_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 32.768f));
-		_px4_gyro.set_range(math::radians(1000.f));
+		_gyro_scale = math::radians(1.f / 32.768f);
+		_gyro_range = math::radians(1000.f);
 		break;
 
 	case gyro_range_500_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 65.536f));
-		_px4_gyro.set_range(math::radians(500.f));
+		_gyro_scale = math::radians(1.f / 65.536f);
+		_gyro_range = math::radians(500.f);
 		break;
 
 	case gyro_range_250_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 131.072f));
-		_px4_gyro.set_range(math::radians(250.f));
+		_gyro_scale = math::radians(1.f / 131.072f);
+		_gyro_range = math::radians(250.f);
 		break;
 
 	case gyro_range_125_dps:
-		_px4_gyro.set_scale(math::radians(1.f / 262.144f));
-		_px4_gyro.set_range(math::radians(125.f));
+		_gyro_scale = math::radians(1.f / 262.144f);
+		_gyro_range = math::radians(125.f);
 		break;
 	}
 }
@@ -413,29 +401,44 @@ bool BMI055_Gyroscope::FIFORead(const hrt_abstime &timestamp_sample, uint8_t sam
 		return false;
 	}
 
-	sensor_gyro_fifo_s gyro{};
-	gyro.timestamp_sample = timestamp_sample;
-	gyro.samples = samples;
-	gyro.dt = FIFO_SAMPLE_DT;
+	sensor_gyro_s sensor_gyro{};
+	sensor_gyro.timestamp_sample = timestamp_sample;
+	sensor_gyro.device_id = get_device_id();
+
+	float gyro_sum[3] {};
 
 	for (int i = 0; i < samples; i++) {
 		const FIFO::DATA &fifo_sample = buffer.f[i];
 
-		const int16_t gyro_x = combine(fifo_sample.RATE_X_MSB, fifo_sample.RATE_X_LSB);
-		const int16_t gyro_y = combine(fifo_sample.RATE_Y_MSB, fifo_sample.RATE_Y_LSB);
-		const int16_t gyro_z = combine(fifo_sample.RATE_Z_MSB, fifo_sample.RATE_Z_LSB);
+		int16_t gyro_x = combine(fifo_sample.RATE_X_MSB, fifo_sample.RATE_X_LSB);
+		int16_t gyro_y = combine(fifo_sample.RATE_Y_MSB, fifo_sample.RATE_Y_LSB);
+		int16_t gyro_z = combine(fifo_sample.RATE_Z_MSB, fifo_sample.RATE_Z_LSB);
 
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		gyro.x[i] = gyro_x;
-		gyro.y[i] = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
-		gyro.z[i] = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
+		// gyro_x = gyro_x;
+		gyro_y = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
+		gyro_z = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
+
+		rotate_3i(_rotation, gyro_x, gyro_y, gyro_z);
+
+		gyro_sum[0] += gyro_x * _gyro_scale;
+		gyro_sum[1] += gyro_y * _gyro_scale;
+		gyro_sum[2] += gyro_z * _gyro_scale;
 	}
 
-	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
-				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
+	sensor_gyro.x = gyro_sum[0] / samples;
+	sensor_gyro.y = gyro_sum[1] / samples;
+	sensor_gyro.z = gyro_sum[2] / samples;
 
-	_px4_gyro.updateFIFO(gyro);
+	sensor_gyro.range = _gyro_range;
+	sensor_gyro.samples = samples;
+	sensor_gyro.temperature = NAN;
+	sensor_gyro.error_count = perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
+				  perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf);
+
+	sensor_gyro.timestamp = hrt_absolute_time();
+	_sensor_gyro_pub.publish(sensor_gyro);
 
 	return true;
 }

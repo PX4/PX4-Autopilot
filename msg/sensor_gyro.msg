@@ -7,6 +7,8 @@ float32 x                 # angular velocity in the FRD board frame X-axis in ra
 float32 y                 # angular velocity in the FRD board frame Y-axis in rad/s
 float32 z                 # angular velocity in the FRD board frame Z-axis in rad/s
 
+float32 range # TODO
+
 float32 temperature       # temperature in degrees Celsius
 
 uint32 error_count

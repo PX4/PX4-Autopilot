@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__imu__bosch__bmi088
 	MAIN bmi088
 	COMPILE_FLAGS
+		${MAX_CUSTOM_OPT_LEVEL}
 	SRCS
 		Bosch_BMI088_Accelerometer_Registers.hpp
 		Bosch_BMI088_Gyroscope_Registers.hpp
@@ -48,7 +49,5 @@ px4_add_module(
 
 		bmi088_main.cpp
 	DEPENDS
-		drivers_accelerometer
-		drivers_gyroscope
 		px4_work_queue
 	)

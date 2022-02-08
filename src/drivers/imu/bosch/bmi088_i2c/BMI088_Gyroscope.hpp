@@ -35,8 +35,6 @@
 
 #include "BMI088.hpp"
 
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-
 #include "Bosch_BMI088_Gyroscope_Registers.hpp"
 
 namespace Bosch::BMI088::Gyroscope
@@ -58,7 +56,7 @@ private:
 	static constexpr uint32_t RATE{400}; // 2000 Hz
 	static constexpr float FIFO_SAMPLE_DT{1e6f / RATE};
 
-	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_gyro_fifo_s::x) / sizeof(sensor_gyro_fifo_s::x[0]))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{FIFO::SIZE / sizeof(FIFO::DATA)};
 
 	// Transfer data
 	struct FIFOTransferBuffer {
@@ -98,7 +96,6 @@ private:
 	bool SelfTest();
 	bool NormalRead(const hrt_abstime &timestamp_sample);
 	bool SimpleFIFORead(const hrt_abstime &timestamp_sample);
-	PX4Gyroscope _px4_gyro;
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_gyro: bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME"_gyro: bad transfer")};

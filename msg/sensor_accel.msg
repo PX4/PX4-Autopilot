@@ -7,6 +7,8 @@ float32 x                 # acceleration in the FRD board frame X-axis in m/s^2
 float32 y                 # acceleration in the FRD board frame Y-axis in m/s^2
 float32 z                 # acceleration in the FRD board frame Z-axis in m/s^2
 
+float32 range # TODO
+
 float32 temperature       # temperature in degrees Celsius
 
 uint32 error_count

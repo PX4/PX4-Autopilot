@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,10 @@
 
 #include "BMI088.hpp"
 
-#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-
 #include "Bosch_BMI088_Accelerometer_Registers.hpp"
+
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_accel.h>
 
 namespace Bosch::BMI088::Accelerometer
 {
@@ -58,7 +59,7 @@ private:
 	static constexpr uint32_t RATE{1600}; // 1600 Hz
 	static constexpr float FIFO_SAMPLE_DT{1e6f / RATE};
 
-	static constexpr int32_t FIFO_MAX_SAMPLES{math::min(FIFO::SIZE / sizeof(FIFO::DATA), sizeof(sensor_accel_fifo_s::x) / sizeof(sensor_accel_fifo_s::x[0]))};
+	static constexpr int32_t FIFO_MAX_SAMPLES{FIFO::SIZE / sizeof(FIFO::DATA)};
 
 	// Transfer data
 	struct FIFOTransferBuffer {
@@ -101,7 +102,13 @@ private:
 
 	void UpdateTemperature();
 
-	PX4Accelerometer _px4_accel;
+	uORB::PublicationMulti<sensor_accel_s> _sensor_accel_pub{ORB_ID(sensor_accel)};
+
+	const enum Rotation _rotation;
+	float _accel_scale{0.f};
+	float _accel_range{0.f};
+
+	float _temperature{NAN};
 
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: bad register")};
 	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME"_accel: bad transfer")};
