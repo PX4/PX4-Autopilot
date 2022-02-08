@@ -1,6 +1,6 @@
 /****************************************************************************
 *
-*   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+*   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions
@@ -31,66 +31,37 @@
 *
 ****************************************************************************/
 
-/**
- * @file input_rc.h
- * @author Beat Küng <beat-kueng@gmx.net>
- *
- */
 
 #pragma once
 
 #include "input.h"
+#include "gimbal_params.h"
 #include <uORB/topics/manual_control_setpoint.h>
 
-namespace vmount
+namespace gimbal
 {
 
-class InputMavlinkROI;
-class InputMavlinkCmdMount;
-
-/**
- ** class InputRC
- * RC input class using manual_control_setpoint topic
- */
 class InputRC : public InputBase
 {
 public:
+	InputRC() = delete;
+	explicit InputRC(Parameters &parameters);
 
-	/**
-	 * @param aux_channel_roll   which aux channel to use for roll (set to 0 to use a fixed angle of 0)
-	 * @param aux_channel_pitch
-	 * @param aux_channel_yaw
-	 */
-	InputRC(int aux_channel_roll, int aux_channel_pitch, int aux_channel_yaw, float mnt_rate_pitch, float mnt_rate_yaw,
-		int rc_in_mode);
 	virtual ~InputRC();
 
-	virtual void print_status();
+	virtual void print_status() const;
 
-protected:
-	virtual int update_impl(unsigned int timeout_ms, ControlData **control_data, bool already_active);
+	virtual UpdateResult update(unsigned int timeout_ms, ControlData &control_data, bool already_active);
+
 	virtual int initialize();
 
-	/**
-	 * @return true if there was a change in control data
-	 */
-	virtual bool _read_control_data_from_subscription(ControlData &control_data, bool already_active);
-
-	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
-
 private:
-	int _aux_channels[3] {};
-
-	float _mnt_rate_pitch{0.f};
-	float _mnt_rate_yaw{0.f};
-
-	int _rc_in_mode{0};
+	virtual UpdateResult _read_control_data_from_subscription(ControlData &control_data, bool already_active);
+	float _get_aux_value(const manual_control_setpoint_s &manual_control_setpoint, int channel_idx);
 
 	int _manual_control_setpoint_sub{-1};
 
-	bool _first_time{true};
 	float _last_set_aux_values[3] {};
 };
 
-
-} /* namespace vmount */
+} /* namespace gimbal */
