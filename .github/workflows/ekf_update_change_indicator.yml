@@ -1,6 +1,9 @@
 name: EKF Update Change Indicator
 
-on: push
+on:
+  push:
+    branches:
+      - 'master'
 
 jobs:
   unit_tests:
