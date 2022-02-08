@@ -58,17 +58,16 @@ jobs:
         uses: docker/build-push-action@v2
         id: docker_build
         with:
-          load: true
           file: Tools/setup/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ env.DOCKER_TAG }}
-          outputs: type=tar,dest=/tmp/px4image.tar
+          outputs: type=tar,dest=/tmp/px4_docker_image.tar
 
       - name: Save container to artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: px4image
-          path: /tmp/px4image.tar
+          name: px4_docker_image
+          path: /tmp/px4_docker_image.tar
 
       - name: Push to Github Registry
         uses: docker/build-push-action@v2
@@ -112,25 +111,18 @@ jobs:
       - name: Get container from artifacts
         uses: actions/download-artifact@v2
         with:
-          name: px4image
+          name: px4_docker_image
           path: /tmp
 
       - name: Load Docker image
         run: |
-          docker import /tmp/px4image.tar
+          docker import /tmp/px4_docker_image.tar ${{ env.DOCKER_TAG }}
           docker image ls -a
-
-      - name: Check disk space
-        run: |
-          df -h
-          docker buildx du
-          rm /tmp/px4image.tar
-          df -h
 
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Build the world
+      - name: Build targets
         #run: |
           #docker run --rm -w "${GITHUB_ACTION_PATH}" \
             #--env=LOCAL_USER_ID="$(id -u)" \
