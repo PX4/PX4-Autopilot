@@ -114,7 +114,7 @@ bool PositionControl::update(const float dt)
 		_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
 	}
 
-	// There has to be a valid output accleration and thrust setpoint otherwise something went wrong
+	// There has to be a valid output acceleration and thrust setpoint otherwise something went wrong
 	valid = valid && PX4_ISFINITE(_acc_sp(0)) && PX4_ISFINITE(_acc_sp(1)) && PX4_ISFINITE(_acc_sp(2));
 	valid = valid && PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(_thr_sp(2));
 

@@ -92,21 +92,22 @@ private:
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub {ORB_ID(takeoff_status)};
-	uORB::Publication<vehicle_attitude_setpoint_s>	     _vehicle_attitude_setpoint_pub {ORB_ID(vehicle_attitude_setpoint)};
-	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub {ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
+	uORB::PublicationData<takeoff_status_s>              _takeoff_status_pub{ORB_ID(takeoff_status)};
+	uORB::Publication<vehicle_attitude_setpoint_s>	     _vehicle_attitude_setpoint_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<vehicle_local_position_setpoint_s> _local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
 
-	uORB::SubscriptionCallbackWorkItem _local_pos_sub {this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
+	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
-	uORB::SubscriptionInterval _parameter_update_sub {ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _hover_thrust_estimate_sub {ORB_ID(hover_thrust_estimate)};
-	uORB::Subscription _trajectory_setpoint_sub {ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _vehicle_constraints_sub {ORB_ID(vehicle_constraints)};
-	uORB::Subscription _vehicle_control_mode_sub {ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _vehicle_land_detected_sub {ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
+	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
-	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
+	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
+	hrt_abstime _time_position_control_enabled{0};
 
 	vehicle_local_position_setpoint_s _setpoint {};
 	vehicle_control_mode_s _vehicle_control_mode {};
@@ -183,8 +184,6 @@ private:
 
 	hrt_abstime _last_warn{0}; /**< timer when the last warn message was sent out */
 
-	bool _in_failsafe{false};  /**< true if failsafe was entered within current cycle */
-
 	bool _hover_thrust_initialized{false};
 
 	/** Timeout in us for trajectory data to get considered invalid */
@@ -228,8 +227,7 @@ private:
 	 * setpoints. The failsafe will occur after LOITER_TIME_BEFORE_DESCEND. If force is set
 	 * to true, the failsafe will be initiated immediately.
 	 */
-	void failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states,
-		      bool warn);
+	void failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states);
 
 	/**
 	 * Reset setpoints to NAN
