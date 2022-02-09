@@ -46,9 +46,10 @@ jobs:
 
       - name: debugging variables
         run: |
-          echo "::debug:: DOCKER_TAG: $DOCKER_TAG"
-          echo "::debug:: DOCKER_TAG: ${DOCKER_TAG}"
-          echo "::debug:: DOCKER_TAG: ${{DOCKER_TAG}}"
+          echo "::group::Debugging Variables
+          echo "single {}: ${DOCKER_TAG}"
+          echo "double {}: ${{DOCKER_TAG}}"
+          echo "::endgroup::"
 
       - name: Login to Github Registry
         uses: docker/login-action@v1
