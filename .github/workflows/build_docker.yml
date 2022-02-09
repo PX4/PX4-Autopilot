@@ -41,7 +41,14 @@ jobs:
 
     steps:
       - name: Checkout code
+        if: false
         uses: actions/checkout@v2
+
+      - name: debugging variables
+        run: |
+          echo "::debug:: DOCKER_TAG: $DOCKER_TAG"
+          echo "::debug:: DOCKER_TAG: ${DOCKER_TAG}"
+          echo "::debug:: DOCKER_TAG: ${{DOCKER_TAG}}"
 
       - name: Login to Github Registry
         uses: docker/login-action@v1
@@ -52,9 +59,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up image builder
+        if: false
         uses: docker/setup-buildx-action@v1
 
       - name: Build image
+        if: false
         uses: docker/build-push-action@v2
         id: docker_build
         with:
@@ -64,6 +73,7 @@ jobs:
           outputs: type=tar,dest=/tmp/px4_docker_image.tar
 
       - name: Save container to artifacts
+        if: false
         uses: actions/upload-artifact@v2
         with:
           name: px4_docker_image
@@ -74,6 +84,7 @@ jobs:
         if: github.event_name == 'push'
 
       - name: Image Digest
+        if: false
         run: echo ${{ steps.docker_build.outputs.digest }}
 
   enumerate_targets:
@@ -85,18 +96,22 @@ jobs:
 
     steps:
       - name: Checkout Code
+        if: false
         uses: actions/checkout@v2
 
       - name: Setup Python
+        if: false
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
 
       - name: Install Python packages
+        if: false
         #run: pip install -r Tools/setup/requirements.txt
         run: pip install kconfiglib
 
       - id: set-matrix
+        if: false
         name: Get all nuttx targets
         run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py -a)"
 
@@ -109,20 +124,23 @@ jobs:
 
     steps:
       - name: Get container from artifacts
+        if: false
         uses: actions/download-artifact@v2
         with:
           name: px4_docker_image
           path: /tmp
 
       - name: Load Docker image
+        if: false
         run: |
-          docker import /tmp/px4_docker_image.tar $DOCKER_TAG
+          docker import /tmp/px4_docker_image.tar ${{ env.DOCKER_TAG }}
           docker image ls -a
 
       - name: Checkout Code
         uses: actions/checkout@v2
 
       - name: Build targets
+        if: false
         #run: |
           #docker run --rm -w "${GITHUB_ACTION_PATH}" \
             #--env=LOCAL_USER_ID="$(id -u)" \
