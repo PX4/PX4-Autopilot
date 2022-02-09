@@ -64,6 +64,12 @@ extern void libtomcrypt_init(void);
  */
 static int crypto_open_count = 0;
 
+/*
+ * Status of libtomcrypt initialization. This is a large library, which
+ * is initialized & pulled in by linker only when it is actually used
+ */
+static bool tomcrypt_initialized = false;
+
 typedef struct {
 	size_t key_size;
 	uint8_t *key;
@@ -75,6 +81,14 @@ typedef struct {
 	uint8_t nonce[24];
 	uint64_t ctr;
 } chacha20_context_t;
+
+static inline void initialize_tomcrypt(void)
+{
+	if (!tomcrypt_initialized) {
+		libtomcrypt_init();
+		tomcrypt_initialized = true;
+	}
+}
 
 /* Clear key cache */
 static void clear_key_cache(void)
@@ -135,7 +149,6 @@ void crypto_init()
 {
 	keystore_init();
 	clear_key_cache();
-	libtomcrypt_init();
 }
 
 crypto_session_handle_t crypto_open(px4_crypto_algorithm_t algorithm)
@@ -268,6 +281,8 @@ bool crypto_encrypt_data(crypto_session_handle_t handle,
 			unsigned long outlen = *cipher_size;
 			uint8_t *public_key = (uint8_t *)crypto_get_key_ptr(handle.keystore_handle, key_idx, &key_sz);
 			*cipher_size = 0;
+
+			initialize_tomcrypt();
 
 			if (public_key &&
 			    rsa_import(public_key, key_sz, &key) == CRYPT_OK) {
@@ -412,6 +427,8 @@ size_t crypto_get_min_blocksize(crypto_session_handle_t handle, uint8_t key_idx)
 			rsa_key enc_key;
 			size_t pub_key_sz;
 			uint8_t *pub_key = (uint8_t *)crypto_get_key_ptr(handle.keystore_handle, key_idx, &pub_key_sz);
+
+			initialize_tomcrypt();
 
 			if (pub_key &&
 			    rsa_import(pub_key, pub_key_sz, &enc_key) == CRYPT_OK) {
