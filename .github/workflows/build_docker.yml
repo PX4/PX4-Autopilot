@@ -21,7 +21,7 @@ on:
     types: [released]
   push:
     branches:
-      - 'main'
+      - 'master'
   pull_request:
 
 env:
@@ -116,7 +116,7 @@ jobs:
 
       - name: Load Docker image
         run: |
-          docker import /tmp/px4_docker_image.tar ${{ env.DOCKER_TAG }}
+          docker import /tmp/px4_docker_image.tar $DOCKER_TAG
           docker image ls -a
 
       - name: Checkout Code
@@ -131,8 +131,8 @@ jobs:
             #px4io/px4-dev:${{ env.DOCKER_TAG }} /bin/bash -c "make ${{ matrix.target }}"
 
         run: |
-          docker run --rm -w "${{ env.GITHUB_ACTION_PATH }}" \
+          docker run --rm -w $GITHUB_ACTION_PATH \
             --env=LOCAL_USER_ID="$(id -u)" \
             --volume=/tmp:/tmp:rw \
-            --volume=${{ env.GITHUB_ACTION_PATH }}:${{ env.GITHUB_ACTION_PATH }}:rw \
+            --volume=$GITHUB_ACTION_PATH:$GITHUB_ACTION_PATH:rw \
             $(echo "$DOCKER_TAG" | tr -d '\n') /bin/bash -c "make px4_fmu-v6x"
