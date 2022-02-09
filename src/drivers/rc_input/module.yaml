@@ -5,7 +5,6 @@ serial_config:
         name: RC_PORT_CONFIG
         group: Serial
         default: RC
-        depends_on_port: RC
         description_extended: |
             Setting this to 'Disabled' will use a board-specific default port
             for RC input.
