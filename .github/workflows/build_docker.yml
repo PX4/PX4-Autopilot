@@ -26,13 +26,13 @@ on:
 
 env:
   DOCKER_TAG: |
-    "px4io/px4-dev:${{
+    $(echo "px4io/px4-dev:${{
       github.event_name == 'pull_request' && github.sha ||
         (
           github.event_name == 'push' && 'latest' ||
           github.event.release.name
         )
-    }}"
+    }}" | tr -d '\n')
 
 jobs:
   build_docker:
@@ -134,5 +134,4 @@ jobs:
             --env=LOCAL_USER_ID="$(id -u)" \
             --volume=/tmp:/tmp:rw \
             --volume=${{ env.GITHUB_ACTION_PATH }}:${{ env.GITHUB_ACTION_PATH }}:rw \
-            ${{ env.DOCKER_TAG }} \
-            /bin/bash -c "make px4_fmu-v6x"
+            ${{ env.DOCKER_TAG }} /bin/bash -c "make px4_fmu-v6x"
