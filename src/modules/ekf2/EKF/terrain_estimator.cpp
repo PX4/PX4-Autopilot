@@ -53,6 +53,7 @@ void Ekf::runTerrainEstimator()
 	// If we are on ground, store the local position and time to use as a reference
 	if (!_control_status.flags.in_air) {
 		_last_on_ground_posD = _state.pos(2);
+		_control_status.flags.rng_fault = false;
 	}
 
 	predictHagl();
