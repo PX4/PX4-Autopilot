@@ -47,8 +47,8 @@ jobs:
       - name: debugging variables
         run: |
           echo "::group::Debugging Variables
-          echo "single {}: ${DOCKER_TAG}"
-          echo "double {}: ${{DOCKER_TAG}}"
+          echo "double {}: ${{ DOCKER_TAG }}"
+          echo "double env {}: ${{ env.DOCKER_TAG }}"
           echo "::endgroup::"
 
       - name: Login to Github Registry
