@@ -1093,9 +1093,9 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 		}
 	}
 
-	// set to type loiter during VTOL transitions in Land mode (to not start FW landing logic)
+	// set to type position during VTOL transitions in Land mode (to not start FW landing logic)
 	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LAND && _vehicle_status.in_transition_mode) {
-		position_sp_type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+		position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	}
 
 	return position_sp_type;
