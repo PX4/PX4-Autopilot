@@ -1,36 +1,22 @@
-UAVCAN stack in C++
-===================
+DroneCAN stack in C++
+=====================
 
-[![Coverity Scan](https://scan.coverity.com/projects/1513/badge.svg)](https://scan.coverity.com/projects/1513)
-[![Travis CI](https://travis-ci.org/UAVCAN/libuavcan.svg?branch=master)](https://travis-ci.org/UAVCAN/libuavcan)
-[![Gitter](https://img.shields.io/badge/gitter-join%20chat-green.svg)](https://gitter.im/UAVCAN/general)
-
-Portable reference implementation of the [UAVCAN protocol stack](http://uavcan.org) in C++ for embedded systems
+Portable reference implementation of the [DroneCAN protocol stack](http://dronecan.org) in C++ for embedded systems
 and Linux.
 
-UAVCAN is a lightweight protocol designed for reliable communication in aerospace and robotic applications via CAN bus.
+DroneCAN is a lightweight protocol designed for reliable communication in aerospace and robotic applications via CAN bus.
 
 ## Documentation
 
-* [UAVCAN website](http://uavcan.org)
-* [UAVCAN forum](https://forum.uavcan.org)
-* [Libuavcan overview](http://uavcan.org/Implementations/Libuavcan/)
-* [List of platforms officially supported by libuavcan](http://uavcan.org/Implementations/Libuavcan/Platforms/)
-* [Libuavcan tutorials](http://uavcan.org/Implementations/Libuavcan/Tutorials/)
+* [DroneCAN website](http://dronecan.org)
+* [DroneCAN forum](https://dronecan.org/discord)
 
 ## Library usage
-
-### Dependencies
-
-* Python 2.7 or 3.3 or newer
-
-Note that this reporitory includes [Pyuavcan](http://uavcan.org/Implementations/Pyuavcan) as a submodule.
-Such inclusion enables the library to be built even if pyuavcan is not installed in the system.
 
 ### Cloning the repository
 
 ```bash
-git clone https://github.com/UAVCAN/libuavcan
+git clone https://github.com/DroneCAN/libuavcan
 cd libuavcan
 git submodule update --init
 ```
@@ -56,7 +42,7 @@ The following components will be installed:
 * Libuavcan DSDL compiler (a Python script named `libuavcan_dsdlc`)
 * Libuavcan DSDL compiler's support library (a Python package named `libuavcan_dsdl_compiler`)
 
-Note that Pyuavcan (an implementation of UAVCAN in Python) will not be installed.
+Note that Pyuavcan (an implementation of DroneCAN in Python) will not be installed.
 You will need to install it separately if you intend to use the Libuavcan's DSDL compiler in your applications.
 
 It is also possible to use the library as a submodule rather than installing it system-wide.
@@ -66,24 +52,6 @@ Please refer to the example applications supplied with the Linux platform driver
 
 For ARM targets, it is recommended to use [GCC ARM Embedded](https://launchpad.net/gcc-arm-embedded);
 however, any other standard-compliant C++ compiler should also work.
-
-#### With Make
-
-Please refer to the [documentation at the UAVCAN website](http://uavcan.org/Implementations/Libuavcan).
-
-#### With CMake
-
-In order to cross-compile the library with CMake, please follow the below instructions.
-You will need to provide a CMake toolchain file, `Toolchain-stm32-cortex-m4.cmake` in this example.
-If you're not sure what a toolchain file is or how to prepare one, these instructions are probably not for your
-use case; please refer to the section about Make instead.
-
-```bash
-mkdir build
-cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/Toolchain-stm32-cortex-m4.cmake
-make -j8
-```
 
 ## Library development
 
@@ -110,8 +78,6 @@ Test outputs can be found in the build directory under `libuavcan`.
 
 > Note that unit tests suffixed with "_RealTime" must be executed in real time, otherwise they may produce false warnings;
 this implies that they will likely fail if ran on a virtual machine or on a highly loaded system.
-
-Contributors, please follow the [Zubax C++ Coding Conventions](https://kb.zubax.com/x/84Ah).
 
 ### Vagrant
 Vagrant can be used to setup a compatible Ubuntu virtual image. Follow the instructions on [Vagrantup](https://www.vagrantup.com/) to install virtualbox and vagrant then do:
@@ -153,18 +119,3 @@ Path `../../libuavcan` in the command above points at the directory where the to
 you may need to adjust this per your environment.
 Note that the directory where Eclipse project is generated must not be a descendant of the source directory.
 
-### Submitting a Coverity Scan build
-
-First, [get the Coverity build tool](https://scan.coverity.com/download?tab=cxx). Then build the library with it:
-
-```bash
-export PATH=$PATH:<coverity-build-tool-directory>/bin/
-mkdir build && cd build
-cmake <uavcan-source-directory> -DCMAKE_BUILD_TYPE=Debug
-cov-build --dir cov-int make -j8
-tar czvf uavcan.tgz cov-int
-```
-
-Then upload the resulting archive to Coverity.
-
-Automatic check can be triggered by pushing to the branch `coverity_scan`.
