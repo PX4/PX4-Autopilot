@@ -268,10 +268,14 @@ for serial_command in serial_commands:
                 default_port_str = port_config['default'][i]
             else:
                 default_port_str = port_config['default']
+
             if default_port_str != "":
                 if default_port_str not in serial_ports:
                     raise Exception("Default Port {:} not found for {:}".format(default_port_str, serial_command['label']))
-                default_port = serial_ports[default_port_str]['index']
+
+                if default_port_str in dict(board_ports).keys():
+                    default_port = serial_ports[default_port_str]['index']
+
 
         commands.append({
             'command': serial_command['command'],
