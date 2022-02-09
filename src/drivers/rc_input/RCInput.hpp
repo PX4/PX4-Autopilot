@@ -91,23 +91,31 @@ public:
 private:
 
 	enum RC_SCAN {
-		RC_SCAN_PPM = 0,
+#if defined(HRT_PPM_CHANNEL)
+		RC_SCAN_PPM,
+#endif // HRT_PPM_CHANNEL
 		RC_SCAN_SBUS,
 		RC_SCAN_DSM,
 		RC_SCAN_SUMD,
 		RC_SCAN_ST24,
 		RC_SCAN_CRSF,
-		RC_SCAN_GHST
+		RC_SCAN_GHST,
+
+		RC_SCAN_MAX
 	} _rc_scan_state{RC_SCAN_SBUS};
 
-	static constexpr char const *RC_SCAN_STRING[7] {
+	static constexpr char const *RC_SCAN_STRING[] {
+#if defined(HRT_PPM_CHANNEL)
 		"PPM",
+#endif // HRT_PPM_CHANNEL
 		"SBUS",
 		"DSM",
 		"SUMD",
 		"ST24",
 		"CRSF",
-		"GHST"
+		"GHST",
+
+		"NONE"
 	};
 
 	void Run() override;
@@ -116,16 +124,14 @@ private:
 	bool bind_spektrum(int arg = DSMX8_BIND_PULSES) const;
 #endif // SPEKTRUM_POWER
 
-	void fill_rc_in(uint16_t raw_rc_count_local,
-			uint16_t raw_rc_values_local[input_rc_s::RC_INPUT_MAX_CHANNELS],
-			hrt_abstime now, bool frame_drop, bool failsafe,
-			unsigned frame_drops, int rssi);
-
-	void set_rc_scan_state(RC_SCAN _rc_scan_state);
+	void FillRssi(input_rc_s &input_rc);
+	void PublishInputRc(input_rc_s &input_rc);
 
 	void rc_io_invert(bool invert);
+	void set_next_rc_scan_state();
 
 	hrt_abstime _rc_scan_begin{0};
+	hrt_abstime _last_publish_time{0};
 
 	bool _initialized{false};
 	bool _rc_scan_locked{false};
@@ -135,19 +141,19 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription	_adc_report_sub{ORB_ID(adc_report)};
+#if defined(ADC_RC_RSSI_CHANNEL)
+	uORB::Subscription	_adc_report_sub {ORB_ID(adc_report)};
+	float _analog_rc_rssi_volt{-1.0f};
+	bool _analog_rc_rssi_stable{false};
+#endif // ADC_RC_RSSI_CHANNEL
+
 	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	input_rc_s	_rc_in{};
-
-	float		_analog_rc_rssi_volt{-1.0f};
-	bool		_analog_rc_rssi_stable{false};
-
+	bool _rc_serial_port_output{true};
 	bool _armed{false};
 
-
-	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
+	uORB::PublicationMulti<input_rc_s> _input_rc_pub{ORB_ID(input_rc)};
 
 	int		_rcs_fd{-1};
 	char		_device[20] {};					///< device / serial port path
@@ -155,14 +161,13 @@ private:
 	static constexpr size_t RC_MAX_BUFFER_SIZE{SBUS_BUFFER_SIZE};
 	uint8_t _rcs_buf[RC_MAX_BUFFER_SIZE] {};
 
-	uint16_t _raw_rc_values[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
-	uint16_t _raw_rc_count{};
-
 	CRSFTelemetry *_crsf_telemetry{nullptr};
 	GHSTTelemetry *_ghst_telemetry{nullptr};
 
-	perf_counter_t	_cycle_perf;
-	perf_counter_t	_publish_interval_perf;
+	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
+	perf_counter_t	_cycle_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
+	perf_counter_t	_publish_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval")};
+
 	uint32_t	_bytes_rx{0};
 
 	DEFINE_PARAMETERS(
