@@ -319,9 +319,21 @@ void MulticopterPositionControl::Run()
 
 		// set _dt in controllib Block for BlockDerivative
 		setDt(dt);
-		_in_failsafe = false;
 
-		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
+		if (_vehicle_control_mode_sub.updated()) {
+			const bool position_control_enabled = _vehicle_control_mode.flag_multicopter_position_control_enabled;
+
+			if (_vehicle_control_mode_sub.update(&_vehicle_control_mode)) {
+				if (!position_control_enabled && _vehicle_control_mode.flag_multicopter_position_control_enabled) {
+					_time_position_control_enabled = _vehicle_control_mode.timestamp;
+
+				} else if (position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
+					// clear existing setpoint when controller is no longer active
+					_setpoint = {};
+				}
+			}
+		}
+
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 
 		if (_param_mpc_use_hte.get()) {
@@ -334,36 +346,66 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
+		const bool is_trajectory_setpoint_updated = _trajectory_setpoint_sub.update(&_setpoint);
+
+		// adjust existing (or older) setpoint with any EKF reset deltas
+		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < local_pos.timestamp)) {
+			if (local_pos.vxy_reset_counter != _vxy_reset_counter) {
+				_setpoint.vx += local_pos.delta_vxy[0];
+				_setpoint.vy += local_pos.delta_vxy[1];
+			}
+
+			if (local_pos.vz_reset_counter != _vz_reset_counter) {
+				_setpoint.vz += local_pos.delta_vz;
+			}
+
+			if (local_pos.xy_reset_counter != _xy_reset_counter) {
+				_setpoint.x += local_pos.delta_xy[0];
+				_setpoint.y += local_pos.delta_xy[1];
+			}
+
+			if (local_pos.z_reset_counter != _z_reset_counter) {
+				_setpoint.z += local_pos.delta_z;
+			}
+
+			if (local_pos.heading_reset_counter != _heading_reset_counter) {
+				_setpoint.yaw += local_pos.delta_heading;
+			}
+		}
+
+		if (local_pos.vxy_reset_counter != _vxy_reset_counter) {
+			_vel_x_deriv.reset();
+			_vel_y_deriv.reset();
+		}
+
+		if (local_pos.vz_reset_counter != _vz_reset_counter) {
+			_vel_z_deriv.reset();
+		}
+
+		// save latest reset counters
+		_vxy_reset_counter = local_pos.vxy_reset_counter;
+		_vz_reset_counter = local_pos.vz_reset_counter;
+		_xy_reset_counter = local_pos.xy_reset_counter;
+		_z_reset_counter = local_pos.z_reset_counter;
+		_heading_reset_counter = local_pos.heading_reset_counter;
+
+
 		PositionControlStates states{set_vehicle_states(local_pos)};
 
+
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
+			// set failsafe setpoint if there hasn't been a new
+			// trajectory setpoint since position control started
+			if ((_setpoint.timestamp < _time_position_control_enabled)
+			    && (time_stamp_now > _time_position_control_enabled)) {
 
-			const bool is_trajectory_setpoint_updated = _trajectory_setpoint_sub.update(&_setpoint);
-
-			// adjust existing (or older) setpoint with any EKF reset deltas
-			if (_setpoint.timestamp < local_pos.timestamp) {
-				if (local_pos.vxy_reset_counter != _vxy_reset_counter) {
-					_setpoint.vx += local_pos.delta_vxy[0];
-					_setpoint.vy += local_pos.delta_vxy[1];
-				}
-
-				if (local_pos.vz_reset_counter != _vz_reset_counter) {
-					_setpoint.vz += local_pos.delta_vz;
-				}
-
-				if (local_pos.xy_reset_counter != _xy_reset_counter) {
-					_setpoint.x += local_pos.delta_xy[0];
-					_setpoint.y += local_pos.delta_xy[1];
-				}
-
-				if (local_pos.z_reset_counter != _z_reset_counter) {
-					_setpoint.z += local_pos.delta_z;
-				}
-
-				if (local_pos.heading_reset_counter != _heading_reset_counter) {
-					_setpoint.yaw += local_pos.delta_heading;
-				}
+				failsafe(time_stamp_now, _setpoint, states);
+				_setpoint.timestamp = local_pos.timestamp;
 			}
+		}
+
+		if (_vehicle_control_mode.flag_multicopter_position_control_enabled
+		    && (_setpoint.timestamp >= _time_position_control_enabled)) {
 
 			// update vehicle constraints and handle smooth takeoff
 			_vehicle_constraints_sub.update(&_vehicle_constraints);
@@ -377,7 +419,7 @@ void MulticopterPositionControl::Run()
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
 				bool want_takeoff = _vehicle_control_mode.flag_armed && _vehicle_land_detected.landed
-						    && hrt_elapsed_time(&_setpoint.timestamp) < 1_s;
+						    && (time_stamp_now < _setpoint.timestamp + 1_s);
 
 				if (want_takeoff && PX4_ISFINITE(_setpoint.z)
 				    && (_setpoint.z < states.position(2))) {
@@ -474,17 +516,9 @@ void MulticopterPositionControl::Run()
 
 			} else {
 				// Failsafe
-				//  do not warn while we are disarmed, as we might not have valid setpoints yet
-				const bool warn_failsafe = ((time_stamp_now - _last_warn) > 2_s) && _vehicle_control_mode.flag_armed;
-
-				if (warn_failsafe) {
-					PX4_WARN("invalid setpoints");
-					_last_warn = time_stamp_now;
-				}
-
 				vehicle_local_position_setpoint_s failsafe_setpoint{};
 
-				failsafe(time_stamp_now, failsafe_setpoint, states, warn_failsafe);
+				failsafe(time_stamp_now, failsafe_setpoint, states);
 
 				// reset constraints
 				_vehicle_constraints = {0, NAN, NAN, false, {}};
@@ -524,21 +558,22 @@ void MulticopterPositionControl::Run()
 			_takeoff_status_pub.get().timestamp = hrt_absolute_time();
 			_takeoff_status_pub.update();
 		}
-
-		// save latest reset counters
-		_vxy_reset_counter = local_pos.vxy_reset_counter;
-		_vz_reset_counter = local_pos.vz_reset_counter;
-		_xy_reset_counter = local_pos.xy_reset_counter;
-		_z_reset_counter = local_pos.z_reset_counter;
-		_heading_reset_counter = local_pos.heading_reset_counter;
 	}
 
 	perf_end(_cycle_perf);
 }
 
 void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint,
-		const PositionControlStates &states, bool warn)
+		const PositionControlStates &states)
 {
+	// do not warn while we are disarmed, as we might not have valid setpoints yet
+	bool warn = _vehicle_control_mode.flag_armed && ((now - _last_warn) > 2_s);
+
+	if (warn) {
+		PX4_WARN("invalid setpoints");
+		_last_warn = now;
+	}
+
 	// Only react after a short delay
 	_failsafe_land_hysteresis.set_state_and_update(true, now);
 
@@ -578,8 +613,6 @@ void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_
 				PX4_WARN("Failsafe: blind descend");
 			}
 		}
-
-		_in_failsafe = true;
 	}
 }
 
