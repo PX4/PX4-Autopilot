@@ -84,7 +84,7 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t inst
 
 uORB::DeviceNode::~DeviceNode()
 {
-	delete[] _data;
+	free(_data);
 
 	const char *devname = get_devname();
 
@@ -186,7 +186,9 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 			/* re-check size */
 			if (nullptr == _data) {
-				_data = new uint8_t[_meta->o_size * _queue_size];
+				const size_t data_size = _meta->o_size * _queue_size;
+				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
+				memset(_data, 0, data_size);
 			}
 
 			unlock();

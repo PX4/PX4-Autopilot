@@ -241,7 +241,7 @@ typedef enum {
 	DShot_cmd_led4_off,     // BLHeli32 only
 	DShot_cmd_audio_stream_mode_on_off              = 30, // KISS audio Stream mode on/off
 	DShot_cmd_silent_mode_on_off                    = 31, // KISS silent Mode on/off
-	DShot_cmd_signal_line_telemeetry_disable        = 32,
+	DShot_cmd_signal_line_telemetry_disable         = 32,
 	DShot_cmd_signal_line_continuous_erpm_telemetry = 33,
 	DShot_cmd_MAX          = 47,     // >47 are throttle values
 	DShot_cmd_MIN_throttle = 48,

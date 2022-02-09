@@ -344,7 +344,7 @@ int Sensors::parameters_update()
 		// sensor_accel
 		uORB::SubscriptionData<sensor_accel_s> sensor_accel_sub{ORB_ID(sensor_accel), i};
 
-		if (sensor_accel_sub.get().device_id != 0) {
+		if (sensor_accel_sub.advertised() && (sensor_accel_sub.get().device_id != 0)) {
 			calibration::Accelerometer cal;
 			cal.set_calibration_index(i);
 			cal.ParametersLoad();
@@ -353,7 +353,7 @@ int Sensors::parameters_update()
 		// sensor_gyro
 		uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
 
-		if (sensor_gyro_sub.get().device_id != 0) {
+		if (sensor_gyro_sub.advertised() && (sensor_gyro_sub.get().device_id != 0)) {
 			calibration::Gyroscope cal;
 			cal.set_calibration_index(i);
 			cal.ParametersLoad();
@@ -362,7 +362,7 @@ int Sensors::parameters_update()
 		// sensor_mag
 		uORB::SubscriptionData<sensor_mag_s> sensor_mag_sub{ORB_ID(sensor_mag), i};
 
-		if (sensor_mag_sub.get().device_id != 0) {
+		if (sensor_mag_sub.advertised() && (sensor_mag_sub.get().device_id != 0)) {
 			calibration::Magnetometer cal;
 			cal.set_calibration_index(i);
 			cal.ParametersLoad();
