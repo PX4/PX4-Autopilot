@@ -105,8 +105,8 @@ struct filter_states_s {
 	 */
 	void saturate_acceleration(float saturation)
 	{
-		if (acc_ned_est.norm_squared() > saturation) {
-			acc_ned_est = acc_ned_est.unit_or_zero() * saturation * saturation;
+		if (acc_ned_est.norm_squared() > saturation * saturation) {
+			acc_ned_est = acc_ned_est.unit_or_zero() * saturation;
 		}
 	}
 };
