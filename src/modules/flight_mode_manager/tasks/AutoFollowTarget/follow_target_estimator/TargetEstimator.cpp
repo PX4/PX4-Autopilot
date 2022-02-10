@@ -174,6 +174,8 @@ void TargetEstimator::update()
 	_filter_states.pos_ned_est.copyTo(follow_target_estimator.pos_est);
 	_filter_states.vel_ned_est.copyTo(follow_target_estimator.vel_est);
 	_filter_states.acc_ned_est.copyTo(follow_target_estimator.acc_est);
+	follow_target_estimator.prediction_count = _prediction_count;
+	follow_target_estimator.fusion_count = _fusion_count;
 	_follow_target_estimator_pub.publish(follow_target_estimator);
 }
 
@@ -229,6 +231,7 @@ bool TargetEstimator::measurement_can_be_fused(const Vector3f &current_measureme
 
 void TargetEstimator::measurement_update(follow_target_s follow_target)
 {
+	_fusion_count++;
 	// Decompose follow_target message into the individual measurements for position and velocity
 	const Vector3f vel_measured{follow_target.vx, follow_target.vy, follow_target.vz};
 	Vector3f pos_measured{NAN, NAN, -(follow_target.alt - _vehicle_local_position.ref_alt)};
@@ -308,6 +311,7 @@ void TargetEstimator::measurement_update(follow_target_s follow_target)
 
 void TargetEstimator::prediction_update(float deltatime)
 {
+	_prediction_count++;
 	// Temporary copy to not mix old and new values during the update calculations
 	const Vector3f vel_ned_est_prev = _filter_states.vel_ned_est;
 	const Vector3f acc_ned_est_prev = _filter_states.acc_ned_est;

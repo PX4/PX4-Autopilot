@@ -213,4 +213,8 @@ protected:
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 	uORB::PublicationMulti<follow_target_estimator_s> _follow_target_estimator_pub{ORB_ID(follow_target_estimator)};
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+
+	// Debugging
+	uint64_t _prediction_count{0};
+	uint64_t _fusion_count{0};
 };

@@ -11,3 +11,6 @@ float32 alt_est         # Estimated target altitude
 float32[3] pos_est      # Estimated target NED position (m)
 float32[3] vel_est      # Estimated target NED velocity (m/s)
 float32[3] acc_est      # Estimated target NED acceleration (m^2/s)
+
+uint64 prediction_count
+uint64 fusion_count
