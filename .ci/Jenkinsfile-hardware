@@ -73,10 +73,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf || true'
                 }
               }
@@ -145,10 +143,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cuav_x7pro_test/cuav_x7pro_test.elf || true'
                 }
               }
@@ -217,10 +213,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf || true'
                 }
               }
@@ -288,10 +282,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf || true'
                 }
               }
@@ -360,10 +352,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf || true'
                 }
               }
@@ -452,10 +442,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf || true'
                 }
               }
@@ -536,10 +524,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf || true'
                 }
               }
@@ -608,10 +594,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf || true'
                 }
               }
@@ -680,10 +664,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf || true'
                 }
               }
@@ -793,7 +775,7 @@ void checkStatus() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "top once"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uavcan status" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb status" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb top -1 -a"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb top -1 -a" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ver all"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "work_queue status"'
   // stop logger
@@ -809,7 +791,7 @@ void resetParameters() {
 void runTests() {
 
   // test loading a range of airframes
-  sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 1000 1001 2100 3000 4001 4018 6001 8001 10016'
+  sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 1000 1001 2100 3000 4001 6001 8001 10016'
 
   resetParameters()
 
@@ -862,7 +844,7 @@ void runTests() {
 void printTopics() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "ls /obj"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb status"'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb top -1 -a"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb top -1 -a" || true'
 
   // these are for casually inspecting the system, output failure doesn't matter
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener actuator_armed" || true'
