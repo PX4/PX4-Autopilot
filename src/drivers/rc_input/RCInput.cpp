@@ -123,15 +123,15 @@ RCInput::task_spawn(int argc, char *argv[])
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
-	const char *device = nullptr;
+	const char *device_name = nullptr;
 #if defined(RC_SERIAL_PORT)
-	device = RC_SERIAL_PORT;
+	device_name = RC_SERIAL_PORT;
 #endif // RC_SERIAL_PORT
 
 	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
-			device = myoptarg;
+			device_name = myoptarg;
 			break;
 
 		case '?':
@@ -149,24 +149,31 @@ RCInput::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
-	if (device == nullptr) {
-		PX4_ERR("valid device required");
-		return PX4_ERROR;
+	if (device_name && (access(device_name, R_OK | W_OK) == 0)) {
+		RCInput *instance = new RCInput(device_name);
+
+		if (instance == nullptr) {
+			PX4_ERR("alloc failed");
+			return PX4_ERROR;
+		}
+
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		instance->ScheduleOnInterval(_current_update_interval);
+
+		return PX4_OK;
+
+	} else {
+		if (device_name) {
+			PX4_ERR("invalid device (-d) %s", device_name);
+
+		} else {
+			PX4_INFO("valid device required");
+		}
 	}
 
-	RCInput *instance = new RCInput(device);
-
-	if (instance == nullptr) {
-		PX4_ERR("alloc failed");
-		return PX4_ERROR;
-	}
-
-	_object.store(instance);
-	_task_id = task_id_is_work_queue;
-
-	instance->ScheduleOnInterval(_current_update_interval);
-
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void

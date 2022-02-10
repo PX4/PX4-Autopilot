@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -181,6 +181,8 @@ private:
 	uint64_t _last_accel_timestamp[MAX_SENSOR_COUNT] {};	/**< latest full timestamp */
 
 	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
+
+	bool _parameter_update{false};
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -79,7 +79,7 @@ void VehicleMagnetometer::Stop()
 	}
 }
 
-void VehicleMagnetometer::ParametersUpdate(bool force)
+bool VehicleMagnetometer::ParametersUpdate(bool force)
 {
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated() || force) {
@@ -161,7 +161,11 @@ void VehicleMagnetometer::ParametersUpdate(bool force)
 			}
 
 		}
+
+		return true;
 	}
+
+	return false;
 }
 
 void VehicleMagnetometer::UpdateMagBiasEstimate()
@@ -360,7 +364,7 @@ void VehicleMagnetometer::Run()
 
 	const hrt_abstime time_now_us = hrt_absolute_time();
 
-	ParametersUpdate();
+	const bool parameter_update = ParametersUpdate();
 
 	// check vehicle status for changes to armed state
 	if (_vehicle_control_mode_sub.updated()) {
@@ -450,7 +454,8 @@ void VehicleMagnetometer::Run()
 	_voter.get_best(time_now_us, &best_index);
 
 	if (best_index >= 0) {
-		if (_selected_sensor_sub_index != best_index) {
+		// handle selection change (don't process on same iteration as parameter update)
+		if ((_selected_sensor_sub_index != best_index) && !parameter_update) {
 			// clear all registered callbacks
 			for (auto &sub : _sensor_sub) {
 				sub.unregisterCallback();
@@ -488,9 +493,9 @@ void VehicleMagnetometer::Run()
 	}
 
 
-	// check failover and report
 	if (_param_sens_mag_mode.get()) {
-		if (_last_failover_count != _voter.failover_count()) {
+		// check failover and report (save failover report for a cycle where parameters didn't update)
+		if (_last_failover_count != _voter.failover_count() && !parameter_update) {
 			uint32_t flags = _voter.failover_state();
 			int failover_index = _voter.failover_index();
 
