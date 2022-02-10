@@ -44,6 +44,8 @@ param set-default MIS_TAKEOFF_ALT 30
 param set-default NAV_ACC_RAD 15
 param set-default NAV_DLL_ACT 2
 
+param set-default FW_USE_NPFG 1
+
 param set-default RWTO_TKOFF 1
 
 set MIXER_FILE etc/mixers-sitl/plane_sitl.main.mix

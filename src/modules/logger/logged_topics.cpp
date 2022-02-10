@@ -75,6 +75,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("manual_control_switches");
 	add_topic("mission_result");
 	add_topic("navigator_mission_item");
+	add_topic("npfg_status", 100);
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
 	add_topic("parameter_update");
@@ -121,6 +122,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("airspeed_wind", 1000, 4);
 	add_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
+	add_topic_multi("sensor_hygrometer", 500, 4);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
 	// EKF multi topics (currently max 9 estimators)
@@ -190,6 +192,25 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
+
+	// EKF replay
+	add_topic("ekf_gps_drift");
+	add_topic("estimator_baro_bias");
+	add_topic("estimator_event_flags");
+	add_topic("estimator_innovation_test_ratios");
+	add_topic("estimator_innovation_variances");
+	add_topic("estimator_innovations");
+	add_topic("estimator_optical_flow_vel");
+	add_topic("estimator_sensor_bias");
+	add_topic("estimator_states");
+	add_topic("estimator_status");
+	add_topic("estimator_status_flags");
+	add_topic("estimator_visual_odometry_aligned");
+	add_topic("vehicle_attitude");
+	add_topic("vehicle_global_position");
+	add_topic("vehicle_local_position");
+	add_topic("wind");
+	add_topic("yaw_estimator_status");
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 
 
@@ -201,8 +222,8 @@ void LoggedTopics::add_default_topics()
 		add_topic("actuator_servos", 100);
 		add_topic("vehicle_angular_acceleration", 20);
 		add_topic("vehicle_angular_acceleration_setpoint", 20);
-		add_topic("vehicle_thrust_setpoint", 20);
-		add_topic("vehicle_torque_setpoint", 20);
+		add_topic_multi("vehicle_thrust_setpoint", 20, 2);
+		add_topic_multi("vehicle_torque_setpoint", 20, 2);
 	}
 }
 
@@ -298,6 +319,11 @@ void LoggedTopics::add_system_identification_topics()
 	add_topic("vehicle_torque_setpoint");
 }
 
+void LoggedTopics::add_mavlink_tunnel()
+{
+	add_topic("mavlink_tunnel");
+}
+
 int LoggedTopics::add_topics_from_file(const char *fname)
 {
 	int ntopics = 0;
@@ -381,6 +407,11 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 
 	if (optional && orb_exists(topic, instance) != 0) {
 		PX4_DEBUG("Not adding non-existing optional topic %s %i", topic->o_name, instance);
+
+		if (instance == 0 && _subscriptions.num_excluded_optional_topic_ids < MAX_EXCLUDED_OPTIONAL_TOPICS_NUM) {
+			_subscriptions.excluded_optional_topic_ids[_subscriptions.num_excluded_optional_topic_ids++] = topic->o_id;
+		}
+
 		return false;
 	}
 
@@ -393,6 +424,8 @@ bool LoggedTopics::add_topic(const orb_metadata *topic, uint16_t interval_ms, ui
 
 bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t instance, bool optional)
 {
+	interval_ms /= _rate_factor;
+
 	const orb_metadata *const *topics = orb_get_topics();
 	bool success = false;
 
@@ -492,5 +525,9 @@ void LoggedTopics::initialize_configured_topics(SDLogProfileMask profile)
 
 	if (profile & SDLogProfileMask::RAW_IMU_ACCEL_FIFO) {
 		add_raw_imu_accel_fifo();
+	}
+
+	if (profile & SDLogProfileMask::MAVLINK_TUNNEL) {
+		add_mavlink_tunnel();
 	}
 }

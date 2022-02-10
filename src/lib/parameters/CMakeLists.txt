@@ -167,10 +167,12 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 		px4_parameters.hpp
 	)
 
-	target_link_libraries(parameters PRIVATE perf tinybson px4_layer)
+	target_link_libraries(parameters PRIVATE perf tinybson px4_platform)
+
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
 	target_compile_options(parameters
 		PRIVATE
+			#-DDEBUG_BUILD
 			-Wno-cast-align		# TODO: fix and enable
 			-Wno-sign-compare	# TODO: fix and enable
 	)
@@ -179,7 +181,7 @@ else()
 endif()
 add_dependencies(parameters prebuild_targets)
 
-if(${PX4_PLATFORM} STREQUAL "nuttx")
+if(${PX4_PLATFORM} STREQUAL "nuttx" AND CONFIG_BUILD_FLAT)
 	target_link_libraries(parameters PRIVATE flashparams tinybson)
 endif()
 

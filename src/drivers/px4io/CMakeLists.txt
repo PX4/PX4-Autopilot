@@ -51,9 +51,6 @@ px4_add_module(
 if(CONFIG_BOARD_IO)
 	message(STATUS "drivers/px4io: ROMFS including ${CONFIG_BOARD_IO}")
 
-	# ExternalProject_Add() with GIT_SUBMODULES "" initializes no submodules.
-	cmake_policy(SET CMP0097 NEW)
-
 	include(ExternalProject)
 
 	ExternalProject_Add(px4io_firmware_build

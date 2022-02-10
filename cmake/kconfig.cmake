@@ -11,6 +11,7 @@ set(MENUCONFIG_PATH ${PYTHON_EXECUTABLE} -m menuconfig CACHE INTERNAL "menuconfi
 set(GUICONFIG_PATH ${PYTHON_EXECUTABLE} -m guiconfig CACHE INTERNAL "guiconfig program" FORCE)
 set(DEFCONFIG_PATH ${PYTHON_EXECUTABLE} -m defconfig CACHE INTERNAL "defconfig program" FORCE)
 set(SAVEDEFCONFIG_PATH ${PYTHON_EXECUTABLE} -m savedefconfig CACHE INTERNAL "savedefconfig program" FORCE)
+set(GENCONFIG_PATH ${PYTHON_EXECUTABLE} -m genconfig CACHE INTERNAL "genconfig program" FORCE)
 
 set(COMMON_KCONFIG_ENV_SETTINGS
 	PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
@@ -25,6 +26,8 @@ set(COMMON_KCONFIG_ENV_SETTINGS
 	ARCHITECTURE=${CMAKE_SYSTEM_PROCESSOR}
 	ROMFSROOT=${config_romfs_root}
 )
+
+set(config_user_list)
 
 if(EXISTS ${BOARD_DEFCONFIG})
 
@@ -45,6 +48,11 @@ if(EXISTS ${BOARD_DEFCONFIG})
                         OUTPUT_VARIABLE DUMMY_RESULTS)
     endif()
 
+    # Generate header file for C/C++ preprocessor
+    execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
+                    ${GENCONFIG_PATH} --header-path ${PX4_BINARY_DIR}/px4_boardconfig.h
+                    WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+                    OUTPUT_VARIABLE DUMMY_RESULTS)
 
     # parse board config options for cmake
     file(STRINGS ${BOARD_CONFIG} ConfigContents)
@@ -77,6 +85,17 @@ if(EXISTS ${BOARD_DEFCONFIG})
                 set(${ConfigKey} ${Value})
                 message(STATUS "${ConfigKey} ${Value}")
             endif()
+        endif()
+
+        # Find variable name
+        string(REGEX MATCH "^CONFIG_USER[^=]+" Userspace ${NameAndValue})
+
+        if(Userspace)
+            # Find the value
+            string(REPLACE "${Name}=" "" Value ${NameAndValue})
+            string(REPLACE "CONFIG_USER_" "" module ${Name})
+            string(TOLOWER ${module} module)
+            list(APPEND config_user_list ${module})
         endif()
 
         # Find variable name
@@ -169,6 +188,16 @@ if(EXISTS ${BOARD_DEFCONFIG})
             list(APPEND config_module_list examples/${example})
         endif()
 
+    endforeach()
+
+    # Put every module not in userspace also to kernel list
+    foreach(modpath ${config_module_list})
+        get_filename_component(module ${modpath} NAME)
+        list(FIND config_user_list ${module} _index)
+
+        if (${_index} EQUAL -1)
+            list(APPEND config_kernel_list ${modpath})
+        endif()
     endforeach()
 
     if(PLATFORM)
@@ -336,6 +365,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	list(APPEND config_module_list ${board_support_src_rel}/src)
 
 	set(config_module_list ${config_module_list})
+	set(config_kernel_list ${config_kernel_list})
 
 endif()
 

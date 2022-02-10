@@ -120,7 +120,7 @@ private:
 		uORB::Subscription estimator_odometry_sub;
 		uORB::Subscription estimator_wind_sub;
 
-		uint64_t timestamp_sample_last{0};
+		uint64_t timestamp_last{0};
 
 		uint32_t accel_device_id{0};
 		uint32_t gyro_device_id{0};
@@ -211,6 +211,7 @@ private:
 
 	// vehicle_odometry
 	vehicle_odometry_s _odometry_last{};
+	uint8_t _odometry_reset_counter{0};
 
 	// vehicle_global_position: reset counters
 	vehicle_global_position_s _global_position_last{};
@@ -226,6 +227,7 @@ private:
 	uint8_t _attitude_instance_prev{INVALID_INSTANCE};
 	uint8_t _local_position_instance_prev{INVALID_INSTANCE};
 	uint8_t _global_position_instance_prev{INVALID_INSTANCE};
+	uint8_t _odometry_instance_prev{INVALID_INSTANCE};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 	uORB::Subscription _sensors_status_imu{ORB_ID(sensors_status_imu)};

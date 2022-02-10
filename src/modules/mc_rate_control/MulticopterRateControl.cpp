@@ -256,8 +256,10 @@ MulticopterRateControl::Run()
 			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _landing_gear;
 			actuators.timestamp_sample = angular_velocity.timestamp_sample;
 
-			publishTorqueSetpoint(att_control, angular_velocity.timestamp_sample);
-			publishThrustSetpoint(angular_velocity.timestamp_sample);
+			if (!_vehicle_status.is_vtol) {
+				publishTorqueSetpoint(att_control, angular_velocity.timestamp_sample);
+				publishThrustSetpoint(angular_velocity.timestamp_sample);
+			}
 
 			// scale effort by battery status if enabled
 			if (_param_mc_bat_scale_en.get()) {

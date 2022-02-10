@@ -64,8 +64,8 @@ TEST_P(EkfImuSamplingTest, imuSamplingAtMultipleRates)
 	// WHEN: adding imu samples at a same or lower rate than the update loop
 	// THEN: imu sample should reach buffer unchanged
 
-	uint32_t dt_us = std::get<0>(GetParam()) * (_ekf.FILTER_UPDATE_PERIOD_MS * 1000);
-	uint32_t expected_dt_us = std::get<1>(GetParam()) * (_ekf.FILTER_UPDATE_PERIOD_MS * 1000);
+	uint32_t dt_us = std::get<0>(GetParam()) * (10 * 1000);
+	uint32_t expected_dt_us = std::get<1>(GetParam()) * (10 * 1000);
 
 	Vector3f ang_vel = std::get<2>(GetParam());
 	Vector3f accel = std::get<3>(GetParam());
@@ -78,7 +78,7 @@ TEST_P(EkfImuSamplingTest, imuSamplingAtMultipleRates)
 	// The higher the imu rate is the more measurements we have to set before reaching the FILTER_UPDATE_PERIOD
 	int n_samples = 0;
 
-	for (int i = 0; i < (int)20 / std::get<0>(GetParam()); ++i) {
+	for (int i = 0; i < (int)30 / std::get<0>(GetParam()); ++i) {
 		n_samples++;
 		imu_sample.time_us = _t_us;
 		_ekf.setIMUData(imu_sample);
@@ -122,7 +122,8 @@ INSTANTIATE_TEST_SUITE_P(imuSamplingAtMultipleRates,
 
 TEST_F(EkfImuSamplingTest, accelDownSampling)
 {
-	ImuDownSampler sampler(0.008f);
+	int32_t target_dt_us = 8000;
+	ImuDownSampler sampler(target_dt_us);
 
 	Vector3f ang_vel{0.0f, 0.0f, 0.0f};
 	Vector3f accel{-0.46f, 0.87f, 0.0f};
@@ -150,7 +151,8 @@ TEST_F(EkfImuSamplingTest, accelDownSampling)
 
 TEST_F(EkfImuSamplingTest, gyroDownSampling)
 {
-	ImuDownSampler sampler(0.008f);
+	int32_t target_dt_us = 8000;
+	ImuDownSampler sampler(target_dt_us);
 
 	Vector3f ang_vel{0.0f, 0.0f, 1.0f};
 	Vector3f accel{0.0f, 0.0f, 0.0f};

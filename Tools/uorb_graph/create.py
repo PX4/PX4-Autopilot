@@ -56,6 +56,21 @@ def get_N_colors(N, s=0.8, v=0.9):
         hex_out.append("#"+"".join(map(lambda x: format(x, '02x'), rgb)))
     return hex_out
 
+def topic_filename(topic):
+    MSG_PATH = 'msg/'
+
+    file_list = os.listdir(MSG_PATH)
+    msg_files = [file.replace('.msg', '') for file in file_list if file.endswith(".msg")]
+
+    if topic in msg_files:
+        return topic
+    else:
+        for msg_file in msg_files:
+            with open(f'{MSG_PATH}/{msg_file}.msg') as f:
+                ret = re.findall(f'^# TOPICS.*{topic}.*',f.read(),re.MULTILINE)
+                if len(ret) > 0:
+                    return msg_file
+    return "no_file"
 
 class PubSub(object):
     """ Collects either publication or subscription information for nodes
@@ -679,8 +694,7 @@ class OutputJSON(object):
             node['type'] = 'topic'
             node['color'] = topic_colors[topic]
             # url is opened when double-clicking on the node
-            # TODO: does not work for multi-topics
-            node['url'] = 'https://github.com/PX4/PX4-Autopilot/blob/master/msg/'+topic+'.msg'
+            node['url'] = 'https://github.com/PX4/PX4-Autopilot/blob/master/msg/'+topic_filename(topic)+'.msg'
             nodes.append(node)
 
         data['nodes'] = nodes

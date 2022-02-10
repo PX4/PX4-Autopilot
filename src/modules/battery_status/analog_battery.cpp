@@ -41,12 +41,11 @@
 static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
 static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
 #else
-static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = {0};
-static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = {0};
+#error  "BOARD_BATT_V_LIST and BOARD_BATT_I_LIST need to be defined"
 #endif
 #else
-static constexpr int DEFAULT_V_CHANNEL[1] = {0};
-static constexpr int DEFAULT_I_CHANNEL[1] = {0};
+static constexpr int DEFAULT_V_CHANNEL[1] = {-1};
+static constexpr int DEFAULT_I_CHANNEL[1] = {-1};
 #endif
 
 AnalogBattery::AnalogBattery(int index, ModuleParams *parent, const int sample_interval_us, const uint8_t source,
@@ -125,18 +124,6 @@ AnalogBattery::updateParams()
 	param_get(_analog_param_handles.v_channel, &_analog_params.v_channel);
 	param_get(_analog_param_handles.i_channel, &_analog_params.i_channel);
 	param_get(_analog_param_handles.v_offs_cur, &_analog_params.v_offs_cur);
-
-	if (_analog_params.v_div < 0.0f) {
-		/* apply scaling according to defaults if set to default */
-		_analog_params.v_div = BOARD_BATTERY1_V_DIV;
-		param_set_no_notification(_analog_param_handles.v_div, &_analog_params.v_div);
-	}
-
-	if (_analog_params.a_per_v < 0.0f) {
-		/* apply scaling according to defaults if set to default */
-		_analog_params.a_per_v = BOARD_BATTERY1_A_PER_V;
-		param_set_no_notification(_analog_param_handles.a_per_v, &_analog_params.a_per_v);
-	}
 
 	Battery::updateParams();
 }

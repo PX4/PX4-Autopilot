@@ -1,11 +1,6 @@
 uint64 timestamp		# time since system start (microseconds)
 uint64 timestamp_sample         # the timestamp of the raw data (microseconds)
 
-float32[3] vibe			# IMU vibration metrics in the following array locations
-# 0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
-# 1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
-# 2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
-
 float32[3] output_tracking_error # return a vector containing the output predictor angular, velocity and position tracking error magnitudes (rad), (m/s), (m)
 
 uint16 gps_check_fail_flags     # Bitmask to indicate status of GPS checks - see definition below

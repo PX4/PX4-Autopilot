@@ -118,6 +118,11 @@ config BOARD_CRYPTO
     help
         Enable PX4 Crypto Support. Select the implementation under drivers
 
+config BOARD_PROTECTED
+    bool "Memory protection"
+    help
+        Enable memory protection via MPU/MMU
+
 menu "Serial ports"
 
     config BOARD_SERIAL_URT6

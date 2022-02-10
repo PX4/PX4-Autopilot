@@ -177,8 +177,8 @@ private:
 		(ParamInt<px4::params::RTL_TIME_MARGIN>)   _param_rtl_time_margin
 	)
 
-	param_t		_param_mpc_z_vel_max_up{PARAM_INVALID};
-	param_t		_param_mpc_z_vel_max_down{PARAM_INVALID};
+	param_t		_param_mpc_z_v_auto_up{PARAM_INVALID};
+	param_t		_param_mpc_z_v_auto_dn{PARAM_INVALID};
 	param_t		_param_mpc_land_speed{PARAM_INVALID};
 	param_t		_param_fw_climb_rate{PARAM_INVALID};
 	param_t		_param_fw_sink_rate{PARAM_INVALID};

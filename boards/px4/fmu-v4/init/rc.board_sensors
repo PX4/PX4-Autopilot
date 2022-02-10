@@ -5,19 +5,11 @@
 
 board_adc start
 
-# We know there are sketchy boards out there
-# as chinese companies produce Pixracers without
-# fully understanding the critical parts of the
-# schematic and BOM, leading to sensor brownouts
-# on boot. Original Pixracers following the
-# open hardware design do not require this.
-pwm_out sensor_reset 50
-
 # Internal SPI
 ms5611 -s start
 
 # hmc5883 internal SPI bus is rotated 90 deg yaw
-if ! hmc5883 -T -s -R 2 start
+if ! hmc5883 -T -s -R 2 -q start
 then
 	# lis3mdl internal SPI bus is rotated 90 deg yaw
 	lis3mdl -s start
@@ -40,5 +32,5 @@ then
 	mpu6500 -s -R 0 start
 else
 	# mpu9250 internal SPI bus mpu9250
-	mpu9250 -s -R 8 start
+	mpu9250 -s -R 8 -M start
 fi

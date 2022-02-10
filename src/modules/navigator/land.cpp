@@ -74,8 +74,12 @@ Land::on_active()
 	if (_navigator->get_vstatus()->is_vtol &&
 	    _navigator->get_vstatus()->in_transition_mode) {
 		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
-		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
+
+		// create a virtual wp 1m in front of the vehicle to track during the backtransition
+		waypoint_from_heading_and_distance(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+						   _navigator->get_position_setpoint_triplet()->current.yaw, 1.f,
+						   &pos_sp_triplet->current.lat, &pos_sp_triplet->current.lon);
+
 		_navigator->set_position_setpoint_triplet_updated();
 	}
 

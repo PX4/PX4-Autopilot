@@ -158,6 +158,7 @@ private:
 	uORB::Publication<vehicle_constraints_s> _vehicle_constraints_pub{ORB_ID(vehicle_constraints)};
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::LNDMC_ALT_MAX>) _param_lndmc_alt_max,
 		(ParamInt<px4::params::MPC_POS_MODE>) _param_mpc_pos_mode
 	);
 };

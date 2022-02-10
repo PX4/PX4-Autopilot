@@ -26,4 +26,7 @@ uint8 kill_switch                # throttle kill: _NORMAL_, KILL
 uint8 gear_switch                # landing gear switch: _DOWN_, UP
 uint8 transition_switch          # VTOL transition switch: _HOVER, FORWARD_FLIGHT
 
+uint8 photo_switch               # Photo trigger switch
+uint8 video_switch               # Photo trigger switch
+
 uint32 switch_changes            # number of switch changes

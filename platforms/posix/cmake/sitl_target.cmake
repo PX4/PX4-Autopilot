@@ -49,6 +49,10 @@ if(parallel_jobs GREATER NUMBER_OF_LOGICAL_CORES)
 	set(parallel_jobs ${NUMBER_OF_LOGICAL_CORES})
 endif()
 
+if(parallel_jobs LESS 1)
+	set(parallel_jobs 1)
+endif()
+
 message(DEBUG  "${NUMBER_OF_LOGICAL_CORES} logical cores detected and ${AVAILABLE_PHYSICAL_MEMORY} megabytes of memory available.
 		Limiting sitl_gazebo and simulation-ignition concurrent jobs to ${parallel_jobs}")
 

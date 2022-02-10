@@ -189,7 +189,7 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * Delay between RC loss and configured reaction
  *
  * RC signal not updated -> still use data for COM_RC_LOSS_T seconds
- * Consider RC signal lost -> wait COM_RCL_ACT_T seconds on the spot waiting to regain signal
+ * Consider RC signal lost -> wait COM_RCL_ACT_T seconds in Hold mode to regain signal
  * React with failsafe action NAV_RCL_ACT
  *
  * A zero value disables the delay.
@@ -201,6 +201,17 @@ PARAM_DEFINE_FLOAT(COM_RC_LOSS_T, 0.5f);
  * @decimal 3
  */
 PARAM_DEFINE_FLOAT(COM_RCL_ACT_T, 15.0f);
+
+/**
+ * Home position enabled
+ *
+ * Set home position automatically if possible.
+ *
+ * @group Commander
+ * @reboot_required true
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_HOME_EN, 1);
 
 /**
  * Home set horizontal threshold
@@ -340,6 +351,23 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
  * @increment 1
  */
 PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
+
+/**
+ * Delay between battery state change and failsafe reaction
+ *
+ * Battery state requires action -> wait COM_BAT_ACT_T seconds in Hold mode
+ * for the user to realize and take a custom action
+ * -> React with failsafe action COM_LOW_BAT_ACT
+ *
+ * A zero value disables the delay.
+ *
+ * @group Commander
+ * @unit s
+ * @min 0.0
+ * @max 25.0
+ * @decimal 3
+ */
+PARAM_DEFINE_FLOAT(COM_BAT_ACT_T, 10.0f);
 
 /**
  * Imbalanced propeller failsafe mode

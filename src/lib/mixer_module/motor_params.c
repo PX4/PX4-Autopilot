@@ -44,7 +44,7 @@
  *
  * Minimum time allowed for the motor input signal to pass through
  * a range of 1000 PWM units. A value x means that the motor signal
- * can only go from 1000 to 2000 PWM in maximum x seconds.
+ * can only go from 1000 to 2000 PWM in minimum x seconds.
  *
  * Zero means that slew rate limiting is disabled.
  *

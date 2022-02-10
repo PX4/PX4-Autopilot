@@ -45,10 +45,13 @@
 //     In 2018 IEEE International Conference on Robotics and Automation (ICRA), pp. 6573-6580. IEEE, 2018.
 // The aerodynamic model is from [2]
 // [2] Khan W, supervised by Nahon M, "Dynamics modeling of agile fixed-wing unmanned aerial vehicles."
-//     McGill University, PhD thesis, 2016.
+//     McGill University (Canada), PhD thesis, 2016.
 // The quaternion integration are from [3]
 // [3] Sveier A, Sjøberg AM, Egeland O. "Applied Runge–Kutta–Munthe-Kaas Integration for the Quaternion Kinematics."
 //     Journal of Guidance, Control, and Dynamics. 2019 Dec;42(12):2747-54.
+// The tailsitter model is from [4]
+// [4] Chiappinelli R, supervised by Nahon M, "Modeling and control of a flying wing tailsitter unmanned aerial vehicle."
+//     McGill University (Canada), Masters Thesis, 2018.
 
 #pragma once
 
@@ -143,7 +146,7 @@ private:
 	uORB::Subscription _actuator_out_sub{ORB_ID(actuator_outputs)};
 
 	// hard constants
-	static constexpr uint16_t NB_MOTORS = 4;
+	static constexpr uint16_t NB_MOTORS = 6;
 	static constexpr float T1_C = 15.0f;                        // ground temperature in celcius
 	static constexpr float T1_K = T1_C - CONSTANTS_ABSOLUTE_NULL_CELSIUS;   // ground temperature in Kelvin
 	static constexpr float TEMP_GRADIENT  = -6.5f / 1000.0f;    // temperature gradient in degrees per metre
@@ -165,7 +168,8 @@ private:
 	void send_airspeed();
 	void send_dist_snsr();
 	void publish_sih();
-	void generate_aerodynamics();
+	void generate_fw_aerodynamics();
+	void generate_ts_aerodynamics();
 
 	perf_counter_t  _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t  _loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
@@ -197,7 +201,7 @@ private:
 	matrix::Vector3f    _w_B_dot;       // body rates differential
 	float       _u[NB_MOTORS];          // thruster signals
 
-	enum class VehicleType {MC, FW};
+	enum class VehicleType {MC, FW, TS};
 	VehicleType _vehicle = VehicleType::MC;
 
 	// aerodynamic segments for the fixedwing
@@ -208,6 +212,41 @@ private:
 	AeroSeg _tailplane = AeroSeg(0.3f, 0.1f, 0.0f, matrix::Vector3f(-0.4f, 0.0f, 0.0f), 0.0f, -1.0f, 0.05f, RP);
 	AeroSeg _fin = AeroSeg(0.25, 0.18, 0.0f, matrix::Vector3f(-0.45f, 0.0f, -0.1f), -90.0f, -1.0f, 0.12f, RP);
 	AeroSeg _fuselage = AeroSeg(0.2, 0.8, 0.0f, matrix::Vector3f(0.0f, 0.0f, 0.0f), -90.0f);
+
+	// aerodynamic segments for the tailsitter
+	static constexpr const int NB_TS_SEG = 11;
+	static constexpr const float TS_AR = 3.13f;
+	static constexpr const float TS_CM = 0.115f;	// longitudinal position of the CM from trailing edge
+	static constexpr const float TS_RP = 0.0625f;	// propeller radius [m]
+	static constexpr const float TS_DEF_MAX = math::radians(39.0f); 	// max deflection
+	matrix::Dcmf _C_BS = matrix::Dcmf(matrix::Eulerf(0.0f, math::radians(90.0f), 0.0f)); // segment to body 90 deg pitch
+	AeroSeg _ts[NB_TS_SEG] = {
+		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f - TS_CM, -0.239f, 0.0f), 0.0f, TS_AR),
+		AeroSeg(0.0383f, 0.125f, 0.0f, matrix::Vector3f(0.094f - TS_CM, -0.208f, 0.0f), 0.0f, TS_AR, 0.063f),
+		// AeroSeg(0.0884f, 0.148f, 0.0f, matrix::Vector3f(0.111f-TS_CM, -0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
+		AeroSeg(0.0884f, 0.085f, 0.0f, matrix::Vector3f(0.158f - TS_CM, -0.143f, 0.0f), 0.0f, TS_AR),
+		AeroSeg(0.0884f, 0.063f, 0.0f, matrix::Vector3f(0.047f - TS_CM, -0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
+		AeroSeg(0.0633f, 0.176f, 0.0f, matrix::Vector3f(0.132f - TS_CM, -0.068f, 0.0f), 0.0f, TS_AR, 0.063f),
+		AeroSeg(0.0750f, 0.231f, 0.0f, matrix::Vector3f(0.173f - TS_CM,  0.000f, 0.0f), 0.0f, TS_AR),
+		AeroSeg(0.0633f, 0.176f, 0.0f, matrix::Vector3f(0.132f - TS_CM,  0.068f, 0.0f), 0.0f, TS_AR, 0.063f),
+		// AeroSeg(0.0884f, 0.148f, 0.0f, matrix::Vector3f(0.111f-TS_CM,  0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
+		AeroSeg(0.0884f, 0.085f, 0.0f, matrix::Vector3f(0.158f - TS_CM,  0.143f, 0.0f), 0.0f, TS_AR),
+		AeroSeg(0.0884f, 0.063f, 0.0f, matrix::Vector3f(0.047f - TS_CM,  0.143f, 0.0f), 0.0f, TS_AR, 0.063f, TS_RP),
+		AeroSeg(0.0383f, 0.125f, 0.0f, matrix::Vector3f(0.094f - TS_CM,  0.208f, 0.0f), 0.0f, TS_AR, 0.063f),
+		AeroSeg(0.0225f, 0.110f, 0.0f, matrix::Vector3f(0.083f - TS_CM,  0.239f, 0.0f), 0.0f, TS_AR)
+	};
+
+	// AeroSeg _ts[NB_TS_SEG] = {
+	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f, -0.239f, TS_CM-0.083f), 0.0f, TS_AR),
+	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f, -0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
+	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f, -0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
+	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f, -0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
+	// 	AeroSeg(0.0750f, 0.231f, -90.0f, matrix::Vector3f(0.0f,  0.000f, TS_CM-0.173f), 0.0f, TS_AR),
+	// 	AeroSeg(0.0633f, 0.176f, -90.0f, matrix::Vector3f(0.0f,  0.068f, TS_CM-0.132f), 0.0f, TS_AR, 0.063f),
+	// 	AeroSeg(0.0884f, 0.148f, -90.0f, matrix::Vector3f(0.0f,  0.143f, TS_CM-0.111f), 0.0f, TS_AR, 0.063f, TS_RP),
+	// 	AeroSeg(0.0383f, 0.125f, -90.0f, matrix::Vector3f(0.0f,  0.208f, TS_CM-0.094f), 0.0f, TS_AR, 0.063f),
+	// 	AeroSeg(0.0225f, 0.110f, -90.0f, matrix::Vector3f(0.0f,  0.239f, TS_CM-0.083f), 0.0f, TS_AR)
+	// 	};
 
 	// sensors reconstruction
 	matrix::Vector3f    _acc;

@@ -212,3 +212,12 @@ TEST(FunctionsTest, lerp)
 	EXPECT_FLOAT_EQ(lerp(.2f, .3f, -.1f), .19f);
 	EXPECT_FLOAT_EQ(lerp(-.4f, .3f, 1.1f), .37f);
 }
+
+TEST(FunctionsTest, countSetBits)
+{
+	EXPECT_EQ(countSetBits(255), 8);
+	EXPECT_EQ(countSetBits(65535), 16);
+	EXPECT_EQ(countSetBits(0), 0);
+	EXPECT_EQ(countSetBits(0xffffffffu), 32);
+	EXPECT_EQ(countSetBits(754323), 9);
+}

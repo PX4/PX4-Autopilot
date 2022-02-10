@@ -110,6 +110,13 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                     param_type = 'INT32'
                     for key in param['values']:
                         tags += '\n * @value {:} {:}'.format(key, param['values'][key])
+                elif param['type'] == 'bitmask':
+                    param_type = 'INT32'
+                    for key in param['bit']:
+                        tags += '\n * @bit {:} {:}'.format(key, param['bit'][key])
+                    max_val = max(key for key in param['bit'])
+                    tags += '\n * @min 0'
+                    tags += '\n * @max {:}'.format((1<<(max_val+1)) - 1)
                 elif param['type'] == 'boolean':
                     param_type = 'INT32'
                     tags += '\n * @boolean'
@@ -120,7 +127,7 @@ def parse_yaml_parameters_config(yaml_config, ethernet_supported):
                 else:
                     raise Exception("unknown param type {:}".format(param['type']))
 
-                for tag in ['decimal', 'increment', 'category', 'volatile', 'bit',
+                for tag in ['decimal', 'increment', 'category', 'volatile',
                             'min', 'max', 'unit', 'reboot_required']:
                     if tag in param:
                         tags += '\n * @{:} {:}'.format(tag, param[tag])
@@ -170,6 +177,8 @@ def get_actuator_output_params(yaml_config, output_functions,
     module_name = process_module_name(yaml_config['module_name'])
     all_params = {}
     group_idx = 0
+
+    all_param_prefixes = {}
 
     def add_local_param(param_name, param_def):
         nonlocal all_params
@@ -252,6 +261,11 @@ def get_actuator_output_params(yaml_config, output_functions,
                     for i in range(count):
                         output_function_values[start+i] = function_name_label+' '+str(i+1)
 
+        if param_prefix not in all_param_prefixes:
+            all_param_prefixes[param_prefix] = []
+        all_param_prefixes[param_prefix].append((instance_start,
+            instance_start_label, num_channels, channel_label))
+
         # function param
         param = {
             'description': {
@@ -284,13 +298,9 @@ Note that non-motor outputs might already be active in prearm state if COM_PREAR
 '''
         minimum_description = \
 '''Minimum output value (when not disarmed).
-
-The output range can be reversed by setting Min > Max.
 '''
         maximum_description = \
 '''Maxmimum output value (when not disarmed).
-
-The output range can be reversed by setting Min > Max.
 '''
         failsafe_description = \
 '''This is the output value that is set when in failsafe mode.
@@ -330,6 +340,30 @@ When set to -1 (default), the value depends on the function (see {:}).
                     'default': standard_params[key]['default'],
                     }
                 add_local_param(param_prefix+'_'+param_suffix+'${i}', param)
+
+    # add reverse range param
+    for param_prefix in all_param_prefixes:
+        groups = all_param_prefixes[param_prefix]
+        # collect the bits
+        channel_bits = {}
+        for instance_start, instance_start_label, num_instances, label in groups:
+            for instance in range(instance_start, instance_start+num_instances):
+                instance_label = instance - instance_start + instance_start_label
+                channel_bits[instance-1] = label + ' ' + str(instance_label)
+
+        param = {
+            'description': {
+                'short': 'Reverse Output Range for '+module_name,
+                'long':
+'''Allows to reverse the output range for each channel.
+Note: this is only useful for servos.
+'''.format(channel_label),
+                },
+            'type': 'bitmask',
+            'default': 0,
+            'bit': channel_bits
+            }
+        add_local_param(param_prefix+'_REV', param)
 
     if verbose: print('adding actuator params: {:}'.format(all_params))
     return all_params

@@ -86,7 +86,6 @@
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_imu.h>
-#include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
@@ -154,8 +153,6 @@ private:
 	void PublishWindEstimate(const hrt_abstime &timestamp);
 	void PublishYawEstimatorStatus(const hrt_abstime &timestamp);
 
-	void SelectImuStatus();
-
 	void UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateAuxVelSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps);
@@ -164,7 +161,6 @@ private:
 	void UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateMagSample(ekf2_timestamps_s &ekf2_timestamps);
 	void UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps);
-	void UpdateImuStatus();
 
 	void UpdateAccelCalibration(const hrt_abstime &timestamp);
 	void UpdateGyroCalibration(const hrt_abstime &timestamp);
@@ -208,8 +204,6 @@ private:
 	struct InFlightCalibration {
 		hrt_abstime last_us{0};         ///< last time the EKF was operating a mode that estimates accelerometer biases (uSec)
 		hrt_abstime total_time_us{0};   ///< accumulated calibration time since the last save
-		Vector3f last_bias{};           ///< last valid XYZ accelerometer bias estimates (Gauss)
-		Vector3f last_bias_variance{};  ///< variances for the last valid accelerometer XYZ bias estimates (m/s**2)**2
 		bool cal_available{false};      ///< true when an unsaved valid calibration for the XYZ accelerometer bias is available
 	};
 
@@ -241,6 +235,8 @@ private:
 	Vector3f _last_gyro_calibration_published{};
 	Vector3f _last_mag_calibration_published{};
 
+	hrt_abstime _last_sensor_bias_published{0};
+
 	float _last_baro_bias_published{};
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
@@ -257,7 +253,6 @@ private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
-	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
@@ -315,8 +310,7 @@ private:
 	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
 
 	DEFINE_PARAMETERS(
-		(ParamExtInt<px4::params::EKF2_MIN_OBS_DT>)
-		_param_ekf2_min_obs_dt,	///< Maximum time delay of any sensor used to increase buffer length to handle large timing jitter (mSec)
+		(ParamExtInt<px4::params::EKF2_PREDICT_US>) _param_ekf2_predict_us,
 		(ParamExtFloat<px4::params::EKF2_MAG_DELAY>)
 		_param_ekf2_mag_delay,	///< magnetometer measurement delay relative to the IMU (mSec)
 		(ParamExtFloat<px4::params::EKF2_BARO_DELAY>)
@@ -536,10 +530,6 @@ private:
 		_param_ekf2_pcoef_yn,	///< static pressure position error coefficient along the negative Y body axis
 		(ParamExtFloat<px4::params::EKF2_PCOEF_Z>)
 		_param_ekf2_pcoef_z,	///< static pressure position error coefficient along the Z body axis
-
-		// Test used to determine if the vehicle is static or moving
-		(ParamExtFloat<px4::params::EKF2_MOVE_TEST>)
-		_param_ekf2_move_test,	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
 
 		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h, ///< Required GPS health time
 		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check, ///< Mag field strength check

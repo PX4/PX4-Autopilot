@@ -70,15 +70,14 @@ void Ekf::controlGpsFusion()
 
 					fuseGpsVelPos();
 
-					if (shouldResetGpsFusion()){
-						const bool is_yaw_failure = !isVelStateAlignedWithObs();
+					if (shouldResetGpsFusion()) {
 						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1000000);
 
 						/* A reset is not performed when getting GPS back after a significant period of no data
 						 * because the timeout could have been caused by bad GPS.
 						 * The total number of resets allowed per boot cycle is limited.
 						 */
-						if (is_yaw_failure
+						if (isYawFailure()
 						    && _control_status.flags.in_air
 						    && !was_gps_signal_lost
 						    && _ekfgsf_yaw_reset_count < _params.EKFGSF_reset_count_limit) {
@@ -89,7 +88,7 @@ void Ekf::controlGpsFusion()
 							// use GPS velocity data to check and correct yaw angle if a FW vehicle
 							if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
 								// if flying a fixed wing aircraft, do a complete reset that includes yaw
-								_control_status.flags.mag_aligned_in_flight = realignYawGPS();
+								_mag_yaw_reset_req = true;
 							}
 
 							_warning_events.flags.gps_fusion_timout = true;
@@ -132,8 +131,7 @@ void Ekf::controlGpsFusion()
 					startGpsFusion();
 				}
 
-			} else if(!_control_status.flags.yaw_align
-		                  && (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE)) {
+			} else if (!_control_status.flags.yaw_align && (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE)) {
 				// If no mag is used, align using the yaw estimator
 				_do_ekfgsf_yaw_reset = true;
 			}
@@ -188,6 +186,18 @@ bool Ekf::shouldResetGpsFusion() const
 	return (is_reset_required || is_recent_takeoff_nav_failure || is_inflight_nav_failure);
 }
 
+bool Ekf::isYawFailure() const
+{
+	if (!isYawEmergencyEstimateAvailable()) {
+		return false;
+	}
+
+	const float euler_yaw = getEulerYaw(_R_to_earth);
+	const float yaw_error = wrap_pi(euler_yaw - _yawEstimator.getYaw());
+
+	return fabsf(yaw_error) > math::radians(25.f);
+}
+
 void Ekf::processYawEstimatorResetRequest()
 {
 	/* The yaw reset to the EKF-GSF estimate can be requested externally at any time during flight.
@@ -195,7 +205,7 @@ void Ekf::processYawEstimatorResetRequest()
 	 * to improve its estimate if the previous reset was not successful.
 	 */
 	if (_do_ekfgsf_yaw_reset
-	    && isTimedOut(_ekfgsf_yaw_reset_time, 5000000)){
+	    && isTimedOut(_ekfgsf_yaw_reset_time, 5000000)) {
 		if (resetYawToEKFGSF()) {
 			_ekfgsf_yaw_reset_time = _time_last_imu;
 			_time_last_hor_pos_fuse = _time_last_imu;

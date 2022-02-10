@@ -40,16 +40,10 @@
 
 void Ekf::fuseBaroHgt()
 {
-	Vector2f baro_hgt_innov_gate;
-	Vector3f baro_hgt_obs_var;
-
 	// vertical position innovation - baro measurement has opposite sign to earth z axis
 	const float unbiased_baro = _baro_sample_delayed.hgt - _baro_b_est.getBias();
-	_baro_hgt_innov(2) = _state.pos(2) + unbiased_baro - _baro_hgt_offset;
-	// observation variance - user parameter defined
-	baro_hgt_obs_var(2) = sq(fmaxf(_params.baro_noise, 0.01f));
-	// innovation gate size
-	baro_hgt_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
+
+	_baro_hgt_innov = _state.pos(2) + unbiased_baro - _baro_hgt_offset;
 
 	// Compensate for positive static pressure transients (negative vertical position innovations)
 	// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
@@ -57,62 +51,69 @@ void Ekf::fuseBaroHgt()
 	const float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
 
 	if (_control_status.flags.gnd_effect) {
-		if (_baro_hgt_innov(2) < -deadzone_start) {
-			if (_baro_hgt_innov(2) <= -deadzone_end) {
-				_baro_hgt_innov(2) += deadzone_end;
+		if (_baro_hgt_innov < -deadzone_start) {
+			if (_baro_hgt_innov <= -deadzone_end) {
+				_baro_hgt_innov += deadzone_end;
 
 			} else {
-				_baro_hgt_innov(2) = -deadzone_start;
+				_baro_hgt_innov = -deadzone_start;
 			}
 		}
 	}
 
-	fuseVerticalPosition(_baro_hgt_innov, baro_hgt_innov_gate,
-			     baro_hgt_obs_var, _baro_hgt_innov_var, _baro_hgt_test_ratio);
+	// innovation gate size
+	float innov_gate = fmaxf(_params.baro_innov_gate, 1.f);
+
+	// observation variance - user parameter defined
+	float obs_var = sq(fmaxf(_params.baro_noise, 0.01f));
+
+	fuseVerticalPosition(_baro_hgt_innov, innov_gate, obs_var,
+			     _baro_hgt_innov_var, _baro_hgt_test_ratio);
 }
 
 void Ekf::fuseGpsHgt()
 {
-	Vector2f gps_hgt_innov_gate;
-	Vector3f gps_hgt_obs_var;
 	// vertical position innovation - gps measurement has opposite sign to earth z axis
 	_gps_pos_innov(2) = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
-	gps_hgt_obs_var(2) = getGpsHeightVariance();
-	// innovation gate size
-	gps_hgt_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
 
-	fuseVerticalPosition(_gps_pos_innov, gps_hgt_innov_gate,
-			     gps_hgt_obs_var, _gps_pos_innov_var, _gps_pos_test_ratio);
+	// innovation gate size
+	float innov_gate = fmaxf(_params.baro_innov_gate, 1.f);
+
+	float obs_var = getGpsHeightVariance();
+
+	// _gps_pos_test_ratio(1) is the vertical test ratio
+	fuseVerticalPosition(_gps_pos_innov(2), innov_gate, obs_var,
+			     _gps_pos_innov_var(2), _gps_pos_test_ratio(1));
 }
 
 void Ekf::fuseRngHgt()
 {
-	Vector2f rng_hgt_innov_gate;
-	Vector3f rng_hgt_obs_var;
 	// use range finder with tilt correction
-	_rng_hgt_innov(2) = _state.pos(2) - (-math::max(_range_sensor.getDistBottom(),
-					     _params.rng_gnd_clearance)) - _hgt_sensor_offset;
-	// observation variance - user parameter defined
-	rng_hgt_obs_var(2) = fmaxf(sq(_params.range_noise)
-				   + sq(_params.range_noise_scaler * _range_sensor.getDistBottom()), 0.01f);
-	// innovation gate size
-	rng_hgt_innov_gate(1) = fmaxf(_params.range_innov_gate, 1.0f);
+	_rng_hgt_innov = _state.pos(2) - (-math::max(_range_sensor.getDistBottom(),
+					  _params.rng_gnd_clearance)) - _hgt_sensor_offset;
 
-	fuseVerticalPosition(_rng_hgt_innov, rng_hgt_innov_gate,
-			     rng_hgt_obs_var, _rng_hgt_innov_var, _rng_hgt_test_ratio);
+	// innovation gate size
+	float innov_gate = fmaxf(_params.range_innov_gate, 1.f);
+
+	// observation variance - user parameter defined
+	float obs_var = fmaxf(sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sensor.getDistBottom()), 0.01f);
+
+	fuseVerticalPosition(_rng_hgt_innov, innov_gate, obs_var,
+			     _rng_hgt_innov_var, _rng_hgt_test_ratio);
 }
 
 void Ekf::fuseEvHgt()
 {
-	Vector2f ev_hgt_innov_gate;
-	Vector3f ev_hgt_obs_var;
 	// calculate the innovation assuming the external vision observation is in local NED frame
 	_ev_pos_innov(2) = _state.pos(2) - _ev_sample_delayed.pos(2);
-	// observation variance - defined externally
-	ev_hgt_obs_var(2) = fmaxf(_ev_sample_delayed.posVar(2), sq(0.01f));
-	// innovation gate size
-	ev_hgt_innov_gate(1) = fmaxf(_params.ev_pos_innov_gate, 1.0f);
 
-	fuseVerticalPosition(_ev_pos_innov, ev_hgt_innov_gate,
-			     ev_hgt_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
+	// innovation gate size
+	float innov_gate = fmaxf(_params.ev_pos_innov_gate, 1.f);
+
+	// observation variance - defined externally
+	float obs_var = fmaxf(_ev_sample_delayed.posVar(2), sq(0.01f));
+
+	// _ev_pos_test_ratio(1) is the vertical test ratio
+	fuseVerticalPosition(_ev_pos_innov(2), innov_gate, obs_var,
+			     _ev_pos_innov_var(2), _ev_pos_test_ratio(1));
 }

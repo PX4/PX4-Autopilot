@@ -91,8 +91,10 @@ void VehicleAcceleration::CheckAndUpdateFilters()
 
 		const float sample_rate_hz = imu_status.get().accel_rate_hz;
 
-		if ((imu_status.get().accel_device_id != 0) && (imu_status.get().accel_device_id == _calibration.device_id())
+		if (imu_status.advertised() && (imu_status.get().timestamp != 0)
+		    && (imu_status.get().accel_device_id != 0) && (imu_status.get().accel_device_id == _calibration.device_id())
 		    && PX4_ISFINITE(sample_rate_hz) && (sample_rate_hz > 0)) {
+
 			// check if sample rate error is greater than 1%
 			if (!PX4_ISFINITE(_filter_sample_rate) || (fabsf(sample_rate_hz - _filter_sample_rate) / _filter_sample_rate) > 0.01f) {
 				PX4_DEBUG("sample rate changed: %.3f Hz -> %.3f Hz", (double)_filter_sample_rate, (double)sample_rate_hz);
@@ -161,7 +163,8 @@ bool VehicleAcceleration::SensorSelectionUpdate(bool force)
 
 				const uint32_t device_id = sensor_accel_sub.get().device_id;
 
-				if ((device_id != 0) && (device_id == sensor_selection.accel_device_id)) {
+				if (sensor_accel_sub.advertised() && (sensor_accel_sub.get().timestamp != 0)
+				    && (device_id != 0) && (device_id == sensor_selection.accel_device_id)) {
 
 					if (_sensor_sub.ChangeInstance(i) && _sensor_sub.registerCallback()) {
 						PX4_DEBUG("selected sensor changed %" PRIu32 " -> %" PRIu32 "", _calibration.device_id(), device_id);
@@ -256,9 +259,9 @@ void VehicleAcceleration::Run()
 
 void VehicleAcceleration::PrintStatus()
 {
-	PX4_INFO("selected sensor: %" PRIu32 ", rate: %.1f Hz, estimated bias: [%.4f %.4f %.4f]",
-		 _calibration.device_id(), (double)_filter_sample_rate,
-		 (double)_bias(0), (double)_bias(1), (double)_bias(2));
+	PX4_INFO_RAW("[vehicle_acceleration] selected sensor: %" PRIu32 ", rate: %.1f Hz, estimated bias: [%.4f %.4f %.4f]\n",
+		     _calibration.device_id(), (double)_filter_sample_rate,
+		     (double)_bias(0), (double)_bias(1), (double)_bias(2));
 
 	_calibration.PrintStatus();
 }

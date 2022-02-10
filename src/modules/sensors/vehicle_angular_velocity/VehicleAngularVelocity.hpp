@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,11 +86,11 @@ private:
 	void DisableDynamicNotchFFT();
 	void ParametersUpdate(bool force = false);
 
-	void ResetFilters();
+	void ResetFilters(const hrt_abstime &time_now_us);
 	void SensorBiasUpdate(bool force = false);
-	bool SensorSelectionUpdate(bool force = false);
-	void UpdateDynamicNotchEscRpm(bool force = false);
-	void UpdateDynamicNotchFFT(bool force = false);
+	bool SensorSelectionUpdate(const hrt_abstime &time_now_us, bool force = false);
+	void UpdateDynamicNotchEscRpm(const hrt_abstime &time_now_us, bool force = false);
+	void UpdateDynamicNotchFFT(const hrt_abstime &time_now_us, bool force = false);
 	bool UpdateSampleRate();
 
 	// scaled appropriately for current sensor
@@ -143,29 +143,28 @@ private:
 
 	static constexpr hrt_abstime DYNAMIC_NOTCH_FITLER_TIMEOUT = 1_s;
 
-	static constexpr int MAX_NUM_ESC_RPM = sizeof(esc_status_s::esc) / sizeof(esc_status_s::esc[0]);
-	static constexpr int MAX_NUM_ESC_RPM_HARMONICS = 3;
+	// ESC RPM
+	static constexpr int MAX_NUM_ESCS = sizeof(esc_status_s::esc) / sizeof(esc_status_s::esc[0]);
 
-	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x) / sizeof(
-				sensor_gyro_fft_s::peak_frequencies_x[0]);
+	using NotchFilterHarmonic = math::NotchFilter<float>[3][MAX_NUM_ESCS];
+	NotchFilterHarmonic *_dynamic_notch_filter_esc_rpm{nullptr};
 
-	math::NotchFilter<float> _dynamic_notch_filter_esc_rpm[3][MAX_NUM_ESC_RPM][MAX_NUM_ESC_RPM_HARMONICS] {};
-	math::NotchFilter<float> _dynamic_notch_filter_fft[3][MAX_NUM_FFT_PEAKS] {};
-
-	px4::Bitset<MAX_NUM_ESC_RPM> _esc_available{};
-	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESC_RPM] {};
+	int _esc_rpm_harmonics{0};
+	px4::Bitset<MAX_NUM_ESCS> _esc_available{};
+	hrt_abstime _last_esc_rpm_notch_update[MAX_NUM_ESCS] {};
 
 	perf_counter_t _dynamic_notch_filter_esc_rpm_update_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_esc_rpm_reset_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_esc_rpm_disable_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_esc_rpm_perf{nullptr};
+
+	// FFT
+	static constexpr int MAX_NUM_FFT_PEAKS = sizeof(sensor_gyro_fft_s::peak_frequencies_x)
+			/ sizeof(sensor_gyro_fft_s::peak_frequencies_x[0]);
+
+	math::NotchFilter<float> _dynamic_notch_filter_fft[3][MAX_NUM_FFT_PEAKS] {};
 
 	perf_counter_t _dynamic_notch_filter_fft_disable_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_fft_reset_perf{nullptr};
 	perf_counter_t _dynamic_notch_filter_fft_update_perf{nullptr};
-	perf_counter_t _dynamic_notch_filter_fft_perf{nullptr};
 
-	bool _dynamic_notch_esc_rpm_available{false};
 	bool _dynamic_notch_fft_available{false};
 #endif // !CONSTRAINED_FLASH
 
@@ -178,12 +177,14 @@ private:
 	bool _fifo_available{false};
 	bool _update_sample_rate{true};
 
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": gyro filter")};
 	perf_counter_t _filter_reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro filter reset")};
 	perf_counter_t _selection_changed_perf{perf_alloc(PC_COUNT, MODULE_NAME": gyro selection changed")};
 
 	DEFINE_PARAMETERS(
 #if !defined(CONSTRAINED_FLASH)
 		(ParamInt<px4::params::IMU_GYRO_DNF_EN>) _param_imu_gyro_dnf_en,
+		(ParamInt<px4::params::IMU_GYRO_DNF_HMC>) _param_imu_gyro_dnf_hmc,
 		(ParamFloat<px4::params::IMU_GYRO_DNF_BW>) _param_imu_gyro_dnf_bw,
 #endif // !CONSTRAINED_FLASH
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,

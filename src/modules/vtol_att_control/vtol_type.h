@@ -48,6 +48,7 @@
 #include <drivers/drv_pwm_output.h>
 
 struct Params {
+	int32_t ctrl_alloc;
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
 	int32_t vtol_motor_id;
 	int32_t vtol_type;
@@ -216,6 +217,11 @@ public:
 	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
+
+	struct vehicle_torque_setpoint_s 		*_torque_setpoint_0;
+	struct vehicle_torque_setpoint_s 		*_torque_setpoint_1;
+	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_0;
+	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_1;
 
 	struct Params 					*_params;
 

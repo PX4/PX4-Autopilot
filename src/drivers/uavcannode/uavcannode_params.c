@@ -80,3 +80,12 @@ PARAM_DEFINE_INT32(CANNODE_TERM, 0);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(CANNODE_FLOW_ROT, 0);
+
+/**
+ * Enable RTCM pub/sub
+ *
+ * @boolean
+ * @max 1
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(CANNODE_GPS_RTCM, 0);

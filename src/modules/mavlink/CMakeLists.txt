@@ -93,6 +93,7 @@ px4_add_module(
 		mavlink_stream.cpp
 		mavlink_timesync.cpp
 		mavlink_ulog.cpp
+		MavlinkStatustextHandler.cpp
 		tune_publisher.cpp
 	MODULE_CONFIG
 		module.yaml
@@ -114,4 +115,15 @@ px4_add_module(
 
 if(PX4_TESTING)
 	add_subdirectory(mavlink_tests)
+endif()
+
+px4_add_unit_gtest(SRC MavlinkStatustextHandlerTest.cpp
+	INCLUDES ${MAVLINK_LIBRARY_DIR}/${MAVLINK_DIALECT}
+	COMPILE_FLAGS
+		-Wno-address-of-packed-member # TODO: fix in c_library_v2
+		LINKLIBS modules__mavlink
+	)
+
+if(CONFIG_NET AND "${PX4_PLATFORM}" MATCHES "nuttx")
+	target_link_libraries(modules__mavlink PRIVATE nuttx_apps) # netlib_get_ipv4netmask
 endif()

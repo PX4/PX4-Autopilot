@@ -498,6 +498,12 @@ mixer:
                                     type: integer
                                 function:
                                     type: string
+                                identifier:
+                                    # for rules
+                                    type: string
+        rules:
+            # mixer rules, validated by the mavlink actuator component information schema
+            type: list
         config:
             # Airframe types
             type: dict
@@ -526,11 +532,20 @@ mixer:
                                     schema:
                                         actuator_type:
                                             type: string
+                                        group_label:
+                                            type: string
                                         count:
                                             # param name or fixed count
                                             oneof:
                                               - type: string
                                               - type: integer
+                                        item_label_prefix:
+                                            # optional per-item label prefix list or (indexed) string
+                                            oneof:
+                                              - type: list
+                                                schema:
+                                                    type: string
+                                              - type: string
                                         parameters:
                                             type: list
                                             minlength: 1
@@ -548,6 +563,8 @@ mixer:
                                                             schema:
                                                                 # position param names
                                                                 type: string
+                                                        index_offset:
+                                                            type: integer
                                                 extra:
                                                     type: list
                                                     schema: *mixer_parameter
