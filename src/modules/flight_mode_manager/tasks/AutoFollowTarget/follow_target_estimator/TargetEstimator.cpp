@@ -215,10 +215,16 @@ bool TargetEstimator::measurement_can_be_fused(const Vector3f &current_measureme
 					 || !PX4_ISFINITE(previous_measurement(0)) || !PX4_ISFINITE(previous_measurement(1))
 					 || !PX4_ISFINITE(previous_measurement(2));
 
+	// This is required as a throttle
 	const bool fusion_old_enough = hrt_absolute_time() - last_fusion_timestamp >
 				       min_delta_t * 1000;
 
-	return measurement_valid && fusion_old_enough && sensor_data_changed;
+	// TODO: Remove this workaround
+	const bool fusion_too_old = hrt_absolute_time() - last_fusion_timestamp >
+				    2 * min_delta_t * 1000;
+
+	return measurement_valid && fusion_old_enough && (sensor_data_changed || fusion_too_old);
+	// return measurement_valid;
 }
 
 void TargetEstimator::measurement_update(follow_target_s follow_target)
