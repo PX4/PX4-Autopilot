@@ -66,6 +66,14 @@ private:
 		gimbal_device_attitude_status_s gimbal_device_attitude_status{};
 
 		if (_gimbal_device_attitude_status_sub.update(&gimbal_device_attitude_status)) {
+
+			if (gimbal_device_attitude_status.received_from_mavlink) {
+				// If we have already received the gimbal device's attitude via
+				// mavlink it is already forwarded directly and we don't need
+				// to re-publish it here.
+				return false;
+			}
+
 			mavlink_gimbal_device_attitude_status_t msg{};
 
 			msg.target_system = gimbal_device_attitude_status.target_system;

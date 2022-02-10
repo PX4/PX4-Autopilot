@@ -16,3 +16,5 @@ float32 angular_velocity_y
 float32 angular_velocity_z
 
 uint32 failure_flags
+
+bool received_from_mavlink

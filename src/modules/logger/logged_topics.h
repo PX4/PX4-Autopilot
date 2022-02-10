@@ -77,6 +77,8 @@ class LoggedTopics
 public:
 	static constexpr int MAX_TOPICS_NUM = 255; /**< Maximum number of logged topics */
 
+	static constexpr int MAX_EXCLUDED_OPTIONAL_TOPICS_NUM = 40;
+
 	struct RequestedSubscription {
 		uint16_t interval_ms;
 		uint8_t instance;
@@ -85,6 +87,9 @@ public:
 	struct RequestedSubscriptionArray {
 		RequestedSubscription sub[MAX_TOPICS_NUM];
 		int count{0};
+
+		uint8_t excluded_optional_topic_ids[MAX_EXCLUDED_OPTIONAL_TOPICS_NUM];
+		int num_excluded_optional_topic_ids{0};
 	};
 
 	LoggedTopics() = default;

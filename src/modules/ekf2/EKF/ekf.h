@@ -252,6 +252,7 @@ public:
 	const auto &state_reset_status() const { return _state_reset_status; }
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
+	uint8_t get_posD_reset_count() const { return _state_reset_status.posD_counter; }
 	void get_posD_reset(float *delta, uint8_t *counter) const
 	{
 		*delta = _state_reset_status.posD_change;
@@ -259,6 +260,7 @@ public:
 	}
 
 	// return the amount the local vertical velocity changed in the last reset and the number of reset events
+	uint8_t get_velD_reset_count() const { return _state_reset_status.velD_counter; }
 	void get_velD_reset(float *delta, uint8_t *counter) const
 	{
 		*delta = _state_reset_status.velD_change;
@@ -266,6 +268,7 @@ public:
 	}
 
 	// return the amount the local horizontal position changed in the last reset and the number of reset events
+	uint8_t get_posNE_reset_count() const { return _state_reset_status.posNE_counter; }
 	void get_posNE_reset(float delta[2], uint8_t *counter) const
 	{
 		_state_reset_status.posNE_change.copyTo(delta);
@@ -273,6 +276,7 @@ public:
 	}
 
 	// return the amount the local horizontal velocity changed in the last reset and the number of reset events
+	uint8_t get_velNE_reset_count() const { return _state_reset_status.velNE_counter; }
 	void get_velNE_reset(float delta[2], uint8_t *counter) const
 	{
 		_state_reset_status.velNE_change.copyTo(delta);
@@ -280,6 +284,7 @@ public:
 	}
 
 	// return the amount the quaternion has changed in the last reset and the number of reset events
+	uint8_t get_quat_reset_count() const { return _state_reset_status.quat_counter; }
 	void get_quat_reset(float delta_quat[4], uint8_t *counter) const
 	{
 		_state_reset_status.quat_change.copyTo(delta_quat);
@@ -352,7 +357,6 @@ private:
 
 	// variables used when position data is being fused using a relative position odometry model
 	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
-	Vector3f _pos_meas_prev{};		///< previous value of NED position measurement fused using odometry assumption (m)
 	Vector2f _hpos_pred_prev{};		///< previous value of NE position state used by odometry fusion (m)
 	bool _hpos_prev_available{false};	///< true when previous values of the estimate and measurement are available for use
 	Dcmf _R_ev_to_ekf;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame, initialized with Identity
@@ -360,7 +364,6 @@ private:
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
-	bool _mag_data_ready{false};	///< true when new magnetometer data has fallen behind the fusion time horizon and is available to be fused
 	bool _baro_data_ready{false};	///< true when new baro height data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_data_ready{false};	///< true when the leading edge of the optical flow integration period has fallen behind the fusion time horizon
 	bool _ev_data_ready{false};	///< true when new external vision system data has fallen behind the fusion time horizon and is available to be fused
@@ -417,9 +420,6 @@ private:
 	Vector3f _delta_vel_bias_var_accum{};		///< kahan summation algorithm accumulator for delta velocity bias variance
 	Vector3f _delta_angle_bias_var_accum{};	///< kahan summation algorithm accumulator for delta angle bias variance
 
-	Vector3f _last_vel_obs{};			///< last velocity observation (m/s)
-	Vector3f _last_vel_obs_var{};		///< last velocity observation variance (m/s)**2
-	Vector2f _last_fail_hvel_innov{};		///< last failed horizontal velocity innovation (m/s)**2
 	float _vert_pos_innov_ratio{0.f};	///< vertical position innovation divided by estimated standard deviation of innovation
 	uint64_t _vert_pos_fuse_attempt_time_us{0};	///< last system time in usec vertical position measurement fuson was attempted
 	float _vert_vel_innov_ratio{0.f};		///< standard deviation of vertical velocity innovation
@@ -573,22 +573,22 @@ private:
 	void predictCovariance();
 
 	// ekf sequential fusion of magnetometer measurements
-	void fuseMag();
+	void fuseMag(const Vector3f &mag);
 
 	// fuse the first euler angle from either a 321 or 312 rotation sequence as the observation (currently measures yaw using the magnetometer)
-	void fuseHeading();
+	void fuseHeading(float measured_hdg = NAN, float obs_var = NAN);
 
 	// fuse the yaw angle defined as the first rotation in a 321 Tait-Bryan rotation sequence
 	// yaw : angle observation defined as the first rotation in a 321 Tait-Bryan rotation sequence (rad)
 	// yaw_variance : variance of the yaw angle observation (rad^2)
 	// zero_innovation : Fuse data with innovation set to zero
-	void fuseYaw321(const float yaw, const float yaw_variance, bool zero_innovation);
+	void fuseYaw321(const float yaw, const float yaw_variance, bool zero_innovation = false);
 
 	// fuse the yaw angle defined as the first rotation in a 312 Tait-Bryan rotation sequence
 	// yaw : angle observation defined as the first rotation in a 312 Tait-Bryan rotation sequence (rad)
 	// yaw_variance : variance of the yaw angle observation (rad^2)
 	// zero_innovation : Fuse data with innovation set to zero
-	void fuseYaw312(const float yaw, const float yaw_variance, bool zero_innovation);
+	void fuseYaw312(const float yaw, const float yaw_variance, bool zero_innovation = false);
 
 	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	// innovation : prediction - measurement
@@ -619,7 +619,7 @@ private:
 	void fuseSideslip();
 
 	// fuse body frame drag specific forces for multi-rotor wind estimation
-	void fuseDrag();
+	void fuseDrag(const dragSample &drag_sample);
 
 	void fuseBaroHgt();
 	void fuseGpsHgt();
@@ -633,43 +633,43 @@ private:
 
 	void resetVelocityToGps();
 
-	inline void resetHorizontalVelocityToOpticalFlow();
+	void resetHorizontalVelocityToOpticalFlow();
 
-	inline void resetVelocityToVision();
+	void resetVelocityToVision();
 
-	inline void resetHorizontalVelocityToZero();
+	void resetHorizontalVelocityToZero();
 
-	inline void resetVelocityTo(const Vector3f &vel);
+	void resetVelocityTo(const Vector3f &vel);
 
-	inline void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
+	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
 
-	inline void resetVerticalVelocityTo(float new_vert_vel);
+	void resetVerticalVelocityTo(float new_vert_vel);
 
 	void resetHorizontalPosition();
 
 	void resetHorizontalPositionToGps();
 
-	inline void resetHorizontalPositionToVision();
+	void resetHorizontalPositionToVision();
 
-	inline void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
+	void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
 
-	inline void resetVerticalPositionTo(const float &new_vert_pos);
+	void resetVerticalPositionTo(float new_vert_pos);
 
 	void resetHeight();
 
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
 
-	bool fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+	bool fuseHorizontalVelocity(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
 				    Vector3f &innov_var, Vector2f &test_ratio);
 
-	bool fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+	bool fuseVerticalVelocity(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
 				  Vector3f &innov_var, Vector2f &test_ratio);
 
-	bool fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate, const Vector3f &obs_var,
+	bool fuseHorizontalPosition(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
 				    Vector3f &innov_var, Vector2f &test_ratiov, bool inhibit_gate = false);
 
-	bool fuseVerticalPosition(const float innov, const float innov_gate, const float obs_var,
+	bool fuseVerticalPosition(float innov, float innov_gate, float obs_var,
 				  float &innov_var, float &test_ratio);
 
 	void fuseGpsVelPos();
@@ -696,7 +696,7 @@ private:
 
 	// reset the heading and magnetic field states using the declination and magnetometer measurements
 	// return true if successful
-	bool resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var = true, bool update_buffer = true);
+	bool resetMagHeading(bool increase_yaw_var = true, bool update_buffer = true);
 
 	// reset the heading using the external vision measurements
 	// return true if successful
@@ -704,7 +704,7 @@ private:
 
 	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
-	bool realignYawGPS();
+	bool realignYawGPS(const Vector3f &mag);
 
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
@@ -835,7 +835,7 @@ private:
 	void runOnGroundYawReset();
 	bool isYawResetAuthorized() const { return !_is_yaw_fusion_inhibited; }
 	bool canResetMagHeading() const;
-	void runInAirYawReset();
+	void runInAirYawReset(const Vector3f &mag);
 	bool canRealignYawUsingGps() const { return _control_status.flags.fixed_wing; }
 	void runVelPosReset();
 
@@ -850,11 +850,11 @@ private:
 	void checkMagDeclRequired();
 	void checkMagInhibition();
 	bool shouldInhibitMag() const;
-	void checkMagFieldStrength();
+	void checkMagFieldStrength(const Vector3f &mag);
 	bool isStrongMagneticDisturbance() const { return _control_status.flags.mag_field_disturbed; }
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
-	void runMagAndMagDeclFusions();
-	void run3DMagAndDeclFusions();
+	void runMagAndMagDeclFusions(const Vector3f &mag);
+	void run3DMagAndDeclFusions(const Vector3f &mag);
 
 	// control fusion of range finder observations
 	void controlRangeFinderFusion();

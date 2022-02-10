@@ -526,6 +526,10 @@ bool Logger::initialize_topics()
 		}
 	}
 
+	_num_excluded_optional_topic_ids = logged_topics.subscriptions().num_excluded_optional_topic_ids;
+	memcpy(_excluded_optional_topic_ids, logged_topics.subscriptions().excluded_optional_topic_ids,
+	       sizeof(_excluded_optional_topic_ids));
+
 	delete[](_subscriptions);
 	_subscriptions = nullptr;
 
@@ -1407,6 +1411,7 @@ void Logger::start_log_file(LogType type)
 		write_parameter_defaults(type);
 		write_perf_data(true);
 		write_console_output();
+		write_excluded_optional_topics(type);
 	}
 
 	write_all_add_logged_msg(type);
@@ -1463,6 +1468,7 @@ void Logger::start_log_mavlink()
 	write_parameter_defaults(LogType::Full);
 	write_perf_data(true);
 	write_console_output();
+	write_excluded_optional_topics(LogType::Full);
 	write_all_add_logged_msg(LogType::Full);
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
@@ -1906,6 +1912,17 @@ void Logger::write_info_template(LogType type, const char *name, T value, const 
 	write_message(type, buffer, msg_size);
 
 	_writer.unlock();
+}
+
+void Logger::write_excluded_optional_topics(LogType type)
+{
+	for (int i = 0; i < _num_excluded_optional_topic_ids; ++i) {
+		orb_id_t meta = get_orb_meta((ORB_ID)_excluded_optional_topic_ids[i]);
+
+		if (meta) {
+			write_info_multiple(type, "excluded_optional_topics", meta->o_name, false);
+		}
+	}
 }
 
 void Logger::write_header(LogType type)

@@ -105,10 +105,10 @@ void Ekf::fuseFakePosition()
 	if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
 		fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise));
 
-	} else if (_control_status.flags.vehicle_at_rest) {
+	} else if (!_control_status.flags.in_air && _control_status.flags.vehicle_at_rest) {
 		// Accelerate tilt fine alignment by fusing more
 		// aggressively when the vehicle is at rest
-		fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(0.1f);
+		fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(0.01f);
 
 	} else {
 		fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(0.5f);
@@ -116,7 +116,7 @@ void Ekf::fuseFakePosition()
 
 	_gps_pos_innov.xy() = Vector2f(_state.pos) - _last_known_posNE;
 
-	const Vector2f fake_pos_innov_gate(3.0f, 3.0f);
+	const float fake_pos_innov_gate = 3.f;
 
 	if (fuseHorizontalPosition(_gps_pos_innov, fake_pos_innov_gate, fake_pos_obs_var,
 	                           _gps_pos_innov_var, _gps_pos_test_ratio, true)) {

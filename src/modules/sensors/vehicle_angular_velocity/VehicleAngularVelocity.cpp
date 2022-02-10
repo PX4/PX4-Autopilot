@@ -230,19 +230,20 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 		// use vehicle_imu_status to do basic sensor selection validation
 		for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 			uORB::SubscriptionData<vehicle_imu_status_s> imu_status{ORB_ID(vehicle_imu_status), i};
-			bool imu_status_gyro_valid = false;
 
-			if ((imu_status.get().gyro_device_id != 0) && (time_now_us < imu_status.get().timestamp + 1_s)) {
-				imu_status_gyro_valid = true;
-			}
+			if (imu_status.advertised()
+			    && (imu_status.get().timestamp != 0) && (time_now_us < imu_status.get().timestamp + 1_s)
+			    && (imu_status.get().gyro_device_id != 0)) {
+				// vehicle_imu_status gyro valid
 
-			if ((device_id != 0) && (imu_status.get().gyro_device_id == device_id) && imu_status_gyro_valid) {
-				selected_device_id_valid = true;
-			}
+				if ((device_id != 0) && (imu_status.get().gyro_device_id == device_id)) {
+					selected_device_id_valid = true;
+				}
 
-			// record first valid IMU as a backup option
-			if ((device_id_first_valid_imu == 0) && imu_status_gyro_valid) {
-				device_id_first_valid_imu = imu_status.get().gyro_device_id;
+				// record first valid IMU as a backup option
+				if (device_id_first_valid_imu == 0) {
+					device_id_first_valid_imu = imu_status.get().gyro_device_id;
+				}
 			}
 		}
 
@@ -259,21 +260,24 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 			for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 				uORB::SubscriptionData<sensor_gyro_fifo_s> sensor_gyro_fifo_sub{ORB_ID(sensor_gyro_fifo), i};
 
-				if (sensor_gyro_fifo_sub.get().device_id != 0) {
+				if (sensor_gyro_fifo_sub.advertised()
+				    && (sensor_gyro_fifo_sub.get().timestamp != 0)
+				    && (sensor_gyro_fifo_sub.get().device_id != 0)
+				    && (time_now_us < sensor_gyro_fifo_sub.get().timestamp + 1_s)) {
+
 					// if no gyro was selected use the first valid sensor_gyro_fifo
-					if (!device_id_valid && (time_now_us < sensor_gyro_fifo_sub.get().timestamp + 1_s)) {
+					if (!device_id_valid) {
 						device_id = sensor_gyro_fifo_sub.get().device_id;
+						PX4_WARN("no gyro selected, using sensor_gyro_fifo:%" PRIu8 " %" PRIu32, i, sensor_gyro_fifo_sub.get().device_id);
 					}
 
-					if ((sensor_gyro_fifo_sub.get().device_id == device_id)
-					    && _sensor_fifo_sub.ChangeInstance(i) && _sensor_fifo_sub.registerCallback()) {
+					if (sensor_gyro_fifo_sub.get().device_id == device_id) {
+						if (_sensor_fifo_sub.ChangeInstance(i) && _sensor_fifo_sub.registerCallback()) {
+							// make sure non-FIFO sub is unregistered
+							_sensor_sub.unregisterCallback();
 
-						// make sure non-FIFO sub is unregistered
-						_sensor_sub.unregisterCallback();
+							_calibration.set_device_id(sensor_gyro_fifo_sub.get().device_id);
 
-						_calibration.set_device_id(sensor_gyro_fifo_sub.get().device_id);
-
-						if (_calibration.enabled()) {
 							_selected_sensor_device_id = sensor_gyro_fifo_sub.get().device_id;
 
 							_timestamp_sample_last = 0;
@@ -288,7 +292,8 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 							return true;
 
 						} else {
-							_selected_sensor_device_id = 0;
+							PX4_ERR("unable to register callback for sensor_gyro_fifo:%" PRIu8 " %" PRIu32,
+								i, sensor_gyro_fifo_sub.get().device_id);
 						}
 					}
 				}
@@ -297,20 +302,24 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 			for (uint8_t i = 0; i < MAX_SENSOR_COUNT; i++) {
 				uORB::SubscriptionData<sensor_gyro_s> sensor_gyro_sub{ORB_ID(sensor_gyro), i};
 
-				if (sensor_gyro_sub.get().device_id != 0) {
+				if (sensor_gyro_sub.advertised()
+				    && (sensor_gyro_sub.get().timestamp != 0)
+				    && (sensor_gyro_sub.get().device_id != 0)
+				    && (time_now_us < sensor_gyro_sub.get().timestamp + 1_s)) {
+
 					// if no gyro was selected use the first valid sensor_gyro
-					if (!device_id_valid && (time_now_us < sensor_gyro_sub.get().timestamp + 1_s)) {
+					if (!device_id_valid) {
 						device_id = sensor_gyro_sub.get().device_id;
+						PX4_WARN("no gyro selected, using sensor_gyro:%" PRIu8 " %" PRIu32, i, sensor_gyro_sub.get().device_id);
 					}
 
-					if ((sensor_gyro_sub.get().device_id == device_id)
-					    && _sensor_sub.ChangeInstance(i) && _sensor_sub.registerCallback()) {
-						// make sure FIFO sub is unregistered
-						_sensor_fifo_sub.unregisterCallback();
+					if (sensor_gyro_sub.get().device_id == device_id) {
+						if (_sensor_sub.ChangeInstance(i) && _sensor_sub.registerCallback()) {
+							// make sure FIFO sub is unregistered
+							_sensor_fifo_sub.unregisterCallback();
 
-						_calibration.set_device_id(sensor_gyro_sub.get().device_id);
+							_calibration.set_device_id(sensor_gyro_sub.get().device_id);
 
-						if (_calibration.enabled()) {
 							_selected_sensor_device_id = sensor_gyro_sub.get().device_id;
 
 							_timestamp_sample_last = 0;
@@ -325,7 +334,8 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 							return true;
 
 						} else {
-							_selected_sensor_device_id = 0;
+							PX4_ERR("unable to register callback for sensor_gyro:%" PRIu8 " %" PRIu32,
+								i, sensor_gyro_sub.get().device_id);
 						}
 					}
 				}

@@ -152,6 +152,7 @@ struct extVisionSample {
 	Matrix3f velCov;	///< XYZ velocity covariances ((m/sec)**2)
 	float angVar;		///< angular heading variance (rad**2)
 	velocity_frame_t vel_frame = velocity_frame_t::BODY_FRAME_FRD;
+	uint8_t reset_counter{0};
 };
 
 struct dragSample {
@@ -372,9 +373,6 @@ struct parameters {
 	// auxiliary velocity fusion
 	const float auxvel_noise{0.5f};		///< minimum observation noise, uses reported noise if greater (m/s)
 	const float auxvel_gate{5.0f};		///< velocity fusion innovation consistency gate size (STD)
-
-	// control of on-ground movement check
-	float is_moving_scaler{1.0f};		///< gain scaler used to adjust the threshold for the on-ground movement detection. Larger values make the test less sensitive.
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};

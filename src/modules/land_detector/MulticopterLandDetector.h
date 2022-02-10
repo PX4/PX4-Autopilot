@@ -44,7 +44,6 @@
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/hover_thrust_estimate.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/takeoff_status.h>
@@ -96,6 +95,7 @@ private:
 		param_t hoverThrottle;
 		param_t minManThrottle;
 		param_t landSpeed;
+		param_t crawlSpeed;
 		param_t useHoverThrustEstimate;
 	} _paramHandle{};
 
@@ -104,13 +104,14 @@ private:
 		float hoverThrottle;
 		float minManThrottle;
 		float landSpeed;
+		float crawlSpeed;
 		bool useHoverThrustEstimate;
 	} _params{};
 
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _takeoff_status_sub{ORB_ID(takeoff_status)};
 
