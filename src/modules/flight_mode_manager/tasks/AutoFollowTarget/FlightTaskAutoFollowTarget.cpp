@@ -255,7 +255,7 @@ bool FlightTaskAutoFollowTarget::update()
 		_velocity_ff_scale.update(desired_velocity_ff_scale);
 
 		// Emergency ascent when too close to the ground
-		if (PX4_ISFINITE(_dist_to_bottom) && _dist_to_bottom < MINIMUM_SAFETY_ALTITUDE) {
+		if (PX4_ISFINITE(_dist_to_ground) && _dist_to_ground < MINIMUM_SAFETY_ALTITUDE) {
 			_position_setpoint(0) = _position_setpoint(1) = NAN;
 			_position_setpoint(2) = _position(2);
 			_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
