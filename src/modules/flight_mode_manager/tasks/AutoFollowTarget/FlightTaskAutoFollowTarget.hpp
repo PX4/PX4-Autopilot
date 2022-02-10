@@ -152,7 +152,7 @@ protected:
 			const matrix::Vector3f &acc_ned_est) const;
 
 
-	void calculate_and_publish_gimbal_setpoint(float xy_distance, float z_distance);
+	void point_gimbal_at(float xy_distance, float z_distance);
 	matrix::Vector2f calculate_offset_vector_filtered(matrix::Vector3f vel_ned_est);
 	matrix::Vector3f calculate_target_position_filtered(matrix::Vector3f pos_ned_est, matrix::Vector3f vel_ned_est,
 			matrix::Vector3f acc_ned_est);

@@ -263,16 +263,32 @@ bool FlightTaskAutoFollowTarget::update()
 		}
 
 		// Yaw setpoint: Face the target
-		const Vector2f target_to_drone = Vector2f(_position.xy()) - Vector2f(
+		const Vector2f target_to_drone_xy = Vector2f(_position.xy()) - Vector2f(
 				target_position_filtered.xy());
 
-		if (target_to_drone.longerThan(MINIMUM_DISTANCE_TO_TARGET_FOR_YAW_CONTROL)) {
-			_yaw_setpoint = atan2f(-target_to_drone(1), -target_to_drone(0));
+		if (target_to_drone_xy.longerThan(MINIMUM_DISTANCE_TO_TARGET_FOR_YAW_CONTROL)) {
+			_yaw_setpoint = atan2f(-target_to_drone_xy(1), -target_to_drone_xy(0));
 		}
 
 		// Gimbal setpoint
-		const float gimbal_height = -(_position(2) - (target_position_filtered(2)));
-		calculate_and_publish_gimbal_setpoint(target_to_drone.norm(), gimbal_height);
+		float gimbal_height = 0;
+
+		switch (_param_nav_ft_alt_m.get()) {
+		case FOLLOW_ALTITUDE_MODE_TRACK_TARGET:
+			// Point the gimbal at the target's 3D coordinates
+			gimbal_height = -(_position(2) - (target_position_filtered(2)));
+			break;
+
+		case FOLLOW_ALTITUDE_MODE_CONSTANT:
+			// Point the gimbal at the ground level in this tracking mode
+			gimbal_height = _dist_to_ground;
+
+		// FALLTHROUGH
+		default:
+			break;
+		}
+
+		point_gimbal_at(target_to_drone_xy.norm(), gimbal_height);
 
 	} else {
 		// Control setpoint: Stay in current position
@@ -336,7 +352,7 @@ Vector3f FlightTaskAutoFollowTarget::predict_future_pos_ned_est(float deltatime,
 }
 
 
-void FlightTaskAutoFollowTarget::calculate_and_publish_gimbal_setpoint(float xy_distance, float z_distance)
+void FlightTaskAutoFollowTarget::point_gimbal_at(float xy_distance, float z_distance)
 {
 	gimbal_manager_set_attitude_s msg{};
 	float pitch_down_angle = 0.0f;
