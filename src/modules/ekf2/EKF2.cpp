@@ -1401,13 +1401,13 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 			}
 
 			if (PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
-			    && PX4_ISFINITE(airspeed_validated.indicated_airspeed_m_s)
-			    && (airspeed_validated.indicated_airspeed_m_s > 0.f)
+			    && PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
+			    && (airspeed_validated.calibrated_airspeed_m_s > 0.f)
 			   ) {
 				airspeedSample airspeed_sample {
 					.time_us = airspeed_validated.timestamp,
 					.true_airspeed = airspeed_validated.true_airspeed_m_s,
-					.eas2tas = airspeed_validated.true_airspeed_m_s / airspeed_validated.indicated_airspeed_m_s,
+					.eas2tas = airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s,
 				};
 				_ekf.setAirspeedData(airspeed_sample);
 			}
