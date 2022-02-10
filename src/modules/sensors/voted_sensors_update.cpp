@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -80,6 +80,8 @@ void VotedSensorsUpdate::initializeSensors()
 
 void VotedSensorsUpdate::parametersUpdate()
 {
+	_parameter_update = true;
+
 	updateParams();
 
 	// run through all IMUs
@@ -188,40 +190,44 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 	}
 
 	// find the best sensor
-	int accel_best_index = -1;
-	int gyro_best_index = -1;
-	_accel.voter.get_best(time_now_us, &accel_best_index);
-	_gyro.voter.get_best(time_now_us, &gyro_best_index);
+	int accel_best_index = _accel.last_best_vote;
+	int gyro_best_index = _gyro.last_best_vote;
 
-	if (!_param_sens_imu_mode.get() && ((_selection.timestamp != 0) || (_sensor_selection_sub.updated()))) {
-		// use sensor_selection to find best
-		if (_sensor_selection_sub.update(&_selection)) {
-			// reset inconsistency checks against primary
-			for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
-				_accel_diff[sensor_index].zero();
-				_gyro_diff[sensor_index].zero();
+	if (!_parameter_update) {
+		// update current accel/gyro selection, skipped on cycles where parameters update
+		_accel.voter.get_best(time_now_us, &accel_best_index);
+		_gyro.voter.get_best(time_now_us, &gyro_best_index);
+
+		if (!_param_sens_imu_mode.get() && ((_selection.timestamp != 0) || (_sensor_selection_sub.updated()))) {
+			// use sensor_selection to find best
+			if (_sensor_selection_sub.update(&_selection)) {
+				// reset inconsistency checks against primary
+				for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
+					_accel_diff[sensor_index].zero();
+					_gyro_diff[sensor_index].zero();
+				}
 			}
+
+			for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+				if ((_accel_device_id[i] != 0) && (_accel_device_id[i] == _selection.accel_device_id)) {
+					accel_best_index = i;
+				}
+
+				if ((_gyro_device_id[i] != 0) && (_gyro_device_id[i] == _selection.gyro_device_id)) {
+					gyro_best_index = i;
+				}
+			}
+
+		} else {
+			// use sensor voter to find best if SENS_IMU_MODE is enabled or ORB_ID(sensor_selection) has never published
+			checkFailover(_accel, "Accel", events::px4::enums::sensor_type_t::accel);
+			checkFailover(_gyro, "Gyro", events::px4::enums::sensor_type_t::gyro);
 		}
-
-		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-			if ((_accel_device_id[i] != 0) && (_accel_device_id[i] == _selection.accel_device_id)) {
-				accel_best_index = i;
-			}
-
-			if ((_gyro_device_id[i] != 0) && (_gyro_device_id[i] == _selection.gyro_device_id)) {
-				gyro_best_index = i;
-			}
-		}
-
-	} else {
-		// use sensor voter to find best if SENS_IMU_MODE is enabled or ORB_ID(sensor_selection) has never published
-		checkFailover(_accel, "Accel", events::px4::enums::sensor_type_t::accel);
-		checkFailover(_gyro, "Gyro", events::px4::enums::sensor_type_t::gyro);
 	}
 
 	// write data for the best sensor to output variables
-	if ((accel_best_index >= 0) && (accel_best_index < MAX_SENSOR_COUNT)
-	    && (gyro_best_index >= 0) && (gyro_best_index < MAX_SENSOR_COUNT)) {
+	if ((accel_best_index >= 0) && (accel_best_index < MAX_SENSOR_COUNT) && (_accel_device_id[accel_best_index] != 0)
+	    && (gyro_best_index >= 0) && (gyro_best_index < MAX_SENSOR_COUNT) && (_gyro_device_id[gyro_best_index] != 0)) {
 
 		raw.timestamp = _last_sensor_data[gyro_best_index].timestamp;
 		memcpy(&raw.accelerometer_m_s2, &_last_sensor_data[accel_best_index].accelerometer_m_s2,
@@ -423,6 +429,11 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw)
 
 	status.timestamp = hrt_absolute_time();
 	_sensors_status_imu_pub.publish(status);
+
+	if (_parameter_update) {
+		// reset
+		_parameter_update = false;
+	}
 }
 
 void VotedSensorsUpdate::setRelativeTimestamps(sensor_combined_s &raw)
