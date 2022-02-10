@@ -153,22 +153,28 @@ protected:
 
 
 	void calculate_and_publish_gimbal_setpoint(float xy_distance, float z_distance);
+	matrix::Vector2f calculate_offset_vector_filtered(matrix::Vector3f vel_ned_est);
+	matrix::Vector3f calculate_target_position_filtered(matrix::Vector3f pos_ned_est, matrix::Vector3f vel_ned_est,
+			matrix::Vector3f acc_ned_est);
+
+	// Calculate the desired position of the drone relative to the target using the offset_vector
+	matrix::Vector3f calculate_drone_desired_position(matrix::Vector3f target_position, matrix::Vector2f offset_vector);
 
 	TargetEstimator _target_estimator;
 
 	// Follow angle is defined with 0 degrees following from front, and then clockwise rotation
 	float _follow_angle_rad{0.0f};
-	AlphaFilter<float> _follow_angle_filtered;
+	AlphaFilter<float> _follow_angle_filter;
 
 	// Estimator for target position and velocity
 	follow_target_estimator_s _follow_target_estimator;
 	matrix::Vector2f _target_velocity_unit_vector;
 
 	// Lowpass filters for smoothingtarget position because it's used for setpoint generation
-	AlphaFilter<matrix::Vector3f> _target_position_filtered;
+	AlphaFilter<matrix::Vector3f> _target_position_filter;
 
 	// Lowpass filter for smoothing the offset vector and have more dynamic shots when target changes direction
-	AlphaFilter<matrix::Vector2f> _offset_vector_filtered;
+	AlphaFilter<matrix::Vector2f> _offset_vector_filter;
 
 	// Lowpass filter assuming  values 0-1, for avoiding big steps in velocity feedforward
 	AlphaFilter<float> _velocity_ff_scale;
