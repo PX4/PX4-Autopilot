@@ -50,6 +50,24 @@ __END_DECLS
 
 #define USB_DEVICE_PATH "/dev/ttyACM0"
 
+#if defined(CONFIG_SERIAL_PASSTHRU_UBLOX)
+#  undef SERIAL_PASSTHRU_UBLOX_DEV
+#  if defined(CONFIG_SERIAL_PASSTHRU_GPS1) && defined(CONFIG_BOARD_SERIAL_GPS1)
+#    define SERIAL_PASSTHRU_UBLOX_DEV CONFIG_BOARD_SERIAL_GPS1
+#  elif defined(CONFIG_SERIAL_PASSTHRU_GPS2)&& defined(CONFIG_BOARD_SERIAL_GPS2)
+#    define SERIAL_PASSTHRU_UBLOX_DEV CONFIG_BOARD_SERIAL_GPS2
+#  elif defined(CONFIG_SERIAL_PASSTHRU_GPS3)&& defined(CONFIG_BOARD_SERIAL_GPS3)
+#    define SERIAL_PASSTHRU_UBLOX_DEV CONFIG_BOARD_SERIAL_GPS3
+#  elif defined(CONFIG_SERIAL_PASSTHRU_GPS4)&& defined(CONFIG_BOARD_SERIAL_GPS4)
+#    define SERIAL_PASSTHRU_UBLOX_DEV CONFIG_BOARD_SERIAL_GPS4
+#  elif defined(CONFIG_SERIAL_PASSTHRU_GPS5) && defined(CONFIG_BOARD_SERIAL_GPS5)
+#    define SERIAL_PASSTHRU_UBLOX_DEV CONFIG_BOARD_SERIAL_GPS5
+#  endif
+#  if !defined(SERIAL_PASSTHRU_UBLOX_DEV)
+#    error "CONFIG_SERIAL_PASSTHRU_GPSn and CONFIG_BOARD_SERIAL_GPSn must be defined"
+#  endif
+#endif
+
 static struct work_s usb_serial_work;
 static bool vbus_present_prev = false;
 static int ttyacm_fd = -1;
@@ -204,7 +222,7 @@ static void mavlink_usb_check(void *arg)
 								snprintf(baudstring, sizeof(baudstring), "%d", baudrate);
 								static const char *gps_argv[] {"gps", "stop", nullptr};
 
-								static const char *passthru_argv[] {"serial_passthru", "start", "-t", "-b", baudstring, "-e", USB_DEVICE_PATH, "-d", CONFIG_SERIAL_PASSTHRU_UBLOX_DEV,   nullptr};
+								static const char *passthru_argv[] {"serial_passthru", "start", "-t", "-b", baudstring, "-e", USB_DEVICE_PATH, "-d", SERIAL_PASSTHRU_UBLOX_DEV,   nullptr};
 #endif
 								char **exec_argv = nullptr;
 
