@@ -69,3 +69,8 @@ mc_pos_control start
 # Start Multicopter Land Detector.
 #
 land_detector start multicopter
+
+#
+# Start the microRTPS_client.
+#
+micrortps_client start -t UART -b 3000000 -d /dev/ttyS2
