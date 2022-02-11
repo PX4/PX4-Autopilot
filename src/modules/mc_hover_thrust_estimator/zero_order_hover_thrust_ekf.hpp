@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -83,6 +83,8 @@ public:
 	void setMeasurementNoiseScale(float scale) { _acc_var_scale = scale * scale; }
 	void setHoverThrustStdDev(float hover_thrust_noise) { _state_var = hover_thrust_noise * hover_thrust_noise; }
 	void setAccelInnovGate(float gate_size) { _gate_size = gate_size; }
+	void setMinHoverThrust(float hover_thrust_min) { _hover_thr_min = hover_thrust_min; }
+	void setMaxHoverThrust(float hover_thrust_max) { _hover_thr_max = hover_thrust_max; }
 
 	float getHoverThrustEstimate() const { return _hover_thr; }
 	float getHoverThrustEstimateVar() const { return _state_var; }
@@ -93,6 +95,8 @@ public:
 
 private:
 	float _hover_thr{0.5f};
+	float _hover_thr_min{0.1f};
+	float _hover_thr_max{0.9f};
 
 	float _gate_size{3.f};
 	float _state_var{0.01f}; ///< Initial hover thrust uncertainty variance (thrust^2)
