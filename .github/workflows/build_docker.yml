@@ -24,32 +24,40 @@ on:
       - 'master'
   pull_request:
 
-env:
-  DOCKER_TAG: |
-    "px4io/px4-dev:${{
-      github.event_name == 'pull_request' && github.sha ||
-        (
-          github.event_name == 'push' && 'latest' ||
-          github.event.release.name
-        )
-    }}"
-
 jobs:
+  set_docker_tag:
+    name: Set docker tag
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_TAG: "px4io/px4-dev"
+    outputs:
+      docker_tag: ${{ steps.set-outputs.outputs.docker_tag }}
+
+    steps:
+      - name: Set pull request docker tag
+        if: github.event_name == 'pull_request'
+        run: echo "::set-env name=DOCKER_TAG::px4io/px4-dev:${{ github.sha }}"
+
+      - name: Set push docker tag
+        if: github.event_name == 'push'
+        run: echo "::set-env name=DOCKER_TAG::px4io/px4-dev:latest"
+
+      - name: Set release docker tag
+        if: github.event_name == 'release'
+        run: echo "::set-env name=DOCKER_TAG::px4io/px4-dev:${{ github.event.release.name }}"
+
+      - name: Set docker tag outputs
+        id: set-outputs
+        run: echo "::set-output name=docker_tag::$DOCKER_TAG"
+
   build_docker:
     name: Build Docker image
     runs-on: ubuntu-latest
+    needs: set_docker_tag
 
     steps:
       - name: Checkout code
-        if: false
         uses: actions/checkout@v2
-
-      - name: debugging variables
-        run: |
-          echo "::group::Debugging Variables
-          echo "double {}: ${{ DOCKER_TAG }}"
-          echo "double env {}: ${{ env.DOCKER_TAG }}"
-          echo "::endgroup::"
 
       - name: Login to Github Registry
         uses: docker/login-action@v1
@@ -60,21 +68,18 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up image builder
-        if: false
         uses: docker/setup-buildx-action@v1
 
       - name: Build image
-        if: false
         uses: docker/build-push-action@v2
         id: docker_build
         with:
           file: Tools/setup/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.DOCKER_TAG }}
+          tags: ${{ needs.set_docker_tag.outputs.docker_tag }}
           outputs: type=tar,dest=/tmp/px4_docker_image.tar
 
       - name: Save container to artifacts
-        if: false
         uses: actions/upload-artifact@v2
         with:
           name: px4_docker_image
@@ -85,10 +90,9 @@ jobs:
         if: github.event_name == 'push'
 
       - name: Image Digest
-        if: false
         run: echo ${{ steps.docker_build.outputs.digest }}
 
-  enumerate_targets:
+  list_targets:
     name: Generate target list
     runs-on: ubuntu-latest
     needs: build_docker
@@ -97,61 +101,54 @@ jobs:
 
     steps:
       - name: Checkout Code
-        if: false
         uses: actions/checkout@v2
 
       - name: Setup Python
-        if: false
         uses: actions/setup-python@v2
         with:
           python-version: 3.9
 
       - name: Install Python packages
-        if: false
         #run: pip install -r Tools/setup/requirements.txt
         run: pip install kconfiglib
 
       - id: set-matrix
-        if: false
         name: Get all nuttx targets
         run: echo "::set-output name=matrix::$(./Tools/generate_board_targets_json.py -a)"
 
   build_px4:
     name: Build targets with Docker
     runs-on: ubuntu-latest
-    needs: enumerate_targets
+    needs: [list_targets, set_docker_tag]
     #strategy:
       #matrix: ${{ fromJson(needs.enumerate_targets.outputs.matrix) }}
 
     steps:
       - name: Get container from artifacts
-        if: false
         uses: actions/download-artifact@v2
         with:
           name: px4_docker_image
           path: /tmp
 
       - name: Load Docker image
-        if: false
         run: |
-          docker import /tmp/px4_docker_image.tar ${{ env.DOCKER_TAG }}
+          docker import /tmp/px4_docker_image.tar ${{ needs.set_docker_tag.outputs.docker_tag }}
           docker image ls -a
 
       - name: Checkout Code
         uses: actions/checkout@v2
 
       - name: Build targets
-        if: false
         #run: |
           #docker run --rm -w "${GITHUB_ACTION_PATH}" \
             #--env=LOCAL_USER_ID="$(id -u)" \
             #--volume=/tmp:/tmp:rw \
             #--volume=${GITHUB_ACTION_PATH}:${GITHUB_ACTION_PATH}:rw \
-            #px4io/px4-dev:${{ env.DOCKER_TAG }} /bin/bash -c "make ${{ matrix.target }}"
+            #px4io/px4-dev:${{ needs.set_docker_tag.outputs.docker_tag }} /bin/bash -c "make ${{ matrix.target }}"
 
         run: |
           docker run --rm -w $GITHUB_ACTION_PATH \
             --env=LOCAL_USER_ID="$(id -u)" \
             --volume=/tmp:/tmp:rw \
             --volume=$GITHUB_ACTION_PATH:$GITHUB_ACTION_PATH:rw \
-            $(echo "$DOCKER_TAG" | tr -d '\n') /bin/bash -c "make px4_fmu-v6x"
+            $(echo "${{ needs.set_docker_tag.outputs.docker_tag }}" | tr -d '\n') /bin/bash -c "make px4_fmu-v6x"
