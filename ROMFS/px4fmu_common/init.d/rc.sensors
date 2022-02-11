@@ -149,6 +149,12 @@ then
 	ms5525_airspeed start -X
 fi
 
+# IR-LOCK sensor external I2C
+if param compare -s SENS_EN_IRLOCK 1
+then
+	irlock start -X
+fi
+
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
