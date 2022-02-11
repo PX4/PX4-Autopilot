@@ -69,6 +69,7 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 		${micrortps_bridge_path}/micrortps_client/microRTPS_client.cpp
 		${micrortps_bridge_path}/micrortps_client/microRTPS_transport.cpp
 		${micrortps_bridge_path}/micrortps_client/microRTPS_transport.h
+		${micrortps_bridge_path}/micrortps_client/dds_topics.h
 		)
 
 	add_custom_command(OUTPUT ${topic_bridge_files_out}
@@ -85,6 +86,7 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 			--idl-dir ${micrortps_bridge_path}/micrortps_agent/idl
 			>micrortps_bridge.log 2>&1 || cat micrortps_bridge.log
 		DEPENDS ${send_topic_files} ${receive_topic_files} ${PX4_SOURCE_DIR}/msg/tools/urtps_bridge_topics.yaml
+			${PX4_SOURCE_DIR}/msg/templates/uorb_microcdr/dds_topics.h.em
 		COMMENT "Generating RTPS topic bridge"
 	)
 	add_custom_target(topic_bridge_files DEPENDS ${topic_bridge_files_out})

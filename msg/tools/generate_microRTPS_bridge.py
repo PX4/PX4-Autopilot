@@ -428,6 +428,16 @@ def generate_client(out_dir):
     px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir,
                                                         out_dir, uorb_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_list, fastrtps_version, ros2_distro, uRTPS_CLIENT_TEMPL_FILE)
 
+    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir,
+                                                        out_dir,
+                                                        uorb_templates_dir,
+                                                        package,
+                                                        px_generate_uorb_topic_files.INCL_DEFAULT,
+                                                        classifier.msg_list,
+                                                        fastrtps_version,
+                                                        ros2_distro,
+                                                        'dds_topics.h.em')
+
     # Final steps to install client
     cp_wildcard(os.path.join(urtps_templates_dir,
                              "microRTPS_transport.*"), out_dir)
