@@ -1932,8 +1932,6 @@ Mavlink::task_main(int argc, char *argv[])
 			_mav_broadcast = BROADCAST_MODE_ON;
 			break;
 
-#if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
-
 		// multicast
 		case 'c':
 			_src_addr.sin_family = AF_INET;
@@ -1948,13 +1946,7 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 
 			break;
-#else
 
-		case 'c':
-			PX4_ERR("Multicast option is not supported on this platform");
-			err_flag = true;
-			break;
-#endif
 #else
 
 		case 'p':
@@ -2905,10 +2897,8 @@ Mavlink::display_status()
 		printf("UDP (%hu, remote port: %hu)\n", _network_port, _remote_port);
 		printf("\tBroadcast enabled: %s\n",
 		       broadcast_enabled() ? "YES" : "NO");
-#if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
 		printf("\tMulticast enabled: %s\n",
 		       multicast_enabled() ? "YES" : "NO");
-#endif
 #ifdef __PX4_POSIX
 
 		if (get_client_source_initialized()) {
@@ -3270,9 +3260,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_STRING('m', "normal", "custom|camera|onboard|osd|magic|config|iridium|minimal|extvision|extvisionmin|gimbal|uavionix",
 					"Mode: sets default streams and rates", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, "<interface_name>", "wifi/ethernet interface name", true);
-#if defined(CONFIG_NET_IGMP) && defined(CONFIG_NET_ROUTE)
 	PRINT_MODULE_USAGE_PARAM_STRING('c', nullptr, "Multicast address in the range [239.0.0.0,239.255.255.255]", "Multicast address (multicasting can be enabled via MAV_{i}_BROADCAST param)", true);
-#endif
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Enable message forwarding to other Mavlink instances", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('w', "Wait to send, until first message received", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable FTP", true);
