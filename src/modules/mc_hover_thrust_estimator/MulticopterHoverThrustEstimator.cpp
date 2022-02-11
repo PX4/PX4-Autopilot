@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -86,6 +86,11 @@ void MulticopterHoverThrustEstimator::updateParams()
 	}
 
 	_hover_thrust_ekf.setAccelInnovGate(_param_hte_acc_gate.get());
+
+	_hover_thrust_ekf.setMinHoverThrust(math::constrain(_param_mpc_thr_hover.get() - _param_hte_thr_range.get(), 0.f,
+					    0.8f));
+	_hover_thrust_ekf.setMaxHoverThrust(math::constrain(_param_mpc_thr_hover.get() + _param_hte_thr_range.get(), 0.2f,
+					    0.9f));
 }
 
 void MulticopterHoverThrustEstimator::Run()
