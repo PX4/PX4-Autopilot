@@ -115,13 +115,15 @@ for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
             # The all_variants target makes all targets for a board
             target_name = 'all_variants_' + manufacturer.name + '_' + board.name
             default_target_path = f'{board.path}/default.px4board'
-            target = process_target(default_target_path, target_name)
+            # target = process_target(default_target_path, target_name)
+            target = {'target': target_name}
             if target is not None:
                 build_configs.append(target)
             if args.bloaty and target is not None:
                 # bloaty targets
                 bloat_target_name = manufacturer.name + '_' + board.name
-                bloaty_targets = process_bloaty(default_target_path, bloat_target_name)
+                # bloaty_targets = process_bloaty(default_target_path, bloat_target_name)
+                bloaty_targets = {'target': bloat_target_name}
                 build_configs += bloaty_targets
         else:
             # Each board can have multiple variant targets
@@ -132,7 +134,8 @@ for manufacturer in os.scandir(os.path.join(source_dir, 'boards')):
                     if label in excluded_labels:
                         if verbose: print(f'excluding label {label} ({target_name})')
                         continue
-                    target = process_target(files.path, target_name)
+                    # target = process_target(files.path, target_name)
+                    target = {'target': target_name}
                     if target is not None:
                         build_configs.append(target)
 
