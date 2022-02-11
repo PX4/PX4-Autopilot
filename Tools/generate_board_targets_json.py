@@ -6,14 +6,14 @@ import os
 import sys
 import json
 import re
-from kconfiglib import Kconfig
+# from kconfiglib import Kconfig
 
-kconf = Kconfig()
+# kconf = Kconfig()
 
 # Supress warning output
-kconf.warn_assign_undef = False
-kconf.warn_assign_override = False
-kconf.warn_assign_redun = False
+# kconf.warn_assign_undef = False
+# kconf.warn_assign_override = False
+# kconf.warn_assign_redun = False
 
 source_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 
@@ -49,46 +49,46 @@ bloaty_helpers = [
     'bloaty_compare_master',
     ]
 
-def process_target(px4board_file, target_name):
-    ret = None
-    platform = None
-    toolchain = None
+# def process_target(px4board_file, target_name):
+    # ret = None
+    # platform = None
+    # toolchain = None
 
-    if px4board_file.endswith("default.px4board") or \
-        px4board_file.endswith("recovery.px4board") or \
-        px4board_file.endswith("bootloader.px4board"):
-        kconf.load_config(px4board_file, replace=True)
-    else: # Merge config with default.px4board
-        default_kconfig = re.sub(r'[a-zA-Z\d_]+\.px4board', 'default.px4board', px4board_file)
-        kconf.load_config(default_kconfig, replace=True)
-        kconf.load_config(px4board_file, replace=False)
+    # if px4board_file.endswith("default.px4board") or \
+        # px4board_file.endswith("recovery.px4board") or \
+        # px4board_file.endswith("bootloader.px4board"):
+        # kconf.load_config(px4board_file, replace=True)
+    # else: # Merge config with default.px4board
+        # default_kconfig = re.sub(r'[a-zA-Z\d_]+\.px4board', 'default.px4board', px4board_file)
+        # kconf.load_config(default_kconfig, replace=True)
+        # kconf.load_config(px4board_file, replace=False)
 
-    if "BOARD_TOOLCHAIN" in kconf.syms:
-        toolchain = kconf.syms["BOARD_TOOLCHAIN"].str_value
+    # if "BOARD_TOOLCHAIN" in kconf.syms:
+        # toolchain = kconf.syms["BOARD_TOOLCHAIN"].str_value
 
-    if "BOARD_PLATFORM" in kconf.syms:
-        platform = kconf.syms["BOARD_PLATFORM"].str_value
+    # if "BOARD_PLATFORM" in kconf.syms:
+        # platform = kconf.syms["BOARD_PLATFORM"].str_value
 
-    assert platform, f"PLATFORM not found in {px4board_file}"
+    # assert platform, f"PLATFORM not found in {px4board_file}"
 
-    if platform not in excluded_platforms:
-        # get the container based on the platform and toolchain
-        container = platform
-        if platform == 'posix':
-            container = 'base-focal'
-            if toolchain:
-                if toolchain.startswith('aarch64'):
-                    container = 'aarch64'
-                elif toolchain == 'arm-linux-gnueabihf':
-                    container = 'armhf'
-                else:
-                    if verbose: print(f'possibly unmatched toolchain: {toolchain}')
-        elif platform == 'nuttx':
-            container = 'nuttx-focal'
+    # if platform not in excluded_platforms:
+        # # get the container based on the platform and toolchain
+        # container = platform
+        # if platform == 'posix':
+            # container = 'base-focal'
+            # if toolchain:
+                # if toolchain.startswith('aarch64'):
+                    # container = 'aarch64'
+                # elif toolchain == 'arm-linux-gnueabihf':
+                    # container = 'armhf'
+                # else:
+                    # if verbose: print(f'possibly unmatched toolchain: {toolchain}')
+        # elif platform == 'nuttx':
+            # container = 'nuttx-focal'
 
-        ret = {'target': target_name, 'container': container}
+        # ret = {'target': target_name, 'container': container}
 
-    return ret
+    # return ret
 
 def process_bloaty(target_path, target_name):
     response = []
