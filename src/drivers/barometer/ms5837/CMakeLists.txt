@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,11 +35,11 @@ px4_add_module(
 	MODULE drivers__barometer__ms5837
 	MAIN ms5837
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		ms5837.cpp
 		ms5837_main.cpp
-		ms5837.hpp
+		ms5837_registers.h
+		MS5837.cpp
+		MS5837.hpp
 	DEPENDS
 		drivers_barometer
 		px4_work_queue

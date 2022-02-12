@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,9 +36,7 @@
  * Driver for the MS5837 barometric pressure sensor connected via I2C.
  */
 
-#include "ms5837.hpp"
-
-#include <cdev/CDev.hpp>
+#include "MS5837.hpp"
 
 MS5837::MS5837(const I2CSPIDriverConfig &config) :
 	I2C(config),
@@ -48,7 +46,6 @@ MS5837::MS5837(const I2CSPIDriverConfig &config) :
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 {
-
 }
 
 MS5837::~MS5837()
@@ -59,8 +56,7 @@ MS5837::~MS5837()
 	perf_free(_comms_errors);
 }
 
-int
-MS5837::init()
+int MS5837::init()
 {
 
 	int ret = I2C::init();
@@ -117,13 +113,12 @@ MS5837::init()
 
 int MS5837::_reset()
 {
-	unsigned	old_retrycount = _retries;
-	uint8_t		cmd = MS5837_RESET;
-	int		result;
+	unsigned old_retrycount = _retries;
+	uint8_t	cmd = MS5837_RESET;
 
 	/* bump the retry count */
 	_retries = 3;
-	result = transfer(&cmd, 1, nullptr, 0);
+	int result = transfer(&cmd, 1, nullptr, 0);
 	_retries = old_retrycount;
 
 	return result;
@@ -141,8 +136,7 @@ int MS5837::probe()
 	return -EIO;
 }
 
-int
-MS5837::_probe_address(uint8_t address)
+int MS5837::_probe_address(uint8_t address)
 {
 	/* select the address we are going to try */
 	set_device_address(address);
@@ -160,9 +154,7 @@ MS5837::_probe_address(uint8_t address)
 	return PX4_OK;
 }
 
-
-int
-MS5837::read(unsigned offset, void *data, unsigned count)
+int MS5837::read(unsigned offset, void *data, unsigned count)
 {
 	union _cvt {
 		uint8_t	b[4];
@@ -185,8 +177,7 @@ MS5837::read(unsigned offset, void *data, unsigned count)
 	return ret;
 }
 
-void
-MS5837::RunImpl()
+void MS5837::RunImpl()
 {
 	int ret;
 
@@ -239,8 +230,7 @@ MS5837::RunImpl()
 	ScheduleDelayed(MS5837_CONVERSION_INTERVAL);
 }
 
-void
-MS5837::_start()
+void MS5837::_start()
 {
 	/* reset the report ring and state machine */
 	_collect_phase = false;
@@ -250,8 +240,7 @@ MS5837::_start()
 	ScheduleDelayed(MS5837_CONVERSION_INTERVAL);
 }
 
-int
-MS5837::_measure()
+int MS5837::_measure()
 {
 	perf_begin(_measure_perf);
 
@@ -277,8 +266,7 @@ MS5837::_measure()
 	return ret;
 }
 
-int
-MS5837::_collect()
+int MS5837::_collect()
 {
 	uint32_t raw;
 
@@ -315,6 +303,7 @@ MS5837::_collect()
 		int64_t f = 0;
 		int64_t OFF2 = 0;
 		int64_t SENS2 = 0;
+
 		if (TEMP < 2000) {
 
 			T2 = 3 * ((int64_t)POW2(dT) >> 33);
@@ -337,6 +326,7 @@ MS5837::_collect()
 			OFF2 = 1 * f >> 4;
 			SENS2 = 0;
 		}
+
 		TEMP -= (int32_t)T2;
 		_OFF  -= OFF2;
 		_SENS -= SENS2;
@@ -372,9 +362,7 @@ void MS5837::print_status()
 	printf("temperature:      %f\n", (double)_px4_barometer.get().temperature);
 }
 
-
-int
-MS5837::_read_prom()
+int MS5837::_read_prom()
 {
 	uint8_t		prom_buf[2];
 	union {
@@ -422,8 +410,7 @@ MS5837::_read_prom()
 /**
  * MS5837 crc4 cribbed from the datasheet
  */
-bool
-MS5837::_crc4(uint16_t *n_prom)
+bool MS5837::_crc4(uint16_t *n_prom)
 {
 	uint16_t n_rem = 0;
 	uint16_t crcRead = n_prom[0] >> 12;
@@ -431,14 +418,17 @@ MS5837::_crc4(uint16_t *n_prom)
 	n_prom[7] = 0;
 
 	for (uint8_t i = 0 ; i < 16; i++) {
-		if (i%2 == 1) {
+		if (i % 2 == 1) {
 			n_rem ^= (uint16_t)((n_prom[i >> 1]) & 0x00FF);
+
 		} else {
 			n_rem ^= (uint16_t)(n_prom[i >> 1] >> 8);
 		}
+
 		for (uint8_t n_bit = 8 ; n_bit > 0 ; n_bit--) {
 			if (n_rem & 0x8000) {
 				n_rem = (n_rem << 1) ^ 0x3000;
+
 			} else {
 				n_rem = (n_rem << 1);
 			}

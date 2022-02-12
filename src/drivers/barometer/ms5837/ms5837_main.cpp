@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,8 +36,7 @@
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/module.h>
 
-
-#include "ms5837.hpp"
+#include "MS5837.hpp"
 
 void MS5837::print_usage()
 {

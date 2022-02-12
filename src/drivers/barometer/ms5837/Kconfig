@@ -1,0 +1,5 @@
+menuconfig DRIVERS_BAROMETER_MS5837
+	bool "ms5837"
+	default n
+	---help---
+		Enable support for ms5837
