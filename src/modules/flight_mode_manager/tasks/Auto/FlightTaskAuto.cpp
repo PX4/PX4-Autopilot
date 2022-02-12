@@ -449,7 +449,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 	if (triplet_update || (_current_state != previous_state) || _current_state == State::offtrack) {
 		_updateInternalWaypoints();
 		_mission_gear = _sub_triplet_setpoint.get().current.landing_gear;
-		_yaw_lock = false;
 	}
 
 	if (_param_com_obs_avoid.get()
@@ -544,15 +543,15 @@ void FlightTaskAuto::_set_heading_from_mode()
 		// We only adjust yaw if vehicle is outside of acceptance radius. Once we enter acceptance
 		// radius, lock yaw to current yaw.
 		// This prevents excessive yawing.
-		if (!_yaw_lock) {
-			if (v.longerThan(_target_acceptance_radius)) {
-				_compute_heading_from_2D_vector(_yaw_setpoint, v);
-
-			} else {
-				_yaw_setpoint = _yaw;
+		if (v.longerThan(_target_acceptance_radius)) {
+			if (_compute_heading_from_2D_vector(_yaw_setpoint, v)) {
 				_yaw_lock = true;
-
 			}
+		}
+
+		if (!_yaw_lock) {
+			_yaw_setpoint = _yaw;
+			_yaw_lock = true;
 		}
 
 	} else {
@@ -623,24 +622,26 @@ Vector2f FlightTaskAuto::_getTargetVelocityXY()
 State FlightTaskAuto::_getCurrentState()
 {
 	// Calculate the vehicle current state based on the Navigator triplets and the current position.
-	const Vector3f u_prev_to_target = (_triplet_target - _triplet_prev_wp).unit_or_zero();
-	const Vector3f pos_to_target(_triplet_target - _position);
-	const Vector3f prev_to_pos(_position - _triplet_prev_wp);
+	const Vector2f u_prev_to_target_xy = Vector2f(_triplet_target - _triplet_prev_wp).unit_or_zero();
+	const Vector2f pos_to_target_xy = Vector2f(_triplet_target - _position);
+	const Vector2f prev_to_pos_xy = Vector2f(_position - _triplet_prev_wp);
 	// Calculate the closest point to the vehicle position on the line prev_wp - target
-	_closest_pt = _triplet_prev_wp + u_prev_to_target * (prev_to_pos * u_prev_to_target);
+	const Vector2f closest_pt_xy = Vector2f(_triplet_prev_wp) + u_prev_to_target_xy * (prev_to_pos_xy *
+				       u_prev_to_target_xy);
+	_closest_pt = Vector3f(closest_pt_xy(0), closest_pt_xy(1), _triplet_target(2));
 
 	State return_state = State::none;
 
-	if (u_prev_to_target * pos_to_target < 0.0f) {
-		// Target is behind.
+	if (u_prev_to_target_xy * pos_to_target_xy < 0.0f) {
+		// Target is behind
 		return_state = State::target_behind;
 
-	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.longerThan(_target_acceptance_radius)) {
-		// Current position is more than cruise speed in front of previous setpoint.
+	} else if (u_prev_to_target_xy * prev_to_pos_xy < 0.0f && prev_to_pos_xy.longerThan(_target_acceptance_radius)) {
+		// Previous is in front
 		return_state = State::previous_infront;
 
-	} else if ((_position - _closest_pt).longerThan(_target_acceptance_radius)) {
-		// Vehicle is more than cruise speed off track.
+	} else if (Vector2f(_position - _closest_pt).longerThan(_target_acceptance_radius)) {
+		// Vehicle too far from the track
 		return_state = State::offtrack;
 
 	}
@@ -653,8 +654,8 @@ void FlightTaskAuto::_updateInternalWaypoints()
 	// The internal Waypoints might differ from _triplet_prev_wp, _triplet_target and _triplet_next_wp.
 	// The cases where it differs:
 	// 1. The vehicle already passed the target -> go straight to target
-	// 2. The vehicle is more than cruise speed in front of previous waypoint -> go straight to previous waypoint
-	// 3. The vehicle is more than cruise speed from track -> go straight to closest point on track
+	// 2. Previous waypoint is in front of the vehicle -> go straight to previous waypoint
+	// 3. The vehicle is far from track -> go straight to closest point on track
 	switch (_current_state) {
 	case State::target_behind:
 		_target = _triplet_target;
