@@ -134,18 +134,8 @@ void Ekf::controlFusionModes()
 		// We don't fuse flow data immediately because we have to wait for the mid integration point to fall behind the fusion time horizon.
 		// This means we stop looking for new data until the old data has been fused, unless we are not fusing optical flow,
 		// in this case we need to empty the buffer
-		if (!_flow_data_ready || !_control_status.flags.opt_flow) {
+		if (!_flow_data_ready || (!_control_status.flags.opt_flow && !_hagl_sensor_status.flags.flow)) {
 			_flow_data_ready = _flow_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_flow_sample_delayed);
-		}
-
-		// check if we should fuse flow data for terrain estimation
-		if (!_flow_for_terrain_data_ready && _flow_data_ready && _control_status.flags.in_air) {
-			// TODO: WARNING, _flow_data_ready can be modified in controlOpticalFlowFusion
-			// due to some checks failing
-			// only fuse flow for terrain if range data hasn't been fused for 5 seconds
-			_flow_for_terrain_data_ready = isTimedOut(_time_last_hagl_fuse, (uint64_t)5E6);
-			// only fuse flow for terrain if the main filter is not fusing flow and we are using gps
-			_flow_for_terrain_data_ready &= (!_control_status.flags.opt_flow && _control_status.flags.gps);
 		}
 	}
 
@@ -420,7 +410,6 @@ void Ekf::controlOpticalFlowFusion()
 		} else {
 			// don't use this flow data and wait for the next data to arrive
 			_flow_data_ready = false;
-			_flow_for_terrain_data_ready = false; // TODO: find a better place
 		}
 	}
 

@@ -62,7 +62,7 @@ void SensorRangeFinder::updateValidity(uint64_t current_time_us)
 {
 	updateDtDataLpf(current_time_us);
 
-	if (isSampleOutOfDate(current_time_us) || !isDataContinuous()) {
+	if (_is_faulty || isSampleOutOfDate(current_time_us) || !isDataContinuous()) {
 		_is_sample_valid = false;
 		_is_regularly_sending_data = false;
 		return;

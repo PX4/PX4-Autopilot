@@ -1262,6 +1262,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_synthetic_mag_z       = _ekf.control_status_flags().synthetic_mag_z;
 		status_flags.cs_vehicle_at_rest       = _ekf.control_status_flags().vehicle_at_rest;
 		status_flags.cs_gps_yaw_fault         = _ekf.control_status_flags().gps_yaw_fault;
+		status_flags.cs_rng_fault             = _ekf.control_status_flags().rng_fault;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;

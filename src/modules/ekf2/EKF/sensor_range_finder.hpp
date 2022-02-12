@@ -106,6 +106,8 @@ public:
 	float getValidMinVal() const { return _rng_valid_min_val; }
 	float getValidMaxVal() const { return _rng_valid_max_val; }
 
+	void setFaulty() { _is_faulty = true; }
+
 private:
 	void updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth);
 
@@ -123,6 +125,7 @@ private:
 	bool _is_sample_valid{};	///< true if range finder sample retrieved from buffer is valid
 	bool _is_regularly_sending_data{false}; ///< true if the interval between two samples is less than the maximum expected interval
 	uint64_t _time_last_valid_us{};	///< time the last range finder measurement was ready (uSec)
+	bool _is_faulty{false};         ///< the sensor should not be used anymore
 
 	/*
 	 * Stuck check
