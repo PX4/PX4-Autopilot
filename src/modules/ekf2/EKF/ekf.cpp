@@ -209,8 +209,8 @@ bool Ekf::initialiseFilter()
 		increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
 	}
 
-	// try to initialise the terrain estimator
-	_terrain_initialised = initHagl();
+	// Initialise the terrain estimator
+	initHagl();
 
 	// reset the essential fusion timeout counters
 	_time_last_hgt_fuse = _time_last_imu;
