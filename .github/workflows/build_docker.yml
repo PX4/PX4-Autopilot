@@ -36,15 +36,15 @@ jobs:
     steps:
       - name: Set pull request docker tag
         if: github.event_name == 'pull_request'
-        run: echo "::set-env name=DOCKER_TAG::px4io/px4-dev:${{ github.sha }}"
+        run: echo "DOCKER_TAG=px4io/px4-dev:${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Set push docker tag
         if: github.event_name == 'push'
-        run: echo "::set-env name=DOCKER_TAG::px4io/px4-dev:latest"
+        run: echo "DOCKER_TAG=px4io/px4-dev:latest" >> $GITHUB_ENV
 
       - name: Set release docker tag
         if: github.event_name == 'release'
-        run: echo "::set-env name=DOCKER_TAG::px4io/px4-dev:${{ github.event.release.name }}"
+        run: echo "DOCKER_TAG=px4io/px4-dev:${{ github.event.release.name }}" >> $GITHUB_ENV
 
       - name: Set docker tag outputs
         id: set-outputs
