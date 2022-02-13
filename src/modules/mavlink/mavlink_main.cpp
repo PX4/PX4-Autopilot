@@ -776,7 +776,7 @@ void Mavlink::send_finish()
 # endif // CONFIG_NET
 
 		if ((_mode != MAVLINK_MODE_ONBOARD) && broadcast_enabled() &&
-		    (!get_client_source_initialized() || !is_connected())) {
+		    (!get_client_source_initialized() || !is_gcs_connected())) {
 
 			if (!_broadcast_address_found) {
 				find_broadcast_address();
