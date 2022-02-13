@@ -68,7 +68,7 @@ private:
 
 	bool send() override
 	{
-		if (_mavlink->is_connected()) {
+		if (_mavlink->is_gcs_connected()) {
 			while (_mavlink_log_sub.updated() && (_mavlink->get_free_tx_buf() >= get_size())) {
 
 				const unsigned last_generation = _mavlink_log_sub.get_last_generation();
@@ -77,7 +77,7 @@ private:
 
 				if (_mavlink_log_sub.update(&mavlink_log)) {
 					// don't send stale messages
-					if (hrt_elapsed_time(&mavlink_log.timestamp) < 2_s) {
+					if (hrt_elapsed_time(&mavlink_log.timestamp) < 5_s) {
 
 						if (_mavlink_log_sub.get_last_generation() != (last_generation + 1)) {
 							perf_count(_missed_msg_count_perf);
