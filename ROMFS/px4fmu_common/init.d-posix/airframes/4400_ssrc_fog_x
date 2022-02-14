@@ -40,5 +40,5 @@ then
 	param set SENS_MAG_MODE 1
 
 	# Logger used only while flying
-	param set SDLOG_MODO 0
+	param set SDLOG_MODE 0
 fi
