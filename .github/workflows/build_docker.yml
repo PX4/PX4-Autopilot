@@ -147,8 +147,8 @@ jobs:
             #px4io/px4-dev:${{ needs.set_docker_tag.outputs.docker_tag }} /bin/bash -c "make ${{ matrix.target }}"
 
         run: |
-          docker run --rm -w ${{ env.GITHUB_ACTION_PATH }} \
+          docker run --rm -w ${{ github.workspace }} \
             --env=LOCAL_USER_ID="$(id -u)" \
             --volume=/tmp:/tmp:rw \
-            --volume=${{ env.GITHUB_ACTION_PATH }}:${{ env.GITHUB_ACTION_PATH }}:rw \
+            --volume=${{ github.workspace }}:${{ github.workspace }}:rw \
             ${{ needs.set_docker_tag.outputs.docker_tag }} /bin/bash -c "make px4_fmu-v6x"
