@@ -66,11 +66,15 @@ int BNO055::init()
 	bno055_struct.dev_addr = BNO055_I2C_ADDR1; // TODO
 	bno055_struct.i2c_calling_obj = this;
 
+	// a bit hacky, but seems to do the trick
+	// TODO: there has to be another way that I missed
+	set_device_address(bno055_struct.dev_addr);
+
 	// init the bosch lib
 	ret = bno055_init(&bno055_struct);
 
 	if (ret != OK) {
-		PX4_ERR("Bosch lib init failed");
+		PX4_ERR("Bosch lib init failed: %x", ret);
 		return ret;
 	}
 
