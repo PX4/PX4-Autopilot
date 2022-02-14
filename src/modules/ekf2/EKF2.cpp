@@ -1388,33 +1388,66 @@ float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF airspeed sample
-	const unsigned last_generation = _airspeed_sub.get_last_generation();
-	airspeed_s airspeed;
+	// prefer ORB_ID(airspeed_validated) if available, otherwise fallback to raw airspeed ORB_ID(airspeed)
+	if (_airspeed_validated_sub.updated()) {
+		const unsigned last_generation = _airspeed_validated_sub.get_last_generation();
+		airspeed_validated_s airspeed_validated;
 
-	if (_airspeed_sub.update(&airspeed)) {
-		if (_msg_missed_airspeed_perf == nullptr) {
-			_msg_missed_airspeed_perf = perf_alloc(PC_COUNT, MODULE_NAME": airspeed messages missed");
+		if (_airspeed_validated_sub.update(&airspeed_validated)) {
+			if (_msg_missed_airspeed_validated_perf == nullptr) {
+				_msg_missed_airspeed_validated_perf = perf_alloc(PC_COUNT, MODULE_NAME": airspeed validated messages missed");
 
-		} else if (_airspeed_sub.get_last_generation() != last_generation + 1) {
-			perf_count(_msg_missed_airspeed_perf);
+			} else if (_airspeed_validated_sub.get_last_generation() != last_generation + 1) {
+				perf_count(_msg_missed_airspeed_validated_perf);
+			}
+
+			if (PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
+			    && PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
+			    && (airspeed_validated.calibrated_airspeed_m_s > 0.f)
+			   ) {
+				airspeedSample airspeed_sample {
+					.time_us = airspeed_validated.timestamp,
+					.true_airspeed = airspeed_validated.true_airspeed_m_s,
+					.eas2tas = airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s,
+				};
+				_ekf.setAirspeedData(airspeed_sample);
+			}
+
+			_airspeed_validated_timestamp_last = airspeed_validated.timestamp;
 		}
 
-		// The airspeed measurement received via the airspeed.msg topic has not been corrected
-		// for scale favtor errors and requires the ASPD_SCALE correction to be applied.
-		// This could be avoided if true_airspeed_m_s from the airspeed-validated.msg topic
-		// was used instead, however this would introduce a potential circular dependency
-		// via the wind estimator that uses EKF velocity estimates.
-		const float true_airspeed_m_s = airspeed.true_airspeed_m_s * _airspeed_scale_factor;
+	} else if ((hrt_elapsed_time(&_airspeed_validated_timestamp_last) > 3_s) && _airspeed_sub.updated()) {
+		// use ORB_ID(airspeed) if ORB_ID(airspeed_validated) is unavailable
+		const unsigned last_generation = _airspeed_sub.get_last_generation();
+		airspeed_s airspeed;
 
-		airspeedSample airspeed_sample {
-			.time_us = airspeed.timestamp,
-			.true_airspeed = true_airspeed_m_s,
-			.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
-		};
-		_ekf.setAirspeedData(airspeed_sample);
+		if (_airspeed_sub.update(&airspeed)) {
+			if (_msg_missed_airspeed_perf == nullptr) {
+				_msg_missed_airspeed_perf = perf_alloc(PC_COUNT, MODULE_NAME": airspeed messages missed");
 
-		ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
-				(int64_t)ekf2_timestamps.timestamp / 100);
+			} else if (_airspeed_sub.get_last_generation() != last_generation + 1) {
+				perf_count(_msg_missed_airspeed_perf);
+			}
+
+			// The airspeed measurement received via ORB_ID(airspeed) topic has not been corrected
+			// for scale factor errors and requires the ASPD_SCALE correction to be applied.
+			const float true_airspeed_m_s = airspeed.true_airspeed_m_s * _airspeed_scale_factor;
+
+			if (PX4_ISFINITE(airspeed.true_airspeed_m_s)
+			    && PX4_ISFINITE(airspeed.indicated_airspeed_m_s)
+			    && (airspeed.indicated_airspeed_m_s > 0.f)
+			   ) {
+				airspeedSample airspeed_sample {
+					.time_us = airspeed.timestamp,
+					.true_airspeed = true_airspeed_m_s,
+					.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
+				};
+				_ekf.setAirspeedData(airspeed_sample);
+			}
+
+			ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
+					(int64_t)ekf2_timestamps.timestamp / 100);
+		}
 	}
 }
 
