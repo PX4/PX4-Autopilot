@@ -35,9 +35,9 @@
 
 using namespace std::placeholders;
 
-BNO055::BNO055(I2CSPIBusOption bus_option, int bus, int bus_frequency) :
-	I2C(DRV_IMU_DEVTYPE_BNO055, MODULE_NAME, bus, BNO055_I2C_ADDR1, bus_frequency),
-	I2CSPIDriver(MODULE_NAME, px4::device_bus_to_wq(get_device_id()), bus_option, bus),
+BNO055::BNO055(const I2CSPIDriverConfig &config):
+	I2C(config),
+	I2CSPIDriver(config),
 	_px4_accel(get_device_id()),
 	_px4_gyro(get_device_id()),
 	_px4_mag(get_device_id())
@@ -59,7 +59,7 @@ int BNO055::init()
 	}
 
 	// set up bno lib
-	// the bind() is used since the (C) lib wants pointer-to-function, but our (C++) wrapper has pointer-to-member
+	// the trampoline functions are used since the (C) lib wants pointer-to-function, but our (C++) wrapper has pointer-to-member
 	bno055_struct.bus_write = &BNO055::write_reg_trampoline;
 	bno055_struct.bus_read = &BNO055::read_reg_trampoline;
 	bno055_struct.delay_msec = &BNO055::bno_msleep;

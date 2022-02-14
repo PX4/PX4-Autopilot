@@ -35,7 +35,6 @@
 
 #include <functional>
 #include <drivers/device/i2c.h>
-#include <ecl/geo/geo.h>
 #include <lib/conversion/rotation.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -56,10 +55,10 @@ using namespace time_literals;
 class BNO055 : public device::I2C, public I2CSPIDriver<BNO055>
 {
 public:
-	BNO055(I2CSPIBusOption bus_option, int bus, int bus_frequency);
+	BNO055(const I2CSPIDriverConfig &config);
 	virtual ~BNO055();
 
-	static I2CSPIDriverBase *instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config,
 					     int runtime_instance);
 
 

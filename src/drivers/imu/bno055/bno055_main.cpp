@@ -64,10 +64,9 @@ void BNO055::print_usage()
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-I2CSPIDriverBase *BNO055::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
-				      int runtime_instance)
+I2CSPIDriverBase *BNO055::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
 {
-	BNO055 *instance = new BNO055(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency);
+	BNO055 *instance = new BNO055(config);
 
 	if (!instance) {
 		PX4_ERR("alloc failed");
@@ -88,8 +87,8 @@ extern "C" int bno055_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.default_i2c_frequency = 400000;
 
-	cli.getopt(argc, argv, "");
-	const char *verb = cli.optarg();
+	cli.getOpt(argc, argv, "");
+	const char *verb = cli.optArg();
 
 	if (!verb) {
 		ThisDriver::print_usage();
