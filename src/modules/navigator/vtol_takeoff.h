@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,60 +30,52 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file px4_custom_mode.h
- * PX4 custom flight modes
+ * @file vtol_takeoff.h
+ *
+ * Helper class to do a VTOL takeoff and transition into a loiter.
  *
  */
 
-#ifndef PX4_CUSTOM_MODE_H_
-#define PX4_CUSTOM_MODE_H_
+#pragma once
 
-#include <stdint.h>
+#include "navigator_mode.h"
+#include "mission_block.h"
 
-enum PX4_CUSTOM_MAIN_MODE {
-	PX4_CUSTOM_MAIN_MODE_MANUAL = 1,
-	PX4_CUSTOM_MAIN_MODE_ALTCTL,
-	PX4_CUSTOM_MAIN_MODE_POSCTL,
-	PX4_CUSTOM_MAIN_MODE_AUTO,
-	PX4_CUSTOM_MAIN_MODE_ACRO,
-	PX4_CUSTOM_MAIN_MODE_OFFBOARD,
-	PX4_CUSTOM_MAIN_MODE_STABILIZED,
-	PX4_CUSTOM_MAIN_MODE_RATTITUDE_LEGACY,
-	PX4_CUSTOM_MAIN_MODE_SIMPLE /* unused, but reserved for future use */
+#include <lib/mathlib/mathlib.h>
+
+#include <px4_platform_common/module_params.h>
+class VtolTakeoff : public MissionBlock, public ModuleParams
+{
+public:
+	VtolTakeoff(Navigator *navigator);
+	~VtolTakeoff() = default;
+
+	void on_activation() override;
+	void on_active() override;
+
+	void setTransitionAltitudeAbsolute(const float alt_amsl) {_transition_alt_amsl = alt_amsl; }
+
+	void setLoiterLocation(matrix::Vector2d loiter_location) { _loiter_location = loiter_location; }
+	void setLoiterHeight(const float height_m) { _loiter_height = height_m; }
+
+private:
+
+	enum class vtol_takeoff_state {
+		TAKEOFF_HOVER = 0,
+		ALIGN_HEADING,
+		TRANSITION,
+		CLIMB,
+		ABORT_TAKEOFF_AND_LAND
+	} _takeoff_state;
+
+	float _transition_alt_amsl{0.f};	// absolute altitude at which vehicle will transition to forward flight
+	matrix::Vector2d _loiter_location;
+	float _loiter_height{0};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::VTO_LOITER_ALT>) _param_loiter_alt
+	)
+
+	void set_takeoff_position();
 };
-
-enum PX4_CUSTOM_SUB_MODE_AUTO {
-	PX4_CUSTOM_SUB_MODE_AUTO_READY = 1,
-	PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF,
-	PX4_CUSTOM_SUB_MODE_AUTO_LOITER,
-	PX4_CUSTOM_SUB_MODE_AUTO_MISSION,
-	PX4_CUSTOM_SUB_MODE_AUTO_RTL,
-	PX4_CUSTOM_SUB_MODE_AUTO_LAND,
-	PX4_CUSTOM_SUB_MODE_AUTO_RESERVED_DO_NOT_USE, // was PX4_CUSTOM_SUB_MODE_AUTO_RTGS, deleted 2020-03-05
-	PX4_CUSTOM_SUB_MODE_AUTO_FOLLOW_TARGET,
-	PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND,
-	PX4_CUSTOM_SUB_MODE_AUTO_VTOL_TAKEOFF
-};
-
-enum PX4_CUSTOM_SUB_MODE_POSCTL {
-	PX4_CUSTOM_SUB_MODE_POSCTL_POSCTL = 0,
-	PX4_CUSTOM_SUB_MODE_POSCTL_ORBIT
-};
-
-union px4_custom_mode {
-	struct {
-		uint16_t reserved;
-		uint8_t main_mode;
-		uint8_t sub_mode;
-	};
-	uint32_t data;
-	float data_float;
-	struct {
-		uint16_t reserved_hl;
-		uint16_t custom_mode_hl;
-	};
-};
-
-#endif /* PX4_CUSTOM_MODE_H_ */
