@@ -57,7 +57,7 @@ bool uORB::Manager::initialize()
 	}
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
-	px4_register_boardct_ioctl(_ORBIOCBASE, orb_ioctl);
+	px4_register_boardct_ioctl(_ORBIOCDEVBASE, orb_ioctl);
 #endif
 	return _Instance != nullptr;
 }
