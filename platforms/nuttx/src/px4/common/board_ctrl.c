@@ -42,6 +42,15 @@
 #include <px4_platform/board_ctrl.h>
 #include "board_config.h"
 
+#include <nuttx/lib/builtin.h>
+#include <NuttX/kernel_builtin/kernel_builtin_proto.h>
+
+FAR const struct builtin_s g_kernel_builtins[] = {
+#include <NuttX/kernel_builtin/kernel_builtin_list.h>
+};
+
+const int g_n_kernel_builtins = sizeof(g_kernel_builtins) / sizeof(struct builtin_s);
+
 static struct {
 	ioctl_ptr_t ioctl_func;
 } ioctl_ptrs[MAX_IOCTL_PTRS];
@@ -89,6 +98,39 @@ int board_ioctl(unsigned int cmd, uintptr_t arg)
 }
 
 /************************************************************************************
+ * Name: launch_kernel_builtin
+ *
+ * Description:
+ *   launches a kernel-side build-in module
+ *
+ ************************************************************************************/
+
+int launch_kernel_builtin(unsigned int cmd, unsigned long arg)
+{
+	builtinioclaunch_t *kcmd = (builtinioclaunch_t *)arg;
+	int argc = kcmd->argc;
+	char **argv = kcmd->argv;
+	int i;
+	FAR const struct builtin_s *builtin = NULL;
+
+	for (i = 0; i < g_n_kernel_builtins; i++) {
+		if (!strcmp(g_kernel_builtins[i].name, argv[0])) {
+			builtin = &g_kernel_builtins[i];
+			break;
+		}
+	}
+
+	if (builtin) {
+		/* This is running in the userspace thread, created by nsh, and
+		   called via boardctl. Call the main directly */
+		kcmd->ret = builtin->main(argc, argv);
+		return OK;
+	}
+
+	return ENOENT;
+}
+
+/************************************************************************************
  * Name: kernel_ioctl_initialize
  *
  * Description:
@@ -101,4 +143,6 @@ void kernel_ioctl_initialize(void)
 	for (int i = 0; i < MAX_IOCTL_PTRS; i++) {
 		ioctl_ptrs[i].ioctl_func = NULL;
 	}
+
+	px4_register_boardct_ioctl(_BUILTINIOCBASE, launch_kernel_builtin);
 }
