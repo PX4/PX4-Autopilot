@@ -61,6 +61,8 @@ void
 VtolTakeoff::on_active()
 {
 	if (is_mission_item_reached()) {
+		reset_mission_item_reached();
+
 		switch	(_takeoff_state) {
 		case vtol_takeoff_state::TAKEOFF_HOVER: {
 
@@ -73,8 +75,8 @@ VtolTakeoff::on_active()
 				mission_apply_limitation(_mission_item);
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 				pos_sp_triplet->current.disable_weather_vane = true;
+
 				_navigator->set_position_setpoint_triplet_updated();
-				reset_mission_item_reached();
 
 				_takeoff_state = vtol_takeoff_state::ALIGN_HEADING;
 
@@ -84,10 +86,11 @@ VtolTakeoff::on_active()
 		case vtol_takeoff_state::ALIGN_HEADING: {
 
 				set_vtol_transition_item(&_mission_item, vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
+				_mission_item.lat = _loiter_location(0);
+				_mission_item.lon = _loiter_location(1);
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 				pos_sp_triplet->previous = pos_sp_triplet->current;
-				pos_sp_triplet->current.lat = _loiter_location(0);
-				pos_sp_triplet->current.lon = _loiter_location(1);
+
 				_navigator->set_position_setpoint_triplet_updated();
 
 				issue_command(_mission_item);
@@ -100,14 +103,9 @@ VtolTakeoff::on_active()
 		case vtol_takeoff_state::TRANSITION: {
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-				if (pos_sp_triplet->current.valid && pos_sp_triplet->current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-					setLoiterItemFromCurrentPositionSetpoint(&_mission_item);
-
-				} else {
-					setLoiterItemFromCurrentPosition(&_mission_item);
-				}
-
 				_mission_item.nav_cmd = NAV_CMD_LOITER_TIME_LIMIT;
+				_mission_item.lat = _loiter_location(0);
+				_mission_item.lon = _loiter_location(1);
 
 				// we need the vehicle to loiter indefinitely but also we want this mission item to be reached as soon
 				// as the loiter is established. therefore, set a small loiter time so that the mission item will be reached quickly,
@@ -117,18 +115,8 @@ VtolTakeoff::on_active()
 				_mission_item.altitude = _navigator->get_home_position()->alt + _param_loiter_alt.get();
 
 				mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
-				pos_sp_triplet->current.lat = _loiter_location(0);
-				pos_sp_triplet->current.lon = _loiter_location(1);
-				pos_sp_triplet->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 
-				_mission_item.lat = pos_sp_triplet->current.lat;
-				_mission_item.lon = pos_sp_triplet->current.lon;
-
-
-				//publish_navigator_mission_item(); // for logging
 				_navigator->set_position_setpoint_triplet_updated();
-
-				reset_mission_item_reached();
 
 				_takeoff_state = vtol_takeoff_state::CLIMB;
 
@@ -163,7 +151,6 @@ VtolTakeoff::set_takeoff_position()
 
 	_navigator->get_mission_result()->finished = false;
 	_navigator->set_mission_result_updated();
-	reset_mission_item_reached();
 
 	// convert mission item to current setpoint
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();

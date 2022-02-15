@@ -220,7 +220,6 @@ void Navigator::run()
 		_land_detected_sub.update(&_land_detected);
 		_position_controller_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
-		_wind_sub.update(&_wind);
 
 		while (_vehicle_command_sub.updated()) {
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
