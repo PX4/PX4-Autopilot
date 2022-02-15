@@ -50,6 +50,18 @@
 #define _BUILTINIOCBASE			IOCTL_IDX_TO_BASE(3)
 #define MAX_IOCTL_PTRS 4
 
+/* The BUILTINIOCLAUNCH IOCTL is used to launch kernel side modules
+ * from the user side code
+ */
+
+#define BUILTINIOCLAUNCH               (_PX4_IOC(_BUILTINIOCBASE, 1))
+
+typedef struct builtinioclaunch {
+	int argc;
+	char **argv;
+	int ret;
+} builtinioclaunch_t;
+
 typedef int (*ioctl_ptr_t)(unsigned int, unsigned long);
 
 __BEGIN_DECLS
