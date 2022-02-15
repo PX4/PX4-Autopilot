@@ -494,6 +494,20 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			_control_allocation[i]->setActuatorMax(maximum[i]);
 			_control_allocation[i]->setSlewRateLimit(slew_rate[i]);
 
+			// Set all the elements of a row to 0 if that row has weak authority.
+			// That ensures that the algorithm doesn't try to control axes with only marginal control authority,
+			// which in turn would degrade the control of the main axes that actually should and can be controlled.
+
+			ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[i];
+
+			for (int n = 0; n < NUM_AXES; n++) {
+				if (matrix.row(i).max() < 0.05f) {
+					for (int m = 0; m < _num_actuators[i]; m++) {
+						matrix(n, m) = 0.f;
+					}
+				}
+			}
+
 			// Assign control effectiveness matrix
 			int total_num_actuators = config.num_actuators_matrix[i];
 			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
