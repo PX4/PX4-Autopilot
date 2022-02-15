@@ -150,7 +150,6 @@ private:
 	float _ground_minus_wind_TAS{0.0f}; /**< true airspeed from groundspeed minus windspeed */
 	float _ground_minus_wind_CAS{0.0f}; /**< calibrated airspeed from groundspeed minus windspeed */
 	bool _armed_prev{false};
-	bool _armed{false};
 
 	hrt_abstime _time_last_airspeed_update[MAX_NUM_AIRSPEED_SENSORS] {};
 
@@ -318,10 +317,10 @@ AirspeedModule::Run()
 		update_params();
 	}
 
-	_armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	const bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
 	// check for new connected airspeed sensors as long as we're disarmed
-	if (!_armed) {
+	if (!armed) {
 		check_for_connected_airspeed_sensors();
 	}
 
@@ -381,7 +380,7 @@ AirspeedModule::Run()
 					_in_takeoff_situation = true;
 				}
 
-				input_data.in_fixed_wing_flight = (_armed && in_air_fixed_wing && !_in_takeoff_situation);
+				input_data.in_fixed_wing_flight = (armed && in_air_fixed_wing && !_in_takeoff_situation);
 
 				// push input data into airspeed validator
 				_airspeed_validator[i].update_airspeed_validator(input_data);
@@ -395,7 +394,7 @@ AirspeedModule::Run()
 			}
 
 			// save estimated airspeed scale after disarm
-			if (!_armed && _armed_prev) {
+			if (!armed && _armed_prev) {
 				if (_param_aspd_scale_apply.get() > 0) {
 					if (fabsf(_airspeed_validator[i].get_CAS_scale_validated() - _param_airspeed_scale[i]) > 0.01f) {
 						// apply the new scale if changed more than 0.01
@@ -429,7 +428,7 @@ AirspeedModule::Run()
 
 	select_airspeed_and_publish();
 
-	_armed_prev = _armed;
+	_armed_prev = armed;
 
 	perf_end(_perf_elapsed);
 
@@ -594,7 +593,7 @@ void AirspeedModule::select_airspeed_and_publish()
 
 	// print warning or info, depending of whether airspeed got declared invalid or healthy
 	if (_valid_airspeed_index != _prev_airspeed_index &&
-	    _number_of_airspeed_sensors > 0 && _armed) {
+	    _number_of_airspeed_sensors > 0 && _vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 		if (_prev_airspeed_index > 0) {
 			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure"), events::Log::Critical,
