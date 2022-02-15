@@ -543,7 +543,7 @@ private:
 
 	// height sensor status
 	bool _baro_hgt_faulty{true};		///< true if valid baro data is unavailable for use
-	bool _gps_hgt_intermittent{true};	///< true if gps height into the buffer is intermittent
+	bool _gps_intermittent{true};           ///< true if into the buffer is intermittent
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)

@@ -296,7 +296,7 @@ void Ekf::resetHeight()
 
 	} else if (_control_status.flags.gps_hgt) {
 		// initialize vertical position and velocity with newest gps measurement
-		if (!_gps_hgt_intermittent && _gps_buffer) {
+		if (!_gps_intermittent && _gps_buffer) {
 			const gpsSample &gps_newest = _gps_buffer->get_newest();
 			resetVerticalPositionTo(_hgt_sensor_offset - gps_newest.hgt + _gps_alt_ref);
 
@@ -329,7 +329,7 @@ void Ekf::resetHeight()
 	}
 
 	// reset the vertical velocity state
-	if (_control_status.flags.gps && !_gps_hgt_intermittent && _gps_buffer) {
+	if (_control_status.flags.gps && !_gps_intermittent && _gps_buffer) {
 		// If we are using GPS, then use it to reset the vertical velocity
 		const gpsSample &gps_newest = _gps_buffer->get_newest();
 		resetVerticalVelocityTo(gps_newest.vel(2));
@@ -1363,7 +1363,7 @@ void Ekf::updateBaroHgtBias()
 		_baro_b_est.predict(dt);
 	}
 
-	if (_gps_data_ready && !_gps_hgt_intermittent
+	if (_gps_data_ready && !_gps_intermittent
 	    && _gps_checks_passed && _NED_origin_initialised
 	    && !_baro_hgt_faulty) {
 		// Use GPS altitude as a reference to compute the baro bias measurement
