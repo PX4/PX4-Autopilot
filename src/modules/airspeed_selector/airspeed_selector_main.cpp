@@ -595,10 +595,9 @@ void AirspeedModule::select_airspeed_and_publish()
 	if (_valid_airspeed_index != _prev_airspeed_index &&
 	    _number_of_airspeed_sensors > 0) {
 		if (_vehicle_status.arming_state == !vehicle_status_s::ARMING_STATE_ARMED && _prev_airspeed_index > 0) {
-			mavlink_log_critical(&_mavlink_log_pub,
-					     "Airspeed sensor failure detected. Check connection between sensor and flight controller.\t");
+			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Check connection and reboot.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure_disarmed"), events::Log::Critical,
-				     "Airspeed sensor failure detected. Check connection between sensor and flight controller");
+				     "Airspeed sensor failure detected. Check connection and reboot.");
 
 		} else if (_prev_airspeed_index > 0) {
 			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
