@@ -86,9 +86,8 @@ void Ekf::controlFusionModes()
 	}
 
 	if (_baro_buffer) {
-		// check for intermittent data (before pop_first_older_than)
-		const baroSample &baro_init = _baro_buffer->get_newest();
-		_baro_hgt_faulty = !isRecent(baro_init.time_us, 2 * BARO_MAX_INTERVAL);
+		// check for intermittent data
+		_baro_hgt_faulty = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
 
 		const uint64_t baro_time_prev = _baro_sample_delayed.time_us;
 		_baro_data_ready = _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
@@ -102,8 +101,7 @@ void Ekf::controlFusionModes()
 
 
 	if (_gps_buffer) {
-		const gpsSample &gps_init = _gps_buffer->get_newest();
-		_gps_hgt_intermittent = !isRecent(gps_init.time_us, 2 * GPS_MAX_INTERVAL);
+		_gps_intermittent = !isRecent(_time_last_gps, 2 * GPS_MAX_INTERVAL);
 
 		// check for arrival of new sensor data at the fusion time horizon
 		_time_prev_gps_us = _gps_sample_delayed.time_us;
@@ -542,7 +540,7 @@ void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 				&& _control_status.flags.tilt_align
 				&& gps_checks_passing
 				&& !is_gps_yaw_data_intermittent
-				&& !_gps_hgt_intermittent;
+				&& !_gps_intermittent;
 
 		_time_last_gps_yaw_data = _time_last_imu;
 
@@ -645,7 +643,7 @@ void Ekf::controlHeightSensorTimeouts()
 			const bool prev_bad_vert_accel = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
 
 			// reset to GPS if adequate GPS data is available and the timeout cannot be blamed on IMU data
-			const bool reset_to_gps = !_gps_hgt_intermittent &&
+			const bool reset_to_gps = !_gps_intermittent &&
 						  ((gps_hgt_accurate && !prev_bad_vert_accel) || _baro_hgt_faulty);
 
 			if (reset_to_gps) {
@@ -684,7 +682,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 			// if baro data is acceptable and GPS data is inaccurate, reset height to baro
 			const bool reset_to_baro = !_baro_hgt_faulty &&
-						   ((baro_data_consistent && !gps_hgt_accurate) || _gps_hgt_intermittent);
+						   ((baro_data_consistent && !gps_hgt_accurate) || _gps_intermittent);
 
 			if (reset_to_baro) {
 				startBaroHgtFusion();
@@ -693,7 +691,7 @@ void Ekf::controlHeightSensorTimeouts()
 				failing_height_source = "gps";
 				new_height_source = "baro";
 
-			} else if (!_gps_hgt_intermittent) {
+			} else if (!_gps_intermittent) {
 				request_height_reset = true;
 				failing_height_source = "gps";
 				new_height_source = "gps";
@@ -878,7 +876,7 @@ void Ekf::controlHeightFusion()
 
 		} else {
 			if (!_control_status.flags.gps_hgt) {
-				if (!_gps_hgt_intermittent && _gps_checks_passed) {
+				if (!_gps_intermittent && _gps_checks_passed) {
 					// In fallback mode and GPS has recovered so start using it
 					startGpsHgtFusion();
 
