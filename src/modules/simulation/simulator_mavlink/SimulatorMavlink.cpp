@@ -58,6 +58,7 @@
 
 #include <limits>
 
+static int _tcp_server_fd;
 static int _fd;
 static unsigned char _buf[2048];
 static sockaddr_in _srcaddr;
@@ -1085,6 +1086,7 @@ void SimulatorMavlink::run()
 
 	if (_ip == InternetProtocol::UDP) {
 
+		// UDP 'server' mode
 		if ((_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 			PX4_ERR("Creating UDP socket failed: %s", strerror(errno));
 			return;
@@ -1113,8 +1115,80 @@ void SimulatorMavlink::run()
 
 		PX4_INFO("Simulator connected on UDP port %u.", _port);
 
+	} else if (_server_mode) {
+
+		// TCP Server mode
+		PX4_INFO("TCP Server: Waiting for simulator to connect on TCP port %u", _port);
+
+		if ((_tcp_server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+			PX4_ERR("TCP Server: Creating TCP socket failed: %s", strerror(errno));
+			return;
+		}
+
+		int yes = 1;
+		int ret = setsockopt(_tcp_server_fd, IPPROTO_TCP, TCP_NODELAY, (char *) &yes, sizeof(int));
+
+		if (ret != 0) {
+			PX4_ERR("TCP Server: setsockopt failed: %s", strerror(errno));
+		}
+
+		struct linger nolinger {};
+
+		nolinger.l_onoff = 1;
+
+		nolinger.l_linger = 0;
+
+		ret = setsockopt(_tcp_server_fd, SOL_SOCKET, SO_LINGER, &nolinger, sizeof(nolinger));
+
+		if (ret != 0) {
+			PX4_ERR("TCP Server: setsockopt failed: %s", strerror(errno));
+		}
+
+		// The socket reuse is necessary for reconnecting to the same address
+		// if the socket does not close but gets stuck in TIME_WAIT. This can happen
+		// if the server is suddenly closed.
+		int socket_reuse = 1;
+		ret = setsockopt(_tcp_server_fd, SOL_SOCKET, SO_REUSEADDR, &socket_reuse, sizeof(socket_reuse));
+
+		if (ret != 0) {
+			PX4_ERR("TCP Server: setsockopt failed: %s", strerror(errno));
+		}
+
+		// Same as above but for a given port
+		ret = setsockopt(_tcp_server_fd, SOL_SOCKET, SO_REUSEPORT, &socket_reuse, sizeof(socket_reuse));
+
+		if (ret != 0) {
+			PX4_ERR("TCP Server: setsockopt failed: %s", strerror(errno));
+		}
+
+		socklen_t myaddr_len = sizeof(_myaddr);
+
+		if (bind(_tcp_server_fd, (struct sockaddr *)&_myaddr, myaddr_len) < 0) {
+			PX4_ERR("TCP Server: Bind for TCP port %u failed: %s", _port, strerror(errno));
+			::close(_tcp_server_fd);
+			return;
+		}
+
+		if (listen(_tcp_server_fd, 0) < 0) {
+			PX4_ERR("TCP Server: listen failed: %s", strerror(errno));
+		}
+
+		while (true) {
+			_fd = accept(_tcp_server_fd, (struct sockaddr *)&_srcaddr, (socklen_t *)&_addrlen);
+
+			if (_fd >= 0) {
+				break;
+			}
+
+			PX4_WARN("TCP Server: Accepting client connection failed: %s", strerror(errno));
+		}
+
+		PX4_INFO("TCP Server: Accepting TCP client connection from %s:%u", inet_ntoa(_srcaddr.sin_addr),
+			 ntohs(_srcaddr.sin_port));
+
 	} else {
 
+		// TCP Client mode
 		PX4_INFO("Waiting for simulator to accept connection on TCP port %u", _port);
 
 		while (true) {
