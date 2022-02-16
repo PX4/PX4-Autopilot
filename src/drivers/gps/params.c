@@ -73,7 +73,7 @@ PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
  * Enable sat info (if available)
  *
  * Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
- * Only. Not available on MTK.
+ * Not available on MTK.
  *
  * @boolean
  * @reboot_required true
