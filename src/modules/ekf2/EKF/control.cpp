@@ -87,7 +87,7 @@ void Ekf::controlFusionModes()
 
 	if (_baro_buffer) {
 		// check for intermittent data
-		_baro_hgt_faulty = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
+		_baro_hgt_intermittent = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
 
 		const uint64_t baro_time_prev = _baro_sample_delayed.time_us;
 		_baro_data_ready = _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
@@ -626,25 +626,16 @@ void Ekf::controlHeightSensorTimeouts()
 
 	if (hgt_fusion_timeout || continuous_bad_accel_hgt) {
 
-		bool request_height_reset = false;
 		const char *failing_height_source = nullptr;
 		const char *new_height_source = nullptr;
 
 		if (_control_status.flags.baro_hgt) {
-			// check if GPS height is available
-			bool gps_hgt_accurate = false;
-
-			if (_gps_buffer) {
-				const gpsSample &gps_init = _gps_buffer->get_newest();
-				gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
-			}
-
-			// check for inertial sensing errors in the last BADACC_PROBATION seconds
-			const bool prev_bad_vert_accel = isRecent(_time_bad_vert_accel, BADACC_PROBATION);
+			bool reset_to_gps = false;
 
 			// reset to GPS if adequate GPS data is available and the timeout cannot be blamed on IMU data
-			const bool reset_to_gps = !_gps_intermittent &&
-						  ((gps_hgt_accurate && !prev_bad_vert_accel) || _baro_hgt_faulty);
+			if (!_gps_intermittent) {
+				reset_to_gps = (_gps_checks_passed && !_fault_status.flags.bad_acc_vertical) || _baro_hgt_faulty || _baro_hgt_intermittent;
+			}
 
 			if (reset_to_gps) {
 				// set height sensor health
@@ -652,47 +643,33 @@ void Ekf::controlHeightSensorTimeouts()
 
 				startGpsHgtFusion();
 
-				request_height_reset = true;
 				failing_height_source = "baro";
 				new_height_source = "gps";
 
-			} else if (!_baro_hgt_faulty) {
-				request_height_reset = true;
+			} else if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
+				resetHeightToBaro();
+
 				failing_height_source = "baro";
 				new_height_source = "baro";
 			}
 
 		} else if (_control_status.flags.gps_hgt) {
-			// check if GPS height is available
-			bool gps_hgt_accurate = false;
+			bool reset_to_baro = false;
 
-			if (_gps_buffer) {
-				const gpsSample &gps_init = _gps_buffer->get_newest();
-				gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
+			// if baro data is available and GPS data is inaccurate and the timeout cannot be blamed on IMU data, reset height to baro
+			if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
+				reset_to_baro = (!_fault_status.flags.bad_acc_vertical && !_gps_checks_passed) || _gps_intermittent;
 			}
-
-			// check the baro height source for consistency and freshness
-			bool baro_data_consistent = false;
-
-			if (_baro_buffer) {
-				const baroSample &baro_init = _baro_buffer->get_newest();
-				const float baro_innov = _state.pos(2) - (_hgt_sensor_offset - baro_init.hgt + _baro_hgt_offset);
-				baro_data_consistent = fabsf(baro_innov) < (sq(_params.baro_noise) + P(9, 9)) * sq(_params.baro_innov_gate);
-			}
-
-			// if baro data is acceptable and GPS data is inaccurate, reset height to baro
-			const bool reset_to_baro = !_baro_hgt_faulty &&
-						   ((baro_data_consistent && !gps_hgt_accurate) || _gps_intermittent);
 
 			if (reset_to_baro) {
 				startBaroHgtFusion();
 
-				request_height_reset = true;
 				failing_height_source = "gps";
 				new_height_source = "baro";
 
 			} else if (!_gps_intermittent) {
-				request_height_reset = true;
+				resetHeightToGps();
+
 				failing_height_source = "gps";
 				new_height_source = "gps";
 			}
@@ -700,14 +677,14 @@ void Ekf::controlHeightSensorTimeouts()
 		} else if (_control_status.flags.rng_hgt) {
 
 			if (_range_sensor.isHealthy()) {
-				request_height_reset = true;
+				resetHeightToRng();
+
 				failing_height_source = "rng";
 				new_height_source = "rng";
 
-			} else if (!_baro_hgt_faulty) {
+			} else if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
 				startBaroHgtFusion();
 
-				request_height_reset = true;
 				failing_height_source = "rng";
 				new_height_source = "baro";
 			}
@@ -722,21 +699,21 @@ void Ekf::controlHeightSensorTimeouts()
 			}
 
 			if (ev_data_available) {
-				request_height_reset = true;
+				resetHeightToEv();
+
 				failing_height_source = "ev";
 				new_height_source = "ev";
 
 			} else if (_range_sensor.isHealthy()) {
 				// Fallback to rangefinder data if available
 				startRngHgtFusion();
-				request_height_reset = true;
+
 				failing_height_source = "ev";
 				new_height_source = "rng";
 
-			} else if (!_baro_hgt_faulty) {
+			} else if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
 				startBaroHgtFusion();
 
-				request_height_reset = true;
 				failing_height_source = "ev";
 				new_height_source = "baro";
 			}
@@ -747,9 +724,12 @@ void Ekf::controlHeightSensorTimeouts()
 			ECL_WARN("%s hgt timeout - reset to %s", failing_height_source, new_height_source);
 		}
 
-		// Reset vertical position and velocity states to the last measurement
-		if (request_height_reset) {
-			resetHeight();
+		// Also reset the vertical velocity
+		if (_control_status.flags.gps && !_gps_intermittent && _gps_checks_passed) {
+			resetVerticalVelocityToGps();
+
+		} else {
+			resetVerticalVelocityToZero();
 		}
 	}
 }
@@ -835,8 +815,14 @@ void Ekf::controlHeightFusion()
 			}
 
 		} else {
-			if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
-				startBaroHgtFusion();
+			if (!_control_status.flags.baro_hgt) {
+				if (!_baro_hgt_faulty && !_baro_hgt_intermittent) {
+					startBaroHgtFusion();
+
+				} else if (!_control_status.flags.gps_hgt && !_gps_intermittent && _gps_checks_passed) {
+					// Use GPS as a fallback
+					startGpsHgtFusion();
+				}
 			}
 		}
 
@@ -880,7 +866,7 @@ void Ekf::controlHeightFusion()
 					// In fallback mode and GPS has recovered so start using it
 					startGpsHgtFusion();
 
-				} else if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
+				} else if (!_control_status.flags.baro_hgt && !_baro_hgt_faulty && !_baro_hgt_intermittent) {
 					// Use baro as a fallback
 					startBaroHgtFusion();
 				}
