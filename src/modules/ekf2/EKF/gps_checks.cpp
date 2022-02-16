@@ -101,11 +101,6 @@ bool Ekf::collect_gps(const gps_message &gps)
 		_gps_origin_eph = gps.eph;
 		_gps_origin_epv = gps.epv;
 
-		// if the user has selected GPS as the primary height source, switch across to using it
-		if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
-			startGpsHgtFusion();
-		}
-
 		_information_events.flags.gps_checks_passed = true;
 		ECL_INFO("GPS checks passed");
 
