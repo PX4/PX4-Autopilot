@@ -26,9 +26,9 @@ error_arg() {
 
 mod_dir="$(realpath $(dirname $0)/..)"
 VERSION=""
-outdir=${mod_dir}
+indir=""
 
-while getopts "hv:" opt
+while getopts "hv:i:" opt
 do
 	case $opt in
 		h)
@@ -37,11 +37,16 @@ do
 		v)
 			check_arg $OPTARG && VERSION=$OPTARG || error_arg $opt
 			;;
+		i)
+			indir=$OPTARG
+			;;
 		\?)
 			usage
 			;;
 	esac
 done
+
+set -x
 
 if [ -e tmp_packaging_dir ]; then
 	rm -Rf tmp_packaging_dir
@@ -51,9 +56,14 @@ mkdir -p tmp_packaging_dir
 pushd tmp_packaging_dir
 
 mkdir -p ./opt/px4fwupdater/
-cp ${mod_dir}/build/ssrc_saluki-v1_default/*.px4 ./opt/px4fwupdater/
-cp ${mod_dir}/build/px4_fmu-v5_ssrc/*.px4 ./opt/px4fwupdater/
-cp ${mod_dir}/build/px4_fmu-v5x_ssrc/*.px4 ./opt/px4fwupdater/
+if [ -n "${indir}" ]
+then
+	cp ${indir}/*.px4 ./opt/px4fwupdater/
+else
+	cp ${mod_dir}/build/ssrc_saluki-v1_default/*.px4 ./opt/px4fwupdater/
+	cp ${mod_dir}/build/px4_fmu-v5_ssrc/*.px4 ./opt/px4fwupdater/
+	cp ${mod_dir}/build/px4_fmu-v5x_ssrc/*.px4 ./opt/px4fwupdater/
+fi
 
 mkdir DEBIAN
 cp -R ${mod_dir}/packaging/debian/* DEBIAN/
@@ -66,7 +76,7 @@ if [ -e ../px4fwupdater*.deb ]; then
 fi
 
 sed -i "s/Version:.*/&${VERSION}/" DEBIAN/control
-fakeroot dpkg-deb --build . ../px4fwupdater_${VERSION}_amd64.deb
+fakeroot dpkg-deb --build . "${indir}"/px4fwupdater_${VERSION}_amd64.deb
 
 popd
 rm -Rf tmp_packaging_dir

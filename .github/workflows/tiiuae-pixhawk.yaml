@@ -7,62 +7,130 @@ on:
     branches: [ master ]
 
 jobs:
-  pixhawk:
+  pixhawk4:
+    name: build pixhawk4
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v2
+        with:
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Run px4-firmware pixhawk4 build
+        run: |
+          set -eux
+          mkdir -p bin
+          cd px4-firmware/
+          ./clone_public.sh
+          ./build.sh ../bin/ pixhawk4
+          ls ../bin
+      - name: Upload pixhawk4
+        uses: actions/upload-artifact@v2
+        with:
+          name: pixhawk
+          path: bin/
+          retention-days: 1
 
+  # NOTE: private repo is needed for this build, which is not available for forked PRs
+  saluki-v1:
+    name: build saluki-v1
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+    steps:
       - name: Checkout px4-firmware
         uses: actions/checkout@v2
         with:
           token: ${{ secrets.GH_REPO_TOKEN }}
-          path: px4-firmware
           submodules: recursive
+          path: px4-firmware
           fetch-depth: 0
+      - name: Run px4-firmware saluki-v1 build
+        run: |
+          set -eux
+          mkdir -p bin
+          cd px4-firmware/
+          ./build.sh ../bin/ saluki-v1
+          ls ../bin
+      - name: Upload saluki-v1
+        uses: actions/upload-artifact@v2
+        with:
+          name: pixhawk
+          path: bin/
+          retention-days: 1
 
+  px4fwupdater:
+    name: build px4fwupdater
+    runs-on: ubuntu-latest
+    needs: [pixhawk4, saluki-v1]
+    steps:
+      - name: Checkout px4-firmware
+        uses: actions/checkout@v2
+        with:
+          path: px4-firmware
+          fetch-depth: 0
+      - name: Download pixhawk artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: pixhawk
+          path: bin
+      - name: Run px4-firmware px4fwupdater build
+        run: |
+          set -eux
+          mkdir -p bin
+          cd px4-firmware/
+          ./clone_public.sh
+          ./build.sh ../bin/ px4fwupdater
+          ls ../bin
+      - name: Upload px4fwupdater
+        uses: actions/upload-artifact@v2
+        with:
+          name: pixhawk
+          path: bin/
+          retention-days: 1
+      - name: Firmware flasher - Container metadata
+        id: containermeta # referenced from later step
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/tiiuae/px4-firmware
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Firmware flasher - Build and push
+        uses: docker/build-push-action@v2
+        with:
+          push: ${{ github.event_name == 'push' }}
+          context: .
+          file: px4-firmware/Tools/px_uploader.Dockerfile
+          tags: ${{ steps.containermeta.outputs.tags }}
+          labels: ${{ steps.containermeta.outputs.labels }}
 
-      # Run docker build
-      - name: Run px4-firmware docker build
-        run: |
-          set -eux
-          mkdir bin
-          cd px4-firmware
-          ./build.sh ../bin/
-          ls ../bin
-
-      - name: Install jfrog CLI tool
+  artifactory:
+    name: upload builds to Artifactory
+    runs-on: ubuntu-latest
+    needs: [pixhawk4, saluki-v1, px4fwupdater]
+    if: github.event_name == 'push'
+    steps:
+      - name: Download pixhawk artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: pixhawk
+          path: bin
+      - uses: jfrog/setup-jfrog-cli@v2
         env:
-          JFROG_CLI_URL: https://ssrc.jfrog.io/artifactory/ssrc-gen-public-remote-cache/tools/jfrog/jfrog-1.45.2.tar.gz
-        if: github.event_name == 'push'
-        run: |
-          set -exu
-          mkdir -p "$GITHUB_WORKSPACE/.jfrog/bin"
-          curl -L "$JFROG_CLI_URL" -o "$GITHUB_WORKSPACE/.jfrog/jfrog.tar.gz"
-          tar -C "$GITHUB_WORKSPACE/.jfrog/bin" -zxf "$GITHUB_WORKSPACE/.jfrog/jfrog.tar.gz"
-          echo "$GITHUB_WORKSPACE/.jfrog/bin" >> "$GITHUB_PATH"
-          echo "JFROG_CLI_HOME_DIR=$GITHUB_WORKSPACE/.jfrog" >> "$GITHUB_ENV"
-
-      - name: Import Artifactory token
-        env:
-          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
-          CI: true
-        if: github.event_name == 'push'
-        run: |
-          set -exu
-          jfrog rt c import "$ARTIFACTORY_TOKEN"
-          jfrog rt ping
-
+          JF_ARTIFACTORY_1: ${{ secrets.ARTIFACTORY_TOKEN }}
       - name: Upload px4-firmware build to Artifactory
         env:
           ARTIFACTORY_GEN_REPO: gen-public-local
           BUILD_NAME_PX4: px4-firmware
           CI: true
-        if: github.event_name == 'push'
         run: |
           set -exu
           pkg=$(find bin -name 'px4_fmu-v5_ssrc*.px4')
@@ -109,7 +177,6 @@ jobs:
           jfrog rt cp --flat \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/$saluki_bl_pkg_name" \
                       "$ARTIFACTORY_GEN_REPO/builds/px4-firmware/saluki/latest/ssrc_saluki-v1_bootloader.elf"
-
       - name: Upload px4-fwupdater build to Artifactory
         env:
           ARTIFACTORY_DEB_REPO: debian-public-local
@@ -118,7 +185,6 @@ jobs:
           ARCHITECTURE: amd64
           BUILD_NAME_DEB: px4-fwupdater
           CI: true
-        if: github.event_name == 'push'
         run: |
           set -exu
           pkg=$(find bin -name 'px4fwupdater*.deb')
@@ -132,24 +198,3 @@ jobs:
           jfrog rt bpr "$BUILD_NAME_DEB" "$GITHUB_SHA" "$ARTIFACTORY_DEB_REPO" \
                        --status dev \
                        --comment "development build"
-
-      - name: Firmware flasher - Container metadata
-        id: containermeta # referenced from later step
-        uses: docker/metadata-action@v3
-        with:
-          images: ghcr.io/tiiuae/px4-firmware
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=sha
-
-      - name: Firmware flasher - Build and push
-        uses: docker/build-push-action@v2
-        if: github.event_name == 'push'
-        with:
-          push: true
-          context: .
-          file: px4-firmware/Tools/px_uploader.Dockerfile
-          tags: ${{ steps.containermeta.outputs.tags }}
-          labels: ${{ steps.containermeta.outputs.labels }}
