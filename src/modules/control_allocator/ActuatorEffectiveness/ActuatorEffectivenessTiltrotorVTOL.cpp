@@ -60,7 +60,7 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 
 	// MC motors
 	configuration.selected_matrix = 0;
-	_mc_rotors.enableYawControl(!_tilts.hasYawControl());
+	_mc_rotors.enablePropellerTorque(!_tilts.hasYawControl());
 
 	// Update matrix with tilts in vertical position when update is triggered by a manual
 	// configuration (parameter) change. This is to make sure the normalization
