@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,52 @@
  *
  ****************************************************************************/
 
-#include "ActuatorEffectivenessCustom.hpp"
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <px4_platform_common/module.h>
 
-using namespace matrix;
+#include "MS5837.hpp"
 
-ActuatorEffectivenessCustom::ActuatorEffectivenessCustom(ModuleParams *parent)
-	: ModuleParams(parent), _motors(this), _torque(this)
+void MS5837::print_usage()
 {
+	PRINT_MODULE_USAGE_NAME("ms5837", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-bool
-ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
+extern "C" int ms5837_main(int argc, char *argv[])
 {
-	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
-		return false;
+	using ThisDriver = MS5837;
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 400000;
+	uint16_t dev_type_driver = DRV_BARO_DEVTYPE_MS5837;
+
+	const char *verb = cli.parseDefaultArguments(argc, argv);
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
 	}
 
-	// motors
-	_motors.enableYawControl(false);
-	const bool motors_added_successfully = _motors.addActuators(configuration);
+	cli.i2c_address = MS5837_ADDRESS;
 
-	// Torque
-	const bool torque_added_successfully = _torque.addActuators(configuration);
+	BusInstanceIterator iterator(MODULE_NAME, cli, dev_type_driver);
 
-	return (motors_added_successfully && torque_added_successfully);
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
+
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
+
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
 }
-

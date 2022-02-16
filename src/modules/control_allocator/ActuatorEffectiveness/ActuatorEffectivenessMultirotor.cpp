@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,26 @@
  *
  ****************************************************************************/
 
-#include "ActuatorEffectivenessCustom.hpp"
+#include "ActuatorEffectivenessMultirotor.hpp"
 
 using namespace matrix;
 
-ActuatorEffectivenessCustom::ActuatorEffectivenessCustom(ModuleParams *parent)
-	: ModuleParams(parent), _motors(this), _torque(this)
+ActuatorEffectivenessMultirotor::ActuatorEffectivenessMultirotor(ModuleParams *parent)
+	: ModuleParams(parent),
+	  _mc_rotors(this)
 {
 }
 
 bool
-ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration,
+ActuatorEffectivenessMultirotor::getEffectivenessMatrix(Configuration &configuration,
 		EffectivenessUpdateReason external_update)
 {
 	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 
-	// motors
-	_motors.enableYawControl(false);
-	const bool motors_added_successfully = _motors.addActuators(configuration);
+	// Motors
+	const bool rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
-	// Torque
-	const bool torque_added_successfully = _torque.addActuators(configuration);
-
-	return (motors_added_successfully && torque_added_successfully);
+	return rotors_added_successfully;
 }
-
