@@ -185,8 +185,16 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 		float ct = geometry.rotors[i].thrust_coef;
 		float km = geometry.rotors[i].moment_ratio;
 
-		if (geometry.yaw_disabled) {
+		if (geometry.propeller_torque_disabled) {
 			km = 0.f;
+		}
+
+		if (geometry.propeller_torque_disabled_non_upwards) {
+			bool upwards = fabsf(axis(0)) < 0.1f && fabsf(axis(1)) < 0.1f && axis(2) < -0.5f;
+
+			if (!upwards) {
+				km = 0.f;
+			}
 		}
 
 		if (fabsf(ct) < FLT_EPSILON) {
@@ -238,4 +246,19 @@ Vector3f ActuatorEffectivenessRotors::tiltedAxis(float tilt_angle, float tilt_di
 {
 	Vector3f axis{0.f, 0.f, -1.f};
 	return Dcmf{Eulerf{0.f, -tilt_angle, tilt_direction}} * axis;
+}
+
+uint32_t ActuatorEffectivenessRotors::getUpwardsMotors() const
+{
+	uint32_t upwards_motors = 0;
+
+	for (int i = 0; i < _geometry.num_rotors; ++i) {
+		const Vector3f &axis = _geometry.rotors[i].axis;
+
+		if (fabsf(axis(0)) < 0.1f && fabsf(axis(1)) < 0.1f && axis(2) < -0.5f) {
+			upwards_motors |= 1u << i;
+		}
+	}
+
+	return upwards_motors;
 }

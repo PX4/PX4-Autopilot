@@ -56,7 +56,7 @@ ActuatorEffectivenessTailsitterVTOL::getEffectivenessMatrix(Configuration &confi
 
 	// MC motors
 	configuration.selected_matrix = 0;
-	_mc_rotors.enableYawControl(_mc_rotors.geometry().num_rotors > 3); // enable MC yaw control if more than 3 rotors
+	_mc_rotors.enablePropellerTorque(_mc_rotors.geometry().num_rotors > 3); // enable MC yaw control if more than 3 rotors
 	const bool mc_rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
 	// Control Surfaces
