@@ -46,7 +46,7 @@
 
 void NodeClient::callback(const CanardTransfer &receive)
 {
-	if (receive.remote_node_id != CANARD_NODE_ID_UNSET && _canard_instance.node_id != CANARD_NODE_ID_UNSET) {
+	if (receive.remote_node_id != CANARD_NODE_ID_UNSET && _canard_instance.node_id == CANARD_NODE_ID_UNSET) {
 
 		int32_t allocated = CANARD_NODE_ID_UNSET;
 		px4_guid_t px4_guid;
@@ -88,6 +88,9 @@ void NodeClient::callback(const CanardTransfer &receive)
 		}
 
 		_canard_instance.node_id = allocated;
+
+		PX4_INFO("Allocated Node ID %d", _canard_instance.node_id);
+
 	}
 }
 

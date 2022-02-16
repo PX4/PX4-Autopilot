@@ -92,11 +92,6 @@
 	 (1 << ADC_BATTERY_CURRENT_CHANNEL)       | \
 	 (1 << ADC_RSSI_IN_CHANNEL))
 
-/* Define Battery 1 Voltage Divider and A per V
- */
-#define BOARD_BATTERY1_V_DIV         (10.9f)
-#define BOARD_BATTERY1_A_PER_V       (17.f)
-
 /* PWM
  */
 #define DIRECT_PWM_OUTPUT_CHANNELS  6
@@ -133,8 +128,6 @@
 		GPIO_TONE_ALARM_IDLE,             \
 		GPIO_RSSI_IN,                \
 	}
-
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 #define BOARD_NUM_IO_TIMERS 4
 

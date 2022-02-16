@@ -140,12 +140,6 @@
 	 (1 << ADC_HW_REV_SENSE_CHANNEL)           | \
 	 (1 << ADC1_3V3_IN_CHANNEL))
 
-/* Define Battery 1 Voltage Divider and A per V
- */
-
-#define BOARD_BATTERY1_V_DIV         (18.1f)     /* measured with the provided PM board */
-#define BOARD_BATTERY1_A_PER_V       (36.367515152f)
-
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
 
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
@@ -161,6 +155,11 @@
 #define HW_INFO_INIT         {'V','D','x', 'x',0}
 #define HW_INFO_INIT_VER     2
 #define HW_INFO_INIT_REV     3
+
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 2
+
+#define VD00   HW_VER_REV(0x0,0x0) // Durandal,  Ver 0        Rev 0
+#define VD01   HW_VER_REV(0x0,0x1) // Durandal,  Ver 0        Rev 1
 
 /* CAN Silence
  *
@@ -182,7 +181,6 @@
 
 #define BOARD_NUM_IO_TIMERS 4
 
-#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7, 9, 8};
 
 /* Power supply control and monitoring GPIOs */
 

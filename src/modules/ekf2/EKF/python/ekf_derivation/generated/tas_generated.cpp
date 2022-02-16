@@ -70,5 +70,3 @@ Kfusion(20) = HK16*(-HK0*P(20,22) + HK0*P(4,20) - HK1*P(20,23) + HK1*P(5,20) + P
 Kfusion(21) = HK16*(-HK0*P(21,22) + HK0*P(4,21) - HK1*P(21,23) + HK1*P(5,21) + P(6,21)*vd);
 Kfusion(22) = HK15*HK16;
 Kfusion(23) = HK14*HK16;
-
-

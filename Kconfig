@@ -63,13 +63,10 @@ menu "Toolchain"
         help
             relative path to the ROMFS root directory
 
-    config BOARD_BUILD_BOOTLOADER
-        bool "Enable bootloader"
-        help
-            flag to enable building and including the bootloader config
-
     config BOARD_IO
         string "IO board name"
+        default "px4_io-v2_default"
+        depends on DRIVERS_PX4IO
         help
             name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
 
@@ -117,16 +114,19 @@ config BOARD_ETHERNET
         flag to indicate that ethernet is enabled
 
 config BOARD_CRYPTO
-    string "Crypto"
+    bool "Crypto support"
     help
-        Crypto implementation selection
+        Enable PX4 Crypto Support. Select the implementation under drivers
 
-config BOARD_KEYSTORE
-    string "Keystore"
+config BOARD_PROTECTED
+    bool "Memory protection"
     help
-        Keystore implememntation selection
+        Enable memory protection via MPU/MMU
 
 menu "Serial ports"
+
+    config BOARD_SERIAL_URT6
+        string "URT6 tty port"
 
     config BOARD_SERIAL_GPS1
         string "GPS1 tty port"
@@ -158,8 +158,14 @@ menu "Serial ports"
     config BOARD_SERIAL_TEL5
         string "TEL5 tty port"
 
+    config BOARD_SERIAL_RC
+        string "RC tty port"
+
     config BOARD_SERIAL_WIFI
         string "WIFI tty port"
+
+    config BOARD_SERIAL_PPB
+        string "PPB (Pixhawk Payload Bus) tty port"
 endmenu
 
 menu "drivers"

@@ -1,0 +1,6 @@
+menuconfig DRIVERS_SW_CRYPTO
+	bool "sw_crypto"
+	depends on BOARD_CRYPTO
+	default n
+	---help---
+		Enable support for sw_crypto

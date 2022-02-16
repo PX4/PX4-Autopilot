@@ -64,6 +64,7 @@ void SubscriptionManager::subscribe()
 #endif
 
 	_access_rsp.subscribe();
+	_list_rsp.subscribe();
 
 	updateDynamicSubscriptions();
 }

@@ -33,8 +33,7 @@
 
 #pragma once
 
-#include "i2c.h"
-#include "spi.h"
+#include <board_config.h>
 
 #include <stdint.h>
 
@@ -43,15 +42,29 @@
 #include <px4_platform_common/atomic.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/sem.h>
-#include <board_config.h>
-#include <drivers/device/spi.h>
+
+#if defined(CONFIG_I2C)
+# include "i2c.h"
+#endif // CONFIG_I2C
+
+#if defined(CONFIG_SPI)
+# include "spi.h"
+#endif // CONFIG_SPI
+
+#if defined(CONFIG_SPI)
+# include <drivers/device/spi.h>
+#endif // CONFIG_SPI
 
 enum class I2CSPIBusOption : uint8_t {
 	All = 0, ///< select all runnning instances
+#if defined(CONFIG_I2C)
 	I2CInternal,
 	I2CExternal,
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 	SPIInternal,
 	SPIExternal,
+#endif // CONFIG_SPI
 };
 
 class BusCLIArguments;
@@ -66,11 +79,15 @@ struct I2CSPIDriverConfig {
 	I2CSPIBusOption bus_option;
 	board_bus_types bus_type;
 	int bus;
+#if defined(CONFIG_I2C)
 	uint8_t i2c_address;
+#endif // CONFIG_I2C
 	int bus_frequency;
+#if defined(CONFIG_SPI)
 	spi_drdy_gpio_t drdy_gpio;
 	spi_mode_e spi_mode;
 	uint32_t spi_devid;
+#endif // CONFIG_SPI
 	int bus_device_index;
 
 	Rotation rotation;
@@ -93,13 +110,17 @@ class I2CSPIInstance : public ListNode<I2CSPIInstance *>
 {
 public:
 	virtual ~I2CSPIInstance() = default;
+#if defined(CONFIG_I2C)
 	virtual int8_t  get_i2c_address() {return _i2c_address;}
-
+#endif // CONFIG_I2C
 private:
 	I2CSPIInstance(const I2CSPIDriverConfig &config)
 		: _module_name(config.module_name), _bus_option(config.bus_option), _bus(config.bus),
-		  _devid_driver_index(config.devid_driver_index), _bus_device_index(config.bus_device_index),
-		  _i2c_address(config.i2c_address) {}
+		  _devid_driver_index(config.devid_driver_index), _bus_device_index(config.bus_device_index)
+#if defined(CONFIG_I2C)
+		, _i2c_address(config.i2c_address)
+#endif // CONFIG_I2C
+	{}
 
 
 	friend class BusInstanceIterator;
@@ -110,14 +131,28 @@ private:
 	const int _bus;
 	const uint16_t _devid_driver_index;
 	const int8_t _bus_device_index;
+#if defined(CONFIG_I2C)
 	const int8_t _i2c_address; ///< I2C address (optional)
+#endif // CONFIG_I2C
 };
 
 class BusCLIArguments
 {
 public:
 	BusCLIArguments(bool i2c_support, bool spi_support)
-		: _i2c_support(i2c_support), _spi_support(spi_support) {}
+#if defined(CONFIG_I2C) || defined(CONFIG_SPI)
+		:
+#endif // CONFIG_I2C || CONFIG_SPI
+#if defined(CONFIG_I2C)
+		_i2c_support(i2c_support)
+#endif // CONFIG_I2C
+#if defined(CONFIG_I2C) && defined(CONFIG_SPI)
+		,
+#endif // CONFIG_I2C && CONFIG_SPI
+#if defined(CONFIG_SPI)
+		_spi_support(spi_support)
+#endif // CONFIG_SPI
+	{}
 
 	/**
 	 * Parse CLI arguments (for drivers that don't need any custom arguments, otherwise getopt() should be used)
@@ -139,11 +174,15 @@ public:
 
 	I2CSPIBusOption bus_option{I2CSPIBusOption::All};
 	int requested_bus{-1};
-	int chipselect_index{1};
 	int bus_frequency{0};
+#if defined(CONFIG_SPI)
+	int chipselect {-1};
 	spi_mode_e spi_mode{SPIDEV_MODE3};
-	uint8_t i2c_address{0}; ///< I2C address (a driver must set the default address)
-	bool quiet_start{false}; ///< do not print a message when startup fails
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
+	uint8_t i2c_address {0}; ///< I2C address (a driver must set the default address)
+#endif // CONFIG_I2C
+	bool quiet_start {false}; ///< do not print a message when startup fails
 	bool keep_running{false}; ///< keep driver running even if no device is detected on startup
 
 	Rotation rotation{ROTATION_NONE}; ///< sensor rotation (MAV_SENSOR_ROTATION_* or distance_sensor_s::ROTATION_*)
@@ -153,8 +192,12 @@ public:
 	void *custom_data{nullptr}; ///< driver-specific custom argument
 
 	// driver defaults, if not specified via CLI
-	int default_spi_frequency{-1}; ///< default spi bus frequency (driver needs to set this) [Hz]
-	int default_i2c_frequency{-1}; ///< default i2c bus frequency (driver needs to set this) [Hz]
+#if defined(CONFIG_SPI)
+	int default_spi_frequency {-1}; ///< default spi bus frequency (driver needs to set this) [Hz]
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
+	int default_i2c_frequency {-1}; ///< default i2c bus frequency (driver needs to set this) [Hz]
+#endif // CONFIG_I2C
 
 	bool support_keep_running{false}; ///< true if keep_running (see above) is supported
 
@@ -164,8 +207,12 @@ private:
 	char _options[32] {};
 	int _optind{1};
 	const char *_optarg{nullptr};
+#if defined(CONFIG_I2C)
 	const bool _i2c_support;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 	const bool _spi_support;
+#endif // CONFIG_SPI
 };
 
 /**
@@ -189,15 +236,23 @@ public:
 	board_bus_types busType() const;
 	int bus() const;
 	uint32_t devid() const;
+
+#if defined(CONFIG_SPI)
 	spi_drdy_gpio_t DRDYGPIO() const;
+#endif // CONFIG_SPI
+
 	bool external() const;
 	int externalBusIndex() const;
 	int busDeviceIndex() const;
 
 	void addInstance(I2CSPIInstance *instance);
 
+#if defined(CONFIG_I2C)
 	static I2CBusIterator::FilterType i2cFilter(I2CSPIBusOption bus_option);
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 	static SPIBusIterator::FilterType spiFilter(I2CSPIBusOption bus_option);
+#endif // CONFIG_SPI
 
 	const char *moduleName() const { return _module_name; }
 	uint16_t devidDriverIndex() const { return _devid_driver_index; }
@@ -206,9 +261,15 @@ private:
 	const char *_module_name;
 	const I2CSPIBusOption _bus_option;
 	const uint16_t _devid_driver_index;
+#if defined(CONFIG_I2C)
 	const uint8_t _i2c_address;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 	SPIBusIterator _spi_bus_iterator;
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
 	I2CBusIterator _i2c_bus_iterator;
+#endif // CONFIG_I2C
 	List<I2CSPIInstance *>::Iterator _current_instance;
 };
 

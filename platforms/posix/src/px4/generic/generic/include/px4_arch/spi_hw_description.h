@@ -35,6 +35,8 @@
 
 #include <px4_platform_common/spi.h>
 
+#if defined(CONFIG_SPI)
+
 static inline constexpr px4_spi_bus_device_t initSPIDevice(uint8_t devid_driver, uint8_t cs_index)
 {
 	px4_spi_bus_device_t ret{};
@@ -57,3 +59,4 @@ static inline constexpr px4_spi_bus_t initSPIBus(int bus, const px4_spi_bus_devi
 	ret.requires_locking = false;
 	return ret;
 }
+#endif // CONFIG_SPI

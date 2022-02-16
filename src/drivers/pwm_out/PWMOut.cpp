@@ -222,11 +222,6 @@ int PWMOut::set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_
 	return OK;
 }
 
-int PWMOut::set_i2c_bus_clock(unsigned bus, unsigned clock_hz)
-{
-	return device::I2C::set_bus_clock(bus, clock_hz);
-}
-
 void PWMOut::update_current_rate()
 {
 	/*
@@ -416,10 +411,6 @@ bool PWMOut::update_pwm_out_state(bool on)
 bool PWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	if (_test_mode) {
-		return false;
-	}
-
 	/* output to the servos */
 	if (_pwm_initialized) {
 		for (size_t i = 0; i < num_outputs; i++) {
@@ -576,6 +567,9 @@ void PWMOut::update_params()
 				} else if (pwm_default_channel_mask & 1 << i) {
 					_mixing_output.minValue(i) = pwm_min_default;
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 		}
 
@@ -596,6 +590,9 @@ void PWMOut::update_params()
 				} else if (pwm_default_channel_mask & 1 << i) {
 					_mixing_output.maxValue(i) = pwm_max_default;
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 		}
 
@@ -613,6 +610,9 @@ void PWMOut::update_params()
 						param_set(param_find(str), &pwm_fail_new);
 					}
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 		}
 
@@ -633,6 +633,9 @@ void PWMOut::update_params()
 				} else if (pwm_default_channel_mask & 1 << i) {
 					_mixing_output.disarmedValue(i) = pwm_disarmed_default;
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 
 			if (_mixing_output.disarmedValue(i) > 0) {
@@ -654,6 +657,9 @@ void PWMOut::update_params()
 				} else {
 					reverse_pwm_mask = reverse_pwm_mask & ~(1 << i);
 				}
+
+			} else {
+				PX4_ERR("param %s not found", str);
 			}
 		}
 	}
@@ -665,7 +671,11 @@ void PWMOut::update_params()
 			sprintf(str, "%s_TRIM%u", prefix, i + 1);
 
 			float pval = 0.0f;
-			param_get(param_find(str), &pval);
+
+			if (param_get(param_find(str), &pval) != PX4_OK) {
+				PX4_ERR("param %s not found", str);
+			}
+
 			values[i] = roundf(10000 * pval);
 		}
 
@@ -676,7 +686,7 @@ void PWMOut::update_params()
 	_num_disarmed_set = num_disarmed_set;
 }
 
-int PWMOut::ioctl(file *filp, int cmd, unsigned long arg)
+int PWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = pwm_ioctl(filp, cmd, arg);
 
@@ -688,7 +698,7 @@ int PWMOut::ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
+int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
@@ -736,40 +746,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		*(uint32_t *)arg = _pwm_alt_rate_channels;
 		break;
 
-	case PWM_SERVO_SET_FAILSAFE_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > FMU_MAX_ACTUATORS || _mixing_output.useDynamicMixing()) {
-				ret = -EINVAL;
-				break;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] == 0) {
-					/* ignore 0 */
-				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_mixing_output.failsafeValue(i) = PWM_HIGHEST_MAX;
-
-				}
-
-#if PWM_LOWEST_MIN > 0
-
-				else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_mixing_output.failsafeValue(i) = PWM_LOWEST_MIN;
-
-				}
-
-#endif
-
-				else {
-					_mixing_output.failsafeValue(i) = pwm->values[i];
-				}
-			}
-
-			break;
-		}
-
 	case PWM_SERVO_GET_FAILSAFE_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
@@ -778,50 +754,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			}
 
 			pwm->channel_count = FMU_MAX_ACTUATORS;
-			break;
-		}
-
-	case PWM_SERVO_SET_DISARMED_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			/* discard if too many values are sent */
-			if (pwm->channel_count > FMU_MAX_ACTUATORS || _mixing_output.useDynamicMixing()) {
-				ret = -EINVAL;
-				break;
-			}
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (pwm->values[i] == 0) {
-					/* ignore 0 */
-				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_mixing_output.disarmedValue(i) = PWM_HIGHEST_MAX;
-				}
-
-#if PWM_LOWEST_MIN > 0
-
-				else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_mixing_output.disarmedValue(i) = PWM_LOWEST_MIN;
-				}
-
-#endif
-
-				else {
-					_mixing_output.disarmedValue(i) = pwm->values[i];
-				}
-			}
-
-			/*
-			 * update the counter
-			 * this is needed to decide if disarmed PWM output should be turned on or not
-			 */
-			_num_disarmed_set = 0;
-
-			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
-				if (_mixing_output.disarmedValue(i) > 0) {
-					_num_disarmed_set++;
-				}
-			}
-
 			break;
 		}
 
@@ -919,61 +851,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 		break;
 
-	case PWM_SERVO_GET_TRIM_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			if (_mixing_output.mixers() == nullptr) {
-				memset(pwm, 0, sizeof(pwm_output_values));
-				PX4_WARN("warning: trim values not valid - no mixer loaded");
-
-			} else {
-
-				pwm->channel_count = _mixing_output.mixers()->get_trims((int16_t *)pwm->values);
-			}
-		}
-		break;
-
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
-
-	case PWM_SERVO_SET(13):
-	case PWM_SERVO_SET(12):
-	case PWM_SERVO_SET(11):
-	case PWM_SERVO_SET(10):
-	case PWM_SERVO_SET(9):
-	case PWM_SERVO_SET(8):
-#endif
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 8
-	case PWM_SERVO_SET(7):
-	case PWM_SERVO_SET(6):
-#endif
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 6
-	case PWM_SERVO_SET(5):
-#endif
-#if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 5
-	case PWM_SERVO_SET(4):
-#endif
-	case PWM_SERVO_SET(3):
-	case PWM_SERVO_SET(2):
-	case PWM_SERVO_SET(1):
-	case PWM_SERVO_SET(0):
-		if (cmd - PWM_SERVO_SET(0) >= (int)_num_outputs) {
-			ret = -EINVAL;
-			break;
-		}
-
-		if (arg <= 2100) {
-			unsigned channel = cmd - PWM_SERVO_SET(0) + _output_base;
-
-			if (_pwm_mask & (1 << channel)) {
-				up_pwm_servo_set(channel, arg);
-			}
-
-		} else {
-			ret = -EINVAL;
-		}
-
-		break;
-
 #if defined(DIRECT_PWM_OUTPUT_CHANNELS) && DIRECT_PWM_OUTPUT_CHANNELS >= 14
 
 	case PWM_SERVO_GET(13):
@@ -1034,23 +911,6 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		*(unsigned *)arg = _num_outputs;
 		break;
 
-	case PWM_SERVO_SET_MODE: {
-			switch (arg) {
-			case PWM_SERVO_ENTER_TEST_MODE:
-				_test_mode = true;
-				break;
-
-			case PWM_SERVO_EXIT_TEST_MODE:
-				_test_mode = false;
-				break;
-
-			default:
-				ret = -EINVAL;
-			}
-
-			break;
-		}
-
 	case MIXERIOCRESET:
 		_mixing_output.resetMixerThreadSafe();
 
@@ -1075,237 +935,8 @@ int PWMOut::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-void PWMOut::sensor_reset(int ms)
-{
-	if (ms < 1) {
-		ms = 1;
-	}
-
-	board_spi_reset(ms, 0xffff);
-}
-
-void PWMOut::peripheral_reset(int ms)
-{
-	if (ms < 1) {
-		ms = 10;
-	}
-
-	board_peripheral_reset(ms);
-}
-
-namespace
-{
-
-int fmu_new_i2c_speed(unsigned bus, unsigned clock_hz)
-{
-	return PWMOut::set_i2c_bus_clock(bus, clock_hz);
-}
-
-} // namespace
-
-int PWMOut::test(const char *dev)
-{
-	int	 fd;
-	unsigned servo_count = 0;
-	unsigned pwm_value = 1000;
-	int	 direction = 1;
-	int  ret;
-	int   rv = -1;
-
-	fd = ::open(dev, O_RDWR);
-
-	if (fd < 0) {
-		PX4_ERR("open fail");
-		return -1;
-	}
-
-	if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
-		PX4_ERR("Failed to Enter pwm test mode");
-		goto err_out_no_test;
-	}
-
-	if (::ioctl(fd, PWM_SERVO_ARM, 0) < 0) {
-		PX4_ERR("servo arm failed");
-		goto err_out;
-	}
-
-	if (::ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count) != 0) {
-		PX4_ERR("Unable to get servo count");
-		goto err_out;
-	}
-
-	PX4_INFO("Testing %u servos", servo_count);
-
-	struct pollfd fds;
-
-	fds.fd = 0; /* stdin */
-
-	fds.events = POLLIN;
-
-	PX4_INFO("Press CTRL-C or 'c' to abort.");
-
-	for (;;) {
-		/* sweep all servos between 1000..2000 */
-		servo_position_t servos[servo_count];
-
-		for (unsigned i = 0; i < servo_count; i++) {
-			servos[i] = pwm_value;
-		}
-
-		for (unsigned i = 0; i < servo_count;	i++) {
-			if (::ioctl(fd, PWM_SERVO_SET(i), servos[i]) < 0) {
-				PX4_ERR("servo %u set failed", i);
-				goto err_out;
-			}
-		}
-
-		if (direction > 0) {
-			if (pwm_value < 2000) {
-				pwm_value++;
-
-			} else {
-				direction = -1;
-			}
-
-		} else {
-			if (pwm_value > 1000) {
-				pwm_value--;
-
-			} else {
-				direction = 1;
-			}
-		}
-
-		/* readback servo values */
-		for (unsigned i = 0; i < servo_count; i++) {
-			servo_position_t value;
-
-			if (::ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&value)) {
-				PX4_ERR("error reading PWM servo %u", i);
-				goto err_out;
-			}
-
-			if (value != servos[i]) {
-				PX4_ERR("servo %u readback error, got %" PRIu16 " expected %" PRIu16, i, value, servos[i]);
-				goto err_out;
-			}
-		}
-
-		/* Check if user wants to quit */
-		char c;
-		ret = ::poll(&fds, 1, 0);
-
-		if (ret > 0) {
-
-			::read(0, &c, 1);
-
-			if (c == 0x03 || c == 0x63 || c == 'q') {
-				PX4_INFO("User abort");
-				break;
-			}
-		}
-	}
-
-	rv = 0;
-
-err_out:
-
-	if (::ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_EXIT_TEST_MODE) < 0) {
-		PX4_ERR("Failed to Exit pwm test mode");
-	}
-
-err_out_no_test:
-	::close(fd);
-	return rv;
-}
-
 int PWMOut::custom_command(int argc, char *argv[])
 {
-
-	int ch = 0;
-	int myoptind = 0;
-	const char *myoptarg = nullptr;
-	const char *dev = PX4FMU_DEVICE_PATH;
-
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'd':
-			if (nullptr == strstr(myoptarg, "/dev/")) {
-				PX4_WARN("device %s not valid", myoptarg);
-				print_usage(nullptr);
-				return 1;
-			}
-
-			dev = myoptarg;
-			break;
-		}
-	}
-
-	if (myoptind >= argc) {
-		print_usage(nullptr);
-		return 1;
-	}
-
-	const char *verb = argv[myoptind];
-
-	/* does not operate on a FMU instance */
-	if (!strcmp(verb, "i2c")) {
-		if (argc > 2) {
-			int bus = strtol(argv[1], 0, 0);
-			int clock_hz = strtol(argv[2], 0, 0);
-			int ret = fmu_new_i2c_speed(bus, clock_hz);
-
-			if (ret) {
-				PX4_ERR("setting I2C clock failed");
-			}
-
-			return ret;
-		}
-
-		return print_usage("not enough arguments");
-	}
-
-	if (!strcmp(verb, "sensor_reset")) {
-		if (argc > 1) {
-			int reset_time = strtol(argv[1], nullptr, 0);
-			sensor_reset(reset_time);
-
-		} else {
-			sensor_reset(0);
-			PX4_INFO("reset default time");
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(verb, "peripheral_reset")) {
-		if (argc > 2) {
-			int reset_time = strtol(argv[2], 0, 0);
-			peripheral_reset(reset_time);
-
-		} else {
-			peripheral_reset(0);
-			PX4_INFO("reset default time");
-		}
-
-		return 0;
-	}
-
-
-	/* start pwm_out if not running */
-	if (!is_running()) {
-
-		int ret = PWMOut::task_spawn(argc, argv);
-
-		if (ret) {
-			return ret;
-		}
-	}
-
-	if (!strcmp(verb, "test")) {
-		return test(dev);
-	}
-
 	return print_usage("unknown command");
 }
 
@@ -1375,16 +1006,6 @@ By default the module runs on a work queue with a callback on the uORB actuator_
 
 	PRINT_MODULE_USAGE_NAME("pwm_out", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("sensor_reset", "Do a sensor reset (SPI bus)");
-	PRINT_MODULE_USAGE_ARG("<ms>", "Delay time in ms between reset and re-enabling", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("peripheral_reset", "Reset board peripherals");
-	PRINT_MODULE_USAGE_ARG("<ms>", "Delay time in ms between reset and re-enabling", true);
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("i2c", "Configure I2C clock rate");
-	PRINT_MODULE_USAGE_ARG("<bus_id> <rate>", "Specify the bus id (>=0) and rate in Hz", false);
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test outputs");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

@@ -33,4 +33,3 @@ Sigma_wind = param.alignment.windErrNE * [1;1];
 % Convert to variances and write to covariance matrix diagonals
 covariance = diag([Sigma_quat;Sigma_velocity;Sigma_position;Sigma_dAngBias;Sigma_dVelBias;Sigma_magNED;Sigma_magXYZ;Sigma_wind].^2);
 end
-

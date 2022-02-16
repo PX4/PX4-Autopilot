@@ -75,12 +75,13 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 {
 
 	const Vector3f simulated_velocity_earth(0.0f, 1.5f, 0.0f);
-	const Vector2f airspeed_body(0.4f, 0.0f);
+	const Vector2f airspeed_body(2.4f, 0.0f);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator._vio.setVelocity(simulated_velocity_earth);
 	_sensor_simulator.startExternalVision();
 
 	_ekf->set_in_air_status(true);
+	_ekf->set_is_fixed_wing(true);
 	_sensor_simulator.startAirspeedSensor();
 	_sensor_simulator._airspeed.setData(airspeed_body(0), airspeed_body(0));
 
@@ -116,6 +117,6 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	const float expected_height_after_pressure_correction = height_before_pressure_correction -
 			expected_height_difference;
 
-	EXPECT_NEAR(height_after_pressure_correction, expected_height_after_pressure_correction, 1e-3f);
+	EXPECT_NEAR(height_after_pressure_correction, expected_height_after_pressure_correction, 1e-2f);
 
 }

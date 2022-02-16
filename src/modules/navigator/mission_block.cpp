@@ -248,17 +248,14 @@ MissionBlock::is_mission_item_reached()
 			if (curr_sp->valid) {
 
 				// location of gate (mission item)
-				struct map_projection_reference_s ref_pos;
-				map_projection_init(&ref_pos, _mission_item.lat, _mission_item.lon);
+				MapProjection ref_pos{_mission_item.lat, _mission_item.lon};
 
 				// current setpoint
-				matrix::Vector2f gate_to_curr_sp;
-				map_projection_project(&ref_pos, curr_sp->lat, curr_sp->lon, &gate_to_curr_sp(0), &gate_to_curr_sp(1));
+				matrix::Vector2f gate_to_curr_sp = ref_pos.project(curr_sp->lat, curr_sp->lon);
 
 				// system position
-				matrix::Vector2f vehicle_pos;
-				map_projection_project(&ref_pos, _navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-						       &vehicle_pos(0), &vehicle_pos(1));
+				matrix::Vector2f vehicle_pos = ref_pos.project(_navigator->get_global_position()->lat,
+							       _navigator->get_global_position()->lon);
 				const float dot_product = vehicle_pos.dot(gate_to_curr_sp.normalized());
 
 				// if the dot product (projected vector) is positive, then
@@ -287,6 +284,8 @@ MissionBlock::is_mission_item_reached()
 				acceptance_radius = _mission_item.acceptance_radius;
 			}
 
+			float alt_acc_rad_m = _navigator->get_altitude_acceptance_radius();
+
 			/* for vtol back transition calculate acceptance radius based on time and ground speed */
 			if (_mission_item.vtol_back_transition
 			    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
@@ -302,10 +301,46 @@ MissionBlock::is_mission_item_reached()
 
 				}
 
+				// do not care for altitude when approaching the backtransition point. Not accepting the waypoint causes
+				// the vehicle to perform a sharp turn after passing the land waypoint and this causes worse unexected behavior
+				alt_acc_rad_m = INFINITY;
+
 			}
 
-			if (dist_xy >= 0.0f && dist_xy <= acceptance_radius
-			    && dist_z <= _navigator->get_altitude_acceptance_radius()) {
+			bool passed_curr_wp = false;
+
+			if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+
+				const float dist_prev_to_curr = get_distance_to_next_waypoint(_navigator->get_position_setpoint_triplet()->previous.lat,
+								_navigator->get_position_setpoint_triplet()->previous.lon, _navigator->get_position_setpoint_triplet()->current.lat,
+								_navigator->get_position_setpoint_triplet()->current.lon);
+
+				if (dist_prev_to_curr > 1.0e-6f && _navigator->get_position_setpoint_triplet()->previous.valid) {
+					// Fixed-wing guidance interprets this condition as line segment following
+
+					// vector from previous waypoint to current waypoint
+					float vector_prev_to_curr_north;
+					float vector_prev_to_curr_east;
+					get_vector_to_next_waypoint_fast(_navigator->get_position_setpoint_triplet()->previous.lat,
+									 _navigator->get_position_setpoint_triplet()->previous.lon, _navigator->get_position_setpoint_triplet()->current.lat,
+									 _navigator->get_position_setpoint_triplet()->current.lon, &vector_prev_to_curr_north,
+									 &vector_prev_to_curr_east);
+
+					// vector from next waypoint to aircraft
+					float vector_curr_to_vehicle_north;
+					float vector_curr_to_vehicle_east;
+					get_vector_to_next_waypoint_fast(_navigator->get_position_setpoint_triplet()->current.lat,
+									 _navigator->get_position_setpoint_triplet()->current.lon, _navigator->get_global_position()->lat,
+									 _navigator->get_global_position()->lon, &vector_curr_to_vehicle_north,
+									 &vector_curr_to_vehicle_east);
+
+					// if dot product of vectors is positive, we are passed the current waypoint (the terminal point on the line segment) and should switch to next mission item
+					passed_curr_wp = vector_prev_to_curr_north * vector_curr_to_vehicle_north + vector_prev_to_curr_east *
+							 vector_curr_to_vehicle_east > 0.0f;
+				}
+			}
+
+			if (dist_xy >= 0.0f && (dist_xy <= acceptance_radius || passed_curr_wp) && dist_z <= alt_acc_rad_m) {
 				_waypoint_position_reached = true;
 			}
 		}
@@ -334,6 +369,14 @@ MissionBlock::is_mission_item_reached()
 			if (fabsf(yaw_err) < _navigator->get_yaw_threshold()
 			    || (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading)) {
 
+				_waypoint_yaw_reached = true;
+			}
+
+			// Always accept yaw during takeoff
+			// TODO: Ideally Navigator would handle a yaw reset and adjust its yaw setpoint, making the
+			// following no longer necessary.
+			// FlightTaskAuto is currently also ignoring the yaw setpoint during takeoff and thus "handling" it.
+			if (_mission_item.nav_cmd == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF) {
 				_waypoint_yaw_reached = true;
 			}
 
@@ -369,6 +412,9 @@ MissionBlock::is_mission_item_reached()
 			struct position_setpoint_s *curr_sp_new = &_navigator->get_position_setpoint_triplet()->current;
 			const position_setpoint_s &next_sp = _navigator->get_position_setpoint_triplet()->next;
 
+			const float dist_current_next = get_distance_to_next_waypoint(curr_sp_new->lat, curr_sp_new->lon, next_sp.lat,
+							next_sp.lon);
+
 			/* enforce exit heading if in FW, the next wp is valid, the vehicle is currently loitering and either having force_heading set,
 			   or if loitering to achieve altitdue at a NAV_CMD_WAYPOINT */
 			const bool enforce_exit_heading = _navigator->get_vstatus()->vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
@@ -377,11 +423,10 @@ MissionBlock::is_mission_item_reached()
 							  curr_sp_new->type == position_setpoint_s::SETPOINT_TYPE_LOITER &&
 							  (_mission_item.force_heading || _mission_item.nav_cmd == NAV_CMD_WAYPOINT);
 
-			if (enforce_exit_heading) {
+			// can only enforce exit heading if next waypoint is not within loiter radius of current waypoint
+			const bool exit_heading_is_reachable = dist_current_next > 1.2f * curr_sp_new->loiter_radius;
 
-
-				const float dist_current_next = get_distance_to_next_waypoint(curr_sp_new->lat, curr_sp_new->lon, next_sp.lat,
-								next_sp.lon);
+			if (enforce_exit_heading && exit_heading_is_reachable) {
 
 				float yaw_err = 0.0f;
 
@@ -433,7 +478,9 @@ MissionBlock::is_mission_item_reached()
 					bearing += inner_angle;
 				}
 
-				// Replace current setpoint lat/lon with tangent coordinate
+				// set typ to position, will get set to loiter in the fw position controller once close
+				// and replace current setpoint lat/lon with tangent coordinate
+				curr_sp.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 				waypoint_from_heading_and_distance(curr_sp.lat, curr_sp.lon,
 								   bearing, fabsf(curr_sp.loiter_radius),
 								   &curr_sp.lat, &curr_sp.lon);
@@ -634,42 +681,40 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 }
 
 void
-MissionBlock::set_loiter_item(struct mission_item_s *item, float min_clearance)
+MissionBlock::setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *item)
 {
-	if (_navigator->get_land_detected()->landed) {
-		/* landed, don't takeoff, but switch to IDLE mode */
-		item->nav_cmd = NAV_CMD_IDLE;
+	setLoiterItemCommonFields(item);
 
-	} else {
-		item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
+	const position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-		struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+	item->lat = pos_sp_triplet->current.lat;
+	item->lon = pos_sp_triplet->current.lon;
+	item->altitude = pos_sp_triplet->current.alt;
+	item->loiter_radius = pos_sp_triplet->current.loiter_radius;
+}
 
-		if (_navigator->get_can_loiter_at_sp() && pos_sp_triplet->current.valid) {
-			/* use current position setpoint */
-			item->lat = pos_sp_triplet->current.lat;
-			item->lon = pos_sp_triplet->current.lon;
-			item->altitude = pos_sp_triplet->current.alt;
+void
+MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
+{
+	setLoiterItemCommonFields(item);
 
-		} else {
-			/* use current position and use return altitude as clearance */
-			item->lat = _navigator->get_global_position()->lat;
-			item->lon = _navigator->get_global_position()->lon;
-			item->altitude = _navigator->get_global_position()->alt;
+	item->lat = _navigator->get_global_position()->lat;
+	item->lon = _navigator->get_global_position()->lon;
+	item->altitude = _navigator->get_global_position()->alt;
+	item->loiter_radius = _navigator->get_loiter_radius();
+}
 
-			if (min_clearance > 0.0f && item->altitude < _navigator->get_home_position()->alt + min_clearance) {
-				item->altitude = _navigator->get_home_position()->alt + min_clearance;
-			}
-		}
+void
+MissionBlock::setLoiterItemCommonFields(struct mission_item_s *item)
+{
+	item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 
-		item->altitude_is_relative = false;
-		item->yaw = NAN;
-		item->loiter_radius = _navigator->get_loiter_radius();
-		item->acceptance_radius = _navigator->get_acceptance_radius();
-		item->time_inside = 0.0f;
-		item->autocontinue = false;
-		item->origin = ORIGIN_ONBOARD;
-	}
+	item->altitude_is_relative = false;
+	item->acceptance_radius = _navigator->get_acceptance_radius();
+	item->yaw = NAN;
+	item->time_inside = 0.0f;
+	item->autocontinue = false;
+	item->origin = ORIGIN_ONBOARD;
 }
 
 void
@@ -750,19 +795,18 @@ MissionBlock::set_vtol_transition_item(struct mission_item_s *item, const uint8_
 	item->nav_cmd = NAV_CMD_DO_VTOL_TRANSITION;
 	item->params[0] = (float) new_mode;
 	item->params[1] = 0.0f;
-	item->yaw = _navigator->get_local_position()->heading;
+	item->yaw = _navigator->get_local_position()->heading; // ideally that would be course and not heading
 	item->autocontinue = true;
 }
 
 void
 MissionBlock::mission_apply_limitation(mission_item_s &item)
 {
-	/*
-	 * Limit altitude
-	 */
+	// Limit altitude
+	const float maximum_altitude = _navigator->get_lndmc_alt_max();
 
 	/* do nothing if altitude max is negative */
-	if (_navigator->get_land_detected()->alt_max > 0.0f) {
+	if (maximum_altitude > 0.0f) {
 
 		/* absolute altitude */
 		float altitude_abs = item.altitude_is_relative
@@ -770,17 +814,12 @@ MissionBlock::mission_apply_limitation(mission_item_s &item)
 				     : item.altitude;
 
 		/* limit altitude to maximum allowed altitude */
-		if ((_navigator->get_land_detected()->alt_max + _navigator->get_home_position()->alt) < altitude_abs) {
+		if ((maximum_altitude + _navigator->get_home_position()->alt) < altitude_abs) {
 			item.altitude = item.altitude_is_relative ?
-					_navigator->get_land_detected()->alt_max :
-					_navigator->get_land_detected()->alt_max + _navigator->get_home_position()->alt;
-
+					maximum_altitude :
+					maximum_altitude + _navigator->get_home_position()->alt;
 		}
 	}
-
-	/*
-	 * Add other limitations here
-	 */
 }
 
 float

@@ -49,18 +49,19 @@
 
 /** subset of the BSON node types we might care about */
 typedef enum {
-	BSON_EOO = 0,
-	BSON_DOUBLE = 1,
-	BSON_STRING = 2,
-	BSON_OBJECT = 3,
-	BSON_ARRAY = 4,
-	BSON_BINDATA = 5,
+	BSON_EOO       = 0,
+	BSON_DOUBLE    = 1,
+	BSON_STRING    = 2,
+	BSON_OBJECT    = 3,
+	BSON_ARRAY     = 4,
+	BSON_BINDATA   = 5,
 	BSON_UNDEFINED = 6,
-	BSON_BOOL = 8,
-	BSON_DATE = 9,
-	BSON_nullptr = 10,
-	BSON_INT32 = 16,
-	BSON_INT64 = 18
+	BSON_BOOL      = 8,
+	BSON_DATE      = 9,
+	BSON_nullptr   = 10,
+	BSON_INT32     = 16,
+	BSON_TIMESTAMP = 17,
+	BSON_INT64     = 18
 } bson_type_t;
 
 typedef enum bson_binary_subtype {
@@ -86,9 +87,10 @@ typedef struct bson_node_s {
 	bson_type_t		type;
 	bson_binary_subtype_t	subtype;
 	union {
-		int64_t		i;
-		double		d;
-		bool		b;
+		double  d;   // bson type 1
+		bool    b;   // bson type 8
+		int32_t i32; // bson type 16
+		int64_t i64; // bson type 18
 	};
 } *bson_node_t;
 
@@ -99,26 +101,32 @@ typedef struct bson_decoder_s *bson_decoder_t;
  *
  * The node callback function's return value is returned by bson_decoder_next.
  */
-typedef int	(* bson_decoder_callback)(bson_decoder_t decoder, void *priv, bson_node_t node);
+typedef int	(* bson_decoder_callback)(bson_decoder_t decoder, bson_node_t node);
 
 struct bson_decoder_s {
 	/* file reader state */
-	int			fd;
+	int			fd{-1};
 
 	/* buffer reader state */
-	uint8_t			*buf;
-	size_t			bufsize;
-	unsigned		bufpos;
+	uint8_t			*buf{nullptr};
+	size_t			bufsize{0};
+	unsigned		bufpos{0};
 
-	bool			dead;
+	bool			dead{false};
 	bson_decoder_callback	callback;
-	void			*priv;
-	unsigned		nesting;
-	struct bson_node_s	node;
-	int32_t			pending;
+	unsigned		nesting{0};
+	struct bson_node_s	node {};
+	int32_t			pending{0};
 
-	int32_t                 total_document_size;
-	int32_t                 total_decoded_size;
+	int32_t                 total_document_size{0};
+	int32_t                 total_decoded_size{0};
+
+	uint16_t                count_node_double{0};
+	uint16_t                count_node_string{0};
+	uint16_t                count_node_bindata{0};
+	uint16_t                count_node_bool{0};
+	uint16_t                count_node_int32{0};
+	uint16_t                count_node_int64{0};
 };
 
 /**
@@ -127,10 +135,9 @@ struct bson_decoder_s {
  * @param decoder		Decoder state structure to be initialised.
  * @param fd			File to read BSON data from.
  * @param callback		Callback to be invoked by bson_decoder_next
- * @param priv          Callback private data, stored in node.
  * @return			Zero on success.
  */
-__EXPORT int bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback, void *priv);
+__EXPORT int bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder_callback callback);
 
 /**
  * Initialise the decoder to read from a buffer in memory.
@@ -141,11 +148,9 @@ __EXPORT int bson_decoder_init_file(bson_decoder_t decoder, int fd, bson_decoder
  *				passed as zero if the buffer size should be extracted from the
  *				BSON header only.
  * @param callback		Callback to be invoked by bson_decoder_next
- * @param priv		Callback private data, stored in node.
  * @return			Zero on success.
  */
-__EXPORT int bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback,
-				   void *priv);
+__EXPORT int bson_decoder_init_buf(bson_decoder_t decoder, void *buf, unsigned bufsize, bson_decoder_callback callback);
 
 /**
  * Process the next node from the stream and invoke the callback.
@@ -175,17 +180,17 @@ __EXPORT size_t bson_decoder_data_pending(bson_decoder_t decoder);
  */
 typedef struct bson_encoder_s {
 	/* file writer state */
-	int		fd;
+	int		fd{-1};
 
 	/* buffer writer state */
-	uint8_t		*buf;
-	unsigned	bufsize;
-	unsigned	bufpos;
+	uint8_t		*buf{nullptr};
+	unsigned	bufsize{0};
+	unsigned	bufpos{0};
 
-	bool		realloc_ok;
-	bool		dead;
+	bool		realloc_ok{false};
+	bool		dead{false};
 
-	int32_t        total_document_size;
+	int32_t        total_document_size{0};
 
 } *bson_encoder_t;
 
@@ -251,13 +256,22 @@ __EXPORT void *bson_encoder_buf_data(bson_encoder_t encoder);
 __EXPORT int bson_encoder_append_bool(bson_encoder_t encoder, const char *name, bool value);
 
 /**
- * Append an integer to the encoded stream.
+ * Append an int32 to the encoded stream.
  *
  * @param encoder		Encoder state.
  * @param name			Node name.
  * @param value			Value to be encoded.
  */
-__EXPORT int bson_encoder_append_int(bson_encoder_t encoder, const char *name, int64_t value);
+__EXPORT int bson_encoder_append_int32(bson_encoder_t encoder, const char *name, int32_t value);
+
+/**
+ * Append an int64 to the encoded stream.
+ *
+ * @param encoder		Encoder state.
+ * @param name			Node name.
+ * @param value			Value to be encoded.
+ */
+__EXPORT int bson_encoder_append_int64(bson_encoder_t encoder, const char *name, int64_t value);
 
 /**
  * Append a double to the encoded stream

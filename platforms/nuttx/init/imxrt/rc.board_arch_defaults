@@ -3,4 +3,6 @@
 # imxrt specific defaults
 #------------------------------------------------------------------------------
 
+param set-default -s MC_AT_EN 1
+
 set LOGGER_BUF 32

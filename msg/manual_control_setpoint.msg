@@ -1,14 +1,18 @@
-uint64 timestamp			# time since system start (microseconds)
+uint64 timestamp                        # time since system start (microseconds)
+uint64 timestamp_sample                 # the timestamp of the raw data (microseconds)
 
-uint64 timestamp_sample                # the timestamp of the raw data (microseconds)
+bool valid
 
-uint8 SOURCE_RC = 1			# radio control
+uint8 SOURCE_UNKNOWN   = 0
+uint8 SOURCE_RC        = 1		# radio control (input_rc)
 uint8 SOURCE_MAVLINK_0 = 2		# mavlink instance 0
 uint8 SOURCE_MAVLINK_1 = 3		# mavlink instance 1
 uint8 SOURCE_MAVLINK_2 = 4		# mavlink instance 2
-uint8 SOURCE_MAVLINK_3 = 5		# mavlink instance 4
+uint8 SOURCE_MAVLINK_3 = 5		# mavlink instance 3
+uint8 SOURCE_MAVLINK_4 = 6		# mavlink instance 4
+uint8 SOURCE_MAVLINK_5 = 7		# mavlink instance 5
 
-uint8 data_source		 # where this input is coming from
+uint8 data_source
 
 # Any of the channels may not be available and be set to NaN
 # to indicate that it does not contain valid data.
@@ -47,3 +51,6 @@ float32 aux4
 float32 aux5
 float32 aux6
 
+bool sticks_moving
+
+# TOPICS manual_control_setpoint manual_control_input

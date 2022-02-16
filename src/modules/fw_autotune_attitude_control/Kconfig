@@ -1,0 +1,5 @@
+menuconfig MODULES_FW_AUTOTUNE_ATTITUDE_CONTROL
+	bool "fw_autotune_attitude_control"
+	default n
+	---help---
+		Enable support for fw_autotune_attitude_control

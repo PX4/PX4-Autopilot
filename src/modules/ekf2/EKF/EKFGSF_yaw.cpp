@@ -245,10 +245,7 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 	}
 
 	// Calculate the yaw state using a projection onto the horizontal that avoids gimbal lock
-	const Dcmf &R = _ahrs_ekf_gsf[model_index].R;
-	_ekf_gsf[model_index].X(2) = shouldUse321RotationSequence(R) ?
-				     getEuler321Yaw(R) :
-				     getEuler312Yaw(R);
+	_ekf_gsf[model_index].X(2) = getEulerYaw(_ahrs_ekf_gsf[model_index].R);
 
 	// calculate delta velocity in a horizontal front-right frame
 	const Vector3f del_vel_NED = _ahrs_ekf_gsf[model_index].R * _delta_vel;
@@ -531,17 +528,6 @@ Matrix3f EKFGSF_yaw::ahrsPredictRotMat(const Matrix3f &R, const Vector3f &g)
 	}
 
 	return ret;
-}
-
-bool EKFGSF_yaw::getYawData(float *yaw, float *yaw_variance) const
-{
-	if (_ekf_gsf_vel_fuse_started) {
-		*yaw = _gsf_yaw;
-		*yaw_variance = _gsf_yaw_variance;
-		return true;
-	}
-
-	return false;
 }
 
 void EKFGSF_yaw::setVelocity(const Vector2f &velocity, float accuracy)

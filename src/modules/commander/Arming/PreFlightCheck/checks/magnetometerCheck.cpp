@@ -70,7 +70,7 @@ bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_st
 			calibration_valid = true;
 
 		} else {
-			calibration_valid = (calibration::FindCalibrationIndex("MAG", device_id) >= 0);
+			calibration_valid = (calibration::FindCurrentCalibrationIndex("MAG", device_id) >= 0);
 		}
 
 		if (!calibration_valid) {

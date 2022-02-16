@@ -179,7 +179,7 @@ public:
 	/**
 	 * Get the saturation status.
 	 *
-	 * @return			Integer bitmask containing saturation_status from multirotor_motor_limits.msg.
+	 * @return			Integer bitmask containing saturation_status from control_allocator_status.msg.
 	 */
 	virtual uint16_t		get_saturation_status() { return 0; }
 

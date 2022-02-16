@@ -45,16 +45,17 @@ StickYaw::StickYaw()
 }
 
 void StickYaw::generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, const float desired_yawspeed,
-				   const float yaw, const float deltatime)
+				   const float yaw, const bool is_yaw_good_for_control, const float deltatime)
 {
 	yawspeed_setpoint = _yawspeed_slew_rate.update(desired_yawspeed, deltatime);
-	yaw_setpoint = updateYawLock(yaw, yawspeed_setpoint, yaw_setpoint);
+	yaw_setpoint = updateYawLock(yaw, yawspeed_setpoint, yaw_setpoint, is_yaw_good_for_control);
 }
 
-float StickYaw::updateYawLock(const float yaw, const float yawspeed_setpoint, const float yaw_setpoint)
+float StickYaw::updateYawLock(const float yaw, const float yawspeed_setpoint, const float yaw_setpoint,
+			      const bool is_yaw_good_for_control)
 {
 	// Yaw-lock depends on desired yawspeed input. If not locked, yaw_sp is set to NAN.
-	if (fabsf(yawspeed_setpoint) > FLT_EPSILON) {
+	if ((fabsf(yawspeed_setpoint) > FLT_EPSILON) || !is_yaw_good_for_control) {
 		// no fixed heading when rotating around yaw by stick
 		return NAN;
 

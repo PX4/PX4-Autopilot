@@ -1,0 +1,13 @@
+{
+    "board_id": 1014,
+    "magic": "PX4FWv1",
+    "description": "Firmware for the MatekM9nf4can cannode board",
+    "image": "",
+    "build_time": 0,
+    "summary": "MateksysGnss-m9n-f4",
+    "version": "0.1",
+    "image_size": 0,
+    "image_maxsize": 983040,
+    "git_identity": "",
+    "board_revision": 0
+}

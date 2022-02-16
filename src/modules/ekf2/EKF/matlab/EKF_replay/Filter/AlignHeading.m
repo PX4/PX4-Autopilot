@@ -1,6 +1,6 @@
 function quat = AlignHeading( ...
     quat, ... % quaternion state vector
-    magMea, ... % body frame magnetic flux measurements 
+    magMea, ... % body frame magnetic flux measurements
     declination)  % Estimated magnetic field delination at current location (rad)
 
 % Get the Euler angles and set yaw to zero

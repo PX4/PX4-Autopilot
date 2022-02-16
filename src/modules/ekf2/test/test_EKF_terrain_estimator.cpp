@@ -73,6 +73,8 @@ public:
 		_ekf_wrapper.enableGpsFusion();
 		_ekf_wrapper.setBaroHeight();
 		_sensor_simulator.runSeconds(2); // Run to pass the GPS checks
+		_sensor_simulator.runSeconds(3.5); // And a bit more to start the GPS fusion TODO: this shouldn't be necessary
+		EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
 
 		const Vector3f simulated_velocity(0.5f, -1.0f, 0.f);
 
@@ -98,32 +100,27 @@ public:
 		_sensor_simulator.startFlow();
 
 		_ekf->set_in_air_status(true);
-		_sensor_simulator.runSeconds(8);
+		_sensor_simulator.runSeconds(7);
 	}
 };
 
 TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 {
 	// WHEN: simulate being 5m above ground
-	// By default, both rng and flow aiding are active
 	const float simulated_distance_to_ground = 1.f;
-	_sensor_simulator._rng.setData(simulated_distance_to_ground, 100);
-	_sensor_simulator._rng.setLimits(0.1f, 9.f);
-	_sensor_simulator.startRangeFinder();
-	_ekf->set_in_air_status(true);
-	_sensor_simulator.runSeconds(1.5f);
+	runFlowAndRngScenario(simulated_distance_to_ground, simulated_distance_to_ground);
 
 	// THEN: By default, both rng and flow aiding are active
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainRngFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainFlowFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainFlowFusion());
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
-	EXPECT_FLOAT_EQ(estimated_distance_to_ground, simulated_distance_to_ground);
+	EXPECT_NEAR(estimated_distance_to_ground, simulated_distance_to_ground, 1e-4);
 
 	// WHEN: rng fusion is disabled
 	_ekf_wrapper.disableTerrainRngFusion();
-	_sensor_simulator.runSeconds(0.2);
+	_sensor_simulator.runSeconds(5.);
 
-	// THEN: only rng fusion should be disabled
+	// THEN: rng fusion should be disabled and flow fusion should take over
 	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainRngFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainFlowFusion());
 

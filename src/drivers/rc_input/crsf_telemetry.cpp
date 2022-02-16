@@ -163,7 +163,6 @@ bool CRSFTelemetry::send_flight_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
 		flight_mode = "Failure";
 		break;
 

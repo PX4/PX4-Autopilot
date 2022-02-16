@@ -62,61 +62,67 @@
 
 /*!***************************************************************************
  * @brief	The 1d measurement results data structure.
- * @details The 1d measurement results obtained by the pixel binning algorithm.
+ * @details The 1d measurement results obtained by the Pixel Binning Algorithm.
  *****************************************************************************/
 typedef struct {
 	/*! Raw 1D range value in meter (Q9.22 format). The distance obtained by
-	 *  the pixel binning algorithm from the current measurement frame. */
+	 *  the Pixel Binning Algorithm from the current measurement frame. */
 	q9_22_t Range;
 
 	/*! The 1D amplitude in LSB (Q12.4 format). The (maximum) amplitude obtained
-	 *  by the pixel binning algorithm from the current measurement frame.
+	 *  by the Pixel Binning Algorithm from the current measurement frame.\n
 	 *  Special value: 0 == No/Invalid Result. */
 	uq12_4_t Amplitude;
+
+	/*! The current signal quality metric of the 1D range value in percentage:\n
+	 *  - 0: n/a,
+	 *  - 1: bad signal,
+	 *  - 100: good signal. */
+	uint8_t SignalQuality;
 
 } argus_results_bin_t;
 
 /*!***************************************************************************
  * @brief	The auxiliary measurement results data structure.
- * @details The auxiliary measurement results obtained by the auxiliary task.
+ * @details	The auxiliary measurement results obtained by the auxiliary task.\n
  * 			Special values, i.e. 0xFFFFU, indicate no readout value available.
  *****************************************************************************/
 typedef struct {
-	/*! VDD ADC channel readout value.
-	 *  Special Value if no value has been measured:
+	/*! VDD ADC channel readout value.\n
+	 *  Special Value if no value has been measured:\n
 	 *  Invalid/NotAvailable = 0xFFFFU (UQ12_4_MAX) */
 	uq12_4_t VDD;
 
-	/*! Temperature sensor ADC channel readout value.
-	 *  Special Value if no value has been measured:
+	/*! Temperature sensor ADC channel readout value.\n
+	 *  Special Value if no value has been measured:\n
 	 *  Invalid/NotAvailable = 0x7FFFU (Q11_4_MAX) */
 	q11_4_t TEMP;
 
-	/*! Substrate Voltage ADC Channel readout value.
-	 *  Special Value if no value has been measured:
+	/*! Substrate Voltage ADC Channel readout value.\n
+	 *  Special Value if no value has been measured:\n
 	 *  Invalid/NotAvailable = 0xFFFFU (UQ12_4_MAX) */
 	uq12_4_t VSUB;
 
-	/*! VDD VCSEL ADC channel readout value.
-	 *  Special Value if no value has been measured:
+	/*! VDD VCSEL ADC channel readout value.\n
+	 *  Special Value if no value has been measured:\n
 	 *  Invalid/NotAvailable = 0xFFFFU (UQ12_4_MAX) */
 	uq12_4_t VDDL;
 
-	/*! APD current ADC Channel readout value.
-	 *  Special Value if no value has been measured:
+	/*! APD current ADC Channel readout value.\n
+	 *  Special Value if no value has been measured:\n
 	 *  Invalid/NotAvailable = 0xFFFFU (UQ12_4_MAX) */
 	uq12_4_t IAPD;
 
 	/*! Background Light Value in arbitrary. units,
-	 *  estimated by the substrate voltage control task.
-	 *  Special Value if no value is available:
+	 *  estimated by the substrate voltage control task.\n
+	 *  Special Value if no value is available:\n
 	 *  Invalid/NotAvailable = 0xFFFFU (UQ12_4_MAX) */
 	uq12_4_t BGL;
 
 	/*! Shot Noise Amplitude in LSB units,
 	 *  estimated by the shot noise monitor task from
-	 *  the average amplitude of the passive pixels.
-	 *  Special Value if no value is available:
+	 *  the average amplitude of the passive pixels.\n
+	 *  Special Value if no value is available:\n
 	 *  Invalid/NotAvailable = 0xFFFFU (UQ12_4_MAX) */
 	uq12_4_t SNA;
 
@@ -124,7 +130,20 @@ typedef struct {
 
 /*!***************************************************************************
  * @brief	The measurement results data structure.
- * @details Measurement data from the device.
+ * @details This structure contains all information obtained by a single
+ *			distance measurement on the device:
+ *			 - The measurement status can be read from the #Status.
+ *			 - A timing information is given via the #TimeStamp.
+ *			 - Information about the frame state is in the #Frame structure.
+ *			 - The 1D distance results are gathered under #Bin.
+ *			 - The 3D distance results for each pixel is at #Pixels or #Pixel.
+ *			 - Auxiliary values such as temperature can be found at #Auxiliary.
+ *			 - Raw data from the device is stored in the #Data array.
+ *			 .
+ *
+ *			The pixel x-y orientation is sketched in the following graph. Note that
+ *			the laser source would be on the right side beyond the reference pixel.
+ *			See also \link argusmap ADC Channel Mapping\endlink
  * @code
  * 			// Pixel Field: Pixel[x][y]
  * 			//
@@ -149,21 +168,49 @@ typedef struct {
 	/*! The configuration for the current measurement frame. */
 	argus_meas_frame_t Frame;
 
-	/*! Raw unmapped ADC results from the device. */
+	/*! Raw x-y-sorted ADC results from the device.\n
+	 *  Data is arranged as 32-bit values in following order:
+	 *  index > phase; where index is pixel number n and auxiliary ADC channel.\n
+	 *  Note that disabled pixels are skipped.\n
+	 *  e.g. [n=0,p=0][n=0,p=1]..[n=0,p=3][n=1,p=0]...[n=1,p=3]...[n=31,p=3] */
 	uint32_t Data[ARGUS_RAW_DATA_VALUES];
 
-	/*! Raw Range Values from the device in meter.
-	 *  It is the actual distance before software adjustments/calibrations. */
-	argus_pixel_t PixelRef;
+	union {
+		/*! Pixel data indexed by channel number n.\n
+		 *  Contains calibrated range, amplitude and pixel status among others.
+		 *
+		 *  Index n:
+		 *  - 0..31: active pixels
+		 *  - 32:    reference pixel
+		 *
+		 *  See also \link argusmap ADC Channel Mapping\endlink */
+		argus_pixel_t Pixels[ARGUS_PIXELS + 1U];
 
-	/*! Raw Range Values from the device in meter.
-	 *  It is the actual distance before software adjustments/calibrations. */
-	argus_pixel_t Pixel[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
+		struct {
+			/*! Pixel data indexed by x-y-indices.\n
+			 *  The pixels are ordered in a two dimensional array that represent
+			 *  the x and y indices of the pixel.\n
+			*	See also \link argusmap ADC Channel Mapping\endlink
+			 *
+			 *  Contains calibrated range, amplitude and pixel status among others. */
+			argus_pixel_t Pixel[ARGUS_PIXELS_X][ARGUS_PIXELS_Y];
 
-	/*! Pixel binned results. */
+			/*! Pixel data of the reference pixel.\n
+			 *  The reference pixel is an additional pixel that is located at the TX
+			 *  side in order to monitor the health state of the laser output source.
+			 *  It is mainly used to verify normal operation of the laser source and
+			 *  preventing the system from emitting continuous laser light that exceeds
+			 *  the laser safety limits.
+			 *
+			 *  Contains calibrated range, amplitude and pixel status among others. */
+			argus_pixel_t PixelRef;
+		};
+	};
+
+	/*! The 1D measurement data, obtained by the the Pixel Binning Algorithm. */
 	argus_results_bin_t Bin;
 
-	/*! The auxiliary ADC channel data. */
+	/*! The auxiliary ADC channel data, e.g. sensor temperature. */
 	argus_results_aux_t Auxiliary;
 
 } argus_results_t;

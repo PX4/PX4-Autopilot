@@ -58,6 +58,7 @@ public:
 	void runChecks(uint64_t current_time_us, const matrix::Dcmf &R_to_earth);
 	bool isHealthy() const override { return _is_sample_valid; }
 	bool isDataHealthy() const override { return _is_sample_ready && _is_sample_valid; }
+	bool isDataReady() const { return _is_sample_ready; }
 	bool isRegularlySendingData() const override { return _is_regularly_sending_data; }
 
 	void setSample(const rangeSample &sample)
@@ -105,6 +106,8 @@ public:
 	float getValidMinVal() const { return _rng_valid_min_val; }
 	float getValidMaxVal() const { return _rng_valid_max_val; }
 
+	void setFaulty() { _is_faulty = true; }
+
 private:
 	void updateSensorToEarthRotation(const matrix::Dcmf &R_to_earth);
 
@@ -122,6 +125,7 @@ private:
 	bool _is_sample_valid{};	///< true if range finder sample retrieved from buffer is valid
 	bool _is_regularly_sending_data{false}; ///< true if the interval between two samples is less than the maximum expected interval
 	uint64_t _time_last_valid_us{};	///< time the last range finder measurement was ready (uSec)
+	bool _is_faulty{false};         ///< the sensor should not be used anymore
 
 	/*
 	 * Stuck check
@@ -140,7 +144,7 @@ private:
 	/*
 	 * Tilt check
 	 */
-	float _cos_tilt_rng_to_earth{};		///< 2,2 element of the rotation matrix from sensor frame to earth frame
+	float _cos_tilt_rng_to_earth{1.f};		///< 2,2 element of the rotation matrix from sensor frame to earth frame
 	float _range_cos_max_tilt{0.7071f};	///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
 	float _pitch_offset_rad{3.14f}; 		///< range finder tilt rotation about the Y body axis
 	float _sin_pitch_offset{0.0f}; 		///< sine of the range finder tilt rotation about the Y body axis

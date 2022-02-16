@@ -11,6 +11,7 @@ set(MENUCONFIG_PATH ${PYTHON_EXECUTABLE} -m menuconfig CACHE INTERNAL "menuconfi
 set(GUICONFIG_PATH ${PYTHON_EXECUTABLE} -m guiconfig CACHE INTERNAL "guiconfig program" FORCE)
 set(DEFCONFIG_PATH ${PYTHON_EXECUTABLE} -m defconfig CACHE INTERNAL "defconfig program" FORCE)
 set(SAVEDEFCONFIG_PATH ${PYTHON_EXECUTABLE} -m savedefconfig CACHE INTERNAL "savedefconfig program" FORCE)
+set(GENCONFIG_PATH ${PYTHON_EXECUTABLE} -m genconfig CACHE INTERNAL "genconfig program" FORCE)
 
 set(COMMON_KCONFIG_ENV_SETTINGS
 	PYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
@@ -26,12 +27,14 @@ set(COMMON_KCONFIG_ENV_SETTINGS
 	ROMFSROOT=${config_romfs_root}
 )
 
+set(config_user_list)
+
 if(EXISTS ${BOARD_DEFCONFIG})
 
     # Depend on BOARD_DEFCONFIG so that we reconfigure on config change
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BOARD_DEFCONFIG})
 
-    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
+    if(${LABEL} MATCHES "default" OR ${LABEL} MATCHES "recovery" OR ${LABEL} MATCHES "bootloader" OR ${LABEL} MATCHES "canbootloader")
         # Generate boardconfig from saved defconfig
         execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
                         ${DEFCONFIG_PATH} ${BOARD_DEFCONFIG}
@@ -45,6 +48,11 @@ if(EXISTS ${BOARD_DEFCONFIG})
                         OUTPUT_VARIABLE DUMMY_RESULTS)
     endif()
 
+    # Generate header file for C/C++ preprocessor
+    execute_process(COMMAND ${CMAKE_COMMAND} -E env ${COMMON_KCONFIG_ENV_SETTINGS}
+                    ${GENCONFIG_PATH} --header-path ${PX4_BINARY_DIR}/px4_boardconfig.h
+                    WORKING_DIRECTORY ${PX4_SOURCE_DIR}
+                    OUTPUT_VARIABLE DUMMY_RESULTS)
 
     # parse board config options for cmake
     file(STRINGS ${BOARD_CONFIG} ConfigContents)
@@ -77,6 +85,17 @@ if(EXISTS ${BOARD_DEFCONFIG})
                 set(${ConfigKey} ${Value})
                 message(STATUS "${ConfigKey} ${Value}")
             endif()
+        endif()
+
+        # Find variable name
+        string(REGEX MATCH "^CONFIG_USER[^=]+" Userspace ${NameAndValue})
+
+        if(Userspace)
+            # Find the value
+            string(REPLACE "${Name}=" "" Value ${NameAndValue})
+            string(REPLACE "CONFIG_USER_" "" module ${Name})
+            string(TOLOWER ${module} module)
+            list(APPEND config_user_list ${module})
         endif()
 
         # Find variable name
@@ -171,6 +190,16 @@ if(EXISTS ${BOARD_DEFCONFIG})
 
     endforeach()
 
+    # Put every module not in userspace also to kernel list
+    foreach(modpath ${config_module_list})
+        get_filename_component(module ${modpath} NAME)
+        list(FIND config_user_list ${module} _index)
+
+        if (${_index} EQUAL -1)
+            list(APPEND config_kernel_list ${modpath})
+        endif()
+    endforeach()
+
     if(PLATFORM)
         # set OS, and append specific platform module path
         set(PX4_PLATFORM ${PLATFORM} CACHE STRING "PX4 board OS" FORCE)
@@ -194,10 +223,12 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if (NOT CONSTRAINED_FLASH AND NOT EXTERNAL_METADATA AND NOT ${PX4_BOARD_LABEL} STREQUAL "test")
 		list(APPEND romfs_extra_files
 			${PX4_BINARY_DIR}/parameters.json.xz
-			${PX4_BINARY_DIR}/events/all_events.json.xz)
+			${PX4_BINARY_DIR}/events/all_events.json.xz
+			${PX4_BINARY_DIR}/actuators.json.xz)
 		list(APPEND romfs_extra_dependencies
 			parameters_xml
-			events_json)
+			events_json
+			actuators_json)
 	endif()
 	list(APPEND romfs_extra_files ${PX4_BINARY_DIR}/component_general.json.xz)
 	list(APPEND romfs_extra_dependencies component_general_json)
@@ -210,6 +241,9 @@ if(EXISTS ${BOARD_DEFCONFIG})
 
 	# Serial ports
 	set(board_serial_ports)
+	if(SERIAL_URT6)
+		list(APPEND board_serial_ports URT6:${SERIAL_URT6})
+	endif()
 	if(SERIAL_GPS1)
         list(APPEND board_serial_ports GPS1:${SERIAL_GPS1})
 	endif()
@@ -240,24 +274,20 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	if(SERIAL_TEL5)
         list(APPEND board_serial_ports TEL5:${SERIAL_TEL5})
 	endif()
+	if(SERIAL_RC)
+		list(APPEND board_serial_ports RC:${SERIAL_RC})
+	endif()
 	if(SERIAL_WIFI)
         list(APPEND board_serial_ports WIFI:${SERIAL_WIFI})
+	endif()
+	if(SERIAL_PPB)
+        list(APPEND board_serial_ports PPB:${SERIAL_PPB})
 	endif()
 
 
 	# ROMFS
 	if(ROMFSROOT)
 		set(config_romfs_root ${ROMFSROOT} CACHE INTERNAL "ROMFS root" FORCE)
-
-		if(BUILD_BOOTLOADER)
-			set(config_build_bootloader "1" CACHE INTERNAL "build bootloader" FORCE)
-		endif()
-
-		# IO board (placed in ROMFS)
-		if(IO)
-			set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
-			add_definitions(-DBOARD_WITH_IO)
-		endif()
 
 		if(UAVCAN_PERIPHERALS)
 			set(config_uavcan_peripheral_firmware ${UAVCAN_PERIPHERALS} CACHE INTERNAL "UAVCAN peripheral firmware" FORCE)
@@ -297,12 +327,8 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	endif()
 
 	if(CRYPTO)
-		set(PX4_CRYPTO ${CRYPTO} CACHE STRING "PX4 crypto implementation" FORCE)
+		set(PX4_CRYPTO "1" CACHE INTERNAL "PX4 crypto implementation" FORCE)
 		add_definitions(-DPX4_CRYPTO)
-	endif()
-
-	if(KEYSTORE)
-		set(PX4_KEYSTORE ${KEYSTORE} CACHE STRING "PX4 keystore implementation" FORCE)
 	endif()
 
 	if(LINKER_PREFIX)
@@ -339,6 +365,7 @@ if(EXISTS ${BOARD_DEFCONFIG})
 	list(APPEND config_module_list ${board_support_src_rel}/src)
 
 	set(config_module_list ${config_module_list})
+	set(config_kernel_list ${config_kernel_list})
 
 endif()
 

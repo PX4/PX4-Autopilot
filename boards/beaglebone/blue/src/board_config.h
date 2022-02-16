@@ -42,15 +42,18 @@
 #define BOARD_OVERRIDE_UUID "BBBLUEID00000000" // must be of length 16
 #define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_BBBLUE
 
-#define BOARD_BATTERY1_V_DIV   (11.0f)
-
 #define BOARD_MAX_LEDS 4 // Number external of LED's this board has
 
 
 // I2C
+#define CONFIG_I2C 1
 #define PX4_NUMBER_I2C_BUSES    2
 
 #define PX4_I2C_OBDEV_MPU9250 0x68
+
+
+// SPI
+#define CONFIG_SPI 1
 
 
 // ADC channels:

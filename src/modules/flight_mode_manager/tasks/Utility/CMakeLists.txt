@@ -32,9 +32,6 @@
 ############################################################################
 
 px4_add_library(FlightTaskUtility
-	StraightLine.cpp
-	ManualVelocitySmoothingXY.cpp
-	ManualVelocitySmoothingZ.cpp
 	Sticks.cpp
 	StickAccelerationXY.cpp
 	StickYaw.cpp
@@ -42,5 +39,3 @@ px4_add_library(FlightTaskUtility
 
 target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis bezier SlewRate motion_planning)
 target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-px4_add_unit_gtest(SRC ManualVelocitySmoothingXYTest.cpp LINKLIBS FlightTaskUtility)

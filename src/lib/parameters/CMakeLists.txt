@@ -79,7 +79,7 @@ endif()
 if(PX4_ETHERNET)
 	set(added_arguments --ethernet)
 endif()
-if(config_io_board)
+if(CONFIG_BOARD_IO)
 	set(board_with_io_arg --board-with-io)
 endif()
 add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_params_file}
@@ -87,13 +87,15 @@ add_custom_command(OUTPUT ${generated_serial_params_file} ${generated_module_par
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 		--params-file ${generated_serial_params_file}
 		--serial-ports ${board_serial_ports} ${added_arguments} ${constrained_flash_arg}
-		--config-files ${module_config_files} #--verbose
+		--config-files ${module_config_files}
+		#--verbose
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/module_config/generate_params.py
 		--params-file ${generated_module_params_file}
 		${added_arguments} ${board_with_io_arg}
 		--timer-config ${PX4_BOARD_DIR}/src/timer_config.cpp
-		--config-files ${module_config_files} #--verbose
+		--config-files ${module_config_files}
 		--board ${PX4_BOARD}
+		#--verbose
 	DEPENDS
 		${module_config_files}
 		${jinja_templates}
@@ -114,6 +116,11 @@ add_custom_command(OUTPUT ${parameters_xml} ${parameters_json} ${parameters_json
 		--inject-xml ${CMAKE_CURRENT_SOURCE_DIR}/parameters_injected.xml
 		--overrides ${PARAM_DEFAULT_OVERRIDES}
 		--board ${PX4_BOARD}
+		#--verbose
+	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/validate_json.py
+		--schema-file ${PX4_SOURCE_DIR}/src/modules/mavlink/mavlink/component_information/parameter.schema.json
+		${parameters_json}
+		--skip-if-no-schema # mavlink submodule might not exist for current target if built in CI
 		#--verbose
 	DEPENDS
 		${param_src_files}
@@ -160,10 +167,12 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 		px4_parameters.hpp
 	)
 
-	target_link_libraries(parameters PRIVATE perf tinybson px4_layer)
+	target_link_libraries(parameters PRIVATE perf tinybson px4_platform)
+
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
 	target_compile_options(parameters
 		PRIVATE
+			#-DDEBUG_BUILD
 			-Wno-cast-align		# TODO: fix and enable
 			-Wno-sign-compare	# TODO: fix and enable
 	)
@@ -172,7 +181,7 @@ else()
 endif()
 add_dependencies(parameters prebuild_targets)
 
-if(${PX4_PLATFORM} STREQUAL "nuttx")
+if(${PX4_PLATFORM} STREQUAL "nuttx" AND CONFIG_BUILD_FLAT)
 	target_link_libraries(parameters PRIVATE flashparams tinybson)
 endif()
 

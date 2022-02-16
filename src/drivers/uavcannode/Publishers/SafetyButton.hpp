@@ -53,7 +53,9 @@ public:
 		UavcanPublisherBase(ardupilot::indication::Button::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety)),
 		uavcan::Publisher<ardupilot::indication::Button>(node)
-	{}
+	{
+		this->setPriority(uavcan::TransferPriority::Default);
+	}
 
 	void PrintInfo() override
 	{

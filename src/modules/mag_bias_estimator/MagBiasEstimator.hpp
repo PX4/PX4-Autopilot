@@ -97,13 +97,13 @@ private:
 
 	calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
 
+	hrt_abstime _time_valid[MAX_SENSOR_COUNT] {};
+
 	bool _reset_field_estimator[MAX_SENSOR_COUNT] {};
 	bool _valid[MAX_SENSOR_COUNT] {};
 
-	bool _armed{false};
-	bool _system_calibrating{false};
-	bool _system_sensors_initialized{false};
 	uint8_t _arming_state{0};
+	bool _system_calibrating{false};
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

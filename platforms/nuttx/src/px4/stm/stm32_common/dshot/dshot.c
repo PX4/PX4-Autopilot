@@ -82,10 +82,6 @@ static uint8_t dshot_burst_buffer_array[DSHOT_TIMERS * DSHOT_BURST_BUFFER_SIZE(M
 px4_cache_aligned_data() = {};
 static uint32_t *dshot_burst_buffer[DSHOT_TIMERS] = {};
 
-#ifdef BOARD_DSHOT_MOTOR_ASSIGNMENT
-static const uint8_t motor_assignment[MOTORS_NUMBER] = BOARD_DSHOT_MOTOR_ASSIGNMENT;
-#endif /* BOARD_DSHOT_MOTOR_ASSIGNMENT */
-
 int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 {
 	unsigned buffer_offset = 0;
@@ -100,10 +96,11 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 		}
 
 		// we know the uint8_t* cast to uint32_t* is fine, since we're aligned to cache line size
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-align"
 		dshot_burst_buffer[timer] = (uint32_t *)&dshot_burst_buffer_array[buffer_offset];
 #pragma GCC diagnostic pop
-		buffer_offset += DSHOT_BURST_BUFFER_SIZE(io_timers_channel_mapping.element[timer].channel_count);
+		buffer_offset += DSHOT_BURST_BUFFER_SIZE(io_timers_channel_mapping.element[timer].channel_count_including_gaps);
 
 		if (buffer_offset > sizeof(dshot_burst_buffer_array)) {
 			return -EINVAL; // something is wrong with the board configuration or some other logic
@@ -139,9 +136,10 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 	for (uint8_t timer_index = 0; (timer_index < DSHOT_TIMERS) && (OK == ret_val); timer_index++) {
 
 		if (true == dshot_handler[timer_index].init) {
-			dshot_handler[timer_index].dma_size = io_timers_channel_mapping.element[timer_index].channel_count *
+			dshot_handler[timer_index].dma_size = io_timers_channel_mapping.element[timer_index].channel_count_including_gaps *
 							      ONE_MOTOR_BUFF_SIZE;
-			io_timer_set_dshot_mode(timer_index, dshot_pwm_freq, io_timers_channel_mapping.element[timer_index].channel_count);
+			io_timer_set_dshot_mode(timer_index, dshot_pwm_freq,
+						io_timers_channel_mapping.element[timer_index].channel_count_including_gaps);
 
 			dshot_handler[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dmamap);
 
@@ -163,7 +161,7 @@ void up_dshot_trigger(void)
 			// Flush cache so DMA sees the data
 			up_clean_dcache((uintptr_t)dshot_burst_buffer[timer],
 					(uintptr_t)dshot_burst_buffer[timer] +
-					DSHOT_BURST_BUFFER_SIZE(io_timers_channel_mapping.element[timer].channel_count));
+					DSHOT_BURST_BUFFER_SIZE(io_timers_channel_mapping.element[timer].channel_count_including_gaps));
 
 			px4_stm32_dmasetup(dshot_handler[timer].dma_handle,
 					   io_timers[timer].base + STM32_GTIM_DMAR_OFFSET,
@@ -191,10 +189,6 @@ void dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemet
 	uint16_t packet = 0;
 	uint16_t checksum = 0;
 
-#ifdef BOARD_DSHOT_MOTOR_ASSIGNMENT
-	motor_number = motor_assignment[motor_number];
-#endif /* BOARD_DSHOT_MOTOR_ASSIGNMENT */
-
 	packet |= throttle << DSHOT_THROTTLE_POSITION;
 	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
 
@@ -212,8 +206,9 @@ void dshot_motor_data_set(unsigned motor_number, uint16_t throttle, bool telemet
 
 	unsigned timer = timer_io_channels[motor_number].timer_index;
 	uint32_t *buffer = dshot_burst_buffer[timer];
-	unsigned num_motors = io_timers_channel_mapping.element[timer].channel_count;
-	unsigned timer_channel_index = motor_number - io_timers_channel_mapping.element[timer].first_channel_index;
+	const io_timers_channel_mapping_element_t *mapping = &io_timers_channel_mapping.element[timer];
+	unsigned num_motors = mapping->channel_count_including_gaps;
+	unsigned timer_channel_index = timer_io_channels[motor_number].timer_channel - mapping->lowest_timer_channel;
 
 	for (unsigned motor_data_index = 0; motor_data_index < ONE_MOTOR_DATA_SIZE; motor_data_index++) {
 		buffer[motor_data_index * num_motors + timer_channel_index] =

@@ -52,7 +52,7 @@ class FunctionProviderBase
 public:
 	struct Context {
 		px4::WorkItem &work_item;
-		bool reversible_motors;
+		const float &thrust_factor;
 	};
 
 	FunctionProviderBase() = default;
@@ -72,6 +72,11 @@ public:
 	virtual uORB::SubscriptionCallbackWorkItem *subscriptionCallback() { return nullptr; }
 
 	virtual bool getLatestSampleTimestamp(hrt_abstime &t) const { return false; }
+
+	/**
+	 * Check whether the output (motor) is configured to be reversible
+	 */
+	virtual bool reversible(OutputFunction func) const { return false; }
 };
 
 /**
@@ -122,11 +127,41 @@ public:
 	uORB::SubscriptionCallbackWorkItem *subscriptionCallback() override { return &_topic; }
 
 	bool getLatestSampleTimestamp(hrt_abstime &t) const override { t = _data.timestamp_sample; return t != 0; }
+
+	static inline void updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values);
+
+	bool reversible(OutputFunction func) const override
+	{ return _data.reversible_flags & (1u << ((int)func - (int)OutputFunction::Motor1)); }
 private:
 	uORB::SubscriptionCallbackWorkItem _topic;
 	actuator_motors_s _data{};
-	const bool _reversible_motors;
+	const float &_thrust_factor;
 };
+
+void FunctionMotors::updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values)
+{
+	if (thrust_factor > FLT_EPSILON) {
+		for (int i = 0; i < num_values; ++i) {
+			float control = values[i];
+			control = matrix::sign(control) * (-(1.0f - thrust_factor) / (2.0f * thrust_factor) + sqrtf((1.0f - thrust_factor) *
+							   (1.0f - thrust_factor) / (4.0f * thrust_factor * thrust_factor) + (fabsf(control) / thrust_factor)));
+			values[i] = control;
+		}
+	}
+
+	for (int i = 0; i < num_values; ++i) {
+		if ((reversible & (1u << i)) == 0) {
+			if (values[i] < -FLT_EPSILON) {
+				values[i] = NAN;
+
+			} else {
+				// remap from [0, 1] to [-1, 1]
+				values[i] = values[i] * 2.f - 1.f;
+			}
+		}
+	}
+}
+
 
 /**
  * Functions: Servo1 ... ServoMax
@@ -240,4 +275,3 @@ private:
 	uORB::Subscription _topic{ORB_ID(actuator_controls_2)};
 	float _data[3] { NAN, NAN, NAN };
 };
-

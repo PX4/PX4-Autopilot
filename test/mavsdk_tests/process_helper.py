@@ -62,6 +62,9 @@ class Runner:
         self.thread = threading.Thread(target=self.process_output)
         self.thread.start()
 
+    def has_started_ok(self) -> bool:
+        return True
+
     def process_output(self) -> None:
         assert self.process.stdout is not None
         while True:
@@ -71,9 +74,17 @@ class Runner:
                 break
             if not line or line == "\n":
                 continue
+            line = self.add_prefix(10, self.name, line)
             self.output_queue.put(line)
             self.log_fd.write(line)
             self.log_fd.flush()
+
+    def add_prefix(self, width: int, name: str, text: str) -> str:
+        return "[" + self.seconds() + "|" + name.ljust(width) + "] " + text
+
+    def seconds(self) -> str:
+        dt = time.time() - self.start_time
+        return "{: 8.03f}".format(dt)
 
     def poll(self) -> Optional[int]:
         return self.process.poll()
@@ -105,7 +116,7 @@ class Runner:
         if returncode is None:
 
             if self.verbose:
-                print("Terminating {}".format(self.cmd))
+                print("Terminating {}".format(self.name))
             self.process.terminate()
 
             try:
@@ -115,13 +126,13 @@ class Runner:
 
             if returncode is None:
                 if self.verbose:
-                    print("Killing {}".format(self.cmd))
+                    print("Killing {}".format(self.name))
                 self.process.kill()
                 returncode = self.process.poll()
 
         if self.verbose:
             print("{} exited with {}".format(
-                self.cmd, self.process.returncode))
+                self.name, self.process.returncode))
 
         self.stop_thread.set()
         self.thread.join()
@@ -136,18 +147,18 @@ class Runner:
 class Px4Runner(Runner):
     def __init__(self, workspace_dir: str, log_dir: str,
                  model: str, case: str, speed_factor: float,
-                 debugger: str, verbose: bool):
+                 debugger: str, verbose: bool, build_dir: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "px4"
-        self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
-        self.cwd = workspace_dir + \
-            "/build/px4_sitl_default/tmp_mavsdk_tests/rootfs"
+        self.cmd = os.path.join(workspace_dir, build_dir, "bin/px4")
+        self.cwd = os.path.join(workspace_dir, build_dir,
+                                "tmp_mavsdk_tests/rootfs")
         self.args = [
-                workspace_dir + "/build/px4_sitl_default/etc",
+                os.path.join(workspace_dir, build_dir, "etc"),
                 "-s",
                 "etc/init.d-posix/rcS",
                 "-t",
-                workspace_dir + "/test_data",
+                os.path.join(workspace_dir, "test_data"),
                 "-d"
             ]
         self.env["PX4_SIM_MODEL"] = self.model
@@ -204,20 +215,36 @@ class GzserverRunner(Runner):
                  model: str,
                  case: str,
                  speed_factor: float,
-                 verbose: bool):
+                 verbose: bool,
+                 build_dir: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzserver"
         self.cwd = workspace_dir
         self.env["GAZEBO_PLUGIN_PATH"] = \
-            workspace_dir + "/build/px4_sitl_default/build_gazebo"
+            os.path.join(workspace_dir, build_dir, "build_gazebo")
         self.env["GAZEBO_MODEL_PATH"] = \
-            workspace_dir + "/Tools/sitl_gazebo/models"
+            os.path.join(workspace_dir, "Tools/sitl_gazebo/models")
         self.env["PX4_SIM_SPEED_FACTOR"] = str(speed_factor)
-        self.cmd = "nice"
-        self.args = ["-n 1",
-                     "gzserver", "--verbose",
-                     workspace_dir + "/Tools/sitl_gazebo/worlds/" +
-                     "empty.world"]
+        self.cmd = "stdbuf"
+        self.args = ["-o0", "-e0", "gzserver", "--verbose",
+                     os.path.join(workspace_dir,
+                                  "Tools/sitl_gazebo/worlds",
+                                  "empty.world")]
+
+    def has_started_ok(self) -> bool:
+        # Wait until gzerver has started and connected to gazebo master.
+        timeout_s = 20
+        steps = 10
+        for step in range(steps):
+            with open(self.log_filename, 'r') as f:
+                for line in f.readlines():
+                    if 'Connected to gazebo master' in line:
+                        return True
+            time.sleep(float(timeout_s)/float(steps))
+
+        print("gzserver did not connect within {}s"
+              .format(timeout_s))
+        return False
 
 
 class GzmodelspawnRunner(Runner):
@@ -226,34 +253,65 @@ class GzmodelspawnRunner(Runner):
                  log_dir: str,
                  model: str,
                  case: str,
-                 verbose: bool):
+                 verbose: bool,
+                 build_dir: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "gzmodelspawn"
         self.cwd = workspace_dir
         self.env["GAZEBO_PLUGIN_PATH"] = \
-            workspace_dir + "/build/px4_sitl_default/build_gazebo"
+            os.path.join(workspace_dir, build_dir, "build_gazebo")
         self.env["GAZEBO_MODEL_PATH"] = \
-            workspace_dir + "/Tools/sitl_gazebo/models"
+            os.path.join(workspace_dir, "Tools/sitl_gazebo/models")
         self.cmd = "gz"
 
-        if os.path.isfile(workspace_dir +
-                          "/Tools/sitl_gazebo/models/" +
-                          self.model + "/" + self.model + ".sdf"):
-            model_path = workspace_dir + \
-                "/Tools/sitl_gazebo/models/" + \
-                self.model + "/" + self.model + ".sdf"
-        elif os.path.isfile(workspace_dir +
-                            "/Tools/sitl_gazebo/models/" +
-                            self.model + "/" + self.model + "-gen.sdf"):
-            model_path = workspace_dir + \
-                "/Tools/sitl_gazebo/models/" + \
-                self.model + "/" + self.model + "-gen.sdf"
+        if os.path.isfile(os.path.join(workspace_dir,
+                                       "Tools/sitl_gazebo/models",
+                                       self.model, self.model + ".sdf")):
+            model_path = os.path.join(workspace_dir,
+                                      "Tools/sitl_gazebo/models",
+                                      self.model, self.model + ".sdf")
+        elif os.path.isfile(os.path.join(workspace_dir,
+                                         "Tools/sitl_gazebo/models",
+                                         self.model, self.model + "-gen.sdf")):
+            model_path = os.path.join(workspace_dir,
+                                      "Tools/sitl_gazebo/models",
+                                      self.model, self.model + "-gen.sdf")
         else:
             raise Exception("Model not found")
 
-        self.args = ["model", "--spawn-file", model_path,
+        self.cmd = "stdbuf"
+        self.args = ["-o0", "-e0",
+                     "gz", "model",
+                     "--verbose",
+                     "--spawn-file", model_path,
                      "--model-name", self.model,
                      "-x", "1.01", "-y", "0.98", "-z", "0.83"]
+
+    def has_started_ok(self) -> bool:
+        # The problem is that sometimes gzserver does not seem to start
+        # quickly enough and gz model spawn fails with the error:
+        # "An instance of Gazebo is not running." but still returns 0
+        # as a result.
+        # We work around this by trying to start and then check whether
+        # using has_started_ok() whether it was successful or not.
+        timeout_s = 20
+        steps = 10
+        for _ in range(steps):
+            returncode = self.process.poll()
+            if returncode is None:
+                time.sleep(float(timeout_s)/float(steps))
+                continue
+
+            with open(self.log_filename, 'r') as f:
+                for line in f.readlines():
+                    if 'An instance of Gazebo is not running' in line:
+                        return False
+                else:
+                    return True
+
+        print("gzmodelspawn did not return within {}s"
+              .format(timeout_s))
+        return False
 
 
 class GzclientRunner(Runner):
@@ -267,7 +325,8 @@ class GzclientRunner(Runner):
         self.name = "gzclient"
         self.cwd = workspace_dir
         self.env = dict(os.environ, **{
-            "GAZEBO_MODEL_PATH": workspace_dir + "/Tools/sitl_gazebo/models"})
+            "GAZEBO_MODEL_PATH": os.path.join(workspace_dir,
+                                              "Tools/sitl_gazebo/models")})
         self.cmd = "gzclient"
         self.args = ["--verbose"]
 
@@ -280,12 +339,17 @@ class TestRunner(Runner):
                  case: str,
                  mavlink_connection: str,
                  speed_factor: float,
-                 verbose: bool):
+                 verbose: bool,
+                 build_dir: str):
         super().__init__(log_dir, model, case, verbose)
         self.name = "mavsdk_tests"
         self.cwd = workspace_dir
-        self.cmd = workspace_dir + \
-            "/build/px4_sitl_default/mavsdk_tests/mavsdk_tests"
-        self.args = ["--url", mavlink_connection,
+        self.cmd = "nice"
+        self.args = ["-5",
+                     os.path.join(
+                         workspace_dir,
+                         build_dir,
+                         "mavsdk_tests/mavsdk_tests"),
+                     "--url", mavlink_connection,
                      "--speed-factor", str(speed_factor),
                      case]

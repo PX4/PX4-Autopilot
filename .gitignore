@@ -105,8 +105,4 @@ src/lib/version/build_git_version.h
 src/modules/simulator/simulator_config.h
 src/systemcmds/topic_listener/listener_generated.cpp
 
-# SITL
-dataman
-eeprom/
-
 !src/drivers/distance_sensor/broadcom/afbrs50/Lib/*

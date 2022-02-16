@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -121,7 +121,7 @@ inline bool ZeroOrderHoverThrustEkf::isTestRatioPassing(const float innov_test_r
 
 inline void ZeroOrderHoverThrustEkf::updateState(const float K, const float innov)
 {
-	_hover_thr = math::constrain(_hover_thr + K * innov, 0.1f, 0.9f);
+	_hover_thr = math::constrain(_hover_thr + K * innov, _hover_thr_min, _hover_thr_max);
 }
 
 inline void ZeroOrderHoverThrustEkf::updateStateCovariance(const float K, const float H)

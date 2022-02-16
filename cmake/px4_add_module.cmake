@@ -107,7 +107,7 @@ function(px4_add_module)
 		# unity build
 		add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp
 			COMMAND cat ${SRCS} > ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp
-			DEPENDS ${MODULE}_original ${DEPENDS} ${SRCS}
+			DEPENDS ${SRCS}
 			COMMENT "${MODULE} merging source"
 			WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 			)
@@ -115,6 +115,7 @@ function(px4_add_module)
 
 		add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp)
 		target_include_directories(${MODULE} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+		add_dependencies(${MODULE} ${MODULE}_original) # build standalone module first to get clean compile errors
 
 		if(COMPILE_FLAGS)
 			target_compile_options(${MODULE}_original PRIVATE ${COMPILE_FLAGS})
@@ -125,7 +126,7 @@ function(px4_add_module)
 			#  as well as interface include and libraries
 			foreach(dep ${DEPENDS})
 				get_target_property(dep_type ${dep} TYPE)
-				if (${dep_type} STREQUAL "STATIC_LIBRARY")
+				if((${dep_type} STREQUAL "STATIC_LIBRARY") OR (${dep_type} STREQUAL "INTERFACE_LIBRARY"))
 					target_link_libraries(${MODULE}_original PRIVATE ${dep})
 				else()
 					add_dependencies(${MODULE}_original ${dep})
@@ -153,13 +154,34 @@ function(px4_add_module)
 	# all modules can potentially use parameters and uORB
 	add_dependencies(${MODULE} uorb_headers)
 
+	# Check if the modules source dir exists in config_kernel_list
+	# in this case, treat is as a kernel side component for
+	# protected build
+	get_target_property(MODULE_SOURCE_DIR ${MODULE} SOURCE_DIR)
+	file(RELATIVE_PATH module ${PROJECT_SOURCE_DIR}/src ${MODULE_SOURCE_DIR})
+
+	list (FIND config_kernel_list ${module} _index)
+	if (${_index} GREATER -1)
+		set (KERNEL TRUE)
+	endif()
+
 	if(NOT DYNAMIC)
-		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface px4_layer px4_platform systemlib)
-		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
+		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface px4_platform systemlib perf)
+		if (${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT AND KERNEL)
+			target_link_libraries(${MODULE} PRIVATE px4_kernel_layer uORB_kernel)
+			set_property(GLOBAL APPEND PROPERTY PX4_KERNEL_MODULE_LIBRARIES ${MODULE})
+		else()
+			target_link_libraries(${MODULE} PRIVATE px4_layer uORB)
+			set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
+		endif()
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 		px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${SRCS})
 		set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
 	endif()
+
+	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+	px4_list_make_absolute(ABS_SRCS ${CMAKE_CURRENT_SOURCE_DIR} ${SRCS})
+	set_property(GLOBAL APPEND PROPERTY PX4_SRC_FILES ${ABS_SRCS})
 
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
@@ -195,6 +217,10 @@ function(px4_add_module)
 		target_compile_options(${MODULE} PRIVATE ${COMPILE_FLAGS})
 	endif()
 
+	if (KERNEL)
+		target_compile_options(${MODULE} PRIVATE -D__KERNEL__)
+	endif()
+
 	if(INCLUDES)
 		target_include_directories(${MODULE} PRIVATE ${INCLUDES})
 	endif()
@@ -204,7 +230,7 @@ function(px4_add_module)
 		#  as well as interface include and libraries
 		foreach(dep ${DEPENDS})
 			get_target_property(dep_type ${dep} TYPE)
-			if (${dep_type} STREQUAL "STATIC_LIBRARY")
+			if((${dep_type} STREQUAL "STATIC_LIBRARY") OR (${dep_type} STREQUAL "INTERFACE_LIBRARY"))
 				target_link_libraries(${MODULE} PRIVATE ${dep})
 			else()
 				add_dependencies(${MODULE} ${dep})

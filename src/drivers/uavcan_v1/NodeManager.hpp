@@ -70,7 +70,7 @@ typedef struct {
 class NodeManager : public UavcanBaseSubscriber, public UavcanServiceRequestInterface
 {
 public:
-	NodeManager(CanardInstance &ins, UavcanParamManager &pmgr) : UavcanBaseSubscriber(ins, "NodeIDAllocationData", 0),
+	NodeManager(CanardInstance &ins, UavcanParamManager &pmgr) : UavcanBaseSubscriber(ins, "", "NodeIDAllocationData", 0),
 		_canard_instance(ins), _access_request(ins, pmgr), _list_request(ins) { };
 
 	void subscribe() override

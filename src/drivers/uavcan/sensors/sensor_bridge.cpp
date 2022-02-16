@@ -38,46 +38,112 @@
 #include "sensor_bridge.hpp"
 #include <cassert>
 
-#include "differential_pressure.hpp"
+#include "accel.hpp"
+#include "airspeed.hpp"
 #include "baro.hpp"
 #include "battery.hpp"
-#include "airspeed.hpp"
-#include "gnss.hpp"
+#include "differential_pressure.hpp"
 #include "flow.hpp"
+#include "gnss.hpp"
+#include "gyro.hpp"
+#include "hygrometer.hpp"
+#include "ice_status.hpp"
 #include "mag.hpp"
 #include "rangefinder.hpp"
-#include "accel.hpp"
-#include "gyro.hpp"
-#include "cbat.hpp"
-#include "ice_status.hpp"
 
 /*
  * IUavcanSensorBridge
  */
 void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge *> &list)
 {
-	list.add(new UavcanBarometerBridge(node));
-	list.add(new UavcanMagnetometerBridge(node));
-	list.add(new UavcanGnssBridge(node));
-	list.add(new UavcanFlowBridge(node));
+	// airspeed
+	int32_t uavcan_sub_aspd = 1;
+	param_get(param_find("UAVCAN_SUB_ASPD"), &uavcan_sub_aspd);
 
-	int32_t bat_monitor;
-	param_t _param_bat_monitor = param_find("UAVCAN_BAT_MON");
-	param_get(_param_bat_monitor, &bat_monitor);
-
-	if (bat_monitor == 0) {
-		list.add(new UavcanBatteryBridge(node));
-
-	} else if (bat_monitor == 1) {
-		list.add(new UavcanCBATBridge(node));
+	if (uavcan_sub_aspd != 0) {
+		list.add(new UavcanAirspeedBridge(node));
 	}
 
-	list.add(new UavcanAirspeedBridge(node));
-	list.add(new UavcanDifferentialPressureBridge(node));
-	list.add(new UavcanRangefinderBridge(node));
-	list.add(new UavcanAccelBridge(node));
-	list.add(new UavcanGyroBridge(node));
-	list.add(new UavcanIceStatusBridge(node));
+	// baro
+	int32_t uavcan_sub_baro = 1;
+	param_get(param_find("UAVCAN_SUB_BARO"), &uavcan_sub_baro);
+
+	if (uavcan_sub_baro != 0) {
+		list.add(new UavcanBarometerBridge(node));
+	}
+
+	// battery
+	int32_t uavcan_sub_bat = 1;
+	param_get(param_find("UAVCAN_SUB_BAT"), &uavcan_sub_bat);
+
+	if (uavcan_sub_bat != 0) {
+		list.add(new UavcanBatteryBridge(node));
+	}
+
+	// differential pressure
+	int32_t uavcan_sub_dpres = 1;
+	param_get(param_find("UAVCAN_SUB_DPRES"), &uavcan_sub_dpres);
+
+	if (uavcan_sub_dpres != 0) {
+		list.add(new UavcanDifferentialPressureBridge(node));
+	}
+
+	// flow
+	int32_t uavcan_sub_flow = 1;
+	param_get(param_find("UAVCAN_SUB_FLOW"), &uavcan_sub_flow);
+
+	if (uavcan_sub_flow != 0) {
+		list.add(new UavcanFlowBridge(node));
+	}
+
+	// GPS
+	int32_t uavcan_sub_gps = 1;
+	param_get(param_find("UAVCAN_SUB_GPS"), &uavcan_sub_gps);
+
+	if (uavcan_sub_gps != 0) {
+		list.add(new UavcanGnssBridge(node));
+	}
+
+	// hygrometer
+	int32_t uavcan_sub_hygro = 1;
+	param_get(param_find("UAVCAN_SUB_HYGRO"), &uavcan_sub_hygro);
+
+	if (uavcan_sub_hygro != 0) {
+		list.add(new UavcanHygrometerBridge(node));
+	}
+
+	// ice (internal combustion engine)
+	int32_t uavcan_sub_ice = 1;
+	param_get(param_find("UAVCAN_SUB_ICE"), &uavcan_sub_ice);
+
+	if (uavcan_sub_ice != 0) {
+		list.add(new UavcanIceStatusBridge(node));
+	}
+
+	// IMU
+	int32_t uavcan_sub_imu = 1;
+	param_get(param_find("UAVCAN_SUB_IMU"), &uavcan_sub_imu);
+
+	if (uavcan_sub_imu != 0) {
+		list.add(new UavcanAccelBridge(node));
+		list.add(new UavcanGyroBridge(node));
+	}
+
+	// magnetometer
+	int32_t uavcan_sub_mag = 1;
+	param_get(param_find("UAVCAN_SUB_MAG"), &uavcan_sub_mag);
+
+	if (uavcan_sub_mag != 0) {
+		list.add(new UavcanMagnetometerBridge(node));
+	}
+
+	// range finder
+	int32_t uavcan_sub_rng = 1;
+	param_get(param_find("UAVCAN_SUB_RNG"), &uavcan_sub_rng);
+
+	if (uavcan_sub_rng != 0) {
+		list.add(new UavcanRangefinderBridge(node));
+	}
 }
 
 /*

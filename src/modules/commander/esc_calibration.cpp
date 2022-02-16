@@ -51,6 +51,9 @@
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/actuator_test.h>
+#include <uORB/topics/safety.h>
+#include <parameters/param.h>
 
 using namespace time_literals;
 
@@ -75,11 +78,97 @@ bool check_battery_disconnected(orb_advert_t *mavlink_log_pub)
 	return false;
 }
 
-int do_esc_calibration(orb_advert_t *mavlink_log_pub)
+static void set_motor_actuators(uORB::Publication<actuator_test_s> &publisher, float value, bool release_control)
+{
+	actuator_test_s actuator_test{};
+	actuator_test.timestamp = hrt_absolute_time();
+	actuator_test.value = value;
+	actuator_test.action = release_control ? actuator_test_s::ACTION_RELEASE_CONTROL : actuator_test_s::ACTION_DO_CONTROL;
+	actuator_test.timeout_ms = 0;
+
+	for (int i = 0; i < actuator_test_s::MAX_NUM_MOTORS; ++i) {
+		actuator_test.function = actuator_test_s::FUNCTION_MOTOR1 + i;
+		publisher.publish(actuator_test);
+	}
+}
+
+int do_esc_calibration_ctrl_alloc(orb_advert_t *mavlink_log_pub)
+{
+	// check safety
+	uORB::SubscriptionData<safety_s> safety_sub{ORB_ID(safety)};
+	safety_sub.update();
+
+	if (safety_sub.get().safety_switch_available && !safety_sub.get().safety_off) {
+		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Disable safety first");
+		return PX4_ERROR;
+	}
+
+	int	return_code = PX4_OK;
+	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
+	// since we publish multiple at once, make sure the output driver subscribes before we publish
+	actuator_test_pub.advertise();
+	px4_usleep(10000);
+
+	// set motors to high
+	set_motor_actuators(actuator_test_pub, 1.f, false);
+	calibration_log_info(mavlink_log_pub, "[cal] Connect battery now");
+
+
+	uORB::SubscriptionData<battery_status_s> batt_sub{ORB_ID(battery_status)};
+	const battery_status_s &battery = batt_sub.get();
+	batt_sub.update();
+	bool batt_connected = battery.connected;
+	hrt_abstime timeout_start = hrt_absolute_time();
+
+	while (true) {
+		// We are either waiting for the user to connect the battery. Or we are waiting to let the PWM
+		// sit high.
+		static constexpr hrt_abstime battery_connect_wait_timeout{20_s};
+		static constexpr hrt_abstime pwm_high_timeout{3_s};
+		hrt_abstime timeout_wait = batt_connected ? pwm_high_timeout : battery_connect_wait_timeout;
+
+		if (hrt_elapsed_time(&timeout_start) > timeout_wait) {
+			if (!batt_connected) {
+				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
+				return_code = PX4_ERROR;
+			}
+
+			// PWM was high long enough
+			break;
+		}
+
+		if (!batt_connected) {
+			if (batt_sub.update()) {
+				if (battery.connected) {
+					// Battery is connected, signal to user and start waiting again
+					batt_connected = true;
+					timeout_start = hrt_absolute_time();
+					calibration_log_info(mavlink_log_pub, "[cal] Battery connected");
+				}
+			}
+		}
+
+		px4_usleep(50000);
+	}
+
+	if (return_code == PX4_OK) {
+		// set motors to low
+		set_motor_actuators(actuator_test_pub, 0.f, false);
+		px4_usleep(4000000);
+
+		// release control
+		set_motor_actuators(actuator_test_pub, 0.f, true);
+
+		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "esc");
+	}
+
+	return return_code;
+}
+
+static int do_esc_calibration_ioctl(orb_advert_t *mavlink_log_pub)
 {
 	int	return_code = PX4_OK;
 	hrt_abstime timeout_start = 0;
-	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "esc");
 
 	uORB::SubscriptionData<battery_status_s> batt_sub{ORB_ID(battery_status)};
 	const battery_status_s &battery = batt_sub.get();
@@ -174,4 +263,23 @@ Out:
 	}
 
 	return return_code;
+}
+
+int do_esc_calibration(orb_advert_t *mavlink_log_pub)
+{
+	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "esc");
+
+	param_t p_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
+	int32_t ctrl_alloc = 0;
+
+	if (p_ctrl_alloc != PARAM_INVALID) {
+		param_get(p_ctrl_alloc, &ctrl_alloc);
+	}
+
+	if (ctrl_alloc == 1) {
+		return do_esc_calibration_ctrl_alloc(mavlink_log_pub);
+
+	} else {
+		return do_esc_calibration_ioctl(mavlink_log_pub);
+	}
 }

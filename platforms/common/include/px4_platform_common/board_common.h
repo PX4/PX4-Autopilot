@@ -145,7 +145,10 @@
 #  define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
 #  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK_VALID}
 #elif BOARD_NUMBER_BRICKS == 2
-#  if  !defined(BOARD_NUMBER_DIGITAL_BRICKS)
+#  if  defined(BOARD_NUMBER_DIGITAL_BRICKS)
+#    define BOARD_BATT_V_LIST       {-1, -1}
+#    define BOARD_BATT_I_LIST       {-1, -1}
+#  else
 #    define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL}
 #    define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL}
 #  endif
@@ -1015,8 +1018,12 @@ int board_register_power_state_notification_cb(power_button_state_notification_t
 
 enum board_bus_types {
 	BOARD_INVALID_BUS = 0,
+#if defined(CONFIG_SPI)
 	BOARD_SPI_BUS = 1,
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
 	BOARD_I2C_BUS = 2
+#endif // CONFIG_I2C
 };
 
 #if defined(BOARD_HAS_BUS_MANIFEST)

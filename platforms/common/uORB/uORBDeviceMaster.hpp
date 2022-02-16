@@ -72,9 +72,34 @@ public:
 	 * @return node if exists, nullptr otherwise
 	 */
 	uORB::DeviceNode *getDeviceNode(const char *node_name);
-	uORB::DeviceNode *getDeviceNode(const struct orb_metadata *meta, const uint8_t instance);
+	uORB::DeviceNode *getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
+	{
+		if (meta == nullptr) {
+			return nullptr;
+		}
 
-	bool deviceNodeExists(ORB_ID id, const uint8_t instance);
+		if (!deviceNodeExists(static_cast<ORB_ID>(meta->o_id), instance)) {
+			return nullptr;
+		}
+
+		lock();
+		uORB::DeviceNode *node = getDeviceNodeLocked(meta, instance);
+		unlock();
+
+		//We can safely return the node that can be used by any thread, because
+		//a DeviceNode never gets deleted.
+		return node;
+
+	}
+
+	bool deviceNodeExists(ORB_ID id, const uint8_t instance)
+	{
+		if ((id == ORB_ID::INVALID) || (instance > ORB_MULTI_MAX_INSTANCES - 1)) {
+			return false;
+		}
+
+		return _node_exists[instance][(uint8_t)id];
+	}
 
 	/**
 	 * Print statistics for each existing topic.

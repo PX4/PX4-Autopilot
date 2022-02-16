@@ -45,7 +45,6 @@ if("${PX4_BOARD_LABEL}" STREQUAL  "canbootloader")
 			nuttx_arch
 			nuttx_drivers
 			canbootloader
-			arch_io_pins
 			arch_led_pwm
 	)
 	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/canbootloader)
@@ -62,7 +61,7 @@ else()
 		init.c
 		mtd.cpp
 		periphclocks.c
-		spi.c
+		spi.cpp
 		timer_config.cpp
 		userleds.c
 	)
@@ -73,6 +72,6 @@ else()
 			nuttx_drivers # sdio
 			drivers__led # drv_led_start
 			px4_layer
-			arch_io_pins
+			px4_platform # I2CBusIterator
 		)
 endif()

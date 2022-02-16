@@ -64,5 +64,3 @@ _ekf_gsf[model_index].P(1,1) = P(1,1) - t16*t30 + t22*t26;
 _ekf_gsf[model_index].P(0,2) = P(0,2) + t19*t24 + t20*t25;
 _ekf_gsf[model_index].P(1,2) = P(1,2) + t23*t27 + t30*t31;
 _ekf_gsf[model_index].P(2,2) = P(2,2) - t23*t33 - t25*t36;
-
-

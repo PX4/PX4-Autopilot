@@ -42,15 +42,16 @@
 #define BOARD_OVERRIDE_UUID "RPIID00000000000" // must be of length 16
 #define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_RPI
 
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
-
 #define BOARD_MAX_LEDS 1 // Number of external LED's this board has
 
 
 // I2C
+#define CONFIG_I2C 1
 #define PX4_NUMBER_I2C_BUSES    1
 
+
+// SPI
+#define CONFIG_SPI 1
 
 // ADC channels:
 // A0 - board voltage (shows 5V)

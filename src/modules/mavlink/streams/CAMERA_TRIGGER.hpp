@@ -77,8 +77,8 @@ private:
 		camera_trigger_s camera_trigger;
 
 		if ((_mavlink->get_free_tx_buf() >= get_size()) && _camera_trigger_sub.update(&camera_trigger)) {
-			/* ensure that only active trigger events are sent */
-			if (camera_trigger.timestamp > 0) {
+			/* ensure that only active trigger events are sent and ignore camera capture feedback messages*/
+			if (camera_trigger.timestamp > 0 && !camera_trigger.feedback) {
 				mavlink_camera_trigger_t msg{};
 				msg.time_usec = camera_trigger.timestamp;
 				msg.seq = camera_trigger.seq;

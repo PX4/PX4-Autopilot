@@ -80,7 +80,7 @@ public:
 	virtual ~ECL_Controller() = default;
 
 	virtual float control_attitude(const float dt, const ECL_ControlData &ctl_data) = 0;
-	virtual float control_euler_rate(const float dt, const ECL_ControlData &ctl_data) = 0;
+	virtual float control_euler_rate(const float dt, const ECL_ControlData &ctl_data, float bodyrate_ff) = 0;
 	virtual float control_bodyrate(const float dt, const ECL_ControlData &ctl_data) = 0;
 
 	/* Setters */

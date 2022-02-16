@@ -39,7 +39,7 @@
 
 /*!***************************************************************************
  * @defgroup 	argusdfm Dual Frequency Mode
- * @ingroup		argusdev
+ * @ingroup		argusapi
  *
  * @brief		Dual Frequency Mode (DFM) parameter definitions and API functions.
  *

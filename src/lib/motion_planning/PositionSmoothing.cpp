@@ -38,9 +38,10 @@
 #include <matrix/matrix/helper_functions.hpp>
 
 
-void PositionSmoothing::generateSetpoints(
+void PositionSmoothing::_generateSetpoints(
 	const Vector3f &position,
 	const Vector3f(&waypoints)[3],
+	bool is_single_waypoint,
 	const Vector3f &feedforward_velocity,
 	float delta_time,
 	bool force_zero_velocity_setpoint,
@@ -49,7 +50,7 @@ void PositionSmoothing::generateSetpoints(
 	Vector3f velocity_setpoint{0.f, 0.f, 0.f};
 
 	if (!force_zero_velocity_setpoint) {
-		velocity_setpoint = _generateVelocitySetpoint(position, waypoints, feedforward_velocity);
+		velocity_setpoint = _generateVelocitySetpoint(position, waypoints, is_single_waypoint, feedforward_velocity);
 	}
 
 	out_setpoints.unsmoothed_velocity = velocity_setpoint;
@@ -184,6 +185,7 @@ const Vector2f PositionSmoothing::_getL1Point(const Vector3f &position, const Ve
 }
 
 const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &position, const Vector3f(&waypoints)[3],
+		bool is_single_waypoint,
 		const Vector3f &feedforward_velocity_setpoint)
 {
 	// Interface: A valid position setpoint generates a velocity target using conservative motion constraints.
@@ -201,13 +203,13 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 		Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
 				  _trajectory[1].getCurrentPosition(),
 				  _trajectory[2].getCurrentPosition());
-
-		const Vector3f u_pos_traj_to_dest((_getCrossingPoint(position, waypoints) - pos_traj).unit_or_zero());
+		const Vector3f crossing_point = is_single_waypoint ? target : _getCrossingPoint(position, waypoints);
+		const Vector3f u_pos_traj_to_dest{(crossing_point - pos_traj).unit_or_zero()};
 
 		float xy_speed = _getMaxXYSpeed(waypoints);
 		const float z_speed = _getMaxZSpeed(waypoints);
 
-		if (_isTurning(target)) {
+		if (!is_single_waypoint && _isTurning(target)) {
 			// Limit speed during a turn
 			xy_speed = math::min(_max_speed_previous, xy_speed);
 
@@ -235,7 +237,8 @@ const Vector3f PositionSmoothing::_generateVelocitySetpoint(const Vector3f &posi
 
 		// Get various path specific vectors
 		Vector2f pos_traj(_trajectory[0].getCurrentPosition(), _trajectory[1].getCurrentPosition());
-		Vector2f pos_traj_to_dest_xy = Vector2f(_getCrossingPoint(position, waypoints)) - pos_traj;
+		Vector2f crossing_point = is_single_waypoint ? Vector2f(target) : Vector2f(_getCrossingPoint(position, waypoints));
+		Vector2f pos_traj_to_dest_xy = crossing_point - pos_traj;
 		Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
 
 		float xy_speed = _getMaxXYSpeed(waypoints);

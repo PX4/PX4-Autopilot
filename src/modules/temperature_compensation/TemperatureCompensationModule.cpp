@@ -52,6 +52,8 @@ TemperatureCompensationModule::TemperatureCompensationModule() :
 		_corrections.gyro_temperature[i] = NAN;
 		_corrections.baro_temperature[i] = NAN;
 	}
+
+	_sensor_correction_pub.advertise();
 }
 
 TemperatureCompensationModule::~TemperatureCompensationModule()

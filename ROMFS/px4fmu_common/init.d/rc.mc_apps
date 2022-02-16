@@ -54,14 +54,6 @@ then
 	# Start Control Allocator
 	#
 	control_allocator start
-
-	#
-	# Disable hover thrust estimator and prearming
-	# These features are currently incompatible with control allocation
-	#
-	# TODO: fix
-	#
-	param set MPC_USE_HTE 0
 fi
 
 #
@@ -73,7 +65,11 @@ mc_rate_control start
 # Start Multicopter Attitude Controller.
 #
 mc_att_control start
-mc_autotune_attitude_control start
+
+if param greater -s MC_AT_EN 0
+then
+	mc_autotune_attitude_control start
+fi
 
 #
 # Start Multicopter Position Controller.

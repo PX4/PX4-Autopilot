@@ -59,7 +59,10 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_acceleration.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_imu_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
@@ -127,11 +130,6 @@ protected:
 	virtual bool _get_freefall_state() { return false; }
 
 	/**
-	 *  @return maximum altitude that can be reached
-	 */
-	virtual float _get_max_altitude() { return INFINITY; }
-
-	/**
 	 *  @return true if vehicle could be in ground effect (close to ground)
 	 */
 	virtual bool _get_ground_effect_state() { return false; }
@@ -153,6 +151,7 @@ protected:
 	vehicle_status_s         _vehicle_status{};
 
 	matrix::Vector3f _acceleration{};
+	matrix::Vector3f _angular_velocity{};
 
 	bool _armed{false};
 	bool _previous_armed_state{false};	///< stores the previous actuator_armed.armed state
@@ -161,17 +160,13 @@ protected:
 private:
 	void Run() override;
 
-	vehicle_land_detected_s _land_detected = {
-		.timestamp = 0,
-		.alt_max = -1.0f,
-		.freefall = false,
-		.ground_contact = true,
-		.maybe_landed = true,
-		.landed = true,
-	};
+	void UpdateVehicleAtRest();
 
+	vehicle_land_detected_s _land_detected{};
 	hrt_abstime _takeoff_time{0};
 	hrt_abstime _total_flight_time{0};	///< total vehicle flight time in microseconds
+
+	hrt_abstime _time_last_move_detect_us{0};	// timestamp of last movement detection event in microseconds
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
@@ -180,10 +175,17 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+
+	uint32_t _device_id_gyro{0};
+
+	bool _at_rest{true};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		ModuleParams,

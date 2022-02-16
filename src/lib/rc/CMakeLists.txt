@@ -50,3 +50,7 @@ target_link_libraries(rc PRIVATE prebuild_targets)
 if(PX4_TESTING AND (${PX4_PLATFORM} MATCHES "posix"))
 	add_subdirectory(rc_tests)
 endif()
+
+if(${PX4_PLATFORM} MATCHES "nuttx")
+	target_link_libraries(rc PRIVATE nuttx_fs)
+endif()

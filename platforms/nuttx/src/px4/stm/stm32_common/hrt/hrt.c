@@ -988,4 +988,21 @@ hrt_call_delay(struct hrt_call *entry, hrt_abstime delay)
 	entry->deadline = hrt_absolute_time() + delay;
 }
 
+#if !defined(CONFIG_BUILD_FLAT)
+/* These functions are inlined in all but NuttX protected/kernel builds */
+
+latency_info_t get_latency(uint16_t bucket_idx, uint16_t counter_idx)
+{
+	latency_info_t ret = {latency_buckets[bucket_idx], latency_counters[counter_idx]};
+	return ret;
+}
+
+void reset_latency_counters(void)
+{
+	for (int i = 0; i <= get_latency_bucket_count(); i++) {
+		latency_counters[i] = 0;
+	}
+}
+#endif
+
 #endif /* HRT_TIMER */

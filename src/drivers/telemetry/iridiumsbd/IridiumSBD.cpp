@@ -60,7 +60,7 @@ IridiumSBD::IridiumSBD()
 
 IridiumSBD::~IridiumSBD()
 {
-	::close(_uart_fd);
+	deinit();
 }
 
 int IridiumSBD::task_spawn(int argc, char *argv[])
@@ -212,6 +212,16 @@ int IridiumSBD::init(int argc, char *argv[])
 	VERBOSE_INFO("SBD session timeout: %" PRId32 " s", _param_session_timeout_s);
 	VERBOSE_INFO("SBD stack time: %" PRId32 " ms", _param_stacking_time_ms);
 	return PX4_OK;
+}
+
+void IridiumSBD::deinit()
+{
+	if (_uart_fd >= 0) {
+		/* discard all pending data, as close() might block otherwise on NuttX with flow control enabled */
+		tcflush(_uart_fd, TCIOFLUSH);
+		::close(_uart_fd);
+		_uart_fd = -1;
+	}
 }
 
 int IridiumSBD::print_status()

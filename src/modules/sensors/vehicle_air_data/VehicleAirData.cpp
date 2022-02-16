@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -127,7 +127,7 @@ void VehicleAirData::AirTemperatureUpdate()
 	}
 }
 
-void VehicleAirData::ParametersUpdate()
+bool VehicleAirData::ParametersUpdate()
 {
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
@@ -136,14 +136,19 @@ void VehicleAirData::ParametersUpdate()
 		_parameter_update_sub.copy(&param_update);
 
 		updateParams();
+		return true;
 	}
+
+	return false;
 }
 
 void VehicleAirData::Run()
 {
 	perf_begin(_cycle_perf);
 
-	ParametersUpdate();
+	const hrt_abstime time_now_us = hrt_absolute_time();
+
+	const bool parameter_update = ParametersUpdate();
 
 	SensorCorrectionsUpdate();
 
@@ -155,7 +160,7 @@ void VehicleAirData::Run()
 
 		if (!_advertised[uorb_index]) {
 			// use data's timestamp to throttle advertisement checks
-			if ((_last_data[uorb_index].timestamp == 0) || (hrt_elapsed_time(&_last_data[uorb_index].timestamp) > 1_s)) {
+			if ((_last_data[uorb_index].timestamp == 0) || (time_now_us > _last_data[uorb_index].timestamp + 1_s)) {
 				if (_sensor_sub[uorb_index].advertised()) {
 					if (uorb_index > 0) {
 						/* the first always exists, but for each further sensor, add a new validator */
@@ -174,7 +179,7 @@ void VehicleAirData::Run()
 					}
 
 				} else {
-					_last_data[uorb_index].timestamp = hrt_absolute_time();
+					_last_data[uorb_index].timestamp = time_now_us;
 				}
 			}
 		}
@@ -198,10 +203,11 @@ void VehicleAirData::Run()
 
 	// check for the current best sensor
 	int best_index = 0;
-	_voter.get_best(hrt_absolute_time(), &best_index);
+	_voter.get_best(time_now_us, &best_index);
 
 	if (best_index >= 0) {
-		if (_selected_sensor_sub_index != best_index) {
+		// handle selection change (don't process on same iteration as parameter update)
+		if ((_selected_sensor_sub_index != best_index) && !parameter_update) {
 			// clear all registered callbacks
 			for (auto &sub : _sensor_sub) {
 				sub.unregisterCallback();
@@ -279,16 +285,14 @@ void VehicleAirData::Run()
 		}
 	}
 
-	// check failover and report
-	if (_last_failover_count != _voter.failover_count()) {
+	// check failover and report (save failover report for a cycle where parameters didn't update)
+	if (_last_failover_count != _voter.failover_count() && !parameter_update) {
 		uint32_t flags = _voter.failover_state();
 		int failover_index = _voter.failover_index();
 
 		if (flags != DataValidator::ERROR_FLAG_NO_ERROR) {
 			if (failover_index != -1) {
-				const hrt_abstime now = hrt_absolute_time();
-
-				if (now - _last_error_message > 3_s) {
+				if (time_now_us > _last_error_message + 3_s) {
 					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!\t",
 							      "BARO",
 							      failover_index,
@@ -318,7 +322,7 @@ void VehicleAirData::Run()
 						events::ID("sensor_failover_baro"), events::Log::Emergency, "Baro sensor #{1} failure: {2}", failover_index,
 						failover_reason);
 
-					_last_error_message = now;
+					_last_error_message = time_now_us;
 				}
 
 				// reduce priority of failed sensor to the minimum
@@ -338,12 +342,13 @@ void VehicleAirData::Run()
 void VehicleAirData::PrintStatus()
 {
 	if (_selected_sensor_sub_index >= 0) {
-		PX4_INFO("selected barometer: %" PRIu32 " (%" PRId8 ")", _last_data[_selected_sensor_sub_index].device_id,
-			 _selected_sensor_sub_index);
+		PX4_INFO_RAW("[vehicle_air_data] selected barometer: %" PRIu32 " (%" PRId8 ")\n",
+			     _last_data[_selected_sensor_sub_index].device_id,
+			     _selected_sensor_sub_index);
 
 		if (fabsf(_thermal_offset[_selected_sensor_sub_index]) > 0.f) {
-			PX4_INFO("%" PRIu32 " temperature offset: %.4f", _last_data[_selected_sensor_sub_index].device_id,
-				 (double)_thermal_offset[_selected_sensor_sub_index]);
+			PX4_INFO_RAW("%" PRIu32 " temperature offset: %.4f\n", _last_data[_selected_sensor_sub_index].device_id,
+				     (double)_thermal_offset[_selected_sensor_sub_index]);
 		}
 	}
 

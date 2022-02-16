@@ -76,16 +76,16 @@ mag_strength = zeros(length(mag_meas),1);
 for i = 1:length(mag_meas)
     % subtract the offsets
     mag_corrected_5(:,i) = mag_meas(:,i) - offset;
-    
+
     % correct the rotation
     mag_corrected_5(:,i) = rotation_correction * mag_corrected_5(:,i);
-    
+
     % correct the scale factor
     mag_corrected_5(:,i) = mag_corrected_5(:,i) .* scale_correction;
-    
+
     % calculate the residual
     mag_strength(i) = sqrt(dot(mag_corrected_5(:,i),mag_corrected_5(:,i)));
-    
+
 end
 
 % calculate the fit residual for fit option 5
@@ -104,19 +104,19 @@ angle_change_1 = zeros(length(mag_meas),1);
 for i = 1:length(mag_meas)
     % subtract the offsets
     mag_corrected_1(:,i) = mag_meas(:,i) - offset;
-    
+
     % correct the rotation
     mag_corrected_1(:,i) = rotation_correction * mag_corrected_1(:,i);
-    
+
     % correct the scale factor
     mag_corrected_1(:,i) = mag_corrected_1(:,i) .* scale_correction;
-    
+
     % calculate the residual
     mag_strength(i) = sqrt(dot(mag_corrected_1(:,i),mag_corrected_1(:,i)));
-    
+
     % calculate the angular change due to the fit
     angle_change_1(i) = atan2(norm(cross(mag_corrected_1(:,i),mag_meas(:,i))),dot(mag_corrected_1(:,i),mag_meas(:,i)));
-    
+
 end
 
 % calculate the fit residual for fit option 1
@@ -135,19 +135,19 @@ angle_change_0 = zeros(length(mag_meas),1);
 for i = 1:length(mag_meas)
     % subtract the offsets
     mag_corrected_0(:,i) = mag_meas(:,i) - offset;
-    
+
     % correct the rotation
     mag_corrected_0(:,i) = rotation_correction * mag_corrected_0(:,i);
-    
+
     % correct the scale factor
     mag_corrected_0(:,i) = mag_corrected_0(:,i) .* scale_correction;
-    
+
     % calculate the residual
     mag_strength(i) = sqrt(dot(mag_corrected_0(:,i),mag_corrected_0(:,i)));
-    
+
     % calculate the angular change due to the fit
     angle_change_0(i) = atan2(norm(cross(mag_corrected_0(:,i),mag_meas(:,i))),dot(mag_corrected_0(:,i),mag_meas(:,i)));
-    
+
 end
 
 % calculate the fit residual for fit option 0
@@ -155,7 +155,7 @@ fit_residual_0 = mag_strength - mean(mag_strength);
 
 %% calculate the residual for uncorrected data
 for i = 1:length(mag_meas)
-    mag_strength(i) = sqrt(dot(mag_meas(:,i),mag_meas(:,i)));    
+    mag_strength(i) = sqrt(dot(mag_meas(:,i),mag_meas(:,i)));
 end
 uncorrected_residual = mag_strength - mean(mag_strength);
 

@@ -43,6 +43,7 @@ UavcanSafetyState::UavcanSafetyState(uavcan::INode &node) :
 	_safety_state_pub(node),
 	_timer(node)
 {
+	_safety_state_pub.setPriority(uavcan::TransferPriority::Default);
 }
 
 int UavcanSafetyState::init()

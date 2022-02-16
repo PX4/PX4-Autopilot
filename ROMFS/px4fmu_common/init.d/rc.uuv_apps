@@ -15,6 +15,14 @@ ekf2 start &
 #                        End Estimator Group Selection                        #
 ###############################################################################
 
+if param compare SYS_CTRL_ALLOC 1
+then
+	#
+	# Start Control Allocator
+	#
+	control_allocator start
+fi
+
 #
 # Start UUV Attitude Controller.
 #

@@ -78,24 +78,18 @@ TEST_F(EKFYawEstimatorTest, inAirYawAlignment)
 	EXPECT_EQ(1, (int) _ekf->control_status_flags().tilt_align);
 	EXPECT_EQ(0, (int) _ekf->control_status_flags().yaw_align);
 
-	const Vector3f accel_frd{1.0, -1.f, 0.f};
-	_sensor_simulator._imu.setAccelData(accel_frd + Vector3f(0.f, 0.f, -CONSTANTS_ONE_G));
-	const float dt = 0.5f;
-	const float yaw = math::radians(-30.f);
+	// AND: a true heading far from North
+	const float yaw = math::radians(-130.f);
 	const Dcmf R_to_earth{Eulerf(0.f, 0.f, yaw)};
+	_sensor_simulator.setOrientation(R_to_earth);
 
+	// WHEN: the vehicle starts accelerating in the horizontal plane
+	_sensor_simulator.setTrajectoryTargetVelocity(Vector3f(2.f, -2.f, -1.f));
 	_ekf->set_in_air_status(true);
 	ResetLoggingChecker reset_logging_checker(_ekf);
 	reset_logging_checker.capturePreResetState();
 
-	// WHEN: GNSS velocity is available
-	Vector3f simulated_velocity{};
-
-	for (int i = 0; i < 10; i++) {
-		_sensor_simulator.runSeconds(dt);
-		simulated_velocity += R_to_earth * accel_frd * dt;
-		_sensor_simulator._gps.setVelocity(simulated_velocity);
-	}
+	_sensor_simulator.runTrajectorySeconds(3.f);
 
 	// THEN: the heading can be estimated and then used to fuse GNSS vel and pos to the main EKF
 	float yaw_est{};

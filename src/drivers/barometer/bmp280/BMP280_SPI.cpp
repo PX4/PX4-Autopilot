@@ -42,6 +42,8 @@
 #include <px4_platform_common/px4_config.h>
 #include <drivers/device/spi.h>
 
+#if defined(CONFIG_SPI)
+
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)  //for set
 #define DIR_WRITE			~(1<<7) //for clear
@@ -132,3 +134,4 @@ BMP280_SPI::get_calibration(uint8_t addr)
 		return nullptr;
 	}
 }
+#endif // CONFIG_SPI

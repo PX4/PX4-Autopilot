@@ -215,7 +215,7 @@ if (output.magFuseMethod <= 1)
     set(h,'PaperOrientation','portrait');
     set(h,'PaperUnits','normalized');
     set(h,'PaperPosition', [0 0 1 1]);
-    
+
     subplot(3,1,1);
     plot(output.time_lapsed',[output.mag_XYZ(:,1),output.mag_XYZ(:,1)+2*sqrt(output.state_variances(:,20)),output.mag_XYZ(:,1)-2*sqrt(output.state_variances(:,20))]);
     grid on;
@@ -224,21 +224,21 @@ if (output.magFuseMethod <= 1)
     ylabel('X bias (gauss)');
     xlabel('time (sec)');
     legend('estimate','upper 95% bound','lower 95% bound');
-    
+
     subplot(3,1,2);
     plot(output.time_lapsed',[output.mag_XYZ(:,2),output.mag_XYZ(:,2)+2*sqrt(output.state_variances(:,21)),output.mag_XYZ(:,2)-2*sqrt(output.state_variances(:,21))]);
     grid on;
     ylabel('Y bias (gauss)');
     xlabel('time (sec)');
     legend('estimate','upper 95% bound','lower 95% bound');
-    
+
     subplot(3,1,3);
     plot(output.time_lapsed',[output.mag_XYZ(:,3),output.mag_XYZ(:,3)+2*sqrt(output.state_variances(:,22)),output.mag_XYZ(:,3)-2*sqrt(output.state_variances(:,22))]);
     grid on;
     ylabel('Z bias (gauss)');
     xlabel('time (sec)');
     legend('estimate','upper 95% bound','lower 95% bound');
-    
+
     fileName='body_field_estimates.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
@@ -251,9 +251,9 @@ if (output.magFuseMethod <= 1)
     set(h,'PaperOrientation','portrait');
     set(h,'PaperUnits','normalized');
     set(h,'PaperPosition', [0 0 1 1]);
-    
+
     margin = 0.1;
-    
+
     subplot(4,1,1);
     plot(output.time_lapsed',[output.mag_NED(:,1),output.mag_NED(:,1)+2*sqrt(output.state_variances(:,17)),output.mag_NED(:,1)-2*sqrt(output.state_variances(:,17))]);
     minVal = min(output.mag_NED(:,1))-margin;
@@ -265,7 +265,7 @@ if (output.magFuseMethod <= 1)
     ylabel('North (gauss)');
     xlabel('time (sec)');
     legend('estimate','upper 95% bound','lower 95% bound');
-    
+
     subplot(4,1,2);
     plot(output.time_lapsed',[output.mag_NED(:,2),output.mag_NED(:,2)+2*sqrt(output.state_variances(:,18)),output.mag_NED(:,2)-2*sqrt(output.state_variances(:,18))]);
     minVal = min(output.mag_NED(:,2))-margin;
@@ -275,7 +275,7 @@ if (output.magFuseMethod <= 1)
     ylabel('East (gauss)');
     xlabel('time (sec)');
     legend('estimate','upper 95% bound','lower 95% bound');
-    
+
     subplot(4,1,3);
     plot(output.time_lapsed',[output.mag_NED(:,3),output.mag_NED(:,3)+2*sqrt(output.state_variances(:,19)),output.mag_NED(:,3)-2*sqrt(output.state_variances(:,19))]);
     grid on;
@@ -285,7 +285,7 @@ if (output.magFuseMethod <= 1)
     ylabel('Down (gauss)');
     xlabel('time (sec)');
     legend('estimate','upper 95% bound','lower 95% bound');
-    
+
     subplot(4,1,4);
     plot(output.time_lapsed',rad2deg*atan2(output.mag_NED(:,2),output.mag_NED(:,1)));
     grid on;
@@ -293,7 +293,7 @@ if (output.magFuseMethod <= 1)
     title(titleText);
     ylabel('declination (deg)');
     xlabel('time (sec)');
-    
+
     fileName='earth_field_estimates.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
@@ -301,13 +301,13 @@ end
 
 %% plot velocity innovations
 if isfield(output.innovations,'vel_innov')
-    
+
     figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
     h=gcf;
     set(h,'PaperOrientation','portrait');
     set(h,'PaperUnits','normalized');
     set(h,'PaperPosition', [0 0 1 1]);
-    
+
     subplot(3,1,1);
     plot(output.innovations.vel_time_lapsed',[output.innovations.vel_innov(:,1),sqrt(output.innovations.vel_innov_var(:,1)),-sqrt(output.innovations.vel_innov_var(:,1))]);
     grid on;
@@ -316,21 +316,21 @@ if isfield(output.innovations,'vel_innov')
     ylabel('North (m/s)');
     xlabel('time (sec)');
     legend('innovation','variance sqrt','variance sqrt');
-    
+
     subplot(3,1,2);
     plot(output.innovations.vel_time_lapsed',[output.innovations.vel_innov(:,2),sqrt(output.innovations.vel_innov_var(:,2)),-sqrt(output.innovations.vel_innov_var(:,2))]);
     grid on;
     ylabel('East (m/s)');
     xlabel('time (sec)');
     legend('innovation','variance sqrt','variance sqrt');
-    
+
     subplot(3,1,3);
     plot(output.innovations.vel_time_lapsed',[output.innovations.vel_innov(:,3),sqrt(output.innovations.vel_innov_var(:,3)),-sqrt(output.innovations.vel_innov_var(:,3))]);
     grid on;
     ylabel('Down (m/s)');
     xlabel('time (sec)');
     legend('innovation','variance sqrt','variance sqrt');
-    
+
     fileName='velocity_fusion.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
@@ -343,7 +343,7 @@ if isfield(output.innovations,'posInnov')
     set(h,'PaperOrientation','portrait');
     set(h,'PaperUnits','normalized');
     set(h,'PaperPosition', [0 0 1 1]);
-    
+
     subplot(3,1,1);
     plot(output.innovations.vel_time_lapsed',[output.innovations.posInnov(:,1),sqrt(output.innovations.posInnovVar(:,1)),-sqrt(output.innovations.posInnovVar(:,1))]);
     grid on;
@@ -352,21 +352,21 @@ if isfield(output.innovations,'posInnov')
     ylabel('North (m)');
     xlabel('time (sec)');
     legend('innovation','variance sqrt','variance sqrt');
-    
+
     subplot(3,1,2);
     plot(output.innovations.vel_time_lapsed',[output.innovations.posInnov(:,2),sqrt(output.innovations.posInnovVar(:,2)),-sqrt(output.innovations.posInnovVar(:,2))]);
     grid on;
     ylabel('East (m)');
     xlabel('time (sec)');
     legend('innovation','variance sqrt','variance sqrt');
-    
+
     subplot(3,1,3);
     plot(output.innovations.hgt_time_lapsed',[output.innovations.hgtInnov(:),sqrt(output.innovations.hgtInnovVar(:)),-sqrt(output.innovations.hgtInnovVar(:))]);
     grid on;
     ylabel('Up (m)');
     xlabel('time (sec)');
     legend('innovation','variance sqrt','variance sqrt');
-    
+
     fileName='position_fusion.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
@@ -374,7 +374,7 @@ end
 
 %% plot magnetometer innovations
 if isfield(output.innovations,'magInnov')
-    
+
     figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
     h=gcf;
     set(h,'PaperOrientation','portrait');
@@ -412,18 +412,18 @@ if isfield(output.innovations,'magInnov')
     fileName='magnetometer_fusion.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
-    
+
 end
 
 %% plot magnetic yaw innovations
 if isfield(output.innovations,'hdgInnov')
-    
+
     figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
     h=gcf;
     set(h,'PaperOrientation','portrait');
     set(h,'PaperUnits','normalized');
     set(h,'PaperPosition', [0 0 1 1]);
-    
+
     subplot(2,1,1);
     plot(output.innovations.mag_time_lapsed,[output.innovations.hdgInnov*rad2deg;sqrt(output.innovations.hdgInnovVar)*rad2deg;-sqrt(output.innovations.hdgInnovVar)*rad2deg]);
     ylim([-30 30]);
@@ -442,12 +442,12 @@ if isfield(output.innovations,'hdgInnov')
     fileName='magnetometer_fusion.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
-    
+
 end
 
 %% plot optical flow innovations
 if isfield(output.innovations,'flowInnov')
-    
+
     figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
     h=gcf;
     set(h,'PaperOrientation','portrait');
@@ -471,17 +471,18 @@ if isfield(output.innovations,'flowInnov')
     fileName='optical_flow_fusion.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
-    
+
 end
+
 %% plot ZED camera innovations
 if isfield(output.innovations,'bodyVelInnov')
-    
+
     figure('Units','Pixels','Position',plotDimensions,'PaperOrientation','portrait');
     h=gcf;
     set(h,'PaperOrientation','portrait');
     set(h,'PaperUnits','normalized');
     set(h,'PaperPosition', [0 0 1 1]);
-    
+
     subplot(3,1,1);
     plot(output.innovations.bodyVel_time_lapsed,[output.innovations.bodyVelInnov(:,1)';sqrt(output.innovations.bodyVelInnovVar(:,1))';-sqrt(output.innovations.bodyVelInnovVar(:,1))']);
     grid on;
@@ -489,23 +490,23 @@ if isfield(output.innovations,'bodyVelInnov')
     ylabel('X (m/sec)');
     xlabel('time (sec)');
     legend('innovation','innovation variance sqrt','innovation variance sqrt');
-    
+
     subplot(3,1,2);
     plot(output.innovations.bodyVel_time_lapsed,[output.innovations.bodyVelInnov(:,2)';sqrt(output.innovations.bodyVelInnovVar(:,2))';-sqrt(output.innovations.bodyVelInnovVar(:,2))']);
     grid on;
     ylabel('Y (m/sec)');
     xlabel('time (sec)');
     legend('innovation','innovation variance sqrt','innovation variance sqrt');
-    
+
     subplot(3,1,3);
     plot(output.innovations.bodyVel_time_lapsed,[output.innovations.bodyVelInnov(:,3)';sqrt(output.innovations.bodyVelInnovVar(:,3))';-sqrt(output.innovations.bodyVelInnovVar(:,3))']);
     grid on;
     ylabel('Z (m/sec)');
     xlabel('time (sec)');
     legend('innovation','innovation variance sqrt','innovation variance sqrt');
-    
+
     fileName='zed_camera_fusion.png';
     fullFileName = fullfile(folder, fileName);
     saveas(h,fullFileName);
-    
+
 end

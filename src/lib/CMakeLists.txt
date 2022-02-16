@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-px4_add_git_submodule(TARGET git_matrix PATH "matrix")
-
 add_subdirectory(airspeed)
 add_subdirectory(avoidance)
 add_subdirectory(battery)
@@ -51,11 +49,12 @@ add_subdirectory(hysteresis)
 add_subdirectory(l1)
 add_subdirectory(landing_slope)
 add_subdirectory(led)
+add_subdirectory(matrix)
 add_subdirectory(mathlib)
 add_subdirectory(mixer)
 add_subdirectory(mixer_module)
 add_subdirectory(motion_planning)
-add_subdirectory(output_limit)
+add_subdirectory(npfg)
 add_subdirectory(perf)
 add_subdirectory(pid)
 add_subdirectory(pid_design)

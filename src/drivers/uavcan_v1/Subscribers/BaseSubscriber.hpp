@@ -51,8 +51,8 @@
 class UavcanBaseSubscriber
 {
 public:
-	UavcanBaseSubscriber(CanardInstance &ins, const char *subject_name, uint8_t instance = 0) :
-		_canard_instance(ins), _instance(instance)
+	UavcanBaseSubscriber(CanardInstance &ins, const char *prefix_name, const char *subject_name, uint8_t instance = 0) :
+		_canard_instance(ins), _prefix_name(prefix_name), _instance(instance)
 	{
 		_subj_sub._subject_name = subject_name;
 		_subj_sub._canard_sub.user_reference = this;
@@ -146,6 +146,7 @@ protected:
 	};
 
 	CanardInstance &_canard_instance;
+	const char *_prefix_name;
 	SubjectSubscription _subj_sub;
 	uint8_t _instance {0};
 	/// TODO: 'type' parameter? uavcan.pub.PORT_NAME.type (see 384.Access.1.0.uavcan)

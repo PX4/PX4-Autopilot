@@ -76,6 +76,19 @@ bool UavcanParamManager::GetParamByName(const uavcan_register_Name_1_0 &name, ua
 	return false;
 }
 
+bool UavcanParamManager::GetParamName(uint32_t id, uavcan_register_Name_1_0 &name)
+{
+	if (id >= sizeof(_uavcan_params) / sizeof(UavcanParamBinder)) {
+		return false;
+	}
+
+	strncpy((char *)name.name.elements, _uavcan_params[id].uavcan_name, uavcan_register_Name_1_0_name_ARRAY_CAPACITY_);
+
+	name.name.count = strlen(_uavcan_params[id].uavcan_name);
+
+	return true;
+}
+
 bool UavcanParamManager::SetParamByName(const uavcan_register_Name_1_0 &name, const uavcan_register_Value_1_0 &value)
 {
 	for (auto &param : _uavcan_params) {

@@ -62,11 +62,12 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/action_request.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed_validated.h>
-#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/tecs_status.h>
@@ -80,6 +81,8 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 #include "standard.h"
 #include "tailsitter.h"
 #include "tiltrotor.h"
@@ -116,7 +119,7 @@ public:
 
 	bool init();
 
-	bool is_fixed_wing_requested();
+	bool is_fixed_wing_requested() { return _transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW; };
 	void quadchute(QuadchuteReason reason);
 	int get_transition_command() {return _transition_command;}
 	bool get_immediate_transition() {return _immediate_transition;}
@@ -139,10 +142,14 @@ public:
 	struct vehicle_local_position_setpoint_s	*get_local_pos_sp() {return &_local_pos_sp;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
 
+	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_0() {return &_torque_setpoint_0;}
+	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_1() {return &_torque_setpoint_1;}
+	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_0() {return &_thrust_setpoint_0;}
+	struct vehicle_thrust_setpoint_s 		*get_thrust_setpoint_1() {return &_thrust_setpoint_1;}
+
 	struct Params 					*get_params() {return &_params;}
 
 private:
-
 	void Run() override;
 
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
@@ -150,12 +157,12 @@ private:
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
+	uORB::Subscription _action_request_sub{ORB_ID(action_request)};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};			// airspeed subscription
 	uORB::Subscription _fw_virtual_att_sp_sub{ORB_ID(fw_virtual_attitude_setpoint)};
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _local_pos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};			// setpoint subscription
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			// sensor subscription
-	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};	//manual control setpoint subscription
 	uORB::Subscription _mc_virtual_att_sp_sub{ORB_ID(mc_virtual_attitude_setpoint)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};			// local position setpoint subscription
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
@@ -168,6 +175,10 @@ private:
 	uORB::Publication<actuator_controls_s>		_actuators_1_pub{ORB_ID(actuator_controls_1)};
 	uORB::Publication<vehicle_attitude_setpoint_s>	_v_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vtol_vehicle_status_s>	_vtol_vehicle_status_pub{ORB_ID(vtol_vehicle_status)};
+	uORB::PublicationMulti<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint0_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::PublicationMulti<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint0_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::PublicationMulti<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint1_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::PublicationMulti<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint1_pub{ORB_ID(vehicle_torque_setpoint)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
 
@@ -180,8 +191,12 @@ private:
 	actuator_controls_s			_actuators_out_0{};	//actuator controls going to the mc mixer
 	actuator_controls_s			_actuators_out_1{};	//actuator controls going to the fw mixer (used for elevons)
 
+	vehicle_torque_setpoint_s		_torque_setpoint_0{};
+	vehicle_torque_setpoint_s		_torque_setpoint_1{};
+	vehicle_thrust_setpoint_s		_thrust_setpoint_0{};
+	vehicle_thrust_setpoint_s		_thrust_setpoint_1{};
+
 	airspeed_validated_s 				_airspeed_validated{};			// airspeed
-	manual_control_switches_s		_manual_control_switches{}; //manual control setpoint
 	position_setpoint_triplet_s		_pos_sp_triplet{};
 	tecs_status_s				_tecs_status{};
 	vehicle_attitude_s			_v_att{};				//vehicle attitude
@@ -227,6 +242,7 @@ private:
 		param_t vt_forward_thrust_enable_mode;
 		param_t mpc_land_alt1;
 		param_t mpc_land_alt2;
+		param_t sys_ctrl_alloc;
 	} _params_handles{};
 
 	hrt_abstime _last_run_timestamp{0};
@@ -243,6 +259,7 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
+	void		action_request_poll();
 	void		vehicle_cmd_poll();
 
 	int 		parameters_update();			//Update local parameter cache

@@ -51,6 +51,8 @@ for group_key in functions:
     for function_name in group:
         if isinstance(group[function_name], int):
             add_function(group[function_name], function_name)
+        elif not 'count' in group[function_name]:
+            add_function(group[function_name]['start'], function_name)
         else:
             start = group[function_name]['start']
             count = group[function_name]['count']
@@ -72,4 +74,3 @@ enum class OutputFunction : int32_t {{
 {2}
 }};
 '''.format(os.path.basename(__file__), yaml_file, function_defs))
-

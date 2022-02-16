@@ -45,5 +45,3 @@ Hfusion.at<2>() = IV18*P(16,21) + IV18*(IV18*P(16,16) + IV19*P(3,16) - IV20*P(0,
 
 
 // Kalman gains - axis 2
-
-

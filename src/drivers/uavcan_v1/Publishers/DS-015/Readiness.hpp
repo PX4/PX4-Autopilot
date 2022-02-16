@@ -51,7 +51,7 @@ class UavcanReadinessPublisher : public UavcanPublisher
 {
 public:
 	UavcanReadinessPublisher(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanPublisher(ins, pmgr, "readiness", instance)
+		UavcanPublisher(ins, pmgr, "ds_015", "readiness", instance)
 	{
 
 	};

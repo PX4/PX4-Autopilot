@@ -79,14 +79,17 @@
 #include "streams/GLOBAL_POSITION_INT.hpp"
 #include "streams/GPS_GLOBAL_ORIGIN.hpp"
 #include "streams/GPS_RAW_INT.hpp"
+#include "streams/GPS_RTCM_DATA.hpp"
 #include "streams/GPS_STATUS.hpp"
 #include "streams/HEARTBEAT.hpp"
 #include "streams/HIGHRES_IMU.hpp"
 #include "streams/HIL_ACTUATOR_CONTROLS.hpp"
 #include "streams/HIL_STATE_QUATERNION.hpp"
 #include "streams/HOME_POSITION.hpp"
+#include "streams/HYGROMETER_SENSOR.hpp"
 #include "streams/LANDING_TARGET.hpp"
 #include "streams/LOCAL_POSITION_NED.hpp"
+#include "streams/MAG_CAL_REPORT.hpp"
 #include "streams/MANUAL_CONTROL.hpp"
 #include "streams/MOUNT_ORIENTATION.hpp"
 #include "streams/NAV_CONTROLLER_OUTPUT.hpp"
@@ -261,11 +264,6 @@ union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		break;
 
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL:
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
-		break;
-
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_ACRO;
 		break;
@@ -310,6 +308,11 @@ union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_POSCTL;
 		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_POSCTL_ORBIT;
+		break;
+
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
+		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
+		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_VTOL_TAKEOFF;
 		break;
 	}
 
@@ -390,6 +393,9 @@ static const StreamListItem streams_list[] = {
 #if defined(LOCAL_POSITION_NED_HPP)
 	create_stream_list_item<MavlinkStreamLocalPositionNED>(),
 #endif // LOCAL_POSITION_NED_HPP
+#if defined(MAG_CAL_REPORT_HPP)
+	create_stream_list_item<MavlinkStreamMagCalReport>(),
+#endif // MAG_CAL_REPORT_HPP
 #if defined(ODOMETRY_HPP)
 	create_stream_list_item<MavlinkStreamOdometry>(),
 #endif // ODOMETRY_HPP
@@ -420,6 +426,9 @@ static const StreamListItem streams_list[] = {
 #if defined(HOME_POSITION_HPP)
 	create_stream_list_item<MavlinkStreamHomePosition>(),
 #endif // HOME_POSITION_HPP
+#if defined(HYGROMETER_SENSOR_HPP)
+	create_stream_list_item<MavlinkStreamHygrometerSensor>(),
+#endif // HYGROMETER_SENSOR_HPP
 #if defined(SERVO_OUTPUT_RAW_HPP)
 	create_stream_list_item<MavlinkStreamServoOutputRaw<0> >(),
 	create_stream_list_item<MavlinkStreamServoOutputRaw<1> >(),
@@ -543,8 +552,11 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamRawRpm>(),
 #endif // RAW_RPM_HPP
 #if defined(EFI_STATUS_HPP)
-	create_stream_list_item<MavlinkStreamEfiStatus>()
+	create_stream_list_item<MavlinkStreamEfiStatus>(),
 #endif // EFI_STATUS_HPP
+#if defined(GPS_RTCM_DATA_HPP)
+	create_stream_list_item<MavlinkStreamGPSRTCMData>()
+#endif // GPS_RTCM_DATA_HPP
 };
 
 const char *get_stream_name(const uint16_t msg_id)

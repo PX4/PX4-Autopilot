@@ -44,10 +44,10 @@ delAngEarth_NED(3,1) = -0.000072921 * sin(latitude) * dt;
 
 % Apply corrections for coning errors and earth spin rate
 % Coning correction from :
-% "A new strapdown attitude algorithm", 
-% R. B. MILLER, 
+% "A new strapdown attitude algorithm",
+% R. B. MILLER,
 % Journal of Guidance, Control, and Dynamics
-% July, Vol. 6, No. 4, pp. 287-291, Eqn 11 
+% July, Vol. 6, No. 4, pp. 287-291, Eqn 11
 % correctedDelAng   = delAng - 1/12*cross(prevDelAng , delAng) - transpose(Tbn_prev)*delAngEarth_NED;
 correctedDelAng   = delAng - transpose(Tbn_prev)*delAngEarth_NED;
 

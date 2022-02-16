@@ -59,6 +59,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/camera_trigger.h>
+#include <uORB/topics/pps_capture.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -173,6 +174,8 @@ private:
 	bool 			_turning_on{false};
 	matrix::Vector2f	_last_shoot_position{0.f, 0.f};
 	bool			_valid_position{false};
+	hrt_abstime	_pps_hrt_timestamp{0};
+	uint64_t		_pps_rtc_timestamp{0};
 
 	//Camera Auto Mount Pivoting Oblique Survey (CAMPOS)
 	uint32_t		_CAMPOS_num_poses{0};
@@ -186,6 +189,7 @@ private:
 
 	uORB::Subscription	_command_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription	_lpos_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription	_pps_capture_sub{ORB_ID(pps_capture)};
 
 	orb_advert_t		_trigger_pub{nullptr};
 
@@ -197,10 +201,8 @@ private:
 	param_t			_p_min_interval;
 	param_t			_p_distance;
 	param_t			_p_interface;
-	param_t 		_p_cam_cap_fback;
 
 	trigger_mode_t		_trigger_mode{TRIGGER_MODE_NONE};
-	int32_t _cam_cap_fback{0};
 
 	camera_interface_mode_t	_camera_interface_mode{CAMERA_INTERFACE_MODE_GPIO};
 	CameraInterface		*_camera_interface{nullptr};  ///< instance of camera interface
@@ -263,7 +265,6 @@ CameraTrigger::CameraTrigger() :
 	_p_activation_time = param_find("TRIG_ACT_TIME");
 	_p_mode = param_find("TRIG_MODE");
 	_p_interface = param_find("TRIG_INTERFACE");
-	_p_cam_cap_fback = param_find("CAM_CAP_FBACK");
 
 	param_get(_p_activation_time, &_activation_time);
 	param_get(_p_interval, &_interval);
@@ -271,10 +272,6 @@ CameraTrigger::CameraTrigger() :
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, (int32_t *)&_trigger_mode);
 	param_get(_p_interface, (int32_t *)&_camera_interface_mode);
-
-	if (_p_cam_cap_fback != PARAM_INVALID) {
-		param_get(_p_cam_cap_fback, (int32_t *)&_cam_cap_fback);
-	}
 
 	switch (_camera_interface_mode) {
 #ifdef __PX4_NUTTX
@@ -317,10 +314,7 @@ CameraTrigger::CameraTrigger() :
 	// Advertise critical publishers here, because we cannot advertise in interrupt context
 	camera_trigger_s trigger{};
 
-	if (!_cam_cap_fback) {
-		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
-
-	}
+	_trigger_pub = orb_advertise_queue(ORB_ID(camera_trigger), &trigger, camera_trigger_s::ORB_QUEUE_LENGTH);
 }
 
 CameraTrigger::~CameraTrigger()
@@ -832,23 +826,33 @@ CameraTrigger::engage(void *arg)
 		return;
 	}
 
+	pps_capture_s pps_capture;
+
+	if (trig->_pps_capture_sub.update(&pps_capture)) {
+		trig->_pps_hrt_timestamp = pps_capture.timestamp;
+		trig->_pps_rtc_timestamp = pps_capture.rtc_timestamp;
+	}
+
 	// Send camera trigger message. This messages indicates that we sent
 	// the camera trigger request. Does not guarantee capture.
 	camera_trigger_s trigger{};
 
-	timespec tv{};
-	px4_clock_gettime(CLOCK_REALTIME, &tv);
-	trigger.timestamp_utc = (uint64_t) tv.tv_sec * 1000000 + tv.tv_nsec / 1000;
+	if (trig->_pps_hrt_timestamp > 0) {
+		// Current RTC time (RTC time captured by the PPS module + elapsed time since capture)
+		trigger.timestamp_utc = trig->_pps_rtc_timestamp + hrt_elapsed_time(&trig->_pps_hrt_timestamp);
+
+	} else {
+		// No PPS capture received, use RTC clock as fallback
+		timespec tv{};
+		px4_clock_gettime(CLOCK_REALTIME, &tv);
+		trigger.timestamp_utc = ts_to_abstime(&tv);
+	}
 
 	trigger.seq = trig->_trigger_seq;
 	trigger.feedback = false;
 	trigger.timestamp = hrt_absolute_time();
 
-	// Publish only if  _cam_cap_fback is disabled, otherwise, it is published over camera_capture driver
-	if (!trig->_cam_cap_fback) {
-		orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
-
-	}
+	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
 
 	// increment frame count
 	trig->_trigger_seq++;

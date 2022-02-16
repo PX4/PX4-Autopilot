@@ -120,7 +120,7 @@ void PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(bool i2c_support, bool spi_support
 				     true);
 
 	if (spi_support) {
-		PRINT_MODULE_USAGE_PARAM_INT('c', 1, 1, 10, "chip-select index (for external SPI)", true);
+		PRINT_MODULE_USAGE_PARAM_INT('c', -1, 0, 31, "chip-select pin (for internal SPI) or index (for external SPI)", true);
 		PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 3, "SPI mode", true);
 	}
 

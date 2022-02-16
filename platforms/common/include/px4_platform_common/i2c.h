@@ -35,6 +35,8 @@
 
 #include <board_config.h>
 
+#if defined(CONFIG_I2C)
+
 #define I2C_BUS_MAX_BUS_ITEMS PX4_NUMBER_I2C_BUSES
 
 struct px4_i2c_bus_t {
@@ -99,3 +101,5 @@ private:
 	int _index{-1};
 	int _external_bus_counter{0};
 };
+
+#endif // CONFIG_I2C

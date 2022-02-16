@@ -15,6 +15,14 @@ ekf2 start &
 #                        End Estimator group selection                        #
 ###############################################################################
 
+if param compare SYS_CTRL_ALLOC 1
+then
+	#
+	# Start Control Allocator
+	#
+	control_allocator start
+fi
+
 airspeed_selector start
 
 vtol_att_control start
@@ -25,8 +33,14 @@ flight_mode_manager start
 mc_pos_control start vtol
 mc_hover_thrust_estimator start
 
+if param greater -s MC_AT_EN 0
+then
+	mc_autotune_attitude_control start
+fi
+
 fw_att_control start vtol
 fw_pos_control_l1 start vtol
+fw_autotune_attitude_control start vtol
 
 # Start Land Detector
 # Multicopter for now until we have something for VTOL

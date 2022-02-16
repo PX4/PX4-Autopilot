@@ -166,7 +166,7 @@ cd ../;
 %% ------     SECTION 3: Ground Truth Data (STIL only, optional)     ------
 
 if exist('attitude_file','var') && exist('localpos_file','var') && exist('globalpos_file','var')
-    
+
 %- Import Attitude data from text file
 opts = delimitedTextImportOptions("NumVariables", 13);
 opts.DataLines = [2, Inf];

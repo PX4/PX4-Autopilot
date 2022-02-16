@@ -39,6 +39,8 @@
 
 #include <drivers/device/i2c.h>
 
+#if defined(CONFIG_I2C)
+
 #include "ms5611.h"
 
 class MS5611_I2C : public device::I2C
@@ -238,3 +240,5 @@ MS5611_I2C::_read_prom()
 	/* calculate CRC and return success/failure accordingly */
 	return (ms5611::crc4(&_prom.c[0]) && !bits_stuck) ? PX4_OK : -EIO;
 }
+
+#endif // CONFIG_I2C

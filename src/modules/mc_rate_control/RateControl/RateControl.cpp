@@ -47,14 +47,11 @@ void RateControl::setGains(const Vector3f &P, const Vector3f &I, const Vector3f 
 	_gain_d = D;
 }
 
-void RateControl::setSaturationStatus(const MultirotorMixer::saturation_status &status)
+void RateControl::setSaturationStatus(const Vector<bool, 3> &saturation_positive,
+				      const Vector<bool, 3> &saturation_negative)
 {
-	_mixer_saturation_positive[0] = status.flags.roll_pos;
-	_mixer_saturation_positive[1] = status.flags.pitch_pos;
-	_mixer_saturation_positive[2] = status.flags.yaw_pos;
-	_mixer_saturation_negative[0] = status.flags.roll_neg;
-	_mixer_saturation_negative[1] = status.flags.pitch_neg;
-	_mixer_saturation_negative[2] = status.flags.yaw_neg;
+	_control_allocator_saturation_positive = saturation_positive;
+	_control_allocator_saturation_negative = saturation_negative;
 }
 
 Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, const Vector3f &angular_accel,
@@ -78,12 +75,12 @@ void RateControl::updateIntegral(Vector3f &rate_error, const float dt)
 {
 	for (int i = 0; i < 3; i++) {
 		// prevent further positive control saturation
-		if (_mixer_saturation_positive[i]) {
+		if (_control_allocator_saturation_positive(i)) {
 			rate_error(i) = math::min(rate_error(i), 0.f);
 		}
 
 		// prevent further negative control saturation
-		if (_mixer_saturation_negative[i]) {
+		if (_control_allocator_saturation_negative(i)) {
 			rate_error(i) = math::max(rate_error(i), 0.f);
 		}
 

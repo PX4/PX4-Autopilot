@@ -62,7 +62,8 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_Trigger = 5,
 	IOTimerChanMode_Dshot   = 6,
 	IOTimerChanMode_LED     = 7,
-	IOTimerChanMode_Other   = 8,
+	IOTimerChanMode_PPS     = 8,
+	IOTimerChanMode_Other   = 9,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
@@ -85,6 +86,8 @@ typedef struct io_timers_t {
 typedef struct io_timers_channel_mapping_element_t {
 	uint32_t first_channel_index;
 	uint32_t channel_count;
+	uint32_t lowest_timer_channel;
+	uint32_t channel_count_including_gaps;
 } io_timers_channel_mapping_element_t;
 
 /* mapping for each io_timers to timer_io_channels */
@@ -101,6 +104,7 @@ typedef struct timer_io_channels_t {
 	uint8_t   val_offset;          /* IMXRT_FLEXPWM_SM0VAL3_OFFSET or IMXRT_FLEXPWM_SM0VAL5_OFFSET */
 	uint8_t   sub_module;          /* 0 based sub module offset */
 	uint8_t   sub_module_bits;     /* LDOK and CLDOK bits */
+	uint8_t   timer_channel;       /* Unused */
 } timer_io_channels_t;
 
 #define SM0           0

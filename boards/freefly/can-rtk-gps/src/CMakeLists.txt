@@ -62,6 +62,5 @@ else()
 			nuttx_arch
 			nuttx_drivers
 			px4_layer
-			arch_io_pins
 	)
 endif()

@@ -72,7 +72,7 @@ void init_print_load(struct print_load_s *s)
 	s->new_time = hrt_absolute_time();
 	s->interval_start_time = s->new_time;
 
-	for (int i = 0; i < CONFIG_MAX_TASKS; i++) {
+	for (size_t i = 0; i < sizeof(s->last_times) / sizeof(s->last_times[0]); i++) {
 		s->last_times[i] = 0;
 	}
 

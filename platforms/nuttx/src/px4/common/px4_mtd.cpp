@@ -74,23 +74,27 @@ static int ramtron_attach(mtd_instance_s &instance)
 	return ENXIO;
 #else
 
-	/* initialize the right spi */
-	struct spi_dev_s *spi = px4_spibus_initialize(px4_find_spi_bus(instance.devid));
+	/* start the RAMTRON driver, attempt 10 times */
 
-	if (spi == nullptr) {
-		PX4_ERR("failed to locate spi bus");
-		return -ENXIO;
-	}
+	int spi_speed_mhz = 10;
 
-	/* this resets the spi bus, set correct bus speed again */
-	SPI_SETFREQUENCY(spi, 10 * 1000 * 1000);
-	SPI_SETBITS(spi, 8);
-	SPI_SETMODE(spi, SPIDEV_MODE3);
-	SPI_SELECT(spi, instance.devid, false);
+	for (int i = 0; i < 10; i++) {
+		/* initialize the right spi */
+		struct spi_dev_s *spi = px4_spibus_initialize(px4_find_spi_bus(instance.devid));
 
-	/* start the RAMTRON driver, attempt 5 times */
+		if (spi == nullptr) {
+			PX4_ERR("failed to locate spi bus");
+			return -ENXIO;
+		}
 
-	for (int i = 0; i < 5; i++) {
+		/* this resets the spi bus, set correct bus speed again */
+		SPI_LOCK(spi, true);
+		SPI_SETFREQUENCY(spi, spi_speed_mhz * 1000 * 1000);
+		SPI_SETBITS(spi, 8);
+		SPI_SETMODE(spi, SPIDEV_MODE3);
+		SPI_SELECT(spi, instance.devid, false);
+		SPI_LOCK(spi, false);
+
 		instance.mtd_dev = ramtron_initialize(spi);
 
 		if (instance.mtd_dev) {
@@ -101,6 +105,10 @@ static int ramtron_attach(mtd_instance_s &instance)
 
 			break;
 		}
+
+		// try reducing speed for next attempt
+		spi_speed_mhz--;
+		px4_usleep(10000);
 	}
 
 	/* if last attempt is still unsuccessful, abort */
@@ -109,7 +117,7 @@ static int ramtron_attach(mtd_instance_s &instance)
 		return -EIO;
 	}
 
-	int ret = instance.mtd_dev->ioctl(instance.mtd_dev, MTDIOC_SETSPEED, (unsigned long)10 * 1000 * 1000);
+	int ret = instance.mtd_dev->ioctl(instance.mtd_dev, MTDIOC_SETSPEED, (unsigned long)spi_speed_mhz * 1000 * 1000);
 
 	if (ret != OK) {
 		// FIXME: From the previous warning call, it looked like this should have been fatal error instead. Tried

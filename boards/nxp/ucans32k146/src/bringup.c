@@ -124,12 +124,13 @@ int s32k1xx_bringup(void)
 	s32k1xx_eeeprom_register(0, 4096);
 #endif
 
-#ifdef CONFIG_S32K1XX_LPSPI
+#ifdef CONFIG_S32K1XX_LPSPI0
 	/* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak
 	 * function s32k1xx_spidev_initialize() has been brought into the link.
 	 */
 
 	s32k1xx_spidev_initialize();
+	s32k1xx_spi_bus_initialize();
 #endif
 
 #if defined(CONFIG_S32K1XX_LPI2C0)

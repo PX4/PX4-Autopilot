@@ -40,7 +40,7 @@
 # * Common functions should be included in px_base.cmake.
 #
 # * OS/ board specific fucntions should be include in
-#	px_impl_${PX4_PLATFORM}.cmake or px4_impl_${PX4_PLATFORM}_${PX4_BOARD}.cmake.
+#	px_impl_${PX4_PLATFORM}.cmake
 #
 # Formatting
 # ---------------------------------------------------------------------------
@@ -101,8 +101,8 @@
 
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
 
-set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE FILEPATH "PX4 source directory" FORCE)
+set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE FILEPATH "PX4 binary directory" FORCE)
 
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
 include(px4_parse_function_args)
@@ -125,6 +125,11 @@ define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  FULL_DOCS "List of all PX4 module libraries"
                  )
 
+define_property(GLOBAL PROPERTY PX4_KERNEL_MODULE_LIBRARIES
+                 BRIEF_DOCS "PX4 kernel side module libs"
+                 FULL_DOCS "List of all PX4 kernel module libraries"
+                 )
+
 define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
                  BRIEF_DOCS "PX4 module paths"
                  FULL_DOCS "List of paths to all PX4 modules"
@@ -142,6 +147,7 @@ set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 
 include(px4_add_module)
 set(config_module_list)
+set(config_kernel_list)
 
 # Find Python
 # If using catkin, Python 2 is found since it points
@@ -423,6 +429,8 @@ endforeach()
 
 # add events lib after modules and libs as it needs to know all source files (PX4_SRC_FILES)
 add_subdirectory(src/lib/events EXCLUDE_FROM_ALL)
+# metadata needs PX4_MODULE_CONFIG_FILES
+add_subdirectory(src/lib/metadata EXCLUDE_FROM_ALL)
 
 # must be the last module before firmware
 add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)

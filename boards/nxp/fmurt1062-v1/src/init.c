@@ -166,7 +166,7 @@ __EXPORT void imxrt_ocram_initialize(void)
 	uint32_t regval;
 
 	/* Reallocate 128K of Flex RAM from ITCM to OCRAM
-	 * Final Confiduration is
+	 * Final Configuration is
 	 *    128 DTCM
 	 *
 	 *    128 FlexRAM OCRAM  (202C:0000-202D:ffff)
@@ -289,12 +289,12 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
+	int ret = OK;
 #if defined(CONFIG_IMXRT_USDHC)
-	int ret = fmurt1062_usdhc_initialize();
+	ret = fmurt1062_usdhc_initialize();
 
 	if (ret != OK) {
 		led_on(LED_RED);
-		return ret;
 	}
 
 #endif
@@ -305,27 +305,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		led_on(LED_RED);
-		return ret;
 	}
 
 	/* Configure the HW based on the manifest */
 
 	px4_platform_configure();
 
-	return OK;
-}
-
-// USB Stubs
-#include <nuttx/usb/usbdev.h>
-void arm_usbinitialize(void)
-{
-}
-
-int usbdev_register(struct usbdevclass_driver_s *driver)
-{
-	return -EINVAL;
-}
-int usbdev_unregister(struct usbdevclass_driver_s *driver)
-{
-	return -EINVAL;
+	return ret;
 }

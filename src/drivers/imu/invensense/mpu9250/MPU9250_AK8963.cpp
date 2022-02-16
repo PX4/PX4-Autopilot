@@ -51,7 +51,6 @@ MPU9250_AK8963::MPU9250_AK8963(MPU9250 &mpu9250, enum Rotation rotation) :
 	_px4_mag(mpu9250.get_device_id(), rotation)
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK8963);
-	_px4_mag.set_external(mpu9250.external());
 
 	// in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
 	_px4_mag.set_scale(1.5e-3f);

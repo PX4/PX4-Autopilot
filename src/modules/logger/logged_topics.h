@@ -53,7 +53,8 @@ enum class SDLogProfileMask : int32_t {
 	SENSOR_COMPARISON =     1 << 6,
 	VISION_AND_AVOIDANCE =  1 << 7,
 	RAW_IMU_GYRO_FIFO =     1 << 8,
-	RAW_IMU_ACCEL_FIFO =    1 << 9
+	RAW_IMU_ACCEL_FIFO =    1 << 9,
+	MAVLINK_TUNNEL =        1 << 10
 };
 
 enum class MissionLogType : int32_t {
@@ -76,6 +77,8 @@ class LoggedTopics
 public:
 	static constexpr int MAX_TOPICS_NUM = 255; /**< Maximum number of logged topics */
 
+	static constexpr int MAX_EXCLUDED_OPTIONAL_TOPICS_NUM = 40;
+
 	struct RequestedSubscription {
 		uint16_t interval_ms;
 		uint8_t instance;
@@ -84,6 +87,9 @@ public:
 	struct RequestedSubscriptionArray {
 		RequestedSubscription sub[MAX_TOPICS_NUM];
 		int count{0};
+
+		uint8_t excluded_optional_topic_ids[MAX_EXCLUDED_OPTIONAL_TOPICS_NUM];
+		int num_excluded_optional_topic_ids{0};
 	};
 
 	LoggedTopics() = default;
@@ -100,6 +106,8 @@ public:
 	const RequestedSubscriptionArray &subscriptions() const { return _subscriptions; }
 	int numMissionSubscriptions() const { return _num_mission_subs; }
 
+	void set_rate_factor(float rate_factor) { _rate_factor = rate_factor; }
+
 private:
 
 	/**
@@ -107,9 +115,15 @@ private:
 	 * @param name topic name
 	 * @param interval limit in milliseconds if >0, otherwise log as fast as the topic is updated.
 	 * @param instance orb topic instance
+	 * @param optional if true, the topic is only added if it exists
 	 * @return true on success
 	 */
-	bool add_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0);
+	bool add_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0, bool optional = false);
+
+	bool add_optional_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0)
+	{
+		return add_topic(name, interval_ms, instance, true);
+	}
 
 	/**
 	 * Add a topic to be logged.
@@ -117,9 +131,17 @@ private:
 	 * @param interval limit in milliseconds if >0, otherwise log as fast as the topic is updated.
 	 * @param instance orb topic instance
 	 * @param max_num_instances the max multi-instance to add.
+	 * @param optional if true, the topic is only added if it exists
 	 * @return true on success
 	 */
-	bool add_topic_multi(const char *name, uint16_t interval_ms = 0, uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES);
+	bool add_topic_multi(const char *name, uint16_t interval_ms = 0, uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES,
+			     bool optional = false);
+
+	bool add_optional_topic_multi(const char *name, uint16_t interval_ms = 0,
+				      uint8_t max_num_instances = ORB_MULTI_MAX_INSTANCES)
+	{
+		return add_topic_multi(name, interval_ms, max_num_instances, true);
+	}
 
 	/**
 	 * Parse a file containing a list of uORB topics to log, calling add_topic for each
@@ -152,15 +174,17 @@ private:
 	void add_vision_and_avoidance_topics();
 	void add_raw_imu_gyro_fifo();
 	void add_raw_imu_accel_fifo();
+	void add_mavlink_tunnel();
 
 	/**
 	 * add a logged topic (called by add_topic() above).
 	 * @return true on success
 	 */
-	bool add_topic(const orb_metadata *topic, uint16_t interval_ms = 0, uint8_t instance = 0);
+	bool add_topic(const orb_metadata *topic, uint16_t interval_ms = 0, uint8_t instance = 0, bool optional = false);
 
 	RequestedSubscriptionArray _subscriptions;
 	int _num_mission_subs{0};
+	float _rate_factor{1.0f};
 };
 
 } //namespace logger

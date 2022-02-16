@@ -3,7 +3,6 @@
 
 uint64 timestamp # time since system start (microseconds)
 
-float32 speed_xy # in meters/sec
 float32 speed_up # in meters/sec
 float32 speed_down # in meters/sec
 

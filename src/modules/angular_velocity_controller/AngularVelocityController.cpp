@@ -44,12 +44,13 @@ using namespace time_literals;
 
 AngularVelocityController::AngularVelocityController() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::ctrl_alloc),
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	parameters_updated();
+	_rate_ctrl_status_pub.advertise();
 }
 
 AngularVelocityController::~AngularVelocityController()

@@ -1,0 +1,57 @@
+menuconfig SYSTEMCMDS_SERIAL_PASSTHRU
+	bool "serial_passthru"
+	default n
+	---help---
+		Enable support for passing one sevice to another
+		i.e ttyACM to ttyS5
+
+if SYSTEMCMDS_SERIAL_PASSTHRU
+
+config SERIAL_PASSTHRU_UBLOX
+	bool "Detect and Auto Connect on U-Center messages"
+	default n
+	---help---
+		This option will enable the cdc_acm_check to launch
+		The passthru driver.
+
+#
+# GPS Passthru device selection
+#
+
+choice
+	prompt "Passthru device"
+	default SERIAL_PASSTHRU_GPS1 if BOARD_SERIAL_GPS1 != ""
+	depends on SERIAL_PASSTHRU_UBLOX
+	---help---
+		This is the GPS device used as the right side of the passthru.
+		the path is provided by BOARD_SERIAL_GPSn
+
+config SERIAL_PASSTHRU_GPS1
+	bool "GPS1"
+	depends on BOARD_SERIAL_GPS1 !=""
+
+config SERIAL_PASSTHRU_GPS2
+	bool "GPS2"
+	depends on BOARD_SERIAL_GPS2 !=""
+
+config SERIAL_PASSTHRU_GPS3
+	bool "GPS3"
+	depends on BOARD_SERIAL_GPS3 !=""
+
+config SERIAL_PASSTHRU_GPS4
+	bool "GPS4"
+	depends on BOARD_SERIAL_GPS4 !=""
+
+config SERIAL_PASSTHRU_GPS5
+	bool "GPS5"
+	depends on BOARD_SERIAL_GPS5 !=""
+endchoice
+
+config SERIAL_PASSTHRU_UBLOX_BAUDRATE
+	string "baudrate"
+	depends on SERIAL_PASSTHRU_UBLOX
+	default "115200"
+	---help---
+		This option sets the baudrate for the passthru.
+
+endif #SYSTEMCMDS_SERIAL_PASSTHRU

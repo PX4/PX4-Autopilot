@@ -38,7 +38,7 @@
  */
 #pragma once
 
-#include <drivers/device/spi.h>
+#include <px4_platform_common/i2c_spi_buses.h>
 
 #define BMP280_ADDR_CAL		0x88	/* address of 12x 2 bytes calibration data */
 #define BMP280_ADDR_DATA	0xF7	/* address of 2x 3 bytes p-t data */
@@ -158,5 +158,9 @@ public:
 
 
 /* interface factories */
+#if defined(CONFIG_SPI)
 extern bmp280::IBMP280 *bmp280_spi_interface(uint8_t busnum, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
+#endif // CONFIG_SPI
+#if defined(CONFIG_I2C)
 extern bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency);
+#endif // CONFIG_I2C

@@ -57,15 +57,15 @@ void BlockLocalPositionEstimator::gpsInit()
 			// find lat, lon of current origin by subtracting x and y
 			// if not using vision position since vision will
 			// have it's own origin, not necessarily where vehicle starts
-			if (!_map_ref.init_done) {
+			if (!_map_ref.isInitialized()) {
 				double gpsLatOrigin = 0;
 				double gpsLonOrigin = 0;
 				// reproject at current coordinates
-				map_projection_init(&_map_ref, gpsLat, gpsLon);
+				_map_ref.initReference(gpsLat, gpsLon);
 				// find origin
-				map_projection_reproject(&_map_ref, -_x(X_x), -_x(X_y), &gpsLatOrigin, &gpsLonOrigin);
+				_map_ref.reproject(-_x(X_x), -_x(X_y), gpsLatOrigin, gpsLonOrigin);
 				// reinit origin
-				map_projection_init(&_map_ref, gpsLatOrigin, gpsLonOrigin);
+				_map_ref.initReference(gpsLatOrigin, gpsLonOrigin);
 				// set timestamp when origin was set to current time
 				_time_origin = _timeStamp;
 
@@ -119,7 +119,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	float px = 0;
 	float py = 0;
 	float pz = -(alt - _gpsAltOrigin);
-	map_projection_project(&_map_ref, lat, lon, &px, &py);
+	_map_ref.project(lat, lon, px, py);
 	Vector<float, n_y_gps> y;
 	y.setZero();
 	y(Y_gps_x) = px;

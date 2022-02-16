@@ -83,4 +83,7 @@ private:
 	uORB::Subscription	_att_sub{ORB_ID(vehicle_attitude)};
 
 	uORB::Publication<camera_capture_s>	_capture_pub{ORB_ID(camera_capture)};
+
+	param_t _p_cam_cap_fback;
+	int32_t _cam_cap_fback{0};
 };

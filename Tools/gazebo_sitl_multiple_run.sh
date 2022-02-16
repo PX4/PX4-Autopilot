@@ -39,7 +39,7 @@ function spawn_model() {
 
 	echo "Spawning ${MODEL}_${N} at ${X} ${Y}"
 
-	gz model --spawn-file=/tmp/${MODEL}_${N}.sdf --model-name=${MODEL}_${N} -x ${X} -y ${Y} -z 0.0
+	gz model --spawn-file=/tmp/${MODEL}_${N}.sdf --model-name=${MODEL}_${N} -x ${X} -y ${Y} -z 0.83
 
 	popd &>/dev/null
 
@@ -69,7 +69,7 @@ num_vehicles=${NUM_VEHICLES:=3}
 world=${WORLD:=empty}
 target=${TARGET:=px4_sitl_default}
 vehicle_model=${VEHICLE_MODEL:="iris"}
-export PX4_SIM_MODEL=${vehicle_model}${LABEL}
+export PX4_SIM_MODEL=${vehicle_model}
 
 echo ${SCRIPT}
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -126,7 +126,7 @@ else
 
 		m=0
 		while [ $m -lt ${target_number} ]; do
-			export PX4_SIM_MODEL=${target_vehicle}${LABEL}
+			export PX4_SIM_MODEL=${target_vehicle}
 			spawn_model ${target_vehicle}${LABEL} $n $target_x $target_y
 			m=$(($m + 1))
 			n=$(($n + 1))

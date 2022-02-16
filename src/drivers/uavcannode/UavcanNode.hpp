@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,6 +67,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/log_message.h>
 #include <uORB/topics/parameter_update.h>
 
 #include "Publishers/UavcanPublisherBase.hpp"
@@ -170,6 +171,7 @@ private:
 	IntrusiveSortedList<UavcanSubscriberBase *> _subscriber_list;
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::Subscription _log_message_sub{ORB_ID(log_message)};
 
 	UavcanNodeParamManager _param_manager;
 	uavcan::ParamServer _param_server;

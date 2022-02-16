@@ -225,7 +225,45 @@ public:
 	 * @return bool
 	 *   Returns true if the data was copied.
 	 */
-	bool copy(void *dst, unsigned &generation);
+	bool copy(void *dst, unsigned &generation)
+	{
+		if ((dst != nullptr) && (_data != nullptr)) {
+			if (_queue_size == 1) {
+				ATOMIC_ENTER;
+				memcpy(dst, _data, _meta->o_size);
+				generation = _generation.load();
+				ATOMIC_LEAVE;
+				return true;
+
+			} else {
+				ATOMIC_ENTER;
+				const unsigned current_generation = _generation.load();
+
+				if (current_generation == generation) {
+					/* The subscriber already read the latest message, but nothing new was published yet.
+					* Return the previous message
+					*/
+					--generation;
+				}
+
+				// Compatible with normal and overflow conditions
+				if (!is_in_range(current_generation - _queue_size, generation, current_generation - 1)) {
+					// Reader is too far behind: some messages are lost
+					generation = current_generation - _queue_size;
+				}
+
+				memcpy(dst, _data + (_meta->o_size * (generation % _queue_size)), _meta->o_size);
+				ATOMIC_LEAVE;
+
+				++generation;
+
+				return true;
+			}
+		}
+
+		return false;
+
+	}
 
 	// add item to list of work items to schedule on node update
 	bool register_callback(SubscriptionCallback *callback_sub);
@@ -253,4 +291,16 @@ private:
 	bool _advertised{false};  /**< has ever been advertised (not necessarily published data yet) */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0};
+
+
+// Determine the data range
+	static inline bool is_in_range(unsigned left, unsigned value, unsigned right)
+	{
+		if (right > left) {
+			return (left <= value) && (value <= right);
+
+		} else {  // Maybe the data overflowed and a wraparound occurred
+			return (left <= value) || (value <= right);
+		}
+	}
 };

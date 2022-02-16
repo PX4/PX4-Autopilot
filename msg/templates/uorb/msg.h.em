@@ -133,5 +133,5 @@ ORB_DECLARE(@multi_topic);
 @[end for]
 
 #ifdef __cplusplus
-void print_message(const @uorb_struct& message);
+void print_message(const orb_metadata *meta, const @uorb_struct& message);
 #endif

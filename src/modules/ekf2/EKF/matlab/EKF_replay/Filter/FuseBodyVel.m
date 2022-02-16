@@ -28,7 +28,7 @@ relVelBodyPred = transpose(Tbn)*[vn;ve;vd];
 
 % calculate the observation jacobian, innovation variance and innovation
 for obsIndex = 1:3
-    
+
     % Calculate corrections using X component
     if (obsIndex == 1)
         H(1,:) = calcH_VELX(q0,q1,q2,q3,vd,ve,vn);
@@ -53,30 +53,30 @@ end
 for obsIndex = 1:3
 
     Kfusion = (P*transpose(H(obsIndex,:)))/varInnov(obsIndex);
-    
+
     % correct the state vector
     states = states - Kfusion * innovation(obsIndex);
-    
+
     % normalise the updated quaternion states
     quatMag = sqrt(states(1)^2 + states(2)^2 + states(3)^2 + states(4)^2);
     if (quatMag > 1e-12)
         states(1:4) = states(1:4) / quatMag;
     end
-    
+
     % correct the covariance P = P - K*H*P
     P = P - Kfusion*H(obsIndex,:)*P;
-    
+
     % Force symmetry on the covariance matrix to prevent ill-conditioning
     % of the matrix which would cause the filter to blow-up
     P = 0.5*(P + transpose(P));
-    
+
     % ensure diagonals are positive
     for i=1:24
         if P(i,i) < 0
             P(i,i) = 0;
         end
     end
-    
+
 end
 
 end

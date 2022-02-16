@@ -122,6 +122,7 @@ px4_add_module(
 		Uavcan.cpp
 		Uavcan.hpp
 		Publishers/uORB/uorb_publisher.cpp
+		Subscribers/uORB/uorb_subscriber.cpp
 		${SRCS}
 		o1heap/o1heap.c
 		o1heap/o1heap.h

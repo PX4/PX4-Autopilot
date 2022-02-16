@@ -153,7 +153,7 @@ typedef struct {
 	 *  final range value from the algorithm, for example, the average
 	 *  of all pixels. See #argus_pba_averaging_mode_t for more details
 	 *  about the individual evaluation modes. */
-	argus_pba_averaging_mode_t Mode;
+	argus_pba_averaging_mode_t AveragingMode;
 
 	/*! The Relative amplitude threshold value (in %) of the max. amplitude.
 	 *  Pixels with amplitude below this threshold value are dismissed.

@@ -161,7 +161,8 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::IMU_GYRO_FFT_LEN>) _param_imu_gyro_fft_len,
 		(ParamFloat<px4::params::IMU_GYRO_FFT_MIN>) _param_imu_gyro_fft_min,
-		(ParamFloat<px4::params::IMU_GYRO_FFT_MAX>) _param_imu_gyro_fft_max
+		(ParamFloat<px4::params::IMU_GYRO_FFT_MAX>) _param_imu_gyro_fft_max,
+		(ParamFloat<px4::params::IMU_GYRO_FFT_SNR>) _param_imu_gyro_fft_snr
 	)
 };
 

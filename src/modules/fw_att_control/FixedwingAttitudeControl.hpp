@@ -53,7 +53,9 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/actuator_controls_status.h>
 #include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/autotune_attitude_control_status.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -66,6 +68,8 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
@@ -95,11 +99,15 @@ public:
 private:
 	void Run() override;
 
+	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample);
+	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
+
 	uORB::SubscriptionCallbackWorkItem _att_sub{this, ORB_ID(vehicle_attitude)};	/**< vehicle attitude */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint */
+	uORB::Subscription _autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};		/**< local position subscription */
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};		/**< notification of manual control updates */
@@ -112,9 +120,12 @@ private:
 	uORB::SubscriptionData<airspeed_validated_s> _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
 	uORB::Publication<actuator_controls_s>		_actuators_0_pub;
+	uORB::Publication<actuator_controls_status_s>	_actuator_controls_status_pub;
 	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub;
 	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
+	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	manual_control_setpoint_s		_manual_control_setpoint {};		/**< r/c channel data */
@@ -140,6 +151,10 @@ private:
 	bool _flag_control_attitude_enabled_last{false};
 
 	bool _is_tailsitter{false};
+
+	float _energy_integration_time{0.0f};
+	float _control_energy[4] {};
+	float _control_prev[3] {};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_ACRO_X_MAX>) _param_fw_acro_x_max,
@@ -217,13 +232,15 @@ private:
 
 	void control_flaps(const float dt);
 
+	void updateActuatorControlsStatus(float dt);
+
 	/**
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
 
 	void		vehicle_control_mode_poll();
-	void		vehicle_manual_poll();
+	void		vehicle_manual_poll(const float yaw_body);
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_rates_setpoint_poll();
 	void		vehicle_land_detected_poll();

@@ -34,6 +34,7 @@
 #pragma once
 
 #include "log_writer.h"
+#include "logged_topics.h"
 #include "messages.h"
 #include <containers/Array.hpp>
 #include "util.h"
@@ -90,7 +91,7 @@ public:
 	};
 
 	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
-	       LogMode log_mode, bool log_name_timestamp);
+	       LogMode log_mode, bool log_name_timestamp, float rate_factor);
 
 	~Logger();
 
@@ -248,6 +249,8 @@ private:
 
 	void write_version(LogType type);
 
+	void write_excluded_optional_topics(LogType type);
+
 	void write_info(LogType type, const char *name, const char *value);
 	void write_info_multiple(LogType type, const char *name, const char *value, bool is_continued);
 	void write_info(LogType type, const char *name, int32_t value);
@@ -342,8 +345,12 @@ private:
 	uint16_t 					_event_sequence_offset{0}; ///< event sequence offset to account for skipped (not logged) messages
 	uint16_t 					_event_sequence_offset_mission{0};
 
+	uint8_t						_excluded_optional_topic_ids[LoggedTopics::MAX_EXCLUDED_OPTIONAL_TOPICS_NUM];
+	int						_num_excluded_optional_topic_ids{0};
+
 	LogWriter					_writer;
 	uint32_t					_log_interval{0};
+	float						_rate_factor{1.0f};
 	const orb_metadata				*_polling_topic_meta{nullptr}; ///< if non-null, poll on this topic instead of sleeping
 	orb_advert_t					_mavlink_log_pub{nullptr};
 	uint8_t						_next_topic_id{0}; ///< id of next subscribed ulog topic

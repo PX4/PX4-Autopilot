@@ -124,18 +124,19 @@ private:
 	float _alpha_min; 	// min angle of attack (stall angle)
 	float _alpha_max;	// min angle of attack (stall angle)
 	float _alf0eff;		// effective zero lift angle of attack
-	float _alfmeff;		// effective maximum lift angle of attack
+	// float _alfmeff;		// effective maximum lift angle of attack
 	float _alpha_eff;	// effectie angle of attack
-	float _alpha_eff_dot;	// effectie angle of attack derivative
+	// float _alpha_eff_dot;	// effectie angle of attack derivative
 	float _alpha_eff_old;	// angle of attack [rad]
 
 	float _pressure; 	// pressure in Pa at current altitude
 	float _temperature;	// temperature in K at current altitude
 	float _prop_radius;	// propeller radius [m], used to create the slipstream
-	float _v_slipstream;	// slipstream velocity [m/s], computed from momentum theory
+	// float _v_slipstream;	// slipstream velocity [m/s], computed from momentum theory
 
 	matrix::Vector3f _Fa;	// aerodynamic force
 	matrix::Vector3f _Ma;	// aerodynamic moment computed at _CM directly
+	matrix::Vector3f _v_S;	// velocity in segment frame
 
 public:
 
@@ -144,7 +145,7 @@ public:
 		AeroSeg(1.0f, 0.2f, 0.0f, matrix::Vector3f());
 	}
 
-	/** public explicit constructor
+	/** public constructor
 	 * AeroSeg(float span, float mac, float alpha_0_deg, matrix::Vector3f p_B, float dihedral_deg = 0.0f,
 	 * float AR = -1.0f, float cf = 0.0f, float prop_radius=-1.0f, float cl_alpha=2.0f*M_PI_F, float alpha_max_deg=0.0f, float alpha_min_deg=0.0f)
 	 *
@@ -161,9 +162,9 @@ public:
 	 * alpha_max_deg: maximum angle of attack before stall. Setting to 0 (default) will compute it from a table for flat plate.
 	 * alpha_min_deg: maximum negative angle of attack before stall. Setting to 0 (default) will compute it from a table for flat plate.
 	 */
-	explicit AeroSeg(float span, float mac, float alpha_0_deg, matrix::Vector3f p_B, float dihedral_deg = 0.0f,
-			 float AR = -1.0f, float cf = 0.0f, float prop_radius = -1.0f, float cl_alpha = 2.0f * M_PI_F,
-			 float alpha_max_deg = 0.0f, float alpha_min_deg = 0.0f)
+	AeroSeg(float span, float mac, float alpha_0_deg, matrix::Vector3f p_B, float dihedral_deg = 0.0f,
+		float AR = -1.0f, float cf = 0.0f, float prop_radius = -1.0f, float cl_alpha = 2.0f * M_PI_F,
+		float alpha_max_deg = 0.0f, float alpha_min_deg = 0.0f)
 	{
 		static const float AR_tab[N_TAB] = {0.1666f, 0.333f, 0.4f, 0.5f, 1.0f, 1.25f, 2.0f, 3.0f, 4.0f, 6.0f};
 		static const float ale_tab[N_TAB] = {3.00f, 3.64f, 4.48f, 7.18f, 10.20f, 13.38f, 14.84f, 14.49f, 9.95f, 12.93f, 15.00f, 15.00f};
@@ -217,32 +218,35 @@ public:
 	 * def: flap deflection angle [rad], default is 0.
 	 * thrust: thrust force [N] from the propeller to compute the slipstream velocity, default is 0.
 	 */
-	void update_aero(matrix::Vector3f v_B, matrix::Vector3f w_B, float alt = 0.0f, float def = 0.0f, float thrust = 0.0f)
+	void update_aero(const matrix::Vector3f &v_B, const matrix::Vector3f &w_B, float alt = 0.0f, float def = 0.0f,
+			 float thrust = 0.0f)
 	{
 		// ISA model taken from Mustafa Cavcar, Anadolu University, Turkey
 		_pressure = P0 * powf(1.0f - 0.0065f * alt / T0_K, 5.2561f);
 		_temperature = T0_K + TEMP_GRADIENT * alt;
 		_rho = _pressure / R / _temperature;
 
-		matrix::Vector3f vel = _C_BS.transpose() * (v_B + w_B % _p_B); 	// velocity in segment frame
+		_v_S = _C_BS.transpose() * (v_B + w_B % _p_B); 	// velocity in segment frame
 
 		if (_prop_radius > 1e-4f) {
 			// Add velocity generated from the propeller and thrust force.
 			// Computed from momentum theory.
 			// For info, the diameter of the slipstream is sqrt(2)*_prop_radius,
 			// this should be the width of the segment in the slipstream.
-			vel(0) += sqrtf(2.0f * thrust / (_rho * M_PI_F * _prop_radius * _prop_radius));
+			_v_S(0) += sqrtf(2.0f * thrust / (_rho * M_PI_F * _prop_radius * _prop_radius));
 		}
 
-		float vxz2 = vel(0) * vel(0) + vel(2) * vel(2);
+		float vxz2 = _v_S(0) * _v_S(0) + _v_S(2) * _v_S(2);
 
 		if (vxz2 < 0.01f) {
 			_Fa = matrix::Vector3f();
 			_Ma = matrix::Vector3f();
+			_alpha = 0.0f;
 			return;
 		}
 
-		_alpha = atan2f(vel(2), vel(0)) - _alpha_0;
+		_alpha = matrix::wrap_pi(atan2f(_v_S(2), _v_S(0)) - _alpha_0);
+		// _alpha = atan2f(_v_S(2), _v_S(0));
 		aoa_coeff(_alpha, sqrtf(vxz2), def);
 		_Fa = _C_BS * (0.5f * _rho * vxz2 * _span * _mac) * matrix::Vector3f(_CL * sinf(_alpha) - _CD * cosf(_alpha),
 				0.0f,
@@ -254,6 +258,12 @@ public:
 	// return the air density at current altitude, must be called after update_aero()
 	float get_rho() const { return _rho; }
 
+	// return angle of attack in radians
+	float get_aoa() const {return _alpha;}
+
+	// return the aspect ratio
+	float get_ar() const {return _ar;}
+
 	// return the sum of aerodynamic forces of the segment in the body frame, taken at the _CM,
 	// must be called after update_aero()
 	matrix::Vector3f get_Fa() const { return _Fa; }
@@ -261,6 +271,9 @@ public:
 	// return the sum of aerodynamic moments of the segment in the body frame, taken at the _CM,
 	// must be called after update_aero()
 	matrix::Vector3f get_Ma() const { return _Ma; }
+
+	// return the velocity in segment frame
+	matrix::Vector3f get_vS() const { return _v_S; }
 
 private:
 
@@ -412,8 +425,8 @@ private:
 		       + 0.17f * _fle * _fle * KV * fabsf(sinf(a)) * sinf(a);
 	}
 
-	// AeroSeg operator*(const float k) const {
-	// 	return AeroSeg(p_I*k, v_I*k, q*k, w_B*k);
+	// AeroSeg operator=(const AeroSeg&) const {
+	// 	return this;
 	// }
 
 	// AeroSeg operator+(const States other) const {

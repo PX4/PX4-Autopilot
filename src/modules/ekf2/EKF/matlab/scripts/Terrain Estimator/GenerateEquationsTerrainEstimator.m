@@ -14,11 +14,11 @@
 % the X and Y sensor axes. These rates are motion compensated.
 
 % A positive LOS X rate is a RH rotation of the image about the X sensor
-% axis, and is produced by either a positive ground relative velocity in 
+% axis, and is produced by either a positive ground relative velocity in
 % the direction of the Y axis.
 
 % A positive LOS Y rate is a RH rotation of the image about the Y sensor
-% axis, and is produced by either a negative ground relative velocity in 
+% axis, and is produced by either a negative ground relative velocity in
 % the direction of the X axis.
 
 % Range measurement aligned with the Z body axis (flat earth model assumed)

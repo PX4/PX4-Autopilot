@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,6 @@ BMM150::BMM150(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_mag(get_device_id(), config.rotation)
 {
-	_px4_mag.set_external(external());
 }
 
 BMM150::~BMM150()
@@ -81,21 +80,25 @@ void BMM150::print_status()
 	perf_print_counter(_bad_register_perf);
 	perf_print_counter(_bad_transfer_perf);
 	perf_print_counter(_overflow_perf);
+	perf_print_counter(_self_test_failed_perf);
 }
 
 int BMM150::probe()
 {
-	const uint8_t POWER_CONTROL = RegisterRead(Register::POWER_CONTROL);
-	const uint8_t CHIP_ID = RegisterRead(Register::CHIP_ID);
+	// 3 retries
+	for (int i = 0; i < 3; i++) {
+		const uint8_t POWER_CONTROL = RegisterRead(Register::POWER_CONTROL);
+		const uint8_t CHIP_ID = RegisterRead(Register::CHIP_ID);
 
-	PX4_DEBUG("POWER_CONTROL: 0x%02hhX, CHIP_ID: 0x%02hhX", POWER_CONTROL, CHIP_ID);
+		PX4_DEBUG("POWER_CONTROL: 0x%02hhX, CHIP_ID: 0x%02hhX", POWER_CONTROL, CHIP_ID);
 
-	// either power control bit is set and chip ID can be read, or both registers are 0x00
-	if ((POWER_CONTROL & POWER_CONTROL_BIT::PowerControl) && (CHIP_ID == chip_identification_number)) {
-		return PX4_OK;
+		if (CHIP_ID == chip_identification_number) {
+			return PX4_OK;
 
-	} else if ((POWER_CONTROL == 0) && (CHIP_ID == 0)) {
-		return PX4_OK;
+		} else if ((CHIP_ID == 0) && !(POWER_CONTROL & POWER_CONTROL_BIT::PowerControl)) {
+			// in suspend Chip ID read (register 0x40) returns “0x00” (I²C) or high-Z (SPI).
+			return PX4_OK;
+		}
 	}
 
 	return PX4_ERROR;
@@ -105,15 +108,18 @@ float BMM150::compensate_x(int16_t mag_data_x, uint16_t data_rhall)
 {
 	float retval = 0;
 
-	// Processing compensation equations
-	//  not documented, but derived from https://github.com/BoschSensortec/BMM150-Sensor-API/blob/a20641f216057f0c54de115fe81b57368e119c01/bmm150.c#L1624-L1633 as of 2020-09-25
-	float process_comp_x0 = (((float)_trim_data.dig_xyz1) * 16384.f / data_rhall);
-	retval = (process_comp_x0 - 16384.f);
-	float process_comp_x1 = ((float)_trim_data.dig_xy2) * (retval * retval / 268435456.f);
-	float process_comp_x2 = process_comp_x1 + retval * ((float)_trim_data.dig_xy1) / 16384.f;
-	float process_comp_x3 = ((float)_trim_data.dig_x2) + 160.f;
-	float process_comp_x4 = mag_data_x * ((process_comp_x2 + 256.f) * process_comp_x3);
-	retval = ((process_comp_x4 / 8192.f) + (((float)_trim_data.dig_x1) * 8.f)) / 16.f;
+	// Overflow condition check
+	if ((mag_data_x != OVERFLOW_XYAXES) && (data_rhall != 0) && (_trim_data.dig_xyz1 != 0)) {
+		// Processing compensation equations
+		//  not documented, but derived from https://github.com/BoschSensortec/BMM150-Sensor-API/blob/a20641f216057f0c54de115fe81b57368e119c01/bmm150.c#L1624-L1633 as of 2020-09-25
+		float process_comp_x0 = (((float)_trim_data.dig_xyz1) * 16384.0f / data_rhall);
+		retval = (process_comp_x0 - 16384.0f);
+		float process_comp_x1 = ((float)_trim_data.dig_xy2) * (retval * retval / 268435456.0f);
+		float process_comp_x2 = process_comp_x1 + retval * ((float)_trim_data.dig_xy1) / 16384.0f;
+		float process_comp_x3 = ((float)_trim_data.dig_x2) + 160.0f;
+		float process_comp_x4 = mag_data_x * ((process_comp_x2 + 256.0f) * process_comp_x3);
+		retval = ((process_comp_x4 / 8192.0f) + (((float)_trim_data.dig_x1) * 8.0f)) / 16.0f;
+	}
 
 	return retval;
 }
@@ -122,15 +128,17 @@ float BMM150::compensate_y(int16_t mag_data_y, uint16_t data_rhall)
 {
 	float retval = 0;
 
-	// Processing compensation equations
-	//  not documented, but derived from https://github.com/BoschSensortec/BMM150-Sensor-API/blob/a20641f216057f0c54de115fe81b57368e119c01/bmm150.c#L1660-L1667 as of 2020-09-25
-	float process_comp_y0 = ((float)_trim_data.dig_xyz1) * 16384.f / data_rhall;
-	retval = process_comp_y0 - 16384.f;
-	float process_comp_y1 = ((float)_trim_data.dig_xy2) * (retval * retval / 268435456.f);
-	float process_comp_y2 = process_comp_y1 + retval * ((float)_trim_data.dig_xy1) / 16384.f;
-	float process_comp_y3 = ((float)_trim_data.dig_y2) + 160.0f;
-	float process_comp_y4 = mag_data_y * (((process_comp_y2) + 256.f) * process_comp_y3);
-	retval = ((process_comp_y4 / 8192.f) + (((float)_trim_data.dig_y1) * 8.f)) / 16.f;
+	// Overflow condition check
+	if ((mag_data_y != OVERFLOW_XYAXES) && (data_rhall != 0) && (_trim_data.dig_xyz1 != 0)) {
+		// Processing compensation equations
+		float process_comp_y0 = ((float)_trim_data.dig_xyz1) * 16384.0f / data_rhall;
+		retval = process_comp_y0 - 16384.0f;
+		float process_comp_y1 = ((float)_trim_data.dig_xy2) * (retval * retval / 268435456.0f);
+		float process_comp_y2 = process_comp_y1 + retval * ((float)_trim_data.dig_xy1) / 16384.0f;
+		float process_comp_y3 = ((float)_trim_data.dig_y2) + 160.0f;
+		float process_comp_y4 = mag_data_y * (((process_comp_y2) + 256.0f) * process_comp_y3);
+		retval = ((process_comp_y4 / 8192.0f) + (((float)_trim_data.dig_y1) * 8.0f)) / 16.0f;
+	}
 
 	return retval;
 }
@@ -139,35 +147,52 @@ float BMM150::compensate_z(int16_t mag_data_z, uint16_t data_rhall)
 {
 	float retval = 0;
 
-	// Processing compensation equations
-	//  not documented, but derived from https://github.com/BoschSensortec/BMM150-Sensor-API/blob/a20641f216057f0c54de115fe81b57368e119c01/bmm150.c#L1696-L1703 as of 2020-09-25
-	float process_comp_z0 = ((float)mag_data_z) - ((float)_trim_data.dig_z4);
-	float process_comp_z1 = ((float)data_rhall) - ((float)_trim_data.dig_xyz1);
-	float process_comp_z2 = (((float)_trim_data.dig_z3) * process_comp_z1);
-	float process_comp_z3 = ((float)_trim_data.dig_z1) * ((float)data_rhall) / 32768.f;
-	float process_comp_z4 = ((float)_trim_data.dig_z2) + process_comp_z3;
-	float process_comp_z5 = (process_comp_z0 * 131072.f) - process_comp_z2;
-	retval = (process_comp_z5 / ((process_comp_z4) * 4.f)) / 16.f;
+	// Overflow condition check
+	if ((mag_data_z != OVERFLOW_ZAXIS)
+	    && (_trim_data.dig_z2 != 0) && (_trim_data.dig_z1 != 0) && (_trim_data.dig_xyz1 != 0)
+	    && (data_rhall != 0)) {
+		// Processing compensation equations
+		//  not documented, but derived from https://github.com/BoschSensortec/BMM150-Sensor-API/blob/a20641f216057f0c54de115fe81b57368e119c01/bmm150.c#L1696-L1703 as of 2020-09-25
+		float process_comp_z0 = ((float)mag_data_z) - ((float)_trim_data.dig_z4);
+		float process_comp_z1 = ((float)data_rhall) - ((float)_trim_data.dig_xyz1);
+		float process_comp_z2 = (((float)_trim_data.dig_z3) * process_comp_z1);
+		float process_comp_z3 = ((float)_trim_data.dig_z1) * ((float)data_rhall) / 32768.0f;
+		float process_comp_z4 = ((float)_trim_data.dig_z2) + process_comp_z3;
+		float process_comp_z5 = (process_comp_z0 * 131072.0f) - process_comp_z2;
+		retval = (process_comp_z5 / ((process_comp_z4) * 4.0f)) / 16.0f;
+	}
 
 	return retval;
 }
 
 static constexpr int16_t combine_xy_int13(const uint8_t msb, const uint8_t lsb)
 {
-	int16_t x = ((msb << 8) | lsb);
-	return x / 8; // arithmetic shift by 3 (13 bit signed integer)
+	// msb: 8-bit MSB part [12:5] of the 13 bit output data
+	// lsb: 5-bit LSB part [4:0] of the 13 bit output data
+	int16_t msb_data = ((int16_t)((int8_t)msb)) << 5;
+	int16_t lsb_data = ((lsb & 0xF8) >> 3);
+
+	return (int16_t)(msb_data | lsb_data);
 }
 
 static constexpr int16_t combine_z_int15(const uint8_t msb, const uint8_t lsb)
 {
-	int16_t z = ((msb << 8) | lsb);
-	return z / 2; // arithmetic shift by 1 (15 bit signed integer)
+	// msb: 8-bit MSB part [12:5] of the 13 bit output data
+	// lsb: 7-bit LSB part [6:0] of the 15 bit output data
+	int16_t msb_data = ((int16_t)((int8_t)msb)) << 7;
+	int16_t lsb_data = ((lsb & 0xFE) >> 1);
+
+	return (int16_t)(msb_data | lsb_data);
 }
 
 static constexpr uint16_t combine_rhall_uint14(const uint8_t msb, const uint8_t lsb)
 {
-	uint16_t rhall = ((msb << 8) | lsb);
-	return (rhall >> 2) & 0x3FFF; // 14 bit unsigned integer
+	// msb: 8-bit MSB part [13:6] of the 14 bit output data
+	// lsb: 6-bit LSB part [5:0] of the 14 bit output data
+	uint16_t msb_data = ((uint16_t)((uint16_t)msb)) << 6;
+	uint16_t lsb_data = ((lsb & 0xFC) >> 2);
+
+	return (uint16_t)(msb_data | lsb_data);
 }
 
 void BMM150::RunImpl()
@@ -182,14 +207,15 @@ void BMM150::RunImpl()
 		_failure_count = 0;
 		_state = STATE::WAIT_FOR_RESET;
 		perf_count(_reset_perf);
-		ScheduleDelayed(3_ms); // 3.0 ms start-up time from suspend to sleep
+		ScheduleDelayed(10_ms); // 3.0 ms start-up time from suspend to sleep
 		break;
 
 	case STATE::WAIT_FOR_RESET:
 
 		// Soft reset always brings the device into sleep mode (power off -> suspend -> sleep)
 		if ((RegisterRead(Register::CHIP_ID) == chip_identification_number)
-		    && (RegisterRead(Register::POWER_CONTROL) == POWER_CONTROL_BIT::PowerControl)
+		    && (RegisterRead(Register::POWER_CONTROL) & POWER_CONTROL_BIT::PowerControl)
+		    && !(RegisterRead(Register::POWER_CONTROL) & POWER_CONTROL_BIT::SoftReset)
 		    && (RegisterRead(Register::OP_MODE) == OP_MODE_BIT::Opmode_Sleep)) {
 
 			// if reset succeeded then start self test
@@ -217,23 +243,46 @@ void BMM150::RunImpl()
 			// After performing self test OpMode "Self test" bit is set to 0
 			const bool opmode_self_test_cleared = ((RegisterRead(Register::OP_MODE) & OP_MODE_BIT::Self_Test) == 0);
 
-			// When self-test is successful, the corresponding self-test result bits are set
-			//  “X-Self-Test” register 0x42 bit0
-			//  “Y-Self-Test” register 0x44 bit0
-			//  “Z-Self-Test” register 0x46 bit0
-			const bool x_success = RegisterRead(Register::DATAX_LSB) & Bit0;
-			const bool y_success = RegisterRead(Register::DATAY_LSB) & Bit0;
-			const bool z_success = RegisterRead(Register::DATAZ_LSB) & Bit0;
+			if (opmode_self_test_cleared) {
+				// When self-test is successful, the corresponding self-test result bits are set
+				//  “X-Self-Test” register 0x42 bit0
+				//  “Y-Self-Test” register 0x44 bit0
+				//  “Z-Self-Test” register 0x46 bit0
+				const bool x_success = RegisterRead(Register::DATAX_LSB) & Bit0;
+				const bool y_success = RegisterRead(Register::DATAY_LSB) & Bit0;
+				const bool z_success = RegisterRead(Register::DATAZ_LSB) & Bit0;
 
-			if (opmode_self_test_cleared && (!x_success || !y_success || !z_success)) {
-				PX4_DEBUG("self test failed, resetting");
-				perf_count(_self_test_failed_perf);
-				_state = STATE::RESET;
-				ScheduleDelayed(1000_ms);
+				if (x_success && y_success && z_success) {
+					_state = STATE::READ_TRIM;
+					ScheduleDelayed(10_ms);
+
+				} else {
+					if (perf_event_count(_self_test_failed_perf) >= 5) {
+						PX4_ERR("self test still failing after 5 attempts");
+
+						// reluctantly proceed
+						_state = STATE::READ_TRIM;
+						ScheduleDelayed(10_ms);
+
+					} else {
+						PX4_ERR("self test failed, resetting");
+						perf_count(_self_test_failed_perf);
+						_state = STATE::RESET;
+						ScheduleDelayed(1_s);
+					}
+				}
 
 			} else {
-				_state = STATE::READ_TRIM;
-				ScheduleDelayed(1_ms);
+				if (hrt_elapsed_time(&_reset_timestamp) < 3_s) {
+					// self test not complete, check again in 100 milliseconds
+					_state = STATE::SELF_TEST_CHECK;
+					ScheduleDelayed(100_ms);
+
+				} else {
+					// full reset
+					_state = STATE::RESET;
+					ScheduleDelayed(10_ms);
+				}
 			}
 		}
 
@@ -350,7 +399,8 @@ void BMM150::RunImpl()
 						perf_count(_overflow_perf);
 
 					} else {
-						_px4_mag.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf));
+						_px4_mag.set_error_count(perf_event_count(_bad_register_perf)
+									 + perf_event_count(_bad_transfer_perf) + perf_event_count(_self_test_failed_perf));
 						_px4_mag.update(now, compensate_x(x, rhall), compensate_y(y, rhall), compensate_z(z, rhall));
 
 						success = true;

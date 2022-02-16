@@ -1,0 +1,5 @@
+menuconfig MODULES_MANUAL_CONTROL
+	bool "manual_control"
+	default n
+	---help---
+		Enable support for manual_control

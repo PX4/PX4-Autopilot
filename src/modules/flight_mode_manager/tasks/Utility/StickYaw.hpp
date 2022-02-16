@@ -47,8 +47,8 @@ public:
 	StickYaw();
 	~StickYaw() = default;
 
-	void generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, const float desired_yawspeed, const float yaw,
-				 const float deltatime);
+	void generateYawSetpoint(float &yawspeed_setpoint, float &yaw_setpoint, float desired_yawspeed, float yaw,
+				 bool is_yaw_good_for_control, float deltatime);
 
 private:
 	SlewRate<float> _yawspeed_slew_rate;
@@ -64,5 +64,5 @@ private:
 	 * @param yaw current yaw setpoint which then will be overwritten by the return value
 	 * @return yaw setpoint to execute to have a yaw lock at the correct moment in time
 	 */
-	static float updateYawLock(const float yaw, const float yawspeed_setpoint, const float yaw_setpoint);
+	static float updateYawLock(float yaw, float yawspeed_setpoint, float yaw_setpoint, bool is_yaw_good_for_control);
 };

@@ -29,7 +29,7 @@ R_tas_init = 1.4**2
 
 #########################################################################################################################
 
-# define symbols: true airspeed, sidslip angle, 
+# define symbols: true airspeed, sidslip angle,
 V, beta, yaw, groundspeed_body_x, groundspeed_body_y = symbols('V beta yaw vx_body vy_body')
 R_tas, R_beta, R_yaw = symbols('R_tas R_beta R_yaw')
 

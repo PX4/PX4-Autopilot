@@ -58,7 +58,7 @@ class UavcanBmsSubscriber : public UavcanDynamicPortSubscriber
 {
 public:
 	UavcanBmsSubscriber(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanDynamicPortSubscriber(ins, pmgr, "energy_source", instance)
+		UavcanDynamicPortSubscriber(ins, pmgr, "ds_015.", "energy_source", instance)
 	{
 		_subj_sub.next = &_status_sub;
 

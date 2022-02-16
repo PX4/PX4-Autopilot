@@ -44,6 +44,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_actuators_0_pub(vtol ? ORB_ID(actuator_controls_virtual_fw) : ORB_ID(actuator_controls_0)),
+	_actuator_controls_status_pub(vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0)),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
@@ -64,6 +65,8 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	_pitch_ctrl.set_max_rate_pos(radians(_param_fw_acro_y_max.get()));
 	_pitch_ctrl.set_max_rate_neg(radians(_param_fw_acro_y_max.get()));
 	_yaw_ctrl.set_max_rate(radians(_param_fw_acro_z_max.get()));
+
+	_rate_ctrl_status_pub.advertise();
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
@@ -133,7 +136,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 }
 
 void
-FixedwingAttitudeControl::vehicle_manual_poll()
+FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 {
 	const bool is_tailsitter_transition = _is_tailsitter && _vehicle_status.in_transition_mode;
 	const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
@@ -155,7 +158,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_att_sp.pitch_body = constrain(_att_sp.pitch_body,
 								       -radians(_param_fw_man_p_max.get()), radians(_param_fw_man_p_max.get()));
 
-					_att_sp.yaw_body = 0.0f;
+					_att_sp.yaw_body = yaw_body; // yaw is not controlled, so set setpoint to current yaw
 					_att_sp.thrust_body[0] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
 
 					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
@@ -185,7 +188,8 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 						-_manual_control_setpoint.x * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
 					_actuators.control[actuator_controls_s::INDEX_YAW] =
 						_manual_control_setpoint.r * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.z, 0.0f, 1.0f);
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.z, 0.0f,
+							1.0f);
 				}
 			}
 		}
@@ -356,7 +360,7 @@ void FixedwingAttitudeControl::Run()
 		_vehicle_status_sub.update(&_vehicle_status);
 
 		vehicle_control_mode_poll();
-		vehicle_manual_poll();
+		vehicle_manual_poll(euler_angles.psi());
 		vehicle_land_detected_poll();
 
 		// the position controller will not emit attitude setpoints in some modes
@@ -518,15 +522,30 @@ void FixedwingAttitudeControl::Run()
 					control_input.pitch_rate_setpoint = _pitch_ctrl.get_desired_rate();
 					control_input.yaw_rate_setpoint = _yaw_ctrl.get_desired_rate();
 
+					const hrt_abstime now = hrt_absolute_time();
+					autotune_attitude_control_status_s pid_autotune;
+					matrix::Vector3f bodyrate_ff;
+
+					if (_autotune_attitude_control_status_sub.copy(&pid_autotune)) {
+						if ((pid_autotune.state == autotune_attitude_control_status_s::STATE_ROLL
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_PITCH
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_YAW
+						     || pid_autotune.state == autotune_attitude_control_status_s::STATE_TEST)
+						    && ((now - pid_autotune.timestamp) < 1_s)) {
+
+							bodyrate_ff = matrix::Vector3f(pid_autotune.rate_sp);
+						}
+					}
+
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
-					float roll_u = _roll_ctrl.control_euler_rate(dt, control_input);
+					float roll_u = _roll_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(0));
 					_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
 
 					if (!PX4_ISFINITE(roll_u)) {
 						_roll_ctrl.reset_integrator();
 					}
 
-					float pitch_u = _pitch_ctrl.control_euler_rate(dt, control_input);
+					float pitch_u = _pitch_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(1));
 					_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
 
 					if (!PX4_ISFINITE(pitch_u)) {
@@ -539,7 +558,7 @@ void FixedwingAttitudeControl::Run()
 						yaw_u = _wheel_ctrl.control_bodyrate(dt, control_input);
 
 					} else {
-						yaw_u = _yaw_ctrl.control_euler_rate(dt, control_input);
+						yaw_u = _yaw_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(2));
 					}
 
 					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
@@ -641,10 +660,41 @@ void FixedwingAttitudeControl::Run()
 		    _vcontrol_mode.flag_control_attitude_enabled ||
 		    _vcontrol_mode.flag_control_manual_enabled) {
 			_actuators_0_pub.publish(_actuators);
+
+			if (!_vehicle_status.is_vtol) {
+				publishTorqueSetpoint(angular_velocity.timestamp_sample);
+				publishThrustSetpoint(angular_velocity.timestamp_sample);
+			}
 		}
+
+		updateActuatorControlsStatus(dt);
 	}
 
 	perf_end(_loop_perf);
+}
+
+void FixedwingAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample)
+{
+	vehicle_torque_setpoint_s v_torque_sp = {};
+	v_torque_sp.timestamp = hrt_absolute_time();
+	v_torque_sp.timestamp_sample = timestamp_sample;
+	v_torque_sp.xyz[0] = _actuators.control[actuator_controls_s::INDEX_ROLL];
+	v_torque_sp.xyz[1] = _actuators.control[actuator_controls_s::INDEX_PITCH];
+	v_torque_sp.xyz[2] = _actuators.control[actuator_controls_s::INDEX_YAW];
+
+	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+}
+
+void FixedwingAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_sample)
+{
+	vehicle_thrust_setpoint_s v_thrust_sp = {};
+	v_thrust_sp.timestamp = hrt_absolute_time();
+	v_thrust_sp.timestamp_sample = timestamp_sample;
+	v_thrust_sp.xyz[0] = _actuators.control[actuator_controls_s::INDEX_THROTTLE];
+	v_thrust_sp.xyz[1] = 0.0f;
+	v_thrust_sp.xyz[2] = 0.0f;
+
+	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 }
 
 void FixedwingAttitudeControl::control_flaps(const float dt)
@@ -709,6 +759,41 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 	} else {
 		_flaperons_applied = flaperon_control;
+	}
+}
+
+void FixedwingAttitudeControl::updateActuatorControlsStatus(float dt)
+{
+	for (int i = 0; i < 4; i++) {
+		float control_signal;
+
+		if (i <= actuator_controls_status_s::INDEX_YAW) {
+			// We assume that the attitude is actuated by control surfaces
+			// consuming power only when they move
+			control_signal = _actuators.control[i] - _control_prev[i];
+			_control_prev[i] = _actuators.control[i];
+
+		} else {
+			control_signal = _actuators.control[i];
+		}
+
+		_control_energy[i] += control_signal * control_signal * dt;
+	}
+
+	_energy_integration_time += dt;
+
+	if (_energy_integration_time > 500e-3f) {
+
+		actuator_controls_status_s status;
+		status.timestamp = _actuators.timestamp;
+
+		for (int i = 0; i < 4; i++) {
+			status.control_power[i] = _control_energy[i] / _energy_integration_time;
+			_control_energy[i] = 0.f;
+		}
+
+		_actuator_controls_status_pub.publish(status);
+		_energy_integration_time = 0.f;
 	}
 }
 

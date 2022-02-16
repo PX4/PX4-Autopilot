@@ -77,4 +77,3 @@ param set-default IMU_DGYRO_CUTOFF 100
 
 # enable to use high-rate logging for better rate tracking analysis
 param set-default SDLOG_PROFILE 27
-

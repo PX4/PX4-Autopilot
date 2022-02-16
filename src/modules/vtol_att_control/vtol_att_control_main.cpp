@@ -63,8 +63,18 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_id = 0;
 
-	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
-	_params_handles.vtol_motor_id = param_find("VT_MOT_ID");
+	_params_handles.sys_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
+	_params.ctrl_alloc = 0;
+	param_get(_params_handles.sys_ctrl_alloc, &_params.ctrl_alloc);
+
+	if (_params.ctrl_alloc != 1) {
+		// these are not used with dynamic control allocation
+		_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
+		_params_handles.vtol_motor_id = param_find("VT_MOT_ID");
+		_params_handles.vt_mc_on_fmu = param_find("VT_MC_ON_FMU");
+		_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
+	}
+
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
@@ -84,7 +94,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
 	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
-	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 	_params_handles.dec_to_pitch_ff = param_find("VT_B_DEC_FF");
@@ -93,7 +102,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	_params_handles.pitch_min_rad = param_find("VT_PTCH_MIN");
 	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
-	_params_handles.vt_mc_on_fmu = param_find("VT_MC_ON_FMU");
 
 	_params_handles.vt_forward_thrust_enable_mode = param_find("VT_FWD_THRUST_EN");
 	_params_handles.mpc_land_alt1 = param_find("MPC_LAND_ALT1");
@@ -116,6 +124,12 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	} else {
 		exit_and_cleanup();
 	}
+
+	_vtol_vehicle_status_pub.advertise();
+	_vehicle_thrust_setpoint0_pub.advertise();
+	_vehicle_torque_setpoint0_pub.advertise();
+	_vehicle_thrust_setpoint1_pub.advertise();
+	_vehicle_torque_setpoint1_pub.advertise();
 }
 
 VtolAttitudeControl::~VtolAttitudeControl()
@@ -137,6 +151,27 @@ VtolAttitudeControl::init()
 	}
 
 	return true;
+}
+
+void VtolAttitudeControl::action_request_poll()
+{
+	while (_action_request_sub.updated()) {
+		action_request_s action_request;
+
+		if (_action_request_sub.copy(&action_request)) {
+			switch (action_request.action) {
+			case action_request_s::ACTION_VTOL_TRANSITION_TO_MULTICOPTER:
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				_immediate_transition = false;
+				break;
+
+			case action_request_s::ACTION_VTOL_TRANSITION_TO_FIXEDWING:
+				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				_immediate_transition = false;
+				break;
+			}
+		}
+	}
 }
 
 void VtolAttitudeControl::vehicle_cmd_poll()
@@ -179,27 +214,6 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			}
 		}
 	}
-}
-
-/*
- * Returns true if fixed-wing mode is requested.
- * Changed either via switch or via command.
- */
-bool
-VtolAttitudeControl::is_fixed_wing_requested()
-{
-	bool to_fw = false;
-
-	if (_manual_control_switches.transition_switch != manual_control_switches_s::SWITCH_POS_NONE &&
-	    _v_control_mode.flag_control_manual_enabled) {
-		to_fw = (_manual_control_switches.transition_switch == manual_control_switches_s::SWITCH_POS_ON);
-
-	} else {
-		// listen to transition commands if not in manual or mode switch is not mapped
-		to_fw = (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
-	}
-
-	return to_fw;
 }
 
 void
@@ -259,12 +273,17 @@ VtolAttitudeControl::parameters_update()
 {
 	float v;
 	int32_t l;
-	/* idle pwm for mc mode */
-	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
 
-	/* vtol motor count */
-	param_get(_params_handles.vtol_motor_id, &_params.vtol_motor_id);
-	param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
+	if (_params.ctrl_alloc != 1) {
+		/* idle pwm for mc mode */
+		param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
+		param_get(_params_handles.vtol_motor_id, &_params.vtol_motor_id);
+		param_get(_params_handles.vt_mc_on_fmu, &l);
+		_params.vt_mc_on_fmu = l;
+
+		/* vtol motor count */
+		param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
+	}
 
 	/* vtol fw permanent stabilization */
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
@@ -349,9 +368,6 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.dec_to_pitch_ff, &_params.dec_to_pitch_ff);
 	param_get(_params_handles.dec_to_pitch_i, &_params.dec_to_pitch_i);
 
-	param_get(_params_handles.vt_mc_on_fmu, &l);
-	_params.vt_mc_on_fmu = l;
-
 	param_get(_params_handles.vt_forward_thrust_enable_mode, &_params.vt_forward_thrust_enable_mode);
 	param_get(_params_handles.mpc_land_alt1, &_params.mpc_land_alt1);
 	param_get(_params_handles.mpc_land_alt2, &_params.mpc_land_alt2);
@@ -434,7 +450,6 @@ VtolAttitudeControl::Run()
 		}
 
 		_v_control_mode_sub.update(&_v_control_mode);
-		_manual_control_switches_sub.update(&_manual_control_switches);
 		_v_att_sub.update(&_v_att);
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
@@ -442,6 +457,7 @@ VtolAttitudeControl::Run()
 		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		action_request_poll();
 		vehicle_cmd_poll();
 
 		// check if mc and fw sp were updated
@@ -450,24 +466,6 @@ VtolAttitudeControl::Run()
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
-
-		// reset transition command if not auto control
-		if (_v_control_mode.flag_control_manual_enabled) {
-			if (_vtol_type->get_mode() == mode::ROTARY_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-
-			} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
-
-			} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
-				/* We want to make sure that a mode change (manual>auto) during the back transition
-				 * doesn't result in an unsafe state. This prevents the instant fall back to
-				 * fixed-wing on the switch from manual to auto */
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
-			}
-		}
-
-
 
 		// check in which mode we are in and call mode specific functions
 		switch (_vtol_type->get_mode()) {
@@ -515,6 +513,11 @@ VtolAttitudeControl::Run()
 		_vtol_type->fill_actuator_outputs();
 		_actuators_0_pub.publish(_actuators_out_0);
 		_actuators_1_pub.publish(_actuators_out_1);
+
+		_vehicle_torque_setpoint0_pub.publish(_torque_setpoint_0);
+		_vehicle_torque_setpoint1_pub.publish(_torque_setpoint_1);
+		_vehicle_thrust_setpoint0_pub.publish(_thrust_setpoint_0);
+		_vehicle_thrust_setpoint1_pub.publish(_thrust_setpoint_1);
 
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();

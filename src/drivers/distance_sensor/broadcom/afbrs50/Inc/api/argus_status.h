@@ -128,7 +128,7 @@ enum Status {
 	ERROR_S2PI_INVALID_STATE = -53,
 
 	/*! -54: The specified baud rate is not valid. */
-	ERROR_S2PI_INVALID_BAUD_RATE = -54,
+	ERROR_S2PI_INVALID_BAUDRATE = -54,
 
 	/*! -55: The specified slave identifier is not valid. */
 	ERROR_S2PI_INVALID_SLAVE = -55,
@@ -158,12 +158,9 @@ enum Status {
 	 *  limitations. */
 	STATUS_ARGUS_POWERLIMIT = 105,
 
-	/*! 107: AFBR-S50 Status: No valid signal was detected at any active pixel
-	 * via the Pixel Binning Algorithm. The Golden Pixel was Choosen as a
-	 * fallback value that is consider to be the last pixel that has a valid
-	 * signal for low reflective (or far away) objects.
-	 * The current results should be considered carefully. */
-	STATUS_ARGUS_UNDERFLOW = 107,
+	/*! 106: AFBR-S50 Status: The PLL was not locked when the measurement was
+	 *  started. The measurement frequency and this the range might be off. */
+	STATUS_ARGUS_PLL_NOT_LOCKED = 106,
 
 	/*! 108: AFBR-S50 Status: No object was detected within the field-of-view
 	 *  and measurement range of the device. */

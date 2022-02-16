@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012-2019, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,20 +32,15 @@
  ****************************************************************************/
 
 /**
- * @file spi.cpp
+ * @file SPI.cpp
  *
  * Base class for devices connected via SPI.
  *
- * @todo Work out if caching the mode/frequency would save any time.
- *
- * @todo A separate bus/device abstraction would allow for mixed interrupt-mode
- * and non-interrupt-mode clients to arbitrate for the bus.  As things stand,
- * a bus shared between clients of both kinds is vulnerable to races between
- * the two, where an interrupt-mode client will ignore the lock held by the
- * non-interrupt-mode client.
  */
 
 #include "SPI.hpp"
+
+#if defined(CONFIG_SPI)
 
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_config.h>
@@ -237,3 +232,4 @@ SPI::_transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 }
 
 } // namespace device
+#endif // CONFIG_SPI

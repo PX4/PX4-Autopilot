@@ -45,6 +45,7 @@
 #include "mavlink_log_handler.h"
 #include "mavlink_mission.h"
 #include "mavlink_parameters.h"
+#include "MavlinkStatustextHandler.hpp"
 #include "mavlink_timesync.h"
 #include "tune_publisher.h"
 
@@ -74,6 +75,7 @@
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/gimbal_manager_set_manual_control.h>
 #include <uORB/topics/gimbal_device_information.h>
+#include <uORB/topics/gimbal_device_attitude_status.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/input_rc.h>
@@ -81,6 +83,7 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/log_message.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/mavlink_tunnel.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/onboard_computer_status.h>
@@ -189,6 +192,7 @@ private:
 	void handle_message_set_position_target_global_int(mavlink_message_t *msg);
 	void handle_message_set_position_target_local_ned(mavlink_message_t *msg);
 	void handle_message_statustext(mavlink_message_t *msg);
+	void handle_message_tunnel(mavlink_message_t *msg);
 	void handle_message_trajectory_representation_bezier(mavlink_message_t *msg);
 	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
 	void handle_message_utm_global_position(mavlink_message_t *msg);
@@ -196,6 +200,7 @@ private:
 	void handle_message_gimbal_manager_set_attitude(mavlink_message_t *msg);
 	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
 	void handle_message_gimbal_device_information(mavlink_message_t *msg);
+	void handle_message_gimbal_device_attitude_status(mavlink_message_t *msg);
 
 #if !defined(CONSTRAINED_FLASH)
 	void handle_message_debug(mavlink_message_t *msg);
@@ -220,11 +225,6 @@ private:
 	int set_message_interval(int msgId, float interval, int data_rate = -1);
 	void get_message_interval(int msgId);
 
-	/**
-	 * Decode a switch position from a bitfield and state.
-	 */
-	int decode_switch_pos_n(uint16_t buttons, unsigned sw);
-
 	bool evaluate_target_ok(int command, int target_system, int target_component);
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
@@ -248,12 +248,13 @@ private:
 	MavlinkMissionManager		_mission_manager;
 	MavlinkParametersManager	_parameters_manager;
 	MavlinkTimesync			_mavlink_timesync;
+	MavlinkStatustextHandler	_mavlink_statustext_handler;
 
 	mavlink_status_t		_status{}; ///< receiver status, used for mavlink_parse_char()
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
-	static constexpr unsigned MAX_REMOTE_COMPONENTS{8};
+	static constexpr unsigned MAX_REMOTE_COMPONENTS{16};
 	struct ComponentState {
 		uint32_t received_messages{0};
 		uint32_t missed_messages{0};
@@ -297,9 +298,11 @@ private:
 	uORB::Publication<gimbal_manager_set_attitude_s>	_gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
 	uORB::Publication<gimbal_manager_set_manual_control_s>	_gimbal_manager_set_manual_control_pub{ORB_ID(gimbal_manager_set_manual_control)};
 	uORB::Publication<gimbal_device_information_s>		_gimbal_device_information_pub{ORB_ID(gimbal_device_information)};
+	uORB::Publication<gimbal_device_attitude_status_s>	_gimbal_device_attitude_status_pub{ORB_ID(gimbal_device_attitude_status)};
 	uORB::Publication<irlock_report_s>			_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<landing_target_pose_s>		_landing_target_pose_pub{ORB_ID(landing_target_pose)};
 	uORB::Publication<log_message_s>			_log_message_pub{ORB_ID(log_message)};
+	uORB::Publication<mavlink_tunnel_s>			_mavlink_tunnel_pub{ORB_ID(mavlink_tunnel)};
 	uORB::Publication<obstacle_distance_s>			_obstacle_distance_pub{ORB_ID(obstacle_distance)};
 	uORB::Publication<offboard_control_mode_s>		_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
@@ -331,7 +334,7 @@ private:
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc)};
-	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_setpoint_pub{ORB_ID(manual_control_setpoint)};
+	uORB::PublicationMulti<manual_control_setpoint_s>		_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 
@@ -366,12 +369,8 @@ private:
 	PX4Gyroscope *_px4_gyro{nullptr};
 	PX4Magnetometer *_px4_mag{nullptr};
 
-	static constexpr unsigned int	MOM_SWITCH_COUNT{8};
-	uint8_t				_mom_switch_pos[MOM_SWITCH_COUNT] {};
-	uint16_t			_mom_switch_state{0};
-
-	map_projection_reference_s _global_local_proj_ref{};
 	float _global_local_alt0{NAN};
+	MapProjection _global_local_proj_ref{};
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
@@ -386,6 +385,7 @@ private:
 	hrt_abstime _heartbeat_type_gimbal{0};
 	hrt_abstime _heartbeat_type_adsb{0};
 	hrt_abstime _heartbeat_type_camera{0};
+	hrt_abstime _heartbeat_type_parachute{0};
 
 	hrt_abstime _heartbeat_component_telemetry_radio{0};
 	hrt_abstime _heartbeat_component_log{0};
@@ -400,11 +400,15 @@ private:
 	param_t _handle_sens_flow_maxr{PARAM_INVALID};
 	param_t _handle_sens_flow_minhgt{PARAM_INVALID};
 	param_t _handle_sens_flow_rot{PARAM_INVALID};
+	param_t _handle_ekf2_min_rng{PARAM_INVALID};
+	param_t _handle_ekf2_rng_a_hmax{PARAM_INVALID};
 
 	float _param_sens_flow_maxhgt{-1.0f};
 	float _param_sens_flow_maxr{-1.0f};
 	float _param_sens_flow_minhgt{-1.0f};
-	float _param_sens_flow_rot{-1.0f};
+	int32_t _param_sens_flow_rot{0};
+	float _param_ekf2_min_rng{NAN};
+	float _param_ekf2_rng_a_hmax{NAN};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,

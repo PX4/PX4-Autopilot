@@ -6,7 +6,7 @@ constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
 const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {}};
 
-const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, false, {}};
+const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, false, {}};
 const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
 
 bool FlightTask::activate(const vehicle_local_position_setpoint_s &last_setpoint)
@@ -29,7 +29,6 @@ void FlightTask::reActivate()
 bool FlightTask::updateInitialize()
 {
 	_time_stamp_current = hrt_absolute_time();
-	_time = (_time_stamp_current - _time_stamp_activate) / 1e6f;
 	_deltatime  = math::min((_time_stamp_current - _time_stamp_last), _timeout) / 1e6f;
 	_time_stamp_last = _time_stamp_current;
 
@@ -125,6 +124,7 @@ void FlightTask::_evaluateVehicleLocalPosition()
 
 		// yaw
 		_yaw = _sub_vehicle_local_position.get().heading;
+		_is_yaw_good_for_control = _sub_vehicle_local_position.get().heading_good_for_control;
 
 		// position
 		if (_sub_vehicle_local_position.get().xy_valid) {
@@ -154,12 +154,11 @@ void FlightTask::_evaluateVehicleLocalPosition()
 
 		// global frame reference coordinates to enable conversions
 		if (_sub_vehicle_local_position.get().xy_global && _sub_vehicle_local_position.get().z_global) {
-			if (!map_projection_initialized(&_global_local_proj_ref)
-			    || (_global_local_proj_ref.timestamp != _sub_vehicle_local_position.get().ref_timestamp)) {
+			if (!_geo_projection.isInitialized()
+			    || (_geo_projection.getProjectionReferenceTimestamp() != _sub_vehicle_local_position.get().ref_timestamp)) {
 
-				map_projection_init_timestamped(&_global_local_proj_ref,
-								_sub_vehicle_local_position.get().ref_lat, _sub_vehicle_local_position.get().ref_lon,
-								_sub_vehicle_local_position.get().ref_timestamp);
+				_geo_projection.initReference(_sub_vehicle_local_position.get().ref_lat, _sub_vehicle_local_position.get().ref_lon,
+							      _sub_vehicle_local_position.get().ref_timestamp);
 
 				_global_local_alt0 = _sub_vehicle_local_position.get().ref_alt;
 			}
@@ -201,7 +200,6 @@ void FlightTask::_evaluateDistanceToGround()
 
 void FlightTask::_setDefaultConstraints()
 {
-	_constraints.speed_xy = _param_mpc_xy_vel_max.get();
 	_constraints.speed_up = _param_mpc_z_vel_max_up.get();
 	_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
 	_constraints.want_takeoff = false;

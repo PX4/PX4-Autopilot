@@ -37,6 +37,8 @@
 
 #include "BMP280.hpp"
 
+#include <drivers/drv_sensor.h>
+
 extern "C" { __EXPORT int bmp280_main(int argc, char *argv[]); }
 
 void
@@ -45,8 +47,12 @@ BMP280::print_usage()
 	PRINT_MODULE_USAGE_NAME("bmp280", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("baro");
 	PRINT_MODULE_USAGE_COMMAND("start");
+#if defined(CONFIG_I2C)
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
 	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x76);
+#else
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+#endif
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -54,21 +60,30 @@ I2CSPIDriverBase *BMP280::instantiate(const I2CSPIDriverConfig &config, int runt
 {
 	bmp280::IBMP280 *interface = nullptr;
 
+#if defined(CONFIG_I2C)
+
 	if (config.bus_type == BOARD_I2C_BUS) {
 		interface = bmp280_i2c_interface(config.bus, config.i2c_address, config.bus_frequency);
 
-	} else if (config.bus_type == BOARD_SPI_BUS) {
+	}
+
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
+
+	if (config.bus_type == BOARD_SPI_BUS) {
 		interface = bmp280_spi_interface(config.bus, config.spi_devid, config.bus_frequency, config.spi_mode);
 	}
 
+#endif // CONFIG_SPI
+
 	if (interface == nullptr) {
-		PX4_ERR("failed creating interface for bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
+		PX4_ERR("failed creating interface for bus %i", config.bus);
 		return nullptr;
 	}
 
 	if (interface->init() != OK) {
 		delete interface;
-		PX4_DEBUG("no device on bus %i (devid 0x%" PRIx32 ")", config.bus, config.spi_devid);
+		PX4_DEBUG("no device on bus %i", config.bus);
 		return nullptr;
 	}
 
@@ -92,9 +107,13 @@ bmp280_main(int argc, char *argv[])
 {
 	using ThisDriver = BMP280;
 	BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 	cli.i2c_address = 0x76;
 	cli.default_i2c_frequency = 100 * 1000;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 	cli.default_spi_frequency = 10 * 1000 * 1000;
+#endif // CONFIG_SPI
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 

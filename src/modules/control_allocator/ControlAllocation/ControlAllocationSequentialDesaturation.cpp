@@ -47,6 +47,8 @@ ControlAllocationSequentialDesaturation::allocate()
 	//Compute new gains if needed
 	updatePseudoInverse();
 
+	_prev_actuator_sp = _actuator_sp;
+
 	switch (_param_mc_airmode.get()) {
 	case 1:
 		mixAirmodeRP();
@@ -60,14 +62,6 @@ ControlAllocationSequentialDesaturation::allocate()
 		mixAirmodeDisabled();
 		break;
 	}
-
-	// TODO: thrust model (THR_MDL_FAC)
-
-	// Clip
-	clipActuatorSetpoint(_actuator_sp);
-
-	// Compute achieved control
-	_control_allocated = _effectiveness * _actuator_sp;
 }
 
 void ControlAllocationSequentialDesaturation::desaturateActuators(

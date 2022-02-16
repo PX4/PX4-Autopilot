@@ -59,7 +59,7 @@ while 1
         fprintf('%.0f%%\n',percentDone);
         nextPrint = nextPrint + 5;
     end
-    
+
     chunk = fread(fid,BLOCK_SIZE,'uint8');
     if numel(chunk) == 0;
         break
@@ -74,7 +74,7 @@ while 1
             continue;
         end
         msg_type = buffer(ptr+2);
-        
+
         if msg_type == MSG_TYPE_FORMAT
             if numel(buffer) - ptr <= MSG_FORMAT_PACKET_LEN
                 break;
@@ -144,7 +144,7 @@ msg_type = thisBlock(1);
     msg_labels = strsplit(LOCAL_parse_string(thisBlock(23:end)),',');
     msg_struct = cell(1,numel(msg_format));
     msg_mults = zeros(1,numel(msg_format));
-    
+
     for k = 1:numel(msg_format)
         info = FORMAT_TO_STRUCT{strcmp(msg_format(k),FORMAT_TO_STRUCT(:,1)),2};
         msg_struct{k} = info{1};

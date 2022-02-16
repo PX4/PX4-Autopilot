@@ -1,0 +1,25 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config RP2040_FLASH_BOOT
+	bool "flash boot"
+	default y
+	---help---
+		If y, the built binary can be used for flash boot.
+		If not, the binary is for SRAM boot.
+
+config RP2040_FLASH_CHIP
+	string "flash chip name"
+	default "w25q080"
+	---help---
+		Name of NOR flash device connected to RP2040 SoC.
+		(Used to choose the secondary boot loader.)
+		Basically this option should not be changed.
+
+config RP2040_UF2_BINARY
+	bool "uf2 binary format"
+	default y
+	---help---
+		Create nuttx.uf2 binary format used on RP2040 based arch.

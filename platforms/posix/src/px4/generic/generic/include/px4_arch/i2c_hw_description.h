@@ -35,6 +35,7 @@
 
 #include <px4_platform_common/i2c.h>
 
+#if defined(CONFIG_I2C)
 
 static inline constexpr px4_i2c_bus_t initI2CBusInternal(int bus)
 {
@@ -51,3 +52,4 @@ static inline constexpr px4_i2c_bus_t initI2CBusExternal(int bus)
 	ret.is_external = true;
 	return ret;
 }
+#endif // CONFIG_I2C

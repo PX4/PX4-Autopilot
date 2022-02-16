@@ -95,4 +95,3 @@ H_y_simple = cse(H_y, symbols('t0:30'))
 
 write_simplified(H_x_simple, "flow_x_observation.txt", "Hx")
 write_simplified(H_y_simple, "flow_y_observation.txt", "Hy")
-

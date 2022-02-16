@@ -37,12 +37,15 @@ cmake_policy(SET CMP0057 NEW)
 include(px4_list_make_absolute)
 
 set(msg_files
+	action_request.msg
 	actuator_armed.msg
 	actuator_controls.msg
 	actuator_controls_status.msg
 	actuator_motors.msg
 	actuator_outputs.msg
 	actuator_servos.msg
+	actuator_servos_trim.msg
+	actuator_test.msg
 	adc_report.msg
 	airspeed.msg
 	airspeed_validated.msg
@@ -75,6 +78,7 @@ set(msg_files
 	estimator_status_flags.msg
 	event.msg
 	follow_target.msg
+	failure_detector_status.msg
 	generator_status.msg
 	geofence_result.msg
 	gimbal_device_attitude_status.msg
@@ -104,11 +108,12 @@ set(msg_files
 	manual_control_setpoint.msg
 	manual_control_switches.msg
 	mavlink_log.msg
+	mavlink_tunnel.msg
 	mission.msg
 	mission_result.msg
 	mount_orientation.msg
-	multirotor_motor_limits.msg
 	navigator_mission_item.msg
+	npfg_status.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	onboard_computer_status.msg
@@ -116,6 +121,7 @@ set(msg_files
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
+	pps_capture.msg
 	position_controller_landing_status.msg
 	position_controller_status.msg
 	position_setpoint.msg
@@ -129,7 +135,7 @@ set(msg_files
 	rc_channels.msg
 	rc_parameter_map.msg
 	rpm.msg
-	rtl_flight_time.msg
+	rtl_time_estimate.msg
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
@@ -141,6 +147,7 @@ set(msg_files
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
+	sensor_hygrometer.msg
 	sensor_mag.msg
 	sensor_preflight_mag.msg
 	sensor_selection.msg
@@ -162,7 +169,6 @@ set(msg_files
 	ulog_stream.msg
 	ulog_stream_ack.msg
 	vehicle_acceleration.msg
-	vehicle_actuator_setpoint.msg
 	vehicle_air_data.msg
 	vehicle_angular_acceleration.msg
 	vehicle_angular_acceleration_setpoint.msg

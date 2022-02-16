@@ -108,10 +108,11 @@ protected:
 	 */
 	bool mission_item_to_position_setpoint(const mission_item_s &item, position_setpoint_s *sp);
 
-	/**
-	 * Set a loiter mission item, if possible reuse the position setpoint, otherwise take the current position
-	 */
-	void set_loiter_item(struct mission_item_s *item, float min_clearance = -1.0f);
+	void setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *item);
+
+	void setLoiterItemFromCurrentPosition(struct mission_item_s *item);
+
+	void setLoiterItemCommonFields(struct mission_item_s *item);
 
 	/**
 	 * Set a takeoff mission item

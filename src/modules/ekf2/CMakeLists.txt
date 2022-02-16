@@ -39,6 +39,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		${MAX_CUSTOM_OPT_LEVEL}
 		-fno-associative-math
+		#-DDEBUG_BUILD
 	INCLUDES
 		EKF
 	STACK_MAX
@@ -53,8 +54,12 @@ px4_add_module(
 		EKF/ekf_helper.cpp
 		EKF/EKFGSF_yaw.cpp
 		EKF/estimator_interface.cpp
+		EKF/fake_pos_control.cpp
 		EKF/gps_checks.cpp
+		EKF/gps_control.cpp
+		EKF/gps_fusion.cpp
 		EKF/gps_yaw_fusion.cpp
+		EKF/height_fusion.cpp
 		EKF/imu_down_sampler.cpp
 		EKF/mag_control.cpp
 		EKF/mag_fusion.cpp
@@ -72,6 +77,7 @@ px4_add_module(
 
 	DEPENDS
 		geo
+		hysteresis
 		perf
 		EKF2Utility
 		px4_work_queue

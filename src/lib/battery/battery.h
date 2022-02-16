@@ -54,6 +54,8 @@
 #include <lib/parameters/param.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 
 /**
@@ -65,7 +67,7 @@
 class Battery : public ModuleParams
 {
 public:
-	Battery(int index, ModuleParams *parent, const int sample_interval_us);
+	Battery(int index, ModuleParams *parent, const int sample_interval_us, const uint8_t source);
 	~Battery() = default;
 
 	/**
@@ -83,18 +85,27 @@ public:
 	 */
 	float full_cell_voltage() { return _params.v_charged; }
 
+	void setPriority(const uint8_t priority) { _priority = priority; }
+	void setConnected(const bool connected) { _connected = connected; }
+	void updateVoltage(const float voltage_v);
+	void updateCurrent(const float current_a);
+
 	/**
-	 * Update current battery status message.
+	 * Update state of charge calculations
 	 *
-	 * @param voltage_raw: Battery voltage, in Volts
-	 * @param current_raw: Battery current, in Amps
-	 * @param timestamp: Time at which the ADC was read (use hrt_absolute_time())
-	 * @param source: Source type in relation to BAT%d_SOURCE param.
-	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
-	 * @param throttle_normalized: Throttle of the vehicle, between 0 and 1
+	 * @param timestamp Time at which the battery data sample was measured
 	 */
-	void updateBatteryStatus(const hrt_abstime &timestamp, float voltage_v, float current_a, bool connected,
-				 int source, int priority, float throttle_normalized);
+	void updateBatteryStatus(const hrt_abstime &timestamp);
+
+	battery_status_s getBatteryStatus();
+	void publishBatteryStatus(const battery_status_s &battery_status);
+
+	/**
+	 * Convenience function for combined update and publication
+	 * @see updateBatteryStatus()
+	 * @see publishBatteryStatus()
+	 */
+	void updateAndPublishBatteryStatus(const hrt_abstime &timestamp);
 
 protected:
 	struct {
@@ -130,20 +141,28 @@ protected:
 
 private:
 	void sumDischarged(const hrt_abstime &timestamp, float current_a);
-	void estimateStateOfCharge(const float voltage_v, const float current_a, const float throttle);
+	void estimateStateOfCharge(const float voltage_v, const float current_a);
 	uint8_t determineWarning(float state_of_charge);
 	void computeScale();
+	float computeRemainingTime(float current_a);
 
+	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
+	bool _connected{false};
+	const uint8_t _source;
+	uint8_t _priority{0};
 	bool _battery_initialized{false};
+	float _voltage_v{0.f};
 	AlphaFilter<float> _voltage_filter_v;
+	float _current_a{-1};
 	AlphaFilter<float> _current_filter_a;
+	AlphaFilter<float> _current_average_filter_a;
 	AlphaFilter<float> _throttle_filter;
 	float _discharged_mah{0.f};
 	float _discharged_mah_loop{0.f};
-	float _state_of_charge_volt_based{-1.f};	// [0,1]
-	float _state_of_charge{-1.f};				// [0,1]
+	float _state_of_charge_volt_based{-1.f}; // [0,1]
+	float _state_of_charge{-1.f}; // [0,1]
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};

@@ -84,55 +84,80 @@ bool I2CSPICLITest::test_basic()
 
 	{
 		BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 		cli.default_i2c_frequency = 1234;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 		cli.default_spi_frequency = 12345;
+#endif // CONFIG_SPI
 		const char *argv[] = { "start", "-I" };
 		CLIArgsHelper cli_args(argv, 2);
 		const char *verb = cli.parseDefaultArguments(cli_args.argc, cli_args.argv);
 		ut_assert_true(verb != nullptr);
 		ut_assert_true(strcmp(verb, "start") == 0);
+#if defined(CONFIG_I2C)
 		ut_assert_true(cli.bus_option == I2CSPIBusOption::I2CInternal);
 		ut_assert_true(cli.bus_frequency == cli.default_i2c_frequency);
+#endif // CONFIG_I2C
 	}
 
 	{
 		BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 		cli.default_i2c_frequency = 1234;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 		cli.default_spi_frequency = 12345;
+#endif // CONFIG_SPI
 		const char *argv[] = { "start", "-s", "-f", "10"};
 		CLIArgsHelper cli_args(argv, 4);
 		const char *verb = cli.parseDefaultArguments(cli_args.argc, cli_args.argv);
 		ut_assert_true(verb != nullptr);
 		ut_assert_true(strcmp(verb, "start") == 0);
+#if defined(CONFIG_SPI)
 		ut_assert_true(cli.bus_option == I2CSPIBusOption::SPIInternal);
+#endif // CONFIG_SPI
 		ut_assert_true(cli.bus_frequency ==  10000);
 	}
 
 	{
 		BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 		cli.default_i2c_frequency = 11111;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 		cli.default_spi_frequency = 22222;
+#endif // CONFIG_SPI
 		const char *argv[] = { "-S", "-b", "3", "stop"};
 		CLIArgsHelper cli_args(argv, 4);
 		const char *verb = cli.parseDefaultArguments(cli_args.argc, cli_args.argv);
 		ut_assert_true(verb != nullptr);
 		ut_assert_true(strcmp(verb, "stop") == 0);
+#if defined(CONFIG_SPI)
 		ut_assert_true(cli.bus_option == I2CSPIBusOption::SPIExternal);
+#endif // CONFIG_SPI
 		ut_assert_true(cli.requested_bus == 3);
 	}
 
 	{
 		BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 		cli.default_i2c_frequency = 11111;
-		cli.default_spi_frequency = 22222;
 		cli.i2c_address = 0xab;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
+		cli.default_spi_frequency = 22222;
+#endif // CONFIG_SPI
+
 		const char *argv[] = { "start", "-X", "-a", "0x14"};
 		CLIArgsHelper cli_args(argv, 4);
 		const char *verb = cli.parseDefaultArguments(cli_args.argc, cli_args.argv);
 		ut_assert_true(verb != nullptr);
 		ut_assert_true(strcmp(verb, "start") == 0);
+#if defined(CONFIG_I2C)
 		ut_assert_true(cli.bus_option == I2CSPIBusOption::I2CExternal);
 		ut_assert_true(cli.i2c_address == 0x14);
+#endif // CONFIG_I2C
 	}
 
 	return true;
@@ -143,7 +168,9 @@ bool I2CSPICLITest::test_invalid()
 	{
 		// SPI disabled, but SPI option provided
 		BusCLIArguments cli{true, false};
+#if defined(CONFIG_I2C)
 		cli.default_i2c_frequency = 11111;
+#endif // CONFIG_I2C
 		const char *argv[] = { "start", "-S"};
 		CLIArgsHelper cli_args(argv, 2);
 		const char *verb = cli.parseDefaultArguments(cli_args.argc, cli_args.argv);
@@ -153,8 +180,12 @@ bool I2CSPICLITest::test_invalid()
 	{
 		// Unknown argument
 		BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 		cli.default_i2c_frequency = 11111;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 		cli.default_spi_frequency = 22222;
+#endif // CONFIG_SPI
 		const char *argv[] = { "start", "-I", "-x", "3"};
 		CLIArgsHelper cli_args(argv, 3);
 		const char *verb = cli.parseDefaultArguments(cli_args.argc, cli_args.argv);
@@ -173,8 +204,12 @@ bool I2CSPICLITest::test_invalid()
 	{
 		// Another unknown argument
 		BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 		cli.default_i2c_frequency = 11111;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 		cli.default_spi_frequency = 22222;
+#endif // CONFIG_SPI
 		const char *argv[] = { "-x", "start" };
 		CLIArgsHelper cli_args(argv, 2);
 		const char *verb = cli.parseDefaultArguments(cli_args.argc, cli_args.argv);
@@ -188,8 +223,12 @@ bool I2CSPICLITest::test_custom()
 	{
 		// custom argument
 		BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 		cli.default_i2c_frequency = 11111;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 		cli.default_spi_frequency = 22222;
+#endif // CONFIG_SPI
 		const char *argv[] = { "start", "-T", "432", "-a", "12"};
 		CLIArgsHelper cli_args(argv, 5);
 		int ch;
@@ -216,8 +255,12 @@ bool I2CSPICLITest::test_custom()
 	{
 		// duplicate argument
 		BusCLIArguments cli{true, true};
+#if defined(CONFIG_I2C)
 		cli.default_i2c_frequency = 11111;
+#endif // CONFIG_I2C
+#if defined(CONFIG_SPI)
 		cli.default_spi_frequency = 22222;
+#endif // CONFIG_SPI
 		const char *argv[] = { "start"};
 		CLIArgsHelper cli_args(argv, 1);
 		int ch;

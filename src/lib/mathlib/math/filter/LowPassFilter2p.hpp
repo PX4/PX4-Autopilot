@@ -71,7 +71,7 @@ public:
 		_delay_element_1 = {};
 		_delay_element_2 = {};
 
-		_cutoff_freq = math::constrain(cutoff_freq, 5.f, sample_freq / 2); // TODO: min based on actual numerical limit
+		_cutoff_freq = math::max(cutoff_freq, sample_freq * 0.001f);
 		_sample_freq = sample_freq;
 
 		const float fr = _sample_freq / _cutoff_freq;

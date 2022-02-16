@@ -65,22 +65,23 @@ bool Ekf::collect_gps(const gps_message &gps)
 		const double lat = gps.lat * 1.0e-7;
 		const double lon = gps.lon * 1.0e-7;
 
-		if (!map_projection_initialized(&_pos_ref)) {
-			map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
+		if (!_pos_ref.isInitialized()) {
+			_pos_ref.initReference(lat, lon, _time_last_imu);
 
 			// if we are already doing aiding, correct for the change in position since the EKF started navigating
 			if (isHorizontalAidingActive()) {
 				double est_lat;
 				double est_lon;
-				map_projection_reproject(&_pos_ref, -_state.pos(0), -_state.pos(1), &est_lat, &est_lon);
-				map_projection_init_timestamped(&_pos_ref, est_lat, est_lon, _time_last_imu);
+				_pos_ref.reproject(-_state.pos(0), -_state.pos(1), est_lat, est_lon);
+				_pos_ref.initReference(est_lat, est_lon, _time_last_imu);
 			}
 		}
 
 		// Take the current GPS height and subtract the filter height above origin to estimate the GPS height of the origin
 		_gps_alt_ref = 1e-3f * (float)gps.alt + _state.pos(2);
 		_NED_origin_initialised = true;
-		_earth_rate_NED = calcEarthRateNED((float)_pos_ref.lat_rad);
+
+		_earth_rate_NED = calcEarthRateNED((float)math::radians(_pos_ref.getProjectionReferenceLat()));
 		_last_gps_origin_time_us = _time_last_imu;
 
 		const bool declination_was_valid = PX4_ISFINITE(_mag_declination_gps);
@@ -169,7 +170,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	constexpr float filt_time_const = 10.0f;
-	const float dt = math::constrain(float(int64_t(_time_last_imu) - int64_t(_gps_pos_prev.timestamp)) * 1e-6f, 0.001f, filt_time_const);
+	const float dt = math::constrain(float(int64_t(_time_last_imu) - int64_t(_gps_pos_prev.getProjectionReferenceTimestamp())) * 1e-6f, 0.001f, filt_time_const);
 	const float filter_coef = dt / filt_time_const;
 
 	// The following checks are only valid when the vehicle is at rest
@@ -182,12 +183,12 @@ bool Ekf::gps_is_good(const gps_message &gps)
 		float delta_pos_e = 0.0f;
 
 		// calculate position movement since last GPS fix
-		if (_gps_pos_prev.timestamp > 0) {
-			map_projection_project(&_gps_pos_prev, lat, lon, &delta_pos_n, &delta_pos_e);
+		if (_gps_pos_prev.getProjectionReferenceTimestamp() > 0) {
+			_gps_pos_prev.project(lat, lon, delta_pos_n, delta_pos_e);
 
 		} else {
 			// no previous position has been set
-			map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
+			_gps_pos_prev.initReference(lat, lon, _time_last_imu);
 			_gps_alt_prev = 1e-3f * (float)gps.alt;
 		}
 
@@ -235,7 +236,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 	}
 
 	// save GPS fix for next time
-	map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
+	_gps_pos_prev.initReference(lat, lon, _time_last_imu);
 	_gps_alt_prev = 1e-3f * (float)gps.alt;
 
 	// Check  the filtered difference between GPS and EKF vertical velocity

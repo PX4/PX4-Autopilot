@@ -46,13 +46,13 @@
 /**
  * L1 period
  *
- * This is the L1 distance and defines the tracking
- * point ahead of the aircraft its following.
- * A value of 18-25 meters works for most aircraft. Shorten
+ * Used to determine the L1 gain and controller time constant. This parameter is
+ * proportional to the L1 distance (which points ahead of the aircraft on the path
+ * it is following). A value of 18-25 seconds works for most aircraft. Shorten
  * slowly during tuning until response is sharp without oscillation.
  *
- * @unit m
- * @min 12.0
+ * @unit s
+ * @min 7.0
  * @max 50.0
  * @decimal 1
  * @increment 0.5
@@ -84,6 +84,150 @@ PARAM_DEFINE_FLOAT(FW_L1_DAMPING, 0.75f);
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_L1_R_SLEW_MAX, 90.0f);
+
+/**
+ * Use NPFG as lateral-directional guidance law for fixed-wing vehicles
+ *
+ * Replaces L1.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(FW_USE_NPFG, 0);
+
+/**
+ * NPFG period
+ *
+ * Period of the NPFG control law.
+ *
+ * @unit s
+ * @min 1.0
+ * @max 100.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_PERIOD, 10.0f);
+
+/**
+ * NPFG damping ratio
+ *
+ * Damping ratio of the NPFG control law.
+ *
+ * @min 0.10
+ * @max 1.00
+ * @decimal 2
+ * @increment 0.01
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_DAMPING, 0.7f);
+
+/**
+ * Enable automatic lower bound on the NPFG period
+ *
+ * Avoids limit cycling from a too aggressively tuned period/damping combination.
+ * If set to false, also disables the upper bound NPFG_PERIOD_UB.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_LB_PERIOD, 1);
+
+/**
+ * Enable automatic upper bound on the NPFG period
+ *
+ * Adapts period to maintain track keeping in variable winds and path curvature.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_UB_PERIOD, 1);
+
+/**
+ * Enable track keeping excess wind handling logic.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_TRACK_KEEP, 1);
+
+/**
+ * Enable minimum forward ground speed maintaining excess wind handling logic
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_EN_MIN_GSP, 1);
+
+/**
+ * Enable wind excess regulation.
+ *
+ * Disabling this parameter further disables all other airspeed incrementation options.
+ *
+ * @boolean
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_INT32(NPFG_WIND_REG, 1);
+
+/**
+ * Maximum, minimum forward ground speed for track keeping in excess wind
+ *
+ * The maximum value of the minimum forward ground speed that may be commanded
+ * by the track keeping excess wind handling logic. Commanded in full at the normalized
+ * track error fraction of the track error boundary and reduced to zero on track.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.5
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_GSP_MAX_TK, 5.0f);
+
+/**
+ * Roll time constant
+ *
+ * Time constant of roll controller command / response, modeled as first order delay.
+ * Used to determine lower period bound. Setting zero disables automatic period bounding.
+ *
+ * @unit s
+ * @min 0.00
+ * @max 2.00
+ * @decimal 2
+ * @increment 0.05
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_ROLL_TC, 0.5f);
+
+/**
+ * NPFG switch distance multiplier
+ *
+ * Multiplied by the track error boundary to determine when the aircraft switches
+ * to the next waypoint and/or path segment. Should be less than 1. 1/pi (0.32)
+ * sets the switch distance equivalent to that of the L1 controller.
+ *
+ * @min 0.1
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_SW_DST_MLT, 0.32f);
+
+/**
+ * Period safety factor
+ *
+ * Multiplied by period for conservative minimum period bounding (when period lower
+ * bounding is enabled). 1.0 bounds at marginal stability.
+ *
+ * @min 1.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW NPFG Control
+ */
+PARAM_DEFINE_FLOAT(NPFG_PERIOD_SF, 1.5f);
 
 /**
  * Cruise throttle
@@ -129,9 +273,9 @@ PARAM_DEFINE_FLOAT(FW_THR_ALT_SCL, 0.0f);
 PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
 
 /**
- * Negative pitch limit
+ * Minimum pitch angle
  *
- * The minimum negative pitch the controller will output.
+ * The minimum pitch angle setpoint for autonomous modes including altitude and position control.
  *
  * @unit deg
  * @min -60.0
@@ -143,9 +287,9 @@ PARAM_DEFINE_FLOAT(FW_THR_SLEW_MAX, 0.0f);
 PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
 
 /**
- * Positive pitch limit
+ * Maximum pitch angle
  *
- * The maximum positive pitch the controller will output.
+ * The maximum pitch angle setpoint for autonomous modes including altitude and position control.
  *
  * @unit deg
  * @min 0.0
@@ -157,9 +301,9 @@ PARAM_DEFINE_FLOAT(FW_P_LIM_MIN, -45.0f);
 PARAM_DEFINE_FLOAT(FW_P_LIM_MAX, 45.0f);
 
 /**
- * Controller roll limit
+ * Maximum roll angle
  *
- * The maximum roll the controller will output.
+ * The maximum roll angle setpoint for autonomous modes including altitude and position control.
  *
  * @unit deg
  * @min 35.0
@@ -741,17 +885,17 @@ PARAM_DEFINE_FLOAT(FW_T_TAS_TC, 5.0f);
 PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);
 
 /**
- * RC stick mapping fixed-wing.
+ * RC stick configuraton fixed-wing.
  *
- * Set RC/joystick configuration for fixed-wing position and altitude controlled flight.
+ * Set RC/joystick configuration for fixed-wing manual position and altitude controlled flight.
  *
  * @min 0
- * @max 1
- * @value 0 Normal stick configuration (airspeed on throttle stick, altitude on pitch stick)
- * @value 1 Alternative stick configuration (altitude on throttle stick, airspeed on pitch stick)
+ * @max 3
+ * @bit 0 Alternative stick configuration (height rate on throttle stick, airspeed on pitch stick)
+ * @bit 1 Enable airspeed setpoint via sticks in altitude and position flight mode
  * @group FW L1 Control
  */
-PARAM_DEFINE_INT32(FW_POSCTL_INV_ST, 0);
+PARAM_DEFINE_INT32(FW_POS_STK_CONF, 2);
 
 /**
  * Specific total energy rate first order filter time constant.
@@ -825,3 +969,32 @@ PARAM_DEFINE_FLOAT(FW_T_CLMB_R_SP, 3.0f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SINK_R_SP, 2.0f);
+
+/**
+ * GPS failure loiter time
+ *
+ * The time in seconds the system should do open loop loiter and wait for GPS recovery
+ * before it starts descending. Set to 0 to disable. Roll angle is set to FW_GPSF_R.
+ * Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
+ *
+ * @unit s
+ * @min 0
+ * @max 3600
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
+
+/**
+ * GPS failure fixed roll angle
+ *
+ * Roll in degrees during the loiter after the vehicle has lost GPS in an auto mode (e.g. mission or loiter).
+ * Does only apply for fixed-wing vehicles or VTOLs with NAV_FORCE_VT set to 0.
+ *
+ * @unit deg
+ * @min 0.0
+ * @max 30.0
+ * @decimal 1
+ * @increment 0.5
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);

@@ -47,7 +47,9 @@ extern "C" {
  *
  * @brief		The main module of the API from the AFBR-S50 SDK.
  *
- * @details		General API for the AFBR-S50 time-of-flight sensor device family.
+ * @details		General API for the AFBR-S50 time-of-flight sensor device family.\n
+ * 				See the \ref getting_started Guide for a detailed description
+ * 				on how to use the module/API.
  *
  * @addtogroup 	argusapi
  * @{
@@ -120,7 +122,7 @@ status_t Argus_Reinit(argus_hnd_t *hnd);
  * @brief 	Deinitializes the API modules and the device.
  *
  * @details The function deinitializes the device and clear all internal states.
- * 			Can be used to cleanup before releaseing the memory. The device
+ * 			Can be used to cleanup before releasing the memory. The device
  * 			can not be used any more and must be initialized again prior to next
  * 			usage.
  *
@@ -149,9 +151,18 @@ status_t Argus_Deinit(argus_hnd_t *hnd);
  * 			In order to implement an individual memory allocation method,
  * 			define and implement the following weakly binded method and return
  * 			a pointer to the newly allocated memory. *
+ *
  * 			@code void * Argus_Malloc (size_t size) @endcode
+ *
  * 			Also see the #Argus_DestroyHandle method for the corresponding
  * 			deallocation of the allocated memory.
+ *
+ * @note	Although the method is using memory allocated on the heap, it
+ * 			is eventually no dynamic memory allocation, since the block of
+ * 			memory is kept all the time and no memory blocks are dynamically
+ * 			freed and re-allocated. If the usage of heap must be avoided, one
+ * 			can always implement its own version of the `Argus_Malloc` function
+ * 			to create the memory elsewhere.
  *
  * @return 	Returns a pointer to the newly allocated device handler object.
  * 			Returns a null pointer if the allocation failed!
@@ -175,6 +186,9 @@ argus_hnd_t *Argus_CreateHandle(void);
  * 			object passed to the method by a pointer.
  *
  * 			@code void Argus_Free (void * ptr) @endcode
+ *
+ * 			Also see the #Argus_CreateHandle method for the corresponding
+ * 			allocation of the required memory.
  *
  * @param	hnd The device handle object to be deallocated.
  *****************************************************************************/
@@ -269,46 +283,50 @@ s2pi_slave_t Argus_GetSPISlave(argus_hnd_t *hnd);
 /*!***************************************************************************
  * @brief	Starts the timer based measurement cycle asynchronously.
  *
- * @details This function starts a timer based measurement cycle asynchronously.
+ * @details This function starts a timer based measurement cycle asynchronously
  * 			in the background. A periodic timer interrupt triggers the measurement
- * 			frames on the ASIC and the data readout afterwards. When the frame is
- * 			finished, a callback (which is passed as a parameter to the function)
- * 			is invoked in order to inform the main thread to call the \link
- * 			#Argus_EvaluateData data evaluation method\endlink. This call is
- * 			mandatory to release the data buffer for the next measurement cycle
- * 			and it must not be invoked from the callback since it is within an
- * 			interrupt service routine. Rather a flag should inform the main thread
- * 			to invoke the evaluation as soon as possible in order to not introduce
- * 			any unwanted delays to the next measurement frame.
+ * 			frames on the ASIC and the data readout afterwards.
+ *
+ * 			When the measurement has finished, a callback (which is passed as
+ * 			a parameter to the function) is invoked in order to inform the
+ * 			main thread to call the \link #Argus_EvaluateData data evaluation
+ * 			method\endlink. This call is mandatory to release the data buffer
+ * 			for the next measurement and it must not be invoked directly from
+ * 			the callback since it is currently within an interrupt service
+ * 			routine. Rather a flag should inform the main thread or task
+ * 			scheduler to invoke the evaluation as soon as possible in order
+ * 			to not introduce any unwanted delays to the next measurement frame.
+ *
  *			The next measurement frame will be started as soon as the pre-
  *			conditions are meet. These are:
  *			 1. timer flag set (i.e. a certain time has passed since the last
  *			 	measurement in order to fulfill eye-safety),
  *			 2. device idle (i.e. no measurement currently ongoing) and
  *			 3. data buffer ready (i.e. the previous data has been evaluated).
+ *
  *			Usually, the device idle and data buffer ready conditions are met
  *			before the timer tick occurs and thus the timer dictates the frame
  *			rate.
  *
- * 			The callback function pointer will be invoked when the measurement
- * 			frame has finished successfully or whenever an error, that cannot
- * 			be handled internally, occurs.
+ *			The callback function pointer will be invoked when the measurement
+ *			frame has finished successfully or whenever an error, that cannot
+ *			be handled internally, occurs.
  *
- * 			The periodic timer interrupts are used to check the measurement status
+ *			The periodic timer interrupts are used to check the measurement status
  *			for timeouts. An error is invoked when a measurement cycle have not
  *			finished within the specified time.
  *
  *			Use #Argus_StopMeasurementTimer to stop the measurements.
  *
  * @note	In order to use this function, the periodic interrupt timer module
- * 			(see @ref argus_timer) must be implemented!
+ *			(see @ref argus_timer) must be implemented!
  *
  * @param	hnd The API handle; contains all internal states and data.
  * @param	cb  Callback function that will be invoked when the measurement
- * 				  is completed. Its parameters are the \link #status_t status
- * 				  \endlink and a pointer to the \link #argus_results_t results
- * 				  \endlink structure. If an error occurred, the status differs
- * 				  from #STATUS_OK and the second parameter is null.
+ *				  is completed. Its parameters are the \link #status_t status
+ *				  \endlink and a pointer to the \link #argus_results_t results
+ *				  \endlink structure. If an error occurred, the status differs
+ *				  from #STATUS_OK and the second parameter is null.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t Argus_StartMeasurementTimer(argus_hnd_t *hnd, argus_callback_t cb);
@@ -329,15 +347,19 @@ status_t Argus_StopMeasurementTimer(argus_hnd_t *hnd);
  * @brief	Triggers a single measurement frame asynchronously.
  *
  * @details This function immediately triggers a single measurement frame
- * 			asynchronously if all the pre-conditions are met. Otherwise it returns
- * 			with a corresponding status.
- *			When the frame is finished, a callback (which is passed as a parameter
- *			to the function) is invoked in order to inform the main thread to
- *			call the \link #Argus_EvaluateData data evaluation method\endlink.
- *			This call is mandatory to release the data buffer for the next
- *			measurement and it must not be invoked from the callback since it is
- *			within an interrupt service routine. Rather a flag should inform
- *			the main thread to invoke the evaluation.
+ *			asynchronously if all the pre-conditions are met. Otherwise it
+ *			returns with a corresponding status (e.g. #STATUS_BUSY or
+ *			#STATUS_ARGUS_POWERLIMIT).
+ *
+ *			When the measurement has finished, a callback (which is passed as
+ *			a parameter to the function) is invoked in order to inform the
+ *			main thread to call the \link #Argus_EvaluateData data evaluation
+ *			method\endlink. This call is mandatory to release the data buffer
+ *			for the next measurement and it must not be invoked directly from
+ *			the callback since it is currently within an interrupt service
+ *			routine. Rather a flag should inform the main thread or task
+ *			scheduler to invoke the evaluation task.
+ *
  *			The pre-conditions for starting a measurement frame are:
  *			 1. timer flag set (i.e. a certain time has passed since the last
  *			 	measurement in order to fulfill eye-safety),
@@ -373,22 +395,23 @@ status_t Argus_Abort(argus_hnd_t *hnd);
 /*!***************************************************************************
  * @brief 	Checks the state of the device/driver.
  *
- * @details	Returns the current module state:
+ * @details	Returns the current module status or error if any.
+ * 			See the following for a list of errors:
  *
  *			Status:
  *			- Idle/OK: Device and SPI interface are idle (== #STATUS_IDLE).
- * 			- Busy: Device or SPI interface are busy (== #STATUS_BUSY).
- * 			- Initializing: The modules and devices are currently initializing
- * 			                (== #STATUS_INITIALIZING).
- * 			.
+ *			- Busy: Device or SPI interface are busy (== #STATUS_BUSY).
+ *			- Initializing: The modules and devices are currently initializing
+ *			                (== #STATUS_INITIALIZING).
+ *			.
  *
- * 			Error:
- * 			- Not Initialized: The modules (or any submodule) has not been
- * 							   initialized yet (== #ERROR_NOT_INITIALIZED).
- * 			- Not Connected: No device has been connected (or connection errors
- * 							 have occured) (== #ERROR_ARGUS_NOT_CONNECTED).
- * 			- Timeout: A previous frame measurement has not finished within a
- * 					   specified time (== #ERROR_TIMEOUT).
+ *			Error:
+ *			- Not Initialized: The modules (or any submodule) has not been
+ *							   initialized yet (== #ERROR_NOT_INITIALIZED).
+ *			- Not Connected: No device has been connected (or connection errors
+ *							 have occurred) (== #ERROR_ARGUS_NOT_CONNECTED).
+ *			- Timeout: A previous frame measurement has not finished within a
+ *					   specified time (== #ERROR_TIMEOUT).
  *			.
  *
  * @param	hnd The API handle; contains all internal states and data.
@@ -412,21 +435,22 @@ status_t Argus_Ping(argus_hnd_t *hnd);
  * @brief 	Evaluate useful information from the raw measurement data.
  *
  * @details	This function is called with a pointer to the raw results obtained
- * 			from the measurement cycle. It evaluates this data and creates
- * 			useful information from it. Furthermore, calibration is applied to
- * 			the data. Finally, the results are used in order to adapt the device
- * 			configuration to the ambient conditions in order to achieve optimal
- * 			device performance.\n
- * 			Therefore, it consists of the following sub-functions:
- * 			- Apply pre-calibration: Applies calibration steps before evaluating
- * 			  the data, i.e. calculations that are to the integration results
- * 			  directly.
- * 			- Evaluate data: Calculates measurement parameters such as range,
- * 			  amplitude or ambient light intensity, depending on the configurations.
- * 			- Apply post-calibration: Applies calibrations after evaluation of
- * 			  measurement data, i.e. calibrations applied to the calculated
- * 			  values such as range.
- * 			- Dynamic Configuration Adaption: checks if the configuration needs
+ *			from the measurement cycle. It evaluates this data and creates
+ *			useful information from it. Furthermore, calibration is applied to
+ *			the data. Finally, the results are used in order to adapt the device
+ *			configuration to the ambient conditions in order to achieve optimal
+ *			device performance.
+ *
+ *			Therefore, it consists of the following sub-functions:
+ *			- Apply pre-calibration: Applies calibration steps before evaluating
+ *			  the data, i.e. calculations that are to the integration results
+ *			  directly.
+ *			- Evaluate data: Calculates measurement parameters such as range,
+ *			  amplitude or ambient light intensity, depending on the configurations.
+ *			- Apply post-calibration: Applies calibrations after evaluation of
+ *			  measurement data, i.e. calibrations applied to the calculated
+ *			  values such as range.
+ *			- Dynamic Configuration Adaption: checks if the configuration needs
  *			  to be adjusted before the next measurement cycle in order to
  *			  achieve optimum performance. Note that the configuration might not
  *			  applied directly but before the next measurement starts. This is
@@ -506,10 +530,10 @@ status_t Argus_ExecuteXtalkCalibrationSequence(argus_hnd_t *hnd, argus_mode_t mo
  *			  relative pixel offset w.r.t. the average range is also compensated.
  *			.
  *
- * 			After calibration has finished successfully, the obtained data is
- * 			applied immediately and can be read from the API using the
- * 			#Argus_GetCalibrationPixelRangeOffsets or
- * 			#Argus_GetCalibrationGlobalRangeOffset function.
+ *			After calibration has finished successfully, the obtained data is
+ *			applied immediately and can be read from the API using the
+ *			#Argus_GetCalibrationPixelRangeOffsets or
+ *			#Argus_GetCalibrationGlobalRangeOffset function.
  *
  * @param	hnd The API handle; contains all internal states and data.
  * @param	mode The targeted measurement mode.
@@ -556,10 +580,10 @@ status_t Argus_ExecuteRelativeRangeOffsetCalibrationSequence(argus_hnd_t *hnd,
  *			  relative pixel offset w.r.t. the average range is also compensated.
  *			.
  *
- * 			After calibration has finished successfully, the obtained data is
- * 			applied immediately and can be read from the API using the
- * 			#Argus_GetCalibrationPixelRangeOffsets or
- * 			#Argus_GetCalibrationGlobalRangeOffset function.
+ *			After calibration has finished successfully, the obtained data is
+ *			applied immediately and can be read from the API using the
+ *			#Argus_GetCalibrationPixelRangeOffsets or
+ *			#Argus_GetCalibrationGlobalRangeOffset function.
  *
  * @param	hnd The API handle; contains all internal states and data.
  * @param	mode The targeted measurement mode.
@@ -684,6 +708,29 @@ status_t Argus_SetConfigurationShotNoiseMonitorMode(argus_hnd_t *hnd,
 status_t Argus_GetConfigurationShotNoiseMonitorMode(argus_hnd_t *hnd,
 		argus_mode_t mode,
 		argus_snm_mode_t *value);
+#if 0
+///*!***************************************************************************
+// * @brief 	Sets the Crosstalk Monitor (XTM) mode to a specified device.
+// * @param	hnd The API handle; contains all internal states and data.
+// * @param	mode The targeted measurement mode.
+// * @param	value The new XTM mode value (true: enabled; false: disabled).
+// * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
+// *****************************************************************************/
+//status_t Argus_SetConfigurationCrosstalkMonitorMode(argus_hnd_t * hnd,
+//													argus_mode_t mode,
+//													bool value);
+//
+///*!***************************************************************************
+// * @brief 	Gets the Crosstalk Monitor (XTM) mode from a specified device.
+// * @param	hnd The API handle; contains all internal states and data.
+// * @param	mode The targeted measurement mode.
+// * @param	value The current XTM mode value (true: enabled; false: disabled).
+// * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
+// *****************************************************************************/
+//status_t Argus_GetConfigurationCrosstalkMonitorMode(argus_hnd_t * hnd,
+//													argus_mode_t mode,
+//													bool * value);
+#endif
 
 /*!***************************************************************************
  * @brief 	Sets the full DCA module configuration to a specified device.
@@ -755,12 +802,12 @@ status_t Argus_GetConfigurationUnambiguousRange(argus_hnd_t *hnd,
  *
  * @param	hnd The API handle; contains all internal states and data.
  * @param	mode The targeted measurement mode.
- * @param	value The new global range offset in meter and Q9.22 format.
+ * @param	value The new global range offset in meter and Q0.15 format.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t Argus_SetCalibrationGlobalRangeOffset(argus_hnd_t *hnd,
 		argus_mode_t mode,
-		q9_22_t value);
+		q0_15_t value);
 
 /*!***************************************************************************
  * @brief 	Gets the global range offset value from a specified device.
@@ -769,12 +816,12 @@ status_t Argus_SetCalibrationGlobalRangeOffset(argus_hnd_t *hnd,
  *
  * @param	hnd The API handle; contains all internal states and data.
  * @param	mode The targeted measurement mode.
- * @param	value The current global range offset in meter and Q9.22 format.
+ * @param	value The current global range offset in meter and Q0.15 format.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
 status_t Argus_GetCalibrationGlobalRangeOffset(argus_hnd_t *hnd,
 		argus_mode_t mode,
-		q9_22_t *value);
+		q0_15_t *value);
 
 /*!***************************************************************************
  * @brief 	Sets the relative pixel offset table to a specified device.
@@ -922,22 +969,30 @@ void Argus_GetExternalPixelRangeOffsets_Callback(q0_15_t offsets[ARGUS_PIXELS_X]
 		argus_mode_t mode);
 
 /*!***************************************************************************
- * @brief 	Sets the sample count for the range offset calibration sequence.
+ * @brief 	Sets the sample time for the range offset calibration sequence.
+ *
+ * @details	Gets the measurement sample acquisition time for executing the
+ * 			range offset calibration sequence and generate the offset data.\n
+ * 			Units: msec.
  *
  * @param	hnd The API handle; contains all internal states and data.
- * @param	value The new range offset calibration sequence sample count.
+ * @param	value The new range offset calibration sequence sample time.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetCalibrationRangeOffsetSequenceSampleCount(argus_hnd_t *hnd, uint16_t value);
+status_t Argus_SetCalibrationRangeOffsetSequenceSampleTime(argus_hnd_t *hnd, uint16_t value);
 
 /*!***************************************************************************
- * @brief 	Gets the sample count for the range offset calibration sequence.
+ * @brief 	Gets the sample time for the range offset calibration sequence.
+ *
+ * @details	Gets the measurement sample acquisition time for executing the
+ * 			range offset calibration sequence and generate the ooffset data.\n
+ * 			Units: msec.
  *
  * @param	hnd The API handle; contains all internal states and data.
- * @param	value The current range offset calibration sequence sample count.
+ * @param	value The current range offset calibration sequence sample time.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationRangeOffsetSequenceSampleCount(argus_hnd_t *hnd, uint16_t *value);
+status_t Argus_GetCalibrationRangeOffsetSequenceSampleTime(argus_hnd_t *hnd, uint16_t *value);
 
 /*!***************************************************************************
  * @brief 	Sets the pixel-to-pixel crosstalk compensation parameters to a specified device.
@@ -1067,23 +1122,31 @@ status_t Argus_ResetCalibrationCrosstalkVectorTable(argus_hnd_t *hnd,
 		argus_mode_t mode);
 
 /*!***************************************************************************
- * @brief 	Sets the sample count for the crosstalk calibration sequence.
+ * @brief 	Sets the sample time for the crosstalk calibration sequence.
+ *
+ * @details	Sets the measurement sample acquisition time for executing the
+ * 			crosstalk calibration sequence and generate the crosstalk data.\n
+ * 			Units: msec.
  *
  * @param	hnd The API handle; contains all internal states and data.
- * @param	value The new crosstalk calibration sequence sample count.
+ * @param	value The new crosstalk calibration sequence sample time.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_SetCalibrationCrosstalkSequenceSampleCount(argus_hnd_t *hnd,
+status_t Argus_SetCalibrationCrosstalkSequenceSampleTime(argus_hnd_t *hnd,
 		uint16_t value);
 
 /*!***************************************************************************
- * @brief 	Gets the sample count for the crosstalk calibration sequence.
+ * @brief 	Gets the sample time for the crosstalk calibration sequence.
+ *
+ * @details	Gets the measurement sample acquisition time for executing the
+ * 			crosstalk calibration sequence and generate the crosstalk data.\n
+ * 			Units: msec.
  *
  * @param	hnd The API handle; contains all internal states and data.
- * @param	value The current crosstalk calibration sequence sample count.
+ * @param	value The current crosstalk calibration sequence sample time.
  * @return 	Returns the \link #status_t status\endlink (#STATUS_OK on success).
  *****************************************************************************/
-status_t Argus_GetCalibrationCrosstalkSequenceSampleCount(argus_hnd_t *hnd,
+status_t Argus_GetCalibrationCrosstalkSequenceSampleTime(argus_hnd_t *hnd,
 		uint16_t *value);
 
 /*!***************************************************************************

@@ -94,17 +94,16 @@ void AFBRS50::ProcessMeasurement(void *data)
 		argus_results_t res{};
 		status_t evaluate_status = Argus_EvaluateData(_hnd, &res, data);
 
-		if ((evaluate_status == STATUS_OK) && (res.Status == 0)) {
+		if ((evaluate_status == STATUS_OK) && (res.Status == STATUS_OK)) {
 			uint32_t result_mm = res.Bin.Range / (Q9_22_ONE / 1000);
 			float result_m = static_cast<float>(result_mm) / 1000.f;
-			//int8_t quality = res.Bin.SignalQuality;
-			int8_t quality = 100;
+			int8_t quality = res.Bin.SignalQuality;
 
 			// Signal quality indicates 100% for good signals, 50% and lower for weak signals.
 			// 1% is an errored signal (not reliable). Signal Quality of 0% is unknown.
-			//if (quality == 1) {
-			//	quality = 0;
-			//}
+			if (quality == 1) {
+				quality = 0;
+			}
 
 			// distance quality check
 			if (result_m > _max_distance) {
@@ -264,7 +263,6 @@ void AFBRS50::Run()
 
 			if (status != STATUS_OK) {
 				PX4_ERR("CONFIGURE status not okay: %i", (int)status);
-				_state = STATE::STOP;
 				ScheduleNow();
 
 			} else {
@@ -308,6 +306,12 @@ void AFBRS50::UpdateMode()
 
 			if (status != STATUS_OK) {
 				PX4_ERR("set_mode status not okay: %i", (int)status);
+			}
+
+			status = set_rate(LONG_RANGE_MODE_HZ);
+
+			if (status != STATUS_OK) {
+				PX4_ERR("set_rate status not okay: %i", (int)status);
 			}
 
 			status = set_rate(LONG_RANGE_MODE_HZ);
