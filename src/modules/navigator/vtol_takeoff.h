@@ -1,6 +1,6 @@
-/****************************************************************************
+/***************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,31 +30,52 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+/**
+ * @file vtol_takeoff.h
+ *
+ * Helper class to do a VTOL takeoff and transition into a loiter.
+ *
+ */
 
-#include "ActuatorEffectivenessCustom.hpp"
+#pragma once
 
-using namespace matrix;
+#include "navigator_mode.h"
+#include "mission_block.h"
 
-ActuatorEffectivenessCustom::ActuatorEffectivenessCustom(ModuleParams *parent)
-	: ModuleParams(parent), _motors(this), _torque(this)
+#include <lib/mathlib/mathlib.h>
+
+#include <px4_platform_common/module_params.h>
+class VtolTakeoff : public MissionBlock, public ModuleParams
 {
-}
+public:
+	VtolTakeoff(Navigator *navigator);
+	~VtolTakeoff() = default;
 
-bool
-ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
-	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
-		return false;
-	}
+	void on_activation() override;
+	void on_active() override;
 
-	// motors
-	_motors.enableYawControl(false);
-	const bool motors_added_successfully = _motors.addActuators(configuration);
+	void setTransitionAltitudeAbsolute(const float alt_amsl) {_transition_alt_amsl = alt_amsl; }
 
-	// Torque
-	const bool torque_added_successfully = _torque.addActuators(configuration);
+	void setLoiterLocation(matrix::Vector2d loiter_location) { _loiter_location = loiter_location; }
+	void setLoiterHeight(const float height_m) { _loiter_height = height_m; }
 
-	return (motors_added_successfully && torque_added_successfully);
-}
+private:
 
+	enum class vtol_takeoff_state {
+		TAKEOFF_HOVER = 0,
+		ALIGN_HEADING,
+		TRANSITION,
+		CLIMB,
+		ABORT_TAKEOFF_AND_LAND
+	} _takeoff_state;
+
+	float _transition_alt_amsl{0.f};	// absolute altitude at which vehicle will transition to forward flight
+	matrix::Vector2d _loiter_location;
+	float _loiter_height{0};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::VTO_LOITER_ALT>) _param_loiter_alt
+	)
+
+	void set_takeoff_position();
+};

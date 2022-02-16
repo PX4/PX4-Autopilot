@@ -37,9 +37,10 @@
 using namespace matrix;
 
 bool
-ActuatorEffectivenessRoverAckermann::getEffectivenessMatrix(Configuration &configuration, bool force)
+ActuatorEffectivenessRoverAckermann::getEffectivenessMatrix(Configuration &configuration,
+		EffectivenessUpdateReason external_update)
 {
-	if (!force) {
+	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 
