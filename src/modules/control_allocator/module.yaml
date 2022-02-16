@@ -478,6 +478,7 @@ mixer:
         types:
             0: # Multirotor
                 type: 'multirotor'
+                title: 'Multirotor'
                 actuators:
                   - actuator_type: 'motor'
                     count: 'CA_ROTOR_COUNT'
@@ -491,6 +492,7 @@ mixer:
                             show_as: 'true-if-positive'
 
             1: # Fixed Wing
+                title: 'Fixed Wing'
                 actuators:
                   - actuator_type: 'motor'
                     group_label: 'Motors'
@@ -520,6 +522,7 @@ mixer:
                             label: 'Trim'
 
             2: # Standard VTOL
+                title: 'Standard VTOL'
                 actuators:
                   - actuator_type: 'motor'
                     group_label: 'MC Motors'
@@ -561,6 +564,7 @@ mixer:
                         name: VT_ELEV_MC_LOCK
 
             3: # Tiltrotor VTOL
+                title: 'Tiltrotor VTOL'
                 actuators:
                   - actuator_type: 'motor'
                     group_label: 'MC Motors'
@@ -615,6 +619,7 @@ mixer:
                             label: 'Use for Control'
 
             4: # Tailsitter VTOL
+                title: 'Tailsitter VTOL'
                 actuators:
                   - actuator_type: 'motor'
                     group_label: 'MC Motors'
@@ -653,6 +658,7 @@ mixer:
                         name: VT_ELEV_MC_LOCK
 
             5: # Rover (Ackermann)
+                title: 'Rover (Ackermann)'
                 actuators:
                   - actuator_type: 'motor'
                     instances:
@@ -664,6 +670,7 @@ mixer:
                         position: [ 1., 0, 0 ]
 
             6: # Rover (Differential)
+                title: 'Rover (Differential)'
                 actuators:
                   - actuator_type: 'motor'
                     instances:
@@ -693,6 +700,7 @@ mixer:
                             label: "Moment\nCoefficient"
 
             8: # Multirotor with Tilt
+                title: 'Multirotor with Tilt'
                 actuators:
                   - actuator_type: 'motor'
                     count: 'CA_ROTOR_COUNT'
