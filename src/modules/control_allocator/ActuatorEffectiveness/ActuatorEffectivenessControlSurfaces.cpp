@@ -124,12 +124,8 @@ void ActuatorEffectivenessControlSurfaces::updateParams()
 	}
 }
 
-bool ActuatorEffectivenessControlSurfaces::getEffectivenessMatrix(Configuration &configuration, bool force)
+bool ActuatorEffectivenessControlSurfaces::addActuators(Configuration &configuration)
 {
-	if (!force) {
-		return false;
-	}
-
 	for (int i = 0; i < _count; i++) {
 		int actuator_idx = configuration.addActuator(ActuatorType::SERVOS, _params[i].torque, Vector3f{});
 

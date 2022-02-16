@@ -17,7 +17,7 @@
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * AS IS AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
  * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
  * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
@@ -31,30 +31,23 @@
  *
  ****************************************************************************/
 
-#include "ActuatorEffectivenessCustom.hpp"
+/**
+ * @file VTOLTakeoff_params.c
+ *
+ * Parameters for the VTOL takeoff navigation mode.
+ *
+ */
 
-using namespace matrix;
-
-ActuatorEffectivenessCustom::ActuatorEffectivenessCustom(ModuleParams *parent)
-	: ModuleParams(parent), _motors(this), _torque(this)
-{
-}
-
-bool
-ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration,
-		EffectivenessUpdateReason external_update)
-{
-	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
-		return false;
-	}
-
-	// motors
-	_motors.enableYawControl(false);
-	const bool motors_added_successfully = _motors.addActuators(configuration);
-
-	// Torque
-	const bool torque_added_successfully = _torque.addActuators(configuration);
-
-	return (motors_added_successfully && torque_added_successfully);
-}
-
+/**
+ * VTOL Takeoff relative loiter altitude.
+ *
+ * Altitude relative to home at which vehicle will loiter after front transition.
+ *
+ * @unit m
+ * @min 20
+ * @max 300
+ * @decimal 1
+ * @increment 1
+ * @group VTOL Takeoff
+ */
+PARAM_DEFINE_FLOAT(VTO_LOITER_ALT, 80);

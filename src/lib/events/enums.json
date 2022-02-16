@@ -239,6 +239,10 @@
                             "name": "orbit",
                             "description": "Orbit"
                         },
+                        "15": {
+                            "name": "auto_vtol_takeoff",
+                            "description": "Vtol Takeoff"
+                        },
                         "255": {
                             "name": "unknown",
                             "description": "[Unknown]"

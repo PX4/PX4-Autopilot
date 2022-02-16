@@ -410,7 +410,10 @@ void Ekf::controlOpticalFlowFusion()
 		} else {
 			// don't use this flow data and wait for the next data to arrive
 			_flow_data_ready = false;
+			_flow_compensated_XY_rad.setZero();
 		}
+	} else {
+		_flow_compensated_XY_rad.setZero();
 	}
 
 	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon

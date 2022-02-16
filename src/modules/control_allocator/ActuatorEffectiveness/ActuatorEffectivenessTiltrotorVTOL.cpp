@@ -51,9 +51,10 @@ ActuatorEffectivenessTiltrotorVTOL::ActuatorEffectivenessTiltrotorVTOL(ModulePar
 	setFlightPhase(FlightPhase::HOVER_FLIGHT);
 }
 bool
-ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &configuration, bool force)
+ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &configuration,
+		EffectivenessUpdateReason external_update)
 {
-	if (!_updated && !force) {
+	if (!_combined_tilt_updated && external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 
@@ -62,30 +63,31 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 	_mc_rotors.enableYawControl(!_tilts.hasYawControl());
 
 	// Update matrix with tilts in vertical position when update is triggered by a manual
-	// configuration (parameter) change (=force update). This is to make sure the normalization
-	// scales are tilt-invariant. Note: force update only possible when disarm.
-	const float tilt_control_applied = force ? -1.f : _last_tilt_control;
+	// configuration (parameter) change. This is to make sure the normalization
+	// scales are tilt-invariant. Note: configuration updates are only possible when disarmed.
+	const float tilt_control_applied = (external_update == EffectivenessUpdateReason::CONFIGURATION_UPDATE) ? -1.f :
+					   _last_tilt_control;
 	_nontilted_motors = _mc_rotors.updateAxisFromTilts(_tilts, tilt_control_applied)
 			    << configuration.num_actuators[(int)ActuatorType::MOTORS];
 
-	_mc_rotors.getEffectivenessMatrix(configuration, true);
+	const bool mc_rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
 	// Control Surfaces
 	configuration.selected_matrix = 1;
 	_first_control_surface_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
-	_control_surfaces.getEffectivenessMatrix(configuration, true);
+	const bool surfaces_added_successfully = _control_surfaces.addActuators(configuration);
 
 	// Tilts
 	configuration.selected_matrix = 0;
 	_first_tilt_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
 	_tilts.updateTorqueSign(_mc_rotors.geometry(), true /* disable pitch to avoid configuration errors */);
-	_tilts.getEffectivenessMatrix(configuration, true);
+	const bool tilts_added_successfully = _tilts.addActuators(configuration);
 
-	// If it was a forced update (thus coming from a config change), then make sure to update matrix in
+	// If it was an update coming from a config change, then make sure to update matrix in
 	// the next iteration again with the correct tilt (but without updating the normalization scale).
-	_updated = force;
+	_combined_tilt_updated = (external_update == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
 
-	return true;
+	return (mc_rotors_added_successfully && surfaces_added_successfully && tilts_added_successfully);
 }
 
 void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,
@@ -114,7 +116,7 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 				_last_tilt_control = control_tilt;
 
 			} else if (fabsf(control_tilt - _last_tilt_control) > 0.01f) {
-				_updated = true;
+				_combined_tilt_updated = true;
 				_last_tilt_control = control_tilt;
 			}
 
