@@ -542,8 +542,9 @@ private:
 	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 
 	// height sensor status
-	bool _baro_hgt_faulty{true};		///< true if valid baro data is unavailable for use
-	bool _gps_intermittent{true};           ///< true if into the buffer is intermittent
+	bool _baro_hgt_faulty{false};		///< true if baro data have been declared faulty TODO: move to fault flags
+	bool _baro_hgt_intermittent{true};	///< true if data into the buffer is intermittent
+	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -656,7 +657,13 @@ private:
 
 	void resetVerticalPositionTo(float new_vert_pos);
 
-	void resetHeight();
+	void resetHeightToBaro();
+	void resetHeightToGps();
+	void resetHeightToRng();
+	void resetHeightToEv();
+
+	void resetVerticalVelocityToGps();
+	void resetVerticalVelocityToZero();
 
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
