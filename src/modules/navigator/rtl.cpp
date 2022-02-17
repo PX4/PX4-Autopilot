@@ -287,6 +287,10 @@ void RTL::on_activation()
 
 	setClimbAndReturnDone(_rtl_state > RTL_STATE_RETURN);
 
+	// reset cruising speed and throttle to default for RTL
+	_navigator->set_cruising_speed();
+	_navigator->set_cruising_throttle();
+
 	set_rtl_item();
 
 }
