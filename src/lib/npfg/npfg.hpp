@@ -717,16 +717,6 @@ private:
 	float lateralAccel(const matrix::Vector2f &air_vel, const matrix::Vector2f &air_vel_ref,
 			   const float airspeed) const;
 
-	/*
-	 * Calculates two-dimensional "cross product" of two vectors.
-	 * TODO: move to matrix lib (Vector2 operation)
-	 *
-	 * @param[in] vec_1 Vector 1
-	 * @param[in] vec_2 Vector 2
-	 * @return 2D cross product
-	 */
-	float cross2D(const matrix::Vector2f &vec_1, const matrix::Vector2f &vec_2) const { return vec_1(0) * vec_2(1) - vec_1(1) * vec_2(0); }
-
 	/*******************************************************************************
 	 * PX4 POSITION SETPOINT INTERFACE FUNCTIONS
 	 */

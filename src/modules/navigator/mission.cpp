@@ -96,11 +96,6 @@ void Mission::mission_init()
 void
 Mission::on_inactive()
 {
-	/* We need to reset the mission cruising speed, otherwise the
-	 * mission velocity which might have been set using mission items
-	 * is used for missions such as RTL. */
-	_navigator->set_cruising_speed();
-
 	// if we were executing an landing but have been inactive for 2 seconds, then make the landing invalid
 	// this prevents RTL to just continue at the current mission index
 	if (_navigator->getMissionLandingInProgress() && (hrt_absolute_time() - _time_mission_deactivated) > 2_s) {
