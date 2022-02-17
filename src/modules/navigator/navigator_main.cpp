@@ -503,6 +503,19 @@ void Navigator::run()
 					}
 				}
 
+				if (get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+
+					// publish new reposition setpoint with updated speed/throtte when DO_CHANGE_SPEED
+					// was received in AUTO_LOITER mode
+
+					position_setpoint_triplet_s *rep = get_reposition_triplet();
+
+					// set repo setpoint to current, and only change speed and throttle fields
+					*rep = *(get_position_setpoint_triplet());
+					rep->current.cruising_speed = get_cruising_speed();
+					rep->current.cruising_throttle = get_cruising_throttle();
+				}
+
 				// TODO: handle responses for supported DO_CHANGE_SPEED options?
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -547,6 +560,17 @@ void Navigator::run()
 				_vehicle_roi_pub.publish(_vroi);
 
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+				// reset cruise speed and throttle to default when transitioning
+				set_cruising_speed();
+				set_cruising_throttle();
+
+				// need to update current setpooint with reset cruise speed and throttle
+				position_setpoint_triplet_s *rep = get_reposition_triplet();
+				*rep = *(get_position_setpoint_triplet());
+				rep->current.cruising_speed = get_cruising_speed();
+				rep->current.cruising_throttle = get_cruising_throttle();
 			}
 		}
 
@@ -1016,7 +1040,7 @@ float Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
+		if (_mission_cruising_speed_mc > 0.0f) {
 			return _mission_cruising_speed_mc;
 
 		} else {
@@ -1024,7 +1048,7 @@ float Navigator::get_cruising_speed()
 		}
 
 	} else {
-		if (is_planned_mission() && _mission_cruising_speed_fw > 0.0f) {
+		if (_mission_cruising_speed_fw > 0.0f) {
 			return _mission_cruising_speed_fw;
 
 		} else {
