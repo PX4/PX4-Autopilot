@@ -82,17 +82,20 @@ int RM3100::self_test()
 	/* Configure sensor to execute BIST upon receipt of a POLL command */
 	cmd = BIST_SELFTEST;
 	ret = _interface->write(ADDR_BIST, &cmd, 1);
+
 	if (ret != PX4_OK) {
 		return ret;
 	}
 
 	/* Perform test procedure until a valid result is obtained or test times out */
 	const hrt_abstime t_start = hrt_absolute_time();
+
 	while ((hrt_absolute_time() - t_start) < BIST_DUR_USEC) {
 
 		/* Poll for a measurement */
 		cmd = POLL_XYZ;
 		ret = _interface->write(ADDR_POLL, &cmd, 1);
+
 		if (ret != PX4_OK) {
 			return ret;
 		}
@@ -101,6 +104,7 @@ int RM3100::self_test()
 		if (!check_measurement()) {
 			/* Check BIST register to evaluate the test result*/
 			ret = _interface->read(ADDR_BIST, &cmd, 1);
+
 			if (ret != PX4_OK) {
 				return ret;
 			}
@@ -111,15 +115,18 @@ int RM3100::self_test()
 
 				/* If the test passed, disable self-test mode by clearing the STE bit */
 				ret = !(cmd & BIST_XYZ_OK);
+
 				if (!ret) {
 					cmd = 0;
 					ret = _interface->write(ADDR_BIST, &cmd, 1);
+
 					if (ret != PX4_OK) {
 						PX4_ERR("Failed to disable BIST");
 					}
 
 					pass = PX4_OK;
 					break;
+
 				} else {
 					PX4_ERR("BIST failed");
 				}
