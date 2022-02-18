@@ -228,6 +228,8 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 				update_result = thread_data.input_objs[i]->update(poll_timeout, control_data, already_active);
 
+				bool break_loop = false;
+
 				switch (update_result) {
 				case InputBase::UpdateResult::NoUpdate:
 					if (already_active) {
@@ -239,10 +241,12 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 				case InputBase::UpdateResult::UpdatedActive:
 					thread_data.last_input_active = i;
+					break_loop = true;
 					break;
 
 				case InputBase::UpdateResult::UpdatedActiveOnce:
 					thread_data.last_input_active = -1;
+					break_loop = true;
 					break;
 
 				case InputBase::UpdateResult::UpdatedNotActive:
@@ -251,6 +255,10 @@ static int gimbal_thread_main(int argc, char *argv[])
 						thread_data.last_input_active = -1;
 					}
 
+					break;
+				}
+
+				if (break_loop) {
 					break;
 				}
 			}
