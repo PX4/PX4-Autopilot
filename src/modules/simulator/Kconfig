@@ -3,3 +3,10 @@ menuconfig MODULES_SIMULATOR
 	default n
 	---help---
 		Enable support for simulator
+
+menuconfig USER_SIMULATOR
+	bool "simulator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_SIMULATOR
+	---help---
+		Put simulator in userspace memory

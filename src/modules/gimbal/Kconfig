@@ -3,3 +3,10 @@ menuconfig MODULES_GIMBAL
 	default n
 	---help---
 		Enable support for GIMBAL
+
+menuconfig USER_GIMBAL
+	bool "gimbal running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_GIMBAL
+	---help---
+		Put gimbal in userspace memory

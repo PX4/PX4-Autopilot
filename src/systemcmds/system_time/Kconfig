@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_SYSTEM_TIME
 	default n
 	---help---
 		Enable support for system_time
+
+menuconfig USER_SYSTEM_TIME
+	bool "system_time running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_SYSTEM_TIME
+	---help---
+		Put system_time in userspace memory

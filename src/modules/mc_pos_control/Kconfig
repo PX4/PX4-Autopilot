@@ -3,3 +3,10 @@ menuconfig MODULES_MC_POS_CONTROL
 	default n
 	---help---
 		Enable support for mc_pos_control
+
+menuconfig USER_MC_POS_CONTROL
+	bool "mc_pos_control running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_MC_POS_CONTROL
+	---help---
+		Put mc_pos_control in userspace memory

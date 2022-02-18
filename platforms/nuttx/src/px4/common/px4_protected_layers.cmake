@@ -18,6 +18,13 @@ target_link_libraries(px4_layer
 		nuttx_mm
 )
 
+# Build the interface library between user and kernel side
+add_library(px4_board_ctrl
+		board_ctrl.c
+)
+
+add_dependencies(px4_board_ctrl nuttx_context px4_kernel_builtin_list_target)
+
 # Build the kernel side px4_kernel_layer
 
 add_library(px4_kernel_layer
