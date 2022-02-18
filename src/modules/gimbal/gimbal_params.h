@@ -62,6 +62,8 @@ struct Parameters {
 	float mnt_rate_pitch;
 	float mnt_rate_yaw;
 	int32_t mnt_rc_in_mode;
+	float mnt_lnd_p_min;
+	float mnt_lnd_p_max;
 };
 
 struct ParameterHandles {
@@ -86,6 +88,8 @@ struct ParameterHandles {
 	param_t mnt_rate_pitch;
 	param_t mnt_rate_yaw;
 	param_t mnt_rc_in_mode;
+	param_t mnt_lnd_p_min;
+	param_t mnt_lnd_p_max;
 };
 
 } /* namespace gimbal */
