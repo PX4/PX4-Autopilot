@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_FAILURE
 	default n
 	---help---
 		Enable support for failure
+
+menuconfig USER_FAILURE
+	bool "failure running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_FAILURE
+	---help---
+		Put failure in userspace memory

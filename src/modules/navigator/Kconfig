@@ -3,3 +3,10 @@ menuconfig MODULES_NAVIGATOR
 	default n
 	---help---
 		Enable support for navigator
+
+menuconfig USER_NAVIGATOR
+	bool "navigator running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_NAVIGATOR
+	---help---
+		Put navigator in userspace memory

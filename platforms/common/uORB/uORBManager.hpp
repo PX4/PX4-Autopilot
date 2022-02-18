@@ -65,7 +65,8 @@ class SubscriptionCallback;
  * a handle
  */
 
-#define ORBIOCDEVEXISTS	_ORBIOC(30)
+#define _ORBIOCDEV(_n) (_PX4_IOC(_ORBIOCDEVBASE, _n))
+#define ORBIOCDEVEXISTS	_ORBIOCDEV(30)
 typedef struct orbiocdevexists {
 	const ORB_ID orb_id;
 	const uint8_t instance;
@@ -73,7 +74,7 @@ typedef struct orbiocdevexists {
 	int ret;
 } orbiocdevexists_t;
 
-#define ORBIOCDEVADVERTISE	_ORBIOC(31)
+#define ORBIOCDEVADVERTISE	_ORBIOCDEV(31)
 typedef struct orbiocadvertise {
 	const struct orb_metadata *meta;
 	bool is_advertiser;
@@ -81,13 +82,13 @@ typedef struct orbiocadvertise {
 	int ret;
 } orbiocdevadvertise_t;
 
-#define ORBIOCDEVUNADVERTISE	_ORBIOC(32)
+#define ORBIOCDEVUNADVERTISE	_ORBIOCDEV(32)
 typedef struct orbiocunadvertise {
 	void *handle;
 	int ret;
 } orbiocdevunadvertise_t;
 
-#define ORBIOCDEVPUBLISH	_ORBIOC(33)
+#define ORBIOCDEVPUBLISH	_ORBIOCDEV(33)
 typedef struct orbiocpublish {
 	const struct orb_metadata *meta;
 	orb_advert_t handle;
@@ -95,7 +96,7 @@ typedef struct orbiocpublish {
 	int ret;
 } orbiocdevpublish_t;
 
-#define ORBIOCDEVADDSUBSCRIBER	_ORBIOC(34)
+#define ORBIOCDEVADDSUBSCRIBER	_ORBIOCDEV(34)
 typedef struct {
 	const ORB_ID orb_id;
 	const uint8_t instance;
@@ -103,15 +104,15 @@ typedef struct {
 	void *handle;
 } orbiocdevaddsubscriber_t;
 
-#define ORBIOCDEVREMSUBSCRIBER	_ORBIOC(35)
+#define ORBIOCDEVREMSUBSCRIBER	_ORBIOCDEV(35)
 
-#define ORBIOCDEVQUEUESIZE	_ORBIOC(36)
+#define ORBIOCDEVQUEUESIZE	_ORBIOCDEV(36)
 typedef struct {
 	const void *handle;
 	uint8_t size;
 } orbiocdevqueuesize_t;
 
-#define ORBIOCDEVDATACOPY	_ORBIOC(37)
+#define ORBIOCDEVDATACOPY	_ORBIOCDEV(37)
 typedef struct {
 	void *handle;
 	void *dst;
@@ -119,33 +120,33 @@ typedef struct {
 	bool ret;
 } orbiocdevdatacopy_t;
 
-#define ORBIOCDEVREGCALLBACK	_ORBIOC(38)
+#define ORBIOCDEVREGCALLBACK	_ORBIOCDEV(38)
 typedef struct {
 	void *handle;
 	class uORB::SubscriptionCallback *callback_sub;
 	bool registered;
 } orbiocdevregcallback_t;
 
-#define ORBIOCDEVUNREGCALLBACK	_ORBIOC(39)
+#define ORBIOCDEVUNREGCALLBACK	_ORBIOCDEV(39)
 typedef struct {
 	void *handle;
 	class uORB::SubscriptionCallback *callback_sub;
 } orbiocdevunregcallback_t;
 
-#define ORBIOCDEVGETINSTANCE	_ORBIOC(40)
+#define ORBIOCDEVGETINSTANCE	_ORBIOCDEV(40)
 typedef struct {
 	const void *handle;
 	uint8_t instance;
 } orbiocdevgetinstance_t;
 
-#define ORBIOCDEVUPDATESAVAIL	_ORBIOC(41)
+#define ORBIOCDEVUPDATESAVAIL	_ORBIOCDEV(41)
 typedef struct {
 	const void *handle;
 	unsigned last_generation;
 	unsigned ret;
 } orbiocdevupdatesavail_t;
 
-#define ORBIOCDEVISADVERTISED	_ORBIOC(42)
+#define ORBIOCDEVISADVERTISED	_ORBIOCDEV(42)
 typedef struct {
 	const void *handle;
 	bool ret;
@@ -155,7 +156,7 @@ typedef enum {
 	ORB_DEVMASTER_STATUS = 0,
 	ORB_DEVMASTER_TOP = 1
 } orbiocdevmastercmd_t;
-#define ORBIOCDEVMASTERCMD	_ORBIOC(45)
+#define ORBIOCDEVMASTERCMD	_ORBIOCDEV(45)
 
 
 /**
