@@ -405,6 +405,7 @@ public:
 	List<MavlinkStream *> &get_streams() { return _streams; }
 
 	float			get_rate_mult() const { return _rate_mult; }
+	float			get_rate_div() const { return _rate_div; }
 
 	float			get_baudrate() { return _baudrate; }
 
@@ -414,6 +415,19 @@ public:
 	void			set_wait_to_transmit(bool wait) { _wait_to_transmit = wait; }
 	bool			get_wait_to_transmit() { return _wait_to_transmit; }
 	bool			should_transmit() { return (_transmitting_enabled && (!_wait_to_transmit || (_wait_to_transmit && _received_messages))); }
+
+	bool canTransmit(size_t size_bytes)
+	{
+		if (size_bytes <= get_free_tx_buf()) {
+			if ((_bytes_tx + size_bytes) <= _datarate * hrt_elapsed_time(&_bytes_timestamp) * 1e-6f) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool 			over_data_rate() { return _over_data_rate.load(); }
 
 	bool			message_buffer_write(const void *ptr, int size);
 
@@ -519,7 +533,9 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
-	bool radio_status_critical() const { return _radio_status_critical; }
+	bool radio_status_critical() const { return _radio_status_available && _radio_status_critical; }
+
+	void set_first_heartbeat_sent() { _first_heartbeat_sent = true; }
 
 private:
 	MavlinkReceiver 	_receiver;
@@ -548,9 +564,8 @@ private:
 
 	static bool		_boot_complete;
 
-	static constexpr int	MAVLINK_MIN_INTERVAL{1500};
-	static constexpr int	MAVLINK_MAX_INTERVAL{10000};
-	static constexpr float	MAVLINK_MIN_MULTIPLIER{0.0005f};
+	static constexpr int	MAVLINK_MIN_INTERVAL{1000};  // 1000 Hz
+	static constexpr int	MAVLINK_MAX_INTERVAL{20000}; //   50 Hz
 
 	mavlink_message_t	_mavlink_buffer {};
 	mavlink_status_t	_mavlink_status {};
@@ -563,7 +578,7 @@ private:
 
 	px4::atomic_bool	_should_check_events{false};    /**< Events subscription: only one MAVLink instance should check */
 
-	unsigned		_main_loop_delay{1000};	/**< mainloop delay, depends on data rate */
+	int		_main_loop_delay{MAVLINK_MAX_INTERVAL};	/**< mainloop delay, depends on data rate */
 
 	List<MavlinkStream *>		_streams;
 
@@ -585,9 +600,11 @@ private:
 	int			_baudrate{57600};
 	int			_datarate{1000};		///< data rate for normal streams (attitude, position, etc.)
 	float			_rate_mult{1.0f};
+	float			_rate_div{1.0f};
 
 	bool			_radio_status_available{false};
 	bool			_radio_status_critical{false};
+	bool			_radio_status_changed{false};
 	float			_radio_status_mult{1.0f};
 
 	/**
@@ -616,6 +633,11 @@ private:
 	unsigned		_bytes_rx{0};
 	hrt_abstime		_bytes_timestamp{0};
 
+	px4::atomic_bool        _over_data_rate{false};
+
+	hrt_abstime             _rate_multi_update_last{0};
+	bool			_force_rate_mult_update{true};
+
 #if defined(MAVLINK_UDP)
 	BROADCAST_MODE		_mav_broadcast {BROADCAST_MODE_OFF};
 
@@ -634,8 +656,6 @@ private:
 
 	uint8_t			_buf[MAVLINK_MAX_PACKET_LEN] {};
 	unsigned		_buf_fill{0};
-
-	bool			_tx_buffer_low{false};
 
 	const char 		*_interface_name{nullptr};
 

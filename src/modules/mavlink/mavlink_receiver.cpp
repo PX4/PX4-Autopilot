@@ -3085,9 +3085,6 @@ MavlinkReceiver::run()
 		px4_prctl(PR_SET_NAME, thread_name, px4_getpid());
 	}
 
-	// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
-	const int timeout = 10;
-
 #if defined(__PX4_POSIX)
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
 	uint8_t buf[1600 * 5];
@@ -3133,7 +3130,10 @@ MavlinkReceiver::run()
 			updateParams();
 		}
 
-		int ret = poll(&fds[0], 1, timeout);
+		// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
+		const int timeout_ms = 10;
+
+		int ret = poll(&fds[0], 1, timeout_ms);
 
 		if (ret > 0) {
 			if (_mavlink->get_protocol() == Protocol::SERIAL) {
@@ -3268,17 +3268,24 @@ MavlinkReceiver::run()
 
 		CheckHeartbeats(t);
 
-		if (t - last_send_update > timeout * 1000) {
-			_mission_manager.check_active_mission();
-			_mission_manager.send();
+		if (t - last_send_update > timeout_ms * 1000) {
 
-			_parameters_manager.send();
+			// do not send anything over high latency communication
+			if (_mavlink->get_mode() != Mavlink::MAVLINK_MODE_IRIDIUM) {
 
-			if (_mavlink->ftp_enabled()) {
-				_mavlink_ftp.send();
+				_mission_manager.check_active_mission();
+				_mission_manager.send();
+
+				_parameters_manager.send();
+
+				if (_mavlink->ftp_enabled()) {
+					_mavlink_ftp.send();
+				}
+
+				_mavlink_log_handler.send();
+
 			}
 
-			_mavlink_log_handler.send();
 			last_send_update = t;
 		}
 

@@ -731,25 +731,11 @@ void Mavlink::send_start(int length)
 {
 	pthread_mutex_lock(&_send_mutex);
 	_last_write_try_time = hrt_absolute_time();
-
-	// check if there is space in the buffer
-	if (length > (int)get_free_tx_buf()) {
-		// not enough space in buffer to send
-		count_txerrbytes(length);
-
-		_tstatus.tx_buffer_overruns++;
-
-		// prevent writes
-		_tx_buffer_low = true;
-
-	} else {
-		_tx_buffer_low = false;
-	}
 }
 
 void Mavlink::send_finish()
 {
-	if (_tx_buffer_low || (_buf_fill == 0)) {
+	if (_buf_fill == 0) {
 		pthread_mutex_unlock(&_send_mutex);
 		return;
 	}
@@ -806,6 +792,8 @@ void Mavlink::send_finish()
 		count_txbytes(_buf_fill);
 		_last_write_success_time = _last_write_try_time;
 
+		_over_data_rate.store(_bytes_tx > _datarate * hrt_elapsed_time(&_bytes_timestamp) * 1e-6f);
+
 	} else {
 		count_txerrbytes(_buf_fill);
 	}
@@ -817,14 +805,12 @@ void Mavlink::send_finish()
 
 void Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
-	if (!_tx_buffer_low) {
-		if (_buf_fill + packet_len < sizeof(_buf)) {
-			memcpy(&_buf[_buf_fill], buf, packet_len);
-			_buf_fill += packet_len;
+	if (_buf_fill + packet_len < sizeof(_buf)) {
+		memcpy(&_buf[_buf_fill], buf, packet_len);
+		_buf_fill += packet_len;
 
-		} else {
-			perf_count(_send_byte_error_perf);
-		}
+	} else {
+		perf_count(_send_byte_error_perf);
 	}
 }
 
@@ -1155,10 +1141,12 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 			if (interval != 0) {
 				/* set new interval */
 				stream->set_interval(interval);
+				_force_rate_mult_update = true;
 
 			} else {
 				/* delete stream */
 				_streams.deleteNode(stream);
+				_force_rate_mult_update = true;
 				return OK; // must finish with loop after node is deleted
 			}
 
@@ -1173,6 +1161,7 @@ Mavlink::configure_stream(const char *stream_name, const float rate)
 	if (stream != nullptr) {
 		stream->set_interval(interval);
 		_streams.add(stream);
+		_force_rate_mult_update = true;
 
 		return OK;
 	}
@@ -1364,23 +1353,39 @@ Mavlink::close_shell()
 void
 Mavlink::update_rate_mult()
 {
+	int min_interval = INT32_MAX;
+
 	float const_rate = 0.0f;
 	float rate = 0.0f;
 
 	/* scale down rates if their theoretical bandwidth is exceeding the link bandwidth */
 	for (const auto &stream : _streams) {
-		if (stream->const_rate()) {
-			const_rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+		const int interval = stream->get_interval();
 
-		} else {
-			rate += (stream->get_interval() > 0) ? stream->get_size_avg() * 1000000.0f / stream->get_interval() : 0;
+		if (interval > 0) {
+			if (stream->const_rate()) {
+				const_rate += stream->get_size_avg() * 1e6f / interval;
+
+			} else {
+				rate += stream->get_size_avg() * 1e6f / interval;
+			}
+
+			if (interval < min_interval) {
+				min_interval = interval;
+			}
 		}
 	}
+
+	// update main loop delay
+	_main_loop_delay = math::constrain(min_interval / 3, MAVLINK_MIN_INTERVAL, MAVLINK_MAX_INTERVAL);
 
 	float mavlink_ulog_streaming_rate_inv = 1.0f;
 
 	if (_mavlink_ulog) {
 		mavlink_ulog_streaming_rate_inv = 1.0f - _mavlink_ulog->current_data_rate();
+
+		// ensure update is at least twice the default logger rate
+		_main_loop_delay = math::min(_main_loop_delay, 3500 / 2); // TODO: poll ulog_stream
 	}
 
 	/* scale up and down as the link permits */
@@ -1416,17 +1421,21 @@ Mavlink::update_rate_mult()
 		hardware_mult *= _radio_status_mult;
 	}
 
+	// reset
+	_radio_status_changed = false;
+
 	pthread_mutex_unlock(&_radio_status_mutex);
 
 	if (log_radio_timeout) {
 		PX4_ERR("instance %d: RADIO_STATUS timeout", _instance_id);
 	}
 
-	/* pick the minimum from bandwidth mult and hardware mult as limit */
-	_rate_mult = fminf(bandwidth_mult, hardware_mult);
+	// pick the minimum from bandwidth mult and hardware mult as limit
+	// ensure the rate multiplier never drops below 5% so that something is always sent
+	float rate_mult = math::constrain(fminf(bandwidth_mult, hardware_mult), 0.05f, 1.0f);
 
-	/* ensure the rate multiplier never drops below 5% so that something is always sent */
-	_rate_mult = math::constrain(_rate_mult, 0.05f, 1.0f);
+	_rate_mult = rate_mult;
+	_rate_div = 1.f / rate_mult;
 }
 
 void
@@ -1437,6 +1446,9 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 	_radio_status_available = true;
 
 	if (_use_software_mav_throttling) {
+
+		const bool radio_status_critical = _radio_status_critical;
+		const float radio_status_mult = _radio_status_mult;
 
 		/* check hardware limits */
 		_radio_status_critical = (radio_status.txbuf < RADIO_BUFFER_LOW_PERCENTAGE);
@@ -1456,6 +1468,10 @@ Mavlink::update_radio_status(const radio_status_s &radio_status)
 
 		/* Constrain radio status multiplier between 1% and 100% to allow recovery */
 		_radio_status_mult = math::constrain(_radio_status_mult, 0.01f, 1.0f);
+
+		if ((radio_status_critical != _radio_status_critical) || (fabsf(radio_status_mult - _radio_status_mult) > 0.01f)) {
+			_radio_status_changed = true;
+		}
 	}
 
 	pthread_mutex_unlock(&_radio_status_mutex);
@@ -1820,6 +1836,8 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		ret = -1;
 		break;
 	}
+
+	_force_rate_mult_update = true;
 
 	if (configure_single_stream && !stream_configured && strcmp(configure_single_stream, "HEARTBEAT") != 0) {
 		// stream was not found, assume it is disabled by default
@@ -2190,19 +2208,6 @@ Mavlink::task_main(int argc, char *argv[])
 		PX4_ERR("configure_streams_to_default() failed");
 	}
 
-	/* set main loop delay depending on data rate to minimize CPU overhead */
-	_main_loop_delay = (MAIN_LOOP_DELAY * 1000) / _datarate;
-
-	/* hard limit to 1000 Hz at max */
-	if (_main_loop_delay < MAVLINK_MIN_INTERVAL) {
-		_main_loop_delay = MAVLINK_MIN_INTERVAL;
-	}
-
-	/* hard limit to 100 Hz at least */
-	if (_main_loop_delay > MAVLINK_MAX_INTERVAL) {
-		_main_loop_delay = MAVLINK_MAX_INTERVAL;
-	}
-
 	/* open the UART device after setting the instance, as it might block */
 	if (get_protocol() == Protocol::SERIAL) {
 		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _flow_control);
@@ -2234,6 +2239,7 @@ Mavlink::task_main(int argc, char *argv[])
 	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
 
 	_mavlink_start_time = hrt_absolute_time();
+	_bytes_timestamp = _mavlink_start_time;
 
 	while (!should_exit()) {
 		/* main loop */
@@ -2249,7 +2255,12 @@ Mavlink::task_main(int argc, char *argv[])
 
 		const hrt_abstime t = hrt_absolute_time();
 
-		update_rate_mult();
+		// update rate multiplier periodically, or immediately if radio status or intervals have changed
+		if (_radio_status_changed || _force_rate_mult_update || (t >= _rate_multi_update_last + 1_s)) {
+			update_rate_mult();
+			_rate_multi_update_last = t;
+			_force_rate_mult_update = false;
+		}
 
 		// check for parameter updates
 		if (_parameter_update_sub.updated()) {
@@ -2436,19 +2447,6 @@ Mavlink::task_main(int argc, char *argv[])
 		/* update streams */
 		for (const auto &stream : _streams) {
 			stream->update(t);
-
-			if (!_first_heartbeat_sent) {
-				if (_mode == MAVLINK_MODE_IRIDIUM) {
-					if (stream->get_id() == MAVLINK_MSG_ID_HIGH_LATENCY2) {
-						_first_heartbeat_sent = stream->first_message_sent();
-					}
-
-				} else {
-					if (stream->get_id() == MAVLINK_MSG_ID_HEARTBEAT) {
-						_first_heartbeat_sent = stream->first_message_sent();
-					}
-				}
-			}
 		}
 
 		/* check for ulog streaming messages */
@@ -2551,21 +2549,25 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
-		/* update TX/RX rates*/
-		if (t > _bytes_timestamp + 1_s) {
-			if (_bytes_timestamp != 0) {
-				const float dt = (t - _bytes_timestamp) * 1e-6f;
+		// update TX/RX rates
+		if (t >= _bytes_timestamp + 1_s) {
+			pthread_mutex_lock(&_send_mutex);
 
-				_tstatus.tx_rate_avg = _bytes_tx / dt;
-				_tstatus.tx_error_rate_avg = _bytes_txerr / dt;
-				_tstatus.rx_rate_avg = _bytes_rx / dt;
+			const float dt_inv = 1e6f / (t - _bytes_timestamp);
 
-				_bytes_tx = 0;
-				_bytes_txerr = 0;
-				_bytes_rx = 0;
-			}
+			_tstatus.tx_rate_avg = _bytes_tx * dt_inv;
+			_tstatus.tx_error_rate_avg = _bytes_txerr * dt_inv;
+			_tstatus.rx_rate_avg = _bytes_rx * dt_inv;
 
-			_bytes_timestamp = t;
+			_bytes_tx = 0;
+			_bytes_txerr = 0;
+			_bytes_rx = 0;
+
+			_bytes_timestamp = _last_write_try_time;
+
+			_force_rate_mult_update = true;
+
+			pthread_mutex_unlock(&_send_mutex);
 		}
 
 		// publish status at 1 Hz, or sooner if HEARTBEAT has updated

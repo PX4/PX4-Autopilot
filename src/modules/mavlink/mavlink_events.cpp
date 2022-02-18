@@ -138,7 +138,9 @@ void SendProtocol::update(const hrt_abstime &now)
 
 	while (_latest_sequence != buffer_sequence) {
 		// only send if enough tx buffer space available
-		if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_EVENT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
+		if ((_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_EVENT_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+		    || _mavlink.over_data_rate()) {
+
 			break;
 		}
 
@@ -218,7 +220,9 @@ void SendProtocol::on_gcs_connected()
 void SendProtocol::send_current_sequence(const hrt_abstime &now)
 {
 	// only send if enough tx buffer space available
-	if (_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_CURRENT_EVENT_SEQUENCE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) {
+	if ((_mavlink.get_free_tx_buf() < MAVLINK_MSG_ID_CURRENT_EVENT_SEQUENCE_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)
+	    || _mavlink.over_data_rate()) {
+
 		return;
 	}
 

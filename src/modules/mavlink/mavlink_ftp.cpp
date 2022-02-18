@@ -1064,7 +1064,8 @@ void MavlinkFTP::send()
 	unsigned max_bytes_to_send = _mavlink->get_free_tx_buf();
 	PX4_DEBUG("MavlinkFTP::send max_bytes_to_send(%u) get_free_tx_buf(%u)", max_bytes_to_send, _mavlink->get_free_tx_buf());
 
-	if (max_bytes_to_send < get_size()) {
+	// Skip send if not enough room
+	if ((max_bytes_to_send < get_size()) || _mavlink->over_data_rate()) {
 		return;
 	}
 

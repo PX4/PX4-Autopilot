@@ -62,7 +62,7 @@ private:
 		collision_report_s report;
 		bool sent = false;
 
-		while ((_mavlink->get_free_tx_buf() >= get_size()) && _collision_sub.update(&report)) {
+		if (_collision_sub.update(&report)) {
 			mavlink_collision_t msg = {};
 
 			msg.src = report.src;
