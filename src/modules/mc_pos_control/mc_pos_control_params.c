@@ -349,10 +349,13 @@ PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
 PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
 
 /**
- * Maximum horizontal velocity setpoint for manual controlled mode
+ * Maximum horizontal velocity setpoint in Position mode
  *
  * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
  * the setpoint will be capped to MPC_XY_VEL_MAX
+ *
+ * The maximum sideways and backward speed can be set differently
+ * using MPC_VEL_MAN_SIDE and MPC_VEL_MAN_BACK, respectively.
  *
  * @unit m/s
  * @min 3.0
@@ -362,6 +365,36 @@ PARAM_DEFINE_FLOAT(MPC_XY_ERR_MAX, 2.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_VEL_MANUAL, 10.0f);
+
+/**
+ * Maximum sideways velocity in Position mode
+ *
+ * If set to a negative value or larger than
+ * MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
+ *
+ * @unit m/s
+ * @min -1.0
+ * @max 20.0
+ * @increment 0.1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_SIDE, -1.0f);
+
+/**
+ * Maximum backward velocity in Position mode
+ *
+ * If set to a negative value or larger than
+ * MPC_VEL_MANUAL then MPC_VEL_MANUAL is used.
+ *
+ * @unit m/s
+ * @min -1.0
+ * @max 20.0
+ * @increment 0.1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_MAN_BACK, -1.0f);
 
 /**
  * Maximum horizontal velocity

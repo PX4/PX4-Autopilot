@@ -70,10 +70,17 @@ void FlightTaskManualPosition::_scaleSticks()
 	/* Use same scaling as for FlightTaskManualAltitude */
 	FlightTaskManualAltitude::_scaleSticks();
 
-	/* Constrain length of stick inputs to 1 for xy*/
 	Vector2f stick_xy = _sticks.getPositionExpo().slice<2, 1>(0, 0);
 
 	Sticks::limitStickUnitLengthXY(stick_xy);
+
+	if (_param_mpc_vel_man_side.get() >= 0.f) {
+		stick_xy(1) *= _param_mpc_vel_man_side.get() / _param_mpc_vel_manual.get();
+	}
+
+	if ((_param_mpc_vel_man_back.get() >= 0.f) && (stick_xy(0) < 0.f)) {
+		stick_xy(0) *= _param_mpc_vel_man_back.get() / _param_mpc_vel_manual.get();
+	}
 
 	const float max_speed_from_estimator = _sub_vehicle_local_position.get().vxy_max;
 
