@@ -276,3 +276,25 @@ PARAM_DEFINE_FLOAT(MNT_RATE_YAW, 30.0f);
  * @group Mount
  */
 PARAM_DEFINE_INT32(MNT_RC_IN_MODE, 1);
+
+/**
+* Pitch minimum when landed
+*
+* @min -90.0
+* @max 90.0
+* @unit deg
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_LND_P_MIN, -90.0f);
+
+/**
+* Pitch maximum when landed
+*
+* @min -90.0
+* @max 90.0
+* @unit deg
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_LND_P_MAX, 90.0f);
