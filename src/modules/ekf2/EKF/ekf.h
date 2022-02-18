@@ -246,9 +246,6 @@ public:
 
 	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
 
-	// get GPS check status
-	void get_gps_check_status(uint16_t *val) const { *val = _gps_check_fail_status.value; }
-
 	const auto &state_reset_status() const { return _state_reset_status; }
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
@@ -310,6 +307,11 @@ public:
 
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
+
+	const gps_check_fail_status_u &gps_check_fail_status() const { return _gps_check_fail_status; }
+	const decltype(gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gps_check_fail_status.flags; }
+
+	bool gps_checks_passed() const { return _gps_checks_passed; };
 
 	// get solution data from the EKF-GSF emergency yaw estimator
 	// returns false when data is not available

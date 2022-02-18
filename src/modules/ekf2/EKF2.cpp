@@ -191,17 +191,17 @@ bool EKF2::multi_init(int imu, int mag)
 	_wind_pub.advertise();
 
 	_ekf2_timestamps_pub.advertise();
-	_ekf_gps_drift_pub.advertise();
 	_estimator_baro_bias_pub.advertise();
 	_estimator_event_flags_pub.advertise();
+	_estimator_gps_status_pub.advertise();
 	_estimator_innovation_test_ratios_pub.advertise();
 	_estimator_innovation_variances_pub.advertise();
 	_estimator_innovations_pub.advertise();
 	_estimator_optical_flow_vel_pub.advertise();
 	_estimator_sensor_bias_pub.advertise();
 	_estimator_states_pub.advertise();
-	_estimator_status_pub.advertise();
 	_estimator_status_flags_pub.advertise();
+	_estimator_status_pub.advertise();
 	_estimator_visual_odometry_aligned_pub.advertised();
 	_yaw_est_pub.advertise();
 
@@ -573,8 +573,8 @@ void EKF2::Run()
 
 			// publish status/logging messages
 			PublishBaroBias(now);
-			PublishEkfDriftMetrics(now);
 			PublishEventFlags(now);
+			PublishGpsStatus(now);
 			PublishInnovations(now);
 			PublishInnovationTestRatios(now);
 			PublishInnovationVariances(now);
@@ -644,24 +644,6 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 
 			_last_baro_bias_published = status.bias;
 		}
-	}
-}
-
-void EKF2::PublishEkfDriftMetrics(const hrt_abstime &timestamp)
-{
-	// publish GPS drift data only when updated to minimise overhead
-	float gps_drift[3];
-	bool blocked;
-
-	if (_ekf.get_gps_drift_metrics(gps_drift, &blocked)) {
-		ekf_gps_drift_s drift_data;
-		drift_data.hpos_drift_rate = gps_drift[0];
-		drift_data.vpos_drift_rate = gps_drift[1];
-		drift_data.hspd = gps_drift[2];
-		drift_data.blocked = blocked;
-		drift_data.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-
-		_ekf_gps_drift_pub.publish(drift_data);
 	}
 }
 
@@ -766,6 +748,41 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 		global_pos.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_global_position_pub.publish(global_pos);
 	}
+}
+
+void EKF2::PublishGpsStatus(const hrt_abstime &timestamp)
+{
+	const hrt_abstime timestamp_sample = _ekf.get_gps_sample_delayed().time_us;
+
+	if (timestamp_sample == _last_gps_status_published) {
+		return;
+	}
+
+	estimator_gps_status_s estimator_gps_status{};
+	estimator_gps_status.timestamp_sample = timestamp_sample;
+
+	estimator_gps_status.position_drift_rate_horizontal_m_s = _ekf.gps_horizontal_position_drift_rate_m_s();
+	estimator_gps_status.position_drift_rate_vertical_m_s   = _ekf.gps_vertical_position_drift_rate_m_s();
+	estimator_gps_status.filtered_horizontal_speed_m_s      = _ekf.gps_filtered_horizontal_velocity_m_s();
+
+	estimator_gps_status.checks_passed = _ekf.gps_checks_passed();
+
+	estimator_gps_status.check_fail_gps_fix          = _ekf.gps_check_fail_status_flags().fix;
+	estimator_gps_status.check_fail_min_sat_count    = _ekf.gps_check_fail_status_flags().nsats;
+	estimator_gps_status.check_fail_max_pdop         = _ekf.gps_check_fail_status_flags().pdop;
+	estimator_gps_status.check_fail_max_horz_err     = _ekf.gps_check_fail_status_flags().hacc;
+	estimator_gps_status.check_fail_max_vert_err     = _ekf.gps_check_fail_status_flags().vacc;
+	estimator_gps_status.check_fail_max_spd_err      = _ekf.gps_check_fail_status_flags().sacc;
+	estimator_gps_status.check_fail_max_horz_drift   = _ekf.gps_check_fail_status_flags().hdrift;
+	estimator_gps_status.check_fail_max_vert_drift   = _ekf.gps_check_fail_status_flags().vdrift;
+	estimator_gps_status.check_fail_max_horz_spd_err = _ekf.gps_check_fail_status_flags().hspeed;
+	estimator_gps_status.check_fail_max_vert_spd_err = _ekf.gps_check_fail_status_flags().vspeed;
+
+	estimator_gps_status.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+	_estimator_gps_status_pub.publish(estimator_gps_status);
+
+
+	_last_gps_status_published = timestamp_sample;
 }
 
 void EKF2::PublishInnovations(const hrt_abstime &timestamp)
@@ -1152,11 +1169,9 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 
 	_ekf.getOutputTrackingError().copyTo(status.output_tracking_error);
 
-	_ekf.get_gps_check_status(&status.gps_check_fail_flags);
-
 	// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
 	// the GPS Fix bit, which is always checked)
-	status.gps_check_fail_flags &= ((uint16_t)_params->gps_check_mask << 1) | 1;
+	status.gps_check_fail_flags = _ekf.gps_check_fail_status().value & (((uint16_t)_params->gps_check_mask << 1) | 1);
 
 	status.control_mode_flags = _ekf.control_status().value;
 	status.filter_fault_flags = _ekf.fault_status().value;
