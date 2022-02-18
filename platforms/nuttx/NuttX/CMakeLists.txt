@@ -89,6 +89,39 @@ if(CONFIG_NSH_LIBRARY)
 	endforeach()
 endif()
 
+if (NOT CONFIG_BUILD_FLAT)
+	set(KERNEL_BUILTIN_DIR ${CMAKE_CURRENT_BINARY_DIR}/kernel_builtin)
+	set(kernel_builtin_apps_string)
+	set(kernel_builtin_apps_proxy_string)
+	set(kernel_builtin_apps_decl_string)
+
+	list(SORT kernel_module_libraries)
+	foreach(module ${kernel_module_libraries})
+		get_target_property(MAIN ${module} MAIN)
+		get_target_property(STACK_MAIN ${module} STACK_MAIN)
+		get_target_property(PRIORITY ${module} PRIORITY)
+
+		if(MAIN)
+			set(kernel_builtin_apps_string "${kernel_builtin_apps_string}{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main },\n")
+			set(kernel_builtin_apps_proxy_string "${kernel_builtin_apps_proxy_string}{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, launch_kmod_main },\n")
+			set(kernel_builtin_apps_decl_string "${kernel_builtin_apps_decl_string}int ${MAIN}_main(int argc, char *argv[]);\n")
+		endif()
+	endforeach()
+
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/px4_kernel.bdat.in ${CMAKE_CURRENT_BINARY_DIR}/px4_kernel.bdat)
+	configure_file(${CMAKE_CURRENT_SOURCE_DIR}/px4_kernel.pdat.in ${CMAKE_CURRENT_BINARY_DIR}/px4_kernel.pdat)
+
+	add_custom_command(OUTPUT ${KERNEL_BUILTIN_DIR}/kernel_builtin_list.h ${KERNEL_BUILTIN_DIR}/kernel_builtin_proto.h
+		WORKING_DIRECTORY  ${KERNEL_BUILTIN_DIR}
+		COMMAND ${CMAKE_COMMAND} -E remove -f kernel_builtin_list.h kernel_builtin_proto.h
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/px4_kernel.bdat kernel_builtin_list.h
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_BINARY_DIR}/px4_kernel.pdat kernel_builtin_proto.h
+	)
+
+	add_custom_target(px4_kernel_builtin_list_target DEPENDS ${KERNEL_BUILTIN_DIR}/kernel_builtin_list.h ${KERNEL_BUILTIN_DIR}/kernel_builtin_proto.h)
+
+endif() # NOT CONFIG_BUILD_FLAT
+
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/px4.bdat.in ${CMAKE_CURRENT_BINARY_DIR}/px4.bdat)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/px4.pdat.in ${CMAKE_CURRENT_BINARY_DIR}/px4.pdat)
 

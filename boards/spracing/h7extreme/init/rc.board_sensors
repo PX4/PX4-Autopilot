@@ -1,17 +1,23 @@
 #!/bin/sh
 #
-# SP Racing H7 EXTREME specific board sensors init
+# board specific sensors init
 #------------------------------------------------------------------------------
+
 board_adc start
 
-# Internal SPI bus ICM-20602
-#mpu6000 -s -b 2 -R 11 -T 20602 start # SPI 2
-#mpu6000 -s -b 3 -R 10 -T 20602 start # SPI 3
-icm20602 -s -b 2 -R 5 start # SPI 2
-icm20602 -s -b 3 -R 4 start # SPI 3
+# Internal SPI bus ICM-20602 or ICM-42688-P
+
+# SPI2
+if ! icm20602 -s -b 2 -R 5 start
+then
+	icm42688p -s -b 2 -R 5 start
+fi
+
+# SPI3
+if ! icm20602 -s -b 3 -R 4 start
+then
+	icm42688p -s -b 3 -R 4 start
+fi
 
 # Internal I2C bus
 bmp388 -I start
-
-
-

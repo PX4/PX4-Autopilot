@@ -3,3 +3,10 @@ menuconfig MODULES_TEMPERATURE_COMPENSATION
 	default n
 	---help---
 		Enable support for temperature_compensation
+
+menuconfig USER_TEMPERATURE_COMPENSATION
+	bool "temperature_compensation running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_TEMPERATURE_COMPENSATION
+	---help---
+		Put temperature_compensation in userspace memory
