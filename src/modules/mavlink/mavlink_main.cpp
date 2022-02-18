@@ -2259,14 +2259,6 @@ Mavlink::task_main(int argc, char *argv[])
 
 			// update parameters from storage
 			mavlink_update_parameters();
-
-#if defined(CONFIG_NET)
-
-			if (!multicast_enabled()) {
-				_src_addr_initialized = false;
-			}
-
-#endif // CONFIG_NET
 		}
 
 		configure_sik_radio();
