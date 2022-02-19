@@ -114,7 +114,9 @@ int INA238::init()
 		return ret;
 	}
 
-	write(INA238_REG_CONFIG, (uint16_t)(INA238_RST_RESET | _range));
+	if (write(INA238_REG_CONFIG, (uint16_t)(INA238_RST_RESET | _range)) != PX4_OK) {
+		return ret;
+	}
 
 	uint16_t shunt_calibration = static_cast<uint16_t>(INA238_CONST * _current_lsb * _rshunt);
 
@@ -127,7 +129,9 @@ int INA238::init()
 	}
 
 	// Set the CONFIG for max I
-	write(INA238_REG_CONFIG, (uint16_t) _range);
+	if (write(INA238_REG_CONFIG, (uint16_t) _range) != PX4_OK) {
+		return ret;
+	}
 
 	// Start ADC continous mode here
 	ret = write(INA238_REG_ADCCONFIG, (uint16_t)INA238_ADCCONFIG);
