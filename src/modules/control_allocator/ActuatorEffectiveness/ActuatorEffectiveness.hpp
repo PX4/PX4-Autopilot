@@ -57,6 +57,12 @@ enum class ActuatorType {
 	COUNT
 };
 
+enum class EffectivenessUpdateReason {
+	NO_EXTERNAL_UPDATE = 0,
+	CONFIGURATION_UPDATE = 1,
+	MOTOR_ACTIVATION_UPDATE = 2,
+};
+
 
 class ActuatorEffectiveness
 {
@@ -147,7 +153,7 @@ public:
 	 *
 	 * @return true if updated and matrix is set
 	 */
-	virtual bool getEffectivenessMatrix(Configuration &configuration, bool force) = 0;
+	virtual bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) { return false;}
 
 	/**
 	 * Get the current flight phase

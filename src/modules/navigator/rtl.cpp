@@ -287,6 +287,10 @@ void RTL::on_activation()
 
 	setClimbAndReturnDone(_rtl_state > RTL_STATE_RETURN);
 
+	// reset cruising speed and throttle to default for RTL
+	_navigator->set_cruising_speed();
+	_navigator->set_cruising_throttle();
+
 	set_rtl_item();
 
 }
@@ -373,6 +377,7 @@ void RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above destination)\t",
 					 (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));

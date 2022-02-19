@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_PERF
 	default n
 	---help---
 		Enable support for perf
+
+config USER_PERF
+	bool
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_PERF
+	---help---
+		Put perf in userspace memory

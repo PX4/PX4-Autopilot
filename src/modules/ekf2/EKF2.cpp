@@ -552,16 +552,13 @@ void EKF2::Run()
 		UpdateAirspeedSample(ekf2_timestamps);
 		UpdateAuxVelSample(ekf2_timestamps);
 		UpdateBaroSample(ekf2_timestamps);
+		UpdateFlowSample(ekf2_timestamps);
 		UpdateGpsSample(ekf2_timestamps);
 		UpdateMagSample(ekf2_timestamps);
 		UpdateRangeSample(ekf2_timestamps);
 
 		vehicle_odometry_s ev_odom;
 		const bool new_ev_odom = UpdateExtVisionSample(ekf2_timestamps, ev_odom);
-
-		optical_flow_s optical_flow;
-		const bool new_optical_flow = UpdateFlowSample(ekf2_timestamps, optical_flow);
-
 
 		// run the EKF update and output
 		const hrt_abstime ekf_update_start = hrt_absolute_time();
@@ -578,12 +575,13 @@ void EKF2::Run()
 			PublishBaroBias(now);
 			PublishEkfDriftMetrics(now);
 			PublishEventFlags(now);
+			PublishInnovations(now);
+			PublishInnovationTestRatios(now);
+			PublishInnovationVariances(now);
+			PublishOpticalFlowVel(now);
 			PublishStates(now);
 			PublishStatus(now);
 			PublishStatusFlags(now);
-			PublishInnovations(now, imu_sample_new);
-			PublishInnovationTestRatios(now);
-			PublishInnovationVariances(now);
 			PublishYawEstimatorStatus(now);
 
 			UpdateAccelCalibration(now);
@@ -599,10 +597,6 @@ void EKF2::Run()
 		// publish external visual odometry after fixed frame alignment if new odometry is received
 		if (new_ev_odom) {
 			PublishOdometryAligned(now, ev_odom);
-		}
-
-		if (new_optical_flow) {
-			PublishOpticalFlowVel(now, optical_flow);
 		}
 
 		// publish ekf2_timestamps
@@ -638,7 +632,7 @@ void EKF2::PublishBaroBias(const hrt_abstime &timestamp)
 
 		if (fabsf(status.bias - _last_baro_bias_published) > 0.001f) {
 			estimator_baro_bias_s baro_bias{};
-			baro_bias.timestamp_sample = timestamp;
+			baro_bias.timestamp_sample = _ekf.get_baro_sample_delayed().time_us;
 			baro_bias.baro_device_id = _device_id_baro;
 			baro_bias.bias = status.bias;
 			baro_bias.bias_var = status.bias_var;
@@ -774,7 +768,7 @@ void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
 	}
 }
 
-void EKF2::PublishInnovations(const hrt_abstime &timestamp, const imuSample &imu)
+void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 {
 	// publish estimator innovation data
 	estimator_innovations_s innovations{};
@@ -805,7 +799,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp, const imuSample &imu
 		_preflt_checker.setUsingEvPosAiding(_ekf.control_status_flags().ev_pos);
 		_preflt_checker.setUsingEvVelAiding(_ekf.control_status_flags().ev_vel);
 
-		_preflt_checker.update(imu.delta_ang_dt, innovations);
+		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
 	}
 }
 
@@ -974,7 +968,7 @@ void EKF2::PublishOdometry(const hrt_abstime &timestamp, const imuSample &imu)
 {
 	// generate vehicle odometry data
 	vehicle_odometry_s odom;
-	odom.timestamp_sample = imu.time_us;
+	odom.timestamp_sample = timestamp;
 
 	odom.local_frame = vehicle_odometry_s::LOCAL_FRAME_NED;
 
@@ -1081,6 +1075,7 @@ void EKF2::PublishOdometryAligned(const hrt_abstime &timestamp, const vehicle_od
 	ev_quat_aligned.copyTo(aligned_ev_odom.q);
 	quat_ev2ekf.copyTo(aligned_ev_odom.q_offset);
 
+	aligned_ev_odom.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 	_estimator_visual_odometry_aligned_pub.publish(aligned_ev_odom);
 }
 
@@ -1098,7 +1093,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 	    || (timestamp >= _last_sensor_bias_published + 1_s)) {
 
 		estimator_sensor_bias_s bias{};
-		bias.timestamp_sample = timestamp;
+		bias.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
 		// take device ids from sensor_selection_s if not using specific vehicle_imu_s
 		if (_device_id_gyro != 0) {
@@ -1262,6 +1257,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_synthetic_mag_z       = _ekf.control_status_flags().synthetic_mag_z;
 		status_flags.cs_vehicle_at_rest       = _ekf.control_status_flags().vehicle_at_rest;
 		status_flags.cs_gps_yaw_fault         = _ekf.control_status_flags().gps_yaw_fault;
+		status_flags.cs_rng_fault             = _ekf.control_status_flags().rng_fault;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -1317,7 +1313,7 @@ void EKF2::PublishYawEstimatorStatus(const hrt_abstime &timestamp)
 			       yaw_est_test_data.innov_vn, yaw_est_test_data.innov_ve,
 			       yaw_est_test_data.weight)) {
 
-		yaw_est_test_data.timestamp_sample = timestamp;
+		yaw_est_test_data.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 		yaw_est_test_data.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
 		_yaw_est_pub.publish(yaw_est_test_data);
@@ -1348,19 +1344,21 @@ void EKF2::PublishWindEstimate(const hrt_abstime &timestamp)
 	}
 }
 
-void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp, const optical_flow_s &flow_sample)
+void EKF2::PublishOpticalFlowVel(const hrt_abstime &timestamp)
 {
-	estimator_optical_flow_vel_s flow_vel{};
-	flow_vel.timestamp_sample = flow_sample.timestamp;
+	if (_ekf.getFlowCompensated().longerThan(0.f)) {
+		estimator_optical_flow_vel_s flow_vel{};
+		flow_vel.timestamp_sample = _ekf.get_imu_sample_delayed().time_us;
 
-	_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
-	_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
-	_ekf.getFlowUncompensated().copyTo(flow_vel.flow_uncompensated_integral);
-	_ekf.getFlowCompensated().copyTo(flow_vel.flow_compensated_integral);
-	_ekf.getFlowGyro().copyTo(flow_vel.gyro_rate_integral);
-	flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		_ekf.getFlowVelBody().copyTo(flow_vel.vel_body);
+		_ekf.getFlowVelNE().copyTo(flow_vel.vel_ne);
+		_ekf.getFlowUncompensated().copyTo(flow_vel.flow_uncompensated_integral);
+		_ekf.getFlowCompensated().copyTo(flow_vel.flow_compensated_integral);
+		_ekf.getFlowGyro().copyTo(flow_vel.gyro_rate_integral);
+		flow_vel.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 
-	_estimator_optical_flow_vel_pub.publish(flow_vel);
+		_estimator_optical_flow_vel_pub.publish(flow_vel);
+	}
 }
 
 float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
@@ -1387,33 +1385,66 @@ float EKF2::filter_altitude_ellipsoid(float amsl_hgt)
 void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF airspeed sample
-	const unsigned last_generation = _airspeed_sub.get_last_generation();
-	airspeed_s airspeed;
+	// prefer ORB_ID(airspeed_validated) if available, otherwise fallback to raw airspeed ORB_ID(airspeed)
+	if (_airspeed_validated_sub.updated()) {
+		const unsigned last_generation = _airspeed_validated_sub.get_last_generation();
+		airspeed_validated_s airspeed_validated;
 
-	if (_airspeed_sub.update(&airspeed)) {
-		if (_msg_missed_airspeed_perf == nullptr) {
-			_msg_missed_airspeed_perf = perf_alloc(PC_COUNT, MODULE_NAME": airspeed messages missed");
+		if (_airspeed_validated_sub.update(&airspeed_validated)) {
+			if (_msg_missed_airspeed_validated_perf == nullptr) {
+				_msg_missed_airspeed_validated_perf = perf_alloc(PC_COUNT, MODULE_NAME": airspeed validated messages missed");
 
-		} else if (_airspeed_sub.get_last_generation() != last_generation + 1) {
-			perf_count(_msg_missed_airspeed_perf);
+			} else if (_airspeed_validated_sub.get_last_generation() != last_generation + 1) {
+				perf_count(_msg_missed_airspeed_validated_perf);
+			}
+
+			if (PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
+			    && PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
+			    && (airspeed_validated.calibrated_airspeed_m_s > 0.f)
+			   ) {
+				airspeedSample airspeed_sample {
+					.time_us = airspeed_validated.timestamp,
+					.true_airspeed = airspeed_validated.true_airspeed_m_s,
+					.eas2tas = airspeed_validated.true_airspeed_m_s / airspeed_validated.calibrated_airspeed_m_s,
+				};
+				_ekf.setAirspeedData(airspeed_sample);
+			}
+
+			_airspeed_validated_timestamp_last = airspeed_validated.timestamp;
 		}
 
-		// The airspeed measurement received via the airspeed.msg topic has not been corrected
-		// for scale favtor errors and requires the ASPD_SCALE correction to be applied.
-		// This could be avoided if true_airspeed_m_s from the airspeed-validated.msg topic
-		// was used instead, however this would introduce a potential circular dependency
-		// via the wind estimator that uses EKF velocity estimates.
-		const float true_airspeed_m_s = airspeed.true_airspeed_m_s * _airspeed_scale_factor;
+	} else if ((hrt_elapsed_time(&_airspeed_validated_timestamp_last) > 3_s) && _airspeed_sub.updated()) {
+		// use ORB_ID(airspeed) if ORB_ID(airspeed_validated) is unavailable
+		const unsigned last_generation = _airspeed_sub.get_last_generation();
+		airspeed_s airspeed;
 
-		airspeedSample airspeed_sample {
-			.time_us = airspeed.timestamp,
-			.true_airspeed = true_airspeed_m_s,
-			.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
-		};
-		_ekf.setAirspeedData(airspeed_sample);
+		if (_airspeed_sub.update(&airspeed)) {
+			if (_msg_missed_airspeed_perf == nullptr) {
+				_msg_missed_airspeed_perf = perf_alloc(PC_COUNT, MODULE_NAME": airspeed messages missed");
 
-		ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
-				(int64_t)ekf2_timestamps.timestamp / 100);
+			} else if (_airspeed_sub.get_last_generation() != last_generation + 1) {
+				perf_count(_msg_missed_airspeed_perf);
+			}
+
+			// The airspeed measurement received via ORB_ID(airspeed) topic has not been corrected
+			// for scale factor errors and requires the ASPD_SCALE correction to be applied.
+			const float true_airspeed_m_s = airspeed.true_airspeed_m_s * _airspeed_scale_factor;
+
+			if (PX4_ISFINITE(airspeed.true_airspeed_m_s)
+			    && PX4_ISFINITE(airspeed.indicated_airspeed_m_s)
+			    && (airspeed.indicated_airspeed_m_s > 0.f)
+			   ) {
+				airspeedSample airspeed_sample {
+					.time_us = airspeed.timestamp,
+					.true_airspeed = true_airspeed_m_s,
+					.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
+				};
+				_ekf.setAirspeedData(airspeed_sample);
+			}
+
+			ekf2_timestamps.airspeed_timestamp_rel = (int16_t)((int64_t)airspeed.timestamp / 100 -
+					(int64_t)ekf2_timestamps.timestamp / 100);
+		}
 	}
 }
 
@@ -1517,6 +1548,8 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 			} else {
 				ev_data.velCov = matrix::eye<float, 3>() * param_evv_noise_var;
 			}
+
+			new_ev_odom = true;
 		}
 
 		// check for valid position data
@@ -1538,6 +1571,8 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 			} else {
 				ev_data.posVar.setAll(param_evp_noise_var);
 			}
+
+			new_ev_odom = true;
 		}
 
 		// check for valid orientation data
@@ -1553,13 +1588,16 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 			} else {
 				ev_data.angVar = param_eva_noise_var;
 			}
+
+			new_ev_odom = true;
 		}
 
 		// use timestamp from external computer, clocks are synchronized when using MAVROS
 		ev_data.time_us = ev_odom.timestamp_sample;
-		_ekf.setExtVisionData(ev_data);
 
-		new_ev_odom = true;
+		if (new_ev_odom)  {
+			_ekf.setExtVisionData(ev_data);
+		}
 
 		ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
 				(int64_t)ekf2_timestamps.timestamp / 100);
@@ -1568,11 +1606,12 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 	return new_ev_odom;
 }
 
-bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps, optical_flow_s &optical_flow)
+bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF flow sample
 	bool new_optical_flow = false;
 	const unsigned last_generation = _optical_flow_sub.get_last_generation();
+	optical_flow_s optical_flow;
 
 	if (_optical_flow_sub.update(&optical_flow)) {
 		if (_msg_missed_optical_flow_perf == nullptr) {

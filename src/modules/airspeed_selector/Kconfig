@@ -3,3 +3,10 @@ menuconfig MODULES_AIRSPEED_SELECTOR
 	default n
 	---help---
 		Enable support for airspeed_selector
+
+menuconfig USER_AIRSPEED_SELECTOR
+	bool "airspeed_selector running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_AIRSPEED_SELECTOR
+	---help---
+		Put airspeed_selector in userspace memory

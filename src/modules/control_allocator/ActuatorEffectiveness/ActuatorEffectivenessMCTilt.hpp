@@ -43,7 +43,7 @@ public:
 	ActuatorEffectivenessMCTilt(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessMCTilt() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{

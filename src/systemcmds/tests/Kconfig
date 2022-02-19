@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_TESTS
 	default n
 	---help---
 		Enable support for tests
+
+menuconfig USER_TESTS
+	bool "tests running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_TESTS
+	---help---
+		Put tests in userspace memory

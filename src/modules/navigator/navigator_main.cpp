@@ -74,6 +74,7 @@ Navigator::Navigator() :
 	_mission(this),
 	_loiter(this),
 	_takeoff(this),
+	_vtol_takeoff(this),
 	_land(this),
 	_precland(this),
 	_rtl(this),
@@ -88,7 +89,8 @@ Navigator::Navigator() :
 	_navigation_mode_array[4] = &_takeoff;
 	_navigation_mode_array[5] = &_land;
 	_navigation_mode_array[6] = &_precland;
-	_navigation_mode_array[7] = &_follow_target;
+	_navigation_mode_array[7] = &_vtol_takeoff;
+	_navigation_mode_array[8] = &_follow_target;
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
@@ -448,6 +450,16 @@ void Navigator::run()
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
 
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_VTOL_TAKEOFF) {
+
+				_vtol_takeoff.setTransitionAltitudeAbsolute(cmd.param7);
+
+				// after the transition the vehicle will establish on a loiter at this position
+				_vtol_takeoff.setLoiterLocation(matrix::Vector2d(cmd.param5, cmd.param6));
+
+				// loiter height is the height above takeoff altitude at which the vehicle will establish on a loiter circle
+				_vtol_takeoff.setLoiterHeight(cmd.param1);
+
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_LAND_START) {
 
 				/* find NAV_CMD_DO_LAND_START in the mission and
@@ -489,6 +501,19 @@ void Navigator::run()
 					} else {
 						set_cruising_throttle();
 					}
+				}
+
+				if (get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+
+					// publish new reposition setpoint with updated speed/throtte when DO_CHANGE_SPEED
+					// was received in AUTO_LOITER mode
+
+					position_setpoint_triplet_s *rep = get_reposition_triplet();
+
+					// set repo setpoint to current, and only change speed and throttle fields
+					*rep = *(get_position_setpoint_triplet());
+					rep->current.cruising_speed = get_cruising_speed();
+					rep->current.cruising_throttle = get_cruising_throttle();
 				}
 
 				// TODO: handle responses for supported DO_CHANGE_SPEED options?
@@ -535,6 +560,17 @@ void Navigator::run()
 				_vehicle_roi_pub.publish(_vroi);
 
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+				// reset cruise speed and throttle to default when transitioning
+				set_cruising_speed();
+				set_cruising_throttle();
+
+				// need to update current setpooint with reset cruise speed and throttle
+				position_setpoint_triplet_s *rep = get_reposition_triplet();
+				*rep = *(get_position_setpoint_triplet());
+				rep->current.cruising_speed = get_cruising_speed();
+				rep->current.cruising_throttle = get_cruising_throttle();
 			}
 		}
 
@@ -669,6 +705,11 @@ void Navigator::run()
 			navigation_mode_new = &_takeoff;
 			break;
 
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
+			_pos_sp_triplet_published_invalid_once = false;
+			navigation_mode_new = &_vtol_takeoff;
+			break;
+
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_land;
@@ -714,16 +755,29 @@ void Navigator::run()
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
-			// We don't reset the triplet if we just did an auto-takeoff and are now
+			// We don't reset the triplet in the following two cases:
+			// 1)  if we just did an auto-takeoff and are now
 			// going to loiter. Otherwise, we lose the takeoff altitude and end up lower
 			// than where we wanted to go.
+			// 2) We switch to loiter and the current position setpoint already has a valid loiter point.
+			// In that case we can assume that the vehicle has already established a loiter and we don't need to set a new
+			// loiter position.
 			//
 			// FIXME: a better solution would be to add reset where they are needed and remove
 			//        this general reset here.
-			if (!(_navigation_mode == &_takeoff &&
-			      navigation_mode_new == &_loiter)) {
+
+			const bool current_mode_is_takeoff = _navigation_mode == &_takeoff;
+			const bool new_mode_is_loiter = navigation_mode_new == &_loiter;
+			const bool valid_loiter_setpoint = (_pos_sp_triplet.current.valid
+							    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
+
+			const bool did_not_switch_takeoff_to_loiter = !(current_mode_is_takeoff && new_mode_is_loiter);
+			const bool did_not_switch_to_loiter_with_valid_loiter_setpoint = !(new_mode_is_loiter && valid_loiter_setpoint);
+
+			if (did_not_switch_takeoff_to_loiter && did_not_switch_to_loiter_with_valid_loiter_setpoint) {
 				reset_triplets();
 			}
+
 
 			// transition to hover in Descend mode
 			if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND &&
@@ -986,7 +1040,7 @@ float Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
+		if (_mission_cruising_speed_mc > 0.0f) {
 			return _mission_cruising_speed_mc;
 
 		} else {
@@ -994,7 +1048,7 @@ float Navigator::get_cruising_speed()
 		}
 
 	} else {
-		if (is_planned_mission() && _mission_cruising_speed_fw > 0.0f) {
+		if (_mission_cruising_speed_fw > 0.0f) {
 			return _mission_cruising_speed_fw;
 
 		} else {

@@ -58,7 +58,7 @@ void NPFG::guideToPath(const Vector2f &ground_vel, const Vector2f &wind_vel, con
 	const float wind_speed = wind_vel.norm();
 
 	// on-track wind triangle projections
-	const float wind_cross_upt = cross2D(wind_vel, unit_path_tangent);
+	const float wind_cross_upt = wind_vel.cross(unit_path_tangent);
 	const float wind_dot_upt = wind_vel.dot(unit_path_tangent);
 
 	// calculate the bearing feasibility on the track at the current closest point
@@ -85,7 +85,7 @@ void NPFG::guideToPath(const Vector2f &ground_vel, const Vector2f &wind_vel, con
 	bearing_vec_ = bearingVec(unit_path_tangent, look_ahead_ang, signed_track_error);
 
 	// wind triangle projections
-	const float wind_cross_bearing = cross2D(wind_vel, bearing_vec_);
+	const float wind_cross_bearing = wind_vel.cross(bearing_vec_);
 	const float wind_dot_bearing = wind_vel.dot(bearing_vec_);
 
 	// continuous representation of the bearing feasibility
@@ -130,7 +130,7 @@ void NPFG::guideToPoint(const Vector2f &ground_vel, const Vector2f &wind_vel, co
 	const float wind_speed = wind_vel.norm();
 
 	// wind triangle projections
-	const float wind_cross_bearing = cross2D(wind_vel, bearing_vec);
+	const float wind_cross_bearing = wind_vel.cross(bearing_vec);
 	const float wind_dot_bearing = wind_vel.dot(bearing_vec);
 
 	// continuous representation of the bearing feasibility
@@ -501,7 +501,7 @@ float NPFG::lateralAccel(const Vector2f &air_vel, const Vector2f &air_vel_ref, c
 	// lateral acceleration demand only from the heading error
 
 	const float dot_air_vel_err = air_vel.dot(air_vel_ref);
-	const float cross_air_vel_err = cross2D(air_vel, air_vel_ref);
+	const float cross_air_vel_err = air_vel.cross(air_vel_ref);
 
 	if (dot_air_vel_err < 0.0f) {
 		// hold max lateral acceleration command above 90 deg heading error
@@ -544,7 +544,7 @@ void NPFG::navigateWaypoints(const Vector2d &waypoint_A, const Vector2d &waypoin
 
 		// guidance to the line through A and B
 		unit_path_tangent_ = vector_A_to_B.normalized();
-		signed_track_error_ = cross2D(unit_path_tangent_, vector_A_to_vehicle);
+		signed_track_error_ = unit_path_tangent_.cross(vector_A_to_vehicle);
 		guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
 
 		const Vector2f bearing_vec_to_point = -vector_A_to_vehicle.normalized();
@@ -566,7 +566,7 @@ void NPFG::navigateWaypoints(const Vector2d &waypoint_A, const Vector2d &waypoin
 	} else {
 		// track the line segment between A and B
 		unit_path_tangent_ = vector_A_to_B.normalized();
-		signed_track_error_ = cross2D(unit_path_tangent_, vector_A_to_vehicle);
+		signed_track_error_ = unit_path_tangent_.cross(vector_A_to_vehicle);
 		guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, 0.0f);
 	}
 
@@ -629,7 +629,7 @@ void NPFG::navigatePathTangent(const matrix::Vector2d &vehicle_pos, const matrix
 
 	// closest point to vehicle
 	matrix::Vector2f error_vector = getLocalPlanarVector(position_setpoint, vehicle_pos);
-	signed_track_error_ = cross2D(unit_path_tangent_, error_vector);
+	signed_track_error_ = unit_path_tangent_.cross(error_vector);
 
 	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, curvature);
 

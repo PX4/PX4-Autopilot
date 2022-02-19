@@ -136,24 +136,18 @@ void ActuatorEffectivenessRotors::updateParams()
 }
 
 bool
-ActuatorEffectivenessRotors::getEffectivenessMatrix(Configuration &configuration, bool force)
+ActuatorEffectivenessRotors::addActuators(Configuration &configuration)
 {
-	if (_updated || force) {
-		_updated = false;
-
-		if (configuration.num_actuators[(int)ActuatorType::SERVOS] > 0) {
-			PX4_ERR("Wrong actuator ordering: servos need to be after motors");
-			return false;
-		}
-
-		int num_actuators = computeEffectivenessMatrix(_geometry,
-				    configuration.effectiveness_matrices[configuration.selected_matrix],
-				    configuration.num_actuators_matrix[configuration.selected_matrix]);
-		configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
-		return true;
+	if (configuration.num_actuators[(int)ActuatorType::SERVOS] > 0) {
+		PX4_ERR("Wrong actuator ordering: servos need to be after motors");
+		return false;
 	}
 
-	return false;
+	int num_actuators = computeEffectivenessMatrix(_geometry,
+			    configuration.effectiveness_matrices[configuration.selected_matrix],
+			    configuration.num_actuators_matrix[configuration.selected_matrix]);
+	configuration.actuatorsAdded(ActuatorType::MOTORS, num_actuators);
+	return true;
 }
 
 int
