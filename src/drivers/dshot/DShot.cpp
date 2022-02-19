@@ -478,9 +478,7 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		_current_command.clear();
 	}
 
-	if (stop_motors || num_control_groups_updated > 0) {
-		up_dshot_trigger();
-	}
+	up_dshot_trigger();
 
 	return true;
 }
