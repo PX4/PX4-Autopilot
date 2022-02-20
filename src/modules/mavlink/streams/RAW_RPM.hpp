@@ -49,7 +49,7 @@ public:
 
 	unsigned get_size() override
 	{
-		return _rpm_subs.advertised() ? (MAVLINK_MSG_ID_RAW_RPM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _rpm_subs.advertised_count() * (MAVLINK_MSG_ID_RAW_RPM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
 private:
