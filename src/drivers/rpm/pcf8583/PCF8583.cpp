@@ -63,7 +63,7 @@ int PCF8583::probe()
 	setRegister(0x00, 0b00100000);
 
 	uint8_t s = readRegister(0x00);
-	PX4_INFO("status register: %" PRId8 " fail_count: %" PRId8, s, _tranfer_fail_count);
+	PX4_DEBUG("status register: %" PRId8 " fail_count: %" PRId8, s, _tranfer_fail_count);
 
 	setRegister(0x04, 10);
 	setRegister(0x05, 10);
