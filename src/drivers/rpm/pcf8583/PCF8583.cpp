@@ -65,6 +65,10 @@ int PCF8583::probe()
 	uint8_t s = readRegister(0x00);
 	PX4_DEBUG("status register: %" PRId8 " fail_count: %" PRId8, s, _tranfer_fail_count);
 
+	// PCF8583 contains free RAM registers
+	// This checks if I2C devices contains this RAM memory registers
+	// Some values are stored into this registers
+	// then it is vertified that the entered values fit.
 	setRegister(0x04, 10);
 	setRegister(0x05, 10);
 	setRegister(0x06, 10);
@@ -73,6 +77,7 @@ int PCF8583::probe()
 	setRegister(0x0e, 5);
 	uint32_t tmp{0};
 
+	// check values stored in free RAM parts
 	tmp += readRegister(0x04);
 	tmp += readRegister(0x05);
 	tmp += readRegister(0x06);
@@ -98,6 +103,8 @@ void PCF8583::initCounter()
 
 uint32_t PCF8583::getCounter()
 {
+	// Counter value is stored in 9 words
+	// in 3 register as BCD value
 	uint8_t a = readRegister(0x01);
 	uint8_t b = readRegister(0x02);
 	uint8_t c = readRegister(0x03);
@@ -119,6 +126,8 @@ void PCF8583::resetCounter()
 	_reset_count ++;
 }
 
+
+// Configure PCF8583 driver into counting mode
 void PCF8583::setRegister(uint8_t reg, uint8_t value)
 {
 	uint8_t buff[2];
@@ -167,6 +176,8 @@ void PCF8583::RunImpl()
 
 	int32_t diffCount = _count - oldcount;
 
+	// check if there is enought space in counter
+	// Otherwise, reset counter
 	if (diffCount > (999999 - oldcount)) {
 		PX4_ERR("pcf8583 RPM register overflow");
 		resetCounter();
@@ -183,10 +194,11 @@ void PCF8583::RunImpl()
 		return;
 	}
 
+	// Calculate RPM and accuracy estimation
 	float indicated_rpm = (((float)diffCount / _param_pcf8583_magnet.get()) / ((float)diffTime / 1000000.f)) * 60.f;
 	float estimated_accurancy = 1 / (float)_param_pcf8583_magnet.get() / ((float)diffTime / 1000000) * 60.f;
 
-	// publish
+	// publish data to uorb
 	rpm_s msg{};
 	msg.indicated_frequency_rpm = indicated_rpm;
 	msg.estimated_accurancy_rpm = estimated_accurancy;
