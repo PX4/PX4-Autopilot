@@ -40,6 +40,6 @@ add_subdirectory(lps33hw)
 #add_subdirectory(mpl3115a2) # not ready for general inclusion
 add_subdirectory(maiertek)
 add_subdirectory(ms5611)
-add_subdirectory(spl06)  # only for users who really need this
+#add_subdirectory(spl06)  # only for users who really need this
 #add_subdirectory(tcbp001ta) # only for users who really need this
 add_subdirectory(invensense)

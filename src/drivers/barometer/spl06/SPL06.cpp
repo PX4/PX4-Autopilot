@@ -100,9 +100,9 @@ SPL06::scale_factor(int oversampling_rate)
 
 int
 SPL06::calibrate(){
-	uint8_t buf[sizeof(_cal)];
+	uint8_t buf[18];
 
-	_interface->read(SPL06_ADDR_CAL,buf,sizeof(_cal));
+	_interface->read(SPL06_ADDR_CAL,buf,sizeof(buf));
 
 	_cal.c0 = (uint16_t)buf[0] << 4 | (uint16_t)buf[1] >> 4;
 	_cal.c0 = (_cal.c0 & 1 << 11) ? (0xf000 | _cal.c0) : _cal.c0;
@@ -122,12 +122,18 @@ SPL06::calibrate(){
 	_cal.c21 = (uint16_t)buf[14] << 8 | buf[15];
 	_cal.c30 = (uint16_t)buf[16] << 8 | buf[17];
 
+	// PX4_INFO("c0:%d \nc1:%d \nc00:%d \nc10:%d \nc01:%d \nc11:%d \nc20:%d \nc21:%d \nc30:%d\n",
+	// _cal.c0,_cal.c1,
+	// _cal.c00,_cal.c10,
+	// _cal.c01,_cal.c11,_cal.c20,_cal.c21,_cal.c30
+	// );
+	//PX4_DEBUG("c0:%f",_cal.c0);
 	return OK;
 }
 int
 SPL06::init()
 {
-	uint8_t tries = 5;
+	int8_t tries = 5;
 	// reset sensor
 	_interface->set_reg(SPL06_VALUE_RESET, SPL06_ADDR_RESET);
 	usleep(10000);
@@ -143,9 +149,9 @@ SPL06::init()
             if (meas_cfg & (1 << 7) && meas_cfg & (1 << 6)) {
                 break;
             }
-	    usleep(1000);
+	    usleep(10000);
     	}
-	if(!tries){
+	if(tries<0){
 		PX4_DEBUG("spl06 cal failed");
 		return -EIO;
 	}
@@ -155,9 +161,9 @@ SPL06::init()
 
 	// set config, recommended settings
 	_interface->set_reg(_curr_prs_cfg, SPL06_ADDR_PRS_CFG);
-	kp= scale_factor(16);
+	kp = scale_factor(16);
 	_interface->set_reg(_curr_tmp_cfg, SPL06_ADDR_TMP_CFG);
-	kt= scale_factor(1);
+	kt = scale_factor(1);
 
 	_interface->set_reg(1<<2,SPL06_ADDR_CFG_REG);
 	_interface->set_reg(7,SPL06_ADDR_MEAS_CFG);
@@ -213,7 +219,7 @@ SPL06::collect()
 	_px4_baro.set_error_count(perf_event_count(_comms_errors));
 	_px4_baro.set_temperature(temperature);
 	_px4_baro.update(timestamp_sample, fp / 100.0f);   // to millbar
-
+	//PX4_DEBUG("%d",(int)fp);
 	perf_end(_sample_perf);
 
 	return OK;

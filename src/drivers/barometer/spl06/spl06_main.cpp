@@ -75,7 +75,6 @@ I2CSPIDriverBase *SPL06::instantiate(const I2CSPIDriverConfig &config, int runti
 	}
 
 #endif // CONFIG_SPI
-
 	if (interface == nullptr) {
 		PX4_ERR("failed creating interface for bus %i", config.bus);
 		return nullptr;
@@ -93,7 +92,6 @@ I2CSPIDriverBase *SPL06::instantiate(const I2CSPIDriverConfig &config, int runti
 		delete interface;
 		return nullptr;
 	}
-
 	if (OK != dev->init()) {
 		delete dev;
 		return nullptr;
