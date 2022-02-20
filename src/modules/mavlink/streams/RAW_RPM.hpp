@@ -55,7 +55,7 @@ public:
 private:
 	explicit MavlinkStreamRawRpm(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::SubscriptionMultiArray<rpm_s, 8> _rpm_subs{ORB_ID::rpm};
+	uORB::SubscriptionMultiArray<rpm_s> _rpm_subs{ORB_ID::rpm};
 
 	bool send() override
 	{
