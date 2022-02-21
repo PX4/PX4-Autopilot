@@ -75,14 +75,6 @@ int RM3100::self_test()
 	bool complete = false;
 	int pass = PX4_ERROR;
 
-	/* Disable DRDY clear upon register writes and measurements */
-	cmd = 0x08;
-	ret = _interface->write(ADDR_HSHAKE, &cmd, 1);
-
-	if (ret != PX4_OK) {
-		return ret;
-	}
-
 	/* Configure sensor to execute BIST upon receipt of a POLL command */
 	cmd = BIST_SELFTEST;
 	ret = _interface->write(ADDR_BIST, &cmd, 1);
