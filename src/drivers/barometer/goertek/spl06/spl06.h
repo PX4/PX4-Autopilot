@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,9 +58,9 @@ namespace spl06
 
 #pragma pack(push,1)
 struct calibration_s {
-        int16_t c0, c1;
-        int32_t c00, c10;
-        int16_t c01, c11, c20, c21, c30;
+	int16_t c0, c1;
+	int32_t c00, c10;
+	int16_t c01, c11, c20, c21, c30;
 }; //calibration data
 
 struct data_s {
@@ -88,7 +88,7 @@ public:
 	virtual int set_reg(uint8_t value, uint8_t addr) = 0;
 
 	// bulk read of data into buffer, return same pointer
-	virtual int read(uint8_t addr,uint8_t *buf,uint8_t len)=0;
+	virtual int read(uint8_t addr, uint8_t *buf, uint8_t len) = 0;
 	// bulk read of calibration data into buffer, return same pointer
 
 	virtual uint32_t get_device_id() const = 0;

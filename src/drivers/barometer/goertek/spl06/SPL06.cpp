@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -53,56 +53,60 @@ SPL06::~SPL06()
 	delete _interface;
 }
 
+/*
 float
 SPL06::scale_factor(int oversampling_rate)
 {
-    float k;
+	float k;
 
-    switch (oversampling_rate) {
-        case 1:
-            k = 524288.0f;
-        break;
+	switch (oversampling_rate) {
+	case 1:
+		k = 524288.0f;
+		break;
 
-        case 2:
-            k = 1572864.0f;
-        break;
+	case 2:
+		k = 1572864.0f;
+		break;
 
-        case 4:
-            k = 3670016.0f;
-        break;
+	case 4:
+		k = 3670016.0f;
+		break;
 
-        case 8:
-            k = 7864320.0f;
-        break;
+	case 8:
+		k = 7864320.0f;
+		break;
 
-        case 16:
-            k = 253952.0f;
-        break;
+	case 16:
+		k = 253952.0f;
+		break;
 
-        case 32:
-            k = 516096.0f;
-        break;
+	case 32:
+		k = 516096.0f;
+		break;
 
-        case 64:
-            k = 1040384.0f;
-        break;
+	case 64:
+		k = 1040384.0f;
+		break;
 
-        case 128:
-            k = 2088960.0f;
-        break;
+	case 128:
+		k = 2088960.0f;
+		break;
+
 	default:
-	    k= 0;
-	break;
-    }
+		k = 0;
+		break;
+	}
 
-    return k;
+	return k;
 }
+*/
 
 int
-SPL06::calibrate(){
+SPL06::calibrate()
+{
 	uint8_t buf[18];
 
-	_interface->read(SPL06_ADDR_CAL,buf,sizeof(buf));
+	_interface->read(SPL06_ADDR_CAL, buf, sizeof(buf));
 
 	_cal.c0 = (uint16_t)buf[0] << 4 | (uint16_t)buf[1] >> 4;
 	_cal.c0 = (_cal.c0 & 1 << 11) ? (0xf000 | _cal.c0) : _cal.c0;
@@ -145,13 +149,16 @@ SPL06::init()
 	}
 
 	while (tries--) {
-            uint8_t meas_cfg = _interface->get_reg(SPL06_ADDR_MEAS_CFG);
-            if (meas_cfg & (1 << 7) && meas_cfg & (1 << 6)) {
-                break;
-            }
-	    usleep(10000);
-    	}
-	if(tries<0){
+		uint8_t meas_cfg = _interface->get_reg(SPL06_ADDR_MEAS_CFG);
+
+		if (meas_cfg & (1 << 7) && meas_cfg & (1 << 6)) {
+			break;
+		}
+
+		usleep(10000);
+	}
+
+	if (tries < 0) {
 		PX4_DEBUG("spl06 cal failed");
 		return -EIO;
 	}
@@ -161,12 +168,13 @@ SPL06::init()
 
 	// set config, recommended settings
 	_interface->set_reg(_curr_prs_cfg, SPL06_ADDR_PRS_CFG);
-	kp = scale_factor(16);
+	kp = 253952.0f; // refer to scale_factor()
 	_interface->set_reg(_curr_tmp_cfg, SPL06_ADDR_TMP_CFG);
-	kt = scale_factor(1);
+	kt = 524288.0f;
 
-	_interface->set_reg(1<<2,SPL06_ADDR_CFG_REG);
-	_interface->set_reg(7,SPL06_ADDR_MEAS_CFG);
+
+	_interface->set_reg(1 << 2, SPL06_ADDR_CFG_REG);
+	_interface->set_reg(7, SPL06_ADDR_MEAS_CFG);
 
 	Start();
 
@@ -185,7 +193,7 @@ SPL06::RunImpl()
 {
 	collect();
 
-	ScheduleDelayed(1000000/SAMPLE_RATE/2);
+	ScheduleDelayed(_measure_interval);
 }
 int
 SPL06::collect()
@@ -195,19 +203,19 @@ SPL06::collect()
 	// this should be fairly close to the end of the conversion, so the best approximation of the time
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if(_interface->read(SPL06_ADDR_DATA,(uint8_t *)&_data,sizeof(_data))!=OK){
+	if (_interface->read(SPL06_ADDR_DATA, (uint8_t *)&_data, sizeof(_data)) != OK) {
 		perf_count(_comms_errors);
 		perf_cancel(_sample_perf);
 		return -EIO;
 	}
 
 	int32_t temp_raw = (uint32_t)_data.t_msb << 16 | (uint32_t)_data.t_lsb << 8 | (uint32_t)_data.t_xlsb;
-	temp_raw = (temp_raw & 1 << 23) ? (0xff000000 | temp_raw) :temp_raw;
+	temp_raw = (temp_raw & 1 << 23) ? (0xff000000 | temp_raw) : temp_raw;
 
-	int32_t press_raw = (uint32_t)_data.p_msb << 16 | (uint32_t) _data.p_lsb<< 8 | (uint32_t) _data.p_xlsb;
-	press_raw = (press_raw & 1 << 23) ? (0xff000000 | press_raw) :press_raw;
+	int32_t press_raw = (uint32_t)_data.p_msb << 16 | (uint32_t) _data.p_lsb << 8 | (uint32_t) _data.p_xlsb;
+	press_raw = (press_raw & 1 << 23) ? (0xff000000 | press_raw) : press_raw;
 
-        // calculate
+	// calculate
 	float ftsc = (float)temp_raw / kt;
 	float fpsc = (float)press_raw / kp;
 	float qua2 = (float)_cal.c10 + fpsc * ((float)_cal.c20 + fpsc * (float)_cal.c30);

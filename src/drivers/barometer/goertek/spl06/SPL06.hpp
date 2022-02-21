@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,7 +57,7 @@ public:
 	void			RunImpl();
 private:
 	void			Start();
-	float scale_factor(int oversampling_rate);
+	// float scale_factor(int oversampling_rate);
 
 	int			collect(); //get results and publish
 	int			calibrate();
@@ -86,7 +86,7 @@ private:
 	// measurement time(ms): 3.6    | 5.2 | 8.4 | 14.8 | 27.6 | 53.2 | 104.4 | 206.8
 	// precision(PaRMS)    : 5.0    |     | 2.5 |      | 1.2  | 0.9  | 0.5   |
 	// note: use in combination with a bit shift when the oversampling rate is > 8 times. see CFG_REG(0x19) register
-	static constexpr uint8_t	_curr_prs_cfg{4<<4|4};
+	static constexpr uint8_t	_curr_prs_cfg{4 << 4 | 4};
 
 	// configuration of temperature measurment rate (TMP_RATE) and resolution (TMP_PRC)
 	//
@@ -114,5 +114,6 @@ private:
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
 
-	static constexpr uint32_t SAMPLE_RATE{16};
+	static constexpr uint32_t _sample_rate{16};
+	static constexpr uint32_t _measure_interval{1000000 / _sample_rate / 2};
 };

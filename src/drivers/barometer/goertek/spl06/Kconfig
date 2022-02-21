@@ -1,4 +1,4 @@
-menuconfig DRIVERS_BAROMETER_SPL06
+menuconfig DRIVERS_BAROMETER_GOERTEK_SPL06
 	bool "spl06"
 	default n
 	---help---

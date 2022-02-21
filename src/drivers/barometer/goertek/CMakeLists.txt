@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,4 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__barometer__spl06
-	MAIN spl06
-	SRCS
-		SPL06.cpp
-		SPL06.hpp
-		SPL06_I2C.cpp
-		SPL06_SPI.cpp
-		spl06_main.cpp
-	DEPENDS
-		drivers_barometer
-		px4_work_queue
-	)
+add_subdirectory(spl06)

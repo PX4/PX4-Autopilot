@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,64 +40,63 @@
 #include "spl06.h"
 
 #include <px4_platform_common/px4_config.h>
-#include <drivers/device/spi.h>
+#include <drivers/device/i2c.h>
 
-#if defined(CONFIG_SPI)
+#if defined(CONFIG_I2C)
 
-/* SPI protocol address bits */
-#define DIR_READ			(1<<7)  //for set
-#define DIR_WRITE			~(1<<7) //for clear
-
-class SPL06_SPI: public device::SPI, public spl06::ISPL06
+class SPL06_I2C: public device::I2C, public spl06::ISPL06
 {
 public:
-	SPL06_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode);
-	virtual ~SPL06_SPI() override = default;
+	SPL06_I2C(uint8_t bus, uint32_t device, int bus_frequency);
+	virtual ~SPL06_I2C() override = default;
 
-	int init() override { return SPI::init(); }
+	int init() override { return I2C::init(); }
 
 	uint8_t	get_reg(uint8_t addr) override;
 	int	set_reg(uint8_t value, uint8_t addr) override;
 
-	int read(uint8_t addr,uint8_t *buf,uint8_t len) override;
+	int read(uint8_t addr, uint8_t *buf, uint8_t len) override;
+	//spl06::data_s		*get_data(uint8_t addr) override;
+	//spl06::calibration_s	*get_calibration(uint8_t addr) override;
 
-	uint32_t get_device_id() const override { return device::SPI::get_device_id(); }
+	uint32_t get_device_id() const override { return device::I2C::get_device_id(); }
 
-	uint8_t get_device_address() const override { return device::SPI::get_device_address(); }
+	uint8_t get_device_address() const override { return device::I2C::get_device_address(); }
+private:
+	spl06::calibration_s	_cal{};
+	spl06::data_s		_data{};
 };
 
-spl06::ISPL06 *
-spl06_spi_interface(uint8_t busnum, uint32_t device, int bus_frequency, spi_mode_e spi_mode)
+spl06::ISPL06 *spl06_i2c_interface(uint8_t busnum, uint32_t device, int bus_frequency)
 {
-	return new SPL06_SPI(busnum, device, bus_frequency, spi_mode);
+	return new SPL06_I2C(busnum, device, bus_frequency);
 }
 
-SPL06_SPI::SPL06_SPI(uint8_t bus, uint32_t device, int bus_frequency, spi_mode_e spi_mode) :
-	SPI(DRV_BARO_DEVTYPE_SPL06, MODULE_NAME, bus, device, spi_mode, bus_frequency)
+SPL06_I2C::SPL06_I2C(uint8_t bus, uint32_t device, int bus_frequency) :
+	I2C(DRV_BARO_DEVTYPE_SPL06, MODULE_NAME, bus, device, bus_frequency)
 {
 }
 
 uint8_t
-SPL06_SPI::get_reg(uint8_t addr)
+SPL06_I2C::get_reg(uint8_t addr)
 {
-	uint8_t cmd[2] = { (uint8_t)(addr | DIR_READ), 0}; // set MSB bit
-	transfer(&cmd[0], &cmd[0], 2);
+	uint8_t cmd[2] = { (uint8_t)(addr), 0};
+	transfer(&cmd[0], 1, &cmd[1], 1);
 
 	return cmd[1];
 }
 
 int
-SPL06_SPI::set_reg(uint8_t value, uint8_t addr)
+SPL06_I2C::set_reg(uint8_t value, uint8_t addr)
 {
-	uint8_t cmd[2] = { (uint8_t)(addr & DIR_WRITE), value}; // clear MSB bit
-	return transfer(&cmd[0], nullptr, 2);
+	uint8_t cmd[2] = { (uint8_t)(addr), value};
+	return transfer(cmd, sizeof(cmd), nullptr, 0);
 }
 
 int
-SPL06_SPI::read(uint8_t addr,uint8_t *buf,uint8_t len){
-	uint8_t tx_buf[len+1]={(uint8_t)(addr|DIR_READ)};  // GCC support VLA, let's use it
-
-	return transfer(tx_buf, buf, len);
+SPL06_I2C::read(uint8_t addr, uint8_t *buf, uint8_t len)
+{
+	return transfer(&addr, 1, buf, len);
 }
 
-#endif // CONFIG_SPI
+#endif // CONFIG_I2C
