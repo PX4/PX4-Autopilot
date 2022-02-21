@@ -82,8 +82,6 @@ void Ekf::reset()
 
 	_prev_dvel_bias_var.zero();
 
-	_control_status.flags.vehicle_at_rest = true;
-
 	resetGpsDriftCheckFilters();
 }
 
