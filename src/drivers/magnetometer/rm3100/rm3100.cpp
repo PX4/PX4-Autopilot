@@ -150,7 +150,7 @@ void RM3100::RunImpl()
 	if (_failure_count > 10) {
 		_failure_count = 0;
 		set_default_register_values();
-		ScheduleOnInterval(_measure_interval);
+		ScheduleOnInterval(RM3100_INTERVAL);
 		return;
 	}
 
@@ -227,10 +227,12 @@ int RM3100::init()
 		PX4_ERR("self test failed");
 	}
 
-	set_default_register_values();
-	ScheduleOnInterval(_measure_interval);
+	if (set_default_register_values() == PX4_OK) {
+		ScheduleOnInterval(RM3100_INTERVAL);
+		return PX4_OK;
+	}
 
-	return ret;
+	return PX4_ERROR;
 }
 
 void RM3100::print_status()

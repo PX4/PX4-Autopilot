@@ -50,7 +50,7 @@
  * RM3100 internal constants and data structures.
  */
 
-#define RM3100_CONVERSION_INTERVAL	27000	// 27000 Microseconds, corresponds to ~37 Hz
+#define RM3100_INTERVAL			13000	// 13000 Microseconds, corresponds to ~75 Hz (TMRC 0x95)
 #define UTESLA_TO_GAUSS			100.0f
 #define RM3100_SENSITIVITY		75.0f
 
@@ -77,12 +77,12 @@
 #define CMM_DEFAULT		0b0111'0001 // continuous mode
 #define CONTINUOUS_MODE		(1 << 0)
 #define POLLING_MODE		(0 << 0)
-#define TMRC_DEFAULT		0x96 // ~27 ms, ~37 Hz
+#define TMRC_DEFAULT		0x95 // ~13 ms, ~75 Hz
 #define BIST_SELFTEST		0b1000'1111
 #define BIST_DEFAULT		0x00
 #define BIST_XYZ_OK		((1 << 4) | (1 << 5) | (1 << 6))
 #define BIST_STE		(1 << 7)
-#define BIST_DUR_USEC		(2*RM3100_CONVERSION_INTERVAL)
+#define BIST_DUR_USEC		(2*RM3100_INTERVAL)
 #define HSHAKE_DEFAULT		(0x0B)
 #define HSHAKE_NO_DRDY_CLEAR	(0x08)
 #define STATUS_DRDY		(1 << 7)
@@ -117,20 +117,6 @@ public:
 	void RunImpl();
 
 private:
-	PX4Magnetometer _px4_mag;
-
-	device::Device *_interface{nullptr};
-
-	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _range_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": range error")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
-
-	const unsigned int _measure_interval{RM3100_CONVERSION_INTERVAL}; // TMRC Value 0x96, ~27 ms, ~37 Hz
-
-	int32_t _raw_data_prev[3] {};
-
-	int _failure_count{0};
-
 	/**
 	 * Run sensor self-test
 	 *
@@ -143,4 +129,16 @@ private:
 	*/
 	void convert_signed(int32_t *n);
 
-}; // class RM3100
+	PX4Magnetometer _px4_mag;
+
+	device::Device *_interface{nullptr};
+
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _range_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": range error")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
+
+	int32_t _raw_data_prev[3] {};
+
+	int _failure_count{0};
+
+};
