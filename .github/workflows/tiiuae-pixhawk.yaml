@@ -188,12 +188,13 @@ jobs:
         run: |
           set -exu
           pkg=$(find bin -name 'px4fwupdater*.deb')
+          pkg_name=$(basename $pkg)
           jfrog rt u --deb "$DISTRIBUTION/$COMPONENT/$ARCHITECTURE" \
                      --target-props COMMIT="$GITHUB_SHA" \
                      --build-name "$BUILD_NAME_DEB" \
                      --build-number "$GITHUB_SHA" \
                      "$pkg" \
-                     "$ARTIFACTORY_DEB_REPO"
+                     "$ARTIFACTORY_DEB_REPO/$pkg_name"
           jfrog rt build-publish "$BUILD_NAME_DEB" "$GITHUB_SHA"
           jfrog rt bpr "$BUILD_NAME_DEB" "$GITHUB_SHA" "$ARTIFACTORY_DEB_REPO" \
                        --status dev \
