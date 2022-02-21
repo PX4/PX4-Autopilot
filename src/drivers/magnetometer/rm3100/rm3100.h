@@ -77,7 +77,7 @@
 #define CMM_DEFAULT		0b0111'0001 // continuous mode
 #define CONTINUOUS_MODE		(1 << 0)
 #define POLLING_MODE		(0 << 0)
-#define TMRC_DEFAULT		0x96
+#define TMRC_DEFAULT		0x96 // ~27 ms, ~37 Hz
 #define BIST_SELFTEST		0b1000'1111
 #define BIST_DEFAULT		0x00
 #define BIST_XYZ_OK		((1 << 4) | (1 << 5) | (1 << 6))
@@ -121,14 +121,15 @@ private:
 
 	device::Device *_interface{nullptr};
 
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")};
-	perf_counter_t _conf_errors{perf_alloc(PC_COUNT, MODULE_NAME": conf_errors")};
-	perf_counter_t _range_errors{perf_alloc(PC_COUNT, MODULE_NAME": range_errors")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _range_error_perf{perf_alloc(PC_COUNT, MODULE_NAME": range error")};
+	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
 
 	const unsigned int _measure_interval{RM3100_CONVERSION_INTERVAL}; // TMRC Value 0x96, ~27 ms, ~37 Hz
 
 	int32_t _raw_data_prev[3] {};
+
+	int _failure_count{0};
 
 	/**
 	 * Run sensor self-test

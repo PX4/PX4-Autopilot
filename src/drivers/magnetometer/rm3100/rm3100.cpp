@@ -52,10 +52,9 @@ RM3100::RM3100(device::Device *interface, const I2CSPIDriverConfig &config) :
 RM3100::~RM3100()
 {
 	// free perf counters
-	perf_free(_sample_perf);
-	perf_free(_comms_errors);
-	perf_free(_range_errors);
-	perf_free(_conf_errors);
+	perf_free(_reset_perf);
+	perf_free(_range_error_perf);
+	perf_free(_bad_transfer_perf);
 
 	delete _interface;
 }
@@ -147,7 +146,13 @@ int RM3100::self_test()
 
 void RM3100::RunImpl()
 {
-	perf_begin(_sample_perf);
+	// full reset if things are failing consistently
+	if (_failure_count > 10) {
+		_failure_count = 0;
+		set_default_register_values();
+		ScheduleOnInterval(_measure_interval);
+		return;
+	}
 
 	struct {
 		uint8_t x[3];
@@ -155,14 +160,12 @@ void RM3100::RunImpl()
 		uint8_t z[3];
 	} rm_report{};
 
-	_px4_mag.set_error_count(perf_event_count(_comms_errors));
-
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	int ret = _interface->read(ADDR_MX, (uint8_t *)&rm_report, sizeof(rm_report));
 
 	if (ret != OK) {
-		perf_end(_sample_perf);
-		perf_count(_comms_errors);
+		perf_count(_bad_transfer_perf);
+		_failure_count++;
 		return;
 	}
 
@@ -176,17 +179,36 @@ void RM3100::RunImpl()
 	convert_signed(&yraw);
 	convert_signed(&zraw);
 
+	// valid range: -8388608 to 8388607
+	if (xraw < -8388608 || xraw > 8388607 ||
+	    yraw < -8388608 || yraw > 8388607 ||
+	    zraw < -8388608 || zraw > 8388607) {
+
+		_failure_count++;
+
+		perf_count(_range_error_perf);
+		return;
+	}
+
 	// only publish changes
 	if (_raw_data_prev[0] != xraw || _raw_data_prev[1] != yraw || _raw_data_prev[2] != zraw) {
+
+		_px4_mag.set_error_count(perf_event_count(_bad_transfer_perf)
+					 + perf_event_count(_range_error_perf));
 
 		_px4_mag.update(timestamp_sample, xraw, yraw, zraw);
 
 		_raw_data_prev[0] = xraw;
 		_raw_data_prev[1] = yraw;
 		_raw_data_prev[2] = zraw;
-	}
 
-	perf_end(_sample_perf);
+		if (_failure_count > 0) {
+			_failure_count--;
+		}
+
+	} else {
+		_failure_count++;
+	}
 }
 
 void RM3100::convert_signed(int32_t *n)
@@ -214,14 +236,15 @@ int RM3100::init()
 void RM3100::print_status()
 {
 	I2CSPIDriverBase::print_status();
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_conf_errors);
-	perf_print_counter(_range_errors);
-	perf_print_counter(_sample_perf);
+	perf_print_counter(_reset_perf);
+	perf_print_counter(_range_error_perf);
+	perf_print_counter(_bad_transfer_perf);
 }
 
 int RM3100::set_default_register_values()
 {
+	perf_count(_reset_perf);
+
 	uint8_t cmd[2] = {0, 0};
 
 	cmd[0] = CCX_DEFAULT_MSB;
