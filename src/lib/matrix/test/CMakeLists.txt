@@ -44,3 +44,4 @@ foreach(test_name ${tests})
 endforeach()
 
 px4_add_unit_gtest(SRC sparseVector.cpp)
+px4_add_unit_gtest(SRC unwrap.cpp)

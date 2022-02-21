@@ -123,6 +123,27 @@ Type wrap_2pi(Type x)
 	return wrap(x, Type(0), Type(M_TWOPI));
 }
 
+/**
+ * Unwrap angles
+ *
+ * @param[in] last_angle Last unwrapped angle [rad]
+ * @param[in] new_angle New angle in [-pi, pi] [rad]
+ * @return New unwrapped angle [rad]
+ */
+template<typename Type>
+Type unwrap(const Type last_angle, const Type new_angle)
+{
+	// wrap the last angle in [-pi,pi]
+	const Type last_angle_wrapped = matrix::detail::wrap_floating(last_angle, -Type(M_PI), Type(M_PI));
+
+	// use the shortest distance
+	Type delta = new_angle - last_angle_wrapped;
+	delta += ((delta < -Type(M_PI)) - (delta > Type(M_PI))) * Type(2 *
+			M_PI); // adds or subtracts 2*pi if delta out of range
+
+	return delta + last_angle;
+}
+
 template<typename T>
 int sign(T val)
 {
