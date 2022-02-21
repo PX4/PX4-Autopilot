@@ -34,7 +34,7 @@
 /**
  * @file spl06_spi.cpp
  *
- * SPI interface for SPL06
+ * SPI interface for Goertek SPL06
  */
 
 #include "spl06.h"
