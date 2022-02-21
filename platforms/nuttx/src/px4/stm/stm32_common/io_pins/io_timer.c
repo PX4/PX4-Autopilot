@@ -645,11 +645,11 @@ int io_timer_init_timer(unsigned timer, io_timer_channel_mode_t mode)
 		rDCR(timer) = 0;
 
 		if ((io_timers[timer].base == STM32_TIM1_BASE)
-			|| (io_timers[timer].base == STM32_TIM8_BASE)
-			#ifdef STM32_TIM15_BASE
-			|| (io_timers[timer].base == STM32_TIM15_BASE)
-			#endif
-		) {
+		    || (io_timers[timer].base == STM32_TIM8_BASE)
+#ifdef STM32_TIM15_BASE
+		    || (io_timers[timer].base == STM32_TIM15_BASE)
+#endif
+		   ) {
 
 			/* master output enable = on */
 
