@@ -70,15 +70,12 @@ RM3100::~RM3100()
 
 int RM3100::self_test()
 {
-	/* Chances are that a poll event was triggered, so wait for conversion and read registers in order to clear DRDY bit */
-	usleep(RM3100_CONVERSION_INTERVAL);
-	collect();
-
-	/* Fail if calibration is not good */
 	int ret = 0;
 	uint8_t cmd = 0;
+	bool complete = false;
+	int pass = PX4_ERROR;
 
-	/* Configure mag into self test mode */
+	/* Configure sensor to execute BIST upon receipt of a POLL command */
 	cmd = BIST_SELFTEST;
 	ret = _interface->write(ADDR_BIST, &cmd, 1);
 
@@ -86,31 +83,74 @@ int RM3100::self_test()
 		return ret;
 	}
 
-	/* Now we need to write to POLL to launch self test */
-	cmd = POLL_XYZ;
-	ret = _interface->write(ADDR_POLL, &cmd, 1);
+	/* Perform test procedure until a valid result is obtained or test times out */
+	const hrt_abstime t_start = hrt_absolute_time();
 
-	if (ret != PX4_OK) {
-		return ret;
+	while ((hrt_absolute_time() - t_start) < BIST_DUR_USEC) {
+
+		/* Re-disable DRDY clear */
+		cmd = HSHAKE_NO_DRDY_CLEAR;
+		ret = _interface->write(ADDR_HSHAKE, &cmd, 1);
+
+		if (ret != PX4_OK) {
+			return ret;
+		}
+
+		/* Poll for a measurement */
+		cmd = POLL_XYZ;
+		ret = _interface->write(ADDR_POLL, &cmd, 1);
+
+		if (ret != PX4_OK) {
+			return ret;
+		}
+
+		/* If the DRDY bit in the status register is set, BIST should be complete */
+		if (!check_measurement()) {
+			/* Check BIST register to evaluate the test result*/
+			ret = _interface->read(ADDR_BIST, &cmd, 1);
+
+			if (ret != PX4_OK) {
+				return ret;
+			}
+
+			/* The test results are not valid if STE is not set. In this case, we try again */
+			if (cmd & BIST_STE) {
+				complete = true;
+
+				/* If the test passed, disable self-test mode by clearing the STE bit */
+				ret = !(cmd & BIST_XYZ_OK);
+
+				if (!ret) {
+					cmd = 0;
+					ret = _interface->write(ADDR_BIST, &cmd, 1);
+
+					if (ret != PX4_OK) {
+						PX4_ERR("Failed to disable BIST");
+					}
+
+					/* Re-enable DRDY clear upon register writes and measurements */
+					cmd = HSHAKE_DEFAULT;
+					ret = _interface->write(ADDR_HSHAKE, &cmd, 1);
+
+					if (ret != PX4_OK) {
+						return ret;
+					}
+
+					pass = PX4_OK;
+					break;
+
+				} else {
+					PX4_ERR("BIST failed");
+				}
+			}
+		}
 	}
 
-	/* Now wait for status register */
-	usleep(RM3100_CONVERSION_INTERVAL);
-
-	if (check_measurement() != PX4_OK) {
-		return -1;;
+	if (!complete) {
+		PX4_ERR("BIST incomplete");
 	}
 
-	/* Now check BIST register to see whether self test is ok or not*/
-	ret = _interface->read(ADDR_BIST, &cmd, 1);
-
-	if (ret != PX4_OK) {
-		return ret;
-	}
-
-	ret = !((cmd & BIST_XYZ_OK) == BIST_XYZ_OK);
-
-	return ret;
+	return pass;
 }
 
 int RM3100::check_measurement()
@@ -122,7 +162,7 @@ int RM3100::check_measurement()
 		return ret;
 	}
 
-	return !((status & STATUS_DRDY) == STATUS_DRDY) ;
+	return !(status & STATUS_DRDY);
 }
 
 int RM3100::collect()
