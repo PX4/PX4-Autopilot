@@ -68,6 +68,10 @@ static inline constexpr timer_io_channels_t initIOTimerGPIOInOut(Timer::TimerCha
 		gpio_af = GPIO_AF3;
 		break;
 
+	case Timer::Timer15:
+		gpio_af = GPIO_AF4;
+		break;
+
 	case Timer::Timer13:
 	case Timer::Timer14:
 		gpio_af = GPIO_AF9;
@@ -258,6 +262,17 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 		ret.clock_freq = STM32_APB1_TIM14_CLKIN;
 		ret.vectorno =  STM32_IRQ_TIM14;
 #ifdef CONFIG_STM32_TIM14
+		nuttx_config_timer_enabled = true;
+#endif
+		break;
+
+	case Timer::Timer15:
+		ret.base = STM32_TIM15_BASE;
+		ret.clock_register = STM32_RCC_APB2ENR;
+		ret.clock_bit = RCC_APB2ENR_TIM15EN;
+		ret.clock_freq = STM32_APB2_TIM15_CLKIN;
+		ret.vectorno =  STM32_IRQ_TIM15;
+#ifdef CONFIG_STM32_TIM15
 		nuttx_config_timer_enabled = true;
 #endif
 		break;
