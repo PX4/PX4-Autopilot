@@ -84,6 +84,8 @@
 #define BIST_XYZ_OK		((1 << 4) | (1 << 5) | (1 << 6))
 #define BIST_STE		(1 << 7)
 #define BIST_DUR_USEC		(2*RM3100_CONVERSION_INTERVAL)
+#define HSHAKE_DEFAULT		(0x0B)
+#define HSHAKE_NO_DRDY_CLEAR	(0x08)
 #define STATUS_DRDY		(1 << 7)
 #define POLL_XYZ		0x70
 #define RM3100_REVID		0x22

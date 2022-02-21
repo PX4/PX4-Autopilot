@@ -89,7 +89,7 @@ int RM3100::self_test()
 	while ((hrt_absolute_time() - t_start) < BIST_DUR_USEC) {
 
 		/* Re-disable DRDY clear */
-		cmd = 0x08;
+		cmd = HSHAKE_NO_DRDY_CLEAR;
 		ret = _interface->write(ADDR_HSHAKE, &cmd, 1);
 
 		if (ret != PX4_OK) {
@@ -129,7 +129,7 @@ int RM3100::self_test()
 					}
 
 					/* Re-enable DRDY clear upon register writes and measurements */
-					cmd = 0x0B;
+					cmd = HSHAKE_DEFAULT;
 					ret = _interface->write(ADDR_HSHAKE, &cmd, 1);
 
 					if (ret != PX4_OK) {
