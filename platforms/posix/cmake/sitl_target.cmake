@@ -130,7 +130,6 @@ set(viewers
 	jmavsim
 	gazebo
 	ignition
-	sih_sim
 )
 
 set(debuggers
@@ -143,7 +142,6 @@ set(debuggers
 
 set(models
 	none
-	airplane
 	believer
 	boat
 	cloudship
@@ -165,7 +163,6 @@ set(models
 	plane_catapult
 	plane_lidar
 	px4vision
-	quadx
 	r1_rover
 	rover
 	shell
@@ -180,7 +177,6 @@ set(models
 	uuv_bluerov2_heavy
 	uuv_hippocampus
 	omnicopter
-	xvert
 )
 
 set(worlds
@@ -323,6 +319,70 @@ foreach(debugger ${debuggers})
 				)
 				list(APPEND all_posix_vmd_make_targets ${_targ_name})
 				add_dependencies(${_targ_name} px4 jsbsim_bridge)
+			endif()
+		endforeach()
+	endforeach()
+endforeach()
+
+# create targets for sihsim
+set(models_sih
+	none
+	airplane
+	quadx
+	xvert
+)
+
+set(worlds_sih
+	none
+)
+
+foreach(debugger ${debuggers})
+	foreach(model ${models_sih})
+		foreach(world ${worlds_sih})
+			if(world STREQUAL "none")
+				if(debugger STREQUAL "none")
+					if(model STREQUAL "none")
+						set(_targ_name "sihsim")
+					else()
+						set(_targ_name "sihsim_${model}")
+					endif()
+				else()
+					if(model STREQUAL "none")
+						set(_targ_name "sihsim__${debugger}_${world}")
+					else()
+						set(_targ_name "sihsim_${model}_${debugger}_${world}")
+					endif()
+				endif()
+
+				add_custom_target(${_targ_name}
+					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh $<TARGET_FILE:px4> ${debugger} sihsim ${model} ${world} ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
+					WORKING_DIRECTORY ${SITL_WORKING_DIR}
+					USES_TERMINAL
+					DEPENDS logs_symlink
+				)
+				list(APPEND all_posix_vmd_make_targets ${_targ_name})
+			else()
+				if(debugger STREQUAL "none")
+					if(model STREQUAL "none")
+						set(_targ_name "sihsim___${world}")
+					else()
+						set(_targ_name "sihsim_${model}__${world}")
+					endif()
+				else()
+					if(model STREQUAL "none")
+						set(_targ_name "sihsim___${debugger}_${world}")
+					else()
+						set(_targ_name "sihsim_${model}_${debugger}_${world}")
+					endif()
+				endif()
+
+				add_custom_target(${_targ_name}
+					COMMAND ${PX4_SOURCE_DIR}/Tools/sitl_run.sh $<TARGET_FILE:px4> ${debugger} sihsim ${model} ${world} ${PX4_SOURCE_DIR} ${PX4_BINARY_DIR}
+					WORKING_DIRECTORY ${SITL_WORKING_DIR}
+					USES_TERMINAL
+					DEPENDS logs_symlink
+				)
+				list(APPEND all_posix_vmd_make_targets ${_targ_name})
 			endif()
 		endforeach()
 	endforeach()

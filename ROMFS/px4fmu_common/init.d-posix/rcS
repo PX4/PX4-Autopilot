@@ -205,7 +205,7 @@ param set IMU_INTEG_RATE 250
 
 dataman start
 # start sih in sih_sim mode, otherwise simulator module
-if [ "$SIM_MODE" = "sih_sim" ]; then
+if [ "$SIM_MODE" = "sihsim" ]; then
 	sih start
 # only start the simulator if not in replay mode, as both control the lockstep time
 elif ! replay tryapplyparams

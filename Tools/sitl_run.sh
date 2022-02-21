@@ -74,8 +74,8 @@ if [ "$model" == "" ] || [ "$model" == "none" ]; then
 	if [ "$program" == "jsbsim" ]; then
 		echo "empty model, setting rascal as default for jsbsim"
 		model="rascal"
-	elif [ "$program" == "sih_sim" ]; then
-		echo "empty model, setting quadx as default for sih_sim"
+	elif [ "$program" == "sihsim" ]; then
+		echo "empty model, setting quadx as default for sihsim"
 		model="quadx"
 	else
 		echo "empty model, setting iris as default"
@@ -217,8 +217,8 @@ elif [ "$program" == "jsbsim" ] && [ -z "$no_sim" ]; then
 	fi
 	"${build_path}/build_jsbsim_bridge/jsbsim_bridge" ${model} -s "${src_path}/Tools/jsbsim_bridge/scene/${world}.xml" 2> /dev/null &
 	JSBSIM_PID=$!
-elif [ "$program" == "sih_sim" ] && [ ! -n "$no_sim" ]; then
-	export SIM_MODE="sih_sim"
+elif [ "$program" == "sihsim" ] && [ ! -n "$no_sim" ]; then
+	export SIM_MODE="sihsim"
 	if [ "$model" != "airplane" ] && [ "$model" != "quadx" ] && [ "$model" != "xvert" ]; then
 		echo "Model ${model} not compatible with with sih. sih supports [quadx,airplane,xvert]."
 		exit 1
