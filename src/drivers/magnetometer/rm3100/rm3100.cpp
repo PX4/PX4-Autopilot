@@ -128,6 +128,14 @@ int RM3100::self_test()
 						PX4_ERR("Failed to disable BIST");
 					}
 
+					/* Re-enable DRDY clear upon register writes and measurements */
+					cmd = 0x0B;
+					ret = _interface->write(ADDR_HSHAKE, &cmd, 1);
+
+					if (ret != PX4_OK) {
+						return ret;
+					}
+
 					pass = PX4_OK;
 					break;
 
