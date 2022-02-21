@@ -128,8 +128,6 @@ int RM3100::self_test()
 				}
 			}
 		}
-
-		usleep(500);
 	}
 
 	if (!complete) {
