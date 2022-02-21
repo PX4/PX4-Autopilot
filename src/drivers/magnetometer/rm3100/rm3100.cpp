@@ -70,10 +70,6 @@ RM3100::~RM3100()
 
 int RM3100::self_test()
 {
-	/* A poll event may have been triggered earlier; wait for conversion and read registers to clear DRDY bit */
-	usleep(RM3100_CONVERSION_INTERVAL);
-	collect();
-
 	int ret = 0;
 	uint8_t cmd = 0;
 	bool complete = false;
@@ -133,7 +129,7 @@ int RM3100::self_test()
 			}
 		}
 
-		usleep(RM3100_CONVERSION_INTERVAL);
+		usleep(500);
 	}
 
 	if (!complete) {
