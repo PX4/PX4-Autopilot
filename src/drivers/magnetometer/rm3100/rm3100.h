@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,8 +50,7 @@
  * RM3100 internal constants and data structures.
  */
 
-/* At 146 Hz we encounter errors, 100 Hz is safer */
-#define RM3100_CONVERSION_INTERVAL	10000	// Microseconds, corresponds to 100 Hz (cycle count 200 on 3 axis)
+#define RM3100_CONVERSION_INTERVAL	27000	// 27000 Microseconds, corresponds to ~37 Hz
 #define UTESLA_TO_GAUSS			100.0f
 #define RM3100_SENSITIVITY		75.0f
 
@@ -75,11 +74,11 @@
 #define CCY_DEFAULT_LSB		CCX_DEFAULT_LSB
 #define CCZ_DEFAULT_MSB		CCX_DEFAULT_MSB
 #define CCZ_DEFAULT_LSB		CCX_DEFAULT_LSB
-#define CMM_DEFAULT		0x70	// No continuous mode
+#define CMM_DEFAULT		0b0111'0001 // continuous mode
 #define CONTINUOUS_MODE		(1 << 0)
 #define POLLING_MODE		(0 << 0)
-#define TMRC_DEFAULT		0x94
-#define BIST_SELFTEST		0x8F
+#define TMRC_DEFAULT		0x96
+#define BIST_SELFTEST		0b1000'1111
 #define BIST_DEFAULT		0x00
 #define BIST_XYZ_OK		((1 << 4) | (1 << 5) | (1 << 6))
 #define BIST_STE		(1 << 7)
@@ -88,18 +87,12 @@
 #define HSHAKE_NO_DRDY_CLEAR	(0x08)
 #define STATUS_DRDY		(1 << 7)
 #define POLL_XYZ		0x70
-#define RM3100_REVID		0x22
 
-#define NUM_BUS_OPTIONS		(sizeof(bus_options)/sizeof(bus_options[0]))
+#define RM3100_REVID		0x22
 
 /* interface factories */
 extern device::Device *RM3100_SPI_interface(int bus, uint32_t devid, int bus_frequency, spi_mode_e spi_mode);
 extern device::Device *RM3100_I2C_interface(int bus, int bus_frequency);
-
-enum OPERATING_MODE {
-	CONTINUOUS = 0,
-	SINGLE
-};
 
 #define RM3100_ADDRESS		0x20
 
@@ -111,8 +104,6 @@ public:
 
 	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
 	static void print_usage();
-
-	void custom_method(const BusCLIArguments &cli) override;
 
 	int init();
 
@@ -128,26 +119,16 @@ public:
 private:
 	PX4Magnetometer _px4_mag;
 
-	device::Device *_interface;
+	device::Device *_interface{nullptr};
 
-	perf_counter_t _comms_errors;
-	perf_counter_t _conf_errors;
-	perf_counter_t _range_errors;
-	perf_counter_t _sample_perf;
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")};
+	perf_counter_t _conf_errors{perf_alloc(PC_COUNT, MODULE_NAME": conf_errors")};
+	perf_counter_t _range_errors{perf_alloc(PC_COUNT, MODULE_NAME": range_errors")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 
-	/* status reporting */
-	bool _continuous_mode_set;
+	const unsigned int _measure_interval{RM3100_CONVERSION_INTERVAL}; // TMRC Value 0x96, ~27 ms, ~37 Hz
 
-	enum OPERATING_MODE _mode;
-
-	unsigned int _measure_interval;
-
-	uint8_t _check_state_cnt;
-
-	/**
-	 * Collect the result of the most recent measurement.
-	 */
-	int collect();
+	int32_t _raw_data_prev[3] {};
 
 	/**
 	 * Run sensor self-test
@@ -157,35 +138,8 @@ private:
 	int self_test();
 
 	/**
-	 * Check whether new data is available or not
-	 *
-	 * @return 0 if new data is available, 1 else
-	 */
-	int check_measurement();
-
-	/**
 	* Converts int24_t stored in 32-bit container to int32_t
 	*/
 	void convert_signed(int32_t *n);
-
-	/**
-	 * Issue a measurement command.
-	 *
-	 * @return              OK if the measurement command was successful.
-	 */
-	int measure();
-
-	/**
-	 * @brief Resets the device
-	 */
-	int reset();
-
-	/**
-	 * @brief Initialises the automatic measurement state machine and start it.
-	 *
-	 * @note This function is called at open and error time.  It might make sense
-	 *       to make it more aggressive about resetting the bus in case of errors.
-	 */
-	void start();
 
 }; // class RM3100

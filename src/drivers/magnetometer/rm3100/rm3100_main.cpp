@@ -78,12 +78,6 @@ I2CSPIDriverBase *RM3100::instantiate(const I2CSPIDriverConfig &config, int runt
 	return dev;
 }
 
-void
-RM3100::custom_method(const BusCLIArguments &cli)
-{
-	reset();
-}
-
 void RM3100::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("rm3100", "driver");
@@ -91,7 +85,6 @@ void RM3100::print_usage()
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND("reset");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -124,18 +117,12 @@ extern "C" int rm3100_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
-	}
 
-	if (!strcmp(verb, "stop")) {
+	} else if (!strcmp(verb, "stop")) {
 		return ThisDriver::module_stop(iterator);
-	}
 
-	if (!strcmp(verb, "status")) {
+	} else if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
-	}
-
-	if (!strcmp(verb, "reset")) {
-		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	ThisDriver::print_usage();
