@@ -496,18 +496,6 @@ void EKF2::Run()
 
 				_preflt_checker.setVehicleCanObserveHeadingInFlight(vehicle_status.vehicle_type !=
 						vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-
-				_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-
-				// update standby (arming state) flag
-				const bool standby = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
-
-				if (_standby != standby) {
-					_standby = standby;
-
-					// reset preflight checks if transitioning in or out of standby arming state
-					_preflt_checker.reset();
-				}
 			}
 		}
 
@@ -813,7 +801,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_estimator_innovations_pub.publish(innovations);
 
 	// calculate noise filtered velocity innovations which are used for pre-flight checking
-	if (_standby) {
+	if (!_ekf.control_status_flags().in_air) {
 		// TODO: move to run before publications
 		_preflt_checker.setUsingGpsAiding(_ekf.control_status_flags().gps);
 		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
@@ -821,6 +809,10 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingEvVelAiding(_ekf.control_status_flags().ev_vel);
 
 		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
+
+	} else if (_ekf.control_status_flags().in_air != _ekf.control_status_prev_flags().in_air) {
+		// reset preflight checks if transitioning back to landed
+		_preflt_checker.reset();
 	}
 }
 
@@ -901,9 +893,9 @@ void EKF2::PublishLocalPosition(const hrt_abstime &timestamp)
 	lpos.az = vel_deriv(2);
 
 	// TODO: better status reporting
-	lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+	lpos.xy_valid = _ekf.local_position_is_valid();
 	lpos.z_valid = !_preflt_checker.hasVertFailed();
-	lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+	lpos.v_xy_valid = _ekf.local_position_is_valid();
 	lpos.v_z_valid = !_preflt_checker.hasVertFailed();
 
 	// Position of local NED origin in GPS / WGS84 frame
@@ -1923,22 +1915,19 @@ void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 		}
 	}
 
+	// update stored declination value
+	if (!_mag_decl_saved) {
+		float declination_deg;
 
-	if (!_armed) {
-		// update stored declination value
-		if (!_mag_decl_saved) {
-			float declination_deg;
+		if (_ekf.get_mag_decl_deg(&declination_deg)) {
+			_param_ekf2_mag_decl.update();
 
-			if (_ekf.get_mag_decl_deg(&declination_deg)) {
-				_param_ekf2_mag_decl.update();
-
-				if (PX4_ISFINITE(declination_deg) && (fabsf(declination_deg - _param_ekf2_mag_decl.get()) > 0.1f)) {
-					_param_ekf2_mag_decl.set(declination_deg);
-					_param_ekf2_mag_decl.commit_no_notification();
-				}
-
-				_mag_decl_saved = true;
+			if (PX4_ISFINITE(declination_deg) && (fabsf(declination_deg - _param_ekf2_mag_decl.get()) > 0.1f)) {
+				_param_ekf2_mag_decl.set(declination_deg);
+				_param_ekf2_mag_decl.commit_no_notification();
 			}
+
+			_mag_decl_saved = true;
 		}
 	}
 }

@@ -258,7 +258,12 @@ public:
 
 protected:
 
-	EstimatorInterface() = default;
+	EstimatorInterface()
+	{
+		_control_status.flags.in_air = true;
+		_control_status.flags.vehicle_at_rest = false;
+	};
+
 	virtual ~EstimatorInterface();
 
 	virtual bool init(uint64_t timestamp) = 0;
