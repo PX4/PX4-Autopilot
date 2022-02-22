@@ -181,6 +181,7 @@ PARAM_DEFINE_INT32(MNT_DO_STAB, 0);
 *
 * @min 1.0
 * @max 720.0
+* @unit deg
 * @decimal 1
 * @group Mount
 */
@@ -191,6 +192,7 @@ PARAM_DEFINE_FLOAT(MNT_RANGE_PITCH, 90.0f);
 *
 * @min 1.0
 * @max 720.0
+* @unit deg
 * @decimal 1
 * @group Mount
 */
@@ -201,6 +203,7 @@ PARAM_DEFINE_FLOAT(MNT_RANGE_ROLL, 90.0f);
 *
 * @min 1.0
 * @max 720.0
+* @unit deg
 * @decimal 1
 * @group Mount
 */
@@ -211,6 +214,7 @@ PARAM_DEFINE_FLOAT(MNT_RANGE_YAW, 360.0f);
 *
 * @min -360.0
 * @max 360.0
+* @unit deg
 * @decimal 1
 * @group Mount
 */
@@ -221,6 +225,7 @@ PARAM_DEFINE_FLOAT(MNT_OFF_PITCH, 0.0f);
 *
 * @min -360.0
 * @max 360.0
+* @unit deg
 * @decimal 1
 * @group Mount
 */
@@ -231,6 +236,7 @@ PARAM_DEFINE_FLOAT(MNT_OFF_ROLL, 0.0f);
 *
 * @min -360.0
 * @max 360.0
+* @unit deg
 * @decimal 1
 * @group Mount
 */
@@ -243,6 +249,7 @@ PARAM_DEFINE_FLOAT(MNT_OFF_YAW, 0.0f);
  *
  * @min 1.0
  * @max 90.0
+ * @unit deg/s
  * @group Mount
  */
 PARAM_DEFINE_FLOAT(MNT_RATE_PITCH, 30.0f);
@@ -254,6 +261,7 @@ PARAM_DEFINE_FLOAT(MNT_RATE_PITCH, 30.0f);
  *
  * @min 1.0
  * @max 90.0
+ * @unit deg/s
  * @group Mount
  */
 PARAM_DEFINE_FLOAT(MNT_RATE_YAW, 30.0f);
@@ -268,3 +276,25 @@ PARAM_DEFINE_FLOAT(MNT_RATE_YAW, 30.0f);
  * @group Mount
  */
 PARAM_DEFINE_INT32(MNT_RC_IN_MODE, 1);
+
+/**
+* Pitch minimum when landed
+*
+* @min -90.0
+* @max 90.0
+* @unit deg
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_LND_P_MIN, -90.0f);
+
+/**
+* Pitch maximum when landed
+*
+* @min -90.0
+* @max 90.0
+* @unit deg
+* @decimal 1
+* @group Mount
+*/
+PARAM_DEFINE_FLOAT(MNT_LND_P_MAX, 90.0f);

@@ -228,6 +228,8 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 				update_result = thread_data.input_objs[i]->update(poll_timeout, control_data, already_active);
 
+				bool break_loop = false;
+
 				switch (update_result) {
 				case InputBase::UpdateResult::NoUpdate:
 					if (already_active) {
@@ -239,10 +241,12 @@ static int gimbal_thread_main(int argc, char *argv[])
 
 				case InputBase::UpdateResult::UpdatedActive:
 					thread_data.last_input_active = i;
+					break_loop = true;
 					break;
 
 				case InputBase::UpdateResult::UpdatedActiveOnce:
 					thread_data.last_input_active = -1;
+					break_loop = true;
 					break;
 
 				case InputBase::UpdateResult::UpdatedNotActive:
@@ -251,6 +255,10 @@ static int gimbal_thread_main(int argc, char *argv[])
 						thread_data.last_input_active = -1;
 					}
 
+					break;
+				}
+
+				if (break_loop) {
 					break;
 				}
 			}
@@ -462,6 +470,8 @@ void update_params(ParameterHandles &param_handles, Parameters &params)
 	param_get(param_handles.mnt_rate_pitch, &params.mnt_rate_pitch);
 	param_get(param_handles.mnt_rate_yaw, &params.mnt_rate_yaw);
 	param_get(param_handles.mnt_rc_in_mode, &params.mnt_rc_in_mode);
+	param_get(param_handles.mnt_lnd_p_min, &params.mnt_lnd_p_min);
+	param_get(param_handles.mnt_lnd_p_max, &params.mnt_lnd_p_max);
 }
 
 bool initialize_params(ParameterHandles &param_handles, Parameters &params)
@@ -487,6 +497,8 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	param_handles.mnt_rate_pitch = param_find("MNT_RATE_PITCH");
 	param_handles.mnt_rate_yaw = param_find("MNT_RATE_YAW");
 	param_handles.mnt_rc_in_mode = param_find("MNT_RC_IN_MODE");
+	param_handles.mnt_lnd_p_min = param_find("MNT_LND_P_MIN");
+	param_handles.mnt_lnd_p_max = param_find("MNT_LND_P_MAX");
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||
@@ -508,7 +520,9 @@ bool initialize_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mav_compid == PARAM_INVALID ||
 	    param_handles.mnt_rate_pitch == PARAM_INVALID ||
 	    param_handles.mnt_rate_yaw == PARAM_INVALID ||
-	    param_handles.mnt_rc_in_mode == PARAM_INVALID
+	    param_handles.mnt_rc_in_mode == PARAM_INVALID ||
+	    param_handles.mnt_lnd_p_min == PARAM_INVALID ||
+	    param_handles.mnt_lnd_p_max == PARAM_INVALID
 	   ) {
 		return false;
 	}

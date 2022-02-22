@@ -320,6 +320,8 @@ public:
 	void acquire_gimbal_control();
 	void release_gimbal_control();
 
+	void 		calculate_breaking_stop(double &lat, double &lon, float &yaw);
+
 private:
 
 	struct traffic_buffer_s {

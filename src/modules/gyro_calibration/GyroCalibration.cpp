@@ -232,7 +232,7 @@ void GyroCalibration::Run()
 		bool calibration_updated = false;
 
 		for (int gyro = 0; gyro < _sensor_gyro_subs.size(); gyro++) {
-			if (_gyro_calibration[gyro].device_id() != 0) {
+			if (_gyro_calibration[gyro].device_id() != 0 && _gyro_mean[gyro].valid()) {
 
 				// check variance again before saving
 				if (_gyro_mean[gyro].variance().longerThan(0.001f)) {

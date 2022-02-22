@@ -83,7 +83,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("position_setpoint_triplet", 200);
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
-	add_optional_topic("rpm", 500);
 	add_topic("rtl_time_estimate", 1000);
 	add_topic("safety");
 	add_topic("sensor_combined");
@@ -123,6 +122,7 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
 	add_topic_multi("sensor_hygrometer", 500, 4);
+	add_optional_topic_multi("rpm", 200);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
 	// EKF multi topics (currently max 9 estimators)
@@ -138,9 +138,9 @@ void LoggedTopics::add_default_topics()
 #endif
 
 	// always add the first instance
-	add_topic("ekf_gps_drift", 1000);
 	add_topic("estimator_baro_bias", 500);
 	add_topic("estimator_event_flags", 0);
+	add_topic("estimator_gps_status", 1000);
 	add_topic("estimator_innovation_test_ratios", 500);
 	add_topic("estimator_innovation_variances", 500);
 	add_topic("estimator_innovations", 500);
@@ -152,9 +152,9 @@ void LoggedTopics::add_default_topics()
 	add_topic("estimator_visual_odometry_aligned", 200);
 	add_topic("yaw_estimator_status", 1000);
 
-	add_optional_topic_multi("ekf_gps_drift", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_baro_bias", 500, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_event_flags", 0, MAX_ESTIMATOR_INSTANCES);
+	add_optional_topic_multi("estimator_gps_status", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_innovation_test_ratios", 500, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_innovation_variances", 500, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_innovations", 500, MAX_ESTIMATOR_INSTANCES);
@@ -194,9 +194,9 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_local_position_groundtruth", 100);
 
 	// EKF replay
-	add_topic("ekf_gps_drift");
 	add_topic("estimator_baro_bias");
 	add_topic("estimator_event_flags");
+	add_topic("estimator_gps_status");
 	add_topic("estimator_innovation_test_ratios");
 	add_topic("estimator_innovation_variances");
 	add_topic("estimator_innovations");
