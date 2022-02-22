@@ -112,7 +112,7 @@ TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 
 	// THEN: By default, both rng and flow aiding are active
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainRngFusion());
-	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainFlowFusion());
+	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainFlowFusion());
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
 	EXPECT_NEAR(estimated_distance_to_ground, simulated_distance_to_ground, 1e-3f);
 

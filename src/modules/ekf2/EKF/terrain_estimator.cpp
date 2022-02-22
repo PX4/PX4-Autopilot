@@ -57,7 +57,6 @@ void Ekf::controlHaglFusion()
 	}
 
 	controlHaglRngFusion();
-	controlHaglFlowFusion();
 	controlHaglFakeFusion();
 
 	// constrain terrain position to be a minimum of _params.rng_gnd_clearance larger than _state.pos(2)
@@ -188,10 +187,7 @@ void Ekf::controlHaglFlowFusion()
 
 	if (_flow_data_ready) {
 		const bool continuing_conditions_passing = _control_status.flags.in_air
-		                                           && !_control_status.flags.opt_flow
-							   && _control_status.flags.gps
-							   && isTimedOut(_time_last_hagl_fuse, 5e6f); // TODO: check for range_finder hagl aiding instead?
-							   /* && !_hagl_sensor_status.flags.range_finder; */
+							   && _control_status.flags.gps;
 		const bool starting_conditions_passing = continuing_conditions_passing;
 
 		if (_hagl_sensor_status.flags.flow) {

@@ -437,6 +437,8 @@ void Ekf::controlOpticalFlowFusion()
 		_inhibit_flow_use = ((preflight_motion_not_ok || flight_condition_not_ok) && !is_flow_required)
 				    || !_control_status.flags.tilt_align;
 
+		controlHaglFlowFusion();
+
 		// Handle cases where we are using optical flow but we should not use it anymore
 		if (_control_status.flags.opt_flow) {
 			if (!(_params.fusion_mode & MASK_USE_OF)
