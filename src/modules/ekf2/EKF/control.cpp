@@ -1065,7 +1065,6 @@ void Ekf::controlAuxVelFusion()
 bool Ekf::hasHorizontalAidingTimedOut() const
 {
 	return isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
-	       && isTimedOut(_time_last_delpos_fuse, _params.reset_timeout_max)
 	       && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
 	       && isTimedOut(_time_last_of_fuse, _params.reset_timeout_max);
 }

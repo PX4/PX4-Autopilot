@@ -1013,8 +1013,8 @@ void Ekf::update_deadreckoning_status()
 {
 	const bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel)
 				  && (isRecent(_time_last_hor_pos_fuse, _params.no_aid_timeout_max)
-				      || isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max)
-				      || isRecent(_time_last_delpos_fuse, _params.no_aid_timeout_max));
+				      || isRecent(_time_last_hor_vel_fuse, _params.no_aid_timeout_max));
+
 	const bool optFlowAiding = _control_status.flags.opt_flow && isRecent(_time_last_of_fuse, _params.no_aid_timeout_max);
 	const bool airDataAiding = _control_status.flags.wind &&
 				   isRecent(_time_last_arsp_fuse, _params.no_aid_timeout_max) &&
