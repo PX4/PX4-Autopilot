@@ -51,7 +51,7 @@ using namespace time_literals;
 
 ControlAllocator::ControlAllocator() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
@@ -284,6 +284,9 @@ ControlAllocator::Run()
 	}
 
 	perf_begin(_loop_perf);
+
+	// Push backup schedule
+	ScheduleDelayed(50_ms);
 
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated() && !_armed) {
