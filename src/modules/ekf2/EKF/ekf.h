@@ -327,12 +327,6 @@ private:
 
 	bool initialiseTilt();
 
-	// Request the EKF reset the yaw to the estimate from the internal EKF-GSF filter
-	// and reset the velocity and position states to the GPS. This will cause the EKF
-	// to ignore the magnetometer for the remainder of flight.
-	// This should only be used as a last resort before activating a loss of navigation failsafe
-	void requestEmergencyNavReset() { _do_ekfgsf_yaw_reset = true; }
-
 	// check if the EKF is dead reckoning horizontal velocity using inertial data only
 	void update_deadreckoning_status();
 
@@ -521,7 +515,6 @@ private:
 	uint64_t _time_last_mov_3d_mag_suitable{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
 	float _saved_mag_bf_variance[4] {};	///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
 	Matrix2f _saved_mag_ef_covmat{};		///< NE magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
-	bool _velpos_reset_request{false};	///< true when a large yaw error has been fixed and a velocity and position state reset is required
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 
@@ -630,28 +623,19 @@ private:
 	// fuse single velocity and position measurement
 	bool fuseVelPosHeight(const float innov, const float innov_var, const int obs_index);
 
-	void resetVelocity();
-
-	void resetVelocityToGps();
-
-	void resetHorizontalVelocityToOpticalFlow();
-
-	void resetVelocityToVision();
-
-	void resetHorizontalVelocityToZero();
-
 	void resetVelocityTo(const Vector3f &vel);
-
 	void resetHorizontalVelocityTo(const Vector2f &new_horz_vel);
-
 	void resetVerticalVelocityTo(float new_vert_vel);
 
-	void resetHorizontalPosition();
+	void resetVelocityToGps(const gpsSample &gps_sample_delayed);
+	void resetHorizontalVelocityToOpticalFlow();
+	void resetVelocityToVision();
+	void resetHorizontalVelocityToZero();
 
-	void resetHorizontalPositionToGps();
-
+	void resetHorizontalPositionToGps(const gpsSample &gps_sample_delayed);
 	void resetHorizontalPositionToVision();
-
+	void resetHorizontalPositionToOpticalFlow();
+	void resetHorizontalPositionToLastKnown();
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
 
 	void resetVerticalPositionTo(float new_vert_pos);
@@ -661,7 +645,7 @@ private:
 	void resetHeightToRng();
 	void resetHeightToEv();
 
-	void resetVerticalVelocityToGps();
+	void resetVerticalVelocityToGps(const gpsSample &gps_sample_delayed);
 	void resetVerticalVelocityToZero();
 
 	// fuse optical flow line of sight rate measurements
@@ -834,8 +818,6 @@ private:
 	bool shouldResetGpsFusion() const;
 	bool hasHorizontalAidingTimedOut() const;
 	bool isYawFailure() const;
-	void processYawEstimatorResetRequest();
-	void processVelPosResetRequest();
 
 	void controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing);
 
@@ -852,8 +834,6 @@ private:
 	bool isYawResetAuthorized() const { return !_is_yaw_fusion_inhibited; }
 	bool canResetMagHeading() const;
 	void runInAirYawReset(const Vector3f &mag);
-	bool canRealignYawUsingGps() const { return _control_status.flags.fixed_wing; }
-	void runVelPosReset();
 
 	void selectMagAuto();
 	void check3DMagFusionSuitability();
@@ -1039,10 +1019,8 @@ private:
 	BaroBiasEstimator _baro_b_est{};
 
 	int64_t _ekfgsf_yaw_reset_time{0};	///< timestamp of last emergency yaw reset (uSec)
-	bool _do_ekfgsf_yaw_reset{false};	// true when an emergency yaw reset has been requested
 	uint8_t _ekfgsf_yaw_reset_count{0};	// number of times the yaw has been reset to the EKF-GSF estimate
 
-	// Call once per _imu_sample_delayed update after all main EKF data fusion oeprations have been completed
 	void runYawEKFGSF();
 
 	// Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator

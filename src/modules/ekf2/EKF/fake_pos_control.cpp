@@ -88,8 +88,8 @@ void Ekf::startFakePosFusion()
 void Ekf::resetFakePosFusion()
 {
 	_last_known_posNE = _state.pos.xy();
-	resetHorizontalPosition();
-	resetVelocity();
+	resetHorizontalPositionToLastKnown();
+	resetHorizontalVelocityToZero();
 	_time_last_fake_pos_fuse = _time_last_imu;
 }
 

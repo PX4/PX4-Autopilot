@@ -44,29 +44,12 @@
 #include <mathlib/mathlib.h>
 #include <cstdlib>
 
-void Ekf::resetVelocity()
-{
-	if (_control_status.flags.gps && isTimedOut(_last_gps_fail_us, (uint64_t)_min_gps_health_time_us)) {
-		// this reset is only called if we have new gps data at the fusion time horizon
-		resetVelocityToGps();
-
-	} else if (_control_status.flags.opt_flow) {
-		resetHorizontalVelocityToOpticalFlow();
-
-	} else if (_control_status.flags.ev_vel) {
-		resetVelocityToVision();
-
-	} else {
-		resetHorizontalVelocityToZero();
-	}
-}
-
-void Ekf::resetVelocityToGps()
+void Ekf::resetVelocityToGps(const gpsSample &gps_sample_delayed)
 {
 	_information_events.flags.reset_vel_to_gps = true;
 	ECL_INFO("reset velocity to GPS");
-	resetVelocityTo(_gps_sample_delayed.vel);
-	P.uncorrelateCovarianceSetVariance<3>(4, sq(_gps_sample_delayed.sacc));
+	resetVelocityTo(gps_sample_delayed.vel);
+	P.uncorrelateCovarianceSetVariance<3>(4, sq(gps_sample_delayed.sacc));
 }
 
 void Ekf::resetHorizontalVelocityToOpticalFlow()
@@ -136,6 +119,9 @@ void Ekf::resetHorizontalVelocityTo(const Vector2f &new_horz_vel)
 
 	_state_reset_status.velNE_change = delta_horz_vel;
 	_state_reset_status.velNE_counter++;
+
+	// Reset the timout timer
+	_time_last_hor_vel_fuse = _time_last_imu;
 }
 
 void Ekf::resetVerticalVelocityTo(float new_vert_vel)
@@ -153,48 +139,17 @@ void Ekf::resetVerticalVelocityTo(float new_vert_vel)
 
 	_state_reset_status.velD_change = delta_vert_vel;
 	_state_reset_status.velD_counter++;
+
+	// Reset the timout timer
+	_time_last_ver_vel_fuse = _time_last_imu;
 }
 
-void Ekf::resetHorizontalPosition()
-{
-	if (_control_status.flags.gps) {
-		// this reset is only called if we have new gps data at the fusion time horizon
-		resetHorizontalPositionToGps();
-
-	} else if (_control_status.flags.ev_pos) {
-		// this reset is only called if we have new ev data at the fusion time horizon
-		resetHorizontalPositionToVision();
-
-	} else if (_control_status.flags.opt_flow) {
-		_information_events.flags.reset_pos_to_last_known = true;
-		ECL_INFO("reset position to last known position");
-
-		if (!_control_status.flags.in_air) {
-			// we are likely starting OF for the first time so reset the horizontal position
-			resetHorizontalPositionTo(Vector2f(0.f, 0.f));
-
-		} else {
-			resetHorizontalPositionTo(_last_known_posNE);
-		}
-
-		// estimate is relative to initial position in this mode, so we start with zero error.
-		P.uncorrelateCovarianceSetVariance<2>(7, 0.0f);
-
-	} else {
-		_information_events.flags.reset_pos_to_last_known = true;
-		ECL_INFO("reset position to last known position");
-		// Used when falling back to non-aiding mode of operation
-		resetHorizontalPositionTo(_last_known_posNE);
-		P.uncorrelateCovarianceSetVariance<2>(7, sq(_params.pos_noaid_noise));
-	}
-}
-
-void Ekf::resetHorizontalPositionToGps()
+void Ekf::resetHorizontalPositionToGps(const gpsSample &gps_sample_delayed)
 {
 	_information_events.flags.reset_pos_to_gps = true;
 	ECL_INFO("reset position to GPS");
-	resetHorizontalPositionTo(_gps_sample_delayed.pos);
-	P.uncorrelateCovarianceSetVariance<2>(7, sq(_gps_sample_delayed.hacc));
+	resetHorizontalPositionTo(gps_sample_delayed.pos);
+	P.uncorrelateCovarianceSetVariance<2>(7, sq(gps_sample_delayed.hacc));
 }
 
 void Ekf::resetHorizontalPositionToVision()
@@ -214,6 +169,32 @@ void Ekf::resetHorizontalPositionToVision()
 	_hpos_prev_available = false;
 }
 
+void Ekf::resetHorizontalPositionToOpticalFlow()
+{
+	_information_events.flags.reset_pos_to_last_known = true;
+	ECL_INFO("reset position to last known position");
+
+	if (!_control_status.flags.in_air) {
+		// we are likely starting OF for the first time so reset the horizontal position
+		resetHorizontalPositionTo(Vector2f(0.f, 0.f));
+
+	} else {
+		resetHorizontalPositionTo(_last_known_posNE);
+	}
+
+	// estimate is relative to initial position in this mode, so we start with zero error.
+	P.uncorrelateCovarianceSetVariance<2>(7, 0.0f);
+}
+
+void Ekf::resetHorizontalPositionToLastKnown()
+{
+	_information_events.flags.reset_pos_to_last_known = true;
+	ECL_INFO("reset position to last known position");
+	// Used when falling back to non-aiding mode of operation
+	resetHorizontalPositionTo(_last_known_posNE);
+	P.uncorrelateCovarianceSetVariance<2>(7, sq(_params.pos_noaid_noise));
+}
+
 void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos)
 {
 	const Vector2f delta_horz_pos{new_horz_pos - Vector2f{_state.pos}};
@@ -227,6 +208,9 @@ void Ekf::resetHorizontalPositionTo(const Vector2f &new_horz_pos)
 
 	_state_reset_status.posNE_change = delta_horz_pos;
 	_state_reset_status.posNE_counter++;
+
+	// Reset the timout timer
+	_time_last_hor_pos_fuse = _time_last_imu;
 }
 
 void Ekf::resetVerticalPositionTo(const float new_vert_pos)
@@ -310,12 +294,12 @@ void Ekf::resetHeightToEv()
 	_baro_hgt_offset += _state.pos(2) - z_pos_before_reset;
 }
 
-void Ekf::resetVerticalVelocityToGps()
+void Ekf::resetVerticalVelocityToGps(const gpsSample &gps_sample_delayed)
 {
-	resetVerticalVelocityTo(_gps_sample_delayed.vel(2));
+	resetVerticalVelocityTo(gps_sample_delayed.vel(2));
 
 	// the state variance is the same as the observation
-	P.uncorrelateCovarianceSetVariance<1>(6, sq(1.5f * _gps_sample_delayed.sacc));
+	P.uncorrelateCovarianceSetVariance<1>(6, sq(1.5f * gps_sample_delayed.sacc));
 }
 
 void Ekf::resetVerticalVelocityToZero()
@@ -440,7 +424,10 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 
 		// If heading was bad, then we also need to reset the velocity and position states
-		_velpos_reset_request = badMagYaw;
+		if (badMagYaw) {
+			resetVelocityToGps(_gps_sample_delayed);
+			resetHorizontalPositionToGps(_gps_sample_delayed);
+		}
 
 		return true;
 
@@ -1531,17 +1518,18 @@ void Ekf::stopAirspeedFusion()
 
 void Ekf::startGpsFusion()
 {
-	resetHorizontalPositionToGps();
+	if (!_control_status.flags.gps) {
+		resetHorizontalPositionToGps(_gps_sample_delayed);
 
-	// when using optical flow,
-	// velocity reset is not necessary
-	if (!_control_status.flags.opt_flow) {
-		resetVelocityToGps();
+		// when already using another velocity source velocity reset is not necessary
+		if (!_control_status.flags.opt_flow && !_control_status.flags.ev_vel) {
+			resetVelocityToGps(_gps_sample_delayed);
+		}
+
+		_information_events.flags.starting_gps_fusion = true;
+		ECL_INFO("starting GPS fusion");
+		_control_status.flags.gps = true;
 	}
-
-	_information_events.flags.starting_gps_fusion = true;
-	ECL_INFO("starting GPS fusion");
-	_control_status.flags.gps = true;
 }
 
 void Ekf::stopGpsFusion()
@@ -1601,7 +1589,7 @@ void Ekf::stopGpsYawFusion()
 void Ekf::startEvPosFusion()
 {
 	_control_status.flags.ev_pos = true;
-	resetHorizontalPosition();
+	resetHorizontalPositionToVision();
 	_information_events.flags.starting_vision_pos_fusion = true;
 	ECL_INFO("starting vision pos fusion");
 }
@@ -1609,7 +1597,7 @@ void Ekf::startEvPosFusion()
 void Ekf::startEvVelFusion()
 {
 	_control_status.flags.ev_vel = true;
-	resetVelocity();
+	resetVelocityToVision();
 	_information_events.flags.starting_vision_vel_fusion = true;
 	ECL_INFO("starting vision vel fusion");
 }
@@ -1722,41 +1710,26 @@ bool Ekf::resetYawToEKFGSF()
 
 	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar(), true);
 
-	// reset velocity and position states to GPS - if yaw is fixed then the filter should start to operate correctly
-	resetVelocity();
-	resetHorizontalPosition();
-
 	// record a magnetic field alignment event to prevent possibility of the EKF trying to reset the yaw to the mag later in flight
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 	_control_status.flags.yaw_align = true;
 
-	const bool is_mag_fusion_active = _control_status.flags.mag_hdg
-	                                  || _control_status.flags.mag_3D;
-	const bool is_yaw_aiding_active = is_mag_fusion_active
-	                                  || _control_status.flags.gps_yaw
-					  || _control_status.flags.ev_yaw;
+	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
+		// and cause another navigation failure
+		_control_status.flags.mag_fault = true;
+		_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
 
-	if (!is_yaw_aiding_active) {
-		_information_events.flags.yaw_aligned_to_imu_gps = true;
-		ECL_INFO("Yaw aligned using IMU and GPS");
+	} else if (_control_status.flags.gps_yaw) {
+		_control_status.flags.gps_yaw_fault = true;
+		_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
 
-	} else {
-		if (is_mag_fusion_active) {
-			// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
-			// and cause another navigation failure
-			_control_status.flags.mag_fault = true;
-			_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
-
-		} else if (_control_status.flags.gps_yaw) {
-			_control_status.flags.gps_yaw_fault = true;
-			_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
-
-		} else if (_control_status.flags.ev_yaw) {
-			_inhibit_ev_yaw_use = true;
-		}
-
-		ECL_WARN("Emergency yaw reset");
+	} else if (_control_status.flags.ev_yaw) {
+		_inhibit_ev_yaw_use = true;
 	}
+
+	_ekfgsf_yaw_reset_time = _time_last_imu;
+	_ekfgsf_yaw_reset_count++;
 
 	return true;
 }
