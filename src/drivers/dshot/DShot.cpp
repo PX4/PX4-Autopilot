@@ -478,7 +478,9 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		_current_command.clear();
 	}
 
-	up_dshot_trigger();
+	if (stop_motors || num_control_groups_updated > 0 || _mixing_output.useDynamicMixing()) {
+		up_dshot_trigger();
+	}
 
 	return true;
 }
