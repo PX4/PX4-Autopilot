@@ -41,6 +41,7 @@
  */
 
 #include "ghst_telemetry.hpp"
+
 #include <lib/rc/ghst.hpp>
 
 using time_literals::operator ""_s;
