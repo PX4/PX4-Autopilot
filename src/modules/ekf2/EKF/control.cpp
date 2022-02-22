@@ -106,6 +106,21 @@ void Ekf::controlFusionModes()
 		// check for arrival of new sensor data at the fusion time horizon
 		_time_prev_gps_us = _gps_sample_delayed.time_us;
 		_gps_data_ready = _gps_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
+
+		if (_gps_data_ready) {
+			// correct velocity for offset relative to IMU
+			const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+			const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+			const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
+			_gps_sample_delayed.vel -= vel_offset_earth;
+
+			// correct position and height for offset relative to IMU
+			const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+			_gps_sample_delayed.pos -= pos_offset_earth.xy();
+			_gps_sample_delayed.hgt += pos_offset_earth(2);
+
+			_gps_sample_delayed.sacc = fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise);
+		}
 	}
 
 	if (_range_buffer) {
@@ -144,6 +159,9 @@ void Ekf::controlFusionModes()
 	if (_airspeed_buffer) {
 		_tas_data_ready = _airspeed_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_airspeed_sample_delayed);
 	}
+
+	// run EKF-GSF yaw estimator once per _imu_sample_delayed update after all main EKF data samples available
+	runYawEKFGSF();
 
 	// check for height sensor timeouts and reset and change sensor if necessary
 	controlHeightSensorTimeouts();
@@ -227,7 +245,9 @@ void Ekf::controlExternalVisionFusion()
 		// determine if we should use the horizontal position observations
 		if (_control_status.flags.ev_pos) {
 			if (reset && _control_status_prev.flags.ev_pos) {
-				resetHorizontalPosition();
+				if (!_fuse_hpos_as_odom) {
+					resetHorizontalPositionToVision();
+				}
 			}
 
 			Vector3f ev_pos_obs_var;
@@ -286,10 +306,13 @@ void Ekf::controlExternalVisionFusion()
 					// only reset velocity if we have no another source of aiding constraining it
 					if (isTimedOut(_time_last_of_fuse, (uint64_t)1E6) &&
 					    isTimedOut(_time_last_hor_vel_fuse, (uint64_t)1E6)) {
-						resetVelocity();
+
+						if (_control_status.flags.ev_vel) {
+							resetVelocityToVision();
+						}
 					}
 
-					resetHorizontalPosition();
+					resetHorizontalPositionToVision();
 				}
 			}
 
@@ -302,7 +325,7 @@ void Ekf::controlExternalVisionFusion()
 		// determine if we should use the velocity observations
 		if (_control_status.flags.ev_vel) {
 			if (reset && _control_status_prev.flags.ev_vel) {
-				resetVelocity();
+				resetVelocityToVision();
 			}
 
 			_ev_vel_innov = _state.vel - getVisionVelocityInEkfFrame();
@@ -312,7 +335,7 @@ void Ekf::controlExternalVisionFusion()
 				// only reset velocity if we have no another source of aiding constraining it
 				if (isTimedOut(_time_last_of_fuse, (uint64_t)1E6) &&
 				    isTimedOut(_time_last_hor_pos_fuse, (uint64_t)1E6)) {
-					resetVelocity();
+					resetVelocityToVision();
 				}
 			}
 
@@ -460,8 +483,8 @@ void Ekf::controlOpticalFlowFusion()
 				const bool flow_aid_only = !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow);
 
 				if (flow_aid_only) {
-					resetVelocity();
-					resetHorizontalPosition();
+					resetHorizontalVelocityToOpticalFlow();
+					resetHorizontalPositionToOpticalFlow();
 				}
 			}
 		}
@@ -483,8 +506,8 @@ void Ekf::controlOpticalFlowFusion()
 			if (isTimedOut(_time_last_of_fuse, _params.reset_timeout_max)
 			    && !isOtherSourceOfHorizontalAidingThan(_control_status.flags.opt_flow)) {
 
-				resetVelocity();
-				resetHorizontalPosition();
+				resetHorizontalVelocityToOpticalFlow();
+				resetHorizontalPositionToOpticalFlow();
 			}
 		}
 
@@ -726,7 +749,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 		// Also reset the vertical velocity
 		if (_control_status.flags.gps && !_gps_intermittent && _gps_checks_passed) {
-			resetVerticalVelocityToGps();
+			resetVerticalVelocityToGps(_gps_sample_delayed);
 
 		} else {
 			resetVerticalVelocityToZero();
@@ -1067,17 +1090,4 @@ bool Ekf::hasHorizontalAidingTimedOut() const
 	return isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
 	       && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
 	       && isTimedOut(_time_last_of_fuse, _params.reset_timeout_max);
-}
-
-void Ekf::processVelPosResetRequest()
-{
-	if (_velpos_reset_request) {
-		resetVelocity();
-		resetHorizontalPosition();
-		_velpos_reset_request = false;
-
-		// Reset the timeout counters
-		_time_last_hor_pos_fuse = _time_last_imu;
-		_time_last_hor_vel_fuse = _time_last_imu;
-	}
 }

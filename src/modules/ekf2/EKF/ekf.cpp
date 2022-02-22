@@ -110,9 +110,6 @@ bool Ekf::update()
 		runTerrainEstimator();
 
 		updated = true;
-
-		// run EKF-GSF yaw estimator
-		runYawEKFGSF();
 	}
 
 	// the output observer always runs
