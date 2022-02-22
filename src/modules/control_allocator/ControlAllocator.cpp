@@ -501,10 +501,16 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[i];
 
 			for (int n = 0; n < NUM_AXES; n++) {
-				if (matrix.row(i).max() < 0.05f) {
-					for (int m = 0; m < _num_actuators[i]; m++) {
-						matrix(n, m) = 0.f;
+				bool all_entries_small = true;
+
+				for (int m = 0; m < config.num_actuators_matrix[i]; m++) {
+					if (fabsf(matrix(n, m)) > 0.05f) {
+						all_entries_small = false;
 					}
+				}
+
+				if (all_entries_small) {
+					matrix.row(n) = 0.f;
 				}
 			}
 

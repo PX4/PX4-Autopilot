@@ -64,7 +64,7 @@ set(msg_files
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_timestamps.msg
-	ekf_gps_drift.msg
+	estimator_gps_status.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_baro_bias.msg
