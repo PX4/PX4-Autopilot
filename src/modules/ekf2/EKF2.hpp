@@ -67,9 +67,9 @@
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_timestamps.h>
-#include <uORB/topics/ekf_gps_drift.h>
 #include <uORB/topics/estimator_baro_bias.h>
 #include <uORB/topics/estimator_event_flags.h>
+#include <uORB/topics/estimator_gps_status.h>
 #include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/estimator_optical_flow_vel.h>
 #include <uORB/topics/estimator_sensor_bias.h>
@@ -137,9 +137,9 @@ private:
 
 	void PublishAttitude(const hrt_abstime &timestamp);
 	void PublishBaroBias(const hrt_abstime &timestamp);
-	void PublishEkfDriftMetrics(const hrt_abstime &timestamp);
 	void PublishEventFlags(const hrt_abstime &timestamp);
 	void PublishGlobalPosition(const hrt_abstime &timestamp);
+	void PublishGpsStatus(const hrt_abstime &timestamp);
 	void PublishInnovations(const hrt_abstime &timestamp);
 	void PublishInnovationTestRatios(const hrt_abstime &timestamp);
 	void PublishInnovationVariances(const hrt_abstime &timestamp);
@@ -238,6 +238,7 @@ private:
 	Vector3f _last_mag_calibration_published{};
 
 	hrt_abstime _last_sensor_bias_published{0};
+	hrt_abstime _last_gps_status_published{0};
 
 	float _last_baro_bias_published{};
 
@@ -285,17 +286,17 @@ private:
 	uint32_t _filter_information_event_changes{0};
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
-	uORB::PublicationMulti<ekf_gps_drift_s>              _ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
 	uORB::PublicationMulti<estimator_baro_bias_s>        _estimator_baro_bias_pub{ORB_ID(estimator_baro_bias)};
+	uORB::PublicationMulti<estimator_event_flags_s>      _estimator_event_flags_pub{ORB_ID(estimator_event_flags)};
+	uORB::PublicationMulti<estimator_gps_status_s>       _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovations_pub{ORB_ID(estimator_innovations)};
 	uORB::PublicationMulti<estimator_optical_flow_vel_s> _estimator_optical_flow_vel_pub{ORB_ID(estimator_optical_flow_vel)};
 	uORB::PublicationMulti<estimator_sensor_bias_s>      _estimator_sensor_bias_pub{ORB_ID(estimator_sensor_bias)};
 	uORB::PublicationMulti<estimator_states_s>           _estimator_states_pub{ORB_ID(estimator_states)};
-	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::PublicationMulti<estimator_status_flags_s>     _estimator_status_flags_pub{ORB_ID(estimator_status_flags)};
-	uORB::PublicationMulti<estimator_event_flags_s>      _estimator_event_flags_pub{ORB_ID(estimator_event_flags)};
+	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::PublicationMulti<vehicle_odometry_s>           _estimator_visual_odometry_aligned_pub{ORB_ID(estimator_visual_odometry_aligned)};
 	uORB::PublicationMulti<yaw_estimator_status_s>       _yaw_est_pub{ORB_ID(yaw_estimator_status)};
 

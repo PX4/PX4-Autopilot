@@ -66,6 +66,7 @@ private:
 		if (_mount_orientation_sub.update(&mount_orientation)) {
 			mavlink_mount_orientation_t msg{};
 
+			msg.time_boot_ms = mount_orientation.timestamp / 1000;
 			msg.roll = math::degrees(mount_orientation.attitude_euler_angle[0]);
 			msg.pitch = math::degrees(mount_orientation.attitude_euler_angle[1]);
 			msg.yaw = math::degrees(mount_orientation.attitude_euler_angle[2]);

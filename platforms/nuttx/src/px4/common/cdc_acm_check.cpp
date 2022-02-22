@@ -87,9 +87,26 @@ static void mavlink_usb_check(void *arg)
 	uORB::SubscriptionData<actuator_armed_s> actuator_armed_sub{ORB_ID(actuator_armed)};
 
 	const bool armed = actuator_armed_sub.get().armed;
-	const bool vbus_present = (board_read_VBUS_state() == PX4_OK);
+	bool vbus_present = (board_read_VBUS_state() == PX4_OK);
+	bool locked_out = false;
 
-	if (!armed) {
+	// If the hardware support RESET lockout that has nArmed ANDed with VBUS
+	// vbus_sense may drop during a param save which uses
+	// BOARD_INDICATE_EXTERNAL_LOCKOUT_STATE to prevent external resets
+	// while writing the params.  If we are not armed and nARMRED is low
+	// we are in such a lock out so ignore changes on VBUS_SENSE during this
+	// time.
+#if defined(BOARD_GET_EXTERNAL_LOCKOUT_STATE)
+	locked_out = BOARD_GET_EXTERNAL_LOCKOUT_STATE() == 0;
+
+	if (locked_out) {
+		vbus_present = vbus_present_prev;
+	}
+
+#endif
+
+
+	if (!armed && !locked_out) {
 		switch (usb_auto_start_state) {
 		case UsbAutoStartState::disconnected:
 			if (vbus_present && vbus_present_prev) {
