@@ -119,8 +119,9 @@ BrushlessRPMPWM::measure()
 	rpm_s msg{};
 	msg.indicated_frequency_rpm = (float)rpm;
 
-	// there is no accuracy information coming from this sensor, so set accuracy to 1.
-	msg.estimated_accurancy_rpm = 1;
+	// there is no accuracy information coming from this sensor, so set accuracy to -1
+	// for not set.
+	msg.estimated_accurancy_rpm = -1;
 	msg.timestamp = timestamp_sample;
 	_rpm_pub.publish(msg);
 
