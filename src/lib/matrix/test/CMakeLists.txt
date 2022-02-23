@@ -16,7 +16,6 @@ set(tests
     vector
     vector2
     vector3
-    filter
     integration
     squareMatrix
     helper
@@ -43,5 +42,6 @@ px4_add_unit_gtest(SRC MatrixAssignmentTest.cpp)
 px4_add_unit_gtest(SRC MatrixAttitudeTest.cpp)
 px4_add_unit_gtest(SRC MatrixCopyToTest.cpp)
 px4_add_unit_gtest(SRC MatrixDualTest.cpp)
+px4_add_unit_gtest(SRC MatrixFilterTest.cpp)
 px4_add_unit_gtest(SRC MatrixSparseVectorTest.cpp)
 px4_add_unit_gtest(SRC MatrixUnwrapTest.cpp)
