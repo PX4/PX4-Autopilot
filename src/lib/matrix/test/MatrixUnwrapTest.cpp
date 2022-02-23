@@ -3,7 +3,7 @@
 
 using namespace matrix;
 
-TEST(Unwrap, UnwrapFloats)
+TEST(MatrixUnwrapTest, UnwrapFloats)
 {
 	const float M_TWO_PI_F = float(M_PI * 2);
 
@@ -32,7 +32,7 @@ TEST(Unwrap, UnwrapFloats)
 	}
 }
 
-TEST(Unwrap, UnwrapDoubles)
+TEST(MatrixUnwrapTest, UnwrapDoubles)
 {
 	const double M_TWO_PI = M_PI * 2;
 
