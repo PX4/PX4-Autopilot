@@ -60,3 +60,6 @@ param set COM_FLTMODE4 2
 param set COM_FLTMODE6 11
 param set RC_MAP_FLTMODE 5
 param set RC_MAP_KILL_SW 7
+
+# Disable log encryption for indoor flights
+param set SDLOG_ALGORITHM 0
