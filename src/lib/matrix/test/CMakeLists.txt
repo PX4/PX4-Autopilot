@@ -18,7 +18,6 @@ set(tests
     vector3
     integration
     squareMatrix
-    helper
     least_squares
     upperRightTriangle
     pseudoInverse
@@ -43,5 +42,6 @@ px4_add_unit_gtest(SRC MatrixCopyToTest.cpp)
 px4_add_unit_gtest(SRC MatrixDualTest.cpp)
 px4_add_unit_gtest(SRC MatrixFilterTest.cpp)
 px4_add_unit_gtest(SRC MatrixHatveeTest.cpp)
+px4_add_unit_gtest(SRC MatrixHelperTest.cpp)
 px4_add_unit_gtest(SRC MatrixSparseVectorTest.cpp)
 px4_add_unit_gtest(SRC MatrixUnwrapTest.cpp)
