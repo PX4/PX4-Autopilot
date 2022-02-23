@@ -93,6 +93,8 @@ ControlAllocator::init()
 		return false;
 	}
 
+	ScheduleDelayed(50_ms);
+
 	return true;
 }
 
