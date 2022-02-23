@@ -10,7 +10,6 @@ set(tests
     vector
     vector2
     vector3
-    upperRightTriangle
 )
 
 add_custom_target(test_build)
@@ -45,3 +44,4 @@ px4_add_unit_gtest(SRC MatrixSparseVectorTest.cpp)
 px4_add_unit_gtest(SRC MatrixSquareTest.cpp)
 px4_add_unit_gtest(SRC MatrixTransposeTest.cpp)
 px4_add_unit_gtest(SRC MatrixUnwrapTest.cpp)
+px4_add_unit_gtest(SRC MatrixUpperRightTriangleTest.cpp)
