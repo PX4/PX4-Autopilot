@@ -1,11 +1,44 @@
-#include "test_macros.hpp"
+/****************************************************************************
+ *
+ *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#include <gtest/gtest.h>
 #include <matrix/PseudoInverse.hpp>
 
 using namespace matrix;
 
-static const size_t n_large = 20;
+static constexpr size_t n_large = 20;
 
-int main()
+TEST(MatrixPseudoInverseTest, PseudoInverse)
 {
 	// 3x4 Matrix test
 	float data0[12] = {
@@ -23,11 +56,10 @@ int main()
 
 	Matrix<float, 3, 4> A0(data0);
 	Matrix<float, 4, 3> A0_I;
-	bool ret = geninv(A0, A0_I);
-	TEST(ret);
+	EXPECT_TRUE(geninv(A0, A0_I));
 	Matrix<float, 4, 3> A0_I_check(data0_check);
 
-	TEST((A0_I - A0_I_check).abs().max() < 1e-5);
+	EXPECT_EQ(A0_I, A0_I_check);
 
 	// 4x3 Matrix test
 	float data1[12] = {
@@ -45,11 +77,10 @@ int main()
 
 	Matrix<float, 4, 3> A1(data1);
 	Matrix<float, 3, 4> A1_I;
-	ret = geninv(A1, A1_I);
-	TEST(ret);
+	EXPECT_TRUE(geninv(A1, A1_I));
 	Matrix<float, 3, 4> A1_I_check(data1_check);
 
-	TEST((A1_I - A1_I_check).abs().max() < 1e-5);
+	EXPECT_EQ(A1_I, A1_I_check);
 
 	// Stess test
 	Matrix < float, n_large, n_large - 1 > A_large;
@@ -57,9 +88,8 @@ int main()
 	Matrix < float, n_large - 1, n_large > A_large_I;
 
 	for (size_t i = 0; i < n_large; i++) {
-		ret = geninv(A_large, A_large_I);
-		TEST(ret);
-		TEST(isEqual(A_large, A_large_I.T()));
+		EXPECT_TRUE(geninv(A_large, A_large_I));
+		EXPECT_EQ(A_large, A_large_I.T());
 	}
 
 	// Square matrix test
@@ -75,18 +105,16 @@ int main()
 
 	SquareMatrix<float, 3> A2(data2);
 	SquareMatrix<float, 3> A2_I;
-	ret = geninv(A2, A2_I);
-	TEST(ret);
+	EXPECT_TRUE(geninv(A2, A2_I));
 	SquareMatrix<float, 3> A2_I_check(data2_check);
-	TEST((A2_I - A2_I_check).abs().max() < 1e-3);
+	EXPECT_TRUE(isEqual(A2_I, A2_I_check, 1e-3f));
 
 	// Null matrix test
 	Matrix<float, 6, 16> A3;
 	Matrix<float, 16, 6> A3_I;
-	ret = geninv(A3, A3_I);
-	TEST(ret);
+	EXPECT_TRUE(geninv(A3, A3_I));
 	Matrix<float, 16, 6> A3_I_check;
-	TEST((A3_I - A3_I_check).abs().max() < 1e-5);
+	EXPECT_EQ(A3_I, A3_I_check);
 
 	// Mock-up effectiveness matrix
 	const float B_quad_w[6][16] = {
@@ -118,9 +146,8 @@ int main()
 	};
 	Matrix<float, 16, 6> A_check = Matrix<float, 16, 6>(A_quad_w);
 	Matrix<float, 16, 6> A;
-	ret = geninv(B, A);
-	TEST(ret);
-	TEST((A - A_check).abs().max() < 1e-5);
+	EXPECT_TRUE(geninv(B, A));
+	EXPECT_EQ(A, A_check);
 
 	// Real-world test case
 	const float real_alloc[5][6] = {
@@ -132,8 +159,7 @@ int main()
 	};
 	Matrix<float, 5, 6> real(real_alloc);
 	Matrix<float, 6, 5> real_pinv;
-	ret = geninv(real, real_pinv);
-	TEST(ret);
+	EXPECT_TRUE(geninv(real, real_pinv));
 
 	// from SVD-based inverse
 	const float real_pinv_expected_alloc[6][5] = {
@@ -145,8 +171,5 @@ int main()
 		{-0.293930,   0.443445,   0.000000,  -0.226222,   0.000000}
 	};
 	Matrix<float, 6, 5> real_pinv_expected(real_pinv_expected_alloc);
-	TEST((real_pinv - real_pinv_expected).abs().max() < 1e-4);
-
-	return 0;
+	EXPECT_EQ(real_pinv, real_pinv_expected);
 }
-
