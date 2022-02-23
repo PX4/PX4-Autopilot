@@ -11,7 +11,6 @@ set(tests
     vector
     vector2
     vector3
-    squareMatrix
     upperRightTriangle
 )
 
@@ -44,4 +43,5 @@ px4_add_unit_gtest(SRC MatrixScalarMultiplicationTest.cpp)
 px4_add_unit_gtest(SRC MatrixSetIdentityTest.cpp)
 px4_add_unit_gtest(SRC MatrixSliceTest.cpp)
 px4_add_unit_gtest(SRC MatrixSparseVectorTest.cpp)
+px4_add_unit_gtest(SRC MatrixSquareTest.cpp)
 px4_add_unit_gtest(SRC MatrixUnwrapTest.cpp)
