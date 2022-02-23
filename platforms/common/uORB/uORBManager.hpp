@@ -117,6 +117,7 @@ typedef struct {
 	void *handle;
 	void *dst;
 	unsigned generation;
+	bool only_if_updated;
 	bool ret;
 } orbiocdevdatacopy_t;
 
@@ -450,7 +451,7 @@ public:
 
 	static uint8_t orb_get_queue_size(const void *node_handle);
 
-	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation);
+	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated);
 
 	static bool register_callback(void *node_handle, SubscriptionCallback *callback_sub);
 
@@ -460,9 +461,10 @@ public:
 
 #if defined(CONFIG_BUILD_FLAT)
 	/* These are optimized by inlining in NuttX Flat build */
-	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation); }
+	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return is_advertised(node_handle) ? static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation) : 0; }
 
 	static bool is_advertised(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->is_advertised(); }
+
 #else
 	static unsigned updates_available(const void *node_handle, unsigned last_generation);
 
