@@ -6,7 +6,6 @@ add_compile_options(
 )
 
 set(tests
-    vectorAssignment
     vector
 )
 
@@ -45,3 +44,4 @@ px4_add_unit_gtest(SRC MatrixUnwrapTest.cpp)
 px4_add_unit_gtest(SRC MatrixUpperRightTriangleTest.cpp)
 px4_add_unit_gtest(SRC MatrixVector2Test.cpp)
 px4_add_unit_gtest(SRC MatrixVector3Test.cpp)
+px4_add_unit_gtest(SRC MatrixVectorAssignmentTest.cpp)
