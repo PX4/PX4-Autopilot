@@ -1,10 +1,42 @@
-#include "test_macros.hpp"
+/****************************************************************************
+ *
+ *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
+#include <gtest/gtest.h>
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
-int main()
+TEST(MatrixSquareTest, Square)
 {
 	float data[9] = {1, 2, 3,
 			 4, 5, 6,
@@ -13,8 +45,8 @@ int main()
 	SquareMatrix<float, 3> A(data);
 	Vector3<float> diag_check(1, 5, 10);
 
-	TEST(isEqual(A.diag(), diag_check));
-	TEST(A.trace() - 16 < FLT_EPSILON);
+	EXPECT_EQ(A.diag(), diag_check);
+	EXPECT_FLOAT_EQ(A.trace(), 16);
 
 	float data_check[9] = {
 		1.01158503f,  0.02190432f,  0.03238144f,
@@ -25,7 +57,7 @@ int main()
 	float dt = 0.01f;
 	SquareMatrix<float, 3> eA = expm(SquareMatrix<float, 3>(A * dt), 5);
 	SquareMatrix<float, 3> eA_check(data_check);
-	TEST((eA - eA_check).abs().max() < 1e-3f);
+	EXPECT_TRUE(isEqual(eA, eA_check, 1e-3f));
 
 	SquareMatrix<float, 2> A_bottomright = A.slice<2, 2>(1, 1);
 	SquareMatrix<float, 2> A_bottomright2;
@@ -35,8 +67,8 @@ int main()
 				     8, 10
 				    };
 	SquareMatrix<float, 2> bottomright_check(data_bottomright);
-	TEST(isEqual(A_bottomright, bottomright_check));
-	TEST(isEqual(A_bottomright2, bottomright_check));
+	EXPECT_EQ(A_bottomright, bottomright_check);
+	EXPECT_EQ(A_bottomright2, bottomright_check);
 
 	// test diagonal functions
 	float data_4x4[16] = {1, 2, 3, 4,
@@ -53,7 +85,7 @@ int main()
 				  13, 0, 15, 16
 				 };
 	SquareMatrix<float, 4> B_check(data_B_check);
-	TEST(isEqual(B, B_check))
+	EXPECT_EQ(B, B_check);
 
 	SquareMatrix<float, 4> C(data_4x4);
 	C.uncorrelateCovariance<2>(1);
@@ -63,7 +95,7 @@ int main()
 				  13, 0, 0, 16
 				 };
 	SquareMatrix<float, 4> C_check(data_C_check);
-	TEST(isEqual(C, C_check))
+	EXPECT_EQ(C, C_check);
 
 	SquareMatrix<float, 4> D(data_4x4);
 	D.uncorrelateCovarianceSetVariance<2>(0, Vector2f{20, 21});
@@ -73,7 +105,7 @@ int main()
 				  0, 0, 15, 16
 				 };
 	SquareMatrix<float, 4> D_check(data_D_check);
-	TEST(isEqual(D, D_check))
+	EXPECT_EQ(D, D_check);
 
 	SquareMatrix<float, 4> E(data_4x4);
 	E.uncorrelateCovarianceSetVariance<3>(1, 33);
@@ -83,7 +115,7 @@ int main()
 				  0, 0, 0, 33
 				 };
 	SquareMatrix<float, 4> E_check(data_E_check);
-	TEST(isEqual(E, E_check))
+	EXPECT_EQ(E, E_check);
 
 	// test symmetric functions
 	SquareMatrix<float, 4> F(data_4x4);
@@ -94,9 +126,9 @@ int main()
 				  13, 14, 15, 16
 				 };
 	SquareMatrix<float, 4> F_check(data_F_check);
-	TEST(isEqual(F, F_check))
-	TEST(F.isBlockSymmetric<2>(1));
-	TEST(!F.isRowColSymmetric<2>(1));
+	EXPECT_EQ(F, F_check);
+	EXPECT_TRUE(F.isBlockSymmetric<2>(1));
+	EXPECT_FALSE(F.isRowColSymmetric<2>(1));
 
 	SquareMatrix<float, 4> G(data_4x4);
 	G.makeRowColSymmetric<2>(1);
@@ -106,9 +138,9 @@ int main()
 				  13, 11, 13.5, 16
 				 };
 	SquareMatrix<float, 4> G_check(data_G_check);
-	TEST(isEqual(G, G_check));
-	TEST(G.isBlockSymmetric<2>(1));
-	TEST(G.isRowColSymmetric<2>(1));
+	EXPECT_EQ(G, G_check);
+	EXPECT_TRUE(G.isBlockSymmetric<2>(1));
+	EXPECT_TRUE(G.isRowColSymmetric<2>(1));
 
 	SquareMatrix<float, 4> H(data_4x4);
 	H.makeBlockSymmetric<1>(1);
@@ -118,9 +150,9 @@ int main()
 				  13, 14, 15, 16
 				 };
 	SquareMatrix<float, 4> H_check(data_H_check);
-	TEST(isEqual(H, H_check))
-	TEST(H.isBlockSymmetric<1>(1));
-	TEST(!H.isRowColSymmetric<1>(1));
+	EXPECT_EQ(H, H_check);
+	EXPECT_TRUE(H.isBlockSymmetric<1>(1));
+	EXPECT_FALSE(H.isRowColSymmetric<1>(1));
 
 	SquareMatrix<float, 4> J(data_4x4);
 	J.makeRowColSymmetric<1>(1);
@@ -130,10 +162,10 @@ int main()
 				  13, 11, 15, 16
 				 };
 	SquareMatrix<float, 4> J_check(data_J_check);
-	TEST(isEqual(J, J_check));
-	TEST(J.isBlockSymmetric<1>(1));
-	TEST(J.isRowColSymmetric<1>(1));
-	TEST(!J.isBlockSymmetric<3>(1));
+	EXPECT_EQ(J, J_check);
+	EXPECT_TRUE(J.isBlockSymmetric<1>(1));
+	EXPECT_TRUE(J.isRowColSymmetric<1>(1));
+	EXPECT_FALSE(J.isBlockSymmetric<3>(1));
 
 	float data_K[16] = {1, 2, 3, 4,
 			    2, 3, 4, 11,
@@ -141,7 +173,5 @@ int main()
 			    4, 11, 15, 16
 			   };
 	SquareMatrix<float, 4> K(data_K);
-	TEST(!K.isRowColSymmetric<1>(2));
-	return 0;
+	EXPECT_FALSE(K.isRowColSymmetric<1>(2));
 }
-
