@@ -16,7 +16,6 @@ set(tests
     vector
     vector2
     vector3
-    attitude
     filter
     integration
     squareMatrix
@@ -43,5 +42,6 @@ foreach(test_name ${tests})
 endforeach()
 
 px4_add_unit_gtest(SRC MatrixAssignmentTest.cpp)
+px4_add_unit_gtest(SRC MatrixAttitudeTest.cpp)
 px4_add_unit_gtest(SRC MatrixSparseVectorTest.cpp)
 px4_add_unit_gtest(SRC MatrixUnwrapTest.cpp)
