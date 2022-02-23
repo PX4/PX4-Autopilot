@@ -21,7 +21,6 @@ set(tests
     squareMatrix
     helper
     hatvee
-    copyto
     least_squares
     upperRightTriangle
     dual
@@ -43,5 +42,6 @@ endforeach()
 
 px4_add_unit_gtest(SRC MatrixAssignmentTest.cpp)
 px4_add_unit_gtest(SRC MatrixAttitudeTest.cpp)
+px4_add_unit_gtest(SRC MatrixCopyToTest.cpp)
 px4_add_unit_gtest(SRC MatrixSparseVectorTest.cpp)
 px4_add_unit_gtest(SRC MatrixUnwrapTest.cpp)
