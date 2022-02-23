@@ -34,6 +34,8 @@
 
 #pragma once
 
+#include <px4_platform_common/defines.h>
+
 /* Encode the px4 boardctl ioctls in the following way:
  * the highest 4-bits identifies the boardctl's used by this if
  * the next 4-bits identifies the module which handles the ioctl
@@ -48,20 +50,42 @@
 #define _HRTIOCBASE				IOCTL_IDX_TO_BASE(1)
 #define _CRYPTOIOCBASE			IOCTL_IDX_TO_BASE(2)
 #define _PARAMIOCBASE			IOCTL_IDX_TO_BASE(3)
-#define _BUILTINIOCBASE			IOCTL_IDX_TO_BASE(4)
+#define _PLATFORMIOCBASE			IOCTL_IDX_TO_BASE(4)
 #define MAX_IOCTL_PTRS 5
 
-/* The BUILTINIOCLAUNCH IOCTL is used to launch kernel side modules
+/* The PLATFORMIOCLAUNCH IOCTL is used to launch kernel side modules
  * from the user side code
  */
 
-#define BUILTINIOCLAUNCH               (_PX4_IOC(_BUILTINIOCBASE, 1))
+#define PLATFORMIOCLAUNCH		(_PX4_IOC(_PLATFORMIOCBASE, 1))
 
-typedef struct builtinioclaunch {
+typedef struct platformioclaunch {
 	int argc;
 	char **argv;
 	int ret;
-} builtinioclaunch_t;
+} platformioclaunch_t;
+
+/* The PLATFORMIOCVBUSSTATE IOCTL is used to read USB VBUS state
+ * from the user side code
+ */
+
+#define PLATFORMIOCVBUSSTATE	(_PX4_IOC(_PLATFORMIOCBASE, 2))
+
+typedef struct platformiocvbusstate {
+	int ret;
+} platformiocvbusstate_t;
+
+
+/* These IOCTLs are used to set and read external lockout state
+ * from the user side code
+ */
+#define PLATFORMIOCINDICATELOCKOUT	(_PX4_IOC(_PLATFORMIOCBASE, 3))
+#define PLATFORMIOCGETLOCKOUT		(_PX4_IOC(_PLATFORMIOCBASE, 4))
+
+typedef struct platformioclockoutstate {
+	bool enabled;
+} platformioclockoutstate_t;
+
 
 typedef int (*ioctl_ptr_t)(unsigned int, unsigned long);
 
