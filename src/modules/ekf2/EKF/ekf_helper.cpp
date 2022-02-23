@@ -289,7 +289,7 @@ void Ekf::resetHeightToRng()
 
 	// update the state and associated variance
 	const float z_pos_before_reset = _state.pos(2);
-	resetVerticalPositionTo(-dist_bottom + _hgt_sensor_offset);
+	resetVerticalPositionTo(-dist_bottom + _state.posd_terrain);
 
 	// the state variance is the same as the observation
 	P.uncorrelateCovarianceSetVariance<1>(9, sq(_params.range_noise));
@@ -1289,7 +1289,7 @@ void Ekf::startRngHgtFusion()
 
 		// Range finder is the primary height source, the ground is now the datum used
 		// to compute the local vertical position
-		_hgt_sensor_offset = 0.f;
+		resetHaglFake();
 
 		if (!_control_status_prev.flags.ev_hgt) {
 			// EV and range finders are using the same height datum
@@ -1302,10 +1302,6 @@ void Ekf::startRngAidHgtFusion()
 {
 	if (!_control_status.flags.rng_hgt) {
 		setControlRangeHeight();
-
-		// calculate height sensor offset such that current
-		// measurement matches our current height estimate
-		_hgt_sensor_offset = _state.posd_terrain;
 	}
 }
 

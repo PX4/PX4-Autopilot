@@ -90,7 +90,7 @@ void Ekf::fuseRngHgt()
 {
 	// use range finder with tilt correction
 	_rng_hgt_innov = _state.pos(2) - (-math::max(_range_sensor.getDistBottom(),
-					  _params.rng_gnd_clearance)) - _hgt_sensor_offset;
+					  _params.rng_gnd_clearance)) - _state.posd_terrain;
 
 	// innovation gate size
 	float innov_gate = fmaxf(_params.range_innov_gate, 1.f);
