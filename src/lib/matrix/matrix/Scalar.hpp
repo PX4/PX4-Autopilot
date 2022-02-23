@@ -47,6 +47,11 @@ public:
 		return m;
 	}
 
+	bool operator==(const float other) const
+	{
+		return isEqualF(_value, other);
+	}
+
 private:
 	const Type _value;
 
