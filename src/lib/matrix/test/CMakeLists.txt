@@ -7,7 +7,6 @@ add_compile_options(
 
 set(tests
     setIdentity
-    inverse
     slice
     matrixMult
     vectorAssignment
@@ -43,5 +42,6 @@ px4_add_unit_gtest(SRC MatrixFilterTest.cpp)
 px4_add_unit_gtest(SRC MatrixHatveeTest.cpp)
 px4_add_unit_gtest(SRC MatrixHelperTest.cpp)
 px4_add_unit_gtest(SRC MatrixIntegralTest.cpp)
+px4_add_unit_gtest(SRC MatrixInverseTest.cpp)
 px4_add_unit_gtest(SRC MatrixSparseVectorTest.cpp)
 px4_add_unit_gtest(SRC MatrixUnwrapTest.cpp)

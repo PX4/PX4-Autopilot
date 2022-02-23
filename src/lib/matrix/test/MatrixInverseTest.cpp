@@ -1,11 +1,44 @@
-#include "test_macros.hpp"
+/****************************************************************************
+ *
+ *   Copyright (C) 2022 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#include <gtest/gtest.h>
 #include <matrix/math.hpp>
 
 using namespace matrix;
 
 static const size_t n_large = 50;
 
-int main()
+TEST(MatrixInverseTest, Inverse)
 {
 	float data[9] = {0, 2, 3,
 			 4, 5, 6,
@@ -20,7 +53,7 @@ int main()
 	SquareMatrix<float, 3> A(data);
 	SquareMatrix<float, 3> A_I = inv(A);
 	SquareMatrix<float, 3> A_I_check(data_check);
-	TEST((A_I - A_I_check).abs().max() < 1e-6f);
+	EXPECT_EQ(A_I, A_I_check);
 
 	float data_2x2[4] = {12, 2,
 			     -7, 5
@@ -33,15 +66,15 @@ int main()
 	SquareMatrix<float, 2> A2x2(data_2x2);
 	SquareMatrix<float, 2> A2x2_I = inv(A2x2);
 	SquareMatrix<float, 2> A2x2_I_check(data_2x2_check);
-	TEST(isEqual(A2x2_I, A2x2_I_check));
+	EXPECT_EQ(A2x2_I, A2x2_I_check);
 
 	SquareMatrix<float, 2> A2x2_sing = ones<float, 2, 2>();
 	SquareMatrix<float, 2> A2x2_sing_I;
-	TEST(inv(A2x2_sing, A2x2_sing_I) == false);
+	EXPECT_FALSE(inv(A2x2_sing, A2x2_sing_I));
 
 	SquareMatrix<float, 3> A3x3_sing = ones<float, 3, 3>();
 	SquareMatrix<float, 3> A3x3_sing_I;
-	TEST(inv(A3x3_sing, A3x3_sing_I) == false)
+	EXPECT_FALSE(inv(A3x3_sing, A3x3_sing_I));
 
 	// stess test
 	SquareMatrix<float, n_large> A_large;
@@ -51,11 +84,11 @@ int main()
 
 	for (size_t i = 0; i < n_large; i++) {
 		A_large_I = inv(A_large);
-		TEST(isEqual(A_large, A_large_I));
+		EXPECT_EQ(A_large, A_large_I);
 	}
 
 	SquareMatrix<float, 3> zero_test = zeros<float, 3, 3>();
-	TEST(isEqual(inv(zero_test), zeros<float, 3, 3>()));
+	EXPECT_EQ(inv(zero_test), zero_test);
 
 	// test pivotting
 	float data2[81] = {
@@ -84,7 +117,7 @@ int main()
 	SquareMatrix<float, 9> A2(data2);
 	SquareMatrix<float, 9> A2_I = inv(A2);
 	SquareMatrix<float, 9> A2_I_check(data2_check);
-	TEST((A2_I - A2_I_check).abs().max() < 1e-3f);
+	EXPECT_TRUE(isEqual(A2_I, A2_I_check, 1e-3f));
 
 	float data3[9] = {
 		0, 1, 2,
@@ -99,10 +132,10 @@ int main()
 	SquareMatrix<float, 3> A3(data3);
 	SquareMatrix<float, 3> A3_I = inv(A3);
 	SquareMatrix<float, 3> A3_I_check(data3_check);
-	TEST(isEqual(inv(A3), A3_I_check));
-	TEST(isEqual(A3_I, A3_I_check));
-	TEST(A3.I(A3_I));
-	TEST(isEqual(A3_I, A3_I_check));
+	EXPECT_EQ(inv(A3), A3_I_check);
+	EXPECT_EQ(A3_I, A3_I_check);
+	EXPECT_TRUE(A3.I(A3_I));
+	EXPECT_EQ(A3_I, A3_I_check);
 
 	// cover singular matrices
 	A3(0, 0) = 0;
@@ -110,10 +143,10 @@ int main()
 	A3(0, 2) = 0;
 	A3_I = inv(A3);
 	SquareMatrix<float, 3>  Z3 = zeros<float, 3, 3>();
-	TEST(!A3.I(A3_I));
-	TEST(!Z3.I(A3_I));
-	TEST(isEqual(A3_I, Z3));
-	TEST(isEqual(A3.I(), Z3));
+	EXPECT_FALSE(A3.I(A3_I));
+	EXPECT_FALSE(Z3.I(A3_I));
+	EXPECT_EQ(A3_I, Z3);
+	EXPECT_EQ(A3.I(), Z3);
 
 	for (size_t i = 0; i < 9; i++) {
 		A2(0, i) = 0;
@@ -121,23 +154,23 @@ int main()
 
 	A2_I = inv(A2);
 	SquareMatrix<float, 9> Z9 = zeros<float, 9, 9>();
-	TEST(!A2.I(A2_I));
-	TEST(!Z9.I(A2_I));
-	TEST(isEqual(A2_I, Z9));
-	TEST(isEqual(A2.I(), Z9));
+	EXPECT_FALSE(A2.I(A2_I));
+	EXPECT_FALSE(Z9.I(A2_I));
+	EXPECT_EQ(A2_I, Z9);
+	EXPECT_EQ(A2.I(), Z9);
 
 	// cover NaN
 	A3(0, 0) = NAN;
 	A3(0, 1) = 0;
 	A3(0, 2) = 0;
 	A3_I = inv(A3);
-	TEST(isEqual(A3_I, Z3));
-	TEST(isEqual(A3.I(), Z3));
+	EXPECT_EQ(A3_I, Z3);
+	EXPECT_EQ(A3.I(), Z3);
 
 	A2(0, 0) = NAN;
 	A2_I = inv(A2);
-	TEST(isEqual(A2_I, Z9));
-	TEST(isEqual(A2.I(), Z9));
+	EXPECT_EQ(A2_I, Z9);
+	EXPECT_EQ(A2.I(), Z9);
 
 	float data4[9] = {
 		1.33471626f,  0.74946721f, -0.0531679f,
@@ -153,12 +186,10 @@ int main()
 	};
 	SquareMatrix<float, 3> A4_cholesky_check(data4_cholesky);
 	SquareMatrix<float, 3> A4_cholesky = cholesky(A4);
-	TEST(isEqual(A4_cholesky_check, A4_cholesky));
+	EXPECT_EQ(A4_cholesky_check, A4_cholesky);
 
 	SquareMatrix<float, 3> I3;
 	I3.setIdentity();
-	TEST(isEqual(choleskyInv(A4)*A4, I3));
-	TEST(isEqual(cholesky(Z3), Z3));
-	return 0;
+	EXPECT_EQ(choleskyInv(A4)*A4, I3);
+	EXPECT_EQ(cholesky(Z3), Z3);
 }
-
