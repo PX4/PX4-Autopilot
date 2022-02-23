@@ -42,12 +42,12 @@
 
 #pragma once
 
-#include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -58,10 +58,16 @@
 #include <uORB/topics/uwb_grid.h>
 #include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
+
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <matrix/Matrix.hpp>
 #include <lib/conversion/rotation.h>
+
+#include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
 #include "KalmanFilter.h"
 
 using namespace time_literals;
@@ -69,19 +75,24 @@ using namespace time_literals;
 namespace landing_target_estimator
 {
 
-class LandingTargetEstimator
+class LandingTargetEstimator : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 
 	LandingTargetEstimator();
-	virtual ~LandingTargetEstimator() = default;
+	~LandingTargetEstimator() override;
 
 	/*
 	 * Get new measurements and update the state estimate
 	 */
-	void update();
+
+	bool Start();
+	void Stop();
 
 protected:
+	void Run() override;
+
+	void update();
 
 	/*
 	 * Update uORB topics.
@@ -149,11 +160,11 @@ private:
 		float rel_pos_z;
 	} _target_position_report;
 
-	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
-	uORB::Subscription _irlockReportSub{ORB_ID(irlock_report)};
-	uORB::Subscription _uwbDistanceSub{ORB_ID(uwb_distance)};
+	uORB::SubscriptionCallbackWorkItem _vehicleLocalPositionSub{this, ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionCallbackWorkItem _attitudeSub{this, ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_acceleration_sub{this, ORB_ID(vehicle_acceleration)};
+	uORB::SubscriptionCallbackWorkItem _irlockReportSub{this, ORB_ID(irlock_report)};
+	uORB::SubscriptionCallbackWorkItem _uwbDistanceSub{this, ORB_ID(uwb_distance)};
 
 	vehicle_local_position_s	_vehicleLocalPosition{};
 	vehicle_attitude_s		_vehicleAttitude{};

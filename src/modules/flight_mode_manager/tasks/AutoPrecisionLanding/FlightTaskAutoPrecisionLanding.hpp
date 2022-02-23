@@ -45,6 +45,7 @@
 
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
+#include <landing_target_estimator/LandingTargetEstimator.h>
 #include <lib/geo/geo.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
@@ -74,8 +75,8 @@ enum class PrecLandMode {
 class FlightTaskAutoPrecisionLanding : public FlightTaskAuto
 {
 public:
-	FlightTaskAutoPrecisionLanding() = default;
-	virtual ~FlightTaskAutoPrecisionLanding() = default;
+	FlightTaskAutoPrecisionLanding();
+	~FlightTaskAutoPrecisionLanding();
 
 	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 
@@ -103,6 +104,8 @@ private:
 	// check if a given state could be changed into. Return true if possible to transition to state, false otherwise
 	bool check_state_conditions(PrecLandState state);
 	void slewrate(float &sp_x, float &sp_y);
+
+	landing_target_estimator::LandingTargetEstimator _landing_target_estimator;
 
 	landing_target_pose_s _target_pose{}; /**< precision landing target position */
 
