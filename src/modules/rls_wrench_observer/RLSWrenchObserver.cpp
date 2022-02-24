@@ -31,12 +31,20 @@
  *
  ****************************************************************************/
 
+/**
+ * @file RLSWrenchObserver.cpp
+ * @brief RLS parameter identification and external wrench observer
+ *
+ * @author Pedro Mendes <pmen817@aucklanduni.ac.nz>
+ */
+
 #include "RLSWrenchObserver.hpp"
 
 RLSWrenchObserver::RLSWrenchObserver() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	updateParams();
 }
 
 RLSWrenchObserver::~RLSWrenchObserver()
@@ -52,11 +60,14 @@ bool RLSWrenchObserver::init()
 		PX4_ERR("sensor_accel callback registration failed");
 		return false;
 	}
-
-	// alternatively, Run on fixed interval
-	// ScheduleOnInterval(5000_us); // 2000 us interval, 200 Hz rate
-
 	return true;
+}
+
+void RLSWrenchObserver::updateParams()
+{
+	const float rls_pmen_noise = _param_rls_pmen_noise.get();
+	ModuleParams::updateParams();
+	PX4_INFO("Updated %8.4f",(double)rls_pmen_noise);
 }
 
 void RLSWrenchObserver::Run()
@@ -106,14 +117,39 @@ void RLSWrenchObserver::Run()
 		sensor_accel_s accel;
 
 		if (_sensor_accel_sub.copy(&accel)) {
-			// DO WORK
-
-			// access parameter value (SYS_AUTOSTART)
-			if (_param_sys_autostart.get() == 1234) {
-				// do something if SYS_AUTOSTART is 1234
-			}
+		PX4_INFO("Sensor_accel:\t%8.4f\t%8.4f\t%8.4f",
+				(double)accel.x,
+				(double)accel.y,
+				(double)accel.z);
 		}
 	}
+
+	// if (!_vehicle_local_position_sub.updated()) {
+	// 	return;
+	// }
+
+	// vehicle_local_position_s local_pos{};
+
+
+		// if (_vehicle_local_position_sub.copy(&local_pos)) {
+		// 	PX4_INFO("vehicle_local_position_accel:\t%8.4f\t%8.4f\t%8.4f",
+		// 			(double)local_pos.ax,
+		// 			(double)local_pos.ay,
+		// 			(double)local_pos.az);
+		// }
+
+	// if (!_sensor_combined_sub.updated()) {
+	// 	return;
+	// }
+	// sensor_combined_s sensor_combined;
+
+
+	// 	if (_sensor_combined_sub.copy(&sensor_combined)) {
+	// 		PX4_INFO("combined_accel:\t%8.4f\t%8.4f\t%8.4f",		
+	// 				(double)sensor_combined.accelerometer_m_s2[0],
+	// 				(double)sensor_combined.accelerometer_m_s2[1],
+	// 				(double)sensor_combined.accelerometer_m_s2[2]);
+	// 	}
 
 
 	// Example

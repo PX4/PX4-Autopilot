@@ -31,6 +31,14 @@
  *
  ****************************************************************************/
 
+/**
+ * @file RLSWrenchObserver.hpp
+ * @brief Interface class for a RLS parameter identification and
+ * external wrench observer
+ *
+ * @author Pedro Mendes <pmen817@aucklanduni.ac.nz>
+ */
+
 #pragma once
 
 #include "RLSIdentification/RLSIdentification.hpp"
@@ -51,6 +59,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/vehicle_status.h>
+// #include <uORB/topics/vehicle_local_position.h>
+// #include <uORB/topics/sensor_combined.h>
 
 using namespace time_literals;
 
@@ -75,12 +85,17 @@ public:
 
 private:
 	void Run() override;
-
+	void updateParams() override;
+	
 	// Publications
 	uORB::Publication<orb_test_s> _orb_test_pub{ORB_ID(orb_test)};
 
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub{this, ORB_ID(sensor_accel)};        // subscription that schedules RLSWrenchObserver when updated
+	// uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+	// uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
+
+
 	uORB::SubscriptionInterval         _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
 	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
 
@@ -90,8 +105,7 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
+		(ParamFloat<px4::params::RLS_PMEN_NOISE>) _param_rls_pmen_noise
 	)
 
 
