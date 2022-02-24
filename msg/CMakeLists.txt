@@ -102,6 +102,7 @@ set(msg_files
 	offboard_control_mode.msg
 	onboard_computer_status.msg
 	optical_flow.msg
+	orb_test.msg
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
