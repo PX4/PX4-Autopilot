@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-#add_subdirectory(RLSIdentification)
+add_subdirectory(RLSIdentification)
 #add_subdirectory(WrenchObserver)
 
 px4_add_module(

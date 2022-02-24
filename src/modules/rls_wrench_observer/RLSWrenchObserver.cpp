@@ -170,7 +170,7 @@ int RLSWrenchObserver::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Example of a simple module running out of a work queue PMEN.
+Example of a simple module running out of a work queue PMEN UPxx.
 
 )DESCR_STR");
 
