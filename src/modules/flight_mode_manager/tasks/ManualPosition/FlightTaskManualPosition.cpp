@@ -73,11 +73,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	/* Constrain length of stick inputs to 1 for xy*/
 	Vector2f stick_xy = _sticks.getPositionExpo().slice<2, 1>(0, 0);
 
-	const float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
-
-	if (mag > FLT_EPSILON) {
-		stick_xy = stick_xy.normalized() * mag;
-	}
+	Sticks::limitStickUnitLengthXY(stick_xy);
 
 	const float max_speed_from_estimator = _sub_vehicle_local_position.get().vxy_max;
 
