@@ -2,6 +2,8 @@
 # Build the user side px4_layer
 
 add_library(px4_layer
+	board_dma_alloc.c
+	board_fat_dma_alloc.c
 	tasks.cpp
 	console_buffer_usr.cpp
 	usr_mcu_version.cpp
