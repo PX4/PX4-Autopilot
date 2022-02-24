@@ -146,7 +146,7 @@ private:
 
 	void esc_status_check();
 
-	void estimator_check();
+	void estimator_check(bool force = false);
 
 	bool handle_command(const vehicle_command_s &cmd);
 
@@ -173,8 +173,6 @@ private:
 	void updateHomePositionYaw(float yaw);
 
 	void update_control_mode();
-
-	void UpdateEstimateValidity();
 
 	bool shutdown_if_allowed();
 

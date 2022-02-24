@@ -213,8 +213,6 @@ private:
 	InFlightCalibration _gyro_cal{};
 	InFlightCalibration _mag_cal{};
 
-	bool _had_valid_terrain{false};			///< true if at any time there was a valid terrain estimate
-
 	uint64_t _gps_time_usec{0};
 	int32_t _gps_alttitude_ellipsoid{0};			///< altitude in 1E-3 meters (millimeters) above ellipsoid
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp{0}; ///< storage for previous timestamp to compute dt
@@ -268,9 +266,6 @@ private:
 	unsigned _distance_sensor_last_generation{0};
 
 	bool _callback_registered{false};
-
-	bool _armed{false};
-	bool _standby{false}; // standby arming state
 
 	hrt_abstime _last_status_flag_update{0};
 	hrt_abstime _last_range_sensor_update{0};
