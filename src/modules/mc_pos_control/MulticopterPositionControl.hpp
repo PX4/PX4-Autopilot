@@ -88,7 +88,7 @@ public:
 private:
 	void Run() override;
 
-	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
+	TakeoffHandling _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
