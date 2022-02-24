@@ -469,13 +469,16 @@ void Ekf::controlOpticalFlowFusion()
 			}
 		}
 
-		if (_control_status.flags.opt_flow) {
+		if (_control_status.flags.opt_flow || _hagl_sensor_status.flags.flow) {
 			// Wait until the midpoint of the flow sample has fallen behind the fusion time horizon
 			if (_imu_sample_delayed.time_us > (_flow_sample_delayed.time_us - uint32_t(1e6f * _flow_sample_delayed.dt) / 2)) {
 				// Fuse optical flow LOS rate observations into the main filter only if height above ground has been updated recently
 				// but use a relaxed time criteria to enable it to coast through bad range finder data
 				fuseOptFlow();
-				_last_known_posNE = _state.pos.xy();
+
+				if (_control_status.flags.opt_flow) {
+					_last_known_posNE = _state.pos.xy();
+				}
 
 				_flow_data_ready = false;
 			}

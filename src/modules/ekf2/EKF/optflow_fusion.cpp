@@ -372,23 +372,37 @@ void Ekf::fuseOptFlow()
 			Hfusion.at<9>() = HK50;
 			Hfusion.at<24>() = -HK50;
 
-			// Kalman gains - axis 0
-			Kfusion(0) = HK142*(HK52 + HK54 + HK56 + HK58 - HK59 + HK61 + HK63 + HK65 - HK67);
-			Kfusion(1) = HK142*(HK124 + HK125 + HK126 - HK127 + HK128 + HK129 + HK130 + HK131 - HK132);
-			Kfusion(2) = HK142*(HK133 + HK134 + HK135 - HK136 + HK137 + HK138 + HK139 + HK140 - HK141);
-			Kfusion(3) = HK142*(HK115 + HK116 + HK117 - HK118 + HK119 + HK120 + HK121 + HK122 - HK123);
-			Kfusion(4) = HK142*(HK86 + HK87 + HK88 - HK89 + HK90 + HK91 + HK92 + HK93 - HK94);
-			Kfusion(5) = HK142*(HK77 + HK78 + HK79 - HK80 + HK81 + HK82 + HK83 + HK84 - HK85);
-			Kfusion(6) = HK142*(HK68 + HK69 + HK70 - HK71 + HK72 + HK73 + HK74 + HK75 - HK76);
-			Kfusion(7) = HK142*(HK51*P(4,7) + HK53*P(5,7) + HK55*P(6,7) + HK57*P(7,24) - HK57*P(7,9) + HK60*P(3,7) + HK62*P(0,7) + HK64*P(1,7) - HK66*P(2,7));
-			Kfusion(8) = HK142*(HK51*P(4,8) + HK53*P(5,8) + HK55*P(6,8) + HK57*P(8,24) - HK57*P(8,9) + HK60*P(3,8) + HK62*P(0,8) + HK64*P(1,8) - HK66*P(2,8));
-			Kfusion(9) = HK142*(HK106 + HK107 + HK108 - HK109 + HK111 + HK112 + HK113 - HK114 + HK98);
+			if (_control_status.flags.opt_flow) {
+				// Kalman gains - axis 0
+				Kfusion(0) = HK142*(HK52 + HK54 + HK56 + HK58 - HK59 + HK61 + HK63 + HK65 - HK67);
+				Kfusion(1) = HK142*(HK124 + HK125 + HK126 - HK127 + HK128 + HK129 + HK130 + HK131 - HK132);
+				Kfusion(2) = HK142*(HK133 + HK134 + HK135 - HK136 + HK137 + HK138 + HK139 + HK140 - HK141);
+				Kfusion(3) = HK142*(HK115 + HK116 + HK117 - HK118 + HK119 + HK120 + HK121 + HK122 - HK123);
+				Kfusion(4) = HK142*(HK86 + HK87 + HK88 - HK89 + HK90 + HK91 + HK92 + HK93 - HK94);
+				Kfusion(5) = HK142*(HK77 + HK78 + HK79 - HK80 + HK81 + HK82 + HK83 + HK84 - HK85);
+				Kfusion(6) = HK142*(HK68 + HK69 + HK70 - HK71 + HK72 + HK73 + HK74 + HK75 - HK76);
+				Kfusion(7) = HK142*(HK51*P(4,7) + HK53*P(5,7) + HK55*P(6,7) + HK57*P(7,24) - HK57*P(7,9) + HK60*P(3,7) + HK62*P(0,7) + HK64*P(1,7) - HK66*P(2,7));
+				Kfusion(8) = HK142*(HK51*P(4,8) + HK53*P(5,8) + HK55*P(6,8) + HK57*P(8,24) - HK57*P(8,9) + HK60*P(3,8) + HK62*P(0,8) + HK64*P(1,8) - HK66*P(2,8));
+				/* Kfusion(9) = HK142*(HK106 + HK107 + HK108 - HK109 + HK111 + HK112 + HK113 - HK114 + HK98); */
+				Kfusion(9) = 0.f;
 
-			for (unsigned row = 10; row <= 23; row++) {
-				Kfusion(row) = HK142*(HK51*P(4,row) + HK53*P(5,row) + HK55*P(6,row) + HK57*P(row,24) - HK57*P(9,row) + HK60*P(3,row) + HK62*P(0,row) + HK64*P(1,row) - HK66*P(2,row));
+				for (unsigned row = 10; row <= 23; row++) {
+					Kfusion(row) = HK142*(HK51*P(4,row) + HK53*P(5,row) + HK55*P(6,row) + HK57*P(row,24) - HK57*P(9,row) + HK60*P(3,row) + HK62*P(0,row) + HK64*P(1,row) - HK66*P(2,row));
+				}
+
+			} else {
+				for (unsigned row = 0; row <= 23; row++) {
+					// update of all states other than terrain is inhibited
+					Kfusion(row) = 0.0f;
+				}
 			}
 
-			Kfusion(24) = HK142*(HK100 + HK101 + HK102 - HK103 + HK110 + HK95 + HK96 + HK97 + HK99);
+			if (_hagl_sensor_status.flags.flow) {
+				Kfusion(24) = HK142*(HK100 + HK101 + HK102 - HK103 + HK110 + HK95 + HK96 + HK97 + HK99);
+
+			} else {
+				Kfusion(24) = 0.f;
+			}
 
 		} else {
 			// Observation Jacobians - axis 1
@@ -402,24 +416,38 @@ void Ekf::fuseOptFlow()
 			Hfusion.at<9>() = -HK165;
 			Hfusion.at<24>() = HK165;
 
-			// Kalman gains - axis 1
-			Kfusion(0) = HK174*HK185;
-			Kfusion(1) = HK183*HK185;
-			Kfusion(2) = HK184*HK185;
-			Kfusion(3) = HK182*HK185;
-			Kfusion(4) = HK177*HK185;
-			Kfusion(5) = HK176*HK185;
-			Kfusion(6) = HK175*HK185;
-			Kfusion(7) = HK185*(HK166*P(4,7) + HK167*P(5,7) + HK168*P(6,7) + HK169*P(7,24) - HK169*P(7,9) + HK170*P(3,7) + HK171*P(0,7) + HK172*P(1,7) - HK173*P(2,7));
-			Kfusion(8) = HK185*(HK166*P(4,8) + HK167*P(5,8) + HK168*P(6,8) + HK169*P(8,24) - HK169*P(8,9) + HK170*P(3,8) + HK171*P(0,8) + HK172*P(1,8) - HK173*P(2,8));
-			Kfusion(9) = HK181*HK185;
+			if (_control_status.flags.opt_flow) {
+				// Kalman gains - axis 1
+				Kfusion(0) = HK174*HK185;
+				Kfusion(1) = HK183*HK185;
+				Kfusion(2) = HK184*HK185;
+				Kfusion(3) = HK182*HK185;
+				Kfusion(4) = HK177*HK185;
+				Kfusion(5) = HK176*HK185;
+				Kfusion(6) = HK175*HK185;
+				Kfusion(7) = HK185*(HK166*P(4,7) + HK167*P(5,7) + HK168*P(6,7) + HK169*P(7,24) - HK169*P(7,9) + HK170*P(3,7) + HK171*P(0,7) + HK172*P(1,7) - HK173*P(2,7));
+				Kfusion(8) = HK185*(HK166*P(4,8) + HK167*P(5,8) + HK168*P(6,8) + HK169*P(8,24) - HK169*P(8,9) + HK170*P(3,8) + HK171*P(0,8) + HK172*P(1,8) - HK173*P(2,8));
+				/* Kfusion(9) = HK181*HK185; */
+				Kfusion(9) = 0.f;
 
-			for (unsigned row = 10; row <= 23; row++) {
-				Kfusion(row) = HK185*(HK166*P(4,row) + HK167*P(5,row) + HK168*P(6,row) + HK169*P(row,24) - HK169*P(9,row) + HK170*P(3,row) + HK171*P(0,row) + HK172*P(1,row) - HK173*P(2,row));
+
+				for (unsigned row = 10; row <= 23; row++) {
+					Kfusion(row) = HK185*(HK166*P(4,row) + HK167*P(5,row) + HK168*P(6,row) + HK169*P(row,24) - HK169*P(9,row) + HK170*P(3,row) + HK171*P(0,row) + HK172*P(1,row) - HK173*P(2,row));
+				}
+
+			} else {
+				for (unsigned row = 0; row <= 23; row++) {
+					// update of all states other than terrain is inhibited
+					Kfusion(row) = 0.0f;
+				}
 			}
 
-			Kfusion(24) = HK179*HK185;
+			if (_hagl_sensor_status.flags.flow) {
+				Kfusion(24) = HK179*HK185;
 
+			} else {
+				Kfusion(24) = 0.f;
+			}
 		}
 
 		const bool is_fused = measurementUpdate(Kfusion, Hfusion, _flow_innov(obs_index));
