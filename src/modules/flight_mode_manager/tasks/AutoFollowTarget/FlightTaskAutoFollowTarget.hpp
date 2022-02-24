@@ -179,11 +179,16 @@ protected:
 	// Lowpass filter assuming  values 0-1, for avoiding big steps in velocity feedforward
 	AlphaFilter<float> _velocity_ff_scale;
 
+	// NOTE: If more of these internal state variables come into existence, it
+	// would make sense to create an internal state machine with a single enum
+	bool _emergency_ascent = false;
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_MIN_FT_HT>) _param_nav_min_ft_ht,
 		(ParamFloat<px4::params::NAV_FT_DST>) _param_nav_ft_dst,
 		(ParamInt<px4::params::NAV_FT_FS>) _param_nav_ft_fs,
-		(ParamInt<px4::params::NAV_FT_ALT_M>) _param_nav_ft_alt_m
+		(ParamInt<px4::params::NAV_FT_ALT_M>) _param_nav_ft_alt_m,
+		(ParamInt<px4::params::NAV_FT_DELC>) _param_nav_ft_delc
 	)
 
 	uORB::Subscription _follow_target_estimator_sub{ORB_ID(follow_target_estimator)};

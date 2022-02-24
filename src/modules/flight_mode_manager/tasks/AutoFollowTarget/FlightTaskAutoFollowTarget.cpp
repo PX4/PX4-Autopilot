@@ -196,15 +196,21 @@ Vector3f FlightTaskAutoFollowTarget::calculate_target_position_filtered(Vector3f
 		_target_position_filter.reset(pos_ned_est);
 	}
 
-	// Low-pass filter on target position. Then use a predicted target's position to compensate the filter delay to some extent.
-	{
+	// Low-pass filter on target position.
+	_target_position_filter.setParameters(_deltatime, POSITION_FILTER_ALPHA);
+
+	if (_param_nav_ft_delc.get() == 0) {
+		_target_position_filter.update(pos_ned_est);
+
+	} else {
+		// Use a predicted target's position to compensate the filter delay to some extent.
 		const Vector3f target_predicted_position = predict_future_pos_ned_est(POSITION_FILTER_ALPHA, pos_ned_est, vel_ned_est,
 				acc_ned_est);
-		_target_position_filter.setParameters(_deltatime, POSITION_FILTER_ALPHA);
 		_target_position_filter.update(target_predicted_position);
 	}
 
 	return _target_position_filter.getState();
+
 }
 
 bool FlightTaskAutoFollowTarget::update()
