@@ -2191,15 +2191,19 @@ Commander::run()
 
 		/* update safety topic from multiple subs */
 		bool safety_updated = false;
+
 		for (auto &safety_sub : _safety_subs) {
 			safety_s safety;
+
 			if (safety_sub.update(&safety)) {
 				safety_updated = true;
 				_safety.safety_switch_available = true;
+
 				// Use sub with most recent timestamp
 				if (safety.timestamp > _safety.timestamp) {
 					_safety.timestamp = safety.timestamp;
 				}
+
 				// If one safety is off, then safety is off
 				if (safety.safety_off) {
 					_safety.safety_off = true;

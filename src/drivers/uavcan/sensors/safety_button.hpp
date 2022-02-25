@@ -41,26 +41,26 @@
 class UavcanSafetyButtonBridge : public UavcanSensorBridgeBase
 {
 public:
-    static const char *const NAME;
+	static const char *const NAME;
 
-    UavcanSafetyButtonBridge(uavcan::INode &node);
+	UavcanSafetyButtonBridge(uavcan::INode &node);
 
-    const char *get_name() const override { return NAME; }
+	const char *get_name() const override { return NAME; }
 
-    int init() override;
+	int init() override;
 
 private:
 
-    int init_driver(uavcan_bridge::Channel *channel) override;
+	int init_driver(uavcan_bridge::Channel *channel) override;
 
-    void button_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg);
+	void button_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg);
 
-    typedef uavcan::MethodBinder < UavcanSafetyButtonBridge *,
-        void (UavcanSafetyButtonBridge::*)
-        (const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &) >
-        ButtonCbBinder;
+	typedef uavcan::MethodBinder < UavcanSafetyButtonBridge *,
+		void (UavcanSafetyButtonBridge::*)
+		(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &) >
+		ButtonCbBinder;
 
-    uavcan::Subscriber<ardupilot::indication::Button, ButtonCbBinder> _sub_button;
+	uavcan::Subscriber<ardupilot::indication::Button, ButtonCbBinder> _sub_button;
 
 
 };

@@ -39,38 +39,39 @@
 const char *const UavcanSafetyButtonBridge::NAME = "safety_button";
 
 UavcanSafetyButtonBridge::UavcanSafetyButtonBridge(uavcan::INode &node) :
-    UavcanSensorBridgeBase("uavcan_safety_button", ORB_ID(safety)), // TODO: either multiple publishers or `button_event` uORB topic
-    _sub_button(node)
+	UavcanSensorBridgeBase("uavcan_safety_button",
+			       ORB_ID(safety)), // TODO: either multiple publishers or `button_event` uORB topic
+	_sub_button(node)
 { }
 
 int UavcanSafetyButtonBridge::init()
 {
-    int res = _sub_button.start(ButtonCbBinder(this, &UavcanSafetyButtonBridge::button_sub_cb));
+	int res = _sub_button.start(ButtonCbBinder(this, &UavcanSafetyButtonBridge::button_sub_cb));
 
-    if (res < 0) {
-        DEVICE_LOG("failed to start uavcan sub: %d", res);
-        return res;
-    }
+	if (res < 0) {
+		DEVICE_LOG("failed to start uavcan sub: %d", res);
+		return res;
+	}
 
-    return 0;
+	return 0;
 }
 
 void UavcanSafetyButtonBridge::button_sub_cb(const
-        uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
+		uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
 {
-    bool is_safety = msg.button == ardupilot::indication::Button::BUTTON_SAFETY;
-    bool pressed = msg.press_time >= 10; // 0.1s increments
+	bool is_safety = msg.button == ardupilot::indication::Button::BUTTON_SAFETY;
+	bool pressed = msg.press_time >= 10; // 0.1s increments
 
-    if (is_safety && pressed) {
-        safety_s safety = {};
-        safety.timestamp = hrt_absolute_time();
-        safety.safety_switch_available = true;
-        safety.safety_off = true;
-        publish(msg.getSrcNodeID().get(), &safety);
-    }
+	if (is_safety && pressed) {
+		safety_s safety = {};
+		safety.timestamp = hrt_absolute_time();
+		safety.safety_switch_available = true;
+		safety.safety_off = true;
+		publish(msg.getSrcNodeID().get(), &safety);
+	}
 }
 
 int UavcanSafetyButtonBridge::init_driver(uavcan_bridge::Channel *channel)
 {
-    return PX4_OK;
+	return PX4_OK;
 }
