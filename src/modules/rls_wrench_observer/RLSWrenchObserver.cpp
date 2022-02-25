@@ -67,7 +67,23 @@ void RLSWrenchObserver::updateParams()
 {
 	const float rls_pmen_noise = _param_rls_pmen_noise.get();
 	ModuleParams::updateParams();
-	PX4_INFO("Updated %8.4f",(double)rls_pmen_noise);
+
+	const matrix::Vector2f X_O = matrix::Vector2f (1.f,0.f);
+	const float a = 1.0f;
+	const float b = 0.1f;
+
+	_identification.initialize(X_O,a,b);
+
+	const matrix::Vector3f Yvec = matrix::Vector3f(1.f,2.f,3.f);
+	matrix::Matrix<float, 3, 2> Hmatrix;
+	matrix::Vector2f par;
+
+	Hmatrix.setAll(1);
+
+	par = _identification.update(Yvec,Hmatrix);
+
+	PX4_INFO("Updated %8.4f",(double)(par(1)));
+	PX4_INFO("Updated %8.4f",(double)(rls_pmen_noise+_identification.getThrustConstant()));
 }
 
 void RLSWrenchObserver::Run()
@@ -116,11 +132,37 @@ void RLSWrenchObserver::Run()
 	if (_sensor_accel_sub.updated()) {
 		sensor_accel_s accel;
 
+		const matrix::Vector3f Yvec = matrix::Vector3f(1.f,2.f,3.f);
+		matrix::Matrix<float, 3, 2> Hmatrix;
+		matrix::Vector2f par;
+
 		if (_sensor_accel_sub.copy(&accel)) {
-		PX4_INFO("Sensor_accel:\t%8.4f\t%8.4f\t%8.4f",
-				(double)accel.x,
-				(double)accel.y,
-				(double)accel.z);
+
+
+			Hmatrix.setAll(accel.z);
+
+			par = _identification.update(Yvec,Hmatrix);
+
+		// PX4_INFO("Sensor_accel:\t%8.4f\t%8.4f",
+		// 		(double)par(0),
+		// 		(double)par(1));
+
+		// PX4_INFO("Sensor_accel:\t%8.4f\t%8.4f\t%8.4f",
+		// 		(double)accel.x,
+		// 		(double)accel.y,
+		// 		(double)accel.z);
+
+
+		}
+	}
+
+if (_actuator_outputs_sub.updated()) {
+		actuator_outputs_s actuator_outputs;
+
+		if (_actuator_outputs_sub.copy(&actuator_outputs)) {
+
+		// PX4_INFO("actuator_output:\t%8.4f",
+		// 		(double)actuator_outputs.output[0]);
 		}
 	}
 

@@ -59,6 +59,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/actuator_outputs.h>
 // #include <uORB/topics/vehicle_local_position.h>
 // #include <uORB/topics/sensor_combined.h>
 
@@ -94,7 +95,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub{this, ORB_ID(sensor_accel)};        // subscription that schedules RLSWrenchObserver when updated
 	// uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 	// uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
-
+	uORB::Subscription                 _actuator_outputs_sub{ORB_ID(actuator_outputs)};          
 
 	uORB::SubscriptionInterval         _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
 	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
@@ -108,6 +109,7 @@ private:
 		(ParamFloat<px4::params::RLS_PMEN_NOISE>) _param_rls_pmen_noise
 	)
 
+	RLSIdentification _identification; 
 
 	bool _armed{false};
 };
