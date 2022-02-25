@@ -124,16 +124,32 @@ Type wrap_2pi(Type x)
 }
 
 /**
- * Unwrap angles
+ * Unwrap value that was wrapped with range [low, high)
+ *
+ * @param[in] last_x Last unwrapped value
+ * @param[in] new_x New value in range
+ * @param low lower limit of the wrapping range
+ * @param high upper limit of the wrapping range
+ * @return New unwrapped value
+ */
+template<typename Type>
+Type unwrap(const Type last_x, const Type new_x, const Type low, const Type high)
+{
+	return last_x + wrap(new_x - last_x, low, high);
+}
+
+/**
+ * Unwrap value with range [-π, π)
  *
  * @param[in] last_angle Last unwrapped angle [rad]
  * @param[in] new_angle New angle in [-pi, pi] [rad]
+ * @param
  * @return New unwrapped angle [rad]
  */
 template<typename Type>
-Type unwrap(const Type last_angle, const Type new_angle)
+Type unwrap_pi(const Type last_angle, const Type new_angle)
 {
-	return last_angle + wrap_pi(new_angle - last_angle);
+	return unwrap(last_angle, new_angle, Type(-M_PI), Type(M_PI));
 }
 
 template<typename T>
