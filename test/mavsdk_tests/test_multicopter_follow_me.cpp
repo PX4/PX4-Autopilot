@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,7 @@ TEST_CASE("Follow target - Position streaming", "[multicopter]")
 	tester.takeoff();
 	tester.wait_until_hovering();
 
-	tester.straight_line_test(takeoff_altitude, stream_velocity);
+	tester.straight_line_test(stream_velocity);
 
 	tester.land();
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(300);
@@ -72,7 +72,7 @@ TEST_CASE("Follow target - Position and velocity streaming", "[multicopter]")
 	tester.takeoff();
 	tester.wait_until_hovering();
 
-	tester.straight_line_test(takeoff_altitude, stream_velocity);
+	tester.straight_line_test(stream_velocity);
 
 	tester.land();
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(300);
@@ -103,7 +103,7 @@ TEST_CASE("Follow target - Velocity streaming only", "[multicopter]")
 	tester.check_home_within(1.0f);
 }
 
-TEST_CASE("Follow target - Manual takeover", "[multicopter]")
+TEST_CASE("Follow target - RC Adjustment", "[multicopter]")
 {
 	AutopilotTesterFollowMe tester;
 	tester.connect(connection_url);
@@ -116,14 +116,9 @@ TEST_CASE("Follow target - Manual takeover", "[multicopter]")
 	tester.takeoff();
 	tester.wait_until_hovering();
 
-	tester.rc_override_test(takeoff_altitude);
+	tester.rc_adjustment_test();
 
 	tester.land();
 	std::chrono::seconds until_disarmed_timeout = std::chrono::seconds(300);
 	tester.wait_until_disarmed(until_disarmed_timeout);
-}
-
-TEST_CASE("Follow target - Spamming duplicate messages", "[multicopter]")
-{
-
 }

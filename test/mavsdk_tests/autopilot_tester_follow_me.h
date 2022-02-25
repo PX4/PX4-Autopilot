@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,7 @@
 #include <mavsdk/plugins/follow_me/follow_me.h>
 
 
-// Simulated a target moving on a straight line
+// Simulate a target moving on a straight line in X+ direction
 class FollowTargetSimulator
 {
 public:
@@ -110,11 +110,29 @@ public:
 	~AutopilotTesterFollowMe() = default;
 	void connect(const std::string uri);
 
-	void straight_line_test(const float altitude_m, const bool stream_velocity);
+	/**
+	 * @brief Moves the Target in X+ direction and check the behavior
+	 *
+	 * @param stream_velocity [bool] Whether Target's FollowMe message includes velocity info or not
+	 */
+	void straight_line_test(const bool stream_velocity);
 
+	/**
+	 * @brief Sends Target Velocity data only with invalid Position Data
+	 *
+	 * This case should be considered as an 'invalid' Target movement, and the vehicle
+	 * therefore shouldn't move even when the target data is sent
+	 */
 	void stream_velocity_only();
 
-	void rc_override_test(const float altitude_m);
+	/**
+	 * @brief Test to check if RC adjustments work
+	 *
+	 * Simulates moving throttle up and down for Follow Height Control
+	 * Simulates moving roll left and right for Follow Angle Control
+	 * Simulates moving pitch up and down for Follow Distance Control
+	 */
+	void rc_adjustment_test();
 
 private:
 	std::unique_ptr<mavsdk::FollowMe> _follow_me{};
