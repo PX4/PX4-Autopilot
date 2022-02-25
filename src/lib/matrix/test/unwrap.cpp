@@ -19,7 +19,7 @@ TEST(Unwrap, UnwrapFloats)
 	float last_angle = wrapped_angles[0];
 
 	for (int i = 1; i < 6; i++) {
-		last_angle = unwrap(last_angle, wrapped_angles[i]);
+		last_angle = unwrap_pi(last_angle, wrapped_angles[i]);
 		EXPECT_FLOAT_EQ(last_angle, unwrapped_angles[i]);
 	}
 
@@ -27,7 +27,7 @@ TEST(Unwrap, UnwrapFloats)
 	last_angle = -wrapped_angles[0];
 
 	for (int i = 1; i < 6; i++) {
-		last_angle = unwrap(last_angle, -wrapped_angles[i]);
+		last_angle = unwrap_pi(last_angle, -wrapped_angles[i]);
 		EXPECT_FLOAT_EQ(last_angle, -unwrapped_angles[i]);
 	}
 }
@@ -48,7 +48,7 @@ TEST(Unwrap, UnwrapDoubles)
 	double last_angle = wrapped_angles[0];
 
 	for (int i = 1; i < 6; i++) {
-		last_angle = unwrap(last_angle, wrapped_angles[i]);
+		last_angle = unwrap_pi(last_angle, wrapped_angles[i]);
 		EXPECT_DOUBLE_EQ(last_angle, unwrapped_angles[i]);
 	}
 
@@ -56,7 +56,7 @@ TEST(Unwrap, UnwrapDoubles)
 	last_angle = -wrapped_angles[0];
 
 	for (int i = 1; i < 6; i++) {
-		last_angle = unwrap(last_angle, -wrapped_angles[i]);
+		last_angle = unwrap_pi(last_angle, -wrapped_angles[i]);
 		EXPECT_DOUBLE_EQ(last_angle, -unwrapped_angles[i]);
 	}
 }
