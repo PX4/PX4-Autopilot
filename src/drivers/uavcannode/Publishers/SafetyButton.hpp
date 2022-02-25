@@ -43,13 +43,13 @@
 namespace uavcannode
 {
 
-class Button :
+class SafetyButton :
 	public UavcanPublisherBase,
 	public uORB::SubscriptionCallbackWorkItem,
 	private uavcan::Publisher<ardupilot::indication::Button>
 {
 public:
-	Button(px4::WorkItem *work_item, uavcan::INode &node) :
+	SafetyButton(px4::WorkItem *work_item, uavcan::INode &node) :
 		UavcanPublisherBase(ardupilot::indication::Button::DefaultDataTypeID),
 		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety)), // technically unused
 		uavcan::Publisher<ardupilot::indication::Button>(node)
@@ -73,17 +73,17 @@ public:
 
 		if (pressed && !_button_pressed) {
 			// Button pressed
-			_button_start = hrt_absolute_time();
+			_start_time = hrt_absolute_time();
 
 		} else if (!pressed && _button_pressed) {
 			// Button released
-			hrt_abstime pressed_micros = hrt_absolute_time() - _button_start;
+			hrt_abstime pressed_micros = hrt_absolute_time() - _start_time;
 			PX4_INFO("Button pressed for %f seconds", double(pressed_micros / 1e6));
 			// Publish
-			ardupilot::indication::Button Button = {};
-			Button.button = ardupilot::indication::Button::BUTTON_SAFETY;
-			Button.press_time = (hrt_absolute_time() - _button_start) / 1e5; // units are 0.1s
-			uavcan::Publisher<ardupilot::indication::Button>::broadcast(Button);
+			ardupilot::indication::Button button = {};
+			button.button = ardupilot::indication::Button::BUTTON_SAFETY;
+			button.press_time = (hrt_absolute_time() - _start_time) / 1e5; // units are 0.1s
+			uavcan::Publisher<ardupilot::indication::Button>::broadcast(button);
 		}
 
 		_button_pressed = pressed;

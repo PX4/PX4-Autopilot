@@ -58,13 +58,8 @@ int UavcanSafetyButtonBridge::init()
 void UavcanSafetyButtonBridge::button_sub_cb(const
         uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
 {
-    // TODO:
-    PX4_INFO("got ardupilot::indication::Button message");
-    PX4_INFO("button: %u", msg.button);
-    PX4_INFO("press_time: %u", msg.press_time);
-
     bool is_safety = msg.button == ardupilot::indication::Button::BUTTON_SAFETY;
-    bool pressed = msg.press_time > 10; // 0.1s increments
+    bool pressed = msg.press_time >= 10; // 0.1s increments
 
     if (is_safety && pressed) {
         safety_s safety = {};

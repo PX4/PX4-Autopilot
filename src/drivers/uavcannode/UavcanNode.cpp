@@ -47,7 +47,7 @@
 #include "Publishers/RangeSensorMeasurement.hpp"
 #include "Publishers/RawAirData.hpp"
 #include "Publishers/MovingBaselineData.hpp"
-#include "Publishers/Button.hpp"
+#include "Publishers/SafetyButton.hpp"
 #include "Publishers/StaticPressure.hpp"
 #include "Publishers/StaticTemperature.hpp"
 
@@ -313,7 +313,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	}
 
-	_publisher_list.add(new Button(this, _node));
+	_publisher_list.add(new SafetyButton(this, _node));
 	_publisher_list.add(new StaticPressure(this, _node));
 	_publisher_list.add(new StaticTemperature(this, _node));
 

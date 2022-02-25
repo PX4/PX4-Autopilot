@@ -2189,35 +2189,48 @@ Commander::run()
 			}
 		}
 
-		/* update safety topic */
-		const bool safety_updated = _safety_sub.updated();
+		/* update safety topic from multiple subs */
+		bool safety_updated = false;
+		for (auto &safety_sub : _safety_subs) {
+			safety_s safety;
+			if (safety_sub.update(&safety)) {
+				safety_updated = true;
+				_safety.safety_switch_available = true;
+				// Use sub with most recent timestamp
+				if (safety.timestamp > _safety.timestamp) {
+					_safety.timestamp = safety.timestamp;
+				}
+				// If one safety is off, then safety is off
+				if (safety.safety_off) {
+					_safety.safety_off = true;
+				}
+			}
+		}
 
 		if (safety_updated) {
 			const bool previous_safety_valid = (_safety.timestamp != 0);
 			const bool previous_safety_off = _safety.safety_off;
 
-			if (_safety_sub.copy(&_safety)) {
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, _safety.safety_switch_available, _safety.safety_off,
-						 _safety.safety_switch_available, _status);
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, _safety.safety_switch_available, _safety.safety_off,
+					 _safety.safety_switch_available, _status);
 
-				// disarm if safety is now on and still armed
-				if (_armed.armed && _safety.safety_switch_available && !_safety.safety_off
-				    && (_status.hil_state == vehicle_status_s::HIL_STATE_OFF)) {
-					disarm(arm_disarm_reason_t::safety_button);
+			// disarm if safety is now on and still armed
+			if (_armed.armed && _safety.safety_switch_available && !_safety.safety_off
+			    && (_status.hil_state == vehicle_status_s::HIL_STATE_OFF)) {
+				disarm(arm_disarm_reason_t::safety_button);
+			}
+
+			// Notify the user if the status of the safety switch changes
+			if (previous_safety_valid && _safety.safety_switch_available && previous_safety_off != _safety.safety_off) {
+
+				if (_safety.safety_off) {
+					set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
+
+				} else {
+					tune_neutral(true);
 				}
 
-				// Notify the user if the status of the safety switch changes
-				if (previous_safety_valid && _safety.safety_switch_available && previous_safety_off != _safety.safety_off) {
-
-					if (_safety.safety_off) {
-						set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
-
-					} else {
-						tune_neutral(true);
-					}
-
-					_status_changed = true;
-				}
+				_status_changed = true;
 			}
 		}
 
