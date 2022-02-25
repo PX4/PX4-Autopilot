@@ -88,7 +88,9 @@ static constexpr float FOLLOW_ANGLE_FILTER_ALPHA = 3.0f;
 static constexpr float DIRECTION_FILTER_ALPHA =	3.0f;
 
 // Filter on setpoints for smooth cinematic experience:
-// Lowpass applied for ramping up / down velocity feedforward term
+// Lowpass applied for ramping up / down velocity feedforward term.
+// This is to avoid aggressive jerks when the target starts moving, because
+// velocity feed-forward is not applied at all while the target is stationary.
 static constexpr float VELOCITY_FF_FILTER_ALPHA = 1.0f;
 
 
