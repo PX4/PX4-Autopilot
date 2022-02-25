@@ -524,6 +524,8 @@ mixer:
                                 # show type-specific functionality)
                                 type: string
                                 allowed: [ multirotor ]
+                            title:
+                                type: string
                             actuators:
                                 type: list
                                 minlength: 1

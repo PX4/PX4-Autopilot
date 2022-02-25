@@ -81,9 +81,40 @@ bool
 PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		      unsigned num_control_groups_updated)
 {
-	// Nothing to do, as we are only interested in the actuator_outputs topic publication.
-	// That should only be published once we receive actuator_controls (important for lock-step to work correctly)
-	return num_control_groups_updated > 0;
+	// Only publish once we receive actuator_controls (important for lock-step to work correctly)
+	if (num_control_groups_updated > 0) {
+		actuator_outputs_s actuator_outputs{};
+		actuator_outputs.noutputs = num_outputs;
+
+		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
+
+		for (int i = 0; i < (int)num_outputs; i++) {
+			if (outputs[i] != PWM_SIM_DISARMED_MAGIC) {
+
+				OutputFunction function = _mixing_output.outputFunction(i);
+				bool is_reversible = reversible_outputs & (1u << i);
+				float output = outputs[i];
+
+				if (((int)function >= (int)OutputFunction::Motor1 && (int)function <= (int)OutputFunction::MotorMax)
+				    && !is_reversible) {
+					// Scale non-reversible motors to [0, 1]
+					actuator_outputs.output[i] = (output - PWM_SIM_PWM_MIN_MAGIC) / (PWM_SIM_PWM_MAX_MAGIC - PWM_SIM_PWM_MIN_MAGIC);
+
+				} else {
+					// Scale everything else to [-1, 1]
+					const float pwm_center = (PWM_SIM_PWM_MAX_MAGIC + PWM_SIM_PWM_MIN_MAGIC) / 2.f;
+					const float pwm_delta = (PWM_SIM_PWM_MAX_MAGIC - PWM_SIM_PWM_MIN_MAGIC) / 2.f;
+					actuator_outputs.output[i] = (output - pwm_center) / pwm_delta;
+				}
+			}
+		}
+
+		actuator_outputs.timestamp = hrt_absolute_time();
+		_actuator_outputs_sim_pub.publish(actuator_outputs);
+		return true;
+	}
+
+	return false;
 }
 
 int

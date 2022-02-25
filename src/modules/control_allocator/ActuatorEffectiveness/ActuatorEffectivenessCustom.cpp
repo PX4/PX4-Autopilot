@@ -49,7 +49,7 @@ ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration
 	}
 
 	// motors
-	_motors.enableYawControl(false);
+	_motors.enablePropellerTorque(false);
 	const bool motors_added_successfully = _motors.addActuators(configuration);
 
 	// Torque

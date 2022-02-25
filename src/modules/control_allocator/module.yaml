@@ -370,18 +370,6 @@ parameters:
             instance_start: 0
             default: 0
 
-        # Standard VTOL
-        CA_STDVTOL_N_P:
-            description:
-                short: Number of fixed wing (pusher/puller) motors
-            type: enum
-            values:
-                1: '1'
-                2: '2'
-                3: '3'
-                4: '4'
-            default: 1
-
 
 # Mixer
 mixer:
@@ -478,6 +466,7 @@ mixer:
         types:
             0: # Multirotor
                 type: 'multirotor'
+                title: 'Multirotor'
                 actuators:
                   - actuator_type: 'motor'
                     count: 'CA_ROTOR_COUNT'
@@ -491,6 +480,7 @@ mixer:
                             show_as: 'true-if-positive'
 
             1: # Fixed Wing
+                title: 'Fixed Wing'
                 actuators:
                   - actuator_type: 'motor'
                     group_label: 'Motors'
@@ -520,9 +510,10 @@ mixer:
                             label: 'Trim'
 
             2: # Standard VTOL
+                title: 'Standard VTOL'
                 actuators:
                   - actuator_type: 'motor'
-                    group_label: 'MC Motors'
+                    group_label: 'Motors'
                     count: 'CA_ROTOR_COUNT'
                     per_item_parameters:
                         standard:
@@ -532,10 +523,15 @@ mixer:
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
-                  - actuator_type: 'motor'
-                    group_label: 'FW Motors'
-                    count: 'CA_STDVTOL_N_P'
-                    item_label_prefix: 'FW Motor ${i}'
+                          - name: 'CA_ROTOR${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                          - name: 'CA_ROTOR${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                          - name: 'CA_ROTOR${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
                   - actuator_type: 'servo'
                     group_label: 'Control Surfaces'
                     count: 'CA_SV_CS_COUNT'
@@ -561,6 +557,7 @@ mixer:
                         name: VT_ELEV_MC_LOCK
 
             3: # Tiltrotor VTOL
+                title: 'Tiltrotor VTOL'
                 actuators:
                   - actuator_type: 'motor'
                     group_label: 'MC Motors'
@@ -615,6 +612,7 @@ mixer:
                             label: 'Use for Control'
 
             4: # Tailsitter VTOL
+                title: 'Tailsitter VTOL'
                 actuators:
                   - actuator_type: 'motor'
                     group_label: 'MC Motors'
@@ -653,6 +651,7 @@ mixer:
                         name: VT_ELEV_MC_LOCK
 
             5: # Rover (Ackermann)
+                title: 'Rover (Ackermann)'
                 actuators:
                   - actuator_type: 'motor'
                     instances:
@@ -664,6 +663,7 @@ mixer:
                         position: [ 1., 0, 0 ]
 
             6: # Rover (Differential)
+                title: 'Rover (Differential)'
                 actuators:
                   - actuator_type: 'motor'
                     instances:
@@ -693,6 +693,7 @@ mixer:
                             label: "Moment\nCoefficient"
 
             8: # Multirotor with Tilt
+                title: 'Multirotor with Tilt'
                 actuators:
                   - actuator_type: 'motor'
                     count: 'CA_ROTOR_COUNT'
