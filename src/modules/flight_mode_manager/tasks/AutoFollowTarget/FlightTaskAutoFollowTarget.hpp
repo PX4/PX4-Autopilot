@@ -46,21 +46,17 @@
 
 #include <parameters/param.h>
 #include <mathlib/mathlib.h>
+
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/follow_target_status.h>
 #include <uORB/topics/follow_target_estimator.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
 #include <uORB/topics/vehicle_command.h>
+
+#include <lib/mathlib/math/filter/second_order_reference_model.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
-
-// Speed above which the target heading can change.
-// Used to prevent unpredictable jitter at low speeds.
-static constexpr float MINIMUM_SPEED_FOR_HEADING_CHANGE = 0.1f;
-
-// Minimum distance between drone and target for the drone to do any yaw control.
-static constexpr float MINIMUM_DISTANCE_TO_TARGET_FOR_YAW_CONTROL = 1.0f;
+#include <lib/matrix/matrix/helper_functions.hpp>
 
 // Minimum safety altitude above home (or bottom distance sensor)
 // underneath which the flight task will stop moving horizontally
@@ -74,26 +70,26 @@ static constexpr float ALT_ACCEPTANCE_THRESHOLD = 3.0f;
 // is too close to the ground (below MINIMUM_SAFETY_ALTITUDE)
 static constexpr float EMERGENCY_ASCENT_SPEED = 0.2f;
 
-// Filter on setpoints for smooth cinematic experience:
-// Lowpass applied to the estimated position of the target
-// before using it as control input
-static constexpr float POSITION_FILTER_ALPHA =	1.5f;
+// [s] If the target estimator output isn't updated longer than this, reset pose filter.
+static constexpr float TARGET_ESTIMATOR_TIMEOUT_SECONDS = 1.5;
 
-// Filter on setpoints for smooth cinematic experience:
-// Lowpass applied to the follow-me angle setting, to ensure
-// smooth and circular transitions between settings
-static constexpr float FOLLOW_ANGLE_FILTER_ALPHA = 3.0f;
+// Second order filter parameter for target position filter
+static constexpr float TARGET_POSE_FILTER_NATURAL_FREQUENCY = 1.0f; // [rad/s]
+static constexpr float TARGET_POSE_FILTER_DAMPING_RATIO = 0.7071;
 
-// Filter on setpoints for smooth cinematic experience:
-// Lowpass applied to the actual NED direction how the drone is facing the target
-// regarless of the setting. Used for dynamic tracking angles when the target makes a turn
-static constexpr float DIRECTION_FILTER_ALPHA =	3.0f;
+// [m/s] Velocity deadzone for which, under this velocity, the target orientation
+// tracking will freeze, since orientation can be noisy in low velocities
+static constexpr float TARGET_VELOCITY_DEADZONE_FOR_ORIENTATION_TRACKING = 1.0;
 
-// Filter on setpoints for smooth cinematic experience:
-// Lowpass applied for ramping up / down velocity feedforward term.
-// This is to avoid aggressive jerks when the target starts moving, because
-// velocity feed-forward is not applied at all while the target is stationary.
-static constexpr float VELOCITY_FF_FILTER_ALPHA = 1.0f;
+// [m/s] Velocity limit to limit orbital angular rate depending on follow distance
+static constexpr float MAXIMUM_TANGENTIAL_ORBITING_SPEED = 5.0;
+
+// [m] Minimum distance between drone and target for the drone to do any yaw control.
+static constexpr float MINIMUM_DISTANCE_TO_TARGET_FOR_YAW_CONTROL = 1.0f;
+
+// Yaw setpoint filter to avoid jitter-ness, which can happen because the yaw is
+// calculated off of position offset between target & drone, which updates very frequently.
+static constexpr float YAW_SETPOINT_FILTER_ALPHA = 0.5;
 
 
 class FlightTaskAutoFollowTarget : public FlightTask
@@ -143,6 +139,21 @@ protected:
 		FOLLOW_GIMBAL_MODE_3D
 	};
 
+	void update_target_pose_filter(follow_target_estimator_s follow_target_estimator);
+	float update_target_orientation(Vector2f target_velocity);
+	float update_orbit_angle(float target_orientation, float fllow_angle, float max_orbital_rate);
+	Vector3f calculate_drone_desired_position(Vector3f target_position);
+
+	/**
+	 * Release Gimbal Control
+	 *
+	 * Releases Gimbal Control Authority of Follow-Target Flight Task, to allow other modules / Ground station
+	 * to control the gimbal when the task exits.
+	 */
+	void release_gimbal_control();
+
+	void point_gimbal_at(float xy_distance, float z_distance);
+
 	/**
 	 * Get the current follow-me perspective setting from PX4 parameters
 	 *
@@ -151,47 +162,34 @@ protected:
 	 */
 	float update_follow_me_angle_setting(int param_nav_ft_fs) const;
 
-	/**
-	 * Predict target's position through forward integration of its currently estimated position, velocity and acceleration.
-	 *
-	 * @param deltatime [s] prediction horizon
-	 * @return Future prediction of target position
-	 */
-	matrix::Vector3f predict_future_pos_ned_est(float deltatime, const matrix::Vector3f &pos_ned_est,
-			const matrix::Vector3f &vel_ned_est,
-			const matrix::Vector3f &acc_ned_est) const;
-
-	void release_gimbal_control();
-	void point_gimbal_at(float xy_distance, float z_distance);
-	matrix::Vector2f calculate_offset_vector_filtered(matrix::Vector3f vel_ned_est);
-	matrix::Vector3f calculate_target_position_filtered(matrix::Vector3f pos_ned_est, matrix::Vector3f vel_ned_est,
-			matrix::Vector3f acc_ned_est);
-
-	// Calculate the desired position of the drone relative to the target using the offset_vector
-	matrix::Vector3f calculate_drone_desired_position(matrix::Vector3f target_position, matrix::Vector2f offset_vector);
-
+	// Estimator for target position and velocity
 	TargetEstimator _target_estimator;
+	follow_target_estimator_s _follow_target_estimator;
+
+	// Last target estimator timestamp to handle timeout filter reset
+	uint16_t _last_target_estimator_timestamp{0};
+
+	// Second Order Filter to calculate kinematically feasible target position
+	SecondOrderReferenceModel<matrix::Vector3f> _target_pose_filter;
+
+	// Estimated (Filtered) target orientation setpoint
+	float _target_orientation_rad{0.0f};
 
 	// Follow angle is defined with 0 degrees following from front, and then clockwise rotation
 	float _follow_angle_rad{0.0f};
-	AlphaFilter<float> _follow_angle_filter;
 
-	// Estimator for target position and velocity
-	follow_target_estimator_s _follow_target_estimator;
-	matrix::Vector2f _target_velocity_unit_vector;
+	// Current orbit angle measured in global frame, against the target
+	float _current_orbit_angle{0.0f};
 
-	// Lowpass filters for smoothingtarget position because it's used for setpoint generation
-	AlphaFilter<matrix::Vector3f> _target_position_filter;
-
-	// Lowpass filter for smoothing the offset vector and have more dynamic shots when target changes direction
-	AlphaFilter<matrix::Vector2f> _offset_vector_filter;
-
-	// Lowpass filter assuming  values 0-1, for avoiding big steps in velocity feedforward
-	AlphaFilter<float> _velocity_ff_scale;
+	// Unfiltered drone to target heading
+	float _drone_to_target_heading{0.0f};
 
 	// NOTE: If more of these internal state variables come into existence, it
 	// would make sense to create an internal state machine with a single enum
 	bool _emergency_ascent = false;
+
+	// Yaw setpoint filter to remove jitter-ness
+	AlphaFilter<float> _yaw_setpoint_filter;
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
@@ -201,13 +199,13 @@ protected:
 		(ParamInt<px4::params::NAV_FT_FS>) _param_nav_ft_fs,
 		(ParamInt<px4::params::NAV_FT_ALT_M>) _param_nav_ft_alt_m,
 		(ParamInt<px4::params::NAV_FT_GMB_M>) _param_nav_ft_gmb_m,
-		(ParamInt<px4::params::NAV_FT_DELC>) _param_nav_ft_delc
+		(ParamInt<px4::params::NAV_FT_YAW_FT>) _param_nav_ft_yaw_ft
 	)
 
 	uORB::Subscription _follow_target_estimator_sub{ORB_ID(follow_target_estimator)};
 
-	uORB::PublicationMulti<follow_target_status_s> _follow_target_status_pub{ORB_ID(follow_target_status)};
-	uORB::PublicationMulti<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
+	uORB::Publication<follow_target_status_s> _follow_target_status_pub{ORB_ID(follow_target_status)};
+	uORB::Publication<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 
 	// Debugging

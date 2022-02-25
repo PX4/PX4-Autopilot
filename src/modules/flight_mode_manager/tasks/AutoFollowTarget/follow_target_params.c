@@ -125,20 +125,9 @@ PARAM_DEFINE_INT32(NAV_FT_ALT_M, 0);
 PARAM_DEFINE_INT32(NAV_FT_GMB_M, 0);
 
 /**
- * Compensate filter delay
+ * Yaw Setpoint Filtering Enable
  *
- * The follow flight mode is estimating and filtering the target's position
- * and velocity in order to achieve a smoother tracking behavior. The filtering
- * introduces some delay which is noticable when the target is moving at higher
- * speeds, such as the case for bicycles and cars. For this high-speed scenario
- * the delay compensation can be enabled, which extrapolates the filtered position
- * in order to compensate for the filter delay.
- * This setting should not be used when the target is moving slowly, for example
- * when it's a pedestrian, as it will then emphasize the measurement noise instead
- * and cause unnecessary movement for the drone.
- *
- * @value 0 disabled
- * @value 1 enabled
+ * @boolean
  * @group Follow target
  */
-PARAM_DEFINE_INT32(NAV_FT_DELC, 0);
+PARAM_DEFINE_INT32(NAV_FT_YAW_FT, 1);
