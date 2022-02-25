@@ -51,7 +51,7 @@ class SafetyButton :
 public:
 	SafetyButton(px4::WorkItem *work_item, uavcan::INode &node) :
 		UavcanPublisherBase(ardupilot::indication::Button::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety)), // technically unused
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety)),
 		uavcan::Publisher<ardupilot::indication::Button>(node)
 	{
 		this->setPriority(uavcan::TransferPriority::Default);
@@ -69,28 +69,17 @@ public:
 
 	void BroadcastAnyUpdates() override
 	{
-		const bool pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
+		// safety -> standard::indication::button
+		safety_s safety;
 
-		if (pressed && !_button_pressed) {
-			// Button pressed
-			_start_time = hrt_absolute_time();
-
-		} else if (!pressed && _button_pressed) {
-			// Button released
-			hrt_abstime pressed_micros = hrt_absolute_time() - _start_time;
-			PX4_INFO("Button pressed for %f seconds", double(pressed_micros / 1e6));
-			// Publish
-			ardupilot::indication::Button button = {};
-			button.button = ardupilot::indication::Button::BUTTON_SAFETY;
-			button.press_time = (hrt_absolute_time() - _start_time) / 1e5; // units are 0.1s
-			uavcan::Publisher<ardupilot::indication::Button>::broadcast(button);
+		if (uORB::SubscriptionCallbackWorkItem::update(&safety)) {
+			if (safety.safety_switch_available) {
+				ardupilot::indication::Button Button{};
+				Button.button = ardupilot::indication::Button::BUTTON_SAFETY;
+				Button.press_time = safety.safety_off ? UINT8_MAX : 0;
+				uavcan::Publisher<ardupilot::indication::Button>::broadcast(Button);
+			}
 		}
-
-		_button_pressed = pressed;
-
 	}
-private:
-	bool _button_pressed {};
-	hrt_abstime _start_time {};
 };
 } // namespace uavcannode
