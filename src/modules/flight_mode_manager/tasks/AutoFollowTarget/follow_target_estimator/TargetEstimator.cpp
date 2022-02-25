@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -181,7 +181,7 @@ void TargetEstimator::update()
 
 void TargetEstimator::update_filter_gains(filter_gains_s &filter_gains) const
 {
-	const float responsiveness_param = math::constrain(_param_nav_ft_rs.get(), .1F, 1.0F);
+	const float responsiveness_param = math::constrain(_param_flw_tgt_rs.get(), .1F, 1.0F);
 
 	if (fabsf(filter_gains.responsiveness - responsiveness_param) < FLT_EPSILON) {
 		// Parameter did not change since last execution. Skip calculations
@@ -193,7 +193,7 @@ void TargetEstimator::update_filter_gains(filter_gains_s &filter_gains) const
 	// The "G" gain is equivalent to "(1-responsiveness)", but beta is required for H and K gains
 	// From alpha-beta-gamma filter equations: G = 1-beta^3
 	// Therefore: beta = (1-Gp)^(1/3) = (1-(1-responsiveness))^(1/3) = (r)^(1/3)
-	const float beta_p = std::pow((filter_gains.responsiveness), 1.0f / 3.0f);
+	const float beta_p = pow((filter_gains.responsiveness), 1.0f / 3.0f);
 	const float beta_v = 0.9f * beta_p; // velocity fusion gain is slightly lower. TODO: individual parameter?
 
 	// Estimator gains for horizontal position update

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -205,7 +205,7 @@ protected:
 	matrix::Vector3f _vel_measurement_old{};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_FT_RS>) _param_nav_ft_rs
+		(ParamFloat<px4::params::FLW_TGT_RS>) _param_flw_tgt_rs
 	)
 
 	// Subscriptions
