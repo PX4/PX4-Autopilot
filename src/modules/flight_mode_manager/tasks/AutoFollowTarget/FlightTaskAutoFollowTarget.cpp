@@ -281,17 +281,21 @@ bool FlightTaskAutoFollowTarget::update()
 		// Gimbal setpoint
 		float gimbal_height = 0;
 
-		switch (_param_nav_ft_alt_m.get()) {
-		case FOLLOW_ALTITUDE_MODE_TRACK_TARGET:
+		switch (_param_nav_ft_gmb_m.get()) {
+		case FOLLOW_GIMBAL_MODE_2D:
+			gimbal_height = -_position(2);
+			break;
+
+		case FOLLOW_GIMBAL_MODE_3D:
 			// Point the gimbal at the target's 3D coordinates
 			gimbal_height = -(_position(2) - (target_position_filtered(2)));
 			break;
 
-		case FOLLOW_ALTITUDE_MODE_CONSTANT:
+		case FOLLOW_GIMBAL_MODE_2D_WITH_TERRAIN:
 			// Point the gimbal at the ground level in this tracking mode
 			gimbal_height = _dist_to_ground;
+			break;
 
-		// FALLTHROUGH
 		default:
 			break;
 		}

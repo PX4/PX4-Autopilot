@@ -135,6 +135,12 @@ protected:
 		FOLLOW_ALTITUDE_MODE_TRACK_TARGET
 	};
 
+	enum {
+		FOLLOW_GIMBAL_MODE_2D,
+		FOLLOW_GIMBAL_MODE_2D_WITH_TERRAIN,
+		FOLLOW_GIMBAL_MODE_3D
+	};
+
 	/**
 	 * Get the current follow-me perspective setting from PX4 parameters
 	 *
@@ -190,6 +196,7 @@ protected:
 		(ParamFloat<px4::params::NAV_FT_DST>) _param_nav_ft_dst,
 		(ParamInt<px4::params::NAV_FT_FS>) _param_nav_ft_fs,
 		(ParamInt<px4::params::NAV_FT_ALT_M>) _param_nav_ft_alt_m,
+		(ParamInt<px4::params::NAV_FT_GMB_M>) _param_nav_ft_gmb_m,
 		(ParamInt<px4::params::NAV_FT_DELC>) _param_nav_ft_delc
 	)
 

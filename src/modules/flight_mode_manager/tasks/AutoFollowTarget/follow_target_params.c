@@ -106,11 +106,23 @@ PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.1f);
  * the target's altitude, the follow altitude NAV_MIN_FT_HT should be high enough
  * to prevent terrain collisions due to GPS inaccuracies of the target.
  *
+ * TODO: Add option for 2D tracking + terrain following
+ *
  * @value 0 Maintain constant altitude and track XY position only (2D tracking)
- * @value 1 Track target's altitude as well (3D tracking)
+ * @value 1 Track target's altitude (3D tracking)
  * @group Follow target
  */
 PARAM_DEFINE_INT32(NAV_FT_ALT_M, 0);
+
+/**
+ * Gimbal tracking mode
+ *
+ * @value 0 2D tracking: Point at target XY coordinates, and at ground Z coordinate
+ * @value 1 2D tracking with terrain: Point at target XY coordinates, and at terrain Z coordinate
+ * @value 2 3D tracking: Point at target XYZ coordinates
+ * @group Follow target
+ */
+PARAM_DEFINE_INT32(NAV_FT_GMB_M, 0);
 
 /**
  * Compensate filter delay
