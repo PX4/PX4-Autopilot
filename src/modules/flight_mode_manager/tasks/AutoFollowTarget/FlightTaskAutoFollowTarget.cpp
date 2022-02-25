@@ -261,7 +261,9 @@ bool FlightTaskAutoFollowTarget::update()
 		_velocity_ff_scale.update(desired_velocity_ff_scale);
 
 		// Emergency ascent when too close to the ground
-		if (PX4_ISFINITE(_dist_to_ground) && _dist_to_ground < MINIMUM_SAFETY_ALTITUDE) {
+		_emergency_ascent = PX4_ISFINITE(_dist_to_ground) && _dist_to_ground < MINIMUM_SAFETY_ALTITUDE;
+
+		if (_emergency_ascent) {
 			_position_setpoint(0) = _position_setpoint(1) = NAN;
 			_position_setpoint(2) = _position(2);
 			_velocity_setpoint(0) = _velocity_setpoint(1) = 0.0f;
@@ -305,6 +307,7 @@ bool FlightTaskAutoFollowTarget::update()
 	// Publish status message for debugging
 	_target_position_filter.getState().copyTo(follow_target_status.pos_est_filtered);
 	follow_target_status.timestamp = hrt_absolute_time();
+	follow_target_status.emergency_ascent = _emergency_ascent;
 	_follow_target_status_pub.publish(follow_target_status);
 
 	_constraints.want_takeoff = _checkTakeoff();
