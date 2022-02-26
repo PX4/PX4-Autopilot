@@ -47,6 +47,10 @@
 #include <px4_platform_common/time.h>
 #include <queue.h>
 
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+#include <px4_platform/board_ctrl.h>
+#endif
+
 __BEGIN_DECLS
 
 /**
@@ -76,6 +80,10 @@ typedef struct hrt_call {
 	hrt_abstime		period;
 	hrt_callout		callout;
 	void			*arg;
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+	hrt_callout		usr_callout;
+	void			*usr_arg;
+#endif
 } *hrt_call_t;
 
 
@@ -89,6 +97,35 @@ typedef struct latency_info {
 	uint32_t                counter;
 } latency_info_t;
 
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+
+typedef struct hrt_boardctl {
+	hrt_call_t		entry;
+	hrt_abstime		time; /* delay or calltime */
+	hrt_abstime		interval;
+	hrt_callout		callout;
+	void			*arg;
+} hrt_boardctl_t;
+
+typedef struct latency_boardctl {
+	uint16_t		bucket_idx;
+	uint16_t		counter_idx;
+	latency_info_t	latency;
+} latency_boardctl_t;
+
+#define _HRTIOC(_n)		(_PX4_IOC(_HRTIOCBASE, _n))
+
+#define HRT_WAITEVENT		_HRTIOC(1)
+#define HRT_ABSOLUTE_TIME	_HRTIOC(2)
+#define HRT_CALL_AFTER		_HRTIOC(3)
+#define HRT_CALL_AT		_HRTIOC(4)
+#define HRT_CALL_EVERY		_HRTIOC(5)
+#define HRT_CANCEL		_HRTIOC(6)
+#define HRT_GET_LATENCY		_HRTIOC(7)
+#define HRT_RESET_LATENCY	_HRTIOC(8)
+
+#endif
+
 /**
  * Get absolute time in [us] (does not wrap).
  */
@@ -97,12 +134,25 @@ __EXPORT extern hrt_abstime hrt_absolute_time(void);
 /**
  * Convert a timespec to absolute time.
  */
-__EXPORT extern hrt_abstime ts_to_abstime(const struct timespec *ts);
+static inline hrt_abstime ts_to_abstime(const struct timespec *ts)
+{
+	hrt_abstime	result;
+
+	result = (hrt_abstime)(ts->tv_sec) * 1000000;
+	result += ts->tv_nsec / 1000;
+
+	return result;
+}
 
 /**
  * Convert absolute time to a timespec.
  */
-__EXPORT extern void	abstime_to_ts(struct timespec *ts, hrt_abstime abstime);
+static inline void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
+{
+	ts->tv_sec = abstime / 1000000;
+	abstime -= ts->tv_sec * 1000000;
+	ts->tv_nsec = abstime * 1000;
+}
 
 /**
  * Compute the delta between a timestamp taken in the past
