@@ -49,8 +49,7 @@ RLSWrenchObserver::RLSWrenchObserver() :
 
 RLSWrenchObserver::~RLSWrenchObserver()
 {
-	perf_free(_loop_perf);
-	perf_free(_loop_interval_perf);
+	perf_free(_cycle_perf);
 }
 
 bool RLSWrenchObserver::init()
@@ -68,22 +67,15 @@ void RLSWrenchObserver::updateParams()
 	const float rls_pmen_noise = _param_rls_pmen_noise.get();
 	ModuleParams::updateParams();
 
-	const matrix::Vector2f X_O = matrix::Vector2f (1.f,0.f);
-	const float a = 1.0f;
-	const float b = 0.1f;
+	const matrix::Vector2f X_O = matrix::Vector2f (0.5f,0.f);
+	const matrix::Vector2f C_O = matrix::Vector2f (1.f,0.f);
+	const matrix::Vector3f Rd_O = matrix::Vector3f (1.f,1.f,10.f);
 
-	_identification.initialize(X_O,a,b);
+	_identification.initialize(X_O,C_O,Rd_O,0.0f);
 
-	const matrix::Vector3f Yvec = matrix::Vector3f(1.f,2.f,3.f);
-	matrix::Matrix<float, 3, 2> Hmatrix;
-	matrix::Vector2f par;
 
-	Hmatrix.setAll(1);
+	PX4_INFO("Updated %8.4f",(double)(rls_pmen_noise));
 
-	par = _identification.update(Yvec,Hmatrix);
-
-	PX4_INFO("Updated %8.4f",(double)(par(1)));
-	PX4_INFO("Updated %8.4f",(double)(rls_pmen_noise+_identification.getThrustConstant()));
 }
 
 void RLSWrenchObserver::Run()
@@ -94,8 +86,20 @@ void RLSWrenchObserver::Run()
 		return;
 	}
 
-	perf_begin(_loop_perf);
-	perf_count(_loop_interval_perf);
+	if (!_sensor_accel_sub.updated()) {
+		return;
+	}
+	
+	sensor_accel_s accel{};
+	
+	if (_sensor_accel_sub.copy(&accel)) {
+
+	}
+
+//actuator outputs required for each step
+	if (!_actuator_outputs_sub.updated()) {
+		return;
+	}
 
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
@@ -105,66 +109,27 @@ void RLSWrenchObserver::Run()
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
 	}
 
+	perf_begin(_cycle_perf);
 
-	// Example
-	//  update vehicle_status to check arming state
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		}
+	}
 
-			const bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	if (_armed && PX4_ISFINITE(accel.z)) {
 
-			if (armed && !_armed) {
-				PX4_WARN("vehicle armed due to %d", vehicle_status.latest_arming_reason);
+			actuator_outputs_s actuator_outputs;
 
-			} else if (!armed && _armed) {
-				PX4_INFO("vehicle disarmed due to %d", vehicle_status.latest_disarming_reason);
+			if (_actuator_outputs_sub.copy(&actuator_outputs)) {
+				const matrix::Vector3f y = matrix::Vector3f(-accel.x*0.8f,-accel.y*0.8f,(-accel.z)*0.7951f);
+				matrix::Vector2f params_ident = _identification.update(y,actuator_outputs);
+				// PX4_INFO("Accel:\t%8.4f\t%8.4f\t%8.4f",(double)accel.x,(double)accel.y, (double)accel.z);
+				PX4_INFO("Params :\t%8.4f\t%8.4f",(double)params_ident(0), (double)actuator_outputs.output[0]);
 			}
-
-			_armed = armed;
-		}
-	}
-
-
-	// Example
-	//  grab latest accelerometer data
-	if (_sensor_accel_sub.updated()) {
-		sensor_accel_s accel;
-
-		const matrix::Vector3f Yvec = matrix::Vector3f(1.f,2.f,3.f);
-		matrix::Matrix<float, 3, 2> Hmatrix;
-		matrix::Vector2f par;
-
-		if (_sensor_accel_sub.copy(&accel)) {
-
-
-			Hmatrix.setAll(accel.z);
-
-			par = _identification.update(Yvec,Hmatrix);
-
-		// PX4_INFO("Sensor_accel:\t%8.4f\t%8.4f",
-		// 		(double)par(0),
-		// 		(double)par(1));
-
-		// PX4_INFO("Sensor_accel:\t%8.4f\t%8.4f\t%8.4f",
-		// 		(double)accel.x,
-		// 		(double)accel.y,
-		// 		(double)accel.z);
-
-
-		}
-	}
-
-if (_actuator_outputs_sub.updated()) {
-		actuator_outputs_s actuator_outputs;
-
-		if (_actuator_outputs_sub.copy(&actuator_outputs)) {
-
-		// PX4_INFO("actuator_output:\t%8.4f",
-		// 		(double)actuator_outputs.output[0]);
-		}
-	}
+		} 
 
 	// if (!_vehicle_local_position_sub.updated()) {
 	// 	return;
@@ -201,7 +166,7 @@ if (_actuator_outputs_sub.updated()) {
 	data.timestamp = hrt_absolute_time();
 	_orb_test_pub.publish(data);
 
-	perf_end(_loop_perf);
+	perf_end(_cycle_perf);
 }
 
 int RLSWrenchObserver::task_spawn(int argc, char *argv[])
@@ -229,8 +194,7 @@ int RLSWrenchObserver::task_spawn(int argc, char *argv[])
 
 int RLSWrenchObserver::print_status()
 {
-	perf_print_counter(_loop_perf);
-	perf_print_counter(_loop_interval_perf);
+	perf_print_counter(_cycle_perf);
 	return 0;
 }
 

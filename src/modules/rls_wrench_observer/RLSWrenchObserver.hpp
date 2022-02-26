@@ -88,6 +88,7 @@ private:
 	void Run() override;
 	void updateParams() override;
 	
+	RLSIdentification _identification{}; 
 	// Publications
 	uORB::Publication<orb_test_s> _orb_test_pub{ORB_ID(orb_test)};
 
@@ -100,16 +101,15 @@ private:
 	uORB::SubscriptionInterval         _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
 	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
 
-	// Performance (perf) counters
-	perf_counter_t	_loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
-	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+	// Performance (perf) counter
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 
 	// Parameters
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RLS_PMEN_NOISE>) _param_rls_pmen_noise
 	)
 
-	RLSIdentification _identification; 
-
 	bool _armed{false};
+	
+	static constexpr float GRAVITY = 9.80665f;						// m/s^2
 };

@@ -44,5 +44,6 @@ px4_add_module(
 		RLSWrenchObserver.hpp
 	DEPENDS
 		px4_work_queue
+		mathlib
 		RLSIdentification
 	)
