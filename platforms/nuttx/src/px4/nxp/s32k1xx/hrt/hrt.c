@@ -610,31 +610,6 @@ hrt_absolute_time(void)
 }
 
 /**
- * Convert a timespec to absolute time
- */
-hrt_abstime
-ts_to_abstime(const struct timespec *ts)
-{
-	hrt_abstime	result;
-
-	result = (hrt_abstime)(ts->tv_sec) * 1000000;
-	result += ts->tv_nsec / 1000;
-
-	return result;
-}
-
-/**
- * Convert absolute time to a timespec.
- */
-void
-abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
-{
-	ts->tv_sec = abstime / 1000000;
-	abstime -= ts->tv_sec * 1000000;
-	ts->tv_nsec = abstime * 1000;
-}
-
-/**
  * Store the absolute time in an interrupt-safe fashion
  */
 void

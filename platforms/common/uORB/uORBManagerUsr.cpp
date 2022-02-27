@@ -303,9 +303,9 @@ uint8_t uORB::Manager::orb_get_queue_size(const void *node_handle)
 	return data.size;
 }
 
-bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation)
+bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated)
 {
-	orbiocdevdatacopy_t data = {node_handle, dst, generation, false};
+	orbiocdevdatacopy_t data = {node_handle, dst, generation, only_if_updated, false};
 	boardctl(ORBIOCDEVDATACOPY, reinterpret_cast<unsigned long>(&data));
 	generation = data.generation;
 

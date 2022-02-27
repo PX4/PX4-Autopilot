@@ -51,7 +51,7 @@ using namespace time_literals;
 
 ControlAllocator::ControlAllocator() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
@@ -92,6 +92,8 @@ ControlAllocator::init()
 		PX4_ERR("vehicle_thrust_setpoint callback registration failed!");
 		return false;
 	}
+
+	ScheduleDelayed(50_ms);
 
 	return true;
 }
@@ -285,6 +287,9 @@ ControlAllocator::Run()
 
 	perf_begin(_loop_perf);
 
+	// Push backup schedule
+	ScheduleDelayed(50_ms);
+
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated() && !_armed) {
 		// clear update
@@ -398,16 +403,16 @@ ControlAllocator::Run()
 
 			_control_allocation[i]->clipActuatorSetpoint();
 		}
+	}
 
-		// Publish actuator setpoint and allocator status
-		publish_actuator_controls();
+	// Publish actuator setpoint and allocator status
+	publish_actuator_controls();
 
-		// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
-		// (i.e. anti-integrator windup)
-		if (now - _last_status_pub >= 5_ms) {
-			publish_control_allocator_status();
-			_last_status_pub = now;
-		}
+	// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
+	// (i.e. anti-integrator windup)
+	if (now - _last_status_pub >= 5_ms) {
+		publish_control_allocator_status();
+		_last_status_pub = now;
 	}
 
 	perf_end(_loop_perf);
