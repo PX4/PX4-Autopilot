@@ -74,7 +74,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
-class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::WorkItem
+class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	static constexpr int NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;

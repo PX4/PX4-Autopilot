@@ -7,7 +7,8 @@ import os
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy as sp
+
+from scipy.signal import medfilt
 
 from pyulog import *
 
@@ -65,7 +66,7 @@ def resampleWithDeltaX(x,y):
     return resampledX,resampledY
 
 def median_filter(data):
-    return sp.signal.medfilt(data, 31)
+    return medfilt(data, 31)
 
 parser = argparse.ArgumentParser(description='Reads in IMU data from a static thermal calibration test and performs a curve fit of gyro, accel and baro bias vs temperature')
 parser.add_argument('filename', metavar='file.ulg', help='ULog input file')
