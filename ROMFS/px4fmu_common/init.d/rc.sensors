@@ -168,6 +168,8 @@ then
 	lis3mdl -X -q start
 	qmc5883l -X -q start
 	rm3100 -X -q start
+	spl06 -q -X start
+	spl06 -q -X -a 0x77 start
 
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
