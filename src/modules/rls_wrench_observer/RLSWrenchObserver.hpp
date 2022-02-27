@@ -87,8 +87,8 @@ public:
 private:
 	void Run() override;
 	void updateParams() override;
-	
-	RLSIdentification _identification{}; 
+
+	RLSIdentification _identification{};
 	// Publications
 	uORB::Publication<orb_test_s> _orb_test_pub{ORB_ID(orb_test)};
 
@@ -96,7 +96,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub{this, ORB_ID(sensor_accel)};        // subscription that schedules RLSWrenchObserver when updated
 	// uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 	// uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
-	uORB::Subscription                 _actuator_outputs_sub{ORB_ID(actuator_outputs)};          
+	uORB::Subscription                 _actuator_outputs_sub{ORB_ID(actuator_outputs)};
 
 	uORB::SubscriptionInterval         _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
 	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
@@ -106,10 +106,18 @@ private:
 
 	// Parameters
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::RLS_PMEN_NOISE>) _param_rls_pmen_noise
+		(ParamFloat<px4::params::RLS_EST_MASS>) _param_rls_mass,
+		(ParamFloat<px4::params::RLS_EST_TILT>) _param_rls_tilt,
+		(ParamFloat<px4::params::RLS_EST_LPF>) _param_rls_lpf,
+		(ParamFloat<px4::params::RLS_EST_KF_INIT>) _param_rls_kf_init,
+		(ParamFloat<px4::params::RLS_EST_KR_INIT>) _param_rls_kr_init,
+		(ParamFloat<px4::params::RLS_EST_KF_CONF>) _param_rls_kf_conf,
+		(ParamFloat<px4::params::RLS_EST_KR_CONF>) _param_rls_kr_conf,
+		(ParamFloat<px4::params::RLS_EST_XY_NOISE>) _param_rls_xy_noise,
+		(ParamFloat<px4::params::RLS_EST_Z_NOISE>) _param_rls_z_noise,
+		(ParamInt<px4::params::RLS_EST_N_ROTORS>) _param_rls_n_rotors
 	)
 
 	bool _armed{false};
-	
-	static constexpr float GRAVITY = 9.80665f;						// m/s^2
+	static constexpr float GRAVITY = 9.80665f; // m/s^2
 };

@@ -64,18 +64,16 @@ bool RLSWrenchObserver::init()
 
 void RLSWrenchObserver::updateParams()
 {
-	const float rls_pmen_noise = _param_rls_pmen_noise.get();
 	ModuleParams::updateParams();
 
-	const matrix::Vector2f X_O = matrix::Vector2f (0.5f,0.f);
-	const matrix::Vector2f C_O = matrix::Vector2f (1.f,0.f);
-	const matrix::Vector3f Rd_O = matrix::Vector3f (1.f,1.f,10.f);
+	const matrix::Vector2f X_O = matrix::Vector2f (_param_rls_kf_init.get(),_param_rls_kr_init.get());
+	const matrix::Vector2f C_O = matrix::Vector2f (_param_rls_kf_conf.get(),_param_rls_kr_conf.get());
+	const matrix::Vector3f Rd_O = matrix::Vector3f (_param_rls_xy_noise.get(),_param_rls_xy_noise.get(),_param_rls_z_noise.get());
+	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(),_param_rls_tilt.get(),_param_rls_n_rotors.get(),_param_rls_lpf.get()};
 
-	_identification.initialize(X_O,C_O,Rd_O,0.0f);
+	_identification.initialize(X_O,C_O,Rd_O,vehicle_params);
 
-
-	PX4_INFO("Updated %8.4f",(double)(rls_pmen_noise));
-
+	PX4_INFO("Updated %8.4f",(double)(_param_rls_tilt.get()));
 }
 
 void RLSWrenchObserver::Run()
@@ -89,9 +87,9 @@ void RLSWrenchObserver::Run()
 	if (!_sensor_accel_sub.updated()) {
 		return;
 	}
-	
+
 	sensor_accel_s accel{};
-	
+
 	if (_sensor_accel_sub.copy(&accel)) {
 
 	}
@@ -124,12 +122,13 @@ void RLSWrenchObserver::Run()
 			actuator_outputs_s actuator_outputs;
 
 			if (_actuator_outputs_sub.copy(&actuator_outputs)) {
-				const matrix::Vector3f y = matrix::Vector3f(-accel.x*0.8f,-accel.y*0.8f,(-accel.z)*0.7951f);
+				const matrix::Vector3f y = matrix::Vector3f(-accel.x,-accel.y,-accel.z);
+				const matrix::Vector3f p_error = _identification.getPredictionError();
+
 				matrix::Vector2f params_ident = _identification.update(y,actuator_outputs);
-				// PX4_INFO("Accel:\t%8.4f\t%8.4f\t%8.4f",(double)accel.x,(double)accel.y, (double)accel.z);
-				PX4_INFO("Params :\t%8.4f\t%8.4f",(double)params_ident(0), (double)actuator_outputs.output[0]);
+				PX4_INFO("Params :\t%8.4f\t%8.4f",(double)params_ident(0), (double)p_error(2));
 			}
-		} 
+		}
 
 	// if (!_vehicle_local_position_sub.updated()) {
 	// 	return;
@@ -152,7 +151,7 @@ void RLSWrenchObserver::Run()
 
 
 	// 	if (_sensor_combined_sub.copy(&sensor_combined)) {
-	// 		PX4_INFO("combined_accel:\t%8.4f\t%8.4f\t%8.4f",		
+	// 		PX4_INFO("combined_accel:\t%8.4f\t%8.4f\t%8.4f",
 	// 				(double)sensor_combined.accelerometer_m_s2[0],
 	// 				(double)sensor_combined.accelerometer_m_s2[1],
 	// 				(double)sensor_combined.accelerometer_m_s2[2]);
