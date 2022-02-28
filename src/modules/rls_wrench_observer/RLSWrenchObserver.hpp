@@ -51,17 +51,19 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/hysteresis/hysteresis.h>
 
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/orb_test.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_outputs.h>
-// #include <uORB/topics/vehicle_local_position.h>
-// #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/debug_vect.h>
+
 
 using namespace time_literals;
 
@@ -88,18 +90,26 @@ private:
 	void Run() override;
 	void updateParams() override;
 
+	void publishStatus(const hrt_abstime &timestamp_sample);
+	void publishInvalidStatus();
+
 	RLSIdentification _identification{};
 	// Publications
-	uORB::Publication<orb_test_s> _orb_test_pub{ORB_ID(orb_test)};
+	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
 
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub{this, ORB_ID(sensor_accel)};        // subscription that schedules RLSWrenchObserver when updated
 	// uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
-	// uORB::SubscriptionCallbackWorkItem _sensor_combined_sub{this, ORB_ID(sensor_combined)};
-	uORB::Subscription                 _actuator_outputs_sub{ORB_ID(actuator_outputs)};
 
-	uORB::SubscriptionInterval         _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
-	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
+	uORB::SubscriptionInterval  _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
+
+	uORB::Subscription _actuator_outputs_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+
+	hrt_abstime _timestamp_last{0};
+	systemlib::Hysteresis _valid_hysteresis{false};
 
 	// Performance (perf) counter
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
@@ -115,9 +125,13 @@ private:
 		(ParamFloat<px4::params::RLS_EST_KR_CONF>) _param_rls_kr_conf,
 		(ParamFloat<px4::params::RLS_EST_XY_NOISE>) _param_rls_xy_noise,
 		(ParamFloat<px4::params::RLS_EST_Z_NOISE>) _param_rls_z_noise,
+		(ParamFloat<px4::params::RLS_EST_SPEED_K>) _param_rls_speed_const,
 		(ParamInt<px4::params::RLS_EST_N_ROTORS>) _param_rls_n_rotors
 	)
 
 	bool _armed{false};
-	static constexpr float GRAVITY = 9.80665f; // m/s^2
+	bool _landed{false};
+	bool _in_air{false};
+	bool _valid{false};
+	// static constexpr float GRAVITY = 9.80665f; // m/s^2
 };

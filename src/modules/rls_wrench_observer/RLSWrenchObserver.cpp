@@ -44,6 +44,7 @@ RLSWrenchObserver::RLSWrenchObserver() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_valid_hysteresis.set_hysteresis_time_from(false, 2_s);
 	updateParams();
 }
 
@@ -64,16 +65,16 @@ bool RLSWrenchObserver::init()
 
 void RLSWrenchObserver::updateParams()
 {
-	ModuleParams::updateParams();
-
 	const matrix::Vector2f X_O = matrix::Vector2f (_param_rls_kf_init.get(),_param_rls_kr_init.get());
 	const matrix::Vector2f C_O = matrix::Vector2f (_param_rls_kf_conf.get(),_param_rls_kr_conf.get());
 	const matrix::Vector3f Rd_O = matrix::Vector3f (_param_rls_xy_noise.get(),_param_rls_xy_noise.get(),_param_rls_z_noise.get());
 	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(),_param_rls_tilt.get(),_param_rls_n_rotors.get(),_param_rls_lpf.get()};
 
+	ModuleParams::updateParams();
+
 	_identification.initialize(X_O,C_O,Rd_O,vehicle_params);
 
-	PX4_INFO("Updated %8.4f",(double)(_param_rls_tilt.get()));
+	PX4_INFO("UPDATED:\t%8.4f", (double)X_O(0));
 }
 
 void RLSWrenchObserver::Run()
@@ -84,17 +85,37 @@ void RLSWrenchObserver::Run()
 		return;
 	}
 
+	if (_vehicle_land_detected_sub.updated()) {
+		vehicle_land_detected_s vehicle_land_detected;
+
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+			_landed = vehicle_land_detected.landed;
+
+			if (_landed) {
+				_in_air = false;
+			}
+		}
+	}
+
 	if (!_sensor_accel_sub.updated()) {
 		return;
 	}
 
 	sensor_accel_s accel{};
+	_sensor_accel_sub.copy(&accel);
 
-	if (_sensor_accel_sub.copy(&accel)) {
-
+	if (_vehicle_local_position_sub.updated()) {
+		vehicle_local_position_s local_pos{};
+		if (_vehicle_local_position_sub.copy(&local_pos)) {
+			if (!_landed) {
+				if (local_pos.dist_bottom > 0.3f) {
+					_in_air = true;
+				}
+			}
+		}
 	}
 
-//actuator outputs required for each step
+	//actuator outputs required for each step
 	if (!_actuator_outputs_sub.updated()) {
 		return;
 	}
@@ -117,55 +138,104 @@ void RLSWrenchObserver::Run()
 		}
 	}
 
-	if (_armed && PX4_ISFINITE(accel.z)) {
+	const float dt = (accel.timestamp - _timestamp_last) * 1e-6f;
+	_timestamp_last = accel.timestamp;
+
+	if (_armed && _in_air && PX4_ISFINITE(accel.z)) {
 
 			actuator_outputs_s actuator_outputs;
 
 			if (_actuator_outputs_sub.copy(&actuator_outputs)) {
+
 				const matrix::Vector3f y = matrix::Vector3f(-accel.x,-accel.y,-accel.z);
+
+				float speed[8] = {
+				actuator_outputs.output[0]*_param_rls_speed_const.get(),
+				actuator_outputs.output[1]*_param_rls_speed_const.get(),
+				actuator_outputs.output[2]*_param_rls_speed_const.get(),
+				actuator_outputs.output[3]*_param_rls_speed_const.get(),
+				actuator_outputs.output[4]*_param_rls_speed_const.get(),
+				actuator_outputs.output[5]*_param_rls_speed_const.get(),
+				actuator_outputs.output[6]*_param_rls_speed_const.get(),
+				actuator_outputs.output[7]*_param_rls_speed_const.get()};
+
+				const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
+				matrix::Vector2f params_ident = _identification.update(y,output,dt);
+
+				const Vector<float, 8> y_lpf = _identification.getFilteredOutputs();
 				const matrix::Vector3f p_error = _identification.getPredictionError();
 
-				matrix::Vector2f params_ident = _identification.update(y,actuator_outputs);
-				PX4_INFO("Params :\t%8.4f\t%8.4f",(double)params_ident(0), (double)p_error(2));
+				PX4_INFO("Params :\t%8.4f\t%8.4f\t%8.4f\t%8.4f",
+				(double)params_ident(0),
+				(double)p_error(2),
+				(double)((-accel.z)*_param_rls_mass.get()),
+				(double)y_lpf(0));
+
+				// Check validity of results
+				bool valid = ((params_ident(0) > 0.f) && (params_ident(1) < params_ident(0)));
+
+				_valid_hysteresis.set_state_and_update(valid, actuator_outputs.timestamp);
+				_valid = _valid_hysteresis.get_state();
+
+				publishStatus(actuator_outputs.timestamp);
 			}
+	} else {
+		_valid_hysteresis.set_state_and_update(false, hrt_absolute_time());
+
+		if (_valid) {
+			// only publish a single message to invalidate
+			publishInvalidStatus();
+			updateParams(); //reset RLS when landing
+			_valid = false;
 		}
-
-	// if (!_vehicle_local_position_sub.updated()) {
-	// 	return;
-	// }
-
-	// vehicle_local_position_s local_pos{};
-
-
-		// if (_vehicle_local_position_sub.copy(&local_pos)) {
-		// 	PX4_INFO("vehicle_local_position_accel:\t%8.4f\t%8.4f\t%8.4f",
-		// 			(double)local_pos.ax,
-		// 			(double)local_pos.ay,
-		// 			(double)local_pos.az);
-		// }
-
-	// if (!_sensor_combined_sub.updated()) {
-	// 	return;
-	// }
-	// sensor_combined_s sensor_combined;
-
-
-	// 	if (_sensor_combined_sub.copy(&sensor_combined)) {
-	// 		PX4_INFO("combined_accel:\t%8.4f\t%8.4f\t%8.4f",
-	// 				(double)sensor_combined.accelerometer_m_s2[0],
-	// 				(double)sensor_combined.accelerometer_m_s2[1],
-	// 				(double)sensor_combined.accelerometer_m_s2[2]);
-	// 	}
-
-
-	// Example
-	//  publish some data
-	orb_test_s data{};
-	data.val = 314159;
-	data.timestamp = hrt_absolute_time();
-	_orb_test_pub.publish(data);
+	}
 
 	perf_end(_cycle_perf);
+}
+
+void RLSWrenchObserver::publishStatus(const hrt_abstime &timestamp_sample)
+{
+	// hover_thrust_estimate_s status_msg{};
+
+	// status_msg.timestamp_sample = timestamp_sample;
+
+	// status_msg.hover_thrust = _hover_thrust_ekf.getHoverThrustEstimate();
+	// status_msg.hover_thrust_var = _hover_thrust_ekf.getHoverThrustEstimateVar();
+
+	// status_msg.accel_innov = _hover_thrust_ekf.getInnovation();
+	// status_msg.accel_innov_var = _hover_thrust_ekf.getInnovationVar();
+	// status_msg.accel_innov_test_ratio = _hover_thrust_ekf.getInnovationTestRatio();
+	// status_msg.accel_noise_var = _hover_thrust_ekf.getAccelNoiseVar();
+
+	// status_msg.valid = _valid;
+
+	// status_msg.timestamp = hrt_absolute_time();
+
+	// _hover_thrust_ekf_pub.publish(status_msg);
+
+	debug_vect_s status_msg{};
+	status_msg.x = 1.f;
+	status_msg.timestamp = hrt_absolute_time();
+	_debug_vect_pub.publish(status_msg);
+}
+
+void RLSWrenchObserver::publishInvalidStatus()
+{
+	// hover_thrust_estimate_s status_msg{};
+
+	// status_msg.hover_thrust = NAN;
+	// status_msg.hover_thrust_var = NAN;
+	// status_msg.accel_innov = NAN;
+	// status_msg.accel_innov_var = NAN;
+	// status_msg.accel_innov_test_ratio = NAN;
+	// status_msg.accel_noise_var = NAN;
+
+	// _hover_thrust_ekf_pub.publish(status_msg);
+
+	debug_vect_s status_msg{};
+	status_msg.x = 0.f;
+	status_msg.timestamp = hrt_absolute_time();
+	_debug_vect_pub.publish(status_msg);
 }
 
 int RLSWrenchObserver::task_spawn(int argc, char *argv[])
@@ -211,7 +281,7 @@ int RLSWrenchObserver::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-Example of a simple module running out of a work queue PMEN UPxx.
+RLS parameter identification and external wrench observer.
 
 )DESCR_STR");
 
