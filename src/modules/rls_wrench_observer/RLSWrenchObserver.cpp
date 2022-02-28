@@ -60,19 +60,22 @@ bool RLSWrenchObserver::init()
 		PX4_ERR("sensor_accel callback registration failed");
 		return false;
 	}
+
 	return true;
 }
 
 void RLSWrenchObserver::updateParams()
 {
-	const matrix::Vector2f X_O = matrix::Vector2f (_param_rls_kf_init.get(),_param_rls_kr_init.get());
-	const matrix::Vector2f C_O = matrix::Vector2f (_param_rls_kf_conf.get(),_param_rls_kr_conf.get());
-	const matrix::Vector3f Rd_O = matrix::Vector3f (_param_rls_xy_noise.get(),_param_rls_xy_noise.get(),_param_rls_z_noise.get());
-	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(),_param_rls_tilt.get(),_param_rls_n_rotors.get(),_param_rls_lpf.get()};
+	const matrix::Vector2f X_O = matrix::Vector2f(_param_rls_kf_init.get(), _param_rls_kr_init.get());
+	const matrix::Vector2f C_O = matrix::Vector2f(_param_rls_kf_conf.get(), _param_rls_kr_conf.get());
+	const matrix::Vector3f Rd_O = matrix::Vector3f(_param_rls_xy_noise.get(), _param_rls_xy_noise.get(),
+					_param_rls_z_noise.get());
+	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(), _param_rls_tilt.get(), _param_rls_n_rotors.get(), _param_rls_lpf.get()};
 
 	ModuleParams::updateParams();
 
-	_identification.initialize(X_O,C_O,Rd_O,vehicle_params);
+	_identification.initialize(X_O, C_O, Rd_O, vehicle_params);
+	_wrench_observer.initialize(1.f);
 
 	PX4_INFO("UPDATED:\t%8.4f", (double)X_O(0));
 }
@@ -106,6 +109,7 @@ void RLSWrenchObserver::Run()
 
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s local_pos{};
+
 		if (_vehicle_local_position_sub.copy(&local_pos)) {
 			if (!_landed) {
 				if (local_pos.dist_bottom > 0.3f) {
@@ -143,42 +147,48 @@ void RLSWrenchObserver::Run()
 
 	if (_armed && _in_air && PX4_ISFINITE(accel.z)) {
 
-			actuator_outputs_s actuator_outputs;
+		actuator_outputs_s actuator_outputs;
 
-			if (_actuator_outputs_sub.copy(&actuator_outputs)) {
+		if (_actuator_outputs_sub.copy(&actuator_outputs)) {
 
-				const matrix::Vector3f y = matrix::Vector3f(-accel.x,-accel.y,-accel.z);
+			const matrix::Vector3f y = matrix::Vector3f(-accel.x, -accel.y, -accel.z);
 
-				float speed[8] = {
-				actuator_outputs.output[0]*_param_rls_speed_const.get(),
-				actuator_outputs.output[1]*_param_rls_speed_const.get(),
-				actuator_outputs.output[2]*_param_rls_speed_const.get(),
-				actuator_outputs.output[3]*_param_rls_speed_const.get(),
-				actuator_outputs.output[4]*_param_rls_speed_const.get(),
-				actuator_outputs.output[5]*_param_rls_speed_const.get(),
-				actuator_outputs.output[6]*_param_rls_speed_const.get(),
-				actuator_outputs.output[7]*_param_rls_speed_const.get()};
+			float speed[8] = {
+				actuator_outputs.output[0] *_param_rls_speed_const.get(),
+				actuator_outputs.output[1] *_param_rls_speed_const.get(),
+				actuator_outputs.output[2] *_param_rls_speed_const.get(),
+				actuator_outputs.output[3] *_param_rls_speed_const.get(),
+				actuator_outputs.output[4] *_param_rls_speed_const.get(),
+				actuator_outputs.output[5] *_param_rls_speed_const.get(),
+				actuator_outputs.output[6] *_param_rls_speed_const.get(),
+				actuator_outputs.output[7] *_param_rls_speed_const.get()
+			};
 
-				const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
-				matrix::Vector2f params_ident = _identification.update(y,output,dt);
+			const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
+			matrix::Vector2f params_ident = _identification.update(y, output, dt, false);
 
-				const Vector<float, 8> y_lpf = _identification.getFilteredOutputs();
-				const matrix::Vector3f p_error = _identification.getPredictionError();
+			const Vector<float, 8> y_lpf = _identification.getFilteredOutputs();
+			const matrix::Vector3f p_error = _identification.getPredictionError();
 
-				PX4_INFO("Params :\t%8.4f\t%8.4f\t%8.4f\t%8.4f",
+			matrix::Vector3f fe = _wrench_observer.update(p_error, dt, true);
+			//TODO: Check if rotation matrix necessary for lateral forces.
+			//Continue implementing observer and switch for rls and force.
+			PX4_INFO("Params :\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f",
 				(double)params_ident(0),
+				(double)fe(2),
 				(double)p_error(2),
 				(double)((-accel.z)*_param_rls_mass.get()),
 				(double)y_lpf(0));
 
-				// Check validity of results
-				bool valid = ((params_ident(0) > 0.f) && (params_ident(1) < params_ident(0)));
+			// Check validity of results
+			bool valid = ((params_ident(0) > 0.f) && (params_ident(1) < params_ident(0)));
 
-				_valid_hysteresis.set_state_and_update(valid, actuator_outputs.timestamp);
-				_valid = _valid_hysteresis.get_state();
+			_valid_hysteresis.set_state_and_update(valid, actuator_outputs.timestamp);
+			_valid = _valid_hysteresis.get_state();
 
-				publishStatus(actuator_outputs.timestamp);
-			}
+			publishStatus(actuator_outputs.timestamp);
+		}
+
 	} else {
 		_valid_hysteresis.set_state_and_update(false, hrt_absolute_time());
 

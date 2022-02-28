@@ -42,6 +42,7 @@
 #pragma once
 
 #include "RLSIdentification/RLSIdentification.hpp"
+#include "WrenchObserver/WrenchObserver.hpp"
 
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -94,6 +95,8 @@ private:
 	void publishInvalidStatus();
 
 	RLSIdentification _identification{};
+	WrenchObserver _wrench_observer{};
+
 	// Publications
 	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
 

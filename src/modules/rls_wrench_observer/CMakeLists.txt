@@ -32,7 +32,7 @@
 ############################################################################
 
 add_subdirectory(RLSIdentification)
-#add_subdirectory(WrenchObserver)
+add_subdirectory(WrenchObserver)
 
 px4_add_module(
 	MODULE modules__rls_wrench_observer
@@ -46,4 +46,5 @@ px4_add_module(
 		px4_work_queue
 		mathlib
 		RLSIdentification
+		WrenchObserver
 	)
