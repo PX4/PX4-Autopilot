@@ -246,9 +246,6 @@ public:
 
 	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
 
-	// get GPS check status
-	void get_gps_check_status(uint16_t *val) const { *val = _gps_check_fail_status.value; }
-
 	const auto &state_reset_status() const { return _state_reset_status; }
 
 	// return the amount the local vertical position changed in the last reset and the number of reset events
@@ -310,6 +307,11 @@ public:
 
 	// set minimum continuous period without GPS fail required to mark a healthy GPS status
 	void set_min_required_gps_health_time(uint32_t time_us) { _min_gps_health_time_us = time_us; }
+
+	const gps_check_fail_status_u &gps_check_fail_status() const { return _gps_check_fail_status; }
+	const decltype(gps_check_fail_status_u::flags) &gps_check_fail_status_flags() const { return _gps_check_fail_status.flags; }
+
+	bool gps_checks_passed() const { return _gps_checks_passed; };
 
 	// get solution data from the EKF-GSF emergency yaw estimator
 	// returns false when data is not available
@@ -540,8 +542,9 @@ private:
 	terrain_fusion_status_u _hagl_sensor_status{}; ///< Struct indicating type of sensor used to estimate height above ground
 
 	// height sensor status
-	bool _baro_hgt_faulty{true};		///< true if valid baro data is unavailable for use
-	bool _gps_hgt_intermittent{true};	///< true if gps height into the buffer is intermittent
+	bool _baro_hgt_faulty{false};		///< true if baro data have been declared faulty TODO: move to fault flags
+	bool _baro_hgt_intermittent{true};	///< true if data into the buffer is intermittent
+	bool _gps_intermittent{true};           ///< true if data into the buffer is intermittent
 
 	// imu fault status
 	uint64_t _time_bad_vert_accel{0};	///< last time a bad vertical accel was detected (uSec)
@@ -654,7 +657,13 @@ private:
 
 	void resetVerticalPositionTo(float new_vert_pos);
 
-	void resetHeight();
+	void resetHeightToBaro();
+	void resetHeightToGps();
+	void resetHeightToRng();
+	void resetHeightToEv();
+
+	void resetVerticalVelocityToGps();
+	void resetVerticalVelocityToZero();
 
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
@@ -924,7 +933,7 @@ private:
 	void updateBaroHgtOffset();
 	void updateBaroHgtBias();
 
-	void checkGroundEffectTimeout();
+	void updateGroundEffect();
 
 	// return an estimation of the GPS altitude variance
 	float getGpsHeightVariance();

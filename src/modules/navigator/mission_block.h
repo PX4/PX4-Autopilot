@@ -111,6 +111,7 @@ protected:
 	void setLoiterItemFromCurrentPositionSetpoint(struct mission_item_s *item);
 
 	void setLoiterItemFromCurrentPosition(struct mission_item_s *item);
+	void setLoiterItemFromCurrentPositionWithBreaking(struct mission_item_s *item);
 
 	void setLoiterItemCommonFields(struct mission_item_s *item);
 

@@ -59,6 +59,7 @@ static constexpr const char reason_no_local_position[] = "no local position";
 static constexpr const char reason_no_global_position[] = "no global position";
 static constexpr const char reason_no_datalink[] = "no datalink";
 static constexpr const char reason_no_rc_and_no_datalink[] = "no RC and no datalink";
+static constexpr const char reason_no_gps[] = "no GPS";
 
 // This array defines the arming state transitions. The rows are the new state, and the columns
 // are the current state. Using new state and current state you can index into the array which
@@ -476,6 +477,8 @@ static void enable_failsafe(vehicle_status_s &status, bool old_failsafe, orb_adv
 		case event_failsafe_reason_t::no_datalink: reason = reason_no_datalink; break;
 
 		case event_failsafe_reason_t::no_rc_and_no_datalink: reason = reason_no_rc_and_no_datalink; break;
+
+		case event_failsafe_reason_t::no_gps: reason = reason_no_gps; break;
 		}
 
 		mavlink_log_critical(mavlink_log_pub, "Failsafe enabled: %s\t", reason);

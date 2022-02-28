@@ -172,7 +172,7 @@ int	uORB::Manager::orb_ioctl(unsigned int cmd, unsigned long arg)
 
 	case ORBIOCDEVDATACOPY: {
 			orbiocdevdatacopy_t *data = (orbiocdevdatacopy_t *)arg;
-			data->ret = uORB::Manager::orb_data_copy(data->handle, data->dst, data->generation);
+			data->ret = uORB::Manager::orb_data_copy(data->handle, data->dst, data->generation, data->only_if_updated);
 		}
 		break;
 
@@ -479,8 +479,16 @@ void uORB::Manager::orb_remove_internal_subscriber(void *node_handle)
 
 uint8_t uORB::Manager::orb_get_queue_size(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->get_queue_size(); }
 
-bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation)
+bool uORB::Manager::orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated)
 {
+	if (!is_advertised(node_handle)) {
+		return false;
+	}
+
+	if (only_if_updated && !static_cast<const uORB::DeviceNode *>(node_handle)->updates_available(generation)) {
+		return false;
+	}
+
 	return static_cast<DeviceNode *>(node_handle)->copy(dst, generation);
 }
 
@@ -509,7 +517,8 @@ uint8_t uORB::Manager::orb_get_instance(const void *node_handle)
 #if !defined(CONFIG_BUILD_FLAT)
 unsigned uORB::Manager::updates_available(const void *node_handle, unsigned last_generation)
 {
-	return static_cast<const uORB::DeviceNode *>(node_handle)->updates_available(last_generation);
+	return is_advertised(node_handle) ? static_cast<const uORB::DeviceNode *>(node_handle)->updates_available(
+		       last_generation) : 0;
 }
 
 bool uORB::Manager::is_advertised(const void *node_handle)

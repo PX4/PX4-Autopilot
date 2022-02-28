@@ -40,9 +40,11 @@ void
 PCF8583::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("pcf8583", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("rpm_sensor");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(80);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0x50);
+	PRINT_MODULE_USAGE_PARAMS_I2C_KEEP_RUNNING_FLAG();
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
@@ -50,11 +52,11 @@ extern "C" __EXPORT int pcf8583_main(int argc, char *argv[])
 {
 	using ThisDriver = PCF8583;
 	BusCLIArguments cli{true, false};
-	cli.default_i2c_frequency = 400000;
+	cli.default_i2c_frequency = 100000;
 
-	int32_t addr{80};
-	param_get(param_find("PCF8583_ADDR"), &addr);
-	cli.i2c_address = addr;
+	//int32_t addr{0x50};
+	cli.i2c_address = 0x50;
+	cli.support_keep_running = true;
 
 	const char *verb = cli.parseDefaultArguments(argc, argv);
 
