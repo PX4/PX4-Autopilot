@@ -140,8 +140,7 @@ Mission::on_inactive()
 			_mission.count = mission_state.count;
 			_current_mission_index = mission_state.current_seq;
 
-			// find and store landing start marker (if available)
-			find_mission_land_start();
+			find_mission_land_start_and_first_fw_waypoint();
 		}
 
 		/* On init let's check the mission, maybe there is already one available. */
@@ -403,16 +402,14 @@ Mission::set_execution_mode(const uint8_t mode)
 	}
 }
 
-bool
-Mission::find_mission_land_start()
+void
+Mission::find_mission_land_start_and_first_fw_waypoint()
 {
-	/* return true if a MAV_CMD_DO_LAND_START, NAV_CMD_VTOL_LAND or NAV_CMD_LAND is found and internally save the index
-	 *  return false if not found
-	 */
-
 	const dm_item_t dm_current = (dm_item_t)_mission.dataman_id;
 	struct mission_item_s missionitem = {};
 	struct mission_item_s missionitem_prev = {}; //to store mission item before currently checked on, needed to get pos of wp before NAV_CMD_DO_LAND_START
+	bool found_vtol_transition_to_fw = false;
+	_first_fixed_wing_waypoint_index = -1;
 
 	_land_start_available = false;
 
@@ -461,9 +458,19 @@ Mission::find_mission_land_start()
 			}
 
 		}
-	}
 
-	return _land_start_available;
+		{
+			// try to find the index of the first position waypoint after a potential vtol transition
+			if (found_vtol_transition_to_fw && _first_fixed_wing_waypoint_index < 0 && item_contains_position(missionitem)) {
+				_first_fixed_wing_waypoint_index = i;
+			}
+
+			if ((!found_vtol_transition_to_fw && missionitem.nav_cmd == NAV_CMD_VTOL_TAKEOFF) ||
+			    (missionitem.nav_cmd == NAV_CMD_DO_VTOL_TRANSITION && int(missionitem.params[0]) == 4)) {
+				found_vtol_transition_to_fw = true;
+			}
+		}
+	}
 }
 
 bool
@@ -570,8 +577,19 @@ Mission::update_mission()
 		_current_mission_index = 0;
 	}
 
-	// find and store landing start marker (if available)
-	find_mission_land_start();
+	find_mission_land_start_and_first_fw_waypoint();
+
+	if (_navigator->get_vstatus()->arming_state == vehicle_status_s::ARMING_STATE_ARMED
+	    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+
+		// if we are already in fixed wing flight then make sure that the current active waypoint
+		// is after the transition to forward flight waypoint
+
+		if (_current_mission_index < _first_fixed_wing_waypoint_index) {
+			_current_mission_index = _first_fixed_wing_waypoint_index;
+		}
+
+	}
 
 	set_current_mission_item();
 }
@@ -1751,8 +1769,7 @@ Mission::check_mission_valid(bool force)
 		_navigator->set_mission_result_updated();
 		_home_inited = _navigator->home_position_valid();
 
-		// find and store landing start marker (if available)
-		find_mission_land_start();
+		find_mission_land_start_and_first_fw_waypoint();
 	}
 }
 

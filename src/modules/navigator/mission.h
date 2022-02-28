@@ -221,9 +221,9 @@ private:
 	bool need_to_reset_mission();
 
 	/**
-	 * Find and store the index of the landing sequence (DO_LAND_START)
+	 * Find and store the index of the landing sequence (DO_LAND_START) and the index of the first fixed wing waypoint after vtol transition.
 	 */
-	bool find_mission_land_start();
+	void find_mission_land_start_and_first_fw_waypoint();
 
 	/**
 	 * Return the index of the closest mission item to the current global position.
@@ -253,6 +253,8 @@ private:
 	double _landing_start_lat{0.0};
 	double _landing_start_lon{0.0};
 	float _landing_start_alt{0.0f};
+
+	int _first_fixed_wing_waypoint_index{-1};	// index of the first position waypoint after a transition to forward flight, < 0 is invalid
 
 	double _landing_lat{0.0};
 	double _landing_lon{0.0};
