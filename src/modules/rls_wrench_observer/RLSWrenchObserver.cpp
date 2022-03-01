@@ -66,18 +66,36 @@ bool RLSWrenchObserver::init()
 
 void RLSWrenchObserver::updateParams()
 {
-	const matrix::Vector2f X_O = matrix::Vector2f(_param_rls_kf_init.get(), _param_rls_kr_init.get());
-	const matrix::Vector2f C_O = matrix::Vector2f(_param_rls_kf_conf.get(), _param_rls_kr_conf.get());
-	const matrix::Vector3f Rd_O = matrix::Vector3f(_param_rls_xy_noise.get(), _param_rls_xy_noise.get(),
-				      _param_rls_z_noise.get());
+	const float initial_guess[4] = {
+				_param_rls_kf_init.get(),
+				_param_rls_kr_init.get(),
+				_param_rls_kf_init.get(),
+				_param_rls_kr_init.get()
+			};
+
+	const float initial_confidence[4] = {
+				_param_rls_kf_conf.get(),
+				_param_rls_kr_conf.get(),
+				_param_rls_kf_conf.get(),
+				_param_rls_kr_conf.get()
+			};
+
+	const float R_diag[5] = {
+				_param_rls_xy_noise.get(),
+				_param_rls_xy_noise.get(),
+				_param_rls_z_noise.get(),
+				_param_rls_xy_noise.get(),
+				_param_rls_xy_noise.get()
+			};
+
 	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(), _param_rls_tilt.get(), _param_rls_n_rotors.get(), _param_rls_lpf_motor.get()};
 
 	ModuleParams::updateParams();
 
-	_identification.initialize(X_O, C_O, Rd_O, vehicle_params);
+	_identification.initialize(initial_guess, initial_confidence, R_diag, vehicle_params);
 	_wrench_observer.initialize(_param_rls_lpf_force.get());
 
-	PX4_INFO("UPDATED:\t%8.4f", (double)X_O(0));
+	PX4_INFO("UPDATED:\t%8.4f", (double)initial_guess[0]);
 }
 
 void RLSWrenchObserver::Run()
@@ -167,9 +185,9 @@ void RLSWrenchObserver::Run()
 			};
 			const bool flag = (hrt_absolute_time() > 40_s);
 			const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
-			matrix::Vector2f params_ident = _identification.update(y, output, dt, flag);
+			matrix::Vector2f params_thrust = _identification.updateThrust(y, output, dt, flag);
 
-			const Vector<float, 8> y_lpf = _identification.getFilteredOutputs();
+			// const Vector<float, 8> y_lpf = _identification.getFilteredOutputs();
 			const matrix::Vector3f p_error = _identification.getPredictionError();
 
 			_vehicle_attitude_sub.update(&v_att);
@@ -178,19 +196,21 @@ void RLSWrenchObserver::Run()
 			//Compute external force and quaternion rotation from the FRD body frame to the NED earth frame
 			matrix::Vector3f fe = q.conjugate(_wrench_observer.update(p_error, dt, flag));
 
+			matrix::Vector2f params_offset = _identification.updateOffset(flag);
+
 			//TODO: Check if rotation matrix necessary for lateral forces.
 			//Continue implementing observer and switch for rls and force.
 			PX4_INFO("Params :\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f",
-					(double)params_ident(0),
+					(double)params_thrust(0),
 					(double)fe(2),
 					(double)p_error(2),
 					(double)flag,
 					(double)((accel.z)*_param_rls_mass.get()),
 					(double)dt,
-					(double)y_lpf(0));
+					(double)params_offset(0));
 
 			// Check validity of results
-			bool valid = ((params_ident(0) > 0.f) && (params_ident(1) < params_ident(0)));
+			bool valid = ((params_thrust(0) > 0.f) && (params_thrust(1) < params_thrust(0)));
 
 			_valid_hysteresis.set_state_and_update(valid, actuator_outputs.timestamp);
 			_valid = _valid_hysteresis.get_state();

@@ -139,5 +139,4 @@ private:
 	bool _landed{false};
 	bool _in_air{false};
 	bool _valid{false};
-	// static constexpr float GRAVITY = 9.80665f; // m/s^2
 };
