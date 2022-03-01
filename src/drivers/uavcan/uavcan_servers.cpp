@@ -155,10 +155,6 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 
 	const size_t maxlen = UAVCAN_MAX_PATH_LENGTH;
 	const size_t sd_root_path_len = strlen(sd_root_path);
-	struct stat sb;
-	int rv;
-	char dstpath[maxlen + 1];
-	char srcpath[maxlen + 1];
 
 	DIR *const sd_root_dir = opendir(sd_root_path);
 
@@ -166,8 +162,10 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 		return;
 	}
 
+	struct stat sb {};
+
 	if (stat(sd_path, &sb) != 0 || !S_ISDIR(sb.st_mode)) {
-		rv = mkdir(sd_path, S_IRWXU | S_IRWXG | S_IRWXO);
+		int rv = mkdir(sd_path, S_IRWXU | S_IRWXG | S_IRWXO);
 
 		if (rv != 0) {
 			PX4_ERR("dev: couldn't create '%s'", sd_path);
@@ -179,11 +177,7 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 	struct dirent *dev_dirent = NULL;
 
 	while ((dev_dirent = readdir(sd_root_dir)) != nullptr) {
-
-		uavcan_posix::FirmwareVersionChecker::AppDescriptor descriptor;
-
 		// Looking for all uavcan.bin files.
-
 		if (DIRENT_ISFILE(dev_dirent->d_type) && strstr(dev_dirent->d_name, ".bin") != nullptr) {
 
 			// Make sure the path fits
@@ -196,20 +190,43 @@ void UavcanServers::migrateFWFromRoot(const char *sd_path, const char *sd_root_p
 				continue;
 			}
 
-			snprintf(srcpath, sizeof(srcpath), "%s%s", sd_root_path, dev_dirent->d_name);
+			static constexpr int ATTEMPTS = 3;
 
-			if (uavcan_posix::FirmwareVersionChecker::getFileInfo(srcpath, descriptor, 1024) != 0) {
-				continue;
-			}
+			for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
+				char srcpath[maxlen + 1];
+				snprintf(srcpath, sizeof(srcpath), "%s%s", sd_root_path, dev_dirent->d_name);
 
-			if (descriptor.image_crc == 0) {
-				continue;
-			}
+				uavcan_posix::FirmwareVersionChecker::AppDescriptor descriptor_src{};
 
-			snprintf(dstpath, sizeof(dstpath), "%s/%d.bin", sd_path, descriptor.board_id);
+				if (uavcan_posix::FirmwareVersionChecker::getFileInfo(srcpath, descriptor_src, 1024) != 0) {
+					continue;
+				}
 
-			if (copyFw(dstpath, srcpath) >= 0) {
-				unlink(srcpath);
+				if (descriptor_src.image_crc == 0) {
+					continue;
+				}
+
+				char dstpath[maxlen + 1];
+				snprintf(dstpath, sizeof(dstpath), "%s/%d.bin", sd_path, descriptor_src.board_id);
+
+				const bool copy_success = (copyFw(dstpath, srcpath) >= 0);
+
+				uavcan_posix::FirmwareVersionChecker::AppDescriptor descriptor_dst{};
+
+				if (uavcan_posix::FirmwareVersionChecker::getFileInfo(dstpath, descriptor_dst, 1024) != 0) {
+					PX4_ERR("failed to get file info%s", attempt <= ATTEMPTS ? ", retrying" : "");
+					continue;
+				}
+
+				if (copy_success && descriptor_src.image_crc == descriptor_dst.image_crc) {
+					PX4_INFO("copied FW id:%d CRC: %" PRIu64 " %s -> %s ", descriptor_src.board_id, descriptor_src.image_crc, srcpath,
+						 dstpath);
+					unlink(srcpath);
+					break;
+
+				} else {
+					PX4_ERR("FW id:%d copy failed%s", descriptor_src.board_id, attempt <= ATTEMPTS ? ", retrying" : "");
+				}
 			}
 		}
 	}
