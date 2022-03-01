@@ -69,13 +69,13 @@ void RLSWrenchObserver::updateParams()
 	const matrix::Vector2f X_O = matrix::Vector2f(_param_rls_kf_init.get(), _param_rls_kr_init.get());
 	const matrix::Vector2f C_O = matrix::Vector2f(_param_rls_kf_conf.get(), _param_rls_kr_conf.get());
 	const matrix::Vector3f Rd_O = matrix::Vector3f(_param_rls_xy_noise.get(), _param_rls_xy_noise.get(),
-					_param_rls_z_noise.get());
-	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(), _param_rls_tilt.get(), _param_rls_n_rotors.get(), _param_rls_lpf.get()};
+				      _param_rls_z_noise.get());
+	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(), _param_rls_tilt.get(), _param_rls_n_rotors.get(), _param_rls_lpf_motor.get()};
 
 	ModuleParams::updateParams();
 
 	_identification.initialize(X_O, C_O, Rd_O, vehicle_params);
-	_wrench_observer.initialize(1.f);
+	_wrench_observer.initialize(_param_rls_lpf_force.get());
 
 	PX4_INFO("UPDATED:\t%8.4f", (double)X_O(0));
 }
@@ -145,13 +145,15 @@ void RLSWrenchObserver::Run()
 	const float dt = (accel.timestamp - _timestamp_last) * 1e-6f;
 	_timestamp_last = accel.timestamp;
 
-	if (_armed && _in_air && PX4_ISFINITE(accel.z)) {
+	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
+	if (_armed && _in_air && (dt > 0.0002f) && (dt < 0.02f) && PX4_ISFINITE(accel.z)) {
 
 		actuator_outputs_s actuator_outputs;
+		vehicle_attitude_s v_att;
 
 		if (_actuator_outputs_sub.copy(&actuator_outputs)) {
 
-			const matrix::Vector3f y = matrix::Vector3f(-accel.x, -accel.y, -accel.z);
+			const matrix::Vector3f y = matrix::Vector3f(accel.x, accel.y, accel.z);
 
 			float speed[8] = {
 				actuator_outputs.output[0] *_param_rls_speed_const.get(),
@@ -163,22 +165,29 @@ void RLSWrenchObserver::Run()
 				actuator_outputs.output[6] *_param_rls_speed_const.get(),
 				actuator_outputs.output[7] *_param_rls_speed_const.get()
 			};
-
+			const bool flag = (hrt_absolute_time() > 40_s);
 			const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
-			matrix::Vector2f params_ident = _identification.update(y, output, dt, false);
+			matrix::Vector2f params_ident = _identification.update(y, output, dt, flag);
 
 			const Vector<float, 8> y_lpf = _identification.getFilteredOutputs();
 			const matrix::Vector3f p_error = _identification.getPredictionError();
 
-			matrix::Vector3f fe = _wrench_observer.update(p_error, dt, true);
+			_vehicle_attitude_sub.update(&v_att);
+			const matrix::Quatf q{v_att.q};
+
+			//Compute external force and quaternion rotation from the FRD body frame to the NED earth frame
+			matrix::Vector3f fe = q.conjugate(_wrench_observer.update(p_error, dt, flag));
+
 			//TODO: Check if rotation matrix necessary for lateral forces.
 			//Continue implementing observer and switch for rls and force.
-			PX4_INFO("Params :\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f",
-				(double)params_ident(0),
-				(double)fe(2),
-				(double)p_error(2),
-				(double)((-accel.z)*_param_rls_mass.get()),
-				(double)y_lpf(0));
+			PX4_INFO("Params :\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f",
+					(double)params_ident(0),
+					(double)fe(2),
+					(double)p_error(2),
+					(double)flag,
+					(double)((accel.z)*_param_rls_mass.get()),
+					(double)dt,
+					(double)y_lpf(0));
 
 			// Check validity of results
 			bool valid = ((params_ident(0) > 0.f) && (params_ident(1) < params_ident(0)));
@@ -187,6 +196,14 @@ void RLSWrenchObserver::Run()
 			_valid = _valid_hysteresis.get_state();
 
 			publishStatus(actuator_outputs.timestamp);
+
+			//CHANGED DEBUG RATE TO 50HZ - CHANGE BACK
+			//mavlink._main.cpp Line:1557
+			debug_vect_s status_msg{};
+			status_msg.x = fe(2);
+			status_msg.y = p_error(2);
+			status_msg.timestamp = hrt_absolute_time();
+			_debug_vect_pub.publish(status_msg);
 		}
 
 	} else {
@@ -223,10 +240,10 @@ void RLSWrenchObserver::publishStatus(const hrt_abstime &timestamp_sample)
 
 	// _hover_thrust_ekf_pub.publish(status_msg);
 
-	debug_vect_s status_msg{};
-	status_msg.x = 1.f;
-	status_msg.timestamp = hrt_absolute_time();
-	_debug_vect_pub.publish(status_msg);
+	// debug_vect_s status_msg{};
+	// status_msg.x = 1.f;
+	// status_msg.timestamp = hrt_absolute_time();
+	// _debug_vect_pub.publish(status_msg);
 }
 
 void RLSWrenchObserver::publishInvalidStatus()

@@ -61,6 +61,7 @@
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/debug_vect.h>
@@ -110,6 +111,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 
 	hrt_abstime _timestamp_last{0};
 	systemlib::Hysteresis _valid_hysteresis{false};
@@ -121,15 +123,16 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RLS_EST_MASS>) _param_rls_mass,
 		(ParamFloat<px4::params::RLS_EST_TILT>) _param_rls_tilt,
-		(ParamFloat<px4::params::RLS_EST_LPF>) _param_rls_lpf,
+		(ParamFloat<px4::params::RLS_EST_LPF_M>) _param_rls_lpf_motor,
 		(ParamFloat<px4::params::RLS_EST_KF_INIT>) _param_rls_kf_init,
 		(ParamFloat<px4::params::RLS_EST_KR_INIT>) _param_rls_kr_init,
 		(ParamFloat<px4::params::RLS_EST_KF_CONF>) _param_rls_kf_conf,
 		(ParamFloat<px4::params::RLS_EST_KR_CONF>) _param_rls_kr_conf,
 		(ParamFloat<px4::params::RLS_EST_XY_NOISE>) _param_rls_xy_noise,
 		(ParamFloat<px4::params::RLS_EST_Z_NOISE>) _param_rls_z_noise,
+		(ParamInt<px4::params::RLS_EST_N_ROTORS>) _param_rls_n_rotors,
 		(ParamFloat<px4::params::RLS_EST_SPEED_K>) _param_rls_speed_const,
-		(ParamInt<px4::params::RLS_EST_N_ROTORS>) _param_rls_n_rotors
+		(ParamFloat<px4::params::RLS_EST_LPF_F>) _param_rls_lpf_force
 	)
 
 	bool _armed{false};
