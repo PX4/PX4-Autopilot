@@ -28,7 +28,7 @@
             "executable": "${command:cmake.launchTargetPath}",
             "request": "launch",
             "type": "cortex-debug",
-            "servertype": "stlink",
+            "servertype": "stutil",
             "cwd": "${workspaceFolder}",
             "internalConsoleOptions": "openOnSessionStart",
             "preLaunchCommands": [
