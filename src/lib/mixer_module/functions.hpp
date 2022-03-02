@@ -148,7 +148,7 @@ void FunctionMotors::updateValues(uint32_t reversible, float thrust_factor, floa
 
 		// don't recompute for all values (ax^2+bx+c=0)
 		const float tmp1 = b / (2.f * a);
-		const float tmp2 = b * b / (4 * a * a);
+		const float tmp2 = b * b / (4.f * a * a);
 
 		for (int i = 0; i < num_values; ++i) {
 			float control = values[i];
