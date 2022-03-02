@@ -67,33 +67,41 @@ bool RLSWrenchObserver::init()
 void RLSWrenchObserver::updateParams()
 {
 	const float initial_guess[4] = {
-				_param_rls_kf_init.get(),
-				_param_rls_kr_init.get(),
-				_param_rls_kf_init.get(),
-				_param_rls_kr_init.get()
-			};
+		_param_rls_kf_init.get(),
+		_param_rls_kr_init.get(),
+		_param_rls_xo_init.get()*1000,
+		_param_rls_yo_init.get()*1000
+	};
 
 	const float initial_confidence[4] = {
-				_param_rls_kf_conf.get(),
-				_param_rls_kr_conf.get(),
-				_param_rls_kf_conf.get(),
-				_param_rls_kr_conf.get()
-			};
+		_param_rls_kf_conf.get(),
+		_param_rls_kr_conf.get(),
+		_param_rls_xo_conf.get(),
+		_param_rls_yo_conf.get()
+	};
 
 	const float R_diag[5] = {
-				_param_rls_xy_noise.get(),
-				_param_rls_xy_noise.get(),
-				_param_rls_z_noise.get(),
-				_param_rls_xy_noise.get(),
-				_param_rls_xy_noise.get()
-			};
+		_param_rls_xy_noise.get(),
+		_param_rls_xy_noise.get(),
+		_param_rls_z_noise.get(),
+		_param_rls_f_noise.get(),
+		_param_rls_f_noise.get()
+	};
 
-	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(), _param_rls_tilt.get(), _param_rls_n_rotors.get(), _param_rls_lpf_motor.get()};
+	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(),
+	_param_rls_tilt.get(),
+	_param_rls_n_rotors.get(),
+	_param_rls_lpf_motor.get(),
+	_param_rls_km.get(),
+	_param_rls_diameter.get(),
+	_param_rls_top_height.get(),
+	_param_rls_bot_height.get()
+	};
 
 	ModuleParams::updateParams();
 
 	_identification.initialize(initial_guess, initial_confidence, R_diag, vehicle_params);
-	_wrench_observer.initialize(_param_rls_lpf_force.get());
+	_wrench_observer.initialize(_param_rls_lpf_force.get(),_param_rls_lpf_moment.get());
 
 	PX4_INFO("UPDATED:\t%8.4f", (double)initial_guess[0]);
 }
@@ -183,31 +191,38 @@ void RLSWrenchObserver::Run()
 				actuator_outputs.output[6] *_param_rls_speed_const.get(),
 				actuator_outputs.output[7] *_param_rls_speed_const.get()
 			};
+
 			const bool flag = (hrt_absolute_time() > 40_s);
 			const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
 			matrix::Vector2f params_thrust = _identification.updateThrust(y, output, dt, flag);
 
 			// const Vector<float, 8> y_lpf = _identification.getFilteredOutputs();
-			const matrix::Vector3f p_error = _identification.getPredictionError();
+			const matrix::Vector3f p_error_t = _identification.getPredictionErrorThrust();
 
 			_vehicle_attitude_sub.update(&v_att);
 			const matrix::Quatf q{v_att.q};
+			v_att.
 
 			//Compute external force and quaternion rotation from the FRD body frame to the NED earth frame
-			matrix::Vector3f fe = q.conjugate(_wrench_observer.update(p_error, dt, flag));
+			matrix::Vector3f fe = q.conjugate(_wrench_observer.updateForce(p_error_t, dt, flag));
 
-			matrix::Vector2f params_offset = _identification.updateOffset(flag);
+			matrix::Vector3f params_offset = _identification.updateOffset(q,flag);
+			Vector3f Qi = _identification.getMomentVector();
 
-			//TODO: Check if rotation matrix necessary for lateral forces.
-			//Continue implementing observer and switch for rls and force.
+			matrix::Vector3f me = _wrench_observer.updateMoment(p_error_t, dt, flag);
+			//TODO: Check vehicle_acceleration.msg
+
 			PX4_INFO("Params :\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f",
-					(double)params_thrust(0),
-					(double)fe(2),
-					(double)p_error(2),
-					(double)flag,
-					(double)((accel.z)*_param_rls_mass.get()),
-					(double)dt,
-					(double)params_offset(0));
+				(double)params_thrust(0),
+				(double)fe(2),
+				(double)p_error_t(2),
+				// (double)flag,
+				// (double)((accel.z)*_param_rls_mass.get()),
+				// (double)dt,
+				(double)params_offset(0),
+				(double)params_offset(1),
+				(double)params_offset(2),
+				(double)Qi(1));
 
 			// Check validity of results
 			bool valid = ((params_thrust(0) > 0.f) && (params_thrust(1) < params_thrust(0)));
@@ -221,7 +236,7 @@ void RLSWrenchObserver::Run()
 			//mavlink._main.cpp Line:1557
 			debug_vect_s status_msg{};
 			status_msg.x = fe(2);
-			status_msg.y = p_error(2);
+			status_msg.y = p_error_t(2);
 			status_msg.timestamp = hrt_absolute_time();
 			_debug_vect_pub.publish(status_msg);
 		}

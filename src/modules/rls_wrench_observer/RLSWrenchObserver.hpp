@@ -64,7 +64,9 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/debug_vect.h>
+
 
 
 using namespace time_literals;
@@ -132,7 +134,17 @@ private:
 		(ParamFloat<px4::params::RLS_EST_Z_NOISE>) _param_rls_z_noise,
 		(ParamInt<px4::params::RLS_EST_N_ROTORS>) _param_rls_n_rotors,
 		(ParamFloat<px4::params::RLS_EST_SPEED_K>) _param_rls_speed_const,
-		(ParamFloat<px4::params::RLS_EST_LPF_F>) _param_rls_lpf_force
+		(ParamFloat<px4::params::RLS_EST_TAU_F>) _param_rls_lpf_force,
+		(ParamFloat<px4::params::RLS_EST_TAU_M>) _param_rls_lpf_moment,
+		(ParamFloat<px4::params::RLS_EST_XO_INIT>) _param_rls_xo_init,
+		(ParamFloat<px4::params::RLS_EST_YO_INIT>) _param_rls_yo_init,
+		(ParamFloat<px4::params::RLS_EST_XO_CONF>) _param_rls_xo_conf,
+		(ParamFloat<px4::params::RLS_EST_YO_CONF>) _param_rls_yo_conf,
+		(ParamFloat<px4::params::RLS_EST_F_NOISE>) _param_rls_f_noise,
+		(ParamFloat<px4::params::RLS_EST_KM>) _param_rls_km,
+		(ParamFloat<px4::params::RLS_EST_D>) _param_rls_diameter,
+		(ParamFloat<px4::params::RLS_EST_TOP_H>) _param_rls_top_height,
+		(ParamFloat<px4::params::RLS_EST_BOT_H>) _param_rls_bot_height
 	)
 
 	bool _armed{false};
