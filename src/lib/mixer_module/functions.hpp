@@ -140,12 +140,28 @@ private:
 
 void FunctionMotors::updateValues(uint32_t reversible, float thrust_factor, float *values, int num_values)
 {
-	if (thrust_factor > FLT_EPSILON) {
+	if (thrust_factor > 0.f && thrust_factor <= 1.f) {
+		// thrust factor
+		//  rel_thrust = factor * x^2 + (1-factor) * x,
+		const float a = thrust_factor;
+		const float b = (1.f - thrust_factor);
+
+		// don't recompute for all values (ax^2+bx+c=0)
+		const float tmp1 = b / (2.f * a);
+		const float tmp2 = b * b / (4.f * a * a);
+
 		for (int i = 0; i < num_values; ++i) {
 			float control = values[i];
-			control = matrix::sign(control) * (-(1.0f - thrust_factor) / (2.0f * thrust_factor) + sqrtf((1.0f - thrust_factor) *
-							   (1.0f - thrust_factor) / (4.0f * thrust_factor * thrust_factor) + (fabsf(control) / thrust_factor)));
-			values[i] = control;
+
+			if (control > 0.f) {
+				values[i] = -tmp1 + sqrtf(tmp2 + (control / a));
+
+			} else if (control < -0.f) {
+				values[i] =  tmp1 - sqrtf(tmp2 - (control / a));
+
+			} else {
+				values[i] = 0.f;
+			}
 		}
 	}
 
