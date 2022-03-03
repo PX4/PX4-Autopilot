@@ -59,8 +59,9 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/vehicle_acceleration.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -96,6 +97,8 @@ private:
 
 	void publishStatus(const hrt_abstime &timestamp_sample);
 	void publishInvalidStatus();
+	bool copyAndCheckAllFinite(vehicle_acceleration_s &accel, actuator_outputs_s &actuator_outputs,
+					vehicle_attitude_s &v_att, vehicle_angular_velocity_s &v_ang_vel);
 
 	RLSIdentification _identification{};
 	WrenchObserver _wrench_observer{};
@@ -104,7 +107,9 @@ private:
 	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
 
 	// Subscriptions
-	uORB::SubscriptionCallbackWorkItem _sensor_accel_sub{this, ORB_ID(sensor_accel)};        // subscription that schedules RLSWrenchObserver when updated
+	// uORB::SubscriptionCallbackWorkItem _sensor_accel_sub{this, ORB_ID(sensor_accel)};        // subscription that schedules RLSWrenchObserver when updated
+	uORB::SubscriptionCallbackWorkItem _vehicle_acceleration_sub{this, ORB_ID(vehicle_acceleration)};        // subscription that schedules RLSWrenchObserver when updated
+
 	// uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 	uORB::SubscriptionInterval  _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
@@ -114,6 +119,7 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 
 	hrt_abstime _timestamp_last{0};
 	systemlib::Hysteresis _valid_hysteresis{false};
@@ -151,4 +157,5 @@ private:
 	bool _landed{false};
 	bool _in_air{false};
 	bool _valid{false};
+	bool _finite{false};
 };

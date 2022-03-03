@@ -56,8 +56,10 @@ RLSWrenchObserver::~RLSWrenchObserver()
 bool RLSWrenchObserver::init()
 {
 	// execute Run() on every sensor_accel publication
-	if (!_sensor_accel_sub.registerCallback()) {
-		PX4_ERR("sensor_accel callback registration failed");
+	// if (!_sensor_accel_sub.registerCallback()) {
+	if (!_vehicle_acceleration_sub.registerCallback()) {
+		PX4_ERR("vehicle_acceleration callback registration failed");
+		// PX4_ERR("sensor_accel callback registration failed");
 		return false;
 	}
 
@@ -66,44 +68,47 @@ bool RLSWrenchObserver::init()
 
 void RLSWrenchObserver::updateParams()
 {
-	const float initial_guess[4] = {
-		_param_rls_kf_init.get(),
-		_param_rls_kr_init.get(),
-		_param_rls_xo_init.get()*1000,
-		_param_rls_yo_init.get()*1000
-	};
-
-	const float initial_confidence[4] = {
-		_param_rls_kf_conf.get(),
-		_param_rls_kr_conf.get(),
-		_param_rls_xo_conf.get(),
-		_param_rls_yo_conf.get()
-	};
-
-	const float R_diag[5] = {
-		_param_rls_xy_noise.get(),
-		_param_rls_xy_noise.get(),
-		_param_rls_z_noise.get(),
-		_param_rls_f_noise.get(),
-		_param_rls_f_noise.get()
-	};
-
-	const struct VehicleParameters vehicle_params = {_param_rls_mass.get(),
-	_param_rls_tilt.get(),
-	_param_rls_n_rotors.get(),
-	_param_rls_lpf_motor.get(),
-	_param_rls_km.get(),
-	_param_rls_diameter.get(),
-	_param_rls_top_height.get(),
-	_param_rls_bot_height.get()
-	};
-
 	ModuleParams::updateParams();
 
-	_identification.initialize(initial_guess, initial_confidence, R_diag, vehicle_params);
-	_wrench_observer.initialize(_param_rls_lpf_force.get(),_param_rls_lpf_moment.get());
+	if (!_armed && !_in_air) {
+		const float initial_guess[4] = {
+			_param_rls_kf_init.get(),
+			_param_rls_kr_init.get(),
+			_param_rls_xo_init.get() * 1000,
+			_param_rls_yo_init.get() * 1000
+		};
 
-	PX4_INFO("UPDATED:\t%8.4f", (double)initial_guess[0]);
+		const float initial_confidence[4] = {
+			_param_rls_kf_conf.get(),
+			_param_rls_kr_conf.get(),
+			_param_rls_xo_conf.get(),
+			_param_rls_yo_conf.get()
+		};
+
+		const float R_diag[5] = {
+			_param_rls_xy_noise.get(),
+			_param_rls_xy_noise.get(),
+			_param_rls_z_noise.get(),
+			_param_rls_f_noise.get(),
+			_param_rls_f_noise.get()
+		};
+
+		const struct VehicleParameters vehicle_params = {_param_rls_mass.get(),
+								_param_rls_tilt.get(),
+								_param_rls_n_rotors.get(),
+								_param_rls_lpf_motor.get(),
+								_param_rls_km.get(),
+								_param_rls_diameter.get(),
+								_param_rls_top_height.get(),
+								_param_rls_bot_height.get()
+		};
+
+		_identification.initialize(initial_guess, initial_confidence, R_diag, vehicle_params);
+		_wrench_observer.initialize(_param_rls_lpf_force.get(), _param_rls_lpf_moment.get());
+
+		PX4_INFO("UPDATED:\t%8.4f", (double)initial_guess[0]);
+	}
+
 }
 
 void RLSWrenchObserver::Run()
@@ -126,12 +131,16 @@ void RLSWrenchObserver::Run()
 		}
 	}
 
-	if (!_sensor_accel_sub.updated()) {
+	if (!_vehicle_acceleration_sub.updated()) {
 		return;
 	}
 
-	sensor_accel_s accel{};
-	_sensor_accel_sub.copy(&accel);
+	// if (!_sensor_accel_sub.updated()) {
+	// 	return;
+	// }
+
+	// sensor_accel_s accel{};
+	// _sensor_accel_sub.copy(&accel);
 
 	if (_vehicle_local_position_sub.updated()) {
 		vehicle_local_position_s local_pos{};
@@ -146,7 +155,8 @@ void RLSWrenchObserver::Run()
 	}
 
 	//actuator outputs required for each step
-	if (!_actuator_outputs_sub.updated()) {
+	// if (!_actuator_outputs_sub.updated()) {
+	if (!_actuator_outputs_sub.updated() || !_vehicle_attitude_sub.updated() || !_vehicle_angular_velocity_sub.updated()) {
 		return;
 	}
 
@@ -160,6 +170,13 @@ void RLSWrenchObserver::Run()
 
 	perf_begin(_cycle_perf);
 
+	vehicle_acceleration_s accel;
+	actuator_outputs_s actuator_outputs;
+	vehicle_attitude_s v_att;
+	vehicle_angular_velocity_s v_ang_vel;
+
+	_finite = copyAndCheckAllFinite(accel, actuator_outputs, v_att, v_ang_vel);
+
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
 
@@ -171,77 +188,86 @@ void RLSWrenchObserver::Run()
 	const float dt = (accel.timestamp - _timestamp_last) * 1e-6f;
 	_timestamp_last = accel.timestamp;
 
-	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-	if (_armed && _in_air && (dt > 0.0002f) && (dt < 0.02f) && PX4_ISFINITE(accel.z)) {
 
-		actuator_outputs_s actuator_outputs;
-		vehicle_attitude_s v_att;
+// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
+// if (_armed && _in_air && (dt > 0.0002f) && (dt < 0.02f) && PX4_ISFINITE(accel.z)) {
+	if (_finite && _armed && _in_air && (dt > 0.0002f) && (dt < 0.02f)) {
 
-		if (_actuator_outputs_sub.copy(&actuator_outputs)) {
+		// if (_actuator_outputs_sub.copy(&actuator_outputs)) {
 
-			const matrix::Vector3f y = matrix::Vector3f(accel.x, accel.y, accel.z);
+		// const matrix::Vector3f y = matrix::Vector3f(accel.x, accel.y, accel.z);
+		const matrix::Vector3f y = matrix::Vector3f(accel.xyz[0], accel.xyz[1], accel.xyz[2]);
 
-			float speed[8] = {
-				actuator_outputs.output[0] *_param_rls_speed_const.get(),
-				actuator_outputs.output[1] *_param_rls_speed_const.get(),
-				actuator_outputs.output[2] *_param_rls_speed_const.get(),
-				actuator_outputs.output[3] *_param_rls_speed_const.get(),
-				actuator_outputs.output[4] *_param_rls_speed_const.get(),
-				actuator_outputs.output[5] *_param_rls_speed_const.get(),
-				actuator_outputs.output[6] *_param_rls_speed_const.get(),
-				actuator_outputs.output[7] *_param_rls_speed_const.get()
-			};
+		float speed[8] = {
+			actuator_outputs.output[0] *_param_rls_speed_const.get(),
+			actuator_outputs.output[1] *_param_rls_speed_const.get(),
+			actuator_outputs.output[2] *_param_rls_speed_const.get(),
+			actuator_outputs.output[3] *_param_rls_speed_const.get(),
+			actuator_outputs.output[4] *_param_rls_speed_const.get(),
+			actuator_outputs.output[5] *_param_rls_speed_const.get(),
+			actuator_outputs.output[6] *_param_rls_speed_const.get(),
+			actuator_outputs.output[7] *_param_rls_speed_const.get()
+		};
 
-			const bool flag = (hrt_absolute_time() > 40_s);
-			const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
-			matrix::Vector2f params_thrust = _identification.updateThrust(y, output, dt, flag);
+		const bool flag = (hrt_absolute_time() > 40_s);
+		const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
+		matrix::Vector2f params_thrust = _identification.updateThrust(y, output, dt, flag);
 
-			// const Vector<float, 8> y_lpf = _identification.getFilteredOutputs();
-			const matrix::Vector3f p_error_t = _identification.getPredictionErrorThrust();
+		// const Vector<float, 8> y_lpf = _identification.getFilteredOutputs();
+		const matrix::Vector3f p_error_t = _identification.getPredictionErrorThrust();
 
-			_vehicle_attitude_sub.update(&v_att);
-			const matrix::Quatf q{v_att.q};
-			v_att.
+		// _vehicle_attitude_sub.copy(&v_att);
+		const matrix::Quatf q{v_att.q};
+		// _vehicle_angular_velocity_sub.copy(&v_ang_vel);
+		// _vehicle_attitude_sub.update(&v_att);
+		// const matrix::Quatf q{v_att.q};
+		// _vehicle_angular_velocity_sub.update(&v_ang_vel);
 
-			//Compute external force and quaternion rotation from the FRD body frame to the NED earth frame
-			matrix::Vector3f fe = q.conjugate(_wrench_observer.updateForce(p_error_t, dt, flag));
+		//Compute external force and quaternion rotation from the FRD body frame to the NED earth frame
+		matrix::Vector3f Fe = q.conjugate(_wrench_observer.updateForce(p_error_t, dt, flag));
 
-			matrix::Vector3f params_offset = _identification.updateOffset(q,flag);
-			Vector3f Qi = _identification.getMomentVector();
+		matrix::Vector3f params_offset = _identification.updateOffset(q, flag);
+		Vector3f Qi = _identification.getMomentVector();
+		matrix::Vector3f p_error_o = _identification.getPredictionErrorOffset();
 
-			matrix::Vector3f me = _wrench_observer.updateMoment(p_error_t, dt, flag);
-			//TODO: Check vehicle_acceleration.msg
 
-			PX4_INFO("Params :\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f\t%8.4f",
-				(double)params_thrust(0),
-				(double)fe(2),
-				(double)p_error_t(2),
-				// (double)flag,
-				// (double)((accel.z)*_param_rls_mass.get()),
-				// (double)dt,
-				(double)params_offset(0),
-				(double)params_offset(1),
-				(double)params_offset(2),
-				(double)Qi(1));
+		matrix::Vector3f Me = _wrench_observer.updateMoment(p_error_o + matrix::Vector3f(0.f, 0.f, -0.2f),
+									matrix::Vector3f(v_ang_vel.xyz), dt, flag);
 
-			// Check validity of results
-			bool valid = ((params_thrust(0) > 0.f) && (params_thrust(1) < params_thrust(0)));
+		PX4_INFO("Params :\t%6.4f\t%6.4f\t%6.4f\t%6.4f\t%6.4f\t%6.4f\t%6.4f\t%6.4f\t%6.4f\t%6.4f",
+			 (double)params_thrust(0),
+			 (double)Fe(2),
+			 (double)p_error_t(2),
+			 // (double)flag,
+			 // (double)((accel.z)*_param_rls_mass.get()),
+			 (double)params_offset(0),
+			 (double)dt,
+			 (double)Me(1),
+			 (double)Me(2),
+			 (double)Qi(2),
+			 (double)v_ang_vel.xyz[2],
+			 (double)p_error_o(2));
 
-			_valid_hysteresis.set_state_and_update(valid, actuator_outputs.timestamp);
-			_valid = _valid_hysteresis.get_state();
+		// Check validity of results
+		bool valid = ((params_thrust(0) > 0.f) && (params_thrust(1) < params_thrust(0)));
 
-			publishStatus(actuator_outputs.timestamp);
+		_valid_hysteresis.set_state_and_update(valid, actuator_outputs.timestamp);
+		_valid = _valid_hysteresis.get_state();
 
-			//CHANGED DEBUG RATE TO 50HZ - CHANGE BACK
-			//mavlink._main.cpp Line:1557
-			debug_vect_s status_msg{};
-			status_msg.x = fe(2);
-			status_msg.y = p_error_t(2);
-			status_msg.timestamp = hrt_absolute_time();
-			_debug_vect_pub.publish(status_msg);
-		}
+		publishStatus(actuator_outputs.timestamp);
 
-	} else {
+		//CHANGED DEBUG RATE TO 50HZ - CHANGE BACK
+		//mavlink._main.cpp Line:1557
+		debug_vect_s status_msg{};
+		status_msg.x = Me(0);
+		status_msg.y = Me(1);
+		status_msg.z = Me(2);
+		status_msg.timestamp = hrt_absolute_time();
+		_debug_vect_pub.publish(status_msg);
+	}
+
+// }
+	else {
 		_valid_hysteresis.set_state_and_update(false, hrt_absolute_time());
 
 		if (_valid) {
@@ -298,6 +324,40 @@ void RLSWrenchObserver::publishInvalidStatus()
 	status_msg.x = 0.f;
 	status_msg.timestamp = hrt_absolute_time();
 	_debug_vect_pub.publish(status_msg);
+}
+
+bool RLSWrenchObserver::copyAndCheckAllFinite(vehicle_acceleration_s &accel, actuator_outputs_s &actuator_outputs,
+					vehicle_attitude_s &v_att, vehicle_angular_velocity_s &v_ang_vel)
+{
+	_vehicle_acceleration_sub.copy(&accel);
+
+	if (!(PX4_ISFINITE(accel.xyz[0]) && PX4_ISFINITE(accel.xyz[1]) && PX4_ISFINITE(accel.xyz[2]))) {
+
+		return false;
+	}
+
+
+	_vehicle_attitude_sub.copy(&v_att);
+
+	if (!(PX4_ISFINITE(v_att.q[0]) && PX4_ISFINITE(v_att.q[1]) && PX4_ISFINITE(v_att.q[2]) && PX4_ISFINITE(v_att.q[3]))) {
+
+		return false;
+	}
+
+	_vehicle_angular_velocity_sub.copy(&v_ang_vel);
+
+	if (!(PX4_ISFINITE(v_ang_vel.xyz[0]) && PX4_ISFINITE(v_ang_vel.xyz[1]) && PX4_ISFINITE(v_ang_vel.xyz[2]))) {
+
+		return false;
+	}
+
+	_actuator_outputs_sub.copy(&actuator_outputs);
+
+	for (int i = 0; i < 8; i++) {
+		if (!PX4_ISFINITE(actuator_outputs.output[i])) {return false;}
+	}
+
+	return true;
 }
 
 int RLSWrenchObserver::task_spawn(int argc, char *argv[])
