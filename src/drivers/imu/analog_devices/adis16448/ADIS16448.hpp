@@ -45,9 +45,10 @@
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/spi.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_baro.h>
 #include <lib/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/atomic.h>
@@ -98,9 +99,10 @@ private:
 	const spi_drdy_gpio_t _drdy_gpio;
 
 	PX4Accelerometer _px4_accel;
-	PX4Barometer _px4_baro;
 	PX4Gyroscope _px4_gyro;
 	PX4Magnetometer _px4_mag;
+
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
 	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
 	perf_counter_t _bad_register_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad register")};

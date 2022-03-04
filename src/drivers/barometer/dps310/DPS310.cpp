@@ -48,7 +48,6 @@ static void getTwosComplement(T &raw, uint8_t length)
 
 DPS310::DPS310(const I2CSPIDriverConfig &config, device::Device *interface) :
 	I2CSPIDriver(config),
-	_px4_barometer(interface->get_device_id()),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comm errors"))
@@ -233,9 +232,15 @@ DPS310::RunImpl()
 
 	const float Tcomp = c0 * 0.5f + c1 * Traw_sc;
 
-	_px4_barometer.set_error_count(perf_event_count(_comms_errors));
-	_px4_barometer.set_temperature(Tcomp);
-	_px4_barometer.update(timestamp_sample, Pcomp / 100.0f); // Pascals -> Millibar
+	// publish
+	sensor_baro_s sensor_baro{};
+	sensor_baro.timestamp_sample = timestamp_sample;
+	sensor_baro.device_id = _interface->get_device_id();
+	sensor_baro.pressure = Pcomp;
+	sensor_baro.temperature = Tcomp;
+	sensor_baro.error_count = perf_event_count(_comms_errors);
+	sensor_baro.timestamp = hrt_absolute_time();
+	_sensor_baro_pub.publish(sensor_baro);
 
 	perf_end(_sample_perf);
 }

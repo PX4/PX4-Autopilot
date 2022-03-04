@@ -55,7 +55,6 @@
 MPL3115A2::MPL3115A2(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_barometer(get_device_id()),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
@@ -260,9 +259,15 @@ int MPL3115A2::collect()
 	float T = (float) reading.temperature.b[1] + ((float)(reading.temperature.b[0]) / 16.0f);
 	float P = (float)(reading.pressure.q >> 8) + ((float)(reading.pressure.b[0]) / 4.0f);
 
-	_px4_barometer.set_error_count(perf_event_count(_comms_errors));
-	_px4_barometer.set_temperature(T);
-	_px4_barometer.update(timestamp_sample, P / 100.0f);
+	// publish
+	sensor_baro_s sensor_baro{};
+	sensor_baro.timestamp_sample = timestamp_sample;
+	sensor_baro.device_id = get_device_id();
+	sensor_baro.pressure = P;
+	sensor_baro.temperature = T;
+	sensor_baro.error_count = perf_event_count(_comms_errors);
+	sensor_baro.timestamp = hrt_absolute_time();
+	_sensor_baro_pub.publish(sensor_baro);
 
 	perf_end(_sample_perf);
 

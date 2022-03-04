@@ -231,6 +231,10 @@ int Commander::custom_command(int argc, char *argv[])
 					send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 1.f, 0.f, 0.f, 0.0, 0.0, 0.f);
 				}
 
+			} else if (!strcmp(argv[1], "baro")) {
+				// baro calibration: param3 = 1
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 1.f, 0.f, 0.0, 0.0, 0.f);
+
 			} else if (!strcmp(argv[1], "accel")) {
 				if (argc > 2 && (strcmp(argv[2], "quick") == 0)) {
 					// accelerometer quick calibration: param5 = 3
@@ -1392,8 +1396,10 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					_worker_thread.startTask(WorkerThread::Request::MagCalibration);
 
 				} else if ((int)(cmd.param3) == 1) {
-					/* zero-altitude pressure calibration */
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED);
+					/* baro calibration */
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					_status_flags.calibration_enabled = true;
+					_worker_thread.startTask(WorkerThread::Request::BaroCalibration);
 
 				} else if ((int)(cmd.param4) == 1) {
 					/* RC calibration */
@@ -4421,7 +4427,7 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Enable HIL mode", true);
 #ifndef CONSTRAINED_FLASH
 	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run sensor calibration");
-	PRINT_MODULE_USAGE_ARG("mag|accel|gyro|level|esc|airspeed", "Calibration type", false);
+	PRINT_MODULE_USAGE_ARG("mag|baro|accel|gyro|level|esc|airspeed", "Calibration type", false);
 	PRINT_MODULE_USAGE_ARG("quick", "Quick calibration (accel only, not recommended)", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
 	PRINT_MODULE_USAGE_COMMAND("arm");
