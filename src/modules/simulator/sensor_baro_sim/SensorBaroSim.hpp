@@ -33,16 +33,17 @@
 
 #pragma once
 
-#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/vehicle_global_position.h>
 
 using namespace time_literals;
@@ -80,12 +81,12 @@ private:
 
 	hrt_abstime _last_update_time{0};
 
-	PX4Barometer _px4_baro{6620172}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BARO_OFF_P>) _sim_baro_off_p,
-		(ParamFloat<px4::params::SIM_BARO_OFF_P>) _sim_baro_off_t
+		(ParamFloat<px4::params::SIM_BARO_OFF_T>) _sim_baro_off_t
 	)
 };

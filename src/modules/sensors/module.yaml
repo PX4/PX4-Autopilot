@@ -159,6 +159,45 @@ parameters:
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
+        # Barometer calibration
+        CAL_BARO${i}_ID:
+            description:
+                short: Barometer ${i} calibration device ID
+                long: Device ID of the barometer this calibration applies to.
+            category: System
+            type: int32
+            default: 0
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        CAL_BARO${i}_PRIO:
+            description:
+                short: Barometer ${i} priority
+            category: System
+            type: enum
+            values:
+                -1: Uninitialized
+                0: Disabled
+                1: Min
+                25: Low
+                50: Medium (Default)
+                75: High
+                100: Max
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        CAL_BARO${i}_OFF:
+            description:
+                short: Barometer ${i} offset
+            category: System
+            type: float
+            default: 0.0
+            #unit: Pa
+            volatile: true
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
         # Gyroscope calibration
         CAL_GYRO${i}_ID:
             description:

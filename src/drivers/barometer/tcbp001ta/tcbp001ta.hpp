@@ -38,7 +38,8 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
 
 class TCBP001TA : public px4::ScheduledWorkItem
@@ -63,7 +64,7 @@ private:
 	int			measure(); //start measure
 	int			collect(); //get results and publish
 
-	PX4Barometer		_px4_baro;
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
 	tcbp001ta::ITCBP001TA	*_interface;
 
