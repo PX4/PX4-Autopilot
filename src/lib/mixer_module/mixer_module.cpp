@@ -159,9 +159,9 @@ void MixingOutput::printStatus() const
 
 	if (_use_dynamic_mixing) {
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
-			PX4_INFO_RAW("Channel %i: func: %i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
+			PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
 				     (int)_function_assignment[i], _current_output_value[i],
-				     _failsafe_value[i], _disarmed_value[i], _min_value[i], _max_value[i]);
+				     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i]);
 		}
 
 	} else {
@@ -1103,10 +1103,10 @@ MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_output
 }
 
 uint16_t
-MixingOutput::actualFailsafeValue(int index)
+MixingOutput::actualFailsafeValue(int index) const
 {
 	if (!_use_dynamic_mixing) {
-		return failsafeValue(index);
+		return _failsafe_value[index];
 	}
 
 	uint16_t value = 0;
