@@ -120,6 +120,7 @@ set(msg_files
 	rate_ctrl_status.msg
 	rc_channels.msg
 	rc_parameter_map.msg
+	rls_wrench_estimator.msg
 	rpm.msg
 	rtl_flight_time.msg
 	safety.msg
