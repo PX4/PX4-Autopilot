@@ -830,7 +830,7 @@ void PAW3902::RunImpl()
 		break;
 	}
 
-	report.timestamp = hrt_absolute_time();
+	report.timestamp = timestamp_sample;
 	_optical_flow_pub.publish(report);
 
 	if (report.quality > 10) {

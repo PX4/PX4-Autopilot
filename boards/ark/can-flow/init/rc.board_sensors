@@ -3,6 +3,8 @@
 # board sensors init
 #------------------------------------------------------------------------------
 
+flow_gyro start
+
 # Internal SPI
 paw3902 -s start -Y 180
 

@@ -1,0 +1,5 @@
+menuconfig MODULES_FLOW_GYRO
+	bool "flow_gyro"
+	default n
+	---help---
+		Enable support for work_item
