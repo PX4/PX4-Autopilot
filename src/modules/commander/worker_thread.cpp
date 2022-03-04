@@ -35,6 +35,7 @@
 #include "accelerometer_calibration.h"
 #include "airspeed_calibration.h"
 #include "calibration_routines.h"
+#include "baro_calibration.h"
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "level_calibration.h"
@@ -142,6 +143,10 @@ void WorkerThread::threadEntry()
 
 	case Request::MagCalibrationQuick:
 		_ret_value = do_mag_calibration_quick(&_mavlink_log_pub, _heading_radians, _latitude, _longitude);
+		break;
+
+	case Request::BaroCalibration:
+		_ret_value = do_baro_calibration(&_mavlink_log_pub);
 		break;
 
 	case Request::ParamLoadDefault:

@@ -326,18 +326,27 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 
 	// baro
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
-		if (_baro_stuck) {
-			_px4_baro_0.update(time, _px4_baro_0.get().pressure);
-			_px4_baro_0.set_temperature(_px4_baro_0.get().temperature);
-			_px4_baro_1.update(time, _px4_baro_1.get().pressure);
-			_px4_baro_1.set_temperature(_px4_baro_1.get().temperature);
 
-		} else {
-			_px4_baro_0.update(time, sensors.abs_pressure);
-			_px4_baro_0.set_temperature(sensors.temperature);
-			_px4_baro_1.update(time, sensors.abs_pressure);
-			_px4_baro_1.set_temperature(sensors.temperature);
+		if (!_baro_stuck) {
+			_last_baro_pressure = sensors.abs_pressure;
+			_last_baro_temperature = sensors.temperature;
 		}
+
+		// publish
+		sensor_baro_s sensor_baro{};
+		sensor_baro.timestamp_sample = time;
+		sensor_baro.pressure = _last_baro_pressure;
+		sensor_baro.temperature = _last_baro_temperature;
+
+		// publish 1st baro
+		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		sensor_baro.timestamp = hrt_absolute_time();
+		_sensor_baro_pubs[0].publish(sensor_baro);
+
+		// publish 2nd baro
+		sensor_baro.device_id = 6620428; // 6620428: DRV_BARO_DEVTYPE_BAROSIM, BUS: 2, ADDR: 4, TYPE: SIMULATION
+		sensor_baro.timestamp = hrt_absolute_time();
+		_sensor_baro_pubs[1].publish(sensor_baro);
 	}
 
 	// differential pressure

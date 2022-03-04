@@ -42,6 +42,5 @@ px4_add_module(
 
 		bmp280_main.cpp
 	DEPENDS
-		drivers_barometer
 		px4_work_queue
 	)

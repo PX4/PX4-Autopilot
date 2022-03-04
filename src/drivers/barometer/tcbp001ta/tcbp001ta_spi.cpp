@@ -93,6 +93,7 @@ tcbp001ta_spi_interface(uint8_t busnum, uint32_t device)
 TCBP001TA_SPI::TCBP001TA_SPI(uint8_t bus, uint32_t device) :
 	SPI("TCBP001TA_SPI", nullptr, bus, device, SPIDEV_MODE3, 10 * 1000 * 1000)
 {
+	set_device_type(DRV_BARO_DEVTYPE_TCBP001TA);
 }
 
 uint8_t

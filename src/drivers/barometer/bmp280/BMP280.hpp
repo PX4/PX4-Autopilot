@@ -39,7 +39,8 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
 
 class BMP280 : public I2CSPIDriver<BMP280>
@@ -61,7 +62,7 @@ private:
 	int			measure(); //start measure
 	int			collect(); //get results and publish
 
-	PX4Barometer		_px4_baro;
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
 	bmp280::IBMP280		*_interface;
 

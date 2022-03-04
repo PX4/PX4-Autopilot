@@ -43,7 +43,6 @@
 
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
-	_px4_barometer(interface->get_device_id()),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
@@ -108,15 +107,13 @@ MS5611::init()
 		}
 
 		/* state machine will have generated a report, copy it out */
-		const sensor_baro_s &brp = _px4_barometer.get();
-
 		if (_device_type == MS5607_DEVICE) {
-			if (brp.pressure < 520.0f) {
+			if (_last_pressure < 52'000.f) {
 				/* This is likely not this device, abort */
 				ret = -EINVAL;
 				break;
 
-			} else if (brp.pressure > 1500.0f) {
+			} else if (_last_pressure > 150'000.f) {
 				/* This is likely not this device, abort */
 				ret = -EINVAL;
 				break;
@@ -129,12 +126,10 @@ MS5611::init()
 		/* fall through */
 		case MS5611_DEVICE:
 			_interface->set_device_type(DRV_BARO_DEVTYPE_MS5611);
-			_px4_barometer.set_device_type(DRV_BARO_DEVTYPE_MS5611);
 			break;
 
 		case MS5607_DEVICE:
 			_interface->set_device_type(DRV_BARO_DEVTYPE_MS5607);
-			_px4_barometer.set_device_type(DRV_BARO_DEVTYPE_MS5607);
 			break;
 		}
 
@@ -144,6 +139,7 @@ MS5611::init()
 	}
 
 	if (ret == 0) {
+		_initialized = true;
 		start();
 	}
 
@@ -235,8 +231,6 @@ MS5611::measure()
 		perf_count(_comms_errors);
 	}
 
-	_px4_barometer.set_error_count(perf_event_count(_comms_errors));
-
 	perf_end(_measure_perf);
 
 	return ret;
@@ -321,16 +315,26 @@ MS5611::collect()
 			}
 		}
 
-		float temperature = TEMP / 100.0f;
-		_px4_barometer.set_temperature(temperature);
+		_last_temperature = TEMP / 100.0f;
 
 	} else {
 		/* pressure calculation, result in Pa */
 		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 15;
 
-		float pressure = P / 100.0f;		/* convert to millibar */
+		_last_pressure = P;
 
-		_px4_barometer.update(timestamp_sample, pressure);
+		// publish
+		if (_initialized && PX4_ISFINITE(_last_pressure) && PX4_ISFINITE(_last_temperature)) {
+			sensor_baro_s sensor_baro{};
+			sensor_baro.timestamp_sample = timestamp_sample;
+			sensor_baro.device_id = _interface->get_device_id();
+			sensor_baro.pressure = P;
+			sensor_baro.temperature = _last_temperature;
+			sensor_baro.error_count = perf_event_count(_comms_errors);
+			sensor_baro.timestamp = hrt_absolute_time();
+			_sensor_baro_pub.publish(sensor_baro);
+		}
+
 	}
 
 	/* update the measurement state machine */

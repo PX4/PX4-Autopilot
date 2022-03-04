@@ -71,6 +71,7 @@ int8_t FindAvailableCalibrationIndex(const char *sensor_type, uint32_t device_id
  * @return int32_t The calibration value.
  */
 int32_t GetCalibrationParamInt32(const char *sensor_type, const char *cal_type, uint8_t instance);
+float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, uint8_t instance);
 
 /**
  * @brief Set a single calibration paramter.

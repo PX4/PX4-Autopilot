@@ -51,7 +51,6 @@
 
 #include <geo/geo.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/systemlib/mavlink_log.h>
@@ -92,6 +91,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -290,7 +290,7 @@ private:
 	uORB::Publication<actuator_controls_s>			_actuator_controls_pubs[4] {ORB_ID(actuator_controls_0), ORB_ID(actuator_controls_1), ORB_ID(actuator_controls_2), ORB_ID(actuator_controls_3)};
 	uORB::Publication<airspeed_s>				_airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<battery_status_s>			_battery_pub{ORB_ID(battery_status)};
-	uORB::Publication<camera_status_s>					_camera_status_pub{ORB_ID(camera_status)};
+	uORB::Publication<camera_status_s>			_camera_status_pub{ORB_ID(camera_status)};
 	uORB::Publication<cellular_status_s>			_cellular_status_pub{ORB_ID(cellular_status)};
 	uORB::Publication<collision_report_s>			_collision_report_pub{ORB_ID(collision_report)};
 	uORB::Publication<differential_pressure_s>		_differential_pressure_pub{ORB_ID(differential_pressure)};
@@ -308,7 +308,6 @@ private:
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
 	uORB::Publication<generator_status_s>			_generator_status_pub{ORB_ID(generator_status)};
 	uORB::Publication<optical_flow_s>			_flow_pub{ORB_ID(optical_flow)};
-	uORB::Publication<sensor_gps_s>				_sensor_gps_pub{ORB_ID(sensor_gps)};
 	uORB::Publication<vehicle_attitude_s>			_attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_mc_virtual_att_sp_pub{ORB_ID(mc_virtual_attitude_setpoint)};
@@ -333,9 +332,11 @@ private:
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc)};
-	uORB::PublicationMulti<manual_control_setpoint_s>		_manual_control_input_pub{ORB_ID(manual_control_input)};
+	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
+	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
+	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
 
 	// ORB publications (queue length > 1)
 	uORB::Publication<gps_inject_data_s>     _gps_inject_data_pub{ORB_ID(gps_inject_data)};
@@ -364,7 +365,6 @@ private:
 		DIFF_PRESS	= 0b10000000000
 	};
 	PX4Accelerometer *_px4_accel{nullptr};
-	PX4Barometer *_px4_baro{nullptr};
 	PX4Gyroscope *_px4_gyro{nullptr};
 	PX4Magnetometer *_px4_mag{nullptr};
 
