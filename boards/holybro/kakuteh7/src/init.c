@@ -160,6 +160,9 @@ stm32_boardinitialize(void)
 
 	board_control_spi_sensors_power_configgpio();
 
+	/* Turn bluetooth off by default (no mavlink support yet) */
+	px4_arch_gpiowrite(GPIO_RF_SWITCH, 0);
+
 	/* configure USB interfaces */
 
 	stm32_usbinitialize();
