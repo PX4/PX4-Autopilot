@@ -48,6 +48,7 @@
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <drivers/device/i2c.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/rpm.h>
 #include <drivers/drv_hrt.h>
 
@@ -71,16 +72,24 @@ private:
 
 	int  probe() override;
 
-	int            getCounter();
+	void           initCounter();
+	uint32_t       getCounter();
 	void           resetCounter();
 
 	uint8_t        readRegister(uint8_t reg);
 	void           setRegister(uint8_t reg, uint8_t value);
 
-	int            _count{0};
-	hrt_abstime    _last_measurement_time{0};
+	uint8_t        hiWord(uint8_t in) { return (in & 0x0fu); }
+	uint8_t        loWord(uint8_t in) { return ((in & 0xf0u) >> 4); }
 
-	uORB::Publication<rpm_s> _rpm_pub{ORB_ID(rpm)};
+	uint32_t       _count{0};
+	uint16_t       _reset_count{0};
+	hrt_abstime    _last_measurement_time{0};
+	hrt_abstime    _last_reset_time{0};
+	int            _tranfer_fail_count{0};
+	uint8_t        _last_config_register_content{0x00};
+
+	uORB::PublicationMulti<rpm_s> _rpm_pub{ORB_ID(rpm)};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::PCF8583_POOL>) _param_pcf8583_pool,

@@ -49,29 +49,33 @@ public:
 
 	unsigned get_size() override
 	{
-		return _rpm_sub.advertised() ? (MAVLINK_MSG_ID_RAW_RPM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _rpm_subs.advertised_count() * (MAVLINK_MSG_ID_RAW_RPM_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES);
 	}
 
 private:
 	explicit MavlinkStreamRawRpm(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _rpm_sub{ORB_ID(rpm)};
+	uORB::SubscriptionMultiArray<rpm_s> _rpm_subs{ORB_ID::rpm};
 
 	bool send() override
 	{
-		rpm_s rpm;
+		bool updated = false;
 
-		if (_rpm_sub.update(&rpm)) {
-			mavlink_raw_rpm_t msg{};
+		for (int i = 0; i < _rpm_subs.size(); i++) {
+			rpm_s rpm;
 
-			msg.frequency = rpm.indicated_frequency_rpm;
+			if (_rpm_subs[i].update(&rpm)) {
+				mavlink_raw_rpm_t msg{};
 
-			mavlink_msg_raw_rpm_send_struct(_mavlink->get_channel(), &msg);
+				msg.index = i;
+				msg.frequency = rpm.indicated_frequency_rpm;
 
-			return true;
+				mavlink_msg_raw_rpm_send_struct(_mavlink->get_channel(), &msg);
+				updated = true;
+			}
 		}
 
-		return false;
+		return updated;
 	}
 };
 

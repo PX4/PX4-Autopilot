@@ -56,10 +56,20 @@
 #include <px4_platform_common/crypto.h>
 #endif
 
+#if !defined(CONFIG_BUILD_FLAT)
+#include <px4_platform/board_ctrl.h>
+#endif
+
 extern void cdcacm_init(void);
 
 int px4_platform_init()
 {
+
+#if !defined(CONFIG_BUILD_FLAT)
+	/* initialize userspace-kernelspace call gate interface */
+
+	kernel_ioctl_initialize();
+#endif
 
 	int ret = px4_console_buffer_init();
 

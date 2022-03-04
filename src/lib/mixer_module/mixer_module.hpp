@@ -194,7 +194,7 @@ public:
 	/**
 	 * Returns the actual failsafe value taking into account the assigned function
 	 */
-	uint16_t actualFailsafeValue(int index);
+	uint16_t actualFailsafeValue(int index) const;
 
 	/**
 	 * Get the motor index that maps from PX4 convention to the configured one

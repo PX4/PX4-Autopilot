@@ -70,6 +70,18 @@ PARAM_DEFINE_INT32(GPS_DUMP_COMM, 0);
 PARAM_DEFINE_INT32(GPS_UBX_DYNMODEL, 7);
 
 /**
+ * Enable sat info (if available)
+ *
+ * Enable publication of satellite info (ORB_ID(satellite_info)) if possible.
+ * Not available on MTK.
+ *
+ * @boolean
+ * @reboot_required true
+ * @group GPS
+ */
+PARAM_DEFINE_INT32(GPS_SAT_INFO, 0);
+
+/**
  * u-blox GPS Mode
  *
  * Select the u-blox configuration setup. Most setups will use the default, including RTK and

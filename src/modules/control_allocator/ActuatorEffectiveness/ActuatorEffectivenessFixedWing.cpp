@@ -51,7 +51,7 @@ ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configurat
 	}
 
 	// Motors
-	_rotors.enableYawControl(false);
+	_rotors.enablePropellerTorque(false);
 	const bool rotors_added_successfully = _rotors.addActuators(configuration);
 
 	// Control Surfaces

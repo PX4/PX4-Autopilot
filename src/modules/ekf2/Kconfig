@@ -3,3 +3,10 @@ menuconfig MODULES_EKF2
 	default n
 	---help---
 		Enable support for ekf2
+
+menuconfig USER_EKF2
+	bool "ekf2 running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_EKF2
+	---help---
+		Put ekf2 in userspace memory

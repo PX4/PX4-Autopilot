@@ -3,3 +3,10 @@ menuconfig MODULES_ANGULAR_VELOCITY_CONTROLLER
 	default n
 	---help---
 		Enable support for angular_velocity_controller
+
+menuconfig USER_ANGULAR_VELOCITY_CONTROLLER
+	bool "angular_velocity_controller running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_ANGULAR_VELOCITY_CONTROLLER
+	---help---
+		Put angular_velocity_controller in userspace memory
