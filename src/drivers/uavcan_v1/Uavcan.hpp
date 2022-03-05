@@ -140,6 +140,8 @@ public:
 
 	static UavcanNode *instance() { return _instance; }
 
+	static void do_transmit() { if (_instance) _instance->transmit(); };
+
 	/* The bit rate that can be passed back to the bootloader */
 	int32_t active_bitrate{0};
 
