@@ -81,6 +81,7 @@ public:
 			// set the data ready in the buffer and chop if needed
 			++_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
 			canardTxPush(&_canard_instance, &transfer);
+			transmit();
 		}
 	};
 

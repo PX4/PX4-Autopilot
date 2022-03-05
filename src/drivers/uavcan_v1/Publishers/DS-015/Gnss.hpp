@@ -45,7 +45,9 @@
 #include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
 #include <reg/drone/service/gnss/DilutionOfPrecision_0_1.h>
 
-#include "../Publisher.hpp"
+class UavcanNode;
+
+#include "Publisher.hpp"
 
 class UavcanGnssPublisher : public UavcanPublisher
 {
@@ -124,6 +126,8 @@ public:
 				// set the data ready in the buffer and chop if needed
 				++_transfer_id_2;  // The transfer-ID shall be incremented after every transmission on this subject.
 				result = canardTxPush(&_canard_instance, &transfer2);
+
+				transmit();
 			}
 		}
 	};

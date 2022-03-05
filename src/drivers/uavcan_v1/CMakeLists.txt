@@ -124,6 +124,7 @@ px4_add_module(
 		Publishers/uORB/uorb_publisher.cpp
 		Subscribers/uORB/uorb_subscriber.cpp
 		${SRCS}
+		Publishers/Publisher.cpp
 		o1heap/o1heap.c
 		o1heap/o1heap.h
 		${LIBCANARD_DIR}/libcanard/canard.c

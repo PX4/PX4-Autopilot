@@ -142,4 +142,6 @@ protected:
 	CanardTransferID _transfer_id {0};
 
 	UavcanPublisher *_next_pub {nullptr};
+
+	void transmit();
 };
