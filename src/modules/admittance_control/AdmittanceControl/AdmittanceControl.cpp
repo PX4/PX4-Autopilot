@@ -45,9 +45,26 @@ void AdmittanceControl::initialize(BellParameters &bell_params)
 	_u = zeros<float, 4, 1>();
 
 	_params_bell = bell_params;
+
 }
 
-void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, const Vector<float, 8> &u, const float &target_dist, const vehicle_local_position_setpoint_s &setpoint)
+void AdmittanceControl::reset(const vehicle_local_position_setpoint_s &setpoint)
+{
+
+	_admittance_sp_ned = setpoint;
+	_y(0) = setpoint.x;
+	_y(2) = setpoint.y;
+	_y(4) = setpoint.z;
+
+	_y(1) = setpoint.vx;
+	_y(3) = setpoint.vy;
+	_y(5) = setpoint.vz;
+
+	_y(6) = setpoint.yaw;
+	_y(7) = setpoint.yawspeed;
+}
+
+void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, const Vector<float, 8> &u, const float &target_dist, const Quatf &q, const vehicle_local_position_setpoint_s &setpoint)
 {
 
 
@@ -57,7 +74,7 @@ void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, cons
 	Vector<float, 8> U = (u - 1500);
 	U.abs();
 	// Filter Saturation factor (1 = upper saturation limit) (-1 = lower saturation limit) (0 = 1500 pwm)
-	const float alpha = _dt / (_lpf_sat_factor + _dt);
+	const float alpha = _dt / (_params_bell.lpf_sat_factor + _dt);
 	_sat_factor = alpha * ((U.max()) / 500) + (1.f - alpha) * _sat_factor;
 
 	float a[4];
@@ -72,6 +89,15 @@ void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, cons
 	b[1] = _params_bell.B1[1] - (_params_bell.B2[1] * exp(-_params_bell.B3[1] * target_dist));
 	b[2] = _params_bell.B1[2] - (_params_bell.B2[2] * exp(-_params_bell.B3[2] * target_dist));
 	b[3] = _params_bell.B1[3] - (_params_bell.B2[3] * exp(-_params_bell.B3[3] * target_dist));
+
+	Vector3f pos_sp(setpoint.x,setpoint.y,setpoint.z);
+	Vector3f vel_sp(setpoint.vx,setpoint.vy,setpoint.vz);
+	Vector3f acc_sp(setpoint.acceleration[0],setpoint.acceleration[1],setpoint.acceleration[2]);
+
+	// Rotate Position Setpoints
+	pos_sp = q.conjugate_inversed(pos_sp);
+	vel_sp = q.conjugate_inversed(vel_sp);
+	acc_sp = q.conjugate_inversed(acc_sp);
 
 	_params.M[0] = (_params_bell.M_min[0] + ((_params_bell.M_max[0] - _params_bell.M_min[0]) / (1 + pow(abs((_u(0)) / (a[0])), (2 * b[0])))));
 	_params.M[1] = (_params_bell.M_min[1] + ((_params_bell.M_max[1] - _params_bell.M_min[1]) / (1 + pow(abs((_u(1)) / (a[1])), (2 * b[1])))));
@@ -88,13 +114,40 @@ void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, cons
 	_params.C[2] = 2 * sqrt(_params.K[2] * _params.M[2]);
 	_params.C[3] = 2 * sqrt(_params.K[3] * _params.M[3]);
 
-	_params.Fd[0] = _params.M[0] * setpoint.acceleration[0] + _params.C[0] * setpoint.vx + _params.K[0] * setpoint.x;
-	_params.Fd[1] = _params.M[1] * setpoint.acceleration[1] + _params.C[1] * setpoint.vy + _params.K[1] * setpoint.y;
-	_params.Fd[2] = _params.M[2] * setpoint.acceleration[2] + _params.C[2] * setpoint.vz + _params.K[2] * setpoint.z;
+	_params.Fd[0] = _params.M[0] * acc_sp(0) + _params.C[0] * vel_sp(0) + _params.K[0] * pos_sp(0) ;
+	_params.Fd[1] = _params.M[1] * acc_sp(1) + _params.C[1] * vel_sp(1) + _params.K[1] * pos_sp(1) ;
+	_params.Fd[2] = _params.M[2] * acc_sp(2) + _params.C[2] * vel_sp(2) + _params.K[2] * pos_sp(2) ;
 	_params.Fd[3] = _params.C[3] * setpoint.yawspeed + _params.K[3] * setpoint.yaw;
 
 	_y = _integrate();
 
+	//Rotate back to NED
+	pos_sp = q.conjugate(Vector3f(_y(0),_y(2),_y(4)));
+	vel_sp = q.conjugate(Vector3f(_y(1),_y(3),_y(5)));
+	acc_sp = q.conjugate(_acc_sp);
+
+	_admittance_sp_ned.timestamp = setpoint.timestamp;
+	_admittance_sp_ned.x = pos_sp(0);
+	_admittance_sp_ned.y = pos_sp(1);
+	_admittance_sp_ned.z = pos_sp(2);
+	_admittance_sp_ned.yaw = _y(6);
+
+	_admittance_sp_ned.vx = vel_sp(0);
+	_admittance_sp_ned.vy = vel_sp(1);
+	_admittance_sp_ned.vz = vel_sp(2);
+	_admittance_sp_ned.yawspeed = _y(7);
+
+	_admittance_sp_ned.acceleration[0] = acc_sp(0);
+	_admittance_sp_ned.acceleration[1] = acc_sp(1);
+	_admittance_sp_ned.acceleration[2] = acc_sp(2);
+
+	// CHECK IF THIS WORKS. NOT SURE IF REQUIRED
+	_admittance_sp_ned.jerk[0] = setpoint.jerk[0];
+	_admittance_sp_ned.jerk[1] = setpoint.jerk[1];
+	_admittance_sp_ned.jerk[2] = setpoint.jerk[2];
+	_admittance_sp_ned.thrust[0] = setpoint.thrust[0];
+	_admittance_sp_ned.thrust[1] = setpoint.thrust[1];
+	_admittance_sp_ned.thrust[2] = setpoint.thrust[2];
 }
 
 Vector<float, 8> func(float t, const Matrix<float, 8, 1> &y, const Matrix<float, 4, 1> &u, const AdmittanceParameters &params);
@@ -125,6 +178,9 @@ Vector<float, 8> AdmittanceControl::_integrate()
 
 	Vector<float, 8> y = _y;
 	Vector<float, 4> u = _u;
+
+	Vector<float, 8> dydt = func(_dt,_y,_u,_params);
+	_acc_sp = Vector3f(dydt(1),dydt(3),dydt(5));
 
 	_integrate_rk4(func, y, u, 0.f, _dt, _dt, y, _params);
 

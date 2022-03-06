@@ -57,11 +57,10 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/rls_wrench_estimator.h>
-#include <uORB/topics/debug_vect.h>
+// #include <uORB/topics/debug_vect.h>
 
 using namespace time_literals;
 
@@ -87,19 +86,22 @@ public:
 private:
 	void Run() override;
 	void updateParams() override;
+	bool copyAndCheckAllFinite(rls_wrench_estimator_s &wrench, actuator_outputs_s &actuator_outputs,
+					vehicle_attitude_s &v_att, vehicle_local_position_setpoint_s &setpoint);
+
 
 	AdmittanceControl _control{};
 
 	// Publications
-	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
+	// uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
+	uORB::Publication<vehicle_local_position_setpoint_s> _admittance_setpoint_pub{ORB_ID(admittance_setpoint)};
 
 	// Subscriptions
 	uORB::SubscriptionCallbackWorkItem _rls_wrench_estimator_sub{this, ORB_ID(rls_wrench_estimator)};        // subscription that schedules AdmittanceControlModule when updated
 
 	uORB::SubscriptionInterval  _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _actuator_outputs_sub{ORB_ID(actuator_outputs)};
 
 	hrt_abstime _timestamp_last{0};
@@ -149,10 +151,11 @@ private:
 		(ParamFloat<px4::params::ADM_CTR_BEL_KAX>) _param_adm_ctr_kmaxx,
 		(ParamFloat<px4::params::ADM_CTR_BEL_KAY>) _param_adm_ctr_kmaxy,
 		(ParamFloat<px4::params::ADM_CTR_BEL_KAZ>) _param_adm_ctr_kmaxz,
-		(ParamFloat<px4::params::ADM_CTR_BEL_KAW>) _param_adm_ctr_kmaxyaw
+		(ParamFloat<px4::params::ADM_CTR_BEL_KAW>) _param_adm_ctr_kmaxyaw,
+		(ParamFloat<px4::params::ADM_CTR_BEL_LPF>) _param_adm_ctr_lpf
 	)
 
+	bool _finite{false};
 	bool _valid{false};
-	bool _armed{false};
-
+	bool _sp_updated{false};
 };

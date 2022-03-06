@@ -54,15 +54,15 @@ void WrenchEstimator::initialize(const float &tau_f,const float &tau_m, const Ve
 
 }
 
-void WrenchEstimator::updateForce(const Vector3f &prediction_error_force,  const Quatf &q, const float &dt, const bool &interaction_flag)
+void WrenchEstimator::updateForce(const Vector3f &prediction_error_force, const float &dt, const bool &interaction_flag)
 {
 	_dt = dt;
 
 	if (interaction_flag) {
 		_integrateForce(prediction_error_force - _Fe);
 
-		//Compute external force and quaternion rotation from the FRD body frame to the NED earth frame
-		_Fe_inertial = q.conjugate(_Fe);
+		//Compute external force in FRD body frame
+		_Fe_inertial = (_Fe);
 	} else {
 		_Fe.setAll(0.f);
 		_Fe_inertial.setAll(0.f);

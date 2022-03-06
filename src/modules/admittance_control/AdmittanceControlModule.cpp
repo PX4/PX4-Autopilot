@@ -112,6 +112,9 @@ void AdmittanceControlModule::updateParams()
 	params_bell.K_max[2] = _param_adm_ctr_kmaxz.get();
 	params_bell.K_max[3] = _param_adm_ctr_kmaxyaw.get();
 
+	params_bell.lpf_sat_factor = _param_adm_ctr_lpf.get();
+
+
 	_control.initialize(params_bell);
 }
 
@@ -127,18 +130,6 @@ void AdmittanceControlModule::Run()
 		return;
 	}
 
-	rls_wrench_estimator_s wrench;
-	_rls_wrench_estimator_sub.copy(&wrench);
-
-	vehicle_local_position_setpoint_s setpoint;
-	_trajectory_setpoint_sub.copy(&setpoint);
-
-	vehicle_local_position_s local_pos{};
-	_vehicle_local_position_sub.copy(&local_pos);
-
-	actuator_outputs_s actuator_outputs;
-	_actuator_outputs_sub.copy(&actuator_outputs);
-
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -147,26 +138,38 @@ void AdmittanceControlModule::Run()
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
 	}
 
+
+	//all inputs required for each step
+	if (!_actuator_outputs_sub.updated() || !_vehicle_attitude_sub.updated()) {
+		return;
+	}
+
 	perf_begin(_cycle_perf);
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
+	rls_wrench_estimator_s wrench;
+	actuator_outputs_s actuator_outputs;
+	vehicle_attitude_s v_att;
+	vehicle_local_position_setpoint_s setpoint;
 
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-		}
-	}
+
+	_sp_updated = _trajectory_setpoint_sub.updated();
+
+	_finite = copyAndCheckAllFinite(wrench, actuator_outputs, v_att, setpoint);
 
 	const float dt = (wrench.timestamp - _timestamp_last) * 1e-6f;
 	_timestamp_last = wrench.timestamp;
 
+	const bool flag = true;  //Need to receive value from addmitanceor position module
+
+	vehicle_local_position_setpoint_s admittance_sp{};
+
 	// Guard against too small (< 1ms) and too large (> 1000ms) dt's.
-	if ((dt > 0.001f) && (dt < 1.f)) {
+	if (_finite && flag && (dt > 0.001f) && (dt < 1.f)) {
 
-	// bool valid = true;
+		// bool valid = true;
 
-	const Vector<float, 4> We = zeros<float, 4, 1>();
-	float pwm[8] = {
+		const Vector<float, 4> We = zeros<float, 4, 1>();
+		float pwm[8] = {
 			actuator_outputs.output[0],
 			actuator_outputs.output[1],
 			actuator_outputs.output[2],
@@ -178,30 +181,89 @@ void AdmittanceControlModule::Run()
 		};
 
 
-	if (_param_rls_n_rotors.get() <= 4) {
-		pwm[4] = 0.f;
-		pwm[5] = 0.f;
-		pwm[6] = 0.f;
-		pwm[7] = 0.f;
-	}
+		if (_param_rls_n_rotors.get() <= 4) {
+			pwm[4] = 0.f;
+			pwm[5] = 0.f;
+			pwm[6] = 0.f;
+			pwm[7] = 0.f;
+		}
 
-	const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(pwm);
+		const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(pwm);
+		const matrix::Quatf q{v_att.q};
 
-	_control.update(dt, We, output, 0.f, setpoint);
-	// Vector<float, 8> state = _control.getStateVector();
-	AdmittanceParameters param = _control.getAdmittanceParameters() ;
+		if (!_valid) {
+			_control.reset(setpoint);
+		}
 
-	debug_vect_s status_msg2{};
-	status_msg2.x = param.K[0];
-	status_msg2.y = param.K[1];
-	status_msg2.z = param.K[2];
-	status_msg2.timestamp = hrt_absolute_time();
-	_debug_vect_pub.publish(status_msg2);
+		_control.update(dt, We, output, 0.f, q, setpoint);
 
+		admittance_sp = _control.getSetpoints();
+		_valid = true;
+
+	} else {
+		admittance_sp = setpoint;
+		_valid = false;
 	}
 
 	perf_end(_cycle_perf);
+
+	//Only publish when new setpoints are updated;
+	if (_sp_updated) {
+		// debug_vect_s status_msg2{};
+		// status_msg2.x = admittance_sp.x;
+		// status_msg2.y = admittance_sp.y;
+		// status_msg2.z = admittance_sp.z;
+		// status_msg2.timestamp = hrt_absolute_time();
+		// _debug_vect_pub.publish(status_msg2);
+
+
+		_admittance_setpoint_pub.publish(admittance_sp);
+	}
+
 }
+
+bool AdmittanceControlModule::copyAndCheckAllFinite(rls_wrench_estimator_s &wrench, actuator_outputs_s &actuator_outputs,
+						vehicle_attitude_s &v_att, vehicle_local_position_setpoint_s &sp)
+{
+
+	_rls_wrench_estimator_sub.copy(&wrench);
+
+	if (!(PX4_ISFINITE(wrench.fe[0]) && PX4_ISFINITE(wrench.fe[1]) && PX4_ISFINITE(wrench.fe[2])
+		&& PX4_ISFINITE(wrench.me[0]) && PX4_ISFINITE(wrench.me[1]) && PX4_ISFINITE(wrench.me[2]))) {
+
+		return false;
+	}
+
+
+	_vehicle_attitude_sub.copy(&v_att);
+
+	if (!(PX4_ISFINITE(v_att.q[0]) && PX4_ISFINITE(v_att.q[1]) && PX4_ISFINITE(v_att.q[2]) && PX4_ISFINITE(v_att.q[3]))) {
+
+		return false;
+	}
+
+
+	_actuator_outputs_sub.copy(&actuator_outputs);
+
+	for (int i = 0; i < 8; i++) {
+		if (!PX4_ISFINITE(actuator_outputs.output[i])) {return false;}
+	}
+
+
+	_trajectory_setpoint_sub.copy(&sp);
+
+	if (!(PX4_ISFINITE(sp.x) && PX4_ISFINITE(sp.y) && PX4_ISFINITE(sp.z) && PX4_ISFINITE(sp.vx) && PX4_ISFINITE(sp.vy)
+		&& PX4_ISFINITE(sp.vz) && PX4_ISFINITE(sp.acceleration[0]) && PX4_ISFINITE(sp.acceleration[1]) && PX4_ISFINITE(sp.acceleration[2]) &&
+		PX4_ISFINITE(sp.yaw) && PX4_ISFINITE(sp.yawspeed))) {
+
+		return false;
+	}
+
+
+	return true;
+}
+
+
 
 int AdmittanceControlModule::task_spawn(int argc, char *argv[])
 {

@@ -64,6 +64,7 @@ struct BellParameters {
 	float B1[4];
 	float B2[4];
 	float B3[4];
+	float lpf_sat_factor;
 };
 
 class AdmittanceControl
@@ -74,10 +75,11 @@ public:
 	~AdmittanceControl() = default;
 
 	void initialize(BellParameters &bell_params);
+	void reset(const vehicle_local_position_setpoint_s &setpoint);
 	void update(const float &dt, const Vector<float, 4> &We, const Vector<float, 8> &u, const float &target_dist,
-			const vehicle_local_position_setpoint_s &setpoint);
+			const Quatf &q, const vehicle_local_position_setpoint_s &setpoint);
 
-	Vector<float, 8> getStateVector() const {return _y;}
+	vehicle_local_position_setpoint_s getSetpoints() const {return _admittance_sp_ned;}
 	AdmittanceParameters getAdmittanceParameters() const {return _params;}
 
 private:
@@ -97,10 +99,11 @@ private:
 	float _dt{0.01f}; //< Sampling Time
 	Vector<float, 8> _y{};
 	Vector<float, 4> _u{};
+	Vector3f _acc_sp{};
+	vehicle_local_position_setpoint_s _admittance_sp_ned{};
 
 	AdmittanceParameters _params{};
 	BellParameters _params_bell{};
 
-	float _lpf_sat_factor{5.f};
 	float _sat_factor{0.f};
 };

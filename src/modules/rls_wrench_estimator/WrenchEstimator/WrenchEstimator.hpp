@@ -78,7 +78,7 @@ public:
 
 	void initialize(const float &tau_f,const float &tau_m,const Vector3f &inertia_diag);
 
-	void updateForce(const Vector3f &prediction_error_force,  const Quatf &q, const float &dt, const bool &interaction_flag);
+	void updateForce(const Vector3f &prediction_error_force, const float &dt, const bool &interaction_flag);
 	void updateMoment(const Vector3f &prediction_error_moment, const Vector3f &omega, const float &dt, const bool &interaction_flag);
 
 	Vector3f getExternalForce() const { return _Fe_inertial; }

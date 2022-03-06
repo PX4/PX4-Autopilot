@@ -66,7 +66,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/rls_wrench_estimator.h>
-#include <uORB/topics/debug_vect.h>
+// #include <uORB/topics/debug_vect.h>
 
 
 
@@ -104,7 +104,7 @@ private:
 	WrenchEstimator _wrench_estimator{};
 
 	// Publications
-	uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
+	// uORB::Publication<debug_vect_s> _debug_vect_pub{ORB_ID(debug_vect)};
 	uORB::Publication<rls_wrench_estimator_s> _rls_wrench_estimator_pub{ORB_ID(rls_wrench_estimator)};
 
 	// Subscriptions

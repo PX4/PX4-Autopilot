@@ -307,6 +307,6 @@ inline void RLSIdentification::_createMomentVector()
 	}
 
 	_moment_vector = Qi;
-	_force_vector = _q.conjugate(Ft);
+	_force_vector = Ft;
 }
 

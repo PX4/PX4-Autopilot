@@ -369,3 +369,13 @@ PARAM_DEFINE_FLOAT(ADM_CTR_BEL_KAZ, 25.f);
  * @group Admittance Control
  */
 PARAM_DEFINE_FLOAT(ADM_CTR_BEL_KAW, 1.f);
+
+/**
+ * Saturation Factor Time Constant
+ *
+ * @decimal 4
+ * @min 0.01
+ * @max 50.0
+ * @group Admittance Control
+ */
+PARAM_DEFINE_FLOAT(ADM_CTR_BEL_LPF, 5.f);

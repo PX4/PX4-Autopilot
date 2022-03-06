@@ -150,10 +150,10 @@ void RLSWrenchEstimator::Run()
 		}
 	}
 
-	//all inputs required for each step
-	if (!_actuator_outputs_sub.updated() || !_vehicle_attitude_sub.updated() || !_vehicle_angular_velocity_sub.updated()) {
-		return;
-	}
+	// //all inputs required for each step
+	// if (!_actuator_outputs_sub.updated() || !_vehicle_attitude_sub.updated() || !_vehicle_angular_velocity_sub.updated()) {
+	// 	return;
+	// }
 
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated()) {
@@ -211,7 +211,7 @@ void RLSWrenchEstimator::Run()
 		const matrix::Quatf q{v_att.q};
 
 		//Wrench Estimator Thrust
-		_wrench_estimator.updateForce(p_error_t, q, dt, flag);
+		_wrench_estimator.updateForce(p_error_t, dt, flag);
 		// --------------------------------------------------------- //
 
 		//RLS Offset
