@@ -370,9 +370,9 @@ void Tiltrotor::update_transition_state()
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P2) {
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
-		_tilt_control = _params_tiltrotor.tilt_transition +
-				fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition) * time_since_trans_start /
-				_params_tiltrotor.front_trans_dur_p2;
+		_tilt_control = math::constrain(_params_tiltrotor.tilt_transition +
+						fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition) * time_since_trans_start /
+						_params_tiltrotor.front_trans_dur_p2, _params_tiltrotor.tilt_transition, _params_tiltrotor.tilt_fw);
 
 		_mc_roll_weight = 0.0f;
 		_mc_yaw_weight = 0.0f;

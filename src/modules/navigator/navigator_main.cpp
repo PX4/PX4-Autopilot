@@ -311,22 +311,7 @@ void Navigator::run()
 						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
-							// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
-							double lat, lon;
-							float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
-
-							// predict braking distance
-
-							const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
-
-							float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
-											    _param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
-
-							waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
-											   multirotor_braking_distance, &lat, &lon);
-							rep->current.lat = lat;
-							rep->current.lon = lon;
-							rep->current.yaw = get_local_position()->heading;
+							calculate_breaking_stop(rep->current.lat, rep->current.lon, rep->current.yaw);
 							rep->current.yaw_valid = true;
 
 						} else {
@@ -503,6 +488,19 @@ void Navigator::run()
 					}
 				}
 
+				if (get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+
+					// publish new reposition setpoint with updated speed/throtte when DO_CHANGE_SPEED
+					// was received in AUTO_LOITER mode
+
+					position_setpoint_triplet_s *rep = get_reposition_triplet();
+
+					// set repo setpoint to current, and only change speed and throttle fields
+					*rep = *(get_position_setpoint_triplet());
+					rep->current.cruising_speed = get_cruising_speed();
+					rep->current.cruising_throttle = get_cruising_throttle();
+				}
+
 				// TODO: handle responses for supported DO_CHANGE_SPEED options?
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
@@ -547,6 +545,17 @@ void Navigator::run()
 				_vehicle_roi_pub.publish(_vroi);
 
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
+				// reset cruise speed and throttle to default when transitioning
+				set_cruising_speed();
+				set_cruising_throttle();
+
+				// need to update current setpooint with reset cruise speed and throttle
+				position_setpoint_triplet_s *rep = get_reposition_triplet();
+				*rep = *(get_position_setpoint_triplet());
+				rep->current.cruising_speed = get_cruising_speed();
+				rep->current.cruising_throttle = get_cruising_throttle();
 			}
 		}
 
@@ -1016,7 +1025,7 @@ float Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
+		if (_mission_cruising_speed_mc > 0.0f) {
 			return _mission_cruising_speed_mc;
 
 		} else {
@@ -1024,7 +1033,7 @@ float Navigator::get_cruising_speed()
 		}
 
 	} else {
-		if (is_planned_mission() && _mission_cruising_speed_fw > 0.0f) {
+		if (_mission_cruising_speed_fw > 0.0f) {
 			return _mission_cruising_speed_fw;
 
 		} else {
@@ -1552,6 +1561,23 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	}
 
 	return true;
+}
+
+void Navigator::calculate_breaking_stop(double &lat, double &lon, float &yaw)
+{
+	// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
+	float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
+
+	// predict braking distance
+
+	const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
+
+	float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
+					    _param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
+
+	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
+					   multirotor_braking_distance, &lat, &lon);
+	yaw = get_local_position()->heading;
 }
 
 int Navigator::print_usage(const char *reason)

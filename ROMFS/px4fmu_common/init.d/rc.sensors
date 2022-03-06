@@ -155,6 +155,13 @@ then
 	irlock start -X
 fi
 
+# PCF8583 counter (RPM sensor)
+if param compare -s SENS_EN_PCF8583 1
+then
+	pcf8583 start -X
+	pcf8583 start -X -a 0x51
+fi
+
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then

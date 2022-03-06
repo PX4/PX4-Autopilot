@@ -145,19 +145,6 @@ hrt_abstime hrt_absolute_time()
 }
 
 /*
- * Convert a timespec to absolute time.
- */
-hrt_abstime ts_to_abstime(const struct timespec *ts)
-{
-	hrt_abstime	result;
-
-	result = (hrt_abstime)(ts->tv_sec) * 1000000;
-	result += ts->tv_nsec / 1000;
-
-	return result;
-}
-
-/*
  * Store the absolute time in an interrupt-safe fashion.
  *
  * This function ensures that the timestamp cannot be seen half-written by an interrupt handler.
@@ -482,13 +469,6 @@ hrt_call_invoke()
 	}
 
 	hrt_unlock();
-}
-
-void abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
-{
-	ts->tv_sec = abstime / 1000000;
-	abstime -= ts->tv_sec * 1000000;
-	ts->tv_nsec = abstime * 1000;
 }
 
 int px4_clock_gettime(clockid_t clk_id, struct timespec *tp)

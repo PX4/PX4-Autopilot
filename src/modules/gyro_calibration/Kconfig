@@ -3,3 +3,10 @@ menuconfig MODULES_GYRO_CALIBRATION
 	default n
 	---help---
 		Enable support for gyro_calibration
+
+menuconfig USER_GYRO_CALIBRATION
+	bool "gyro_calibration running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && MODULES_GYRO_CALIBRATION
+	---help---
+		Put gyro_calibration in userspace memory

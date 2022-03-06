@@ -538,16 +538,18 @@ MissionBlock::issue_command(const mission_item_s &item)
 		vcmd.param2 = item.params[1];
 		vcmd.param3 = item.params[2];
 		vcmd.param4 = item.params[3];
+		vcmd.param5 = static_cast<double>(item.params[4]);
+		vcmd.param6 = static_cast<double>(item.params[5]);
+		vcmd.param7 = item.params[6];
 
-		if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION && item.altitude_is_relative) {
+		if (item.nav_cmd == NAV_CMD_DO_SET_ROI_LOCATION) {
+			// We need to send out the ROI location that was parsed potentially with double precision to lat/lon because mission item parameters 5 and 6 only have float precision
 			vcmd.param5 = item.lat;
 			vcmd.param6 = item.lon;
-			vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
 
-		} else {
-			vcmd.param5 = (double)item.params[4];
-			vcmd.param6 = (double)item.params[5];
-			vcmd.param7 = item.params[6];
+			if (item.altitude_is_relative) {
+				vcmd.param7 = item.altitude + _navigator->get_home_position()->alt;
+			}
 		}
 
 		_navigator->publish_vehicle_cmd(&vcmd);
@@ -700,6 +702,17 @@ MissionBlock::setLoiterItemFromCurrentPosition(struct mission_item_s *item)
 
 	item->lat = _navigator->get_global_position()->lat;
 	item->lon = _navigator->get_global_position()->lon;
+	item->altitude = _navigator->get_global_position()->alt;
+	item->loiter_radius = _navigator->get_loiter_radius();
+}
+
+void
+MissionBlock::setLoiterItemFromCurrentPositionWithBreaking(struct mission_item_s *item)
+{
+	setLoiterItemCommonFields(item);
+
+	_navigator->calculate_breaking_stop(item->lat, item->lon, item->yaw);
+
 	item->altitude = _navigator->get_global_position()->alt;
 	item->loiter_radius = _navigator->get_loiter_radius();
 }
