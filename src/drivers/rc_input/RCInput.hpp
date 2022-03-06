@@ -89,9 +89,21 @@ public:
 	int	init();
 
 private:
+  static constexpr int PARSER_COUNT{7};
+
+	enum RC_PROTO_SELECT {
+    RC_PROTO_SELECT_AUTO = -1,
+		RC_PROTO_SELECT_SBUS = 0,
+		RC_PROTO_SELECT_DSM = 1,
+    RC_PROTO_SELECT_ST24 = 2,
+		RC_PROTO_SELECT_SUMD = 3,
+		RC_PROTO_SELECT_PPM = 4,
+		RC_PROTO_SELECT_CRSF = 5,
+		RC_PROTO_SELECT_GHST = 6
+	};
 
 	enum RC_PARSER {
-		RC_PARSER_NONE,
+		RC_PARSER_NONE = -1,
 		RC_PARSER_SBUS,
 		RC_PARSER_DSM,
 		RC_PARSER_ST24,
@@ -100,28 +112,21 @@ private:
 		RC_PARSER_CRSF,
 		RC_PARSER_GHST
 	};
-
-	enum RC_PARSER _current_rc_parser {RC_PARSER_NONE};
-
-	enum RC_SCAN {
-		RC_SCAN_PPM = 0,
-		RC_SCAN_SBUS,
-		RC_SCAN_DSM,
-		RC_SCAN_SUMD,
-		RC_SCAN_ST24,
-		RC_SCAN_CRSF,
-		RC_SCAN_GHST
-	} _rc_scan_state{RC_SCAN_SBUS};
-
-	static constexpr char const *RC_SCAN_STRING[7] {
+  
+	static constexpr char const *RC_PARSER_STRING[8] {
+    "NONE",
+    "SBUS",
+    "DSM",
+    "ST24",
+    "SUMD",
 		"PPM",
-		"SBUS",
-		"DSM",
-		"SUMD",
-		"ST24",
 		"CRSF",
 		"GHST"
 	};
+
+	enum RC_PARSER _current_rc_parser {RC_PARSER_NONE};
+
+
 
 	void switch_parser(enum RC_PARSER new_parser);
 
@@ -136,11 +141,7 @@ private:
 			hrt_abstime now, bool frame_drop, bool failsafe,
 			unsigned frame_drops, int rssi);
 
-	void set_rc_scan_state(RC_SCAN _rc_scan_state);
-
 	void rc_io_invert(bool invert);
-
-	bool run_scanner_parser(hrt_abstime cycle_timestamp, int new_bytes);
 
 	bool try_parse_crsf(hrt_abstime cycle_timestamp, int new_bytes);
 	bool try_parse_sbus(hrt_abstime cycle_timestamp, int new_bytes);
@@ -150,7 +151,7 @@ private:
 	bool try_parse_ghst(hrt_abstime cycle_timestamp, int new_bytes);
 	bool try_parse_ppm(hrt_abstime cycle_timestamp);
 
-	RC_PARSER scanner_check();
+	RC_PARSER scanner_check(hrt_abstime cycle_timestamp);
 
 	hrt_abstime _rc_scan_begin{0};
 

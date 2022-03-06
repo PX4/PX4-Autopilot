@@ -40,7 +40,7 @@
 
 using namespace time_literals;
 
-constexpr char const *RCInput::RC_SCAN_STRING[];
+constexpr char const *RCInput::RC_PARSER_STRING[];
 
 RCInput::RCInput(const char *device) :
 	ModuleParams(nullptr),
@@ -249,16 +249,6 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 	_rc_in.rc_total_frame_count = 0;
 }
 
-void RCInput::set_rc_scan_state(RC_SCAN newState)
-{
-	PX4_DEBUG("RCscan: %s failed, trying %s", RCInput::RC_SCAN_STRING[_rc_scan_state], RCInput::RC_SCAN_STRING[newState]);
-	_rc_scan_begin = 0;
-	_rc_scan_state = newState;
-	_rc_scan_locked = false;
-
-	_report_lock = true;
-}
-
 void RCInput::rc_io_invert(bool invert)
 {
 	// First check if the board provides a board-specific inversion method (e.g. via GPIO),
@@ -399,36 +389,36 @@ void RCInput::Run()
 		enum RC_PARSER request_rc_parser = RC_PARSER_NONE;
 
 		switch (_param_rc_input_proto.get()) {
-		case -1:
+		case RC_PROTO_SELECT_AUTO:
 			// Auto scanner has control of requested parser
-			//request_rc_parser = scanner_check(cycle_timestamp);
+			request_rc_parser = scanner_check(cycle_timestamp);
 			break;
 
-		case 0:
+		case RC_PROTO_SELECT_SBUS:
 			request_rc_parser = RC_PARSER_SBUS;
 			break;
 
-		case 1:
+		case RC_PROTO_SELECT_DSM:
 			request_rc_parser = RC_PARSER_DSM;
 			break;
 
-		case 2:
+		case RC_PROTO_SELECT_ST24:
 			request_rc_parser = RC_PARSER_ST24;
 			break;
 
-		case 3:
+		case RC_PROTO_SELECT_SUMD:
 			request_rc_parser = RC_PARSER_SUMD;
 			break;
 
-		case 4:
+		case RC_PROTO_SELECT_PPM:
 			request_rc_parser = RC_PARSER_PPM;
 			break;
 
-		case 5:
+		case RC_PROTO_SELECT_CRSF:
 			request_rc_parser = RC_PARSER_CRSF;
 			break;
 
-		case 6:
+		case RC_PROTO_SELECT_GHST:
 			request_rc_parser = RC_PARSER_GHST;
 			break;
 
@@ -487,6 +477,7 @@ void RCInput::Run()
 		}
 
 		if (rc_updated) {
+      _rc_scan_locked = true;
 			perf_count(_publish_interval_perf);
 
 			_to_input_rc.publish(_rc_in);
@@ -606,6 +597,8 @@ void RCInput::switch_parser(enum RC_PARSER new_parser)
 	default:
 		break;
 	}
+  
+  PX4_INFO("Parser switch %s -> %s",  RCInput::RC_PARSER_STRING[_current_rc_parser + 1], RCInput::RC_PARSER_STRING[new_parser + 1]);
 
 	_current_rc_parser = new_parser;
 }
@@ -661,7 +654,6 @@ bool RCInput::try_parse_sbus(hrt_abstime cycle_timestamp, int new_bytes)
 			_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SBUS;
 			fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
 				   sbus_frame_drop, sbus_failsafe, frame_drops);
-			_rc_scan_locked = true;
 		}
 	}
 
@@ -686,7 +678,6 @@ bool RCInput::try_parse_dsm(hrt_abstime cycle_timestamp, int new_bytes)
 			_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_DSM;
 			fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
 				   false, false, frame_drops, dsm_rssi);
-			_rc_scan_locked = true;
 		}
 	}
 
@@ -720,7 +711,6 @@ bool RCInput::try_parse_st24(hrt_abstime cycle_timestamp, int new_bytes)
 				_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_ST24;
 				fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
 					   false, false, frame_drops, st24_rssi);
-				_rc_scan_locked = true;
 
 			} else {
 				// if the lost count > 0 means that there is an RC loss
@@ -756,7 +746,6 @@ bool RCInput::try_parse_sumd(hrt_abstime cycle_timestamp, int new_bytes)
 			_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_SUMD;
 			fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
 				   false, sumd_failsafe, frame_drops, sumd_rssi);
-			_rc_scan_locked = true;
 		}
 	}
 
@@ -814,39 +803,32 @@ bool RCInput::try_parse_ppm(hrt_abstime cycle_timestamp)
 	return false;
 }
 
-RCInput::RC_PARSER RCInput::scanner_check()
+RCInput::RC_PARSER RCInput::scanner_check(hrt_abstime cycle_timestamp)
 {
-	/*constexpr hrt_abstime rc_scan_max = 300_ms;
-	enum RC_PARSER scanner_request_parsers = RC_PARSER_NONE;
+	constexpr hrt_abstime rc_scan_max = 1_s;
 
 	if (_rc_scan_locked)
 	{
-	  // Only unlock if we aren't armed and haven't seen a signal in 1S
-	  if (!_armed && (hrt_elapsed_time(&_rc_in.timestamp_last_signal) > 1_s)) {
-	    _rc_scan_locked = false;
-	  }
+    // If we're locked but running the autoscanner, update the proto selection param
+    // +1 to deal with RC_PARSER_NONE
+    _param_rc_input_proto.set(_current_rc_parser);
+    
+    PX4_INFO("RC protocol SELECTED! %s", RC_PARSER_STRING[_current_rc_parser + 1]);
+    
+    return _current_rc_parser;
 	}
-	else
-	{
-	  // Check if a frame/signal was recived recently
-	  if (hrt_elapsed_time(&_rc_in.timestamp_last_signal) < 300_ms){
-	    _rc_scan_locked = false;
 
-	    // No change requested then
-	  }
-	  else
-	  {
-	    // We havn't gotten a frame yet, see if it's time to move onto the next parser
-	    if (cycle_timestamp - _rc_scan_begin > rc_scan_max)
-	    {
+  // We havn't gotten a frame yet, see if it's time to move onto the next parser
+  if (cycle_timestamp - _rc_scan_begin > rc_scan_max)
+  {
+    _rc_scan_begin = hrt_absolute_time();
+    RCInput::RC_PARSER new_parser = static_cast<RC_PARSER>((_current_rc_parser + 1) % PARSER_COUNT);
+    
+    PX4_INFO("RC protocol scan switched to %s, %llu", RC_PARSER_STRING[new_parser + 1], cycle_timestamp);
+    return new_parser;
+  }
 
-	    }
-	  }
-
-	  // We're not locked yet. See if enough time has passed and move to the next parser if so
-	}*/
-
-	return RC_PARSER_NONE;
+	return _current_rc_parser;
 }
 
 #if defined(SPEKTRUM_POWER)
@@ -925,43 +907,6 @@ int RCInput::print_status()
 	if (_device[0] != '\0') {
 		PX4_INFO("UART device: %s", _device);
 		PX4_INFO("UART RX bytes: %"  PRIu32, _bytes_rx);
-	}
-
-	PX4_INFO("RC state: %s: %s", _rc_scan_locked ? "found" : "searching for signal", RC_SCAN_STRING[_rc_scan_state]);
-
-	if (_rc_scan_locked) {
-		switch (_rc_scan_state) {
-		case RC_SCAN_CRSF:
-			PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
-			break;
-
-		case RC_SCAN_GHST:
-			PX4_INFO("GHST Telemetry: %s", _ghst_telemetry ? "yes" : "no");
-			break;
-
-		case RC_SCAN_SBUS:
-			PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
-			break;
-
-
-		case RC_SCAN_DSM:
-			// DSM status output
-#if defined(SPEKTRUM_POWER)
-#endif
-			break;
-
-		case RC_SCAN_PPM:
-			// PPM status output
-			break;
-
-		case RC_SCAN_SUMD:
-			// SUMD status output
-			break;
-
-		case RC_SCAN_ST24:
-			// SUMD status output
-			break;
-		}
 	}
 
 #if ADC_RC_RSSI_CHANNEL
