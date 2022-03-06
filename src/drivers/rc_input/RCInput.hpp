@@ -89,13 +89,13 @@ public:
 	int	init();
 
 private:
-  static constexpr int PARSER_COUNT{7};
+	static constexpr int PARSER_COUNT{7};
 
 	enum RC_PROTO_SELECT {
-    RC_PROTO_SELECT_AUTO = -1,
+		RC_PROTO_SELECT_AUTO = -1,
 		RC_PROTO_SELECT_SBUS = 0,
 		RC_PROTO_SELECT_DSM = 1,
-    RC_PROTO_SELECT_ST24 = 2,
+		RC_PROTO_SELECT_ST24 = 2,
 		RC_PROTO_SELECT_SUMD = 3,
 		RC_PROTO_SELECT_PPM = 4,
 		RC_PROTO_SELECT_CRSF = 5,
@@ -112,13 +112,13 @@ private:
 		RC_PARSER_CRSF,
 		RC_PARSER_GHST
 	};
-  
+
 	static constexpr char const *RC_PARSER_STRING[8] {
-    "NONE",
-    "SBUS",
-    "DSM",
-    "ST24",
-    "SUMD",
+		"NONE",
+		"SBUS",
+		"DSM",
+		"ST24",
+		"SUMD",
 		"PPM",
 		"CRSF",
 		"GHST"

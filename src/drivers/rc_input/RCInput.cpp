@@ -477,7 +477,7 @@ void RCInput::Run()
 		}
 
 		if (rc_updated) {
-      _rc_scan_locked = true;
+			_rc_scan_locked = true;
 			perf_count(_publish_interval_perf);
 
 			_to_input_rc.publish(_rc_in);
@@ -597,8 +597,9 @@ void RCInput::switch_parser(enum RC_PARSER new_parser)
 	default:
 		break;
 	}
-  
-  PX4_INFO("Parser switch %s -> %s",  RCInput::RC_PARSER_STRING[_current_rc_parser + 1], RCInput::RC_PARSER_STRING[new_parser + 1]);
+
+	PX4_INFO("Parser switch %s -> %s",  RCInput::RC_PARSER_STRING[_current_rc_parser + 1],
+		 RCInput::RC_PARSER_STRING[new_parser + 1]);
 
 	_current_rc_parser = new_parser;
 }
@@ -807,26 +808,24 @@ RCInput::RC_PARSER RCInput::scanner_check(hrt_abstime cycle_timestamp)
 {
 	constexpr hrt_abstime rc_scan_max = 1_s;
 
-	if (_rc_scan_locked)
-	{
-    // If we're locked but running the autoscanner, update the proto selection param
-    // +1 to deal with RC_PARSER_NONE
-    _param_rc_input_proto.set(_current_rc_parser);
-    
-    PX4_INFO("RC protocol SELECTED! %s", RC_PARSER_STRING[_current_rc_parser + 1]);
-    
-    return _current_rc_parser;
+	if (_rc_scan_locked) {
+		// If we're locked but running the autoscanner, update the proto selection param
+		// +1 to deal with RC_PARSER_NONE
+		_param_rc_input_proto.set(_current_rc_parser);
+
+		PX4_INFO("RC protocol SELECTED! %s", RC_PARSER_STRING[_current_rc_parser + 1]);
+
+		return _current_rc_parser;
 	}
 
-  // We havn't gotten a frame yet, see if it's time to move onto the next parser
-  if (cycle_timestamp - _rc_scan_begin > rc_scan_max)
-  {
-    _rc_scan_begin = hrt_absolute_time();
-    RCInput::RC_PARSER new_parser = static_cast<RC_PARSER>((_current_rc_parser + 1) % PARSER_COUNT);
-    
-    PX4_INFO("RC protocol scan switched to %s, %llu", RC_PARSER_STRING[new_parser + 1], cycle_timestamp);
-    return new_parser;
-  }
+	// We havn't gotten a frame yet, see if it's time to move onto the next parser
+	if (cycle_timestamp - _rc_scan_begin > rc_scan_max) {
+		_rc_scan_begin = hrt_absolute_time();
+		RCInput::RC_PARSER new_parser = static_cast<RC_PARSER>((_current_rc_parser + 1) % PARSER_COUNT);
+
+		PX4_INFO("RC protocol scan switched to %s, %llu", RC_PARSER_STRING[new_parser + 1], cycle_timestamp);
+		return new_parser;
+	}
 
 	return _current_rc_parser;
 }
