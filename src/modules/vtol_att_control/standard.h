@@ -73,6 +73,7 @@ private:
 		float pitch_setpoint_offset;
 		float reverse_output;
 		float reverse_delay;
+		float use_vtol_flaperons;
 	} _params_standard;
 
 	struct {
@@ -81,6 +82,7 @@ private:
 		param_t pitch_setpoint_offset;
 		param_t reverse_output;
 		param_t reverse_delay;
+		param_t use_vtol_flaperons;
 	} _params_handles_standard;
 
 	enum class vtol_mode {
@@ -97,6 +99,7 @@ private:
 
 	float _pusher_throttle{0.0f};
 	float _reverse_output{0.0f};
+	float _use_vtol_flaperons{0.0f};
 	float _airspeed_trans_blend_margin{0.0f};
 
 	void parameters_update() override;

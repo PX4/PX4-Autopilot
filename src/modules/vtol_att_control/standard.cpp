@@ -65,6 +65,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
 	_params_handles_standard.reverse_output = param_find("VT_B_REV_OUT");
 	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
+	_params_handles_standard.use_vtol_flaperons = param_find("VT_B_FL_USE");
 }
 
 void
@@ -94,6 +95,10 @@ Standard::parameters_update()
 	param_get(_params_handles_standard.reverse_delay, &v);
 	_params_standard.reverse_delay = math::constrain(v, 0.0f, 10.0f);
 
+	/* flaperons */
+	param_get(_params_handles_standard.use_vtol_flaperons, &v);
+	_params_standard.use_vtol_flaperons = math::constrain(v, 0.0f, 1.0f);
+
 }
 
 void Standard::update_vtol_state()
@@ -111,6 +116,7 @@ void Standard::update_vtol_state()
 		_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 		_pusher_throttle = 0.0f;
 		_reverse_output = 0.0f;
+		_use_vtol_flaperons = 0.0f;
 
 		//reset failsafe when FW is no longer requested
 		if (!_attc->is_fixed_wing_requested()) {
@@ -126,12 +132,16 @@ void Standard::update_vtol_state()
 			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
 			_reverse_output = 0.0f;
+			_use_vtol_flaperons = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 			// Regular backtransition
 			_vtol_schedule.flight_mode = vtol_mode::TRANSITION_TO_MC;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 			_reverse_output = _params_standard.reverse_output;
+			_use_vtol_flaperons = _params_standard.use_vtol_flaperons;
+
+
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 			// failsafe back to mc mode
@@ -139,6 +149,7 @@ void Standard::update_vtol_state()
 			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
 			_reverse_output = 0.0f;
+			_use_vtol_flaperons = 0.0f;
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 			// speed exit condition: use ground if valid, otherwise airspeed
@@ -370,6 +381,7 @@ void Standard::fill_actuator_outputs()
 		fw_out[actuator_controls_s::INDEX_YAW]          = 0;
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
 		fw_out[actuator_controls_s::INDEX_FLAPS]        = 0;
+		fw_out[actuator_controls_s::INDEX_SPOILERS]     = 0;
 		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = 0;
 
 		break;
@@ -385,13 +397,15 @@ void Standard::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_THROTTLE]     = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = 0;
 
-		// FW out = FW in, with VTOL transition controlling throttle and airbrakes
+		// FW out = FW in, with VTOL transition controlling throttle, flaperons airbrakes (for reverse thrust).
 		fw_out[actuator_controls_s::INDEX_ROLL]         = fw_in[actuator_controls_s::INDEX_ROLL];
 		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH];
 		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW];
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = _pusher_throttle;
 		fw_out[actuator_controls_s::INDEX_FLAPS]        = fw_in[actuator_controls_s::INDEX_FLAPS];
-		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = _reverse_output;
+		fw_out[actuator_controls_s::INDEX_SPOILERS]     = _reverse_output;
+		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = _use_vtol_flaperons;
+		
 
 		break;
 
@@ -403,13 +417,14 @@ void Standard::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_THROTTLE]     = 0;
 		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = 0;
 
-		// FW out = FW in
+		// FW out = FW in (with flaperons added)
 		fw_out[actuator_controls_s::INDEX_ROLL]         = fw_in[actuator_controls_s::INDEX_ROLL];
 		fw_out[actuator_controls_s::INDEX_PITCH]        = fw_in[actuator_controls_s::INDEX_PITCH];
 		fw_out[actuator_controls_s::INDEX_YAW]          = fw_in[actuator_controls_s::INDEX_YAW];
 		fw_out[actuator_controls_s::INDEX_THROTTLE]     = fw_in[actuator_controls_s::INDEX_THROTTLE];
 		fw_out[actuator_controls_s::INDEX_FLAPS]        = fw_in[actuator_controls_s::INDEX_FLAPS];
-		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = 0;
+		fw_out[actuator_controls_s::INDEX_AIRBRAKES]    = fw_in[actuator_controls_s::INDEX_AIRBRAKES];
+
 		break;
 	}
 
@@ -427,13 +442,13 @@ void Standard::fill_actuator_outputs()
 
 	_thrust_setpoint_0->timestamp = hrt_absolute_time();
 	_thrust_setpoint_0->timestamp_sample = _actuators_mc_in->timestamp_sample;
-	_thrust_setpoint_0->xyz[0] = fw_out[actuator_controls_s::INDEX_THROTTLE];
+	_thrust_setpoint_0->xyz[0] = 0.f;
 	_thrust_setpoint_0->xyz[1] = 0.f;
 	_thrust_setpoint_0->xyz[2] = -mc_out[actuator_controls_s::INDEX_THROTTLE];
 
 	_thrust_setpoint_1->timestamp = hrt_absolute_time();
 	_thrust_setpoint_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
-	_thrust_setpoint_1->xyz[0] = 0.f;
+	_thrust_setpoint_1->xyz[0] = fw_out[actuator_controls_s::INDEX_THROTTLE];
 	_thrust_setpoint_1->xyz[1] = 0.f;
 	_thrust_setpoint_1->xyz[2] = 0.f;
 

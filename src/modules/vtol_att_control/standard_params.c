@@ -87,10 +87,25 @@ PARAM_DEFINE_FLOAT(VT_FWD_THRUST_SC, 0.7f);
 PARAM_DEFINE_FLOAT(VT_B_TRANS_RAMP, 3.0f);
 
 /**
- * Output on airbrakes channel during back transition
+ * Option for use of Flaperons on back transition.
+ *
+ * Used for enabling Flaperons during a back transition.
+ * Flaps and Airbrakes need to be enabled for your selected model/mixer
+ *
+ * @min 0
+ * @max 1
+ * @increment 0.01
+ * @decimal 2
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_B_FL_USE, 1.0f);
+
+
+/**
+ * Output on spoilerons channel during back transition
  *
  * Used for airbrakes or with ESCs that have reverse thrust enabled on a seperate channel
- * Airbrakes need to be enables for your selected model/mixer
+ * Spoilerons need to be enabled for your selected model/mixer
  *
  * @min 0
  * @max 1
