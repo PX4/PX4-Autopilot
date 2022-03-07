@@ -290,7 +290,8 @@ void MulticopterPositionControl::Run()
 
 		if (_control_mode.flag_multicopter_position_control_enabled) {
 
-			_trajectory_setpoint_sub.update(&_setpoint);
+			// _trajectory_setpoint_sub.update(&_setpoint); //Using admittance module
+			_admittance_setpoint_sub.update(&_setpoint);
 
 			// adjust existing (or older) setpoint with any EKF reset deltas
 			if (_setpoint.timestamp < local_pos.timestamp) {

@@ -33,11 +33,115 @@
 
 #include <gtest/gtest.h>
 #include <AdmittanceControl.hpp>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <px4_defines.h>
 
 using namespace matrix;
 
-TEST(AdmittanceControlTest, Test1)
+
+class AdmittanceControlBasicTest : public ::testing::Test
 {
-	// RLSIdentification rate_control;
-	EXPECT_EQ(18, 18);
+public:
+	AdmittanceControlBasicTest()
+	{
+		_admittance_control.initialize(_bell_params);
+	}
+
+	AdmittanceControl _admittance_control;
+	vehicle_local_position_setpoint_s _input_setpoint{};
+	vehicle_local_position_setpoint_s _output_setpoint{};
+	vehicle_attitude_s _attitude{};
+
+
+
+	BellParameters _bell_params{};
+	float _dt;
+	Vector<float, 4> _wrench;
+	Vector<float, 8> _actuator_output{};
+	float _dist;
+
+};
+
+
+TEST_F(AdmittanceControlBasicTest, BellTest)
+{
+	_input_setpoint.x = 0.f;
+	_input_setpoint.y = 0.f;
+	_input_setpoint.z = -10.f;
+
+	Quatf q{_attitude.q};
+
+	_bell_params.A[0] = 2.5f;
+	_bell_params.A[1] = 2.5f;
+	_bell_params.A[2] = 2.5f;
+	_bell_params.A[3] = 2.5f;
+
+	_bell_params.B1[0] = 5.f;
+	_bell_params.B1[1] = 5.f;
+	_bell_params.B1[2] = 5.f;
+	_bell_params.B1[3] = 5.f;
+
+	_bell_params.B2[0] = 3.5f;
+	_bell_params.B2[1] = 3.5f;
+	_bell_params.B2[2] = 3.5f;
+	_bell_params.B2[3] = 3.5f;
+
+	_bell_params.B3[0] = 2.f;
+	_bell_params.B3[1] = 2.f;
+	_bell_params.B3[2] = 2.f;
+	_bell_params.B3[3] = 2.f;
+
+	_bell_params.M_min[0] = .1f;
+	_bell_params.M_min[1] = .1f;
+	_bell_params.M_min[2] = .1f;
+	_bell_params.M_min[3] = .1f;
+
+	_bell_params.K_min[0] = 1.f;
+	_bell_params.K_min[1] = 1.f;
+	_bell_params.K_min[2] = 1.f;
+	_bell_params.K_min[3] = 1.f;
+
+	_bell_params.M_max[0] = 1.f;
+	_bell_params.M_max[1] = 1.f;
+	_bell_params.M_max[2] = 1.f;
+	_bell_params.M_max[3] = 1.f;
+
+	_bell_params.K_max[0] = 10.f;
+	_bell_params.K_max[1] = 10.f;
+	_bell_params.K_max[2] = 10.f;
+	_bell_params.K_max[3] = 10.f;
+
+	_bell_params.lpf_sat_factor = 1.f;
+
+	_dt = 1/100;
+	_wrench(0) = (0.f);
+	_wrench(1) = (1.f);
+	_wrench(2) = (2.f);
+	_wrench(3) = (5.f);
+	_actuator_output.setAll(1500);
+
+	_admittance_control.initialize(_bell_params);
+	_admittance_control.update(_dt,_wrench,_actuator_output,0.f,q,_input_setpoint);
+
+	AdmittanceParameters params = _admittance_control.getAdmittanceParameters();
+
+	EXPECT_EQ(params.K[0], 10);
+	EXPECT_GT(params.K[1], 9.4584);
+	EXPECT_LE(params.K[1], 9.459);
+	EXPECT_GT(params.K[2], 6.952);
+	EXPECT_LE(params.K[2], 6.953);
+	EXPECT_EQ(params.K[3], 2.0);
+
+
+
+	EXPECT_EQ(params.M[0], 1);
+	EXPECT_GT(params.M[1], .94584);
+	EXPECT_LE(params.M[1], .9459);
+	EXPECT_GT(params.M[2], .6952);
+	EXPECT_LE(params.M[2], .6953);
+	EXPECT_GT(params.M[3], .199);
+	EXPECT_LE(params.M[3], .201);
+
+
 }

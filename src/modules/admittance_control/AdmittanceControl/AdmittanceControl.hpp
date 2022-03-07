@@ -81,6 +81,7 @@ public:
 
 	vehicle_local_position_setpoint_s getSetpoints() const {return _admittance_sp_ned;}
 	AdmittanceParameters getAdmittanceParameters() const {return _params;}
+	float getSaturationFactor() const {return _sat_factor;}
 
 private:
 

@@ -67,7 +67,6 @@ void AdmittanceControl::reset(const vehicle_local_position_setpoint_s &setpoint)
 void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, const Vector<float, 8> &u, const float &target_dist, const Quatf &q, const vehicle_local_position_setpoint_s &setpoint)
 {
 
-
 	_dt = dt;
 	_u = We;
 

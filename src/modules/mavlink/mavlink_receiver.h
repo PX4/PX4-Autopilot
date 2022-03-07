@@ -103,12 +103,12 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_bezier.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/debug_vect.h>
 
 #if !defined(CONSTRAINED_FLASH)
 # include <uORB/topics/debug_array.h>
 # include <uORB/topics/debug_key_value.h>
 # include <uORB/topics/debug_value.h>
-# include <uORB/topics/debug_vect.h>
 #endif // !CONSTRAINED_FLASH
 
 using namespace time_literals;
@@ -189,11 +189,12 @@ private:
 	void handle_message_gimbal_manager_set_attitude(mavlink_message_t *msg);
 	void handle_message_gimbal_manager_set_manual_control(mavlink_message_t *msg);
 	void handle_message_gimbal_device_information(mavlink_message_t *msg);
+	void handle_message_debug_vect(mavlink_message_t *msg);
+	//REMOVED DEBUG_VECT FROM CONTRAINED_FLASH (WILL BE USED FOR ADMITTANCE/RLS ESTIMATOR FLAGS)
 
 #if !defined(CONSTRAINED_FLASH)
 	void handle_message_debug(mavlink_message_t *msg);
 	void handle_message_debug_float_array(mavlink_message_t *msg);
-	void handle_message_debug_vect(mavlink_message_t *msg);
 	void handle_message_named_value_float(mavlink_message_t *msg);
 #endif // !CONSTRAINED_FLASH
 
@@ -292,12 +293,12 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>		_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_trajectory_bezier_s>		_trajectory_bezier_pub{ORB_ID(vehicle_trajectory_bezier)};
 	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
+	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};
 
 #if !defined(CONSTRAINED_FLASH)
 	uORB::Publication<debug_array_s>			_debug_array_pub {ORB_ID(debug_array)};
 	uORB::Publication<debug_key_value_s>			_debug_key_value_pub{ORB_ID(debug_key_value)};
 	uORB::Publication<debug_value_s>			_debug_value_pub{ORB_ID(debug_value)};
-	uORB::Publication<debug_vect_s>				_debug_vect_pub{ORB_ID(debug_vect)};
 #endif // !CONSTRAINED_FLASH
 
 	// ORB publications (multi)

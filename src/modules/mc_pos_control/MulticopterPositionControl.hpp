@@ -102,9 +102,10 @@ private:
 
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _hover_thrust_estimate_sub{ORB_ID(hover_thrust_estimate)};
-	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
+	// uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)}; //Using admittance module
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
+	uORB::Subscription _admittance_setpoint_sub{ORB_ID(admittance_setpoint)};
 
 	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 

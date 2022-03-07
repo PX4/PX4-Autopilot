@@ -139,6 +139,7 @@ void AdmittanceControlModule::Run()
 	}
 
 
+
 	//all inputs required for each step
 	if (!_actuator_outputs_sub.updated() || !_vehicle_attitude_sub.updated()) {
 		return;
@@ -159,16 +160,22 @@ void AdmittanceControlModule::Run()
 	const float dt = (wrench.timestamp - _timestamp_last) * 1e-6f;
 	_timestamp_last = wrench.timestamp;
 
-	const bool flag = true;  //Need to receive value from addmitanceor position module
-
 	vehicle_local_position_setpoint_s admittance_sp{};
 
+	if (_debug_vect_sub.updated()) {
+		debug_vect_s flags_vect;
+		_debug_vect_sub.copy(&flags_vect);
+		_admittance_flag = (flags_vect.y > 0.5f);
+		_target_dist = (flags_vect.z);
+	}
+
 	// Guard against too small (< 1ms) and too large (> 1000ms) dt's.
-	if (_finite && flag && (dt > 0.001f) && (dt < 1.f)) {
+	if (_finite && _admittance_flag && (dt > 0.001f) && (dt < 1.f)) {
 
 		// bool valid = true;
 
 		const Vector<float, 4> We = zeros<float, 4, 1>();
+
 		float pwm[8] = {
 			actuator_outputs.output[0],
 			actuator_outputs.output[1],
@@ -179,7 +186,6 @@ void AdmittanceControlModule::Run()
 			actuator_outputs.output[6],
 			actuator_outputs.output[7]
 		};
-
 
 		if (_param_rls_n_rotors.get() <= 4) {
 			pwm[4] = 0.f;
@@ -195,10 +201,11 @@ void AdmittanceControlModule::Run()
 			_control.reset(setpoint);
 		}
 
-		_control.update(dt, We, output, 0.f, q, setpoint);
+		_control.update(dt, We, output, _target_dist, q, setpoint);
 
 		admittance_sp = _control.getSetpoints();
 		_valid = true;
+
 
 	} else {
 		admittance_sp = setpoint;
@@ -209,14 +216,6 @@ void AdmittanceControlModule::Run()
 
 	//Only publish when new setpoints are updated;
 	if (_sp_updated) {
-		// debug_vect_s status_msg2{};
-		// status_msg2.x = admittance_sp.x;
-		// status_msg2.y = admittance_sp.y;
-		// status_msg2.z = admittance_sp.z;
-		// status_msg2.timestamp = hrt_absolute_time();
-		// _debug_vect_pub.publish(status_msg2);
-
-
 		_admittance_setpoint_pub.publish(admittance_sp);
 	}
 

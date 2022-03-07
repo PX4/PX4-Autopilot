@@ -66,8 +66,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/rls_wrench_estimator.h>
-// #include <uORB/topics/debug_vect.h>
-
+#include <uORB/topics/debug_vect.h>
 
 
 using namespace time_literals;
@@ -118,6 +117,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Subscription _debug_vect_sub{ORB_ID(debug_vect)};
 
 	hrt_abstime _timestamp_last{0};
 	systemlib::Hysteresis _valid_hysteresis{false};
@@ -159,4 +159,5 @@ private:
 	bool _in_air{false};
 	bool _valid{false};
 	bool _finite{false};
+	bool _interaction_flag{false};
 };

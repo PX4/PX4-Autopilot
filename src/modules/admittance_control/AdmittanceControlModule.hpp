@@ -60,7 +60,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/rls_wrench_estimator.h>
-// #include <uORB/topics/debug_vect.h>
+#include <uORB/topics/debug_vect.h>
 
 using namespace time_literals;
 
@@ -103,6 +103,7 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _actuator_outputs_sub{ORB_ID(actuator_outputs)};
+	uORB::Subscription _debug_vect_sub{ORB_ID(debug_vect)};
 
 	hrt_abstime _timestamp_last{0};
 
@@ -158,4 +159,6 @@ private:
 	bool _finite{false};
 	bool _valid{false};
 	bool _sp_updated{false};
+	bool _admittance_flag{false};  //Need to receive value from mavlink
+	float _target_dist{};//Need to receive value from mavlink
 };

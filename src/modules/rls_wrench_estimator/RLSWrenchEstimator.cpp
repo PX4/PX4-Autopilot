@@ -183,6 +183,11 @@ void RLSWrenchEstimator::Run()
 	const float dt = (accel.timestamp - _timestamp_last) * 1e-6f;
 	_timestamp_last = accel.timestamp;
 
+	if (_debug_vect_sub.updated()) {
+		debug_vect_s flags_vect;
+		_debug_vect_sub.copy(&flags_vect);
+		_interaction_flag = (flags_vect.x > 0.5f);
+	}
 
 // Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 	if (_finite && _armed && _in_air && (dt > 0.0002f) && (dt < 0.02f)) {
@@ -202,25 +207,23 @@ void RLSWrenchEstimator::Run()
 
 		const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
 
-		const bool flag = (hrt_absolute_time() > 40_s);  //Need to receive value from addmitanceor position module
-
 		//RLS Thrust
-		_identification.updateThrust(acc, output, dt, flag);
+		_identification.updateThrust(acc, output, dt, _interaction_flag);
 
 		const matrix::Vector3f p_error_t = _identification.getPredictionErrorThrust();
 		const matrix::Quatf q{v_att.q};
 
 		//Wrench Estimator Thrust
-		_wrench_estimator.updateForce(p_error_t, dt, flag);
+		_wrench_estimator.updateForce(p_error_t, dt, _interaction_flag);
 		// --------------------------------------------------------- //
 
 		//RLS Offset
-		_identification.updateOffset(q, flag);
+		_identification.updateOffset(q, _interaction_flag);
 
 		matrix::Vector3f p_error_o = _identification.getPredictionErrorOffset();
 
 		//Wrench Estimator Moment
-		_wrench_estimator.updateMoment(p_error_o, matrix::Vector3f(v_ang_vel.xyz), dt, flag);
+		_wrench_estimator.updateMoment(p_error_o, matrix::Vector3f(v_ang_vel.xyz), dt, _interaction_flag);
 
 		// Check validity of results - IMPROVE
 		// bool valid = ((params_thrust(0) > 0.f) && (params_thrust(1) < params_thrust(0)));
@@ -234,9 +237,8 @@ void RLSWrenchEstimator::Run()
 	} else {
 		_valid_hysteresis.set_state_and_update(false, hrt_absolute_time());
 
+		publishInvalidStatus();
 		if (_valid) {
-			// only publish a single message to invalidate
-			publishInvalidStatus();
 			updateParams(); //reset RLS when landing
 			_valid = false;
 		}
@@ -254,8 +256,6 @@ void RLSWrenchEstimator::publishStatus()
 	matrix::Vector3f params_offset = _identification.getEstimationOffset();
 	Vector3f Fi = _identification.getActuatorForceVector();
 	Vector3f Mi = _identification.getActuatorMomentVector();
-
-	const bool flag = (hrt_absolute_time() > 40_s); //REMOVE
 
 	status_msg.timestamp = hrt_absolute_time();
 
@@ -282,21 +282,10 @@ void RLSWrenchEstimator::publishStatus()
 	status_msg.mi[1] = Mi(1);
 	status_msg.mi[2] = Mi(2);
 
-	status_msg.interaction_flag = flag;
+	status_msg.interaction_flag = _interaction_flag;
 	status_msg.valid = _valid;
 
 	_rls_wrench_estimator_pub.publish(status_msg);
-
-
-	// //CHANGED DEBUG RATE TO 50HZ - CHANGE BACK
-	// //mavlink._main.cpp Line:1557
-	// debug_vect_s status_msg2{};
-	// status_msg2.x = Me(0);
-	// status_msg2.y = Me(1);
-	// status_msg2.z = Me(2);
-	// status_msg2.timestamp = hrt_absolute_time();
-	// _debug_vect_pub.publish(status_msg2);
-
 }
 
 void RLSWrenchEstimator::publishInvalidStatus()
@@ -305,13 +294,13 @@ void RLSWrenchEstimator::publishInvalidStatus()
 
 	status_msg.timestamp = hrt_absolute_time();
 
-	status_msg.fe[0] = NAN;
-	status_msg.fe[1] = NAN;
-	status_msg.fe[2] = NAN;
+	status_msg.fe[0] = 0.f;
+	status_msg.fe[1] = 0.f;
+	status_msg.fe[2] = 0.f;
 
-	status_msg.me[0] = NAN;
-	status_msg.me[1] = NAN;
-	status_msg.me[2] = NAN;
+	status_msg.me[0] = 0.f;
+	status_msg.me[1] = 0.f;
+	status_msg.me[2] = 0.f;
 
 	status_msg.x_thrust[0] = NAN;
 	status_msg.x_thrust[1] = NAN;
@@ -328,18 +317,10 @@ void RLSWrenchEstimator::publishInvalidStatus()
 	status_msg.mi[1] = NAN;
 	status_msg.mi[2] = NAN;
 
+	status_msg.interaction_flag = _interaction_flag;
 	status_msg.valid = false;
 
 	_rls_wrench_estimator_pub.publish(status_msg);
-
-	// //CHANGED DEBUG RATE TO 50HZ - CHANGE BACK
-	// //mavlink._main.cpp Line:1557
-	// debug_vect_s status_msg2{};
-	// status_msg2.x =  NAN;
-	// status_msg2.y =  NAN;
-	// status_msg2.z =  NAN;
-	// status_msg2.timestamp = hrt_absolute_time();
-	// _debug_vect_pub.publish(status_msg2);
 }
 
 bool RLSWrenchEstimator::copyAndCheckAllFinite(vehicle_acceleration_s &accel, actuator_outputs_s &actuator_outputs,
