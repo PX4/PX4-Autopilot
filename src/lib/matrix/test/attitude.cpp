@@ -57,27 +57,27 @@ int main()
 	// quaternion ctor: vector to vector
 	// identity test
 	Quatf quat_v(v, v);
-	TEST(isEqual(quat_v.conjugate(v), v));
+	TEST(isEqual(quat_v.rotateVector(v), v));
 	// random test (vector norm can not be preserved with a pure rotation)
 	Vector3f v1(-80.1f, 1.5f, -6.89f);
 	quat_v = Quatf(v1, v);
-	TEST(isEqual(quat_v.conjugate(v1).normalized() * v.norm(), v));
+	TEST(isEqual(quat_v.rotateVector(v1).normalized() * v.norm(), v));
 	// special 180 degree case 1
 	v1 = Vector3f(0.f, 1.f, 1.f);
 	quat_v = Quatf(v1, -v1);
-	TEST(isEqual(quat_v.conjugate(v1), -v1));
+	TEST(isEqual(quat_v.rotateVector(v1), -v1));
 	// special 180 degree case 2
 	v1 = Vector3f(1.f, 2.f, 0.f);
 	quat_v = Quatf(v1, -v1);
-	TEST(isEqual(quat_v.conjugate(v1), -v1));
+	TEST(isEqual(quat_v.rotateVector(v1), -v1));
 	// special 180 degree case 3
 	v1 = Vector3f(0.f, 0.f, 1.f);
 	quat_v = Quatf(v1, -v1);
-	TEST(isEqual(quat_v.conjugate(v1), -v1));
+	TEST(isEqual(quat_v.rotateVector(v1), -v1));
 	// special 180 degree case 4
 	v1 = Vector3f(1.f, 1.f, 1.f);
 	quat_v = Quatf(v1, -v1);
-	TEST(isEqual(quat_v.conjugate(v1), -v1));
+	TEST(isEqual(quat_v.rotateVector(v1), -v1));
 
 	// quat normalization
 	q.normalize();
@@ -447,8 +447,8 @@ int main()
 
 	// conjugate
 	v = Vector3f(1.5f, 2.2f, 3.2f);
-	TEST(isEqual(q.conjugate_inversed(v1), Dcmf(q).T()*v1));
-	TEST(isEqual(q.conjugate(v1), Dcmf(q)*v1));
+	TEST(isEqual(q.rotateVectorInverse(v1), Dcmf(q).T()*v1));
+	TEST(isEqual(q.rotateVector(v1), Dcmf(q)*v1));
 
 	AxisAnglef aa_q_init(q);
 	TEST(isEqual(aa_q_init, AxisAnglef(1.0f, 2.0f, 3.0f)));
