@@ -424,7 +424,7 @@ Mission::find_mission_land_start_and_first_fw_waypoint()
 
 	bool found_land_start_marker = false;
 
-	for (size_t i = 1; i < _mission.count; i++) {
+	for (size_t i = 0; i < _mission.count; i++) {
 		const ssize_t len = sizeof(missionitem);
 		missionitem_prev = missionitem; // store the last mission item before reading a new one
 
