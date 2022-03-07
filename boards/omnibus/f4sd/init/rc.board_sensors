@@ -8,7 +8,11 @@ board_adc start
 if ! mpu6000 -R 6 -s start
 then
 	# some boards such as the Hobbywing XRotor F4 G2 use the ICM-20602
-	icm20602 -s -R 6 start
+	if ! icm20602 -s -R 6 start
+	then
+		# some clones of Omnibus F4 use the ICM-20608G (such as F4 PDB for Martian II FPV Drone)
+		icm20608g -s -R 6 start
+	fi
 fi
 
 bmp280 -s start
