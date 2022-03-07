@@ -208,6 +208,15 @@ Mission::on_activation()
 	cmd.param1 = -1.0f;
 	cmd.param3 = 0.0f;
 	_navigator->publish_vehicle_cmd(&cmd);
+
+	if (_navigator->get_vstatus()->is_vtol
+	    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		// if we are already in fixed wing flight then make sure that the current active waypoint
+		// is after the transition to forward flight waypoint
+		if (_first_fixed_wing_waypoint_index > 0 && _current_mission_index < _first_fixed_wing_waypoint_index) {
+			set_current_mission_index(_first_fixed_wing_waypoint_index);
+		}
+	}
 }
 
 void
@@ -585,8 +594,8 @@ Mission::update_mission()
 		// if we are already in fixed wing flight then make sure that the current active waypoint
 		// is after the transition to forward flight waypoint
 
-		if (_current_mission_index < _first_fixed_wing_waypoint_index) {
-			_current_mission_index = _first_fixed_wing_waypoint_index;
+		if (_first_fixed_wing_waypoint_index > 0 && _current_mission_index < _first_fixed_wing_waypoint_index) {
+			set_current_mission_index(_first_fixed_wing_waypoint_index);
 		}
 
 	}
