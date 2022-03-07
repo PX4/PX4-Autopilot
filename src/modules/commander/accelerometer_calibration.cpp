@@ -561,7 +561,7 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 				// use vehicle_attitude if available
 				const vehicle_attitude_s &att = attitude_sub.get();
 				const matrix::Quatf q{att.q};
-				const Vector3f accel_ref = q.conjugate_inversed(Vector3f{0.f, 0.f, -CONSTANTS_ONE_G});
+				const Vector3f accel_ref = q.rotateVectorInverse(Vector3f{0.f, 0.f, -CONSTANTS_ONE_G});
 
 				// sanity check angle between acceleration vectors
 				const float angle = AxisAnglef(Quatf(accel_avg, accel_ref)).angle();
