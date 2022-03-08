@@ -162,7 +162,7 @@ else
 		param select-backup $PARAM_BACKUP_FILE
 	fi
 
-	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X ARK_FMU_V6X
+	if ver hwcmp PX4_FMU_V5X PX4_FMU_V6X ARK_FMU_V6X NXP_FMURT1062_V2
 	then
 		netman update -i eth0
 	fi
