@@ -130,7 +130,6 @@ void Ekf::controlMagFusion()
 		if (_control_status.flags.in_air) {
 			checkHaglYawResetReq();
 			runInAirYawReset(mag_sample.mag);
-			runVelPosReset(); // TODO: review this; a vel/pos reset can be requested from COG reset (for fixedwing) only
 
 		} else {
 			runOnGroundYawReset();
@@ -197,7 +196,7 @@ void Ekf::runInAirYawReset(const Vector3f &mag_sample)
 	if (_mag_yaw_reset_req && isYawResetAuthorized()) {
 		bool has_realigned_yaw = false;
 
-		if (canRealignYawUsingGps()) {
+		if (_control_status.flags.gps && _control_status.flags.fixed_wing) {
 			has_realigned_yaw = realignYawGPS(mag_sample);
 
 		} else if (canResetMagHeading()) {
@@ -218,15 +217,6 @@ void Ekf::runInAirYawReset(const Vector3f &mag_sample)
 			}
 		}
 
-	}
-}
-
-void Ekf::runVelPosReset()
-{
-	if (_velpos_reset_request) {
-		resetVelocity();
-		resetHorizontalPosition();
-		_velpos_reset_request = false;
 	}
 }
 
