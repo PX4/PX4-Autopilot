@@ -677,7 +677,8 @@ static constexpr const char *main_state_str(uint8_t main_state)
 transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks)
 {
 	// allow a grace period for re-arming: preflight checks don't need to pass during that time, for example for accidential in-air disarming
-	if (_param_com_rearm_grace.get() && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s)) {
+	if (calling_reason == arm_disarm_reason_t::rc_switch
+	    && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s)) {
 		run_preflight_checks = false;
 	}
 
