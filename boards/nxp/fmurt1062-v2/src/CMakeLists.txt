@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016, 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,28 @@
 #
 ############################################################################
 
+px4_add_library(drivers_board
+	autoleds.c
+	automount.c
+	can.c
+	i2c.cpp
+	init.c
+	led.c
+	sdhc.c
+	spi.cpp
+	timer_config.cpp
+	usb.c
+	manifest.c
+	mtd.cpp
+	imxrt_flexspi_nor_boot.c
+	imxrt_flexspi_nor_flash.c
+)
 
-add_subdirectory(../imxrt/adc adc)
-add_subdirectory(../imxrt/board_critmon board_critmon)
-add_subdirectory(../imxrt/board_hw_info board_hw_info)
-add_subdirectory(../imxrt/board_reset board_reset)
-#add_subdirectory(../imxrt/dshot dshot)
-add_subdirectory(../imxrt/hrt hrt)
-add_subdirectory(../imxrt/led_pwm led_pwm)
-add_subdirectory(../imxrt/io_pins io_pins)
-add_subdirectory(../imxrt/tone_alarm tone_alarm)
-add_subdirectory(../imxrt/version version)
-
-add_subdirectory(px4io_serial)
+target_link_libraries(drivers_board
+	PRIVATE
+		arch_board_hw_info
+		drivers__led # drv_led_start
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		px4_layer
+)
