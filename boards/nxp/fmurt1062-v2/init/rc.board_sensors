@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# PX4 FMUv5 specific board sensors init
+#------------------------------------------------------------------------------
+#
+# UART mapping on NXP FMURT1062:
+#
+# LPUART7       /dev/ttyS0      CONSOLE
+# LPUART2       /dev/ttyS1      GPS
+# LPUART3       /dev/ttyS2      TELEM1 (GPIO flow control)
+# LPUART4       /dev/ttyS3      TELEM2 (UART flow control)
+# LPUART5       /dev/ttyS4      EXT2
+# LPUART6       /dev/ttyS5      PX4IO
+# LPUART8       /dev/ttyS6      GPS2
+#
+#------------------------------------------------------------------------------
+
+set HAVE_PM2 yes
+
+if ver hwtypecmp V5X005000 V5X005001 V5X005002
+then
+	set HAVE_PM2 no
+fi
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+else
+	board_adc start
+fi
+
+
+if param compare SENS_EN_INA226 1
+then
+	# Start Digital power monitors
+	ina226 -X -b 1 -t 1 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
+fi
+
+if param compare SENS_EN_INA228 1
+then
+	# Start Digital power monitors
+	ina228 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
+fi
+
+if param compare SENS_EN_INA238 1
+then
+	# Start Digital power monitors
+	ina238 -X -b 1 -t 1 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
+fi
+
+	#FMUv5Xbase board orientation
+
+# Internal SPI BMI088
+bmi088 -A -R 4 -s start
+bmi088 -G -R 4 -s start
+
+# Internal SPI bus ICM42688p
+icm42688p -R 6 -s start
+
+# Internal SPI bus ICM-20602 (hard-mounted)
+icm20602 -R 8 -s start
+
+# Internal magnetometer on I2c
+bmm150 -I start
+
+
+# External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
+ist8310 -X -b 1 -R 10 start
+
+# Possible internal Baro
+
+# Disable startup of internal baros if param is set to false
+if param compare SENS_INT_BARO_EN 1
+then
+	bmp388 -I -a 0x77 start
+	bmp388 -X -b 2 start
+fi
+unset HAVE_PM2
