@@ -999,7 +999,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 	// The mavlink_message could also contain a mavlink_mission_item_int_t. We ignore that here
 	// and take care of it later in parse_mavlink_mission_item depending on _int_mode.
-
+    
 	mavlink_mission_item_t wp;
 	mavlink_msg_mission_item_decode(msg, &wp);
 
@@ -1318,6 +1318,18 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->acceptance_radius = mavlink_mission_item->param2;
 			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
+/*
+
+			,togan_hedef_s togan_hedef_data;
+			
+			togan_hedef_data.timestamp = 0;// todo:
+			togan_hedef_data.lat = mission_item->lat;
+			togan_hedef_data.lon = mission_item->lon;
+			togan_hedef_data.alt = mission_item->altitude;
+
+			_togan_hedef.publish(togan_hedef_data);
+			
+*/
 			break;
 
 		case MAV_CMD_NAV_LOITER_UNLIM:
@@ -1407,6 +1419,19 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 
 		case MAV_CMD_NAV_RALLY_POINT:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
+			break;
+		case MAV_CMD_WAYPOINT_USER_1:
+
+			togan_hedef_s togan_hedef_data;
+			
+			togan_hedef_data.timestamp = 0;// todo:
+			togan_hedef_data.lat = mission_item->lat;
+			togan_hedef_data.lon = mission_item->lon;
+			togan_hedef_data.alt = mission_item->altitude;
+
+			_togan_hedef.publish(togan_hedef_data);
+			
+			//mission_item->nav_cmd = MAV_CMD_WAYPOINT_USER_1;
 			break;
 
 		default:

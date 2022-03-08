@@ -49,7 +49,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mission_result.h>
-
+#include <uORB/topics/togan_hedef.h>
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
 
@@ -129,6 +129,9 @@ private:
 	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
 
 	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
+
+	uORB::Publication<togan_hedef_s> _togan_hedef{ORB_ID(togan_hedef)};
+
 
 	static uint16_t		_geofence_update_counter;
 	static uint16_t		_safepoint_update_counter;

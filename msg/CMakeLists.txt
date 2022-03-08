@@ -167,6 +167,7 @@ set(msg_files
 	wheel_encoders.msg
 	wind_estimate.msg
 	yaw_estimator_status.msg
+	togan_hedef.msg
 )
 
 set(deprecated_msgs

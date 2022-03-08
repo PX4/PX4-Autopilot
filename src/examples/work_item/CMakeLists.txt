@@ -38,6 +38,7 @@ px4_add_module(
 	SRCS
 		WorkItemExample.cpp
 		WorkItemExample.hpp
+		TOGANConfig.hpp
 	DEPENDS
 		px4_work_queue
 	)

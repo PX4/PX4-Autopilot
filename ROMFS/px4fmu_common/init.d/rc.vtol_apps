@@ -31,3 +31,5 @@ fw_pos_control_l1 start vtol
 # Multicopter for now until we have something for VTOL
 #
 land_detector start vtol
+
+work_item_example start
