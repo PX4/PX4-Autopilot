@@ -193,7 +193,8 @@ public:
 	void resetAccelBias();
 
 	// Reset all magnetometer bias states and covariances to initial alignment values.
-	void resetMagBias();
+	// Requests full mag yaw reset (if using mag)
+	void resetMagBiasAndYaw();
 
 	Vector3f getVelocityVariance() const { return P.slice<3, 3>(4, 4).diag(); };
 
