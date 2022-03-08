@@ -195,6 +195,9 @@ public:
 
 	bool was_in_trans_mode() {return _flag_was_in_trans_mode;}
 
+	float getMinimumFrontTransitionTime() const;
+	float getOpenLoopFrontTransitionTime() const;
+
 	virtual void parameters_update() = 0;
 
 	VtolAttitudeControl *_attc;
@@ -328,6 +331,9 @@ private:
 	bool shouldBlendThrottleAfterFrontTransition() { return _throttle_blend_start_ts != 0; };
 
 	void stopBlendingThrottleAfterFrontTransition() { _throttle_blend_start_ts = 0; }
+
+	// returns the estimated factor by which the front transition time increases due air density decrease
+	float getFrontTransitionTimeFactor() const;
 
 };
 

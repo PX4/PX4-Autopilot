@@ -648,3 +648,29 @@ float VtolType::pusher_assist()
 	return forward_thrust;
 
 }
+
+float VtolType::getFrontTransitionTimeFactor() const
+{
+	// assumptions: transition_time = transition_true_airspeed / average_acceleration (thrust)
+	// transition_true_airspeed ~ sqrt(rho0 / rh0)
+	// average_acceleration ~ rho / rho0
+	// transition_time ~ sqrt(rho0/rh0) * rho0 / rho
+	const float rho = _attc->getAirDensity();
+
+	if (PX4_ISFINITE(rho)) {
+		float rho0_over_rho = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / rho;
+		return sqrtf(rho0_over_rho) * rho0_over_rho;
+	}
+
+	return 1.0f;
+}
+
+float VtolType::getMinimumFrontTransitionTime() const
+{
+	return getFrontTransitionTimeFactor() * _params->front_trans_time_min;
+}
+
+float VtolType::getOpenLoopFrontTransitionTime() const
+{
+	return getFrontTransitionTimeFactor() * _params->front_trans_time_openloop;
+}
