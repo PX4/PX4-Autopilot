@@ -70,8 +70,8 @@ static constexpr float ALT_ACCEPTANCE_THRESHOLD = 3.0f;
 // is too close to the ground (below MINIMUM_SAFETY_ALTITUDE)
 static constexpr float EMERGENCY_ASCENT_SPEED = 0.2f;
 
-// [s] If the target estimator output isn't updated longer than this, reset pose filter.
-static constexpr float TARGET_ESTIMATOR_TIMEOUT_SECONDS = 1.5;
+// [us] If the target estimator output isn't updated longer than this, reset pose filter.
+static constexpr float TARGET_ESTIMATOR_TIMEOUT_US = 1500000UL;
 
 // Second order filter parameter for target position filter
 static constexpr float TARGET_POSE_FILTER_NATURAL_FREQUENCY = 1.0f; // [rad/s]
@@ -130,6 +130,7 @@ protected:
 
 	enum {
 		FOLLOW_ALTITUDE_MODE_CONSTANT,
+		FOLLOW_ALTITUDE_MODE_TRACK_TERRAIN,
 		FOLLOW_ALTITUDE_MODE_TRACK_TARGET
 	};
 
@@ -167,7 +168,7 @@ protected:
 	follow_target_estimator_s _follow_target_estimator;
 
 	// Last target estimator timestamp to handle timeout filter reset
-	uint16_t _last_target_estimator_timestamp{0};
+	uint64_t _last_valid_target_estimator_timestamp{0};
 
 	// Second Order Filter to calculate kinematically feasible target position
 	SecondOrderReferenceModel<matrix::Vector3f> _target_pose_filter;
@@ -181,6 +182,9 @@ protected:
 	// Current orbit angle measured in global frame, against the target
 	float _current_orbit_angle{0.0f};
 
+	// Tracked orbit tangential speed, to compensate for the orbital motion for velocity setpoints
+	Vector2f _orbit_tangential_velocity{0.0f, 0.0f};
+
 	// Unfiltered drone to target heading
 	float _drone_to_target_heading{0.0f};
 
@@ -191,15 +195,20 @@ protected:
 	// Yaw setpoint filter to remove jitter-ness
 	AlphaFilter<float> _yaw_setpoint_filter;
 
+	// Variable to remember the home position's z coordinate, which will be baseline for the position z setpoint
+	float _home_position_z{0.0f};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamFloat<px4::params::NAV_MIN_FT_HT>) _param_nav_min_ft_ht,
+		(ParamFloat<px4::params::NAV_FT_MIN_HT>) _param_nav_ft_min_ht,
 		(ParamFloat<px4::params::NAV_FT_DST>) _param_nav_ft_dst,
 		(ParamInt<px4::params::NAV_FT_FS>) _param_nav_ft_fs,
 		(ParamInt<px4::params::NAV_FT_ALT_M>) _param_nav_ft_alt_m,
 		(ParamInt<px4::params::NAV_FT_GMB_M>) _param_nav_ft_gmb_m,
-		(ParamInt<px4::params::NAV_FT_YAW_FT>) _param_nav_ft_yaw_ft
+		(ParamInt<px4::params::NAV_FT_YAW_FT>) _param_nav_ft_yaw_ft,
+		(ParamFloat<px4::params::NAV_FT_FILT_R>) _param_nav_ft_filter_r
 	)
 
 	uORB::Subscription _follow_target_estimator_sub{ORB_ID(follow_target_estimator)};

@@ -52,7 +52,7 @@
  * @min 8.0
  * @group Follow target
  */
-PARAM_DEFINE_FLOAT(NAV_MIN_FT_HT, 8.0f);
+PARAM_DEFINE_FLOAT(NAV_FT_MIN_HT, 8.0f);
 
 /**
  * Distance to follow target from
@@ -69,15 +69,16 @@ PARAM_DEFINE_FLOAT(NAV_FT_DST, 8.0f);
  * Side to follow target from
  *
  * The side to follow the target from
- * none         = 0
- * behind       = 1
- * front        = 2
- * front right  = 3
- * front left   = 4
- * mid right    = 5
- * mid left     = 6
- * behind right = 7
- * behind left  = 8
+ *
+ * @value 0 None (default, Behind)
+ * @value 1 Behind
+ * @value 2 front
+ * @value 3 front right
+ * @value 4 front left
+ * @value 5 mid right
+ * @value 6 mid left
+ * @value 7 behind right
+ * @value 8 behind left
  *
  * @min 0
  * @max 8
@@ -86,7 +87,7 @@ PARAM_DEFINE_FLOAT(NAV_FT_DST, 8.0f);
 PARAM_DEFINE_INT32(NAV_FT_FS, 1);
 
 /**
- * Dynamic filtering algorithm responsiveness to target movement
+ * Dynamic filtering algorithm responsiveness to target movement in Target Estimator
  *
  * lower values increase the responsiveness to changing long lat
  * but also ignore less noise
@@ -106,10 +107,9 @@ PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.1f);
  * the target's altitude, the follow altitude NAV_MIN_FT_HT should be high enough
  * to prevent terrain collisions due to GPS inaccuracies of the target.
  *
- * TODO: Add option for 2D tracking + terrain following
- *
- * @value 0 Maintain constant altitude and track XY position only (2D tracking)
- * @value 1 Track target's altitude (3D tracking)
+ * @value 0 2D Tracking : Maintain constant altitude relative to home and track XY position only
+ * @value 1 2D + Terrain : Mantain constant altitude relative to terrain below and track XY position
+ * @value 2 3D Tracking : Track target's altitude (be aware that GPS altitude bias usually makes this useless)
  * @group Follow target
  */
 PARAM_DEFINE_INT32(NAV_FT_ALT_M, 0);
@@ -130,4 +130,16 @@ PARAM_DEFINE_INT32(NAV_FT_GMB_M, 0);
  * @boolean
  * @group Follow target
  */
-PARAM_DEFINE_INT32(NAV_FT_YAW_FT, 1);
+PARAM_DEFINE_INT32(NAV_FT_YAW_FT, 0);
+
+/**
+ * Target Pose filter's natural angular rate setting [rad/s]
+ *
+ * The output of the Target estimator will be filtered via 2nd order filter with this natural angular rate
+ *
+ * @unit rad/s
+ * @min 0.1
+ * @decimal 1
+ * @group Follow target
+ */
+PARAM_DEFINE_FLOAT(NAV_FT_FILT_R, 1.0f);
