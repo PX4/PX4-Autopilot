@@ -28,7 +28,7 @@ Vector<Scalar, 3> positionError(const Vector<Scalar, 3> &positionState,
 				Scalar dt
 			       )
 {
-	return positionMeasurement - (positionState +  bodyOrientation.conjugate(velocityStateBody) * dt);
+	return positionMeasurement - (positionState +  bodyOrientation.rotateVector(velocityStateBody) * dt);
 }
 
 int main()
