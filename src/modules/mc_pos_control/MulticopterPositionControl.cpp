@@ -275,6 +275,7 @@ void MulticopterPositionControl::Run()
 
 		_control_mode_sub.update(&_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+		_rc_channels_sub.update(&_rc_channels); //PMEN
 
 		if (_param_mpc_use_hte.get()) {
 			hover_thrust_estimate_s hte;
@@ -449,11 +450,54 @@ void MulticopterPositionControl::Run()
 			local_pos_sp.timestamp = hrt_absolute_time();
 			_local_pos_sp_pub.publish(local_pos_sp);
 
+			// PMEN - MODIFICATIONS TO INCLUDE VECTOR THRUST
+			float vec_thr_scl = ((float)_param_mpc_vec_thr_en.get() * _param_mpc_vec_thr_scl.get()); // PMEN Changes
+			_vt_sp.thrust_f = 0.f;
+			_vt_sp.thrust_r = 0.f;
+
 			// Publish attitude setpoint output
 			vehicle_attitude_setpoint_s attitude_setpoint{};
-			_control.getAttitudeSetpoint(attitude_setpoint);
+
+			if ((_param_mpc_vec_thr_en.get() == 1) && (_param_mpc_vec_thr_scl.get() >= 1.0f) && (_rc_channels.channels[5] > 0.0f)){
+
+				float vec_thr_ang = 0.0f;
+
+				vec_thr_ang = _param_mpc_vec_thr_ang.get();
+				attitude_setpoint.roll_body = vec_thr_ang*cosf(((_rc_channels.channels[6] + 1.0f)/2.0f)*6.2857142f);
+				attitude_setpoint.pitch_body = vec_thr_ang*sinf(((_rc_channels.channels[6] + 1.0f)/2.0f)*6.2857142f);
+				Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, local_pos_sp.yaw);
+
+				Vector3f thrust_frd = q_sp.conjugate_inversed(Vector3f(local_pos_sp.thrust[0] * vec_thr_scl, local_pos_sp.thrust[1] * vec_thr_scl, local_pos_sp.thrust[2]));
+
+				_vt_sp.thrust_f = thrust_frd(0);
+				_vt_sp.thrust_r = thrust_frd(1);
+
+				q_sp.copyTo(attitude_setpoint.q_d);
+
+				attitude_setpoint.thrust_body[2] = thrust_frd(2);
+
+			} else {
+
+					//CHECK RESULTS BEFORE USING
+
+				ControlMath::thrustToAttitude(Vector3f(local_pos_sp.thrust[0] * (1.0f - vec_thr_scl),
+								local_pos_sp.thrust[1] * (1.0f - vec_thr_scl),
+								local_pos_sp.thrust[2]), local_pos_sp.yaw, attitude_setpoint);
+				attitude_setpoint.yaw_sp_move_rate = local_pos_sp.yawspeed;
+
+				Quatf q_sp = Quatf(attitude_setpoint.q_d[0],attitude_setpoint.q_d[1],attitude_setpoint.q_d[2],attitude_setpoint.q_d[3]);
+
+				Vector3f thrust_frd = q_sp.conjugate_inversed(Vector3f(local_pos_sp.thrust[0] * vec_thr_scl, local_pos_sp.thrust[1] * vec_thr_scl, local_pos_sp.thrust[2]));
+
+				_vt_sp.thrust_f = thrust_frd(0);
+				_vt_sp.thrust_r = thrust_frd(1);
+
+				// _control.getAttitudeSetpoint(attitude_setpoint);
+			}
+
 			attitude_setpoint.timestamp = hrt_absolute_time();
 			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
+			_vt_sp_pub.publish(_vt_sp);
 
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes

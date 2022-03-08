@@ -783,3 +783,47 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_ALL, -10.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_Z_VEL_ALL, -3.0f);
+
+/**
+ * Enable Vector Thrust
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Vector Thrust Disabled (default)
+ * @value 1 Vector Thrust Enabled
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_VEC_THR_EN, 0);
+
+/**
+ * Scaling for Vector Thrust mode.
+ *
+ * If Vector Thrust is enabled (MPC_VEC_THR_EN = 1)
+ * this parameter determines the output of MPC.
+ * 100% vector thrust (MPC_VEC_THR_SCL = 1.0).
+ * 100% attitude setpoints (MPC_VEC_THR_SCL = 0.0).
+ * Values between 0.0-1.0 detemines how much vector thrust
+ * is combined with attitude setpoints.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEC_THR_SCL, 0.0f);
+
+/**
+ * Reverse tilt angle for horizontal thrust [rad]
+ *
+ * If Vector Thrust is enabled (MPC_VEC_THR_EN = 1)
+ * this parameter determines the tilt angle (direction from RC).
+ * No tilt angle (MPC_VEC_THR_ANG = 0.0).
+ * 10 deg tilt angle (MPC_VEC_THR_ANG = 0.174).
+ * WARNING: Might crash if too high
+ *
+ * @min 0.000
+ * @max 0.349
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEC_THR_ANG, 0.0f);

@@ -34,6 +34,7 @@
 #pragma once
 
 #include <mixer/MixerBase/Mixer.hpp>
+#include "vector_thrust_mix.h"
 
 /**
  * Supported multirotor geometries.
@@ -224,7 +225,7 @@ private:
 	 * Thrust can be reduced to unsaturate the upper side.
 	 * @see mix_yaw() for the exact yaw behavior.
 	 */
-	inline void mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float *outputs);
+	inline void mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float thrust_x, float thrust_y, float *outputs);
 
 	/**
 	 * Mix yaw by updating an existing output vector (that already contains roll/pitch/thrust).

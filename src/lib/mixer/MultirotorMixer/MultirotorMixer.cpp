@@ -257,7 +257,8 @@ MultirotorMixer::mix_airmode_rpy(float roll, float pitch, float yaw, float thrus
 }
 
 void
-MultirotorMixer::mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float *outputs)
+MultirotorMixer::mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float thrust_x,
+		float thrust_y, float *outputs)
 {
 	// Airmode disabled: never allow to increase the thrust to unsaturate a motor
 
@@ -265,7 +266,9 @@ MultirotorMixer::mix_airmode_disabled(float roll, float pitch, float yaw, float 
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		outputs[i] = roll * _rotors[i].roll_scale +
 			     pitch * _rotors[i].pitch_scale +
-			     thrust * _rotors[i].thrust_scale;
+			     thrust * _rotors[i].thrust_scale +
+			     thrust_x * multirotor_vt_config[i].vtx_scale + // PMEN - Including Vector Thrust Mixer
+			     thrust_y * multirotor_vt_config[i].vty_scale;  // PMEN - Including Vector Thrust Mixer
 
 		// Thrust will be used to unsaturate if needed
 		_tmp_array[i] = _rotors[i].thrust_scale;
@@ -305,6 +308,18 @@ void MultirotorMixer::mix_yaw(float yaw, float *outputs)
 	// and allow some yaw response at maximum thrust
 	minimize_saturation(_tmp_array, outputs, _saturation_status, 0.f, 1.15f);
 
+	//PMEN:test to reduce saturation HT
+	for (unsigned i = 0; i < _rotor_count; i++) {
+			_tmp_array[i] = multirotor_vt_config[i].vtx_scale;
+		}
+	minimize_saturation(_tmp_array, outputs, _saturation_status, 0.f, 1.f, true);
+
+for (unsigned i = 0; i < _rotor_count; i++) {
+			_tmp_array[i] = multirotor_vt_config[i].vty_scale;
+		}
+	minimize_saturation(_tmp_array, outputs, _saturation_status, 0.f, 1.f, true);
+
+
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		_tmp_array[i] = _rotors[i].thrust_scale;
 	}
@@ -325,6 +340,10 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 	float yaw     = math::constrain(get_control(0, 2), -1.0f, 1.0f);
 	float thrust  = math::constrain(get_control(0, 3), 0.0f, 1.0f);
 
+	float thrust_x = math::constrain(get_control(0, 5), -1.0f, 1.0f); //PMEN - hijacking INDEX_SPOILERS = 5
+	float thrust_y = math::constrain(get_control(0, 6), -1.0f, 1.0f); //PMEN - hijacking INDEX_AIRBRAKES = 6
+
+
 	// clean out class variable used to capture saturation
 	_saturation_status.value = 0;
 
@@ -340,7 +359,7 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 
 	case Airmode::disabled:
 	default: // just in case: default to disabled
-		mix_airmode_disabled(roll, pitch, yaw, thrust, outputs);
+		mix_airmode_disabled(roll, pitch, yaw, thrust, thrust_x, thrust_y, outputs);
 		break;
 	}
 

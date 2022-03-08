@@ -50,6 +50,7 @@ MulticopterRateControl::MulticopterRateControl(bool vtol) :
 {
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
+	_vector_thrust_sp.setAll(0.f);
 	parameters_updated();
 }
 
@@ -94,6 +95,8 @@ MulticopterRateControl::parameters_updated()
 				  radians(_param_mc_acro_y_max.get()));
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
+
+	_vec_thr_xy_p = _param_mpc_vec_thr_xy_p.get();
 }
 
 void
@@ -227,12 +230,18 @@ MulticopterRateControl::Run()
 			rate_ctrl_status.timestamp = hrt_absolute_time();
 			_controller_status_pub.publish(rate_ctrl_status);
 
+			control_vector_thrust();
+
 			// publish actuator controls
 			actuator_controls_s actuators{};
 			actuators.control[actuator_controls_s::INDEX_ROLL] = PX4_ISFINITE(att_control(0)) ? att_control(0) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_PITCH] = PX4_ISFINITE(att_control(1)) ? att_control(1) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_YAW] = PX4_ISFINITE(att_control(2)) ? att_control(2) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_thrust_sp) ? _thrust_sp : 0.0f;
+			 //PMEN - hijacking INDEX_SPOILERS = 5
+			actuators.control[actuator_controls_s::INDEX_SPOILERS] = (PX4_ISFINITE(_vector_thrust_sp(0))) ? _vector_thrust_sp(0) : 0.0f;
+			 //PMEN - hijacking INDEX_AIRBRAKES = 6
+			actuators.control[actuator_controls_s::INDEX_AIRBRAKES] = (PX4_ISFINITE(_vector_thrust_sp(1))) ? _vector_thrust_sp(1) : 0.0f;
 			actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _landing_gear;
 			actuators.timestamp_sample = angular_velocity.timestamp_sample;
 
@@ -268,6 +277,31 @@ MulticopterRateControl::Run()
 
 	perf_end(_loop_perf);
 }
+
+/**
+ * Vector Thrust controller.
+ * Input: 'vehicle_vector_thrust_setpoint'
+ * Output: '_rates_sp' vector, '_thrust_sp'
+ */
+void
+MulticopterRateControl::control_vector_thrust()
+{
+	_v_vt_sp_sub.update(&_v_vt_sp);
+
+	// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
+	if (!_v_control_mode.flag_armed || (!_v_control_mode.flag_control_position_enabled
+					    && !_v_control_mode.flag_control_velocity_enabled && !_v_control_mode.flag_control_altitude_enabled)) {
+		_v_vt_sp.thrust_f = 0.f;
+		_v_vt_sp.thrust_r = 0.f;
+
+	}
+
+	_vector_thrust_sp.setAll(0.f);
+	_vector_thrust_sp(0) = math::constrain(_v_vt_sp.thrust_f * _vec_thr_xy_p, -1.0f, 1.0f);
+	_vector_thrust_sp(1) = math::constrain(_v_vt_sp.thrust_r * _vec_thr_xy_p, -1.0f, 1.0f);
+
+}
+
 
 int MulticopterRateControl::task_spawn(int argc, char *argv[])
 {

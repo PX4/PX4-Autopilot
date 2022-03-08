@@ -121,6 +121,7 @@ set(msg_files
 	rc_channels.msg
 	rc_parameter_map.msg
 	rls_wrench_estimator.msg
+	vehicle_vector_thrust_setpoint.msg
 	rpm.msg
 	rtl_flight_time.msg
 	safety.msg
