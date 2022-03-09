@@ -40,11 +40,15 @@
 
 #pragma once
 
+#include <uORB/uORB.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vehicle_status.h>
 #include <drivers/drv_hrt.h>
+
+typedef bool (*sens_check_func_t)(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+				  const bool optional, int32_t &device_id, const bool report_fail);
 
 class PreFlightCheck
 {
@@ -95,6 +99,9 @@ public:
 				bool report_fail = true);
 
 private:
+	static bool sensorAvailabilityCheck(const bool report_failure, const uint8_t max_mandatory_count,
+					    const uint8_t max_optional_count, orb_advert_t *mavlink_log_pub,
+					    vehicle_status_s &status, sens_check_func_t sens_check);
 	static bool magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				      const bool optional, int32_t &device_id, const bool report_fail);
 	static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
@@ -104,6 +111,8 @@ private:
 			      const bool optional, int32_t &device_id, const bool report_fail);
 	static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			      const bool optional, int32_t &device_id, const bool report_fail);
+	static bool distSensCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+				  const bool optional, int32_t &device_id, const bool report_fail);
 	static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
 	static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool optional,
 				  const bool report_fail, const bool prearm, const bool max_airspeed_check_en, const float arming_max_airspeed_allowed);
