@@ -106,6 +106,8 @@ private:
 	 */
 	bool _is_position_on_circle() const;
 
+	/** Adjusts radius and speed according to stick input */
+	void _adjustParametersByStick();
 	/** generates setpoints to smoothly reach the closest point on the circle when starting from far away */
 	void _generate_circle_approach_setpoints();
 	/** generates xy setpoints to make the vehicle orbit */
