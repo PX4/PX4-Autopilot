@@ -1349,7 +1349,7 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const floa
 
 	if (fabsf(pos_sp_curr.loiter_radius) < FLT_EPSILON) {
 		loiter_radius = _param_nav_loiter_rad.get();
-		loiter_direction = (loiter_radius > 0) ? 1 : -1;
+		loiter_direction = signNoZero(loiter_radius);
 	}
 
 	const bool in_circle_mode = (_param_fw_use_npfg.get()) ? _npfg.circleMode() : _l1_control.circle_mode();
@@ -2751,7 +2751,7 @@ void FixedwingPositionControl::publishOrbitStatus(const position_setpoint_s pos_
 
 	if (fabsf(loiter_radius) < FLT_EPSILON) {
 		loiter_radius = _param_nav_loiter_rad.get();
-		loiter_direction = (loiter_radius > 0) ? 1 : -1;
+		loiter_direction = signNoZero(loiter_radius);
 	}
 
 	orbit_status.radius = static_cast<float>(loiter_direction) * loiter_radius;
