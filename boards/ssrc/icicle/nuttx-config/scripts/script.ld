@@ -88,10 +88,8 @@ SECTIONS
         *(.gnu.linkonce.b.*)
         *(.gnu.linkonce.sb.*)
         *(COMMON)
-        . = ALIGN(4);
-        _ebss = ABSOLUTE(.);
         . = ALIGN(32);
-        _default_stack_limit = ABSOLUTE(.);
+        _ebss = ABSOLUTE(.);
     } > sram
 
     /* Stabs debugging sections. */

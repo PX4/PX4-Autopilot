@@ -157,10 +157,8 @@ SECTIONS
         *(.gnu.linkonce.b.*)
         *(.gnu.linkonce.sb.*)
         *(COMMON)
-        . = ALIGN(4);
-        _ebss = ABSOLUTE(.);
         . = ALIGN(32);
-        _default_stack_limit = ABSOLUTE(.);
+        _ebss = ABSOLUTE(.);
     } > l2lim
 
     PROVIDE(__mpfs_nuttx_end = .);
