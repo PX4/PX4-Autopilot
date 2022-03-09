@@ -72,22 +72,8 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		param_get(param_find("SYS_HAS_MAG"), &sys_has_mag);
 
 		if (sys_has_mag == 1) {
-
-			/* check all sensors individually, but fail only for mandatory ones */
-			for (unsigned i = 0; i < max_optional_mag_count; i++) {
-				const bool required = (i < max_mandatory_mag_count) && (sys_has_mag == 1);
-				bool report_fail = report_failures;
-
-				int32_t device_id = -1;
-
-				if (!magnetometerCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
-					if (required) {
-						failed = true;
-					}
-
-					report_fail = false; // only report the first failure
-				}
-			}
+			failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_mag_count, max_optional_mag_count,
+							   mavlink_log_pub, status, magnetometerCheck);
 
 			// TODO: highest priority mag
 
@@ -100,42 +86,16 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	/* ---- ACCEL ---- */
 	{
-		/* check all sensors individually, but fail only for mandatory ones */
-		for (unsigned i = 0; i < max_optional_accel_count; i++) {
-			const bool required = (i < max_mandatory_accel_count);
-			bool report_fail = report_failures;
-
-			int32_t device_id = -1;
-
-			if (!accelerometerCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
-				if (required) {
-					failed = true;
-				}
-
-				report_fail = false; // only report the first failure
-			}
-		}
+		failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_accel_count, max_optional_accel_count,
+						   mavlink_log_pub, status, accelerometerCheck);
 
 		// TODO: highest priority (from params)
 	}
 
 	/* ---- GYRO ---- */
 	{
-		/* check all sensors individually, but fail only for mandatory ones */
-		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
-			const bool required = (i < max_mandatory_gyro_count);
-			bool report_fail = report_failures;
-
-			int32_t device_id = -1;
-
-			if (!gyroCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
-				if (required) {
-					failed = true;
-				}
-
-				report_fail = false; // only report the first failure
-			}
-		}
+		failed |= !sensorAvailabilityCheck(report_failures, max_mandatory_gyro_count, max_optional_gyro_count,
+						   mavlink_log_pub, status, gyroCheck);
 
 		// TODO: highest priority (from params)
 	}
@@ -145,22 +105,9 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		int32_t sys_has_baro = 1;
 		param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
 
-		bool baro_fail_reported = false;
-
-		/* check all sensors, but fail only for mandatory ones */
-		for (unsigned i = 0; i < max_optional_baro_count; i++) {
-			const bool required = (i < max_mandatory_baro_count) && (sys_has_baro == 1);
-			bool report_fail = (required && report_failures && !baro_fail_reported);
-
-			int32_t device_id = -1;
-
-			if (!baroCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
-				if (required) {
-					baro_fail_reported = true;
-				}
-
-				report_fail = false; // only report the first failure
-			}
+		if (sys_has_baro == 1) {
+			static_cast<void>(sensorAvailabilityCheck(report_failures, max_mandatory_baro_count, max_optional_baro_count,
+					  mavlink_log_pub, status, baroCheck));
 		}
 	}
 
@@ -170,6 +117,18 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 		if (!imuConsistencyCheck(mavlink_log_pub, status, report_failures)) {
 			failed = true;
 		}
+	}
+
+	/* ---- Distance Sensor ---- */
+	{
+		int32_t sys_has_num_dist_sens = 0;
+		param_get(param_find("SYS_HAS_NUM_DIST"), &sys_has_num_dist_sens);
+
+		if (sys_has_num_dist_sens > 0) {
+			static_cast<void>(sensorAvailabilityCheck(report_failures, sys_has_num_dist_sens, sys_has_num_dist_sens,
+					  mavlink_log_pub, status, distSensCheck));
+		}
+
 	}
 
 	/* ---- AIRSPEED ---- */
@@ -277,4 +236,28 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	/* Report status */
 	return !failed;
+}
+
+bool PreFlightCheck::sensorAvailabilityCheck(const bool report_failure, const uint8_t max_mandatory_count,
+		const uint8_t max_optional_count, orb_advert_t *mavlink_log_pub,
+		vehicle_status_s &status, sens_check_func_t sens_check)
+{
+	bool pass_check = true;
+	bool report_fail = report_failure;
+
+	/* check all sensors, but fail only for mandatory ones */
+	for (uint8_t i = 0u; i < max_optional_count; i++) {
+		const bool required = (i < max_mandatory_count);
+		int32_t device_id = -1;
+
+		if (!sens_check(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
+			if (required) {
+				pass_check = false;
+			}
+
+			report_fail = false; // only report the first failure
+		}
+	}
+
+	return pass_check;
 }
