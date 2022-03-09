@@ -190,13 +190,7 @@ bool FlightTaskOrbit::update()
 {
 	bool ret = true;
 	_updateTrajectoryBoundaries();
-
-	// stick input adjusts parameters within a fixed time frame
-	float radius = _orbit_radius - _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_xy_cruise.get();
-	float velocity = _orbit_velocity - _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_acc_hor.get();
-	_sanitizeParams(radius, velocity);
-	_orbit_radius = radius;
-	_orbit_velocity = velocity;
+	_adjustParametersByStick();
 
 	if (_is_position_on_circle()) {
 		if (_in_circle_approach) {
@@ -215,7 +209,7 @@ bool FlightTaskOrbit::update()
 		// update altitude
 		ret = ret && FlightTaskManualAltitudeSmoothVel::update();
 
-		// this generates x / y setpoints
+		// this generates x, y and yaw setpoints
 		_generate_circle_setpoints();
 		_generate_circle_yaw_setpoints();
 	}
@@ -260,6 +254,33 @@ bool FlightTaskOrbit::_is_position_on_circle() const
 	return (fabsf(Vector2f(_position - _center).length() - _orbit_radius) < _horizontal_acceptance_radius)
 	       && fabsf(_position(2) - _center(2)) < _param_nav_mc_alt_rad.get();
 
+}
+
+void FlightTaskOrbit::_adjustParametersByStick()
+{
+	float radius = _orbit_radius;
+	float velocity = _orbit_velocity;
+
+	switch (_yaw_behaviour) {
+	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
+		radius -= _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_xy_cruise.get();
+		velocity += _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_acc_hor.get();
+		break;
+
+	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING:
+	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_UNCONTROLLED:
+	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_RC_CONTROLLED:
+	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER:
+	default:
+		// stick input adjusts parameters within a fixed time frame
+		radius -= _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_xy_cruise.get();
+		velocity -= _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_acc_hor.get();
+		break;
+	}
+
+	_sanitizeParams(radius, velocity);
+	_orbit_radius = radius;
+	_orbit_velocity = velocity;
 }
 
 void FlightTaskOrbit::_generate_circle_approach_setpoints()
