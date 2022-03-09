@@ -68,7 +68,8 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 		new_absolute_velocity = command.param2;
 	}
 
-	float new_velocity = (new_is_clockwise ? 1.f : -1.f) * new_absolute_velocity;
+	float new_velocity = signFromBool(new_is_clockwise) * new_absolute_velocity;
+	_started_clockwise = new_is_clockwise;
 	_sanitizeParams(new_radius, new_velocity);
 	_orbit_radius = new_radius;
 	_orbit_velocity = new_velocity;
@@ -263,8 +264,8 @@ void FlightTaskOrbit::_adjustParametersByStick()
 
 	switch (_yaw_behaviour) {
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
-		radius -= _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_xy_cruise.get();
-		velocity += _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_acc_hor.get();
+		radius -= signFromBool(_started_clockwise) * _sticks.getPositionExpo()(1) * _deltatime * _param_mpc_xy_cruise.get();
+		velocity += signFromBool(_started_clockwise) * _sticks.getPositionExpo()(0) * _deltatime * _param_mpc_acc_hor.get();
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_INITIAL_HEADING:
@@ -339,7 +340,8 @@ void FlightTaskOrbit::_generate_circle_yaw_setpoints()
 		break;
 
 	case orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TANGENT_TO_CIRCLE:
-		_yaw_setpoint = atan2f(sign(_orbit_velocity) * center_to_position(0), -sign(_orbit_velocity) * center_to_position(1));
+		_yaw_setpoint = atan2f(signFromBool(_started_clockwise) * center_to_position(0),
+				       -signFromBool(_started_clockwise) * center_to_position(1));
 		_yawspeed_setpoint = _orbit_velocity / _orbit_radius;
 		break;
 
