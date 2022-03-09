@@ -202,7 +202,7 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_states_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_status_pub.advertise();
-	_estimator_visual_odometry_aligned_pub.advertised();
+	_estimator_visual_odometry_aligned_pub.advertise();
 	_yaw_est_pub.advertise();
 
 	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu) && _magnetometer_sub.ChangeInstance(mag);
