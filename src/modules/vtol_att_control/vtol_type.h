@@ -195,7 +195,14 @@ public:
 
 	bool was_in_trans_mode() {return _flag_was_in_trans_mode;}
 
+	/**
+	 * @return Minimum front transition time scaled for air density (if available) [s]
+	*/
 	float getMinimumFrontTransitionTime() const;
+
+	/**
+	* @return Minimum open-loop front transition time scaled for air density (if available) [s]
+	*/
 	float getOpenLoopFrontTransitionTime() const;
 
 	virtual void parameters_update() = 0;
@@ -332,7 +339,9 @@ private:
 
 	void stopBlendingThrottleAfterFrontTransition() { _throttle_blend_start_ts = 0; }
 
-	// returns the estimated factor by which the front transition time increases due air density decrease
+	/**
+	 * @return Transition time scale factor for density.
+	*/
 	float getFrontTransitionTimeFactor() const;
 
 };

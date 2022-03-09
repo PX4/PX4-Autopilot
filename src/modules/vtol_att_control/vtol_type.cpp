@@ -655,7 +655,10 @@ float VtolType::getFrontTransitionTimeFactor() const
 	// transition_true_airspeed ~ sqrt(rho0 / rh0)
 	// average_acceleration ~ rho / rho0
 	// transition_time ~ sqrt(rho0/rh0) * rho0 / rho
-	const float rho = _attc->getAirDensity();
+
+	// low value: hot day at 4000m AMSL with some margin
+	// high value: cold day at 0m AMSL with some margin
+	const float rho = math::constrain(_attc->getAirDensity(), 0.7f, 1.5f);
 
 	if (PX4_ISFINITE(rho)) {
 		float rho0_over_rho = CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / rho;

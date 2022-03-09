@@ -126,7 +126,7 @@ public:
 	bool get_immediate_transition() {return _immediate_transition;}
 	void reset_immediate_transition() {_immediate_transition = false;}
 
-	float getAirDensity() { return _air_density; }
+	float getAirDensity() const { return _air_density; }
 
 	struct actuator_controls_s 			*get_actuators_fw_in() {return &_actuators_fw_in;}
 	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
@@ -210,7 +210,7 @@ private:
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
 
-	float _air_density{NAN};
+	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};	// [kg/m^3]
 
 	Params _params{};	// struct holding the parameters
 
