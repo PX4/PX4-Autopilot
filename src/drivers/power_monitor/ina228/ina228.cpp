@@ -124,7 +124,12 @@ int INA228::read(uint8_t address, int32_t &data)
 	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes) - 1);
 
 	if (ret == PX4_OK) {
-		data = swap32(received_bytes) >> ((32 - 24) + 4);
+		data = swap32(received_bytes) >> ((32 - 24) + 4); // Convert to 20bit value
+
+		// Handle negative 20bit twos complement
+		if (data & 0x80000) {
+			data = -((0x000FFFFF & ~data) + 1);
+		}
 
 	} else {
 		perf_count(_comms_errors);
