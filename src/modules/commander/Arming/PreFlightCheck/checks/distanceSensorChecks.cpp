@@ -42,35 +42,30 @@
 
 using namespace time_literals;
 
-bool PreFlightCheck::isDistSensRequired(const uint8_t instance)
-{
-	return false;
-}
-
 bool PreFlightCheck::distSensCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-				   const bool optional, const bool report_fail)
+				   const bool is_mandatory, bool &report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(distance_sensor), instance) == PX4_OK);
-	bool check_valid = false;
+	bool valid = false;
 
 	if (exists) {
 		uORB::SubscriptionData<distance_sensor_s> dist_sens_sub{ORB_ID(distance_sensor), instance};
 		dist_sens_sub.update();
 		const distance_sensor_s &dist_sens_data = dist_sens_sub.get();
 
-		check_valid = (hrt_elapsed_time(&dist_sens_data.timestamp) < 1_s);
+		valid = (hrt_elapsed_time(&dist_sens_data.timestamp) < 1_s);
+	}
 
-		if (!check_valid) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from distance sensor %u", instance);
-			}
-		}
-
-	} else {
-		if (!optional && report_fail) {
+	if (report_fail && is_mandatory) {
+		if (!exists) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: distance sensor %u missing", instance);
+			report_fail = false;
+
+		} else if (!valid) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from distance sensor %u", instance);
+			report_fail = false;
 		}
 	}
 
-	return check_valid;
+	return valid || !is_mandatory;
 }
