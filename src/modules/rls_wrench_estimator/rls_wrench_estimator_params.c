@@ -52,7 +52,7 @@
  * @unit kg
  * @group RLS Wrench Estimator
  */
-PARAM_DEFINE_FLOAT(RLS_EST_MASS, 0.8f);
+PARAM_DEFINE_FLOAT(RLS_EST_MASS, 1.04f);
 
 /**
  * Rotor Tilt Angle [deg]
@@ -67,7 +67,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_MASS, 0.8f);
  * @unit deg
  * @group RLS Wrench Estimator
  */
-PARAM_DEFINE_FLOAT(RLS_EST_TILT, 0.0f);
+PARAM_DEFINE_FLOAT(RLS_EST_TILT, 31.0f);
 
 /**
  * Motor Low-Pass Filter Time Constant [sec]
@@ -92,7 +92,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_LPF_M, 0.1f);
  * @max 50.0
  * @group RLS Wrench Estimator
  */
-PARAM_DEFINE_FLOAT(RLS_EST_KF_INIT, 0.5f);
+PARAM_DEFINE_FLOAT(RLS_EST_KF_INIT, 1.5f);
 
 /**
  * Initial thrust reduction guess (k_r*1e6)
@@ -102,7 +102,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_KF_INIT, 0.5f);
  * @max 50.0
  * @group RLS Wrench Estimator
  */
-PARAM_DEFINE_FLOAT(RLS_EST_KR_INIT, 0.f);
+PARAM_DEFINE_FLOAT(RLS_EST_KR_INIT, 0.1f);
 
 /**
  * Confidence in thrust constant initial guess
@@ -114,7 +114,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_KR_INIT, 0.f);
  * @max 100.0
  * @group RLS Wrench Estimator
  */
-PARAM_DEFINE_FLOAT(RLS_EST_KF_CONF, 1.f);
+PARAM_DEFINE_FLOAT(RLS_EST_KF_CONF, 0.001f);
 
 /**
  * Confidence in thrust reduction initial guess
@@ -126,7 +126,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_KF_CONF, 1.f);
  * @max 100.0
  * @group RLS Wrench Estimator
  */
-PARAM_DEFINE_FLOAT(RLS_EST_KR_CONF, 0.f);
+PARAM_DEFINE_FLOAT(RLS_EST_KR_CONF, 0.01f);
 
 /**
  * Accelerometer xy-noise for RLS parameter identification
@@ -157,7 +157,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_Z_NOISE, 10.f);
  * @min 4
  * @max 8
  */
-PARAM_DEFINE_INT32(RLS_EST_N_ROTORS, 4);
+PARAM_DEFINE_INT32(RLS_EST_N_ROTORS, 8);
 
 /**
  * PWM to motor speed conversion factor (rotor dependant)
@@ -258,7 +258,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_F_NOISE, 1.0f);
  * @max 50.0
  * @group RLS Wrench Estimator
  */
-PARAM_DEFINE_FLOAT(RLS_EST_KM, 1.041f);
+PARAM_DEFINE_FLOAT(RLS_EST_KM, 1.4f);
 
 /**
  * Vehicle Diameter [m]

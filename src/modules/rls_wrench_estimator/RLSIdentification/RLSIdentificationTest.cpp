@@ -36,8 +36,58 @@
 
 using namespace matrix;
 
-TEST(RLSIdentificationTest, Test1)
+class RLSIdentificationBasicTest : public ::testing::Test
 {
-	RLSIdentification rate_control;
-	EXPECT_EQ(18, 18);
+public:
+	RLSIdentificationBasicTest()
+	{
+		const float x_init[4] = {1.2f, 0.1f, 0.f, 0.f};
+		const float x_confidence[4] = {0.001f, 0.01f, 1000.f, 1000.f};
+		const float R_diag[5] = {1.f, 1.f, 10.f, 1.f, 1.f};
+		const VehicleParameters params{1.04f, math::radians(31.f), 8, 0.1f, 1.041f, 0.25f, 0.035f, 0.020f};
+		_rls_identification.initialize(x_init, x_confidence, R_diag, params);
+	}
+
+	RLSIdentification _rls_identification;
+
+	float _dt;
+	Vector<float, 8> _actuator_output{};
+	Vector3f _acc{};
+	Quatf _q;
+
+};
+
+
+TEST_F(RLSIdentificationBasicTest, Test1)
+{
+	_actuator_output.setAll(1500.f);
+	_actuator_output(0) = 1400.f;
+	_actuator_output(1) = 1400.f;
+	_actuator_output(2) = 1540.f;
+	_actuator_output(3) = 1500.f;
+	_actuator_output(4) = 1540.f;
+	_actuator_output(5) = 1540.f;
+	_actuator_output(6) = 1400.f;
+	_actuator_output(7) = 1355.f;
+	_dt = (0.004f);
+	_acc(0) = 0.4f;
+	_acc(1) = 0.f;
+	_acc(2) = -9.80665f;
+	_q = Quatf(1.f,0.f,0.f,0.f);
+
+
+	Vector2f x ;
+	Vector3f fi ;
+	for (size_t i = 0; i < 100000; i++)
+	{
+	_rls_identification.updateThrust(_acc*1.04f, _actuator_output*0.83333f, _dt, false);
+	_rls_identification.updateOffset(_q, false);
+	x = _rls_identification.getEstimationThrust();
+	fi = _rls_identification.getActuatorForceVector();
+	}
+
+	EXPECT_EQ(x(0), x(1));
+	EXPECT_EQ(fi(0), fi(2));
+	EXPECT_EQ(fi(1), fi(2));
+
 }

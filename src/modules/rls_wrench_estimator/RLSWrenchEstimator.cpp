@@ -92,7 +92,7 @@ void RLSWrenchEstimator::updateParams()
 		};
 
 		const struct VehicleParameters vehicle_params = {_param_rls_mass.get(),
-								_param_rls_tilt.get(),
+								math::radians(_param_rls_tilt.get()),
 								_param_rls_n_rotors.get(),
 								_param_rls_lpf_motor.get(),
 								_param_rls_km.get(),
