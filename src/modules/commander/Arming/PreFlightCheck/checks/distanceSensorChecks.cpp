@@ -42,6 +42,11 @@
 
 using namespace time_literals;
 
+bool PreFlightCheck::isDistSensRequired(const uint8_t instance)
+{
+	return false;
+}
+
 bool PreFlightCheck::distSensCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				   const bool optional, int32_t &device_id, const bool report_fail)
 {
