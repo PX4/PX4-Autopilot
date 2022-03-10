@@ -73,7 +73,7 @@ bool PreFlightCheck::baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	if (exists) {
 		uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
 
-		valid = (baro.get().device_id != 0) && (baro.get().timestamp != 0);
+		valid = (baro.get().device_id != 0) && (baro.get().timestamp != 0) && (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
 	}
 
 	if (instance == 0) {
