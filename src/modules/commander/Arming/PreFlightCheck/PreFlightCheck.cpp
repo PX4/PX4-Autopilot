@@ -246,9 +246,8 @@ bool PreFlightCheck::sensorAvailabilityCheck(const bool report_failure, const ui
 	/* check all sensors, but fail only for mandatory ones */
 	for (uint8_t i = 0u; i < max_optional_count; i++) {
 		const bool required = (i < max_mandatory_count) || isSensorRequired(i);
-		int32_t device_id = -1;
 
-		if (!sens_check(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
+		if (!sens_check(mavlink_log_pub, status, i, !required, report_fail)) {
 			if (required) {
 				pass_check = false;
 			}
