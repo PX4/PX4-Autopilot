@@ -61,7 +61,7 @@ bool PreFlightCheck::isMagRequired(const uint8_t instance)
 }
 
 bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-				       const bool optional, int32_t &device_id, const bool report_fail)
+				       const bool optional, const bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_mag), instance) == PX4_OK);
 	bool calibration_valid = false;
@@ -80,13 +80,11 @@ bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_st
 			}
 		}
 
-		device_id = magnetometer.get().device_id;
-
 		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 			calibration_valid = true;
 
 		} else {
-			calibration_valid = (calibration::FindCurrentCalibrationIndex("MAG", device_id) >= 0);
+			calibration_valid = (calibration::FindCurrentCalibrationIndex("MAG", magnetometer.get().device_id) >= 0);
 		}
 
 		if (!calibration_valid) {
@@ -98,7 +96,7 @@ bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_st
 		for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 			uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
 
-			if (estimator_status_sub.get().mag_device_id == static_cast<uint32_t>(device_id)) {
+			if (estimator_status_sub.get().mag_device_id == static_cast<uint32_t>(magnetometer.get().device_id)) {
 				if (estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT)) {
 					is_mag_fault = true;
 					break;

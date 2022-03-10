@@ -62,7 +62,7 @@ bool PreFlightCheck::isAccelRequired(const uint8_t instance)
 }
 
 bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-					const bool optional, int32_t &device_id, const bool report_fail)
+					const bool optional, const bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_accel), instance) == PX4_OK);
 	bool calibration_valid = false;
@@ -80,13 +80,11 @@ bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_s
 			}
 		}
 
-		device_id = accel.get().device_id;
-
 		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 			calibration_valid = true;
 
 		} else {
-			calibration_valid = (calibration::FindCurrentCalibrationIndex("ACC", device_id) >= 0);
+			calibration_valid = (calibration::FindCurrentCalibrationIndex("ACC", accel.get().device_id) >= 0);
 		}
 
 		if (!calibration_valid) {
