@@ -38,9 +38,26 @@
 #include <px4_defines.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_baro.h>
 
 using namespace time_literals;
+
+bool PreFlightCheck::isBaroRequired(const uint8_t instance)
+{
+	uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
+	const uint32_t device_id = static_cast<uint32_t>(baro.get().device_id);
+
+	for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
+
+		if (device_id > 0 && estimator_status_sub.get().baro_device_id == device_id) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 bool PreFlightCheck::baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			       const bool optional, int32_t &device_id, const bool report_fail)

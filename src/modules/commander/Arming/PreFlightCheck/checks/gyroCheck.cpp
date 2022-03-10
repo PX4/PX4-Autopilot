@@ -39,9 +39,26 @@
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_gyro.h>
 
 using namespace time_literals;
+
+bool PreFlightCheck::isGyroRequired(const uint8_t instance)
+{
+	uORB::SubscriptionData<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), instance};
+	const uint32_t device_id = static_cast<uint32_t>(gyro.get().device_id);
+
+	for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
+
+		if (device_id > 0 && estimator_status_sub.get().gyro_device_id == device_id) {
+			return true;
+		}
+	}
+
+	return false;
+}
 
 bool PreFlightCheck::gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			       const bool optional, int32_t &device_id, const bool report_fail)

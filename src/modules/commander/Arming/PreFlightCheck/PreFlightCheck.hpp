@@ -49,6 +49,7 @@
 
 typedef bool (*sens_check_func_t)(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				  const bool optional, int32_t &device_id, const bool report_fail);
+typedef bool (*is_sens_req_func_t)(uint8_t instance);
 
 class PreFlightCheck
 {
@@ -101,16 +102,21 @@ public:
 private:
 	static bool sensorAvailabilityCheck(const bool report_failure, const uint8_t max_mandatory_count,
 					    const uint8_t max_optional_count, orb_advert_t *mavlink_log_pub,
-					    vehicle_status_s &status, sens_check_func_t sens_check);
+					    vehicle_status_s &status, sens_check_func_t sens_check, is_sens_req_func_t isSensorRequired);
+	static bool isMagRequired(uint8_t instance);
 	static bool magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				      const bool optional, int32_t &device_id, const bool report_fail);
 	static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
+	static bool isAccelRequired(uint8_t instance);
 	static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				       const bool optional, int32_t &device_id, const bool report_fail);
+	static bool isGyroRequired(uint8_t instance);
 	static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			      const bool optional, int32_t &device_id, const bool report_fail);
+	static bool isBaroRequired(uint8_t instance);
 	static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			      const bool optional, int32_t &device_id, const bool report_fail);
+	static bool isDistSensRequired(uint8_t instance);
 	static bool distSensCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				  const bool optional, int32_t &device_id, const bool report_fail);
 	static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
