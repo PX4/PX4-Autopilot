@@ -48,7 +48,7 @@ bool PreFlightCheck::isDistSensRequired(const uint8_t instance)
 }
 
 bool PreFlightCheck::distSensCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-				   const bool optional, int32_t &device_id, const bool report_fail)
+				   const bool optional, const bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(distance_sensor), instance) == PX4_OK);
 	bool check_valid = false;
