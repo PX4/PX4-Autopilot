@@ -77,7 +77,8 @@ bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_s
 	if (exists) {
 		uORB::SubscriptionData<sensor_accel_s> accel{ORB_ID(sensor_accel), instance};
 
-		is_valid = (accel.get().device_id != 0) && (accel.get().timestamp != 0);
+		is_valid = (accel.get().device_id != 0) && (accel.get().timestamp != 0)
+			   && (hrt_elapsed_time(&accel.get().timestamp) < 1_s);
 
 		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 			is_calibration_valid = true;

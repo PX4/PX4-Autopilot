@@ -75,7 +75,8 @@ bool PreFlightCheck::gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	if (exists) {
 		uORB::SubscriptionData<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), instance};
 
-		is_valid = (gyro.get().device_id != 0) && (gyro.get().timestamp != 0);
+		is_valid = (gyro.get().device_id != 0) && (gyro.get().timestamp != 0)
+			   && (hrt_elapsed_time(&gyro.get().timestamp) < 1_s);
 
 		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 			is_calibration_valid = true;
