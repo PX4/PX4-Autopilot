@@ -282,10 +282,10 @@ inline void RLSIdentification::_createMomentVector()
 
 	//Bottom props reduction
 	const float Fr[8] = {0, 0, 0, 0,
-			     _xp_thrust(1) *_kf_multiplier *(w_lpf(1)*w_lpf(1)),
-			     _xp_thrust(1) *_kf_multiplier *(w_lpf(0)*w_lpf(0)),
-			     _xp_thrust(1) *_kf_multiplier *(w_lpf(3)*w_lpf(3)),
-			     _xp_thrust(1) *_kf_multiplier *(w_lpf(2)*w_lpf(2))
+			     _xp_thrust(1) * _kf_multiplier *(w_lpf(1)*w_lpf(1)),
+			     _xp_thrust(1) * _kf_multiplier *(w_lpf(0)*w_lpf(0)),
+			     _xp_thrust(1) * _kf_multiplier *(w_lpf(3)*w_lpf(3)),
+			     _xp_thrust(1) * _kf_multiplier *(w_lpf(2)*w_lpf(2))
 			};
 
 	for (int i = 0; i < 8; i++) {
@@ -302,7 +302,7 @@ inline void RLSIdentification::_createMomentVector()
 		Fi = q.conjugate(Vector3f(0.f, 0.f, -_xp_thrust(0) * _kf_multiplier * (w_lpf(i) * w_lpf(i))));
 		Fi += Vector3f(0.f, 0.f, Fr[i]);
 		Ft += Fi;
-		Pi = Vector3f(.5f * _diameter * sin(A[i]), .5f * _diameter * cos(A[i]), H[i]);
+		Pi = Vector3f(.5f * _diameter * sinf(A[i]), .5f * _diameter * cosf(A[i]), H[i]);
 		Qi += Pi.cross(Fi) + q.conjugate(Vector3f(0.f, 0.f, -_km * _km_multiplier * R[i] * (w_lpf(i) * w_lpf(i))));
 	}
 

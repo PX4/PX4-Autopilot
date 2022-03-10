@@ -204,6 +204,10 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
+	add_topic("rls_wrench_estimator");
+	add_topic("admittance_setpoint");
+	add_topic("vehicle_vector_thrust_setpoint");
+	add_topic("debug_vect");
 }
 
 void LoggedTopics::add_debug_topics()
