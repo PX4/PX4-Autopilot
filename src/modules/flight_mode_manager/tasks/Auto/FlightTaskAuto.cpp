@@ -245,7 +245,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	}
 
 	// User input assisted landing
-	if (_param_mpc_land_rc_help.get() && _sticks.checkAndSetStickInputs()) {
+	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
 		// Stick full up -1 -> stop, stick full down 1 -> double the speed
 		vertical_speed *= (1 + _sticks.getPositionExpo()(2));
 
