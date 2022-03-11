@@ -1269,7 +1269,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 		if (_device_id_gyro != 0) {
 			bias.gyro_device_id = _device_id_gyro;
 			gyro_bias.copyTo(bias.gyro_bias);
-			bias.gyro_bias_limit = math::radians(20.f); // 20 degrees/s see Ekf::constrainStates()
+			bias.gyro_bias_limit = _ekf.getGyroBiasLimit();
 			_ekf.getGyroBiasVariance().copyTo(bias.gyro_bias_variance);
 			bias.gyro_bias_valid = true;  // TODO
 			bias.gyro_bias_stable = _gyro_cal.cal_available;
@@ -1279,7 +1279,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS)) {
 			bias.accel_device_id = _device_id_accel;
 			accel_bias.copyTo(bias.accel_bias);
-			bias.accel_bias_limit = _params->acc_bias_lim;
+			bias.accel_bias_limit = _ekf.getAccelBiasLimit();
 			_ekf.getAccelBiasVariance().copyTo(bias.accel_bias_variance);
 			bias.accel_bias_valid = true;  // TODO
 			bias.accel_bias_stable = _accel_cal.cal_available;
@@ -1289,7 +1289,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 		if (_device_id_mag != 0) {
 			bias.mag_device_id = _device_id_mag;
 			mag_bias.copyTo(bias.mag_bias);
-			bias.mag_bias_limit = 0.5f; // 0.5 Gauss see Ekf::constrainStates()
+			bias.mag_bias_limit = _ekf.getMagBiasLimit();
 			_ekf.getMagBiasVariance().copyTo(bias.mag_bias_variance);
 			bias.mag_bias_valid = true; // TODO
 			bias.mag_bias_stable = _mag_cal.cal_available;
@@ -2070,115 +2070,90 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 	}
 }
 
-void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
+void EKF2::UpdateCalibration(const hrt_abstime &timestamp, InFlightCalibration &cal, const matrix::Vector3f &bias,
+			     const matrix::Vector3f &bias_variance, float bias_limit, bool bias_valid, bool learning_valid)
 {
-	if (_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS) {
-		_accel_cal.cal_available = false;
-		return;
-	}
-
+	// Check if conditions are OK for learning of accelerometer bias values
+	// the EKF is operating in the correct mode and there are no filter faults
 	static constexpr float max_var_allowed = 1e-3f;
 	static constexpr float max_var_ratio = 1e2f;
 
-	const Vector3f bias_variance{_ekf.getAccelBiasVariance()};
+	const bool valid = bias_valid
+			   && (bias_variance.max() < max_var_allowed)
+			   && (bias_variance.max() < max_var_ratio * bias_variance.min());
 
-	// Check if conditions are OK for learning of accelerometer bias values
-	// the EKF is operating in the correct mode and there are no filter faults
-	if ((_ekf.fault_status().value == 0)
-	    && !_ekf.accel_bias_inhibited()
-	    && !_preflt_checker.hasHorizFailed() && !_preflt_checker.hasVertFailed()
-	    && (_ekf.control_status_flags().baro_hgt || _ekf.control_status_flags().rng_hgt
-		|| _ekf.control_status_flags().gps_hgt || _ekf.control_status_flags().ev_hgt)
-	    && !_ekf.warning_event_flags().height_sensor_timeout && !_ekf.warning_event_flags().invalid_accel_bias_cov_reset
-	    && !_ekf.innov_check_fail_status_flags().reject_ver_pos && !_ekf.innov_check_fail_status_flags().reject_ver_vel
-	    && (bias_variance.max() < max_var_allowed) && (bias_variance.max() < max_var_ratio * bias_variance.min())
-	   ) {
+	if (valid && learning_valid) {
+		// consider bias estimates stable when all checks pass consistently and bias hasn't changed more than 10% of the limit
+		const float bias_change_limit = 0.1f * bias_limit;
 
-		if (_accel_cal.last_us != 0) {
-			_accel_cal.total_time_us += timestamp - _accel_cal.last_us;
+		if ((cal.last_us != 0) && !(cal.bias - bias).longerThan(bias_change_limit)) {
+			cal.total_time_us += timestamp - cal.last_us;
 
-			// consider bias estimates stable when we have accumulated sufficient time
-			if (_accel_cal.total_time_us > 30_s) {
-				_accel_cal.cal_available = true;
+			if (cal.total_time_us > 30_s) {
+				cal.cal_available = true;
 			}
+
+		} else {
+			cal.total_time_us = 0;
+			cal.bias = bias;
+			cal.cal_available = false;
 		}
 
-		_accel_cal.last_us = timestamp;
+		cal.last_us = timestamp;
 
 	} else {
-		_accel_cal = {};
+		// conditions are NOT OK for learning bias, reset timestamp
+		// but keep the accumulated calibration time
+		cal.last_us = 0;
+
+		if (!valid && (cal.total_time_us != 0)) {
+			// if a filter fault has occurred, assume previous learning was invalid and do not
+			// count it towards total learning time.
+			cal = {};
+		}
 	}
+}
+
+void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
+{
+	// the EKF is operating in the correct mode and there are no filter faults
+	const bool bias_valid = !(_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS)
+				&& _ekf.control_status_flags().tilt_align
+				&& (_ekf.fault_status().value == 0)
+				&& !_ekf.fault_status_flags().bad_acc_bias
+				&& !_ekf.fault_status_flags().bad_acc_clipping
+				&& !_ekf.fault_status_flags().bad_acc_vertical
+				&& !_ekf.warning_event_flags().invalid_accel_bias_cov_reset;
+
+	const bool learning_valid = bias_valid && !_ekf.accel_bias_inhibited();
+
+	UpdateCalibration(timestamp, _accel_cal, _ekf.getAccelBias(), _ekf.getAccelBiasVariance(), _ekf.getAccelBiasLimit(),
+			  bias_valid, learning_valid);
 }
 
 void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 {
-	static constexpr float max_var_allowed = 1e-3f;
-	static constexpr float max_var_ratio = 1e2f;
-
-	const Vector3f bias_variance{_ekf.getGyroBiasVariance()};
-
-	// Check if conditions are OK for learning of gyro bias values
 	// the EKF is operating in the correct mode and there are no filter faults
-	if ((_ekf.fault_status().value == 0)
-	    && (bias_variance.max() < max_var_allowed) && (bias_variance.max() < max_var_ratio * bias_variance.min())
-	   ) {
+	const bool bias_valid = _ekf.control_status_flags().tilt_align
+				&& (_ekf.fault_status().value == 0);
 
-		if (_gyro_cal.last_us != 0) {
-			_gyro_cal.total_time_us += timestamp - _gyro_cal.last_us;
+	const bool learning_valid = bias_valid; // TODO
 
-			// consider bias estimates stable when we have accumulated sufficient time
-			if (_gyro_cal.total_time_us > 30_s) {
-				_gyro_cal.cal_available = true;
-			}
-		}
-
-		_gyro_cal.last_us = timestamp;
-
-	} else {
-		// conditions are NOT OK for learning bias, reset
-		_gyro_cal = {};
-	}
+	UpdateCalibration(timestamp, _gyro_cal, _ekf.getGyroBias(), _ekf.getGyroBiasVariance(), _ekf.getGyroBiasLimit(),
+			  bias_valid, learning_valid);
 }
 
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
-	// Check if conditions are OK for learning of magnetometer bias values
-	// the EKF is operating in the correct mode and there are no filter faults
+	const bool bias_valid = (_ekf.control_status_flags().mag_hdg || _ekf.control_status_flags().mag_3D)
+				&& _ekf.control_status_flags().mag_aligned_in_flight
+				&& !_ekf.control_status_flags().mag_fault
+				&& !_ekf.control_status_flags().mag_field_disturbed;
 
-	static constexpr float max_var_allowed = 1e-3f;
-	static constexpr float max_var_ratio = 1e2f;
+	const bool learning_valid = bias_valid && _ekf.control_status_flags().mag_3D;
 
-	const Vector3f bias_variance{_ekf.getMagBiasVariance()};
-
-	bool valid = _ekf.control_status_flags().in_air
-		     && (_ekf.fault_status().value == 0)
-		     && (bias_variance.max() < max_var_allowed)
-		     && (bias_variance.max() < max_var_ratio * bias_variance.min());
-
-	if (valid && _ekf.control_status_flags().mag_3D) {
-
-		if (_mag_cal.last_us != 0) {
-			_mag_cal.total_time_us += timestamp - _mag_cal.last_us;
-
-			// consider bias estimates stable when we have accumulated sufficient time
-			if (_mag_cal.total_time_us > 30_s) {
-				_mag_cal.cal_available = true;
-			}
-		}
-
-		_mag_cal.last_us = timestamp;
-
-	} else {
-		// conditions are NOT OK for learning magnetometer bias, reset timestamp
-		// but keep the accumulated calibration time
-		_mag_cal.last_us = 0;
-
-		if (!valid) {
-			// if a filter fault has occurred, assume previous learning was invalid and do not
-			// count it towards total learning time.
-			_mag_cal.total_time_us = 0;
-		}
-	}
+	UpdateCalibration(timestamp, _mag_cal, _ekf.getMagBias(), _ekf.getMagBiasVariance(), _ekf.getMagBiasLimit(),
+			  bias_valid, learning_valid);
 
 	// update stored declination value
 	if (!_mag_decl_saved) {
