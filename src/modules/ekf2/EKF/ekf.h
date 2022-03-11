@@ -298,13 +298,18 @@ public:
 	// get the terrain variance
 	float get_terrain_var() const { return _terrain_var; }
 
+	// gyro bias (states 10, 11, 12)
 	Vector3f getGyroBias() const { return _state.delta_ang_bias / _dt_ekf_avg; } // get the gyroscope bias in rad/s
-	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; } // get the accelerometer bias in m/s**2
-	const Vector3f &getMagBias() const { return _state.mag_B; }
-
 	Vector3f getGyroBiasVariance() const { return Vector3f{P(10, 10), P(11, 11), P(12, 12)} / sq(_dt_ekf_avg); } // get the gyroscope bias variance in rad/s
-	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)} / sq(_dt_ekf_avg); } // get the accelerometer bias variance in m/s**2
+	float getGyroBiasLimit() const { return math::radians(20.f); } // 20 degrees/s
 
+	// accel bias (states 13, 14, 15)
+	Vector3f getAccelBias() const { return _state.delta_vel_bias / _dt_ekf_avg; } // get the accelerometer bias in m/s**2
+	Vector3f getAccelBiasVariance() const { return Vector3f{P(13, 13), P(14, 14), P(15, 15)} / sq(_dt_ekf_avg); } // get the accelerometer bias variance in m/s**2
+	float getAccelBiasLimit() const { return _params.acc_bias_lim; }
+
+	// mag bias (states 19, 20, 21)
+	const Vector3f &getMagBias() const { return _state.mag_B; }
 	Vector3f getMagBiasVariance() const
 	{
 		if (_control_status.flags.mag_3D) {
@@ -313,6 +318,7 @@ public:
 
 		return _saved_mag_bf_variance;
 	}
+	float getMagBiasLimit() const { return 0.5f; } // 0.5 Gauss
 
 	bool accel_bias_inhibited() const { return _accel_bias_inhibit[0] || _accel_bias_inhibit[1] || _accel_bias_inhibit[2]; }
 
