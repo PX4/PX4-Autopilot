@@ -501,14 +501,14 @@ void Ekf::constrainStates()
 	_state.vel = matrix::constrain(_state.vel, -1000.0f, 1000.0f);
 	_state.pos = matrix::constrain(_state.pos, -1.e6f, 1.e6f);
 
-	const float delta_ang_bias_limit = math::radians(20.f) * _dt_ekf_avg;
+	const float delta_ang_bias_limit = getGyroBiasLimit() * _dt_ekf_avg;
 	_state.delta_ang_bias = matrix::constrain(_state.delta_ang_bias, -delta_ang_bias_limit, delta_ang_bias_limit);
 
-	const float delta_vel_bias_limit = _params.acc_bias_lim * _dt_ekf_avg;
+	const float delta_vel_bias_limit = getAccelBiasLimit() * _dt_ekf_avg;
 	_state.delta_vel_bias = matrix::constrain(_state.delta_vel_bias, -delta_vel_bias_limit, delta_vel_bias_limit);
 
 	_state.mag_I = matrix::constrain(_state.mag_I, -1.0f, 1.0f);
-	_state.mag_B = matrix::constrain(_state.mag_B, -0.5f, 0.5f);
+	_state.mag_B = matrix::constrain(_state.mag_B, -getMagBiasLimit(), getMagBiasLimit());
 	_state.wind_vel = matrix::constrain(_state.wind_vel, -100.0f, 100.0f);
 }
 
