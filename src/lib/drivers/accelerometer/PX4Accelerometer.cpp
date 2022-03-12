@@ -35,7 +35,6 @@
 #include "PX4Accelerometer.hpp"
 
 #include <lib/drivers/device/Device.hpp>
-#include <lib/parameters/param.h>
 
 using namespace time_literals;
 
@@ -72,8 +71,6 @@ PX4Accelerometer::PX4Accelerometer(uint32_t device_id, enum Rotation rotation) :
 {
 	// advertise immediately to keep instance numbering in sync
 	_sensor_pub.advertise();
-
-	param_get(param_find("IMU_GYRO_RATEMAX"), &_imu_gyro_rate_max);
 }
 
 PX4Accelerometer::~PX4Accelerometer()
