@@ -7,6 +7,9 @@
 
 set VEHICLE_TYPE rover
 
+# MAV_TYPE_GROUND_ROVER 10
+param set-default MAV_TYPE 10
+
 #
 # Default parameters for UGVs.
 #

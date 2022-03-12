@@ -29,7 +29,6 @@ set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
-set MAV_TYPE none
 set MIXER none
 set MIXER_AUX none
 set MIXER_FILE none
@@ -573,7 +572,6 @@ unset IO_PRESENT
 unset IOFW
 unset LOGGER_ARGS
 unset LOGGER_BUF
-unset MAV_TYPE
 unset MIXER
 unset MIXER_AUX
 unset MIXER_FILE

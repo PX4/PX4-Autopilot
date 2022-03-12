@@ -24,7 +24,6 @@ fi
 
 # initialize script variables
 set IO_PRESENT                  no
-set MAV_TYPE                    none
 set MIXER                       none
 set MIXER_AUX                   none
 set MIXER_FILE                  none
