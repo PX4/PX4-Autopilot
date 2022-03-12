@@ -69,16 +69,15 @@
 #define VEHICLE_TYPE_COAXIAL 3
 #define VEHICLE_TYPE_HELICOPTER 4
 #define VEHICLE_TYPE_GROUND_ROVER 10
+#define VEHICLE_TYPE_BOAT 11
+#define VEHICLE_TYPE_SUBMARINE 12
 #define VEHICLE_TYPE_HEXAROTOR 13
 #define VEHICLE_TYPE_OCTOROTOR 14
 #define VEHICLE_TYPE_TRICOPTER 15
 #define VEHICLE_TYPE_VTOL_DUOROTOR 19
 #define VEHICLE_TYPE_VTOL_QUADROTOR 20
 #define VEHICLE_TYPE_VTOL_TILTROTOR 21
-#define VEHICLE_TYPE_VTOL_RESERVED2 22
-#define VEHICLE_TYPE_VTOL_RESERVED3 23
-#define VEHICLE_TYPE_VTOL_RESERVED4 24
-#define VEHICLE_TYPE_VTOL_RESERVED5 25
+#define VEHICLE_TYPE_VTOL_RESERVED2 22 // VTOL standard
 
 #define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
 
@@ -101,10 +100,7 @@ bool is_vtol(const vehicle_status_s &current_status)
 	return (current_status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
 		current_status.system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
 		current_status.system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_RESERVED2 ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_RESERVED3 ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_RESERVED4 ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_RESERVED5);
+		current_status.system_type == VEHICLE_TYPE_VTOL_RESERVED2);
 }
 
 bool is_vtol_tailsitter(const vehicle_status_s &current_status)

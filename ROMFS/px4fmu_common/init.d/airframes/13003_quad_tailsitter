@@ -13,6 +13,8 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+param set-default MAV_TYPE 20
+
 param set-default CA_AIRFRAME 4
 param set-default CA_ROTOR_COUNT 4
 param set-default CA_ROTOR0_PX 0.15
@@ -38,7 +40,6 @@ param set-default PWM_MAIN_MAX 2000
 param set-default VT_MOT_ID 1234
 param set-default VT_IDLE_PWM_MC  1080
 param set-default VT_TYPE 0
-set MAV_TYPE 20
 
 set MIXER quad_x_vtol
 
