@@ -344,9 +344,9 @@ protected:
 
 	bool _deadreckon_time_exceeded{true};	// true if the horizontal nav solution has been deadreckoning for too long and is invalid
 
-	float _gps_horizontal_position_drift_rate_m_s{0}; // Horizontal position drift rate (m/s)
-	float _gps_vertical_position_drift_rate_m_s{0};   // Vertical position drift rate (m/s)
-	float _gps_filtered_horizontal_velocity_m_s{0};   // Filtered horizontal velocity (m/s)
+	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
+	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)
+	float _gps_filtered_horizontal_velocity_m_s{NAN};   // Filtered horizontal velocity (m/s)
 
 	uint64_t _time_last_on_ground_us{0};	///< last time we were on the ground (uSec)
 	uint64_t _time_last_in_air{0};		///< last time we were in air (uSec)
