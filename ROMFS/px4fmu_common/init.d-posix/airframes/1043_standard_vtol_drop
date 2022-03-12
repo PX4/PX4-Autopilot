@@ -51,7 +51,5 @@ param set-default RC_MAP_AUX1 8
 param set-default RC_MAP_AUX2 9
 param set-default RC_MAP_AUX3 10
 
-set MAV_TYPE 22
-
 set MIXER_FILE etc/mixers-sitl/standard_vtol_sitl.main.mix
 set MIXER custom

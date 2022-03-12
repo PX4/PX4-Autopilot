@@ -104,7 +104,7 @@ param set-default CBRK_SUPPLY_CHK 894281
 param set-default COM_PREARM_MODE 0
 param set-default CBRK_IO_SAFETY 22027
 
-set MAV_TYPE 22
+param set-default MAV_TYPE 22
 
 set MIXER standard_vtol_hitl
 
