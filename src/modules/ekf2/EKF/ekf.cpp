@@ -85,6 +85,8 @@ void Ekf::reset()
 
 	_prev_dvel_bias_var.zero();
 
+	_never_moved = true;
+
 	resetGpsDriftCheckFilters();
 }
 
@@ -164,10 +166,11 @@ bool Ekf::initialiseFilter()
 	if (_baro_buffer && _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
 		if (_baro_sample_delayed.time_us != 0) {
 			if (_baro_counter == 0) {
+				_baro_lpf.reset(_baro_sample_delayed.hgt);
 				_baro_hgt_offset = _baro_sample_delayed.hgt;
 
 			} else {
-				_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
+				_baro_hgt_offset = _baro_lpf.update(_baro_sample_delayed.hgt);
 			}
 
 			_baro_counter++;
@@ -175,13 +178,13 @@ bool Ekf::initialiseFilter()
 	}
 
 	if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
-		if (_mag_counter < _obs_buffer_length) {
+		if (_mag_counter == 0) {
 			// not enough mag samples accumulated
 			return false;
 		}
 	}
 
-	if (_baro_counter < _obs_buffer_length) {
+	if (_baro_counter == 0) {
 		// not enough baro samples accumulated
 		return false;
 	}

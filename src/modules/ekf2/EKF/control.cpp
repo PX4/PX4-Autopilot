@@ -85,12 +85,27 @@ void Ekf::controlFusionModes()
 		}
 	}
 
+	if (_never_moved && (!_control_status.flags.vehicle_at_rest || _control_status.flags.in_air)) {
+		PX4_WARN("moved");
+		_never_moved = false;
+	}
+
 	if (_baro_buffer) {
 		// check for intermittent data
 		_baro_hgt_intermittent = !isRecent(_time_last_baro, 2 * BARO_MAX_INTERVAL);
 
 		const uint64_t baro_time_prev = _baro_sample_delayed.time_us;
 		_baro_data_ready = _baro_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed);
+
+		if (_baro_data_ready) {
+			_baro_lpf.update(_baro_sample_delayed.hgt);
+			_baro_counter++;
+		}
+
+		if (_never_moved && _control_status.flags.baro_hgt) {
+			// continue updating baro height offset if we've never moved
+			_baro_hgt_offset = _baro_lpf.getState();
+		}
 
 		// if we have a new baro sample save the delta time between this sample and the last sample which is
 		// used below for baro offset calculations
