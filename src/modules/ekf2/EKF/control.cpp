@@ -181,6 +181,8 @@ void Ekf::controlFusionModes()
 	// Additional horizontal velocity data from an auxiliary sensor can be fused
 	controlAuxVelFusion();
 
+	controlZeroVelocityUpdate();
+
 	// Fake position measurement for constraining drift when no other velocity or position measurements
 	controlFakePosFusion();
 
@@ -476,6 +478,7 @@ void Ekf::controlOpticalFlowFusion()
 			// If the heading is valid and use is not inhibited , start using optical flow aiding
 			if (_control_status.flags.yaw_align || _params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
 				// set the flag and reset the fusion timeout
+				ECL_INFO("starting optical flow fusion");
 				_control_status.flags.opt_flow = true;
 				_time_last_of_fuse = _time_last_imu;
 
@@ -512,7 +515,7 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 	} else if (_control_status.flags.opt_flow
-		   && (_imu_sample_delayed.time_us >  _flow_sample_delayed.time_us + (uint64_t)10e6)) {
+		   && (_imu_sample_delayed.time_us > _flow_sample_delayed.time_us + (uint64_t)10e6)) {
 
 		stopFlowFusion();
 	}
