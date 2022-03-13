@@ -1011,12 +1011,21 @@ void Ekf::update_deadreckoning_status()
 	_control_status.flags.inertial_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
 
 	if (!_control_status.flags.inertial_dead_reckoning) {
-		_time_last_aiding = _time_last_imu - _params.no_aid_timeout_max;
+		if (_time_last_imu > _params.no_aid_timeout_max) {
+			_time_last_aiding = _time_last_imu - _params.no_aid_timeout_max;
+		}
 	}
 
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
-	_deadreckon_time_exceeded = (_time_last_aiding == 0)
+	bool deadreckon_time_exceeded = (_time_last_aiding == 0)
 				    || isTimedOut(_time_last_aiding, (uint64_t)_params.valid_timeout_max);
+
+	if (!_deadreckon_time_exceeded && deadreckon_time_exceeded) {
+		// deadreckon time now exceeded
+		ECL_WARN("dead reckon time exceeded");
+	}
+
+	_deadreckon_time_exceeded = deadreckon_time_exceeded;
 }
 
 // calculate the variances for the rotation vector equivalent
@@ -1652,10 +1661,13 @@ void Ekf::stopAuxVelFusion()
 
 void Ekf::stopFlowFusion()
 {
-	_control_status.flags.opt_flow = false;
-	_flow_innov.setZero();
-	_flow_innov_var.setZero();
-	_optflow_test_ratio = 0.0f;
+	if (_control_status.flags.opt_flow) {
+		ECL_INFO("stopping optical flow fusion");
+		_control_status.flags.opt_flow = false;
+		_flow_innov.setZero();
+		_flow_innov_var.setZero();
+		_optflow_test_ratio = 0.0f;
+	}
 }
 
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
