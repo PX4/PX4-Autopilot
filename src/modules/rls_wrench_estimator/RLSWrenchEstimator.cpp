@@ -187,6 +187,12 @@ void RLSWrenchEstimator::Run()
 		debug_vect_s flags_vect;
 		_debug_vect_sub.copy(&flags_vect);
 		_interaction_flag = (flags_vect.x > 0.5f);
+
+		_debug_timestamp_last = hrt_absolute_time();
+	}
+
+	if (hrt_elapsed_time(&_debug_timestamp_last) > 1_s) {
+		_interaction_flag = false; //timeout case external link lost
 	}
 
 // Guard against too small (< 0.2ms) and too large (> 20ms) dt's.

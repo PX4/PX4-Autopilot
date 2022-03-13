@@ -161,4 +161,5 @@ private:
 	bool _sp_updated{false};
 	bool _admittance_flag{false};  //Need to receive value from mavlink
 	float _target_dist{};//Need to receive value from mavlink
+	hrt_abstime _debug_timestamp_last{};
 };

@@ -159,7 +159,8 @@ inline void RLSIdentification::_createHThrust(Vector<float, 8> &W)
 	H(1, 1) = 0.f;
 	H(2, 0) = -cosf(_tilt_angle) * _kf_multiplier * ((W(0) * W(0)) + (W(1) * W(1)) + (W(2) * W(2)) + (W(3) * W(3)) +
 									(W(4) * W(4)) + (W(5) * W(5)) + (W(6) * W(6)) + (W(7) * W(7)));
-	H(2, 1) = cosf(_tilt_angle) * _kf_multiplier * ((W(0) * W(0)) + (W(1) * W(1)) + (W(2) * W(2)) + (W(3) * W(3)));
+	H(2, 1) = _kf_multiplier * ((W(0) * W(0)) + (W(1) * W(1)) + (W(2) * W(2)) + (W(3) * W(3)));
+	// H(2, 1) = cosf(_tilt_angle) * _kf_multiplier * ((W(0) * W(0)) + (W(1) * W(1)) + (W(2) * W(2)) + (W(3) * W(3)));
 
 	_H_thrust = H;
 }

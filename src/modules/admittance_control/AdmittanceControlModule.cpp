@@ -162,11 +162,19 @@ void AdmittanceControlModule::Run()
 
 	vehicle_local_position_setpoint_s admittance_sp{};
 
+
 	if (_debug_vect_sub.updated()) {
 		debug_vect_s flags_vect;
 		_debug_vect_sub.copy(&flags_vect);
 		_admittance_flag = (flags_vect.y > 0.5f);
 		_target_dist = (flags_vect.z);
+
+		_debug_timestamp_last = hrt_absolute_time();
+	}
+
+	if (hrt_elapsed_time(&_debug_timestamp_last) > 1_s) {
+		_admittance_flag = false; //timeout case external link lost
+		_target_dist = 99;
 	}
 
 	// Guard against too small (< 1ms) and too large (> 1000ms) dt's.

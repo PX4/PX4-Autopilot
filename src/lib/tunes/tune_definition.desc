@@ -86,7 +86,8 @@
 //           ordinal name                  tune                                        interruptable*     hint
 //  * Repeated tunes should always be defined as interruptable, if not an explict 'tone_control stop' is needed
 PX4_DEFINE_TUNE(0,  CUSTOM,                "",                                              true  /*  empty to align with the index */)
-PX4_DEFINE_TUNE(1,  STARTUP,               "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",  true  /*  startup tune */)
+PX4_DEFINE_TUNE(1,  STARTUP,               "T180<<O2E8E8P8E8P8C8E8P8G8P4P8O1G8P8O0P8P8",  true  /*  startup tune */)
+//PX4_DEFINE_TUNE(1,  STARTUP,               "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",  true  /*  startup tune */)
 PX4_DEFINE_TUNE(2,  ERROR_TUNE,            "MBT200a8a8a8PaaaP",                             true  /*  ERROR tone */)
 PX4_DEFINE_TUNE(3,  NOTIFY_POSITIVE,       "MFT200e8a8a",                                   true  /*  Notify Positive tone */)
 PX4_DEFINE_TUNE(4,  NOTIFY_NEUTRAL,        "MFT200e8e",                                     true  /*  Notify Neutral tone */)

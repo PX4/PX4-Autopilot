@@ -160,4 +160,5 @@ private:
 	bool _valid{false};
 	bool _finite{false};
 	bool _interaction_flag{false};
+	hrt_abstime _debug_timestamp_last{};
 };
