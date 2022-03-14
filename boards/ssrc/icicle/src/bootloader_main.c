@@ -46,7 +46,6 @@
 #include <arch/board/board.h>
 #include <px4_platform_common/init.h>
 #include <debug.h>
-#include "riscv_arch.h"
 
 extern int sercon_main(int c, char **argv);
 
