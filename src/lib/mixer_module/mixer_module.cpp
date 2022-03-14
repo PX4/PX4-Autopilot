@@ -269,7 +269,7 @@ bool MixingOutput::updateSubscriptionsStaticMixer(bool allow_wq_switch, bool lim
 		const bool sub_group_1 = (_groups_required & (1 << 1));
 
 		if (allow_wq_switch && !_wq_switched && (sub_group_0 || sub_group_1)) {
-			if (_interface.ChangeWorkQeue(px4::wq_configurations::rate_ctrl)) {
+			if (_interface.ChangeWorkQueue(px4::wq_configurations::rate_ctrl)) {
 				// let the new WQ handle the subscribe update
 				_wq_switched = true;
 				_interface.ScheduleNow();
@@ -374,7 +374,7 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 		}
 
 		if (allow_wq_switch && !_wq_switched && switch_requested) {
-			if (_interface.ChangeWorkQeue(px4::wq_configurations::rate_ctrl)) {
+			if (_interface.ChangeWorkQueue(px4::wq_configurations::rate_ctrl)) {
 				// let the new WQ handle the subscribe update
 				_wq_switched = true;
 				_interface.ScheduleNow();
