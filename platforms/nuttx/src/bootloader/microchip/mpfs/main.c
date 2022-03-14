@@ -53,7 +53,6 @@
 
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/fs/partition.h>
-#include "riscv_arch.h"
 
 #include "image_toc.h"
 
