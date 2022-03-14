@@ -99,7 +99,7 @@ private:
 
 	float _dt{0.01f}; //< Sampling Time
 	Vector<float, 8> _y{};
-	Vector<float, 4> _u{};
+	Vector<float, 4> _We{};
 	Vector3f _acc_sp{};
 	vehicle_local_position_setpoint_s _admittance_sp_ned{};
 

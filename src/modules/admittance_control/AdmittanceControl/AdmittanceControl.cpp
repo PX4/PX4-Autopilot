@@ -42,7 +42,7 @@ void AdmittanceControl::initialize(BellParameters &bell_params)
 {
 
 	_y = zeros<float, 8, 1>();
-	_u = zeros<float, 4, 1>();
+	_We = zeros<float, 4, 1>();
 
 	_params_bell = bell_params;
 
@@ -68,7 +68,7 @@ void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, cons
 {
 
 	_dt = dt;
-	_u = We;
+	_We = We;
 
 	Vector<float, 8> U = (u - 1500);
 	U.abs();
@@ -98,25 +98,25 @@ void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, cons
 	vel_sp = q.conjugate_inversed(vel_sp);
 	acc_sp = q.conjugate_inversed(acc_sp);
 
-	_params.M[0] = (_params_bell.M_min[0] + ((_params_bell.M_max[0] - _params_bell.M_min[0]) / (1 + pow(abs((_u(0)) / (a[0])), (2 * b[0])))));
-	_params.M[1] = (_params_bell.M_min[1] + ((_params_bell.M_max[1] - _params_bell.M_min[1]) / (1 + pow(abs((_u(1)) / (a[1])), (2 * b[1])))));
-	_params.M[2] = (_params_bell.M_min[2] + ((_params_bell.M_max[2] - _params_bell.M_min[2]) / (1 + pow(abs((_u(2)) / (a[2])), (2 * b[2])))));
-	_params.M[3] = (_params_bell.M_min[3] + ((_params_bell.M_max[3] - _params_bell.M_min[3]) / (1 + pow(abs((_u(3)) / (a[3])), (2 * b[3])))));
+	_params.M[0] = (_params_bell.M_min[0] + ((_params_bell.M_max[0] - _params_bell.M_min[0]) / (1 + pow(abs((_We(0)) / (a[0])), (2 * b[0])))));
+	_params.M[1] = (_params_bell.M_min[1] + ((_params_bell.M_max[1] - _params_bell.M_min[1]) / (1 + pow(abs((_We(1)) / (a[1])), (2 * b[1])))));
+	_params.M[2] = (_params_bell.M_min[2] + ((_params_bell.M_max[2] - _params_bell.M_min[2]) / (1 + pow(abs((_We(2)) / (a[2])), (2 * b[2])))));
+	_params.M[3] = (_params_bell.M_min[3] + ((_params_bell.M_max[3] - _params_bell.M_min[3]) / (1 + pow(abs((_We(3)) / (a[3])), (2 * b[3])))));
 
-	_params.K[0] = (_params_bell.K_min[0] + ((_params_bell.K_max[0] - _params_bell.K_min[0]) / (1 + pow(abs((_u(0)) / (a[0])), (2 * b[0])))));
-	_params.K[1] = (_params_bell.K_min[1] + ((_params_bell.K_max[1] - _params_bell.K_min[1]) / (1 + pow(abs((_u(1)) / (a[1])), (2 * b[1])))));
-	_params.K[2] = (_params_bell.K_min[2] + ((_params_bell.K_max[2] - _params_bell.K_min[2]) / (1 + pow(abs((_u(2)) / (a[2])), (2 * b[2])))));
-	_params.K[3] = (_params_bell.K_min[3] + ((_params_bell.K_max[3] - _params_bell.K_min[3]) / (1 + pow(abs((_u(3)) / (a[3])), (2 * b[3])))));
+	_params.K[0] = (_params_bell.K_min[0] + ((_params_bell.K_max[0] - _params_bell.K_min[0]) / (1 + pow(abs((_We(0)) / (a[0])), (2 * b[0])))));
+	_params.K[1] = (_params_bell.K_min[1] + ((_params_bell.K_max[1] - _params_bell.K_min[1]) / (1 + pow(abs((_We(1)) / (a[1])), (2 * b[1])))));
+	_params.K[2] = (_params_bell.K_min[2] + ((_params_bell.K_max[2] - _params_bell.K_min[2]) / (1 + pow(abs((_We(2)) / (a[2])), (2 * b[2])))));
+	_params.K[3] = (_params_bell.K_min[3] + ((_params_bell.K_max[3] - _params_bell.K_min[3]) / (1 + pow(abs((_We(3)) / (a[3])), (2 * b[3])))));
 
 	_params.C[0] = 2 * sqrt(_params.K[0] * _params.M[0]);
 	_params.C[1] = 2 * sqrt(_params.K[1] * _params.M[1]);
 	_params.C[2] = 2 * sqrt(_params.K[2] * _params.M[2]);
 	_params.C[3] = 2 * sqrt(_params.K[3] * _params.M[3]);
 
-	_params.Fd[0] = _params.M[0] * acc_sp(0) + _params.C[0] * vel_sp(0) + _params.K[0] * pos_sp(0) ;
-	_params.Fd[1] = _params.M[1] * acc_sp(1) + _params.C[1] * vel_sp(1) + _params.K[1] * pos_sp(1) ;
-	_params.Fd[2] = _params.M[2] * acc_sp(2) + _params.C[2] * vel_sp(2) + _params.K[2] * pos_sp(2) ;
-	_params.Fd[3] = _params.C[3] * setpoint.yawspeed + _params.K[3] * setpoint.yaw;
+	_params.Fd[0] = (_params.M[0] * acc_sp(0)) + (_params.C[0] * vel_sp(0)) + (_params.K[0] * pos_sp(0));
+	_params.Fd[1] = (_params.M[1] * acc_sp(1)) + (_params.C[1] * vel_sp(1)) + (_params.K[1] * pos_sp(1));
+	_params.Fd[2] = (_params.M[2] * acc_sp(2)) + (_params.C[2] * vel_sp(2)) + (_params.K[2] * pos_sp(2));
+	_params.Fd[3] = (_params.C[3] * setpoint.yawspeed) + (_params.K[3] * setpoint.yaw);
 
 	_y = _integrate();
 
@@ -176,9 +176,9 @@ Vector<float, 8> AdmittanceControl::_integrate()
 {
 
 	Vector<float, 8> y = _y;
-	Vector<float, 4> u = _u;
+	Vector<float, 4> u = _We;
 
-	Vector<float, 8> dydt = func(_dt,_y,_u,_params);
+	Vector<float, 8> dydt = func(_dt,_y,_We,_params);
 	_acc_sp = Vector3f(dydt(1),dydt(3),dydt(5));
 
 	_integrate_rk4(func, y, u, 0.f, _dt, _dt, y, _params);

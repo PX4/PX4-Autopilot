@@ -180,9 +180,11 @@ void AdmittanceControlModule::Run()
 	// Guard against too small (< 1ms) and too large (> 1000ms) dt's.
 	if (_finite && _admittance_flag && (dt > 0.001f) && (dt < 1.f)) {
 
-		// bool valid = true;
-
-		const Vector<float, 4> We = zeros<float, 4, 1>();
+		Vector<float, 4> We = zeros<float, 4, 1>();
+		We(0) = wrench.fe[0];
+		We(1) = wrench.fe[1];
+		We(2) = wrench.fe[2];
+		We(3) = wrench.me[2];
 
 		float pwm[8] = {
 			actuator_outputs.output[0],
