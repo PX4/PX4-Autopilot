@@ -141,7 +141,7 @@ void AdmittanceControlModule::Run()
 
 
 	//all inputs required for each step
-	if (!_actuator_outputs_sub.updated() || !_vehicle_attitude_sub.updated()) {
+	if (!_actuator_outputs_sub.updated() || !_vehicle_attitude_setpoint_sub.updated()) {
 		return;
 	}
 
@@ -149,13 +149,13 @@ void AdmittanceControlModule::Run()
 
 	rls_wrench_estimator_s wrench;
 	actuator_outputs_s actuator_outputs;
-	vehicle_attitude_s v_att;
+	vehicle_attitude_setpoint_s v_att_sp;
 	vehicle_local_position_setpoint_s setpoint;
 
 
 	_sp_updated = _trajectory_setpoint_sub.updated();
 
-	_finite = copyAndCheckAllFinite(wrench, actuator_outputs, v_att, setpoint);
+	_finite = copyAndCheckAllFinite(wrench, actuator_outputs, v_att_sp, setpoint);
 
 	const float dt = (wrench.timestamp - _timestamp_last) * 1e-6f;
 	_timestamp_last = wrench.timestamp;
@@ -205,7 +205,7 @@ void AdmittanceControlModule::Run()
 		}
 
 		const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(pwm);
-		const matrix::Quatf q{v_att.q};
+		const matrix::Quatf q{v_att_sp.q_d};
 
 		if (!_valid) {
 			_control.reset(setpoint);
@@ -232,7 +232,7 @@ void AdmittanceControlModule::Run()
 }
 
 bool AdmittanceControlModule::copyAndCheckAllFinite(rls_wrench_estimator_s &wrench, actuator_outputs_s &actuator_outputs,
-						vehicle_attitude_s &v_att, vehicle_local_position_setpoint_s &sp)
+						vehicle_attitude_setpoint_s &v_att_sp, vehicle_local_position_setpoint_s &sp)
 {
 
 	_rls_wrench_estimator_sub.copy(&wrench);
@@ -244,9 +244,9 @@ bool AdmittanceControlModule::copyAndCheckAllFinite(rls_wrench_estimator_s &wren
 	}
 
 
-	_vehicle_attitude_sub.copy(&v_att);
+	_vehicle_attitude_setpoint_sub.copy(&v_att_sp);
 
-	if (!(PX4_ISFINITE(v_att.q[0]) && PX4_ISFINITE(v_att.q[1]) && PX4_ISFINITE(v_att.q[2]) && PX4_ISFINITE(v_att.q[3]))) {
+	if (!(PX4_ISFINITE(v_att_sp.q_d[0]) && PX4_ISFINITE(v_att_sp.q_d[1]) && PX4_ISFINITE(v_att_sp.q_d[2]) && PX4_ISFINITE(v_att_sp.q_d[3]))) {
 
 		return false;
 	}

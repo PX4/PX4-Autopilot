@@ -57,7 +57,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/rls_wrench_estimator.h>
 #include <uORB/topics/debug_vect.h>
@@ -87,7 +87,7 @@ private:
 	void Run() override;
 	void updateParams() override;
 	bool copyAndCheckAllFinite(rls_wrench_estimator_s &wrench, actuator_outputs_s &actuator_outputs,
-					vehicle_attitude_s &v_att, vehicle_local_position_setpoint_s &setpoint);
+					vehicle_attitude_setpoint_s &v_att_sp, vehicle_local_position_setpoint_s &setpoint);
 
 
 	AdmittanceControl _control{};
@@ -100,7 +100,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _rls_wrench_estimator_sub{this, ORB_ID(rls_wrench_estimator)};        // subscription that schedules AdmittanceControlModule when updated
 
 	uORB::SubscriptionInterval  _parameter_update_sub{ORB_ID(parameter_update), 1_s}; // subscription limited to 1 Hz updates
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Subscription _trajectory_setpoint_sub{ORB_ID(trajectory_setpoint)};
 	uORB::Subscription _actuator_outputs_sub{ORB_ID(actuator_outputs)};
 	uORB::Subscription _debug_vect_sub{ORB_ID(debug_vect)};
