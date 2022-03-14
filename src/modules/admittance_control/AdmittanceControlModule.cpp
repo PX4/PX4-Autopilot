@@ -259,13 +259,22 @@ bool AdmittanceControlModule::copyAndCheckAllFinite(rls_wrench_estimator_s &wren
 
 	_trajectory_setpoint_sub.copy(&sp);
 
-	if (!(PX4_ISFINITE(sp.x) && PX4_ISFINITE(sp.y) && PX4_ISFINITE(sp.z) && PX4_ISFINITE(sp.vx) && PX4_ISFINITE(sp.vy)
-		&& PX4_ISFINITE(sp.vz) && PX4_ISFINITE(sp.acceleration[0]) && PX4_ISFINITE(sp.acceleration[1]) && PX4_ISFINITE(sp.acceleration[2]) &&
-		PX4_ISFINITE(sp.yaw) && PX4_ISFINITE(sp.yawspeed))) {
-
+	if (!(PX4_ISFINITE(sp.x) && PX4_ISFINITE(sp.y) && PX4_ISFINITE(sp.z) && PX4_ISFINITE(sp.yaw))) {
 		return false;
 	}
 
+	if (!(PX4_ISFINITE(sp.vx) && PX4_ISFINITE(sp.vy) && PX4_ISFINITE(sp.vz) && PX4_ISFINITE(sp.yawspeed))) {
+		sp.vx = 0.f;
+		sp.vy = 0.f;
+		sp.vz = 0.f;
+		sp.yawspeed = 0.f;
+	}
+
+	if (!(PX4_ISFINITE(sp.acceleration[0]) && PX4_ISFINITE(sp.acceleration[1]) && PX4_ISFINITE(sp.acceleration[2]))) {
+		sp.acceleration[0] = 0.f;
+		sp.acceleration[1] = 0.f;
+		sp.acceleration[2] = 0.f;
+	}
 
 	return true;
 }
