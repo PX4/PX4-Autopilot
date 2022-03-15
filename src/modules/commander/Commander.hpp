@@ -392,7 +392,7 @@ private:
 
 	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
-	vehicle_land_detected_s	_land_detector{};
+	vehicle_land_detected_s	_vehicle_land_detected{};
 	safety_s		_safety{};
 	vtol_vehicle_status_s	_vtol_status{};
 
@@ -417,7 +417,7 @@ private:
 	uORB::Subscription					_estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
-	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
