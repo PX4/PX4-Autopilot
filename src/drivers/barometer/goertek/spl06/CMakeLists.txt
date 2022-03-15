@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,15 +31,16 @@
 #
 ############################################################################
 
-add_subdirectory(bmp280)
-add_subdirectory(bmp388)
-add_subdirectory(dps310)
-add_subdirectory(lps22hb)
-#add_subdirectory(lps25h) # not ready for general inclusion
-add_subdirectory(lps33hw)
-#add_subdirectory(mpl3115a2) # not ready for general inclusion
-add_subdirectory(maiertek)
-add_subdirectory(ms5611)
-#add_subdirectory(tcbp001ta) # only for users who really need this
-add_subdirectory(invensense)
-add_subdirectory(goertek)
+px4_add_module(
+	MODULE drivers__barometer__spl06
+	MAIN spl06
+	SRCS
+		SPL06.cpp
+		SPL06.hpp
+		SPL06_I2C.cpp
+		SPL06_SPI.cpp
+		spl06_main.cpp
+	DEPENDS
+		drivers_barometer
+		px4_work_queue
+	)
