@@ -41,6 +41,11 @@
 
 #pragma once
 
+#include <px4_platform_common/defines.h>
+
+namespace math
+{
+
 template <typename T>
 class SecondOrderReferenceModel
 {
@@ -61,7 +66,8 @@ public:
 	/**
 	 * Set the system parameters
 	 *
-	 * Calculates the damping coefficient and spring stiffness
+	 * Calculates the damping coefficient, spring constant, and maximum allowed
+	 * time step based on the natural frequency.
 	 *
 	 * @param[in] natural_freq The desired natural frequency of the system [rad/s]
 	 * @param[in] damping_ratio The desired damping ratio of the system
@@ -69,7 +75,16 @@ public:
 	 */
 	bool setParameters(const float natural_freq, const float damping_ratio)
 	{
-		if (natural_freq < 0.0f || damping_ratio < 0.0f) {
+		if (natural_freq < FLT_EPSILON || damping_ratio < FLT_EPSILON) {
+
+			// deadzone the resulting constants (will result in zero filter acceleration)
+			spring_constant_ = 0.0f;
+			damping_coefficient_ = 0.0f;
+
+			// zero natural frequency means our time step is irrelevant
+			max_time_step_ = INFINITY;
+
+			// fail
 			return false;
 		}
 
@@ -77,21 +92,24 @@ public:
 		spring_constant_ = natural_freq * natural_freq;
 		damping_coefficient_ = 2.0f * damping_ratio * natural_freq;
 
+		// Based on *conservative nyquist frequency via SAMPLE_RATE_MULTIPLIER
+		max_time_step_ = 2.0f * M_PI_F / (natural_freq * SAMPLE_RATE_MULTIPLIER);
+
 		return true;
 	}
 
 	/**
-	 * @return System state
+	 * @return System state [units]
 	 */
 	const T &getState() const { return filter_state_; }
 
 	/**
-	 * @return System rate
+	 * @return System rate [units/s]
 	 */
 	const T &getRate() const { return filter_rate_; }
 
 	/**
-	 * @return System acceleration
+	 * @return System acceleration [units/s^2]
 	 */
 	const T &getAccel() const { return filter_accel_; }
 
@@ -103,11 +121,22 @@ public:
 	 * system parameters. Sampling time should be sufficiently fast.
 	 *
 	 * @param[in] time_step Time since last sample [s]
-	 * @param[in] state_sample New state sample
-	 * @param[in] rate_sample New rate sample, if provided, otherwise defaults to zero(s)
+	 * @param[in] state_sample New state sample [units]
+	 * @param[in] rate_sample New rate sample, if provided, otherwise defaults to zero(s) [units/s]
 	 */
 	void update(const float time_step, const T &state_sample, const T &rate_sample = T())
 	{
+		if (time_step > max_time_step_) {
+			// time step is too large, reset the filter
+			reset(state_sample, rate_sample);
+			return;
+		}
+
+		if (time_step < 0.0f) {
+			// erroneous input, dont update
+			return;
+		}
+
 		T state_error = state_sample - filter_state_;
 		T rate_error = rate_sample - filter_rate_;
 
@@ -119,8 +148,8 @@ public:
 	/**
 	 * Reset the system states
 	 *
-	 * @param[in] state Initial state
-	 * @param[in] rate Initial rate, if provided, otherwise defaults to zero(s)
+	 * @param[in] state Initial state [units]
+	 * @param[in] rate Initial rate, if provided, otherwise defaults to zero(s) [units/s]
 	 */
 	void reset(const T &state, const T &rate = T())
 	{
@@ -131,23 +160,34 @@ public:
 
 protected:
 
+	// A conservative multiplier on sample frequency to bound the maximum time step
+	static constexpr float SAMPLE_RATE_MULTIPLIER = 10.0f;
+
+	// (effective, no mass) Spring constant for second order system [s^-2]
 	float spring_constant_{0.0f};
+
+	// (effective, no mass) Damping coefficient for second order system [s^-1]
 	float damping_coefficient_{0.0f};
 
-	T filter_state_{};
-	T filter_rate_{};
-	T filter_accel_{};
+	T filter_state_{}; // [units]
+	T filter_rate_{}; // [units/s]
+	T filter_accel_{}; // [units/s^2]
+
+	// Maximum time step [s]
+	float max_time_step_{INFINITY};
 
 	/**
 	 * Take one integration step using Euler integration
 	 *
-	 * @param[in] last_state
-	 * @param[in] rate
+	 * @param[in] last_state [units]
+	 * @param[in] rate [units/s]
 	 * @param[in] time_step Time since last sample [s]
-	 * @return The next state
+	 * @return The next state [units]
 	 */
 	T integrate(const T &last_state, const T &rate, const float time_step) const
 	{
 		return last_state + rate * time_step;
 	}
 };
+
+} // namespace math
