@@ -137,12 +137,12 @@ public:
 			return;
 		}
 
+		filter_state_ = integrate(filter_state_, filter_rate_, time_step);
+		filter_rate_ = integrate(filter_rate_, filter_accel_, time_step);
+
 		T state_error = state_sample - filter_state_;
 		T rate_error = rate_sample - filter_rate_;
-
 		filter_accel_ = state_error * spring_constant_ + rate_error * damping_coefficient_;
-		filter_rate_ = integrate(filter_rate_, filter_accel_, time_step);
-		filter_state_ = integrate(filter_state_, filter_rate_, time_step);
 	}
 
 	/**
