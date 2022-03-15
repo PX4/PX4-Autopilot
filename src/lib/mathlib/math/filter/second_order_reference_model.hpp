@@ -35,6 +35,10 @@
  * @file second_order_reference_model.hpp
  *
  * @brief Implementation of a second order system with optional rate feed-forward.
+ * Note that sample time abstraction is not done here. Users should run the filter
+ * at a sufficiently fast rate to achieve the continuous time performance described
+ * by the natural frequency and damping ratio parameters. Tuning of these parameters
+ * will only maintain a given performance for the sampled time for which it was tuned.
  *
  * @author Thomas Stastny <thomas.stastny@auterion.com>
  */
@@ -77,18 +81,18 @@ public:
 	{
 		if (natural_freq < FLT_EPSILON || damping_ratio < FLT_EPSILON) {
 
-			// deadzone the resulting constants (will result in zero filter acceleration)
+			// Deadzone the resulting constants (will result in zero filter acceleration)
 			spring_constant_ = 0.0f;
 			damping_coefficient_ = 0.0f;
 
-			// zero natural frequency means our time step is irrelevant
+			// Zero natural frequency means our time step is irrelevant
 			max_time_step_ = INFINITY;
 
-			// fail
+			// Fail
 			return false;
 		}
 
-		// note these are "effective" coefficients, as mass coefficient is considered baked in
+		// Note these are "effective" coefficients, as mass coefficient is considered baked in
 		spring_constant_ = natural_freq * natural_freq;
 		damping_coefficient_ = 2.0f * damping_ratio * natural_freq;
 
