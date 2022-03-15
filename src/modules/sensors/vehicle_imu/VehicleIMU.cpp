@@ -238,20 +238,18 @@ void VehicleIMU::Run()
 		}
 
 		// publish if both accel & gyro integrators are ready
-		if (_intervals_configured && _accel_integrator.integral_ready() && _gyro_integrator.integral_ready()) {
-			if (Publish()) {
-				// record gyro publication latency and integrated samples
-				if (_gyro_update_latency_mean.count() > 10000) {
-					// reset periodically to avoid numerical issues
-					_gyro_update_latency_mean.reset();
-				}
-
-				const float time_run_s = now_us * 1e-6f;
-
-				_gyro_update_latency_mean.update(Vector2f{time_run_s - _gyro_timestamp_sample_last * 1e-6f, time_run_s - _gyro_timestamp_last * 1e-6f});
-
-				break;
+		if (Publish()) {
+			// record gyro publication latency and integrated samples
+			if (_gyro_update_latency_mean.count() > 10000) {
+				// reset periodically to avoid numerical issues
+				_gyro_update_latency_mean.reset();
 			}
+
+			const float time_run_s = now_us * 1e-6f;
+
+			_gyro_update_latency_mean.update(Vector2f{time_run_s - _gyro_timestamp_sample_last * 1e-6f, time_run_s - _gyro_timestamp_last * 1e-6f});
+
+			break;
 		}
 
 		// finish if there are no more updates, but didn't publish
@@ -543,13 +541,14 @@ bool VehicleIMU::Publish()
 {
 	bool updated = false;
 
-    if (_accel_integrator.integral_ready() && _gyro_integrator.integral_ready()) {
-        vehicle_imu_s imu;
-        Vector3f delta_angle;
-        Vector3f delta_velocity;
+	// publish if both accel & gyro integrators are ready
+	if (_intervals_configured && _accel_integrator.integral_ready() && _gyro_integrator.integral_ready()) {
+		vehicle_imu_s imu;
+		Vector3f delta_angle;
+		Vector3f delta_velocity;
 
-        _accel_integrator.reset(delta_velocity, imu.delta_velocity_dt);
-        _gyro_integrator.reset(delta_angle, imu.delta_angle_dt);
+		_accel_integrator.reset(delta_velocity, imu.delta_velocity_dt);
+		_gyro_integrator.reset(delta_angle, imu.delta_angle_dt);
 
 		if (_accel_calibration.enabled() && _gyro_calibration.enabled()) {
 
