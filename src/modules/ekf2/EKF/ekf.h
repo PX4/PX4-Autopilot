@@ -340,6 +340,9 @@ public:
 
 	const BaroBiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 
+	const auto &aid_src_gnss_vel() const { return _aid_src_gnss_vel; }
+	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
+
 	const auto &aid_src_fake_pos() const { return _aid_src_fake_pos; }
 
 private:
@@ -443,12 +446,6 @@ private:
 	float _vert_vel_innov_ratio{0.f};		///< standard deviation of vertical velocity innovation
 	uint64_t _vert_vel_fuse_time_us{0};	///< last system time in usec time vertical velocity measurement fuson was attempted
 
-	Vector3f _gps_vel_innov{};	///< GPS velocity innovations (m/sec)
-	Vector3f _gps_vel_innov_var{};	///< GPS velocity innovation variances ((m/sec)**2)
-
-	Vector3f _gps_pos_innov{};	///< GPS position innovations (m)
-	Vector3f _gps_pos_innov_var{};	///< GPS position innovation variances (m**2)
-
 	Vector3f _ev_vel_innov{};	///< external vision velocity innovations (m/sec)
 	Vector3f _ev_vel_innov_var{};	///< external vision velocity innovation variances ((m/sec)**2)
 
@@ -496,6 +493,9 @@ private:
 	bool _inhibit_flow_use{false};	///< true when use of optical flow and range finder is being inhibited
 	Vector2f _flow_compensated_XY_rad{};	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
 
+	estimator_aid_source_3d_s _aid_src_gnss_vel{};
+	estimator_aid_source_3d_s _aid_src_gnss_pos{};
+
 	estimator_aid_source_2d_s _aid_src_fake_pos{};
 
 	// output predictor states
@@ -528,8 +528,12 @@ private:
 
 	// Variables used to perform in flight resets and switch between height sources
 	AlphaFilter<Vector3f> _mag_lpf{0.1f};	///< filtered magnetometer measurement for instant reset (Gauss)
-	float _hgt_sensor_offset{0.0f};		///< set as necessary if desired to maintain the same height after a height reset (m)
+
 	float _baro_hgt_offset{0.0f};		///< baro height reading at the local NED origin (m)
+	float _gps_hgt_offset{0.0f};		///< GPS height reading at the local NED origin (m)
+	float _rng_hgt_offset{0.0f};		///< Range height reading at the local NED origin (m)
+	float _ev_hgt_offset{0.0f};		///< EV height reading at the local NED origin (m)
+
 	float _baro_hgt_bias{0.0f};
 	float _baro_hgt_bias_var{1.f};
 
@@ -641,7 +645,6 @@ private:
 	void fuseDrag(const dragSample &drag_sample);
 
 	void fuseBaroHgt();
-	void fuseGpsHgt();
 	void fuseRngHgt();
 	void fuseEvHgt();
 
@@ -688,7 +691,11 @@ private:
 	bool fuseVerticalPosition(float innov, float innov_gate, float obs_var,
 				  float &innov_var, float &test_ratio);
 
-	void fuseGpsVelPos();
+	void updateGpsVel(const gpsSample &gps_sample);
+	void fuseGpsVel();
+
+	void updateGpsPos(const gpsSample &gps_sample);
+	void fuseGpsPos();
 
 	// calculate optical flow body angular rate compensation
 	// returns false if bias corrected body rate data is unavailable

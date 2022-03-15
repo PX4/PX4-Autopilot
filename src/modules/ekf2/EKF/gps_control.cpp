@@ -48,6 +48,14 @@ void Ekf::controlGpsFusion()
 
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
+
+		// reset flags
+		resetEstimatorAidStatusFlags(_aid_src_gnss_vel);
+		resetEstimatorAidStatusFlags(_aid_src_gnss_pos);
+
+		updateGpsVel(_gps_sample_delayed);
+		updateGpsPos(_gps_sample_delayed);
+
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 
@@ -67,7 +75,8 @@ void Ekf::controlGpsFusion()
 				if (continuing_conditions_passing
 				    || !isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 
-					fuseGpsVelPos();
+					fuseGpsVel();
+					fuseGpsPos();
 
 					if (shouldResetGpsFusion()) {
 						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1000000);
