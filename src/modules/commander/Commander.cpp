@@ -3857,9 +3857,10 @@ void Commander::battery_status_check()
 
 	// Compare estimate of RTL time to estimate of remaining flight time
 	if (_rtl_time_estimate_sub.copy(&rtl_time_estimate)
-	    && hrt_absolute_time() - rtl_time_estimate.timestamp < 2_s
+	    && (hrt_absolute_time() - rtl_time_estimate.timestamp) < 2_s
 	    && rtl_time_estimate.valid
 	    && _armed.armed
+	    && !_vehicle_land_detected.ground_contact // not in any landing stage
 	    && !_rtl_time_actions_done
 	    && PX4_ISFINITE(worst_battery_time_s)
 	    && rtl_time_estimate.safe_time_estimate >= worst_battery_time_s
