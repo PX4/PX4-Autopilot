@@ -72,26 +72,11 @@ void Ekf::fuseBaroHgt()
 			     _baro_hgt_innov_var, _baro_hgt_test_ratio);
 }
 
-void Ekf::fuseGpsHgt()
-{
-	// vertical position innovation - gps measurement has opposite sign to earth z axis
-	_gps_pos_innov(2) = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
-
-	// innovation gate size
-	float innov_gate = fmaxf(_params.baro_innov_gate, 1.f);
-
-	float obs_var = getGpsHeightVariance();
-
-	// _gps_pos_test_ratio(1) is the vertical test ratio
-	fuseVerticalPosition(_gps_pos_innov(2), innov_gate, obs_var,
-			     _gps_pos_innov_var(2), _gps_pos_test_ratio(1));
-}
-
 void Ekf::fuseRngHgt()
 {
 	// use range finder with tilt correction
 	_rng_hgt_innov = _state.pos(2) - (-math::max(_range_sensor.getDistBottom(),
-					  _params.rng_gnd_clearance)) - _hgt_sensor_offset;
+					  _params.rng_gnd_clearance)) - _rng_hgt_offset;
 
 	// innovation gate size
 	float innov_gate = fmaxf(_params.range_innov_gate, 1.f);

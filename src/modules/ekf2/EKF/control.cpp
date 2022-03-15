@@ -778,6 +778,24 @@ void Ekf::checkVerticalAccelerationHealth()
 	bool is_inertial_nav_falling = false;
 	bool are_vertical_pos_and_vel_independant = false;
 
+	if (_control_status.flags.gps) {
+		// velocity
+		auto &gps_vel = _aid_src_gnss_vel;
+
+		if (gps_vel.time_last_fuse[2] > _vert_vel_fuse_time_us) {
+			_vert_vel_fuse_time_us = gps_vel.time_last_fuse[2];
+			_vert_vel_innov_ratio = gps_vel.innovation[2] / sqrtf(gps_vel.innovation_variance[2]);
+		}
+
+		// position
+		auto &gps_pos = _aid_src_gnss_pos;
+
+		if (gps_pos.time_last_fuse[2] > _vert_pos_fuse_attempt_time_us) {
+			_vert_pos_fuse_attempt_time_us = gps_pos.time_last_fuse[2];
+			_vert_pos_innov_ratio = gps_pos.innovation[2] / sqrtf(gps_pos.innovation_variance[2]);
+		}
+	}
+
 	if (isRecent(_vert_pos_fuse_attempt_time_us, 1000000)) {
 		if (isRecent(_vert_vel_fuse_time_us, 1000000)) {
 			// If vertical position and velocity come from independent sensors then we can
@@ -930,11 +948,7 @@ void Ekf::controlHeightFusion()
 		}
 
 	} else if (_control_status.flags.gps_hgt) {
-
-		if (_gps_data_ready) {
-			fuseGpsHgt();
-		}
-
+		// handled by gps fusion
 	} else if (_control_status.flags.rng_hgt) {
 
 		if (_range_sensor.isDataHealthy()) {
