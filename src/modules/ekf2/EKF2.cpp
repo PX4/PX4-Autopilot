@@ -614,6 +614,8 @@ void EKF2::Run()
 			UpdateMagCalibration(now);
 			PublishSensorBias(now);
 
+			PublishAidSourceStatus(now);
+
 		} else {
 			// ekf no update
 			perf_set_elapsed(_ecl_ekf_update_perf, hrt_elapsed_time(&ekf_update_start));
@@ -630,6 +632,12 @@ void EKF2::Run()
 
 	// re-schedule as backup timeout
 	ScheduleDelayed(100_ms);
+}
+
+void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
+{
+	// fake position
+	PublishAidSourceStatus(_ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
