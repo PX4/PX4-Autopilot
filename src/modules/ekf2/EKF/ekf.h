@@ -48,6 +48,10 @@
 #include "EKFGSF_yaw.h"
 #include "baro_bias_estimator.hpp"
 
+#include <uORB/topics/estimator_aid_source_1d.h>
+#include <uORB/topics/estimator_aid_source_2d.h>
+#include <uORB/topics/estimator_aid_source_3d.h>
+
 class Ekf final : public EstimatorInterface
 {
 public:
@@ -336,6 +340,8 @@ public:
 
 	const BaroBiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 
+	const auto &aid_src_fake_pos() const { return _aid_src_fake_pos; }
+
 private:
 
 	// set the internal states and status to their default value
@@ -394,7 +400,6 @@ private:
 	uint64_t _time_last_flow_terrain_fuse{0}; ///< time the last fusion of optical flow measurements for terrain estimation were performed (uSec)
 	uint64_t _time_last_arsp_fuse{0};	///< time the last fusion of airspeed measurements were performed (uSec)
 	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
-	uint64_t _time_last_fake_pos_fuse{0};	///< last time we faked position measurements to constrain tilt errors during operation without external aiding (uSec)
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 	uint64_t _time_last_gps_yaw_fuse{0};	///< time the last fusion of GPS yaw measurements were performed (uSec)
 	uint64_t _time_last_gps_yaw_data{0};	///< time the last GPS yaw measurement was available (uSec)
@@ -490,6 +495,8 @@ private:
 	uint64_t _time_good_motion_us{0};	///< last system time that on-ground motion was within limits (uSec)
 	bool _inhibit_flow_use{false};	///< true when use of optical flow and range finder is being inhibited
 	Vector2f _flow_compensated_XY_rad{};	///< measured delta angle of the image about the X and Y body axes after removal of body rotation (rad), RH rotation is positive
+
+	estimator_aid_source_2d_s _aid_src_fake_pos{};
 
 	// output predictor states
 	Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
@@ -676,7 +683,7 @@ private:
 				  Vector3f &innov_var, Vector2f &test_ratio);
 
 	bool fuseHorizontalPosition(const Vector3f &innov, float innov_gate, const Vector3f &obs_var,
-				    Vector3f &innov_var, Vector2f &test_ratiov, bool inhibit_gate = false);
+				    Vector3f &innov_var, Vector2f &test_ratiov);
 
 	bool fuseVerticalPosition(float innov, float innov_gate, float obs_var,
 				  float &innov_var, float &test_ratio);
@@ -1048,6 +1055,65 @@ private:
 	bool isYawEmergencyEstimateAvailable() const;
 
 	void resetGpsDriftCheckFilters();
+
+	bool resetEstimatorAidStatusFlags(estimator_aid_source_1d_s &status)
+	{
+		if (status.timestamp_sample != 0) {
+			status.timestamp_sample = 0;
+			status.fusion_enabled = false;
+			status.innovation_rejected = false;
+			status.fused = false;
+
+			return true;
+		}
+
+		return false;
+	}
+
+	void resetEstimatorAidStatus(estimator_aid_source_1d_s &status)
+	{
+		if (resetEstimatorAidStatusFlags(status)) {
+			status.observation = 0;
+			status.observation_variance = 0;
+
+			status.innovation = 0;
+			status.innovation_variance = 0;
+			status.test_ratio = 0;
+		}
+	}
+
+	template <typename T>
+	bool resetEstimatorAidStatusFlags(T &status)
+	{
+		if (status.timestamp_sample != 0) {
+			status.timestamp_sample = 0;
+
+			for (size_t i = 0; i < (sizeof(status.fusion_enabled) / sizeof(status.fusion_enabled[0])); i++) {
+				status.fusion_enabled[i] = false;
+				status.innovation_rejected[i] = false;
+				status.fused[i] = false;
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
+	template <typename T>
+	void resetEstimatorAidStatus(T &status)
+	{
+		if (resetEstimatorAidStatusFlags(status)) {
+			for (size_t i = 0; i < (sizeof(status.fusion_enabled) / sizeof(status.fusion_enabled[0])); i++) {
+				status.observation[i] = 0;
+				status.observation_variance[i] = 0;
+
+				status.innovation[i] = 0;
+				status.innovation_variance[i] = 0;
+				status.test_ratio[i] = 0;
+			}
+		}
+	}
 };
 
 #endif // !EKF_EKF_H

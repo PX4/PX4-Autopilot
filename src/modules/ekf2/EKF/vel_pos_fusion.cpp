@@ -102,7 +102,7 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const float innov_gate, co
 }
 
 bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const float innov_gate, const Vector3f &obs_var,
-				 Vector3f &innov_var, Vector2f &test_ratio, bool inhibit_gate)
+				 Vector3f &innov_var, Vector2f &test_ratio)
 {
 
 	innov_var(0) = P(7, 7) + obs_var(0);
@@ -112,12 +112,7 @@ bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const float innov_gate, 
 
 	const bool innov_check_pass = test_ratio(0) <= 1.0f;
 
-	if (innov_check_pass || inhibit_gate) {
-		if (inhibit_gate && test_ratio(0) > sq(100.0f / innov_gate)) {
-			// always protect against extreme values that could result in a NaN
-			return false;
-		}
-
+	if (innov_check_pass) {
 		_innov_check_fail_status.flags.reject_hor_pos = false;
 
 		bool fuse_x = fuseVelPosHeight(innov(0), innov_var(0), 3);
