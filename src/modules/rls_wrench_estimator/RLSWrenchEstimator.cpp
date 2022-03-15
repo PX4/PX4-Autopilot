@@ -201,14 +201,14 @@ void RLSWrenchEstimator::Run()
 		const matrix::Vector3f acc = matrix::Vector3f(accel.xyz[0], accel.xyz[1], accel.xyz[2]);
 
 		float speed[8] = {
-			actuator_outputs.output[0] *_param_rls_speed_const.get(),
-			actuator_outputs.output[1] *_param_rls_speed_const.get(),
-			actuator_outputs.output[2] *_param_rls_speed_const.get(),
-			actuator_outputs.output[3] *_param_rls_speed_const.get(),
-			actuator_outputs.output[4] *_param_rls_speed_const.get(),
-			actuator_outputs.output[5] *_param_rls_speed_const.get(),
-			actuator_outputs.output[6] *_param_rls_speed_const.get(),
-			actuator_outputs.output[7] *_param_rls_speed_const.get()
+			actuator_outputs.output[0] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
+			actuator_outputs.output[1] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
+			actuator_outputs.output[2] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
+			actuator_outputs.output[3] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
+			actuator_outputs.output[4] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
+			actuator_outputs.output[5] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
+			actuator_outputs.output[6] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
+			actuator_outputs.output[7] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get()
 		};
 
 		const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);

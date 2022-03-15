@@ -160,14 +160,30 @@ PARAM_DEFINE_FLOAT(RLS_EST_Z_NOISE, 10.f);
 PARAM_DEFINE_INT32(RLS_EST_N_ROTORS, 8);
 
 /**
- * PWM to motor speed conversion factor (rotor dependant)
+ * PWM to speed (P1)
+ *
+ * (PWM*P1 - P2) = SPEED
+ * This is rotor dependant.
  *
  * @decimal 6
  * @min 0.01
  * @max 10.0
  * @group RLS Wrench Estimator
  */
-PARAM_DEFINE_FLOAT(RLS_EST_SPEED_K, 0.8333333f);
+PARAM_DEFINE_FLOAT(RLS_EST_SPE_P1, 1.823f);
+
+/**
+ * PWM to speed (P2)
+ *
+ * (PWM*P1 - P2) = SPEED
+ * This is rotor dependant.
+ *
+ * @decimal 6
+ * @min 0.01
+ * @max 10000.0
+ * @group RLS Wrench Estimator
+ */
+PARAM_DEFINE_FLOAT(RLS_EST_SPE_P2, 1673.7f);
 
 /**
  * Force Estimator Time Constant [sec]
