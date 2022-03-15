@@ -748,7 +748,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool forced)
 {
 	if (!forced) {
-		const bool landed = (_land_detector.landed || _land_detector.maybe_landed || is_ground_rover(_status));
+		const bool landed = (_vehicle_land_detected.landed || _vehicle_land_detected.maybe_landed || is_ground_rover(_status));
 		const bool mc_manual_thrust_mode = _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 						   && _vehicle_control_mode.flag_control_manual_enabled
 						   && !_vehicle_control_mode.flag_control_climb_rate_enabled;
@@ -791,7 +791,7 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_failure_detector(this)
 {
-	_land_detector.landed = true;
+	_vehicle_land_detected.landed = true;
 
 	// XXX for now just set sensors as initialized
 	_status_flags.condition_system_sensors_initialized = true;
@@ -1739,7 +1739,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 			const char kill_switch_string[] = "Kill-switch engaged\t";
 			events::LogLevels log_levels{events::Log::Info};
 
-			if (_land_detector.landed) {
+			if (_vehicle_land_detected.landed) {
 				mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
 
 			} else {
@@ -2148,18 +2148,18 @@ Commander::run()
 		}
 
 		/* Update land detector */
-		if (_land_detector_sub.updated()) {
-			const bool was_landed = _land_detector.landed;
-			_land_detector_sub.copy(&_land_detector);
+		if (_vehicle_land_detected_sub.updated()) {
+			const bool was_landed = _vehicle_land_detected.landed;
+			_vehicle_land_detected_sub.copy(&_vehicle_land_detected);
 
 			// Only take actions if armed
 			if (_armed.armed) {
-				if (!was_landed && _land_detector.landed) {
+				if (!was_landed && _vehicle_land_detected.landed) {
 					mavlink_log_info(&_mavlink_log_pub, "Landing detected\t");
 					events::send(events::ID("commander_landing_detected"), events::Log::Info, "Landing detected");
 					_status.takeoff_time = 0;
 
-				} else if (was_landed && !_land_detector.landed) {
+				} else if (was_landed && !_vehicle_land_detected.landed) {
 					mavlink_log_info(&_mavlink_log_pub, "Takeoff detected\t");
 					events::send(events::ID("commander_takeoff_detected"), events::Log::Info, "Takeoff detected");
 					_status.takeoff_time = hrt_absolute_time();
@@ -2177,7 +2177,7 @@ Commander::run()
 				if (_param_com_home_en.get() && !_home_pub.get().manual_home) {
 					// set the home position when taking off, but only if we were previously disarmed
 					// and at least 500 ms from commander start spent to avoid setting home on in-air restart
-					if (_should_set_home_on_takeoff && !_land_detector.landed &&
+					if (_should_set_home_on_takeoff && !_vehicle_land_detected.landed &&
 					    (hrt_elapsed_time(&_boot_timestamp) > INAIR_RESTART_HOLDOFF_INTERVAL)) {
 						if (was_landed) {
 							_should_set_home_on_takeoff = !set_home_position();
@@ -2305,7 +2305,7 @@ Commander::run()
 
 				if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming) {
 					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
-					_auto_disarm_landed.set_state_and_update(_land_detector.landed, hrt_absolute_time());
+					_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
 
 				} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
 					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
@@ -2417,7 +2417,7 @@ Commander::run()
 			}
 
 			// Transition main state to loiter or auto-mission after takeoff is completed.
-			if (_armed.armed && !_land_detector.landed
+			if (_armed.armed && !_vehicle_land_detected.landed
 			    && (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 				_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 			    && (mission_result.timestamp >= _status.nav_state_timestamp)
@@ -2809,7 +2809,7 @@ Commander::run()
 		}
 
 		// Publish wind speed warning if enabled via parameter
-		if (_param_com_wind_warn.get() > FLT_EPSILON && !_land_detector.landed) {
+		if (_param_com_wind_warn.get() > FLT_EPSILON && !_vehicle_land_detected.landed) {
 			checkWindAndWarn();
 		}
 
@@ -2822,7 +2822,7 @@ Commander::run()
 
 			if (!_armed.armed) {
 				if (_home_pub.get().valid_lpos) {
-					if (_land_detector.landed && local_position.xy_valid && local_position.z_valid) {
+					if (_vehicle_land_detected.landed && local_position.xy_valid && local_position.z_valid) {
 						/* distance from home */
 						float home_dist_xy = -1.0f;
 						float home_dist_z = -1.0f;
@@ -2856,7 +2856,7 @@ Commander::run()
 			_status_changed = true;
 
 			if (_armed.armed) {
-				if (!_land_detector.landed) { // check if takeoff already detected upon arming
+				if (!_vehicle_land_detected.landed) { // check if takeoff already detected upon arming
 					_have_taken_off_since_arming = true;
 				}
 
@@ -2886,7 +2886,7 @@ Commander::run()
 						       _mission_result_sub.get().finished,
 						       _mission_result_sub.get().stay_in_failsafe,
 						       _status_flags,
-						       _land_detector.landed,
+						       _vehicle_land_detected.landed,
 						       static_cast<link_loss_actions_t>(_param_nav_rcl_act.get()),
 						       static_cast<offboard_loss_actions_t>(_param_com_obl_act.get()),
 						       static_cast<offboard_loss_rc_actions_t>(_param_com_obl_rc_act.get()),
@@ -3264,7 +3264,7 @@ Commander::check_posvel_validity(const bool data_valid, const float data_accurac
 	bool valid = was_valid;
 
 	// constrain probation times
-	if (_land_detector.landed) {
+	if (_vehicle_land_detected.landed) {
 		*probation_time_us = POSVEL_PROBATION_MIN;
 	}
 
