@@ -543,12 +543,13 @@ bool VehicleIMU::Publish()
 {
 	bool updated = false;
 
-	vehicle_imu_s imu;
-	Vector3f delta_angle;
-	Vector3f delta_velocity;
+    if (_accel_integrator.integral_ready() && _gyro_integrator.integral_ready()) {
+        vehicle_imu_s imu;
+        Vector3f delta_angle;
+        Vector3f delta_velocity;
 
-	if (_accel_integrator.reset(delta_velocity, imu.delta_velocity_dt)
-	    && _gyro_integrator.reset(delta_angle, imu.delta_angle_dt)) {
+        _accel_integrator.reset(delta_velocity, imu.delta_velocity_dt);
+        _gyro_integrator.reset(delta_angle, imu.delta_angle_dt);
 
 		if (_accel_calibration.enabled() && _gyro_calibration.enabled()) {
 
