@@ -50,13 +50,13 @@ void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_va
 
 	const float vel_bottom = (dist_bottom - _dist_bottom_prev) / dt;
 	const float innov = -vel_bottom - vz; // vel_bottom is +up while vz is +down
-	const float vel_bottom_var = 2.f * dist_bottom_var / (dt * dt);
+	const float vel_bottom_var = 2.f * dist_bottom_var / (dt * dt); // Variance of the time derivative of a random variable: var(dz/dt) = 2*var(z) / dt^2
 	const float innov_var = vel_bottom_var + vz_var;
 	const float normalized_innov_sq = (innov * innov) / innov_var;
 	_vel_bottom_test_ratio = normalized_innov_sq / (_vel_bottom_gate * _vel_bottom_gate);
 
 	_vel_bottom_signed_test_ratio_lpf.setParameters(dt, _vel_bottom_signed_test_ratio_tau);
-	const float signed_test_ratio = matrix::sign(innov) * normalized_innov_sq / (_vel_bottom_signed_gate * _vel_bottom_signed_gate);
+	const float signed_test_ratio = matrix::sign(innov) * _vel_bottom_test_ratio;
 	_vel_bottom_signed_test_ratio_lpf.update(signed_test_ratio);
 
 	_time_last_update_s = time_s;

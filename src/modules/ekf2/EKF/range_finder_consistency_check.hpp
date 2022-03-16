@@ -61,6 +61,5 @@ private:
 	AlphaFilter<float> _vel_bottom_signed_test_ratio_lpf{}; // average signed test ratio used to detect a bias in the data
 
 	static constexpr float _vel_bottom_signed_test_ratio_tau = 2.f;
-	static constexpr float _vel_bottom_gate = 3.f;
-	static constexpr float _vel_bottom_signed_gate = 0.1f;
+	static constexpr float _vel_bottom_gate = 0.1f;
 };
