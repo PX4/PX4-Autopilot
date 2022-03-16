@@ -169,8 +169,9 @@ void RLSWrenchEstimator::Run()
 	actuator_outputs_s actuator_outputs;
 	vehicle_attitude_s v_att;
 	vehicle_angular_velocity_s v_ang_vel;
+	battery_status_s batt_stat;
 
-	_finite = copyAndCheckAllFinite(accel, actuator_outputs, v_att, v_ang_vel);
+	_finite = copyAndCheckAllFinite(accel, actuator_outputs, v_att, v_ang_vel, batt_stat);
 
 	if (_vehicle_status_sub.updated()) {
 		vehicle_status_s vehicle_status;
@@ -200,15 +201,17 @@ void RLSWrenchEstimator::Run()
 
 		const matrix::Vector3f acc = matrix::Vector3f(accel.xyz[0], accel.xyz[1], accel.xyz[2]);
 
+		_voltage = math::constrain(batt_stat.voltage_filtered_v, _param_n_cells.get() * 3.0f, _param_n_cells.get() * 4.2f);
+
 		float speed[8] = {
-			actuator_outputs.output[0] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
-			actuator_outputs.output[1] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
-			actuator_outputs.output[2] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
-			actuator_outputs.output[3] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
-			actuator_outputs.output[4] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
-			actuator_outputs.output[5] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
-			actuator_outputs.output[6] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get(),
-			actuator_outputs.output[7] *_param_rls_speed_p1.get() - _param_rls_speed_p2.get()
+			((actuator_outputs.output[0] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[1] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[2] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[3] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[4] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[5] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[6] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[7] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
 		};
 
 		const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
@@ -330,7 +333,7 @@ void RLSWrenchEstimator::publishInvalidStatus()
 }
 
 bool RLSWrenchEstimator::copyAndCheckAllFinite(vehicle_acceleration_s &accel, actuator_outputs_s &actuator_outputs,
-		vehicle_attitude_s &v_att, vehicle_angular_velocity_s &v_ang_vel)
+		vehicle_attitude_s &v_att, vehicle_angular_velocity_s &v_ang_vel, battery_status_s &batt_stat)
 {
 	_vehicle_acceleration_sub.copy(&accel);
 
@@ -353,6 +356,14 @@ bool RLSWrenchEstimator::copyAndCheckAllFinite(vehicle_acceleration_s &accel, ac
 
 		return false;
 	}
+
+	_battery_status_sub.copy(&batt_stat);
+
+	if (!(PX4_ISFINITE(batt_stat.voltage_v))) {
+
+		_voltage = 11.7f;
+	}
+
 
 	_actuator_outputs_sub.copy(&actuator_outputs);
 

@@ -67,7 +67,7 @@
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/rls_wrench_estimator.h>
 #include <uORB/topics/debug_vect.h>
-
+#include <uORB/topics/battery_status.h>
 
 using namespace time_literals;
 
@@ -97,7 +97,7 @@ private:
 	void publishStatus();
 	void publishInvalidStatus();
 	bool copyAndCheckAllFinite(vehicle_acceleration_s &accel, actuator_outputs_s &actuator_outputs,
-					vehicle_attitude_s &v_att, vehicle_angular_velocity_s &v_ang_vel);
+					vehicle_attitude_s &v_att, vehicle_angular_velocity_s &v_ang_vel, battery_status_s &batt_stat);
 
 	RLSIdentification _identification{};
 	WrenchEstimator _wrench_estimator{};
@@ -118,6 +118,7 @@ private:
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _debug_vect_sub{ORB_ID(debug_vect)};
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 
 	hrt_abstime _timestamp_last{0};
 	systemlib::Hysteresis _valid_hysteresis{false};
@@ -139,6 +140,8 @@ private:
 		(ParamInt<px4::params::RLS_EST_N_ROTORS>) _param_rls_n_rotors,
 		(ParamFloat<px4::params::RLS_EST_SPE_P1>) _param_rls_speed_p1,
 		(ParamFloat<px4::params::RLS_EST_SPE_P2>) _param_rls_speed_p2,
+		(ParamFloat<px4::params::RLS_EST_SPE_V1>) _param_rls_speed_v1,
+		(ParamFloat<px4::params::RLS_EST_SPE_V2>) _param_rls_speed_v2,
 		(ParamFloat<px4::params::RLS_EST_TAU_F>) _param_rls_lpf_force,
 		(ParamFloat<px4::params::RLS_EST_TAU_M>) _param_rls_lpf_moment,
 		(ParamFloat<px4::params::RLS_EST_XO_INIT>) _param_rls_xo_init,
@@ -152,7 +155,8 @@ private:
 		(ParamFloat<px4::params::RLS_EST_BOT_H>) _param_rls_bot_height,
 		(ParamFloat<px4::params::RLS_EST_IXX>) _param_rls_inertia_x,
 		(ParamFloat<px4::params::RLS_EST_IYY>) _param_rls_inertia_y,
-		(ParamFloat<px4::params::RLS_EST_IZZ>) _param_rls_inertia_z
+		(ParamFloat<px4::params::RLS_EST_IZZ>) _param_rls_inertia_z,
+		(ParamInt<px4::params::BAT1_N_CELLS>) _param_n_cells
 	)
 
 	bool _armed{false};
@@ -162,4 +166,5 @@ private:
 	bool _finite{false};
 	bool _interaction_flag{false};
 	hrt_abstime _debug_timestamp_last{};
+	float _voltage{11.7f};
 };

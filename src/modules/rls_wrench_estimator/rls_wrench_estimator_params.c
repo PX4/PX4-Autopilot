@@ -46,7 +46,7 @@
  * to vehicle based on accelerometer/gyro data.
  * Set to 1 if unknown.
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.01
  * @max 50.0
  * @unit kg
@@ -61,7 +61,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_MASS, 1.04f);
  * to vehicle based on accelerometer/gyro data.
  * Set to 0 for regular quadcopters.
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.0
  * @max 45.0
  * @unit deg
@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_TILT, 31.0f);
  * Input: PWM values
  * Output: Motor Speed
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.01
  * @max 2.0
  * @unit s
@@ -109,7 +109,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_KR_INIT, 0.1f);
  *
  * Set to 0 if perfect knowledge
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.0
  * @max 100.0
  * @group RLS Wrench Estimator
@@ -121,7 +121,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_KF_CONF, 0.001f);
  *
  * Set to 0 if perfect knowledge
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.0
  * @max 100.0
  * @group RLS Wrench Estimator
@@ -131,7 +131,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_KR_CONF, 0.01f);
 /**
  * Accelerometer xy-noise for RLS parameter identification
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.01
  * @max 100.0
  * @unit m/s^2
@@ -142,7 +142,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_XY_NOISE, 1.f);
 /**
  * Accelerometer z-noise for RLS parameter identification
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.01
  * @max 100.0
  * @unit m/s^2
@@ -186,10 +186,30 @@ PARAM_DEFINE_FLOAT(RLS_EST_SPE_P1, 1.823f);
 PARAM_DEFINE_FLOAT(RLS_EST_SPE_P2, 1673.7f);
 
 /**
+ * PWM to speed (Voltage Correction)
+ *
+ * @decimal 6
+ * @min 0.01
+ * @max 10000.0
+ * @group RLS Wrench Estimator
+ */
+PARAM_DEFINE_FLOAT(RLS_EST_SPE_V1, 11.7f);
+
+/**
+ * PWM to speed (Voltage Correction)
+ *
+ * @decimal 6
+ * @min 0.01
+ * @max 10000.0
+ * @group RLS Wrench Estimator
+ */
+PARAM_DEFINE_FLOAT(RLS_EST_SPE_V2, 1.5f);
+
+/**
  * Force Estimator Time Constant [sec]
  *
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.01
  * @max 5.0
  * @unit s
@@ -201,7 +221,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_TAU_F, 1.0f);
  * Moment Estimator Time Constant [sec]
  *
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.01
  * @max 5.0
  * @unit s
@@ -212,7 +232,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_TAU_M, 1.0f);
 /**
  * CoM x-offset initial guess [mm]
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.0
  * @max 1000.0
  * @unit mm
@@ -223,7 +243,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_XO_INIT, 0.f);
 /**
  * CoM y-offset initial guess [mm]
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.0
  * @max 1000.0
  * @unit mm
@@ -280,7 +300,7 @@ PARAM_DEFINE_FLOAT(RLS_EST_KM, 1.4f);
  * Vehicle Diameter [m]
  *
  *
- * @decimal 4
+ * @decimal 5
  * @min 0.01
  * @max 2.0
  * @unit m
