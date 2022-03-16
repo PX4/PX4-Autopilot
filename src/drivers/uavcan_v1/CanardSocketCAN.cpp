@@ -79,29 +79,29 @@ int CanardSocketCAN::init()
 	addr.can_family = AF_CAN;
 	addr.can_ifindex = ifr.ifr_ifindex;
 
-	// const int on = 1;
+	const int on = 1;
 	/* RX Timestamping */
 
-	// if (setsockopt(_fd, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
-	// 	PX4_ERR("SO_TIMESTAMP is disabled");
-	// 	return -1;
-	// }
+	if (setsockopt(_fd, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)) < 0) {
+		PX4_ERR("SO_TIMESTAMP is disabled");
+		return -1;
+	}
 
-	// /* NuttX Feature: Enable TX deadline when sending CAN frames
-	//  * When a deadline occurs the driver will remove the CAN frame
-	//  */
+	/* NuttX Feature: Enable TX deadline when sending CAN frames
+	 * When a deadline occurs the driver will remove the CAN frame
+	 */
 
-	// if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
-	// 	PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
-	// 	return -1;
-	// }
+	if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_TX_DEADLINE, &on, sizeof(on)) < 0) {
+		PX4_ERR("CAN_RAW_TX_DEADLINE is disabled");
+		return -1;
+	}
 
-	// if (can_fd) {
-	// 	if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
-	// 		PX4_ERR("no CAN FD support");
-	// 		return -1;
-	// 	}
-	// }
+	if (can_fd) {
+		if (setsockopt(_fd, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &on, sizeof(on)) < 0) {
+			PX4_ERR("no CAN FD support");
+			return -1;
+		}
+	}
 
 	if (bind(_fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
 		PX4_ERR("bind");
