@@ -828,7 +828,7 @@ void Ekf::checkVerticalAccelerationHealth()
 void Ekf::controlHeightFusion()
 {
 	checkRangeAidSuitability();
-	const bool do_range_aid = (_params.range_aid == 1) && isRangeAidSuitable();
+	const bool do_range_aid = (_params.range_aid == 1) && _is_range_aid_suitable;
 
 	switch (_params.vdist_sensor_type) {
 	default:
