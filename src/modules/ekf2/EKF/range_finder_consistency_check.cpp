@@ -59,6 +59,21 @@ void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_va
 	const float signed_test_ratio = matrix::sign(innov) * _vel_bottom_test_ratio;
 	_vel_bottom_signed_test_ratio_lpf.update(signed_test_ratio);
 
+	updateConsistency(vz, time_s);
+
 	_time_last_update_s = time_s;
 	_dist_bottom_prev = dist_bottom;
+}
+
+void RangeFinderConsistencyCheck::updateConsistency(float vz, float time_s)
+{
+	if (fabsf(_vel_bottom_signed_test_ratio_lpf.getState()) >= 1.f) {
+		_is_kinematically_consistent = false;
+		_time_last_inconsistent = time_s;
+
+	} else {
+		if (fabsf(vz) > _min_vz_for_valid_consistency && _vel_bottom_test_ratio < 1.f && ((time_s - _time_last_inconsistent) > _consistency_hyst_time)) {
+			_is_kinematically_consistent = true;
+		}
+	}
 }
