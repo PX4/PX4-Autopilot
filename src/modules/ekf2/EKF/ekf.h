@@ -899,7 +899,6 @@ private:
 
 	// determine if flight condition is suitable to use range finder instead of the primary height sensor
 	void checkRangeAidSuitability();
-	bool isRangeAidSuitable() const { return _is_range_aid_suitable; }
 
 	// set control flags to use baro height
 	void setControlBaroHeight();
