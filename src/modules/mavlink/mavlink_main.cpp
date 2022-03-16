@@ -765,12 +765,12 @@ void Mavlink::send_finish()
 
 	else if (get_protocol() == Protocol::UDP) {
 
-# if defined(CONFIG_NET)
+# if defined(CONFIG_NET_UDP)
 
 		if (_src_addr_initialized) {
 # endif // CONFIG_NET
 			ret = sendto(_socket_fd, _buf, _buf_fill, 0, (struct sockaddr *)&_src_addr, sizeof(_src_addr));
-# if defined(CONFIG_NET)
+# if defined(CONFIG_NET_UDP)
 		}
 
 # endif // CONFIG_NET
@@ -1849,7 +1849,7 @@ Mavlink::task_main(int argc, char *argv[])
 	bool err_flag = false;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(CONFIG_NET_UDP) || defined(__PX4_POSIX)
 	int temp_int_arg;
 #endif
 
@@ -3270,7 +3270,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS1", "<file:dev>", "Select Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 57600, 9600, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('r', 0, 10, 10000000, "Maximum sending data rate in B/s (if 0, use baudrate / 20)", true);
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(CONFIG_NET_UDP) || defined(__PX4_POSIX)
 	PRINT_MODULE_USAGE_PARAM_FLAG('p', "Enable Broadcast", true);
 	PRINT_MODULE_USAGE_PARAM_INT('u', 14556, 0, 65536, "Select UDP Network Port (local)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('o', 14550, 0, 65536, "Select UDP Network Port (remote)", true);
@@ -3291,7 +3291,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop-all", "Stop all instances");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop a running instance");
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(CONFIG_NET_UDP) || defined(__PX4_POSIX)
 	PRINT_MODULE_USAGE_PARAM_INT('u', -1, 0, 65536, "Select Mavlink instance via local Network Port", true);
 #endif
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Select Mavlink instance via Serial Device", true);
@@ -3301,7 +3301,7 @@ $ mavlink stream -u 14556 -s HIGHRES_IMU -r 50
 	PRINT_MODULE_USAGE_ARG("streams", "Print all enabled streams", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stream", "Configure the sending rate of a stream for a running instance");
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(CONFIG_NET_UDP) || defined(__PX4_POSIX)
 	PRINT_MODULE_USAGE_PARAM_INT('u', -1, 0, 65536, "Select Mavlink instance via local Network Port", true);
 #endif
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, "<file:dev>", "Select Mavlink instance via Serial Device", true);

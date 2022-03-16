@@ -3091,7 +3091,7 @@ MavlinkReceiver::run()
 #if defined(__PX4_POSIX)
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
 	uint8_t buf[1600 * 5];
-#elif defined(CONFIG_NET)
+#elif defined(CONFIG_NET_UDP)
 	/* 1500 is the Wifi MTU, so we make sure to fit a full packet */
 	uint8_t buf[1000];
 #else
