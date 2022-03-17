@@ -388,7 +388,7 @@ PARAM_DEFINE_FLOAT(ADM_CTR_BEL_LPF, 5.f);
  * @max 50.0
  * @group Admittance Control
  */
-PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZX, 0.2f);
+PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZX, 0.25f);
 
 /**
  * External Force Deadzone y-axis
