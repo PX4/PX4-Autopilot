@@ -69,6 +69,14 @@ using namespace time_literals;
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/Subscription.hpp>
 
+/* Include functions common to user and kernel sides */
+#include "parameters_common.cpp"
+
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+#include <px4_platform/board_ctrl.h>
+#include "parameters_ioctl.h"
+#endif
+
 #if defined(FLASH_BASED_PARAMS)
 #include "flashparams/flashparams.h"
 #else
@@ -87,7 +95,6 @@ static struct work_s autosave_work {};
 static px4::atomic_bool autosave_scheduled{false};
 static bool autosave_disabled = false;
 
-static constexpr uint16_t param_info_count = sizeof(px4::parameters) / sizeof(param_info_s);
 static px4::AtomicBitset<param_info_count> params_active;  // params found
 static px4::AtomicBitset<param_info_count> params_changed; // params non-default
 static px4::Bitset<param_info_count> params_custom_default; // params with runtime default value
@@ -190,15 +197,11 @@ param_init()
 	param_find_perf = perf_alloc(PC_COUNT, "param: find");
 	param_get_perf = perf_alloc(PC_COUNT, "param: get");
 	param_set_perf = perf_alloc(PC_ELAPSED, "param: set");
-}
 
-/**
- * Test whether a param_t is value.
- *
- * @param param			The parameter handle to test.
- * @return			True if the handle is valid.
- */
-static constexpr bool handle_in_range(param_t param) { return (param < param_info_count); }
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+	px4_register_boardct_ioctl(_PARAMIOCBASE, param_ioctl);
+#endif
+}
 
 /**
  * Compare two modified parameter structures to determine ordering.
@@ -312,23 +315,9 @@ param_t param_find_no_notification(const char *name)
 	return param_find_internal(name, false);
 }
 
-unsigned param_count()
-{
-	return param_info_count;
-}
-
 unsigned param_count_used()
 {
 	return params_active.count();
-}
-
-param_t param_for_index(unsigned index)
-{
-	if (index < param_info_count) {
-		return (param_t)index;
-	}
-
-	return PARAM_INVALID;
 }
 
 param_t param_for_used_index(unsigned index)
@@ -351,15 +340,6 @@ param_t param_for_used_index(unsigned index)
 	}
 
 	return PARAM_INVALID;
-}
-
-int param_get_index(param_t param)
-{
-	if (handle_in_range(param)) {
-		return (unsigned)param;
-	}
-
-	return -1;
 }
 
 int param_get_used_index(param_t param)
@@ -386,49 +366,10 @@ int param_get_used_index(param_t param)
 	return -1;
 }
 
-const char *param_name(param_t param)
-{
-	return handle_in_range(param) ? px4::parameters[param].name : nullptr;
-}
-
-param_type_t param_type(param_t param)
-{
-	return handle_in_range(param) ? px4::parameters_type[param] : PARAM_TYPE_UNKNOWN;
-}
-
-bool param_is_volatile(param_t param)
-{
-	if (handle_in_range(param)) {
-		for (const auto &p : px4::parameters_volatile) {
-			if (static_cast<px4::params>(param) == p) {
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
 bool
 param_value_unsaved(param_t param)
 {
 	return handle_in_range(param) ? params_unsaved[param] : false;
-}
-
-size_t param_size(param_t param)
-{
-	if (handle_in_range(param)) {
-		switch (param_type(param)) {
-		case PARAM_TYPE_INT32:
-		case PARAM_TYPE_FLOAT:
-			return 4;
-
-		default:
-			return 0;
-		}
-	}
-
-	return 0;
 }
 
 /**
@@ -639,32 +580,6 @@ bool param_value_is_default(param_t param)
 	}
 
 	return true;
-}
-
-int
-param_get_system_default_value(param_t param, void *default_val)
-{
-	if (!handle_in_range(param)) {
-		return PX4_ERROR;
-	}
-
-	int ret = PX4_OK;
-
-	switch (param_type(param)) {
-	case PARAM_TYPE_INT32:
-		memcpy(default_val, &px4::parameters[param].val.i, param_size(param));
-		break;
-
-	case PARAM_TYPE_FLOAT:
-		memcpy(default_val, &px4::parameters[param].val.f, param_size(param));
-		break;
-
-	default:
-		ret = PX4_ERROR;
-		break;
-	}
-
-	return ret;
 }
 
 /**

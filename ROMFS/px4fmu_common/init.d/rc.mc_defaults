@@ -7,6 +7,9 @@
 
 set VEHICLE_TYPE mc
 
+# MAV_TYPE_QUADROTOR 2
+param set-default MAV_TYPE 2
+
 if param compare IMU_GYRO_RATEMAX 400
 then
 	param set-default IMU_GYRO_RATEMAX 800
