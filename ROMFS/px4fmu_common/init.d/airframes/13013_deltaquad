@@ -22,6 +22,8 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+param set-default MAV_TYPE 22
+
 param set-default BAT1_CAPACITY 23000
 param set-default BAT1_N_CELLS 4
 param set-default BAT1_R_INTERNAL 0.0025
@@ -134,7 +136,6 @@ param set-default VT_TRANS_TIMEOUT 22
 param set-default VT_F_TRANS_RAMP 4
 
 param set-default COM_RC_OVERRIDE 0
-set MAV_TYPE 22
 
 set MIXER deltaquad
 set MIXER_AUX pass

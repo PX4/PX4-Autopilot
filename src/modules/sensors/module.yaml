@@ -159,18 +159,6 @@ parameters:
             num_instances: *max_num_sensor_instances
             instance_start: 0
 
-        CAL_ACC${i}_TEMP:
-            description:
-                short: Accelerometer ${i} calibration temperature
-                long: Temperature during last calibration.
-            category: System
-            type: float
-            default: -1000.
-            unit: celcius
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
         # Gyroscope calibration
         CAL_GYRO${i}_ID:
             description:
@@ -284,18 +272,6 @@ parameters:
             type: float
             default: 0.0
             unit: m
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_GYRO${i}_TEMP:
-            description:
-                short: Gyroscope ${i} calibration temperature
-                long: Temperature during last calibration.
-            category: System
-            type: float
-            default: -1000.
-            unit: celcius
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
@@ -527,18 +503,6 @@ parameters:
             category: System
             type: float
             default: 0.0
-            volatile: true
-            num_instances: *max_num_sensor_instances
-            instance_start: 0
-
-        CAL_MAG${i}_TEMP:
-            description:
-                short: Magnetometer ${i} calibration temperature
-                long: Temperature during last calibration.
-            category: System
-            type: float
-            default: -1000.
-            unit: celcius
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0

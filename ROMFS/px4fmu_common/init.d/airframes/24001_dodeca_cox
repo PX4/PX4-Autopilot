@@ -26,7 +26,7 @@
 # @board px4_fmu-v2 exclude
 #
 
-set VEHICLE_TYPE mc
+. ${R}etc/init.d/rc.mc_defaults
 
 param set-default NAV_ACC_RAD 2
 
@@ -39,6 +39,7 @@ param set-default PWM_MAIN_RATE 400
 
 param set-default RTL_DESCEND_ALT 10
 param set-default RTL_RETURN_ALT 30
+
 set MIXER dodeca_top_cox
 set MIXER_AUX dodeca_bottom_cox
 

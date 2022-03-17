@@ -7,6 +7,9 @@
 
 set VEHICLE_TYPE fw
 
+# MAV_TYPE_FREE_BALLOON 8
+param set-default MAV_TYPE 8
+
 #
 # Default parameters for balloon UAVs.
 #

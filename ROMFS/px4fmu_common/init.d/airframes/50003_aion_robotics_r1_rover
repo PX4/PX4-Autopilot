@@ -76,9 +76,6 @@ param set-default RBCLW_SER_CFG 104
 # Start this driver after setting parameters, because the driver uses some of those parameters.
 # roboclaw start /dev/ttyS3
 
-# Configure this as rover
-set MAV_TYPE 10
-
 # Set mixer
 set MIXER generic_diff_rover
 

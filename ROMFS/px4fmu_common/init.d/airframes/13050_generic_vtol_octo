@@ -31,7 +31,6 @@ param set-default PWM_AUX_DIS5 950
 param set-default VT_TYPE 2
 param set-default VT_MOT_ID 12345678
 param set-default VT_FW_MOT_OFFID 12345678
-set MAV_TYPE 22
 
 set MIXER octo_cox
 set MIXER_AUX vtol_AAERT

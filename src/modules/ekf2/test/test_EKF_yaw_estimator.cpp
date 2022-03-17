@@ -58,7 +58,12 @@ public:
 	// Setup the Ekf with mag aiding disabled
 	void SetUp() override
 	{
+		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+
 		_ekf_wrapper.setMagFuseTypeNone();
 		_sensor_simulator.runSeconds(2);
 		_ekf_wrapper.enableGpsFusion();

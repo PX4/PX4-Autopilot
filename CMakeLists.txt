@@ -412,6 +412,7 @@ endif()
 # subdirectories
 #
 add_library(parameters_interface INTERFACE)
+add_library(kernel_parameters_interface INTERFACE)
 
 include(px4_add_library)
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
@@ -434,7 +435,13 @@ add_subdirectory(src/lib/metadata EXCLUDE_FROM_ALL)
 
 # must be the last module before firmware
 add_subdirectory(src/lib/parameters EXCLUDE_FROM_ALL)
+
+if(${PX4_PLATFORM} STREQUAL "nuttx" AND NOT CONFIG_BUILD_FLAT)
+target_link_libraries(parameters_interface INTERFACE usr_parameters)
+target_link_libraries(kernel_parameters_interface INTERFACE parameters)
+else()
 target_link_libraries(parameters_interface INTERFACE parameters)
+endif()
 
 # firmware added last to generate the builtin for included modules
 add_subdirectory(platforms/${PX4_PLATFORM})
