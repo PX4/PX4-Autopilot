@@ -75,6 +75,9 @@ void Ekf::reset()
 	_control_status.value = 0;
 	_control_status_prev.value = 0;
 
+	_control_status.flags.in_air = true;
+	_control_status_prev.flags.in_air = true;
+
 	_ang_rate_delayed_raw.zero();
 
 	_fault_status.value = 0;
@@ -110,9 +113,6 @@ bool Ekf::update()
 		runTerrainEstimator();
 
 		updated = true;
-
-		// run EKF-GSF yaw estimator
-		runYawEKFGSF();
 	}
 
 	// the output observer always runs
@@ -213,7 +213,6 @@ bool Ekf::initialiseFilter()
 	// reset the essential fusion timeout counters
 	_time_last_hgt_fuse = _time_last_imu;
 	_time_last_hor_pos_fuse = _time_last_imu;
-	_time_last_delpos_fuse = _time_last_imu;
 	_time_last_hor_vel_fuse = _time_last_imu;
 	_time_last_hagl_fuse = _time_last_imu;
 	_time_last_flow_terrain_fuse = _time_last_imu;

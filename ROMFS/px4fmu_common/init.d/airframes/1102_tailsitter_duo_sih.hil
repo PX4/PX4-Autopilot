@@ -47,7 +47,7 @@ param set-default HIL_ACT_FUNC6 201
 param set-default HIL_ACT_REV 32
 
 param set-default MAV_TYPE 19
-set MAV_TYPE 19
+
 set MIXER vtol_tailsitter_duo_sat
 
 set PWM_OUT 1234

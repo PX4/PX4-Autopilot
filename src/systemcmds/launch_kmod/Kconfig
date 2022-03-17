@@ -1,0 +1,9 @@
+config SYSTEMCMDS_LAUNCH_KMOD
+	bool
+	default y
+	depends on BOARD_PROTECTED
+
+config USER_LAUNCH_KMOD
+	bool
+	default y
+	depends on BOARD_PROTECTED

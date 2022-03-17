@@ -105,11 +105,8 @@ int board_ioctl(unsigned int cmd, uintptr_t arg)
  *
  ************************************************************************************/
 
-int launch_kernel_builtin(unsigned int cmd, unsigned long arg)
+static int launch_kernel_builtin(int argc, char **argv)
 {
-	builtinioclaunch_t *kcmd = (builtinioclaunch_t *)arg;
-	int argc = kcmd->argc;
-	char **argv = kcmd->argv;
 	int i;
 	FAR const struct builtin_s *builtin = NULL;
 
@@ -123,12 +120,57 @@ int launch_kernel_builtin(unsigned int cmd, unsigned long arg)
 	if (builtin) {
 		/* This is running in the userspace thread, created by nsh, and
 		   called via boardctl. Call the main directly */
-		kcmd->ret = builtin->main(argc, argv);
-		return OK;
+		return builtin->main(argc, argv);
 	}
 
 	return ENOENT;
 }
+
+/************************************************************************************
+ * Name: platform_ioctl
+ *
+ * Description:
+ *   handle all miscellaneous platform level ioctls
+ *
+ ************************************************************************************/
+
+static int platform_ioctl(unsigned int cmd, unsigned long arg)
+{
+	int ret = PX4_OK;
+
+	switch (cmd) {
+	case PLATFORMIOCLAUNCH: {
+			platformioclaunch_t *data = (platformioclaunch_t *)arg;
+			data->ret = launch_kernel_builtin(data->argc, data->argv);
+		}
+		break;
+
+	case PLATFORMIOCVBUSSTATE: {
+			platformiocvbusstate_t *data = (platformiocvbusstate_t *)arg;
+			data->ret = px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1;
+		}
+		break;
+
+	case PLATFORMIOCINDICATELOCKOUT: {
+			platformioclockoutstate_t *data = (platformioclockoutstate_t *)arg;
+			px4_arch_configgpio(data->enabled ? GPIO_nARMED : GPIO_nARMED_INIT);
+		}
+		break;
+
+	case PLATFORMIOCGETLOCKOUT: {
+			platformioclockoutstate_t *data = (platformioclockoutstate_t *)arg;
+			data->enabled = px4_arch_gpioread(GPIO_nARMED);
+		}
+		break;
+
+	default:
+		ret = -ENOTTY;
+		break;
+	}
+
+	return ret;
+}
+
 
 /************************************************************************************
  * Name: kernel_ioctl_initialize
@@ -144,5 +186,5 @@ void kernel_ioctl_initialize(void)
 		ioctl_ptrs[i].ioctl_func = NULL;
 	}
 
-	px4_register_boardct_ioctl(_BUILTINIOCBASE, launch_kernel_builtin);
+	px4_register_boardct_ioctl(_PLATFORMIOCBASE, platform_ioctl);
 }

@@ -21,10 +21,7 @@
 # @board cuav_x7pro exclude
 #
 
-set VEHICLE_TYPE mc
-set MIXER quad_x
-set PWM_OUT 1234
-
+. ${R}etc/init.d/rc.mc_defaults
 
 # Attitude & rate gains
 param set-default MC_ROLLRATE_D 0.0013

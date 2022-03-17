@@ -159,9 +159,9 @@ void MixingOutput::printStatus() const
 
 	if (_use_dynamic_mixing) {
 		for (unsigned i = 0; i < _max_num_outputs; i++) {
-			PX4_INFO_RAW("Channel %i: func: %i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
+			PX4_INFO_RAW("Channel %i: func: %3i, value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d\n", i,
 				     (int)_function_assignment[i], _current_output_value[i],
-				     _failsafe_value[i], _disarmed_value[i], _min_value[i], _max_value[i]);
+				     actualFailsafeValue(i), _disarmed_value[i], _min_value[i], _max_value[i]);
 		}
 
 	} else {
@@ -269,7 +269,7 @@ bool MixingOutput::updateSubscriptionsStaticMixer(bool allow_wq_switch, bool lim
 		const bool sub_group_1 = (_groups_required & (1 << 1));
 
 		if (allow_wq_switch && !_wq_switched && (sub_group_0 || sub_group_1)) {
-			if (_interface.ChangeWorkQeue(px4::wq_configurations::rate_ctrl)) {
+			if (_interface.ChangeWorkQueue(px4::wq_configurations::rate_ctrl)) {
 				// let the new WQ handle the subscribe update
 				_wq_switched = true;
 				_interface.ScheduleNow();
@@ -374,7 +374,7 @@ bool MixingOutput::updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool li
 		}
 
 		if (allow_wq_switch && !_wq_switched && switch_requested) {
-			if (_interface.ChangeWorkQeue(px4::wq_configurations::rate_ctrl)) {
+			if (_interface.ChangeWorkQueue(px4::wq_configurations::rate_ctrl)) {
 				// let the new WQ handle the subscribe update
 				_wq_switched = true;
 				_interface.ScheduleNow();
@@ -1103,10 +1103,10 @@ MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_output
 }
 
 uint16_t
-MixingOutput::actualFailsafeValue(int index)
+MixingOutput::actualFailsafeValue(int index) const
 {
 	if (!_use_dynamic_mixing) {
-		return failsafeValue(index);
+		return _failsafe_value[index];
 	}
 
 	uint16_t value = 0;

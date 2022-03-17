@@ -170,9 +170,12 @@ if (GENERATE_RTPS_BRIDGE)
 		COMMENT "Generating uORB microcdr topic sources"
 		VERBATIM
 	)
+	add_custom_target(uorb_sources_microcdr_gen DEPENDS ${uorb_sources_microcdr})
+
 	px4_add_library(uorb_msgs_microcdr ${uorb_sources_microcdr} ${uorb_headers_microcdr})
 	add_dependencies(uorb_msgs_microcdr
 		uorb_headers_microcdr_gen
+		uorb_sources_microcdr_gen
 		git_micro_cdr
 		microcdr
 	)
