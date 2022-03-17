@@ -419,7 +419,7 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 /**
  * Set command after a quadchute
  *
- * @value -1 Disabled  
+ * @value -1 Disabled
  * @value  0 Return mode
  * @value  1 Land mode
  * @value  2 Hold mode

@@ -148,8 +148,8 @@ void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &arm
 				 const offboard_loss_actions_t offboard_loss_act);
 
 void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
-				 const vehicle_status_flags_s &status_flags,
-				 const quadchute_actions_t quadchute_act);
+			     const vehicle_status_flags_s &status_flags,
+			     const quadchute_actions_t quadchute_act);
 
 void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 				    const vehicle_status_flags_s &status_flags,
@@ -500,7 +500,8 @@ static void enable_failsafe(vehicle_status_s &status, bool old_failsafe, orb_adv
 bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_state_s &internal_state,
 		   orb_advert_t *mavlink_log_pub, const link_loss_actions_t data_link_loss_act, const bool mission_finished,
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
-		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act, const quadchute_actions_t quadchute_act,
+		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
+		   const quadchute_actions_t quadchute_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act,
 		   const float param_com_rcl_act_t, const int param_com_rcl_except)
@@ -993,12 +994,12 @@ void reset_link_loss_globals(actuator_armed_s &armed, const bool old_failsafe, c
 }
 
 void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
-				 const vehicle_status_flags_s &status_flags,
-				 const quadchute_actions_t quadchute_act)
+			     const vehicle_status_flags_s &status_flags,
+			     const quadchute_actions_t quadchute_act)
 {
 	switch (quadchute_act) {
 
-		// add DISABLED, default RTL
+	// add DISABLED, default RTL
 	case quadchute_actions_t::DISABLED:
 		// If quadchute action is disabled then no action must be taken.
 		return;
