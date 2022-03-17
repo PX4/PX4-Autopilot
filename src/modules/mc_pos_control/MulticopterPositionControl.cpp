@@ -471,6 +471,7 @@ void MulticopterPositionControl::Run()
 
 				_vt_sp.thrust_f = thrust_frd(0);
 				_vt_sp.thrust_r = thrust_frd(1);
+				_vt_sp.timestamp = hrt_absolute_time();
 
 				q_sp.copyTo(attitude_setpoint.q_d);
 
@@ -491,6 +492,7 @@ void MulticopterPositionControl::Run()
 
 				_vt_sp.thrust_f = thrust_frd(0);
 				_vt_sp.thrust_r = thrust_frd(1);
+				_vt_sp.timestamp = hrt_absolute_time();
 
 				// _control.getAttitudeSetpoint(attitude_setpoint);
 			}

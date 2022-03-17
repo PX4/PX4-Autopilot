@@ -70,7 +70,8 @@ TEST_F(AdmittanceControlBasicTest, BellTest)
 	_input_setpoint.y = 0.f;
 	_input_setpoint.z = -10.f;
 
-	Quatf q{_attitude.q};
+	Quatf q{cosf(-M_PI/8),0.f,0.f,sinf(-M_PI/8)};
+	// Quatf q{cosf(0.f),0.f,0.f,sinf(0.f)};
 
 	_bell_params.A[0] = 2.5f;
 	_bell_params.A[1] = 2.5f;
@@ -114,7 +115,7 @@ TEST_F(AdmittanceControlBasicTest, BellTest)
 
 	_bell_params.lpf_sat_factor = 1.f;
 
-	_dt = 1/100;
+	_dt = (0.01f);
 	_wrench(0) = (0.f);
 	_wrench(1) = (1.f);
 	_wrench(2) = (2.f);
@@ -133,8 +134,6 @@ TEST_F(AdmittanceControlBasicTest, BellTest)
 	EXPECT_LE(params.K[2], 6.953);
 	EXPECT_EQ(params.K[3], 2.0);
 
-
-
 	EXPECT_EQ(params.M[0], 1);
 	EXPECT_GT(params.M[1], .94584);
 	EXPECT_LE(params.M[1], .9459);
@@ -143,5 +142,28 @@ TEST_F(AdmittanceControlBasicTest, BellTest)
 	EXPECT_GT(params.M[3], .199);
 	EXPECT_LE(params.M[3], .201);
 
+	_input_setpoint.x = 0.f;
+	_input_setpoint.y = 0.f;
+	_input_setpoint.z = 0.f;
+
+	_bell_params.M_min[0] = .5f;
+	_bell_params.M_max[0] = 1.f;
+	_bell_params.K_min[0] = 1.f;
+	_bell_params.K_max[0] = 2.f;
+
+	_wrench(0) = (0.f);
+	_wrench(1) = (1.f);
+
+	_admittance_control.initialize(_bell_params);
+
+	for (size_t i = 0; i < 500; i++)
+	{
+	_admittance_control.update(_dt,_wrench,_actuator_output,0.f,q,_input_setpoint);
+	_output_setpoint = _admittance_control.getSetpoints();
+	printf("x : %.6f\n",(double) _output_setpoint.x);
+	printf("y : %.6f\n",(double) _output_setpoint.y);
+	}
+
+	EXPECT_EQ(0,cosf(-M_PI/4));
 
 }

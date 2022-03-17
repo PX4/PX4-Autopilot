@@ -181,10 +181,10 @@ void AdmittanceControlModule::Run()
 	if (_finite && _admittance_flag && (dt > 0.001f) && (dt < 1.f)) {
 
 		Vector<float, 4> We = zeros<float, 4, 1>();
-		We(0) = wrench.fe[0];
-		We(1) = wrench.fe[1];
-		We(2) = wrench.fe[2];
-		We(3) = wrench.me[2];
+		We(0) = math::constrain(wrench.fe[0], -_param_adm_ctr_dzx.get(), _param_adm_ctr_dzx.get());
+		We(1) = math::constrain(wrench.fe[1], -_param_adm_ctr_dzy.get(), _param_adm_ctr_dzy.get());
+		We(2) = math::constrain(wrench.fe[2], -_param_adm_ctr_dzz.get(), _param_adm_ctr_dzz.get());
+		We(3) = math::constrain(wrench.me[2], -_param_adm_ctr_dzw.get(), _param_adm_ctr_dzw.get());
 
 		float pwm[8] = {
 			actuator_outputs.output[0],
