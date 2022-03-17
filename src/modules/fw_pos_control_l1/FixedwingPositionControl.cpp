@@ -1208,7 +1208,10 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const fl
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	} else {
-		_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, get_nav_speed_2d(ground_speed));
+		Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+		Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+		Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0), prev_wp(1));
+		_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, get_nav_speed_2d(ground_speed));
 		_att_sp.roll_body = _l1_control.get_roll_setpoint();
 	}
 
@@ -1377,7 +1380,10 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const floa
 		target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 	} else {
-		_l1_control.navigate_loiter(curr_wp, curr_pos, loiter_radius, loiter_direction, get_nav_speed_2d(ground_speed));
+		Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+		Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+		_l1_control.navigate_loiter(curr_wp_local, curr_pos_local, loiter_radius, loiter_direction,
+					    get_nav_speed_2d(ground_speed));
 		_att_sp.roll_body = _l1_control.get_roll_setpoint();
 	}
 
@@ -1480,7 +1486,11 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 		} else {
-			_l1_control.navigate_waypoints(_runway_takeoff.getStartWP(), curr_wp, curr_pos, ground_speed);
+			Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+			Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+			Vector2f prev_wp_local = _global_local_proj_ref.project(_runway_takeoff.getStartWP()(0),
+						 _runway_takeoff.getStartWP()(1));
+			_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
 			_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.get_roll_setpoint());
 		}
 
@@ -1550,7 +1560,11 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 			} else {
-				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
+				Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+				Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+				Vector2f prev_wp_local = _global_local_proj_ref.project(_runway_takeoff.getStartWP()(0),
+							 _runway_takeoff.getStartWP()(1));
+				_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
 				_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			}
 
@@ -1807,7 +1821,11 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 			} else {
 				// normal navigation
-				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
+				Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+				Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+				Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
+							 prev_wp(1));
+				_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
 			}
 
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
@@ -1922,7 +1940,11 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 			} else {
 				// normal navigation
-				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
+				Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+				Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+				Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
+							 prev_wp(1));
+				_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
 			}
 
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
@@ -2086,7 +2108,11 @@ FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const 
 
 			} else {
 				/* populate l1 control setpoint */
-				_l1_control.navigate_waypoints(prev_wp, curr_wp, curr_pos, ground_speed);
+				Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+				Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+				Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
+							 prev_wp(1));
+				_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
 				_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			}
 
@@ -2220,7 +2246,8 @@ FixedwingPositionControl::Run()
 
 		// Convert Local setpoints to global setpoints
 		if (!_global_local_proj_ref.isInitialized()
-		    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)) {
+		    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)
+		    || (_local_pos.vxy_reset_counter != _pos_reset_counter)) {
 
 			_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
 							     _local_pos.ref_timestamp);

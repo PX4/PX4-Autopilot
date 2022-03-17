@@ -73,8 +73,8 @@ float ECL_L1_Pos_Controller::switch_distance(float wp_radius)
 }
 
 void
-ECL_L1_Pos_Controller::navigate_waypoints(const Vector2d &vector_A, const Vector2d &vector_B,
-		const Vector2d &vector_curr_position, const Vector2f &ground_speed_vector)
+ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector2f &vector_B,
+		const Vector2f &vector_curr_position, const Vector2f &ground_speed_vector)
 {
 	_has_guidance_updated = true;
 
@@ -82,8 +82,9 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2d &vector_A, const Vector
 	float eta = 0.0f;
 
 	/* get the direction between the last (visited) and next waypoint */
-	_target_bearing = get_bearing_to_next_waypoint(vector_curr_position(0), vector_curr_position(1), vector_B(0),
-			  vector_B(1));
+	Vector2f vector_B_to_P = vector_B - vector_curr_position;
+	Vector2f vector_B_to_P_unit = vector_B_to_P.normalized();
+	_target_bearing = atan2f(vector_B_to_P_unit(1), vector_B_to_P_unit(0));
 
 	/* enforce a minimum ground speed of 0.1 m/s to avoid singularities */
 	float ground_speed = math::max(ground_speed_vector.length(), 0.1f);
@@ -92,20 +93,20 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2d &vector_A, const Vector
 	_L1_distance = _L1_ratio * ground_speed;
 
 	/* calculate vector from A to B */
-	Vector2f vector_AB = get_local_planar_vector(vector_A, vector_B);
+	Vector2f vector_AB = vector_B - vector_A;
 
 	/*
 	 * check if waypoints are on top of each other. If yes,
 	 * skip A and directly continue to B
 	 */
 	if (vector_AB.length() < 1.0e-6f) {
-		vector_AB = get_local_planar_vector(vector_curr_position, vector_B);
+		vector_AB = vector_B - vector_curr_position;
 	}
 
 	vector_AB.normalize();
 
 	/* calculate the vector from waypoint A to the aircraft */
-	Vector2f vector_A_to_airplane = get_local_planar_vector(vector_A, vector_curr_position);
+	Vector2f vector_A_to_airplane = vector_curr_position - vector_A;
 
 	/* calculate crosstrack error (output only) */
 	_crosstrack_error = vector_AB % vector_A_to_airplane;
@@ -119,12 +120,13 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2d &vector_A, const Vector
 	float alongTrackDist = vector_A_to_airplane * vector_AB;
 
 	/* estimate airplane position WRT to B */
-	Vector2f vector_B_to_P_unit = get_local_planar_vector(vector_B, vector_curr_position).normalized();
+	Vector2f vector_P_to_B = vector_curr_position - vector_B;
+	Vector2f vector_P_to_B_unit = vector_P_to_B.normalized();
 
 	/* calculate angle of airplane position vector relative to line) */
 
 	// XXX this could probably also be based solely on the dot product
-	float AB_to_BP_bearing = atan2f(vector_B_to_P_unit % vector_AB, vector_B_to_P_unit * vector_AB);
+	float AB_to_BP_bearing = atan2f(vector_P_to_B_unit % vector_AB, vector_P_to_B_unit * vector_AB);
 
 	/* extension from [2], fly directly to A */
 	if (distance_A_to_airplane > _L1_distance && alongTrackDist / math::max(distance_A_to_airplane, 1.0f) < -0.7071f) {
@@ -210,7 +212,7 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2d &vector_A, const Vector
 }
 
 void
-ECL_L1_Pos_Controller::navigate_loiter(const Vector2d &vector_A, const Vector2d &vector_curr_position, float radius,
+ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f &vector_curr_position, float radius,
 				       int8_t loiter_direction, const Vector2f &ground_speed_vector)
 {
 	_has_guidance_updated = true;
@@ -222,10 +224,6 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2d &vector_A, const Vector2d 
 	float K_crosstrack = omega * omega;
 	float K_velocity = 2.0f * _L1_damping * omega;
 
-	/* update bearing to next waypoint */
-	_target_bearing = get_bearing_to_next_waypoint(vector_curr_position(0), vector_curr_position(1), vector_A(0),
-			  vector_A(1));
-
 	/* ground speed, enforce minimum of 0.1 m/s to avoid singularities */
 	float ground_speed = math::max(ground_speed_vector.length(), 0.1f);
 
@@ -233,7 +231,7 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2d &vector_A, const Vector2d 
 	_L1_distance = _L1_ratio * ground_speed;
 
 	/* calculate the vector from waypoint A to current position */
-	Vector2f vector_A_to_airplane = get_local_planar_vector(vector_A, vector_curr_position);
+	Vector2f vector_A_to_airplane = vector_curr_position - vector_A;
 
 	Vector2f vector_A_to_airplane_unit;
 
@@ -245,6 +243,9 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2d &vector_A, const Vector2d 
 	} else {
 		vector_A_to_airplane_unit = vector_A_to_airplane;
 	}
+
+	/* update bearing to next waypoint */
+	_target_bearing = atan2f(vector_A_to_airplane_unit(1), vector_A_to_airplane_unit(0));
 
 	/* calculate eta angle towards the loiter center */
 
