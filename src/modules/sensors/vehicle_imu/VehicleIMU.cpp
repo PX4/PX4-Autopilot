@@ -541,16 +541,19 @@ bool VehicleIMU::Publish()
 {
 	bool updated = false;
 
-	// publish if both accel & gyro integrators are ready
+	// publish if and only if both accel & gyro integrators are ready
+	// Note: The integrator.reset has a side-effect: it will zero out the integrated values before return true.
+	// So we must ensure both integrators are ready before do the reset.
 	if (_intervals_configured && _accel_integrator.integral_ready() && _gyro_integrator.integral_ready()) {
 		vehicle_imu_s imu;
 		Vector3f delta_angle;
 		Vector3f delta_velocity;
+		// Both resets are expected to be successful given integral_ready() are already true.
+		bool reset_success = _accel_integrator.reset(delta_velocity, imu.delta_velocity_dt);
+		reset_success &=  _gyro_integrator.reset(delta_angle, imu.delta_angle_dt);
 
-		_accel_integrator.reset(delta_velocity, imu.delta_velocity_dt);
-		_gyro_integrator.reset(delta_angle, imu.delta_angle_dt);
-
-		if (_accel_calibration.enabled() && _gyro_calibration.enabled()) {
+		// Only publish when data is read and calibrations are done.
+		if (reset_success && _accel_calibration.enabled() && _gyro_calibration.enabled()) {
 
 			// delta angle: apply offsets, scale, and board rotation
 			_gyro_calibration.SensorCorrectionsUpdate();
