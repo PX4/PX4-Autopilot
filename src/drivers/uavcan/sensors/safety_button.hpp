@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,67 +31,36 @@
  *
  ****************************************************************************/
 
-/**
- * @author CUAVcaijie <caijie@cuav.net>
- */
+#pragma once
 
-#include "safetybutton.hpp"
-#include <cstdint>
-#include <drivers/drv_hrt.h>
-#include <systemlib/err.h>
-#include <mathlib/mathlib.h>
+#include "sensor_bridge.hpp"
+#include <uORB/topics/safety.h>
 
-using namespace time_literals;
-const char *const UavcanSafetyBridge::NAME = "safety";
+#include <ardupilot/indication/Button.hpp>
 
-UavcanSafetyBridge::UavcanSafetyBridge(uavcan::INode &node) :
-	_node(node),
-	_sub_safety(node),
-	_pub_safety(node)
+class UavcanSafetyButtonBridge : public UavcanSensorBridgeBase
 {
-}
+public:
+	static const char *const NAME;
 
-int UavcanSafetyBridge::init()
-{
-	int res = _pub_safety.init(uavcan::TransferPriority::MiddleLower);
+	UavcanSafetyButtonBridge(uavcan::INode &node);
 
-	if (res < 0) {
-		printf("safety pub failed %i", res);
-		return res;
-	}
+	const char *get_name() const override { return NAME; }
 
-	res = _sub_safety.start(SafetyCommandCbBinder(this, &UavcanSafetyBridge::safety_sub_cb));
+	int init() override;
 
-	if (res < 0) {
-		printf("safety pub failed %i", res);
-		return res;
-	}
+private:
 
-	return 0;
-}
+	int init_driver(uavcan_bridge::Channel *channel) override;
 
-unsigned UavcanSafetyBridge::get_num_redundant_channels() const
-{
-	return 0;
-}
+	void button_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg);
 
-void UavcanSafetyBridge::print_status() const
-{
-}
+	typedef uavcan::MethodBinder < UavcanSafetyButtonBridge *,
+		void (UavcanSafetyButtonBridge::*)
+		(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &) >
+		ButtonCbBinder;
 
-void UavcanSafetyBridge::safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
-{
-	if (msg.press_time > 10 && msg.button == 1) {
-		if (_safety_disabled) { return; }
-
-		_safety_disabled = true;
-
-	} else {
-
-		_safety_disabled = false;
-	}
+	uavcan::Subscriber<ardupilot::indication::Button, ButtonCbBinder> _sub_button;
 
 
-
-
-}
+};
