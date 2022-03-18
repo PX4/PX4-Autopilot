@@ -70,7 +70,6 @@ public:
 	EKF2Selector();
 	~EKF2Selector() override;
 
-	bool Start();
 	void Stop();
 
 	void PrintStatus();

@@ -54,22 +54,17 @@ VotedSensorsUpdate::VotedSensorsUpdate(bool hil_enabled,
 	_vehicle_imu_sub(vehicle_imu_sub),
 	_hil_enabled(hil_enabled)
 {
+	_sensor_selection_pub.advertise();
+	_sensors_status_imu_pub.advertise();
+
 	if (_hil_enabled) { // HIL has less accurate timing so increase the timeouts a bit
 		_gyro.voter.set_timeout(500000);
 		_accel.voter.set_timeout(500000);
 	}
-}
-
-int VotedSensorsUpdate::init(sensor_combined_s &raw)
-{
-	raw.accelerometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
-	raw.timestamp = 0;
 
 	initializeSensors();
 
-	_selection_changed = true;
-
-	return 0;
+	parametersUpdate();
 }
 
 void VotedSensorsUpdate::initializeSensors()

@@ -70,6 +70,8 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	// limit to 50 Hz
 	_local_pos_sub.set_interval_ms(20);
 
+	_pos_ctrl_status_pub.advertise();
+	_pos_ctrl_landing_status_pub.advertise();
 	_tecs_status_pub.advertise();
 
 	_slew_rate_airspeed.setSlewRate(ASPD_SP_SLEW_RATE);
