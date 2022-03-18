@@ -206,6 +206,8 @@ AirspeedModule::AirspeedModule():
 
 	_perf_elapsed = perf_alloc(PC_ELAPSED, MODULE_NAME": elapsed");
 	_airspeed_validated_pub.advertise();
+	_wind_est_pub[0].advertise();
+	_wind_est_pub[1].advertise();
 }
 
 AirspeedModule::~AirspeedModule()

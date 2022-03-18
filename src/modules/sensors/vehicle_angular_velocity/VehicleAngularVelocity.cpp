@@ -46,6 +46,8 @@ VehicleAngularVelocity::VehicleAngularVelocity() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
+	_vehicle_angular_acceleration_pub.advertise();
+	_vehicle_angular_velocity_pub.advertise();
 }
 
 VehicleAngularVelocity::~VehicleAngularVelocity()
