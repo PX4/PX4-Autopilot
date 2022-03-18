@@ -48,11 +48,11 @@ TEST(MatrixHelperTest, Helper)
 	EXPECT_FLOAT_EQ(wrap(-1., 30., 40.), 39.);
 	EXPECT_FLOAT_EQ(wrap(-8000., -555., 1.), -216.);
 	EXPECT_FLOAT_EQ(wrap(0., 0., 360.), 0.);
-	EXPECT_FLOAT_EQ(wrap(0. - FLT_EPSILON, 0., 360.), 360.);
-	EXPECT_FLOAT_EQ(wrap(0. + FLT_EPSILON, 0., 360.), 0.);
+	EXPECT_FLOAT_EQ(wrap(0. - FLT_EPSILON, 0., 360.), 360. - FLT_EPSILON);
+	EXPECT_FLOAT_EQ(wrap(0. + FLT_EPSILON, 0., 360.), FLT_EPSILON);
 	EXPECT_FLOAT_EQ(wrap(360., 0., 360.), 0.);
-	EXPECT_FLOAT_EQ(wrap(360. - FLT_EPSILON, 0., 360.), 360.);
-	EXPECT_FLOAT_EQ(wrap(360. + FLT_EPSILON, 0., 360.), 0.);
+	EXPECT_FLOAT_EQ(wrap(360. - FLT_EPSILON, 0., 360.), 360. - FLT_EPSILON);
+	EXPECT_FLOAT_EQ(wrap(360. + FLT_EPSILON, 0., 360.), FLT_EPSILON);
 
 	// integer wraps
 	EXPECT_EQ(wrap(-10, 0, 10), 0);
