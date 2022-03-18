@@ -103,6 +103,9 @@ _param_prefix(param_prefix)
 		}
 
 		updateParams();
+
+	} else {
+		_control_allocator_status_pub.advertise();
 	}
 
 	_outputs_pub.advertise();

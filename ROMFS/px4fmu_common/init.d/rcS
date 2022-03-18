@@ -408,6 +408,13 @@ else
 		commander start
 	fi
 
+	#
+	# Configure vehicle type specific parameters.
+	# Note: rc.vehicle_setup is the entry point for rc.interface,
+	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
+	#
+	. ${R}etc/init.d/rc.vehicle_setup
+
 	# Pre-takeoff continuous magnetometer calibration
 	if param compare -s MBE_ENABLE 1
 	then
@@ -457,13 +464,6 @@ else
 			camera_capture on
 		fi
 	fi
-
-	#
-	# Configure vehicle type specific parameters.
-	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
-	#
-	. ${R}etc/init.d/rc.vehicle_setup
 
 	#
 	# Play the startup tune (if not disabled or there is an error)
