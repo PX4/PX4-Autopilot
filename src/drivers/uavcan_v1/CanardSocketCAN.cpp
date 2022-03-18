@@ -56,8 +56,11 @@ int CanardSocketCAN::init()
 	struct ifreq ifr;
 
 	//FIXME HOTFIX to make this code compile
+#ifdef CONFIG_NET_CAN_CANFD
+	bool can_fd = 1;
+#else
 	bool can_fd = 0;
-
+#endif
 	_can_fd = can_fd;
 
 	/* open socket */
