@@ -419,3 +419,43 @@ PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZZ, 0.2f);
  * @group Admittance Control
  */
 PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZW, 0.0350f);
+
+/**
+ * External Force Saturation x-axis
+ *
+ * @decimal 5
+ * @min 0.001
+ * @max 100.0
+ * @group Admittance Control
+ */
+PARAM_DEFINE_FLOAT(ADM_CTR_WRE_SAX, 2.5f);
+
+/**
+ * External Force Saturation y-axis
+ *
+ * @decimal 5
+ * @min 0.001
+ * @max 100.0
+ * @group Admittance Control
+ */
+PARAM_DEFINE_FLOAT(ADM_CTR_WRE_SAY, 2.5f);
+
+/**
+ * External Force Saturation z-axis
+ *
+ * @decimal 5
+ * @min 0.001
+ * @max 100.0
+ * @group Admittance Control
+ */
+PARAM_DEFINE_FLOAT(ADM_CTR_WRE_SAZ, 15.f);
+
+/**
+ * External Moment Saturation yaw-axis
+ *
+ * @decimal 6
+ * @min 0.0001
+ * @max 50.0
+ * @group Admittance Control
+ */
+PARAM_DEFINE_FLOAT(ADM_CTR_WRE_SAW, 0.5f);

@@ -157,7 +157,11 @@ private:
 		(ParamFloat<px4::params::ADM_CTR_WRE_DZX>) _param_adm_ctr_dzx,
 		(ParamFloat<px4::params::ADM_CTR_WRE_DZY>) _param_adm_ctr_dzy,
 		(ParamFloat<px4::params::ADM_CTR_WRE_DZZ>) _param_adm_ctr_dzz,
-		(ParamFloat<px4::params::ADM_CTR_WRE_DZW>) _param_adm_ctr_dzw
+		(ParamFloat<px4::params::ADM_CTR_WRE_DZW>) _param_adm_ctr_dzw,
+		(ParamFloat<px4::params::ADM_CTR_WRE_SAX>) _param_adm_ctr_sax,
+		(ParamFloat<px4::params::ADM_CTR_WRE_SAY>) _param_adm_ctr_say,
+		(ParamFloat<px4::params::ADM_CTR_WRE_SAZ>) _param_adm_ctr_saz,
+		(ParamFloat<px4::params::ADM_CTR_WRE_SAW>) _param_adm_ctr_saw
 	)
 
 	bool _finite{false};
