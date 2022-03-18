@@ -37,13 +37,13 @@
 
 #include "range_finder_consistency_check.hpp"
 
-void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, float time_s)
+void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, uint64_t time_us)
 {
-	const float dt = time_s - _time_last_update_s;
+	const float dt = static_cast<float>(time_us - _time_last_update_us) * 1e-6f;
 
-	if ((_time_last_update_s < FLT_EPSILON)
+	if ((_time_last_update_us == 0)
 	    || (dt < 0.001f) || (dt > 0.5f)) {
-		_time_last_update_s = time_s;
+		_time_last_update_us = time_us;
 		_dist_bottom_prev = dist_bottom;
 		return;
 	}
@@ -59,20 +59,20 @@ void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_va
 	const float signed_test_ratio = matrix::sign(innov) * _vel_bottom_test_ratio;
 	_vel_bottom_signed_test_ratio_lpf.update(signed_test_ratio);
 
-	updateConsistency(vz, time_s);
+	updateConsistency(vz, time_us);
 
-	_time_last_update_s = time_s;
+	_time_last_update_us = time_us;
 	_dist_bottom_prev = dist_bottom;
 }
 
-void RangeFinderConsistencyCheck::updateConsistency(float vz, float time_s)
+void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
 {
 	if (fabsf(_vel_bottom_signed_test_ratio_lpf.getState()) >= 1.f) {
 		_is_kinematically_consistent = false;
-		_time_last_inconsistent = time_s;
+		_time_last_inconsistent_us = time_us;
 
 	} else {
-		if (fabsf(vz) > _min_vz_for_valid_consistency && _vel_bottom_test_ratio < 1.f && ((time_s - _time_last_inconsistent) > _consistency_hyst_time)) {
+		if (fabsf(vz) > _min_vz_for_valid_consistency && _vel_bottom_test_ratio < 1.f && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)) {
 			_is_kinematically_consistent = true;
 		}
 	}
