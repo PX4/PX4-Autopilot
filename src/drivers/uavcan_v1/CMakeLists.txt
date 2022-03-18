@@ -112,6 +112,7 @@ px4_add_module(
 	INCLUDES
 		${LIBCANARD_DIR}/libcanard/
 		${CMAKE_CURRENT_BINARY_DIR}/dsdlc_generated
+		${CMAKE_CURRENT_SOURCE_DIR}/Publishers
 	SRCS
 		PublicationManager.cpp
 		PublicationManager.hpp
