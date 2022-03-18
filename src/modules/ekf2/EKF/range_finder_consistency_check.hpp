@@ -47,27 +47,27 @@ public:
 	RangeFinderConsistencyCheck() = default;
 	~RangeFinderConsistencyCheck() = default;
 
-	void update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, float time_s);
+	void update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, uint64_t time_us);
 
 	float getTestRatio() const { return _vel_bottom_test_ratio; }
 	float getSignedTestRatioLpf() const { return _vel_bottom_signed_test_ratio_lpf.getState(); }
 	bool isKinematicallyConsistent() const { return _is_kinematically_consistent; }
 
 private:
-	void updateConsistency(float vz, float time_s);
+	void updateConsistency(float vz, uint64_t time_us);
 
-	float _time_last_update_s{};
+	uint64_t _time_last_update_us{};
 	float _dist_bottom_prev{};
 
 	float _vel_bottom_test_ratio{};
 	AlphaFilter<float> _vel_bottom_signed_test_ratio_lpf{}; // average signed test ratio used to detect a bias in the data
 
 	bool _is_kinematically_consistent{true};
-	float _time_last_inconsistent{};
+	uint64_t _time_last_inconsistent_us{};
 
 	static constexpr float _vel_bottom_signed_test_ratio_tau = 2.f;
 	static constexpr float _vel_bottom_gate = 0.1f;
 
 	static constexpr float _min_vz_for_valid_consistency = 0.5f;
-	static constexpr float _consistency_hyst_time = 1.f;
+	static constexpr uint64_t _consistency_hyst_time_us = 1e6;
 };
