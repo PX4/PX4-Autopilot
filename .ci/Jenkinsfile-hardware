@@ -451,6 +451,88 @@ pipeline {
           }
         }
 
+        stage("px4_fmu-v5_protected") {
+          stages {
+            stage("build px4_fmu-v5_protected") {
+              agent {
+                docker {
+                  image 'px4io/px4-dev-nuttx-focal:2021-09-08'
+                  args '--cpu-shares 512 -e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+                }
+              }
+              steps {
+                checkoutSCM()
+                sh 'make px4_fmu-v5_protected'
+                sh 'make px4_fmu-v5_protected bootloader_elf'
+                sh 'ccache -s'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v5_protected'
+              }
+              post {
+                always {
+                  sh 'make distclean; git clean -ff -x -d .'
+                }
+              }
+            } // stage build
+            stage("hardware") {
+              agent {
+                label 'px4_fmu-v5'
+              }
+              stages {
+                stage("flash") {
+                  steps {
+                    sh 'export'
+                    sh 'find /dev/serial'
+                    unstash 'px4_fmu-v5_protected'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 0" || true'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set IMU_GYRO_RATEMAX 200" || true' // limit cpu usage
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param save" || true'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_protected/px4_fmu-v5_bootloader.elf'
+                    // flash board and watch bootup
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_protected/px4_fmu-v5_protected.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    resetBoard()
+                  }
+                }
+                stage("tests") {
+                  steps {
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "top once"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "work_queue status"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests"'
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "uorb_tests latency_test" || true'
+
+                    // test dataman
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "tests dataman"'
+                  }
+                }
+                stage("status") {
+                  steps {
+                    // configure
+                    resetParameters()
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set SYS_AUTOSTART 4001" || true'   // generic quadcopter
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set IMU_GYRO_RATEMAX 200" || true' // limit cpu usage
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_0_CONFIG 0" || true'       // limit cpu usage
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param set MAV_1_CONFIG 0" || true'       // limit cpu usage
+                    checkStatus()
+                    sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status" || true'
+                  }
+                }
+                stage("print topics") {
+                  steps {
+                    printTopics()
+                  }
+                }
+              }
+              post {
+                always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
+                  //sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_protected/px4_fmu-v5_protected.elf || true'
+                }
+              }
+            }
+          }
+        }
+
         stage("px4_fmu-v5_stackcheck") {
           stages {
             stage("build px4_fmu-v5_stackcheck") {
