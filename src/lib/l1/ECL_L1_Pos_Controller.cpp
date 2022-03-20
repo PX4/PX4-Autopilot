@@ -374,19 +374,6 @@ void ECL_L1_Pos_Controller::navigate_level_flight(float current_heading)
 	update_roll_setpoint();
 }
 
-Vector2f ECL_L1_Pos_Controller::get_local_planar_vector(const Vector2d &origin, const Vector2d &target) const
-{
-	/* this is an approximation for small angles, proposed by [2] */
-	const double x_angle = math::radians(target(0) - origin(0));
-	const double y_angle = math::radians(target(1) - origin(1));
-	const double x_origin_cos = cos(math::radians(origin(0)));
-
-	return Vector2f{
-		static_cast<float>(x_angle * CONSTANTS_RADIUS_OF_EARTH),
-		static_cast<float>(y_angle *x_origin_cos * CONSTANTS_RADIUS_OF_EARTH),
-	};
-}
-
 void ECL_L1_Pos_Controller::set_l1_period(float period)
 {
 	_L1_period = period;
