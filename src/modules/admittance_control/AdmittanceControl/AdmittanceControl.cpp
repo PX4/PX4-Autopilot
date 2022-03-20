@@ -160,19 +160,19 @@ Vector<float, 8> func(float t, const Matrix<float, 8, 1> &y, const Matrix<float,
 	// y = [x,x_dot,y,y_dot,z,z_dot,yaw,yaw_dot]
 	// u = [fx,fy,fz,m_z]
 
-	// float states[8] = {
-	// 	y(1, 0), ((-(params.C[0]*y(1, 0)) - (params.K[0]*y(0, 0)) + u(0, 0) + params.Fd[0]) / params.M[0]),
-	// 	y(3, 0), ((-(params.C[1]*y(3, 0)) - (params.K[1]*y(2, 0)) + u(1, 0) + params.Fd[1]) / params.M[1]),
-	// 	y(5, 0), ((-(params.C[2]*y(5, 0)) - (params.K[2]*y(4, 0)) + u(2, 0) + params.Fd[2]) / params.M[2]),
-	// 	y(7, 0), ((-(params.C[3]*y(7, 0)) - (params.K[3]*y(6, 0)) + u(3, 0) + params.Fd[3]) / params.M[3])
-	// };
-
 	float states[8] = {
-		y(1, 0), (-(params.C[0] / params.M[0])*y(1, 0) - (params.K[0] / params.M[0])*y(0, 0) + ((u(0, 0) + params.Fd[0]) / params.M[0])),
-		y(3, 0), (-(params.C[1] / params.M[1])*y(3, 0) - (params.K[1] / params.M[1])*y(2, 0) + ((u(1, 0) + params.Fd[1]) / params.M[1])),
-		y(5, 0), (-(params.C[2] / params.M[2])*y(5, 0) - (params.K[2] / params.M[2])*y(4, 0) + ((u(2, 0) + params.Fd[2]) / params.M[2])),
-		y(7, 0), (-(params.C[3] / params.M[3])*y(7, 0) - (params.K[3] / params.M[3])*y(6, 0) + ((u(3, 0) + params.Fd[3]) / params.M[3]))
+		y(1, 0), ((-(params.C[0]*y(1, 0)) - (params.K[0]*y(0, 0)) + u(0, 0) + params.Fd[0]) / params.M[0]),
+		y(3, 0), ((-(params.C[1]*y(3, 0)) - (params.K[1]*y(2, 0)) + u(1, 0) + params.Fd[1]) / params.M[1]),
+		y(5, 0), ((-(params.C[2]*y(5, 0)) - (params.K[2]*y(4, 0)) + u(2, 0) + params.Fd[2]) / params.M[2]),
+		y(7, 0), ((-(params.C[3]*y(7, 0)) - (params.K[3]*y(6, 0)) + u(3, 0) + params.Fd[3]) / params.M[3])
 	};
+
+	// float states[8] = {
+	// 	y(1, 0), (-(params.C[0] / params.M[0])*y(1, 0) - (params.K[0] / params.M[0])*y(0, 0) + ((u(0, 0) + params.Fd[0]) / params.M[0])),
+	// 	y(3, 0), (-(params.C[1] / params.M[1])*y(3, 0) - (params.K[1] / params.M[1])*y(2, 0) + ((u(1, 0) + params.Fd[1]) / params.M[1])),
+	// 	y(5, 0), (-(params.C[2] / params.M[2])*y(5, 0) - (params.K[2] / params.M[2])*y(4, 0) + ((u(2, 0) + params.Fd[2]) / params.M[2])),
+	// 	y(7, 0), (-(params.C[3] / params.M[3])*y(7, 0) - (params.K[3] / params.M[3])*y(6, 0) + ((u(3, 0) + params.Fd[3]) / params.M[3]))
+	// };
 
 	Vector<float, 8> v(states);
 
