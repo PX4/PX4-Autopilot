@@ -214,7 +214,7 @@ PARAM_DEFINE_FLOAT(ADM_CTR_BEL_B3W, 2.f);
  * @max 50.0
  * @group Admittance Control
  */
-PARAM_DEFINE_FLOAT(ADM_CTR_BEL_MIX, 1.f);
+PARAM_DEFINE_FLOAT(ADM_CTR_BEL_MIX, 0.5f);
 
 /**
  * Min. mass y-axis
@@ -255,7 +255,7 @@ PARAM_DEFINE_FLOAT(ADM_CTR_BEL_MIW, 10.f);
  * @max 50.0
  * @group Admittance Control
  */
-PARAM_DEFINE_FLOAT(ADM_CTR_BEL_KIX, 10.f);
+PARAM_DEFINE_FLOAT(ADM_CTR_BEL_KIX, 1.f);
 
 /**
  * Min.stiffness y-axis
@@ -296,7 +296,7 @@ PARAM_DEFINE_FLOAT(ADM_CTR_BEL_KIW, 0.1f);
  * @max 50.0
  * @group Admittance Control
  */
-PARAM_DEFINE_FLOAT(ADM_CTR_BEL_MAX, 10.f);
+PARAM_DEFINE_FLOAT(ADM_CTR_BEL_MAX, 1.f);
 
 /**
  * Max. mass y-axis
@@ -337,7 +337,7 @@ PARAM_DEFINE_FLOAT(ADM_CTR_BEL_MAW, 100.f);
  * @max 50.0
  * @group Admittance Control
  */
-PARAM_DEFINE_FLOAT(ADM_CTR_BEL_KAX, 25.f);
+PARAM_DEFINE_FLOAT(ADM_CTR_BEL_KAX, 2.f);
 
 /**
  * Max.stiffness y-axis
@@ -388,7 +388,7 @@ PARAM_DEFINE_FLOAT(ADM_CTR_BEL_LPF, 5.f);
  * @max 50.0
  * @group Admittance Control
  */
-PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZX, 0.25f);
+PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZX, 0.125f);
 
 /**
  * External Force Deadzone y-axis
@@ -398,7 +398,7 @@ PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZX, 0.25f);
  * @max 50.0
  * @group Admittance Control
  */
-PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZY, 0.2f);
+PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZY, 0.125f);
 
 /**
  * External Force Deadzone z-axis
@@ -408,7 +408,7 @@ PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZY, 0.2f);
  * @max 50.0
  * @group Admittance Control
  */
-PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZZ, 0.2f);
+PARAM_DEFINE_FLOAT(ADM_CTR_WRE_DZZ, 0.175f);
 
 /**
  * External Moment Deadzone yaw-axis
