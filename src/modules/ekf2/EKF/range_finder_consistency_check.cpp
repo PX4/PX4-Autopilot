@@ -63,6 +63,10 @@ void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_va
 
 	_time_last_update_us = time_us;
 	_dist_bottom_prev = dist_bottom;
+
+	// Save for logging
+	_vel_bottom_innov = innov;
+	_vel_bottom_innov_var = innov_var;
 }
 
 void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
