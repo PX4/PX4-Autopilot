@@ -104,9 +104,6 @@ void Ekf::controlGpsFusion()
 								} else if (_control_status.flags.gps_yaw) {
 									_control_status.flags.gps_yaw_fault = true;
 									_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
-
-								} else if (_control_status.flags.ev_yaw) {
-									_inhibit_ev_yaw_use = true;
 								}
 							}
 

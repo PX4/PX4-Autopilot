@@ -201,7 +201,9 @@ void Ekf::controlExternalVisionFusion()
 			reset = true;
 		}
 
-		if (_inhibit_ev_yaw_use) {
+		bool inhibit_ev_yaw_use = _control_status.flags.gps || _control_status.flags.gps_yaw;
+
+		if (inhibit_ev_yaw_use) {
 			stopEvYawFusion();
 		}
 
@@ -232,7 +234,7 @@ void Ekf::controlExternalVisionFusion()
 		}
 
 		// external vision yaw aiding selection logic
-		if (!_inhibit_ev_yaw_use && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw
+		if (!inhibit_ev_yaw_use && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw
 		    && _control_status.flags.tilt_align) {
 
 			// don't start using EV data unless data is arriving frequently

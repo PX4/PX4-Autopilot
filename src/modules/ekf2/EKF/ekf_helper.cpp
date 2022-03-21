@@ -1531,8 +1531,6 @@ void Ekf::startGpsFusion()
 		if (_control_status.flags.ev_yaw) {
 			// Stop the vision for yaw fusion and do not allow it to start again
 			stopEvYawFusion();
-			_inhibit_ev_yaw_use = true;
-
 			yaw_reset_needed = true;
 		}
 
@@ -1591,10 +1589,6 @@ void Ekf::stopGpsFusion()
 	if (_control_status.flags.gps_yaw) {
 		stopGpsYawFusion();
 	}
-
-	// We do not need to know the true North anymore
-	// EV yaw can start again
-	_inhibit_ev_yaw_use = false;
 }
 
 void Ekf::stopGpsPosFusion()
