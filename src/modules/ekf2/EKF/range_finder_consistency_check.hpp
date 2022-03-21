@@ -51,6 +51,8 @@ public:
 
 	float getTestRatio() const { return _vel_bottom_test_ratio; }
 	float getSignedTestRatioLpf() const { return _vel_bottom_signed_test_ratio_lpf.getState(); }
+	float getInnov() const { return _vel_bottom_innov; }
+	float getInnovVar() const { return _vel_bottom_innov_var; }
 	bool isKinematicallyConsistent() const { return _is_kinematically_consistent; }
 
 private:
@@ -61,6 +63,8 @@ private:
 
 	float _vel_bottom_test_ratio{};
 	AlphaFilter<float> _vel_bottom_signed_test_ratio_lpf{}; // average signed test ratio used to detect a bias in the data
+	float _vel_bottom_innov{};
+	float _vel_bottom_innov_var{};
 
 	bool _is_kinematically_consistent{true};
 	uint64_t _time_last_inconsistent_us{};
