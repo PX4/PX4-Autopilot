@@ -59,17 +59,17 @@
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/matrix/matrix/helper_functions.hpp>
 
-// Minimum safety altitude above home (or bottom distance sensor)
+// [m] Minimum safety altitude above home (or bottom distance sensor)
 // underneath which the flight task will stop moving horizontally
 static constexpr float MINIMUM_SAFETY_ALTITUDE = 1.0f;
+
+// [m/s] Vertical ascent speed when the drone detects that it is too close
+// to the ground (below MINIMUM_SAFETY_ALTITUDE).
+static constexpr float EMERGENCY_ASCENT_SPEED = 0.5f;
 
 // [m] max vertical deviation from position setpoint, above
 // which no horizontal control is done
 static constexpr float ALT_ACCEPTANCE_THRESHOLD = 3.0f;
-
-// Vertical ascent speed when the drone detects that it
-// is too close to the ground (below MINIMUM_SAFETY_ALTITUDE)
-static constexpr float EMERGENCY_ASCENT_SPEED = 0.2f;
 
 // [m] Minimum distance between drone and target for the drone to do any yaw control.
 static constexpr float MINIMUM_DISTANCE_TO_TARGET_FOR_YAW_CONTROL = 1.0f;
@@ -81,28 +81,39 @@ static constexpr float TARGET_POSE_FILTER_DAMPING_RATIO = 0.7071;
 // [us] If the target estimator output isn't updated longer than this, reset pose filter.
 static constexpr uint64_t TARGET_ESTIMATOR_TIMEOUT_US = 1500000UL;
 
-// [m/s] Velocity deadzone for which, under this velocity, the target orientation
+// [m/s] Speed deadzone for which, under this velocity, the target orientation
 // tracking will freeze, since orientation can be noisy in low velocities
-static constexpr float TARGET_VELOCITY_DEADZONE_FOR_ORIENTATION_TRACKING = 1.0;
+static constexpr float TARGET_SPEED_DEADZONE_FOR_ORIENTATION_TRACKING = 1.0;
 
 // [m/s] Velocity limit to limit orbital angular rate depending on follow distance
 static constexpr float MAXIMUM_TANGENTIAL_ORBITING_SPEED = 5.0;
 
-// Yaw setpoint filter to avoid jitter-ness, which can happen because the yaw is
+// [s] Time window for which orbital tangential speed setpoint will start decreasing proportional to
+// the orbit angle error, to have buffer zone to remove aggressive velocity setpoints
+static constexpr float ORBIT_VELOCITY_WINDDOWN_TIME_WINDOW = 1.0f;
+
+// [s] Yaw setpoint filter to avoid jitter-ness, which can happen because the yaw is
 // calculated off of position offset between target & drone, which updates very frequently.
 static constexpr float YAW_SETPOINT_FILTER_TIME_CONSTANT = 0.1;
 
-// Yaw setpoint enabler varaible to keep the yaw filtering scheme
-static constexpr bool YAW_SETPOINT_FILTER_ENABLE = true;
-
-// [m/s] Speed to which follow distance will be adjusted by, when commanded in full deflection via RC command
+// [m/s] Speed with which the follow distance will be adjusted by when commanded with deflection via RC command
 static constexpr float FOLLOW_DISTANCE_USER_ADJUST_SPEED = 1.5;
+// [m] Maximum follow distance that can be set by user's RC adjustment
+static constexpr float FOLLOW_DISTANCE_MAX = 100.f;
 
-// [m/s] Speed to which follow height will be adjusted by, when commanded in full deflection via RC command
+// [m/s] Speed with which the follow height will be adjusted by when commanded with deflection via RC command
 static constexpr float FOLLOW_HEIGHT_USER_ADJUST_SPEED = 1.0;
+// [m] Maximum follow height that can be set by user's RC adjustment
+static constexpr float FOLLOW_HEIGHT_MAX = 100.f;
 
-// [rad/s] Angular to which follow distance will be adjusted by, when commanded in full deflection via RC command
+// [rad/s] Angular rate with which the follow distance will be adjusted by when commanded with full deflection via RC command
 static constexpr float FOLLOW_ANGLE_USER_ADJUST_SPEED = 1.5;
+
+// [seconds] Arbitrary time window constant that gets multiplied to user adjustment speed, to calculate the
+// 'acceptable' error in orbit angle / height and distance, to which if the difference between the setpoint
+// and actual state is smaller than this error, RC adjustments get applied.
+// This is introduced to prevent setpoint adjustments becoming too diverged from the vehicle's actual position
+static constexpr float USER_ADJUSTMENT_ERROR_TIME_WINDOW = 0.5f;
 
 
 class FlightTaskAutoFollowTarget : public FlightTask
@@ -114,9 +125,13 @@ public:
 	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	bool update() override;
 
+	// Override parameter update function to check when Follow Target properties are changed
+	void updateParams() override;
+
 protected:
 	// Follow Perspectives set by the parameter NAV_FT_FS
-	enum {
+	enum FollowPerspective
+	{
 		FOLLOW_PERSPECTIVE_NONE,
 		FOLLOW_PERSPECTIVE_BEHIND,
 		FOLLOW_PERSPECTIVE_FRONT,
@@ -135,36 +150,67 @@ protected:
 		FOLLOW_PERSPECTIVE_BEHIND_ANGLE_DEG = 180,
 		FOLLOW_PERSPECTIVE_FRONT_ANGLE_DEG = 0,
 		FOLLOW_PERSPECTIVE_FRONT_RIGHT_ANGLE_DEG = 45,
-		FOLLOW_PERSPECTIVE_FRONT_LEFT_ANGLE_DEG = 315,
+		FOLLOW_PERSPECTIVE_FRONT_LEFT_ANGLE_DEG = -45,
 		FOLLOW_PERSPECTIVE_MID_RIGHT_ANGLE_DEG = 90,
-		FOLLOW_PERSPECTIVE_MID_LEFT_ANGLE_DEG = 270,
+		FOLLOW_PERSPECTIVE_MID_LEFT_ANGLE_DEG = -90,
 		FOLLOW_PERSPECTIVE_BEHIND_RIGHT_ANGLE_DEG = 135,
-		FOLLOW_PERSPECTIVE_BEHIND_LEFT_ANGLE_DEG = 225
+		FOLLOW_PERSPECTIVE_BEHIND_LEFT_ANGLE_DEG = -135
 	};
 
 	// Follow Altitude modes set by the parameter NAV_FT_ALT_M
-	enum {
+	enum FollowAltitudeMode
+	{
 		FOLLOW_ALTITUDE_MODE_CONSTANT,
 		FOLLOW_ALTITUDE_MODE_TRACK_TERRAIN,
 		FOLLOW_ALTITUDE_MODE_TRACK_TARGET
 	};
 
 	/**
-	 * Get the RC command from the user to adjust Follow Angle, Distance and Height internally
+	 * Update the Follow height based on RC commands
+	 *
+	 * If the drone is within the an user adjustment error time window away from the height setpoint,
+	 * follow_height will be adjusted with a speed proportional to user RC command
+	 *
+	 * @param follow_height Tracked follow height variable reference which will be updated to the new value
 	 */
-	void update_stick_command();
+	void update_rc_adjusted_follow_height(float &follow_height);
+
+	/**
+	 * Update the Follow distance based on RC commands
+	 *
+	 * If the drone is within the an user adjustment error time window away from the distance setpoint,
+	 * follow_distance will be adjusted with a speed proportional to user RC command
+	 *
+	 * @param follow_distance Tracked follow distance variable reference which will be updated to the new value
+	 */
+	void update_rc_adjusted_follow_distance(float &follow_distance, const Vector2f &drone_to_target_vector);
+
+	/**
+	 * Update the Follow angle based on RC commands
+	 *
+	 * If the drone's orbit angle in relation to target is within the an user adjustment error time window
+	 * away from the orbit angle setpoint, follow_angle will be adjusted with a speed proportional to user RC command
+	 *
+	 * @param follow_angle Tracked follow angle variable reference which will be updated to the new value
+	 * @param measured_angle Measured current drone's orbit angle around the target (depends on tracked target orientation for reference)
+	 * @param tracked_orbit_angle_setpoint Rate constrained orbit angle setpoint value from last command
+	 */
+	void update_rc_adjusted_follow_angle(float &follow_angle, const float measured_orbit_angle, const float tracked_orbit_angle_setpoint);
 
 	/**
 	 * Update the Second Order Target Pose Filter to track kinematically feasible target position and velocity
+	 *
+	 * @param follow_target_estimator Received value from alpha-beta-gamma target estimator filter output
 	 */
-	void update_target_pose_filter(follow_target_estimator_s follow_target_estimator);
+	void update_target_pose_filter(const follow_target_estimator_s &follow_target_estimator);
 
 	/**
-	 * Calculate the tracked target orientation
+	 * Calculate the tracked target orientation and overwrite the tracked target orientation if necessary
 	 *
-	 * @return Angle [rad] Tracked target orientation (heading)
+	 * @param target_velocity Filtered Target velocity from which we will calculate target orientation
+	 * @param current_target_orientation  Tracked target orientation value that will be over-written with new orientation
 	 */
-	float update_target_orientation(Vector2f target_velocity);
+	void update_target_orientation(const Vector2f &target_velocity, float &current_target_orientation);
 
 	/**
 	 * Release Gimbal Control
@@ -177,36 +223,59 @@ protected:
 	/**
 	 * Updates the orbit angle setpoint, taking into account the maximal orbit tangential speed
 	 *
+	 * Returns the orbit angle setpoint, taking into account the maximal orbit tangential speed.
+	 * While setting the orbital velocity setpoint vector for the according position setpoint
+	 *
+	 * @param target_orientation Tracked target orientation
+	 * @param follow_angle Follow angle setpoint
+	 * @param previous_orbit_angle_setpoint Previous orbit angle setpoint
+	 * @param orbit_tangential_velocity Where velocity setpoint at the position setpoint will be written to
+	 *
 	 * @return Angle [rad] Next feasible orbit angle setpoint
 	 */
-	float update_orbit_angle(float target_orientation, float fllow_angle);
+	float update_orbit_angle(const float target_orientation, const float follow_angle, const float previous_orbit_angle_setpoint, Vector2f &orbit_tangential_velocity);
 
 	/**
-	 * Calculates desired drone position, taking into account the follow target altitude mode
+	 * Calculates desired drone position taking into account orbit angle and the follow target altitude mode
 	 *
-	 * @return Position [Vector3f] Final position setpoint for the drone
+	 * @param target_position Tracked target position Vector3f reference
+	 * @param orbit_angle_setpoint Current orbit angle setpoint around the target
+	 * @param follow_distance Follow distance setting [m]
+	 * @param current_drone_pos_z Current drone's local position z value [m]
+	 * @param distance_to_ground Distance to ground from FlightTask [m]
+	 * @param follow_altitude_mode Follow Altitude mode
+	 * @param follow_height Follow height setting [m]
+	 *
+	 * @return Position [m,m,m] Final position setpoint for the drone
 	 */
-	Vector3f calculate_desired_drone_position(Vector3f target_position);
+	Vector3f calculate_desired_drone_position(const Vector3f &target_position, const float orbit_angle_setpoint, const float follow_distance, const float current_drone_pos_z, const float distance_to_ground, const FollowAltitudeMode follow_altitude_mode, const float follow_height);
 
 	/**
 	 * Calculate the gimbal height offset to the target to calculate the pitch angle command
 	 *
+	 * @param target_pos_z Target's local position z value
+	 *
 	 * @return Height [m] Difference between the target and the drone
 	 */
-	float calculate_gimbal_height(float target_height);
+	float calculate_gimbal_height(const float target_pos_z, const FollowAltitudeMode follow_altitude_mode, const float current_drone_pos_z, const float distance_to_ground, const float home_pos_z);
 
 	/**
-	 * Publishes gimbal control command to track the target, given xy distance and z (height) difference.
-	 */
-	void point_gimbal_at(float xy_distance, float z_distance);
-
-	/**
-	 * Get the current follow-me perspective setting from PX4 parameters
+	 * Publishes gimbal control command to track the target, given xy distance and z (height) difference
 	 *
-	 * @param param_nav_ft_fs value of the parameter NAV_FT_FS
+	 * @param xy_distance Horizontal distance to target
+	 * @param z_distance Vertical distance to target
+	 *
+	 * @return Angle [rad] Gimbal pitch setpoint, for logging in follow_target_status uORB message
+	 */
+	float point_gimbal_at(const float xy_distance, const float z_distance);
+
+	/**
+	 * Get the current follow-me perspective angle setting from PX4 parameters
+	 *
+	 * @param follow_perspective value of the parameter NAV_FT_FS
 	 * @return Angle [deg] from which the drone should view the target while following it, with zero degrees indicating the target's 12 o'clock
 	 */
-	float get_follow_me_angle_setting(int param_nav_ft_fs) const;
+	float get_follow_angle_setting_deg(const FollowPerspective follow_perspective) const;
 
 	// Sticks object to read in stick commands from the user
 	Sticks _sticks;
@@ -222,31 +291,15 @@ protected:
 	SecondOrderReferenceModel<matrix::Vector3f> _target_pose_filter;
 
 	// Internally tracked Follow Target characteristics, to allow RC control input adjustments
-	float _follow_target_distance{0.0f};
-	float _follow_target_height{0.0f};
-	float _follow_angle_rad{0.0f}; // 0 degrees following from front, and then clockwise rotation
+	float _follow_distance{8.0f}; // [m]
+	float _follow_height{0.0f}; // [m]
+	float _follow_angle_rad{0.0f}; // [rad]
 
-	// Estimated (Filtered) target orientation setpoint
-	float _target_orientation_rad{0.0f};
+	// Tracked estimate of target orientation
+	float _tracked_target_orientation_rad{0.0f};
 
-	// Orbit angle setpoint, measured in global frame, against the target
-	float _orbit_angle_setpoint{0.0f};
-
-	// Actual drone to target heading [rad]
-	float _drone_to_target_heading{0.0f};
-
-	// Actual orbit angle in relation to the target
-	float _measured_orbit_angle{0.0f};
-
-	// Actual drone to target 2d position vector
-	Vector2f _drone_to_target_vector{0.0f, 0.0f};
-
-	// Tracked orbit tangential speed, to compensate for the orbital motion for velocity setpoints
-	Vector2f _orbit_tangential_velocity{0.0f, 0.0f};
-
-	// NOTE: If more of these internal state variables come into existence, it
-	// would make sense to create an internal state machine with a single enum
-	bool _emergency_ascent = false;
+	// Tracked orbit angle setpoint
+	float _tracked_orbit_angle_setpoint_rad{0.0f};
 
 	// Yaw setpoint filter to remove jitter-ness
 	AlphaFilter<float> _yaw_setpoint_filter;
