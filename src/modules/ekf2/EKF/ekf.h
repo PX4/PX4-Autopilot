@@ -420,6 +420,8 @@ private:
 	uint64_t _time_last_zero_velocity_fuse{0}; ///< last time of zero velocity update (uSec)
 	uint64_t _time_last_gps_yaw_fuse{0};	///< time the last fusion of GPS yaw measurements were performed (uSec)
 	uint64_t _time_last_gps_yaw_data{0};	///< time the last GPS yaw measurement was available (uSec)
+	uint64_t _time_last_mag_heading_fuse{0};
+	uint64_t _time_last_mag_3d_fuse{0};
 	uint64_t _time_last_healthy_rng_data{0};
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
 
@@ -605,9 +607,9 @@ private:
 	void predictCovariance();
 
 	// ekf sequential fusion of magnetometer measurements
-	void fuseMag(const Vector3f &mag);
+	bool fuseMag(const Vector3f &mag, bool update_all_states = true);
 
-	// update quaternion states and covariances using a yaw innovation and yaw observation variance
+	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
 	// innovation : prediction - measurement
 	// variance : observaton variance
 	bool fuseYaw(const float innovation, const float variance);
@@ -621,7 +623,7 @@ private:
 
 	// fuse magnetometer declination measurement
 	// argument passed in is the declination uncertainty in radians
-	void fuseDeclination(float decl_sigma);
+	bool fuseDeclination(float decl_sigma);
 
 	// apply sensible limits to the declination and length of the NE mag field states estimates
 	void limitDeclination();
@@ -1035,7 +1037,7 @@ private:
 	// yaw : Euler yaw angle (rad)
 	// yaw_variance : yaw error variance (rad^2)
 	// update_buffer : true if the state change should be also applied to the output observer buffer
-	void resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer);
+	void resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer = true);
 
 	// Declarations used to control use of the EKF-GSF yaw estimator
 
