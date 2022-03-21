@@ -845,7 +845,6 @@ private:
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
 	void runOnGroundYawReset();
-	bool isYawResetAuthorized() const { return !_is_yaw_fusion_inhibited; }
 	bool canResetMagHeading() const;
 	void runInAirYawReset(const Vector3f &mag);
 
