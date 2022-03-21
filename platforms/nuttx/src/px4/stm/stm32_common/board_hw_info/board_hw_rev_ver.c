@@ -313,7 +313,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 		low = dn_sum / samples;
 	}
 
-	if ((high > low) && high > px4_arch_adc_dn_fullcount() - 100) {
+	if ((high > low) && high > ((px4_arch_adc_dn_fullcount() * 975) / 1000)) {
 
 		*id = low;
 		rv = OK;
