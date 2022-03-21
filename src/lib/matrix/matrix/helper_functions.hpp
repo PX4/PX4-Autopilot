@@ -155,7 +155,7 @@ Type unwrap_pi(const Type last_angle, const Type new_angle)
 template<typename T>
 int sign(T val)
 {
-	return (T(FLT_EPSILON) < val) - (val < T(FLT_EPSILON));
+	return (T(0) < val) - (val < T(0));
 }
 
 } // namespace matrix
