@@ -356,12 +356,18 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 		// the angle of the projection onto the horizontal gives the yaw angle
 		float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
-		fuseHeading(measured_hdg, sq(_params.mag_heading_noise));
+		if (fuseHeading(measured_hdg, sq(_params.mag_heading_noise))) {
+			_time_last_mag_heading_fuse = _time_last_imu;
+		}
 	}
 }
 
 void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 {
+	// For the first few seconds after in-flight alignment we allow the magnetic field state estimates to stabilise
+	// before they are used to constrain heading drift
+	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6);
+
 	if (!_mag_decl_cov_reset) {
 		// After any magnetic field covariance reset event the earth field state
 		// covariances need to be corrected to incorporate knowledge of the declination
@@ -369,13 +375,13 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 		// states for the first few observations.
 		fuseDeclination(0.02f);
 		_mag_decl_cov_reset = true;
-		fuseMag(mag);
+		fuseMag(mag, update_all_states);
 
 	} else {
 		// The normal sequence is to fuse the magnetometer data first before fusing
 		// declination angle at a higher uncertainty to allow some learning of
 		// declination angle over time.
-		fuseMag(mag);
+		fuseMag(mag, update_all_states);
 
 		if (_control_status.flags.mag_dec) {
 			fuseDeclination(0.5f);

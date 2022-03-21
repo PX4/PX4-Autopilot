@@ -45,7 +45,7 @@
 
 #include <mathlib/mathlib.h>
 
-void Ekf::fuseMag(const Vector3f &mag)
+bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 {
 	// assign intermediate variables
 	const float &q0 = _state.quat_nominal(0);
@@ -96,7 +96,7 @@ void Ekf::fuseMag(const Vector3f &mag)
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagRelatedCovariances();
 		ECL_ERR("magX %s", numerical_error_covariance_reset_string);
-		return;
+		return false;
 	}
 
 	_fault_status.flags.bad_mag_x = false;
@@ -138,7 +138,7 @@ void Ekf::fuseMag(const Vector3f &mag)
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagRelatedCovariances();
 		ECL_ERR("magY %s", numerical_error_covariance_reset_string);
-		return;
+		return false;
 	}
 
 	_fault_status.flags.bad_mag_y = false;
@@ -150,7 +150,7 @@ void Ekf::fuseMag(const Vector3f &mag)
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagRelatedCovariances();
 		ECL_ERR("magZ %s", numerical_error_covariance_reset_string);
-		return;
+		return false;
 	}
 
 	_fault_status.flags.bad_mag_z = false;
@@ -174,12 +174,24 @@ void Ekf::fuseMag(const Vector3f &mag)
 	for (uint8_t index = 0; index <= 2; index++) {
 		_mag_test_ratio(index) = sq(_mag_innov(index)) / (sq(math::max(_params.mag_innov_gate, 1.0f)) * _mag_innov_var(index));
 
-		if (_mag_test_ratio(index) > 1.0f) {
-			all_innovation_checks_passed = false;
-			_innov_check_fail_status.value |= (1 << (index + 3));
+		bool rejected = (_mag_test_ratio(index) > 1.f);
 
-		} else {
-			_innov_check_fail_status.value &= ~(1 << (index + 3));
+		switch (index) {
+		case 0:
+			_innov_check_fail_status.flags.reject_mag_x = rejected;
+			break;
+
+		case 1:
+			_innov_check_fail_status.flags.reject_mag_y = rejected;
+			break;
+
+		case 2:
+			_innov_check_fail_status.flags.reject_mag_z = rejected;
+			break;
+		}
+
+		if (rejected) {
+			all_innovation_checks_passed = false;
 		}
 	}
 
@@ -188,12 +200,8 @@ void Ekf::fuseMag(const Vector3f &mag)
 
 	// if any axis fails, abort the mag fusion
 	if (!all_innovation_checks_passed) {
-		return;
+		return false;
 	}
-
-	// For the first few seconds after in-flight alignment we allow the magnetic field state estimates to stabilise
-	// before they are used to constrain heading drift
-	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6);
 
 	// Observation jacobian and Kalman gain vectors
 	SparseVector24f<0,1,2,3,16,17,18,19,20,21> Hfusion;
@@ -276,7 +284,7 @@ void Ekf::fuseMag(const Vector3f &mag)
 				// we need to re-initialise covariances and abort this fusion step
 				resetMagRelatedCovariances();
 				ECL_ERR("magY %s", numerical_error_covariance_reset_string);
-				return;
+				return false;
 			}
 			const float HKY24 = 1.0F/_mag_innov_var(1);
 
@@ -356,7 +364,7 @@ void Ekf::fuseMag(const Vector3f &mag)
 				// we need to re-initialise covariances and abort this fusion step
 				resetMagRelatedCovariances();
 				ECL_ERR("magZ %s", numerical_error_covariance_reset_string);
-				return;
+				return false;
 			}
 
 			const float HKZ24 = 1.0F/_mag_innov_var(2);
@@ -419,6 +427,8 @@ void Ekf::fuseMag(const Vector3f &mag)
 			limitDeclination();
 		}
 	}
+
+	return !_fault_status.flags.bad_mag_x && !_fault_status.flags.bad_mag_y && !_fault_status.flags.bad_mag_z;
 }
 
 bool Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
@@ -715,13 +725,15 @@ bool Ekf::updateQuaternion(const float innovation, const float variance, const f
 		// apply the state corrections
 		fuse(Kfusion, _heading_innov);
 
+		_time_last_heading_fuse = _time_last_imu;
+
 		return true;
 	}
 
 	return false;
 }
 
-void Ekf::fuseHeading(float measured_hdg, float obs_var)
+bool Ekf::fuseHeading(float measured_hdg, float obs_var)
 {
 	// observation variance
 	float R_YAW = PX4_ISFINITE(obs_var) ? obs_var : 0.01f;
@@ -769,14 +781,14 @@ void Ekf::fuseHeading(float measured_hdg, float obs_var)
 	}
 
 	if (shouldUse321RotationSequence(_R_to_earth)) {
-		fuseYaw321(measured_hdg, R_YAW, fuse_zero_innov);
+		return fuseYaw321(measured_hdg, R_YAW, fuse_zero_innov);
 
 	} else {
-		fuseYaw312(measured_hdg, R_YAW, fuse_zero_innov);
+		return fuseYaw312(measured_hdg, R_YAW, fuse_zero_innov);
 	}
 }
 
-void Ekf::fuseDeclination(float decl_sigma)
+bool Ekf::fuseDeclination(float decl_sigma)
 {
 	// assign intermediate state variables
 	const float &magN = _state.mag_I(0);
@@ -791,7 +803,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 	// Calculate intermediate variables
 	if (fabsf(magN) < sq(N_field_min)) {
 		// calculation is badly conditioned close to +-90 deg declination
-		return;
+		return false;
 	}
 
 	const float HK0 = ecl::powf(magN, -2);
@@ -810,7 +822,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 		HK9 = HK4/innovation_variance;
 	} else {
 		// variance calculation is badly conditioned
-		return;
+		return false;
 	}
 
 	// Calculate the observation Jacobian
@@ -843,6 +855,8 @@ void Ekf::fuseDeclination(float decl_sigma)
 	if (is_fused) {
 		limitDeclination();
 	}
+
+	return is_fused;
 }
 
 void Ekf::limitDeclination()
