@@ -88,7 +88,7 @@ void Ekf::controlMagFusion()
 
 		stopMagFusion();
 
-		if (noOtherYawAidingThanMag()) {
+		if (!_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw) {
 			// TODO: setting _is_yaw_fusion_inhibited to true is required to tell
 			// fuseHeading to perform a "zero innovation heading fusion"
 			// We should refactor it to avoid using this flag here
@@ -100,11 +100,17 @@ void Ekf::controlMagFusion()
 		return;
 	}
 
-	_mag_yaw_reset_req |= otherHeadingSourcesHaveStopped();
+	bool heading_source_non_mag_prev = !_control_status_prev.flags.ev_yaw && !_control_status_prev.flags.gps_yaw;
+	bool heading_source_non_mag = !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw;
+
+	if (heading_source_non_mag_prev && !heading_source_non_mag) {
+		_mag_yaw_reset_req = true;
+	}
+
 	_mag_yaw_reset_req |= !_control_status.flags.yaw_align;
 	_mag_yaw_reset_req |= _mag_inhibit_yaw_reset_req;
 
-	if (noOtherYawAidingThanMag() && mag_data_ready) {
+	if (mag_data_ready && !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw) {
 		// Determine if we should use simple magnetic heading fusion which works better when
 		// there are large external disturbances or the more accurate 3-axis fusion
 		switch (_params.mag_fusion_type) {
@@ -145,12 +151,6 @@ void Ekf::controlMagFusion()
 
 		runMagAndMagDeclFusions(mag_sample.mag);
 	}
-}
-
-bool Ekf::noOtherYawAidingThanMag() const
-{
-	// If we are using external vision data or GPS-heading for heading then no magnetometer fusion is used
-	return !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw;
 }
 
 void Ekf::checkHaglYawResetReq()
@@ -387,14 +387,4 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 			fuseDeclination(0.5f);
 		}
 	}
-}
-
-bool Ekf::otherHeadingSourcesHaveStopped()
-{
-	// detect rising edge of noOtherYawAidingThanMag()
-	bool result = noOtherYawAidingThanMag() && _non_mag_yaw_aiding_running_prev;
-
-	_non_mag_yaw_aiding_running_prev = !noOtherYawAidingThanMag();
-
-	return  result;
 }
