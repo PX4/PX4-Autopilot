@@ -169,7 +169,7 @@ void Ekf::checkHaglYawResetReq()
 
 void Ekf::runOnGroundYawReset()
 {
-	if (_mag_yaw_reset_req && isYawResetAuthorized()) {
+	if (_mag_yaw_reset_req && !_is_yaw_fusion_inhibited) {
 		const bool has_realigned_yaw = canResetMagHeading() ? resetMagHeading() : false;
 
 		if (has_realigned_yaw) {
@@ -194,7 +194,7 @@ bool Ekf::canResetMagHeading() const
 
 void Ekf::runInAirYawReset(const Vector3f &mag_sample)
 {
-	if (_mag_yaw_reset_req && isYawResetAuthorized()) {
+	if (_mag_yaw_reset_req && !_is_yaw_fusion_inhibited) {
 		bool has_realigned_yaw = false;
 
 		if (_control_status.flags.gps && _control_status.flags.fixed_wing) {
