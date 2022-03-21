@@ -196,7 +196,19 @@ bool Ekf::initialiseFilter()
 	// calculate the initial magnetic field and yaw alignment
 	// but do not mark the yaw alignement complete as it needs to be
 	// reset once the leveling phase is done
-	resetMagHeading(false, false);
+	if ((_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) && (_mag_counter != 0)) {
+		// rotate the magnetometer measurements into earth frame using a zero yaw angle
+		// the angle of the projection onto the horizontal gives the yaw angle
+		const Vector3f mag_earth_pred = updateYawInRotMat(0.f, _R_to_earth) * _mag_lpf.getState();
+		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+
+		// update quaternion states and corresponding covarainces
+		resetQuatStateYaw(yaw_new, 0.f, false);
+
+		// set the earth magnetic field states using the updated rotation
+		_state.mag_I = _R_to_earth * _mag_lpf.getState();
+		_state.mag_B.zero();
+	}
 
 	// initialise the state covariance matrix now we have starting values for all the states
 	initialiseCovariance();

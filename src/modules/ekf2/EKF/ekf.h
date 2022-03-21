@@ -713,7 +713,7 @@ private:
 
 	// reset the heading and magnetic field states using the declination and magnetometer measurements
 	// return true if successful
-	bool resetMagHeading(bool increase_yaw_var = true, bool update_buffer = true);
+	bool resetMagHeading();
 
 	// reset the heading using the external vision measurements
 	// return true if successful
