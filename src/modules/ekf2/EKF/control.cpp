@@ -142,6 +142,8 @@ void Ekf::controlFusionModes()
 			_range_sensor.setRange(_range_sensor.getRange() + pos_offset_earth(2) / _range_sensor.getCosTilt());
 			_rng_consistency_check.update(_range_sensor.getDistBottom(), getRngHeightVariance(), _state.vel(2), P(6, 6), _time_last_imu);
 		}
+
+		_control_status.flags.rng_kin_consistent = _rng_consistency_check.isKinematicallyConsistent();
 	}
 
 	if (_flow_buffer) {
