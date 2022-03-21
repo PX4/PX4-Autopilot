@@ -534,6 +534,8 @@ private:
 	Matrix2f _saved_mag_ef_ne_covmat{}; ///< NE magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
 	float _saved_mag_ef_d_variance{};   ///< D magnetic field state variance saved for use at the next initialisation (Gauss**2)
 
+	float _mag_heading_last_declination{NAN};
+
 	gps_check_fail_status_u _gps_check_fail_status{};
 
 	// variables used to inhibit accel bias learning

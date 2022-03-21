@@ -126,12 +126,19 @@ void Ekf::controlMagFusion()
 
 		const bool mag_enabled = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
 
+		const bool declination_changed = _control_status.flags.mag_hdg && (fabsf(_mag_heading_last_declination - getMagDeclination()) > math::radians(1.f));
+
 		if (!_control_status.flags.yaw_align
 		    || _mag_yaw_reset_req || _mag_inhibit_yaw_reset_req
+		    || declination_changed
 		    || haglYawResetReq()
 		    || (!mag_enabled_previously && mag_enabled)) {
 
 			runYawReset();
+		}
+
+		if (_control_status.flags.mag_hdg) {
+			_mag_heading_last_declination = getMagDeclination();
 		}
 
 		if (!_control_status.flags.yaw_align) {
