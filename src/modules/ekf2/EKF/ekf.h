@@ -857,7 +857,7 @@ private:
 	void checkMagDeclRequired();
 	void checkMagInhibition();
 	bool shouldInhibitMag() const;
-	void checkMagFieldStrength(const Vector3f &mag);
+	bool magFieldStrengthDisturbed(const Vector3f &mag) const;
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
 	void runMagAndMagDeclFusions(const Vector3f &mag);
 	void run3DMagAndDeclFusions(const Vector3f &mag);

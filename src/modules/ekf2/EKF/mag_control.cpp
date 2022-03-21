@@ -64,11 +64,9 @@ void Ekf::controlMagFusion()
 			} else {
 				_control_status.flags.synthetic_mag_z = false;
 			}
-		}
-	}
 
-	if (mag_data_ready) {
-		checkMagFieldStrength(mag_sample.mag);
+			_control_status.flags.mag_field_disturbed = magFieldStrengthDisturbed(mag_sample.mag);
+		}
 	}
 
 	// If we are on ground, reset the flight alignment flag so that the mag fields will be
@@ -316,24 +314,23 @@ bool Ekf::shouldInhibitMag() const
 	return (user_selected && heading_not_required_for_navigation) || _control_status.flags.mag_field_disturbed;
 }
 
-void Ekf::checkMagFieldStrength(const Vector3f &mag_sample)
+bool Ekf::magFieldStrengthDisturbed(const Vector3f &mag_sample) const
 {
 	if (_params.check_mag_strength
 	    && ((_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) || (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _control_status.flags.gps))) {
 
 		if (PX4_ISFINITE(_mag_strength_gps)) {
 			constexpr float wmm_gate_size = 0.2f; // +/- Gauss
-			_control_status.flags.mag_field_disturbed = !isMeasuredMatchingExpected(mag_sample.length(), _mag_strength_gps, wmm_gate_size);
+			return !isMeasuredMatchingExpected(mag_sample.length(), _mag_strength_gps, wmm_gate_size);
 
 		} else {
 			constexpr float average_earth_mag_field_strength = 0.45f; // Gauss
 			constexpr float average_earth_mag_gate_size = 0.40f; // +/- Gauss
-			_control_status.flags.mag_field_disturbed = !isMeasuredMatchingExpected(mag_sample.length(), average_earth_mag_field_strength, average_earth_mag_gate_size);
+			return !isMeasuredMatchingExpected(mag_sample.length(), average_earth_mag_field_strength, average_earth_mag_gate_size);
 		}
-
-	} else {
-		_control_status.flags.mag_field_disturbed = false;
 	}
+
+	return false;
 }
 
 bool Ekf::isMeasuredMatchingExpected(const float measured, const float expected, const float gate)
