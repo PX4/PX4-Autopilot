@@ -130,7 +130,6 @@ void Ekf::controlGpsFusion()
 
 					// Stop the vision for yaw fusion and do not allow it to start again
 					stopEvYawFusion();
-					_inhibit_ev_yaw_use = true;
 
 				} else {
 					startGpsFusion();

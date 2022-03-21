@@ -1579,10 +1579,6 @@ void Ekf::stopGpsFusion()
 	if (_control_status.flags.gps_yaw) {
 		stopGpsYawFusion();
 	}
-
-	// We do not need to know the true North anymore
-	// EV yaw can start again
-	_inhibit_ev_yaw_use = false;
 }
 
 void Ekf::stopGpsPosFusion()
@@ -1767,9 +1763,6 @@ bool Ekf::resetYawToEKFGSF()
 	} else if (_control_status.flags.gps_yaw) {
 		_control_status.flags.gps_yaw_fault = true;
 		_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
-
-	} else if (_control_status.flags.ev_yaw) {
-		_inhibit_ev_yaw_use = true;
 	}
 
 	_ekfgsf_yaw_reset_time = _time_last_imu;
