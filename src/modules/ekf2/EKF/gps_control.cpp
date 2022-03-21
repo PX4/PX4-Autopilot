@@ -91,7 +91,7 @@ void Ekf::controlGpsFusion()
 							// use GPS velocity data to check and correct yaw angle if a FW vehicle
 							if (_control_status.flags.fixed_wing && _control_status.flags.in_air) {
 								// if flying a fixed wing aircraft, do a complete reset that includes yaw
-								_mag_yaw_reset_req = true;
+								realignYawGPS();
 							}
 
 							_warning_events.flags.gps_fusion_timout = true;

@@ -721,7 +721,7 @@ private:
 
 	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
-	bool realignYawGPS(const Vector3f &mag);
+	bool realignYawGPS(bool force = false);
 
 	// Return the magnetic declination in radians to be used by the alignment and fusion processing
 	float getMagDeclination();
@@ -841,12 +841,10 @@ private:
 	// control fusion of magnetometer observations
 	void controlMagFusion();
 
-	void checkHaglYawResetReq();
+	bool haglYawResetReq() const;
 	float getTerrainVPos() const { return isTerrainEstimateValid() ? _terrain_vpos : _last_on_ground_posD; }
 
-	void runOnGroundYawReset();
-	bool canResetMagHeading() const;
-	void runInAirYawReset(const Vector3f &mag);
+	void runYawReset();
 
 	void selectMagAuto();
 	void check3DMagFusionSuitability();
