@@ -175,7 +175,7 @@ void Ekf::runOnGroundYawReset()
 
 bool Ekf::canResetMagHeading() const
 {
-	return !isStrongMagneticDisturbance() && (_params.mag_fusion_type != MagFuseType::NONE);
+	return !_control_status.flags.mag_field_disturbed && (_params.mag_fusion_type != MagFuseType::NONE);
 }
 
 void Ekf::runInAirYawReset(const Vector3f &mag_sample)
@@ -299,8 +299,7 @@ bool Ekf::shouldInhibitMag() const
 			&& !_control_status.flags.ev_pos
 			&& !_control_status.flags.ev_vel;
 
-	return (user_selected && heading_not_required_for_navigation)
-	       || isStrongMagneticDisturbance();
+	return (user_selected && heading_not_required_for_navigation) || _control_status.flags.mag_field_disturbed;
 }
 
 void Ekf::checkMagFieldStrength(const Vector3f &mag_sample)
