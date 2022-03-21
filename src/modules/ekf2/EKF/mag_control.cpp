@@ -98,23 +98,18 @@ void Ekf::controlMagFusion()
 		return;
 	}
 
-	bool heading_source_non_mag_prev = !_control_status_prev.flags.ev_yaw && !_control_status_prev.flags.gps_yaw;
-	bool heading_source_non_mag = !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw;
-
-	if (heading_source_non_mag_prev && !heading_source_non_mag) {
-		_mag_yaw_reset_req = true;
-	}
-
 	_mag_yaw_reset_req |= !_control_status.flags.yaw_align;
 	_mag_yaw_reset_req |= _mag_inhibit_yaw_reset_req;
 
 	if (mag_data_ready && !_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw) {
+
+		const bool mag_enabled_previously = _control_status_prev.flags.mag_hdg || _control_status_prev.flags.mag_3D;
+
 		// Determine if we should use simple magnetic heading fusion which works better when
 		// there are large external disturbances or the more accurate 3-axis fusion
 		switch (_params.mag_fusion_type) {
 		default:
-
-		/* fallthrough */
+		// FALLTHROUGH
 		case MAG_FUSE_TYPE_AUTO:
 			selectMagAuto();
 			break;
@@ -129,6 +124,12 @@ void Ekf::controlMagFusion()
 		case MAG_FUSE_TYPE_3D:
 			startMag3DFusion();
 			break;
+		}
+
+		const bool mag_enabled = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
+
+		if (!mag_enabled_previously && mag_enabled) {
+			_mag_yaw_reset_req = true;
 		}
 
 		if (_control_status.flags.in_air) {
