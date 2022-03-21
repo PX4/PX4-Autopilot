@@ -232,7 +232,7 @@ void Ekf::check3DMagFusionSuitability()
 	checkYawAngleObservability();
 	checkMagBiasObservability();
 
-	if (isMagBiasObservable() || _yaw_angle_observable) {
+	if (_mag_bias_observable || _yaw_angle_observable) {
 		_time_last_mov_3d_mag_suitable = _imu_sample_delayed.time_us;
 	}
 }
