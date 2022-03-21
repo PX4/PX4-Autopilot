@@ -36,6 +36,24 @@
 
 using namespace matrix;
 
+TEST(MatrixHelperTest, SignFloat)
+{
+	EXPECT_FLOAT_EQ(sign(-100.f), -1.f);
+	EXPECT_FLOAT_EQ(sign(-FLT_EPSILON), -1.f);
+	EXPECT_FLOAT_EQ(sign(0.f), 0.f);
+	EXPECT_FLOAT_EQ(sign(FLT_EPSILON), 1.f);
+	EXPECT_FLOAT_EQ(sign(100.f), 1.f);
+}
+
+TEST(MatrixHelperTest, SignInt)
+{
+	EXPECT_FLOAT_EQ(sign(-100), -1);
+	EXPECT_FLOAT_EQ(sign(-1), -1);
+	EXPECT_FLOAT_EQ(sign(0), 0);
+	EXPECT_FLOAT_EQ(sign(1), 1);
+	EXPECT_FLOAT_EQ(sign(100), 1);
+}
+
 TEST(MatrixHelperTest, Helper)
 {
 	// general wraps
