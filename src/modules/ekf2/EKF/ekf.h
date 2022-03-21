@@ -859,7 +859,6 @@ private:
 	void check3DMagFusionSuitability();
 	void checkYawAngleObservability();
 	void checkMagBiasObservability();
-	bool isMagBiasObservable() const { return _mag_bias_observable; }
 	bool canUse3DMagFusion() const;
 
 	void checkMagDeclRequired();
