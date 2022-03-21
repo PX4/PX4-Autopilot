@@ -999,8 +999,7 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 {
 	switch (quadchute_act) {
 
-	// add DISABLED, default RTL
-	case quadchute_actions_t::DISABLED:
+	case quadchute_actions_t::NO_ACTION:
 		// If quadchute action is disabled then no action must be taken.
 		return;
 

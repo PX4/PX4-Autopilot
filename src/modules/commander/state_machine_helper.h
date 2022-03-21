@@ -71,7 +71,7 @@ enum class link_loss_actions_t {
 };
 
 enum class quadchute_actions_t {
-	DISABLED = -1,
+	NO_ACTION = -1,
 	AUTO_RTL = 0,		// Return mode
 	AUTO_LAND = 1,		// Land mode
 	AUTO_LOITER = 2,	// Hold mode
