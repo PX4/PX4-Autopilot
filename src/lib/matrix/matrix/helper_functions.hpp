@@ -143,7 +143,6 @@ Type unwrap(const Type last_x, const Type new_x, const Type low, const Type high
  *
  * @param[in] last_angle Last unwrapped angle [rad]
  * @param[in] new_angle New angle in [-pi, pi] [rad]
- * @param
  * @return New unwrapped angle [rad]
  */
 template<typename Type>
