@@ -69,7 +69,7 @@
 #define rSQR4(base)  REG((base), STM32_ADC_SQR4_OFFSET)
 #define rDR(base)    REG((base), STM32_ADC_DR_OFFSET)
 
-#define ADC_SMPR_DEFAULT    ADC_SMPR_64p5 // 64.5 +7.5 * 24 Mhz is 3 uS
+#define ADC_SMPR_DEFAULT    ADC_SMPR_387p5 // 387.5 +7.5 * 24 Mhz is 16.5 uS
 #define ADC_SMPR1_DEFAULT   ((ADC_SMPR_DEFAULT << ADC_SMPR1_SMP0_SHIFT) | \
 			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP1_SHIFT) | \
 			     (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP2_SHIFT) | \
