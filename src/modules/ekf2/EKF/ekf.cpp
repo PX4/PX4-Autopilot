@@ -276,11 +276,6 @@ void Ekf::predictState()
 	const Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel - _state.delta_vel_bias;
 	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
 
-	// calculate a filtered horizontal acceleration with a 1 sec time constant
-	// this are used for manoeuvre detection elsewhere
-	const float alpha = 1.0f - _imu_sample_delayed.delta_vel_dt;
-	_accel_lpf_NE = _accel_lpf_NE * alpha + corrected_delta_vel_ef.xy();
-
 	// save the previous value of velocity so we can use trapzoidal integration
 	const Vector3f vel_last = _state.vel;
 
@@ -331,15 +326,6 @@ void Ekf::calculateOutputStates(const imuSample &imu)
 	// Apply corrections to the delta angle required to track the quaternion states at the EKF fusion time horizon
 	const Vector3f delta_angle(imu.delta_ang - _state.delta_ang_bias * dt_scale_correction + _delta_angle_corr);
 
-	// calculate a yaw change about the earth frame vertical
-	const float spin_del_ang_D = delta_angle.dot(Vector3f(_R_to_earth_now.row(2)));
-	_yaw_delta_ef += spin_del_ang_D;
-
-	// Calculate filtered yaw rate to be used by the magnetometer fusion type selection logic
-	// Note fixed coefficients are used to save operations. The exact time constant is not important.
-	_yaw_rate_lpf_ef = 0.95f * _yaw_rate_lpf_ef + 0.05f * spin_del_ang_D / imu.delta_ang_dt;
-
-
 	_output_new.time_us = imu.time_us;
 	_output_vert_new.time_us = imu.time_us;
 
@@ -352,13 +338,13 @@ void Ekf::calculateOutputStates(const imuSample &imu)
 	_output_new.quat_nominal.normalize();
 
 	// calculate the rotation matrix from body to earth frame
-	_R_to_earth_now = Dcmf(_output_new.quat_nominal);
+	const Dcmf R_to_earth_now{_output_new.quat_nominal};
 
 	// correct delta velocity for bias offsets
 	const Vector3f delta_vel_body{imu.delta_vel - _state.delta_vel_bias * dt_scale_correction};
 
 	// rotate the delta velocity to earth frame
-	Vector3f delta_vel_earth{_R_to_earth_now * delta_vel_body};
+	Vector3f delta_vel_earth{R_to_earth_now * delta_vel_body};
 
 	// correct for measured acceleration due to gravity
 	delta_vel_earth(2) += CONSTANTS_ONE_G * imu.delta_vel_dt;
@@ -394,7 +380,7 @@ void Ekf::calculateOutputStates(const imuSample &imu)
 		const Vector3f vel_imu_rel_body = ang_rate % _params.imu_pos_body;
 
 		// rotate the relative velocity into earth frame
-		_vel_imu_rel_body_ned = _R_to_earth_now * vel_imu_rel_body;
+		_vel_imu_rel_body_ned = R_to_earth_now * vel_imu_rel_body;
 	}
 
 	// store the INS states in a ring buffer with the same length and time coordinates as the IMU data buffer

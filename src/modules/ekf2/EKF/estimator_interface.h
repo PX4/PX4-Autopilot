@@ -195,7 +195,7 @@ public:
 	Vector3f getPosition() const
 	{
 		// rotate the position of the IMU relative to the boy origin into earth frame
-		const Vector3f pos_offset_earth = _R_to_earth_now * _params.imu_pos_body;
+		const Vector3f pos_offset_earth = Dcmf(_output_new.quat_nominal) * _params.imu_pos_body;
 		// subtract from the EKF position (which is at the IMU) to get position at the body origin
 		return _output_new.pos - pos_offset_earth;
 	}
@@ -308,7 +308,6 @@ protected:
 	outputSample _output_new{};		// filter output on the non-delayed time horizon
 	outputVert _output_vert_new{};		// vertical filter output on the non-delayed time horizon
 	imuSample _newest_high_rate_imu_sample{};		// imu sample capturing the newest imu data
-	Matrix3f _R_to_earth_now{};		// rotation matrix from body to earth frame at current time
 	Vector3f _vel_imu_rel_body_ned{};		// velocity of IMU relative to body origin in NED earth frame
 	Vector3f _vel_deriv{};		// velocity derivative at the IMU in NED earth frame (m/s/s)
 
