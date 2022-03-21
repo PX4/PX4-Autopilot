@@ -416,7 +416,6 @@ private:
 
 	// used by magnetometer fusion mode selection
 	Vector2f _accel_lpf_NE{};			///< Low pass filtered horizontal earth frame acceleration (m/sec**2)
-	float _yaw_delta_ef{0.0f};		///< Recent change in yaw angle measured about the earth frame D axis (rad)
 	float _yaw_rate_lpf_ef{0.0f};		///< Filtered angular rate about earth frame D axis (rad/sec)
 	bool _mag_bias_observable{false};	///< true when there is enough rotation to make magnetometer bias errors observable
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
@@ -851,8 +850,6 @@ private:
 
 	void runYawReset();
 
-	void selectMagAuto();
-	void check3DMagFusionSuitability();
 	void checkYawAngleObservability();
 	void checkMagBiasObservability();
 	bool canUse3DMagFusion() const;

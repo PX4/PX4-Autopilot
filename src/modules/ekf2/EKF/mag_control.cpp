@@ -76,6 +76,13 @@ void Ekf::controlMagFusion()
 		_num_bad_flight_yaw_events = 0;
 	}
 
+	checkYawAngleObservability();
+	checkMagBiasObservability();
+
+	if (_mag_bias_observable || _yaw_angle_observable) {
+		_time_last_mov_3d_mag_suitable = _imu_sample_delayed.time_us;
+	}
+
 	// When operating without a magnetometer and no other source of yaw aiding is active,
 	// yaw fusion is run selectively to enable yaw gyro bias learning when stationary on
 	// ground and to prevent uncontrolled yaw variance growth
@@ -109,7 +116,17 @@ void Ekf::controlMagFusion()
 
 		// FALLTHROUGH
 		case MAG_FUSE_TYPE_AUTO:
-			selectMagAuto();
+			// Use of 3D fusion requires an in-air heading alignment but it should not
+			// be used when the heading and mag biases are not observable for more than 2 seconds
+			if (_control_status.flags.mag_aligned_in_flight
+			    && ((_imu_sample_delayed.time_us - _time_last_mov_3d_mag_suitable) < (uint64_t)2e6)
+			   ) {
+				startMag3DFusion();
+
+			} else {
+				startMagHdgFusion();
+			}
+
 			break;
 
 		case MAG_FUSE_TYPE_INDOOR:
@@ -206,36 +223,44 @@ void Ekf::runYawReset()
 	}
 }
 
-void Ekf::selectMagAuto()
-{
-	check3DMagFusionSuitability();
-	canUse3DMagFusion() ? startMag3DFusion() : startMagHdgFusion();
-}
-
-void Ekf::check3DMagFusionSuitability()
-{
-	checkYawAngleObservability();
-	checkMagBiasObservability();
-
-	if (_mag_bias_observable || _yaw_angle_observable) {
-		_time_last_mov_3d_mag_suitable = _imu_sample_delayed.time_us;
-	}
-}
-
 void Ekf::checkYawAngleObservability()
 {
+	// calculate a filtered horizontal acceleration with a 1 sec time constant
+
+	// Calculate an earth frame delta velocity
+	const Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel - _state.delta_vel_bias;
+	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
+
+	const float alpha = 1.0f - _imu_sample_delayed.delta_vel_dt;
+	_accel_lpf_NE = _accel_lpf_NE * alpha + corrected_delta_vel_ef.xy();
+
 	// Check if there has been enough change in horizontal velocity to make yaw observable
 	// Apply hysteresis to check to avoid rapid toggling
-	_yaw_angle_observable = _yaw_angle_observable
-				? _accel_lpf_NE.norm() > _params.mag_acc_gate
-				: _accel_lpf_NE.norm() > 2.0f * _params.mag_acc_gate;
+	if (_control_status.flags.gps) {
+		if (_yaw_angle_observable) {
+			_yaw_angle_observable = _accel_lpf_NE.norm() > _params.mag_acc_gate;
 
-	_yaw_angle_observable = _yaw_angle_observable
-				&& (_control_status.flags.gps || _control_status.flags.ev_pos); // Do we have to add ev_vel here?
+		} else {
+			_yaw_angle_observable = _accel_lpf_NE.norm() > _params.mag_acc_gate * 2.f;
+		}
+
+	} else {
+		_yaw_angle_observable = false;
+	}
 }
 
 void Ekf::checkMagBiasObservability()
 {
+	// calculate a yaw change about the earth frame vertical
+	const Vector3f delta_angle = _imu_sample_delayed.delta_ang - _state.delta_ang_bias;
+
+	const float spin_del_ang_D = delta_angle.dot(Vector3f(_R_to_earth.row(2)));
+	float yaw_delta_ef = spin_del_ang_D;
+
+	// Calculate filtered yaw rate to be used by the magnetometer fusion type selection logic
+	// Note fixed coefficients are used to save operations. The exact time constant is not important.
+	_yaw_rate_lpf_ef = 0.95f * _yaw_rate_lpf_ef + 0.05f * spin_del_ang_D / _imu_sample_delayed.delta_ang_dt;
+
 	// check if there is enough yaw rotation to make the mag bias states observable
 	if (!_mag_bias_observable && (fabsf(_yaw_rate_lpf_ef) > _params.mag_yaw_rate_gate)) {
 		// initial yaw motion is detected
@@ -245,19 +270,10 @@ void Ekf::checkMagBiasObservability()
 		// require sustained yaw motion of 50% the initial yaw rate threshold
 		const float yaw_dt = 1e-6f * (float)(_imu_sample_delayed.time_us - _time_yaw_started);
 		const float min_yaw_change_req = 0.5f * _params.mag_yaw_rate_gate * yaw_dt;
-		_mag_bias_observable = fabsf(_yaw_delta_ef) > min_yaw_change_req;
+		_mag_bias_observable = fabsf(yaw_delta_ef) > min_yaw_change_req;
 	}
 
-	_yaw_delta_ef = 0.0f;
 	_time_yaw_started = _imu_sample_delayed.time_us;
-}
-
-bool Ekf::canUse3DMagFusion() const
-{
-	// Use of 3D fusion requires an in-air heading alignment but it should not
-	// be used when the heading and mag biases are not observable for more than 2 seconds
-	return _control_status.flags.mag_aligned_in_flight
-	       && ((_imu_sample_delayed.time_us - _time_last_mov_3d_mag_suitable) < (uint64_t)2e6);
 }
 
 void Ekf::checkMagDeclRequired()
