@@ -33,10 +33,22 @@
 
 #pragma once
 
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/SubscriptionInterval.hpp>
+
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/power_monitor.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/vehicle_air_data.h>
 
 #include "MspV1.hpp"
 
@@ -44,52 +56,45 @@ using namespace time_literals;
 
 extern "C" __EXPORT int msp_osd_main(int argc, char *argv[]);
 
-
-class MspOsd : public ModuleBase<MspOsd>, public ModuleParams
+class MspOsd : public ModuleBase<MspOsd>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	MspOsd();
 
-	virtual ~MspOsd() = default;
+	~MspOsd() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static MspOsd *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::run() */
-	void run() override;
+	
+	bool init();
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
 private:
+	void Run() override;
+
 	MspV1 _msp;
+	int _msp_fd{-1};
+	
+	bool _is_initialized{false};
+	
+	//uORB::Subscription power_monitor_sub(ORB_ID(power_monitor));
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
+	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
 	void SendConfig();
 	void SendTelemetry();
 
-	/**
-	 * Check for parameter changes and update them if needed.
-	 * @param parameter_update_sub uorb subscription to parameter_update
-	 * @param force for a parameter update
-	 */
-	void parameters_update(bool force = false);
-
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
-	)
-
-	// Subscriptions
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 };
