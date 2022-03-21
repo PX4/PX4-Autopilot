@@ -152,6 +152,12 @@ Type unwrap_pi(const Type last_angle, const Type new_angle)
 	return unwrap(last_angle, new_angle, Type(-M_PI), Type(M_PI));
 }
 
+/**
+ * Type-safe sign/signum function
+ *
+ * @param[in] val Number to take the sign from
+ * @return -1 if val < 0, 0 if val == 0, 1 if val > 0
+ */
 template<typename T>
 int sign(T val)
 {
