@@ -222,9 +222,11 @@ public:
 	bool isYawFinalAlignComplete() const
 	{
 		const bool is_using_mag = (_control_status.flags.mag_3D || _control_status.flags.mag_hdg);
+
 		const bool is_mag_alignment_in_flight_complete = is_using_mag
 				&& _control_status.flags.mag_aligned_in_flight
 				&& ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)1e6);
+
 		return _control_status.flags.yaw_align
 		       && (is_mag_alignment_in_flight_complete || !is_using_mag);
 	}
@@ -834,7 +836,9 @@ private:
 	void controlGpsFusion();
 	bool shouldResetGpsFusion() const;
 	bool hasHorizontalAidingTimedOut() const;
-	bool isYawFailure() const;
+
+	bool isYawError(float error_threshold = math::radians(10.f)) const;
+	bool isYawFailure() const { return isYawError(math::radians(25.f)); }
 
 	void controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing);
 
@@ -861,6 +865,8 @@ private:
 
 	void runMagAndMagDeclFusions(const Vector3f &mag);
 	void run3DMagAndDeclFusions(const Vector3f &mag);
+
+	bool resetMagStates();
 
 	// control fusion of range finder observations
 	void controlRangeFinderFusion();

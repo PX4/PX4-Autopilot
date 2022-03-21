@@ -364,3 +364,56 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 		}
 	}
 }
+
+bool Ekf::resetMagStates()
+{
+	bool reset = false;
+
+	// reinit mag states
+	const bool mag_available = (_mag_counter != 0) && isRecent(_time_last_mag, 500000);
+
+	// if world magnetic model (inclination, declination, strength) available then use it to reset mag states
+	if (PX4_ISFINITE(_mag_inclination_gps) && PX4_ISFINITE(_mag_declination_gps) && PX4_ISFINITE(_mag_strength_gps)) {
+		// use predicted earth field to reset states
+		const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -_mag_inclination_gps, _mag_declination_gps)) * Vector3f(_mag_strength_gps, 0, 0);
+		_state.mag_I = mag_earth_pred;
+
+		ECL_DEBUG("resetting mag I to [%.3f, %.3f, %.3f]", (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2));
+
+		if (mag_available) {
+			const Dcmf R_to_body = quatToInverseRotMat(_state.quat_nominal);
+			_state.mag_B = _mag_lpf.getState() - (R_to_body * mag_earth_pred);
+
+			ECL_DEBUG("resetting mag B to [%.3f, %.3f, %.3f]", (double)_state.mag_B(0), (double)_state.mag_B(1), (double)_state.mag_B(2));
+
+		} else {
+			_state.mag_B.zero();
+		}
+
+		reset = true;
+
+	} else if (mag_available && !magFieldStrengthDisturbed(_mag_lpf.getState())) {
+		// Use the last magnetometer measurements to reset the field states
+
+		// calculate initial earth magnetic field states
+		_state.mag_I = _R_to_earth * _mag_lpf.getState();
+		_state.mag_B.zero();
+
+		ECL_DEBUG("resetting mag I to [%.3f, %.3f, %.3f]", (double)_state.mag_I(0), (double)_state.mag_I(1), (double)_state.mag_I(2));
+
+		reset = true;
+	}
+
+	if (reset) {
+		resetMagCov();
+		_time_last_mag_3d_fuse = _time_last_imu;
+
+		// clear any pending resets
+		_mag_yaw_reset_req = false;
+		_mag_inhibit_yaw_reset_req = false;
+
+		return true;
+	}
+
+	return false;
+}

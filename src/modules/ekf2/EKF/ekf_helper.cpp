@@ -420,36 +420,24 @@ bool Ekf::realignYawGPS(bool force)
 		// Apply updated yaw and yaw variance to states and covariances
 		resetQuatStateYaw(yaw_new, yaw_variance_new, true);
 
-		// Use the last magnetometer measurements to reset the field states
-		_state.mag_B.zero();
-		_state.mag_I = _R_to_earth * _mag_lpf.getState();
-
-		resetMagCov();
-
-		// record the start time for the magnetic field alignment
-		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
-
 		// If heading was bad, then we also need to reset the velocity and position states
 		if (badMagYaw) {
 			resetVelocityToGps(_gps_sample_delayed);
 			resetHorizontalPositionToGps(_gps_sample_delayed);
 		}
 
-		return true;
+		if (resetMagStates()) {
+			// record the start time for the magnetic field alignment
+			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+			_control_status.flags.mag_aligned_in_flight = true;
+		}
 
-	} else {
-		// align mag states only
-
-		// calculate initial earth magnetic field states
-		_state.mag_I = _R_to_earth * _mag_lpf.getState();
-
-		resetMagCov();
-
-		// record the start time for the magnetic field alignment
-		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+		_control_status.flags.yaw_align = true;
 
 		return true;
 	}
+
+	return false;
 }
 
 // Reset heading and magnetic field states
@@ -460,7 +448,8 @@ bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
 		return true;
 	}
 
-	const bool mag_available = (_mag_counter != 0) && isRecent(_time_last_mag, 500000) && !magFieldStrengthDisturbed(_mag_lpf.getState());
+	const bool mag_available = (_mag_counter != 0) && isRecent(_time_last_mag, 500000)
+				   && !magFieldStrengthDisturbed(_mag_lpf.getState());
 
 	// low pass filtered mag required
 	if (!mag_available) {
@@ -470,7 +459,7 @@ bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
 	// calculate the observed yaw angle and yaw variance
 	float yaw_new_variance = 0.0f;
 
-	if ((_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) || ((_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR) && _control_status.flags.gps)) {
+	if (_params.mag_fusion_type < MAG_FUSE_TYPE_NONE) {
 
 		// rotate the magnetometer measurements into earth frame using a zero yaw angle
 		const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
@@ -488,6 +477,7 @@ bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
 
 		// set the earth magnetic field states using the updated rotation
 		_state.mag_I = _R_to_earth * _mag_lpf.getState();
+		_state.mag_B.zero();
 
 		resetMagCov();
 
@@ -1226,14 +1216,18 @@ void Ekf::stopMagHdgFusion()
 
 void Ekf::startMagHdgFusion()
 {
-	stopMag3DFusion();
-	_control_status.flags.mag_hdg = true;
+	if (!_control_status.flags.mag_hdg) {
+		stopMag3DFusion();
+		ECL_INFO("starting mag heading fusion");
+		_control_status.flags.mag_hdg = true;
+	}
 }
 
 void Ekf::startMag3DFusion()
 {
 	if (!_control_status.flags.mag_3D) {
 		stopMagHdgFusion();
+		ECL_INFO("starting mag 3d fusion");
 		zeroMagCov();
 		loadMagCovData();
 		_control_status.flags.mag_3D = true;
@@ -1495,6 +1489,9 @@ void Ekf::saveMagCovData()
 
 void Ekf::loadMagCovData()
 {
+	P.uncorrelateCovarianceSetVariance<3>(16, 0.0f);
+	P.uncorrelateCovarianceSetVariance<3>(19, 0.0f);
+
 	// re-instate variances for the XYZ body axis field
 	P(19, 19) = _saved_mag_bf_variance(0);
 	P(20, 20) = _saved_mag_bf_variance(1);
@@ -1528,6 +1525,49 @@ void Ekf::stopAirspeedFusion()
 void Ekf::startGpsFusion()
 {
 	if (!_control_status.flags.gps) {
+
+		bool yaw_reset_needed = false;
+
+		if (_control_status.flags.ev_yaw) {
+			// Stop the vision for yaw fusion and do not allow it to start again
+			stopEvYawFusion();
+			_inhibit_ev_yaw_use = true;
+
+			yaw_reset_needed = true;
+		}
+
+		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
+			if (_mag_inhibit_yaw_reset_req || _mag_yaw_reset_req) {
+				yaw_reset_needed = true;
+			}
+		}
+
+		if (isYawEmergencyEstimateAvailable() && isYawError(math::radians(10.f))) {
+			yaw_reset_needed = true;
+		}
+
+		// Do not use external vision for yaw if using GPS because yaw needs to be
+		// defined relative to an NED reference frame
+		if (yaw_reset_needed) {
+			if (resetYawToEKFGSF()) {
+				ECL_INFO("starting GPS, reset yaw using yaw estimator");
+
+			} else if (resetYawToGps()) {
+				ECL_INFO("starting GPS, reset yaw to GPS");
+
+			} else if (realignYawGPS(true)) {
+				ECL_INFO("starting GPS, reset yaw using GPS course");
+
+			} else if (resetMagHeading()) {
+				ECL_INFO("starting GPS, reset yaw using mag");
+
+			} else {
+				// all failed
+				ECL_WARN("starting GPS, yaw reset failed");
+				_mag_yaw_reset_req = true;
+			}
+		}
+
 		resetHorizontalPositionToGps(_gps_sample_delayed);
 
 		// when already using another velocity source velocity reset is not necessary
@@ -1587,12 +1627,14 @@ void Ekf::startGpsYawFusion()
 		stopMag3DFusion();
 		_control_status.flags.gps_yaw = true;
 	}
-
 }
 
 void Ekf::stopGpsYawFusion()
 {
-	_control_status.flags.gps_yaw = false;
+	if (_control_status.flags.gps_yaw) {
+		ECL_INFO("stopping GPS yaw fusion");
+		_control_status.flags.gps_yaw = false;
+	}
 }
 
 void Ekf::startEvPosFusion()
@@ -1649,7 +1691,10 @@ void Ekf::stopEvVelFusion()
 
 void Ekf::stopEvYawFusion()
 {
-	_control_status.flags.ev_yaw = false;
+	if (_control_status.flags.ev_yaw) {
+		ECL_INFO("stopping EV yaw fusion");
+		_control_status.flags.ev_yaw = false;
+	}
 }
 
 void Ekf::stopAuxVelFusion()
@@ -1704,7 +1749,6 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 		// apply the change in attitude quaternion to our newest quaternion estimate
 		// which was already taken out from the output buffer
 		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
-
 	}
 
 	// capture the reset event
@@ -1722,26 +1766,17 @@ bool Ekf::resetYawToEKFGSF()
 
 	resetQuatStateYaw(_yawEstimator.getYaw(), _yawEstimator.getYawVar(), true);
 
-	// record a magnetic field alignment event to prevent possibility of the EKF trying to reset the yaw to the mag later in flight
-	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 	_control_status.flags.yaw_align = true;
-
-	if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-		// stop using the magnetometer in the main EKF otherwise it's fusion could drag the yaw around
-		// and cause another navigation failure
-		_control_status.flags.mag_fault = true;
-		_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
-
-	} else if (_control_status.flags.gps_yaw) {
-		_control_status.flags.gps_yaw_fault = true;
-		_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
-
-	} else if (_control_status.flags.ev_yaw) {
-		_inhibit_ev_yaw_use = true;
-	}
+	_information_events.flags.yaw_aligned_to_imu_gps = true;
 
 	_ekfgsf_yaw_reset_time = _time_last_imu;
 	_ekfgsf_yaw_reset_count++;
+
+	if (resetMagStates()) {
+		// record the start time for the magnetic field alignment
+		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+		_control_status.flags.mag_aligned_in_flight = true;
+	}
 
 	return true;
 }
@@ -1776,12 +1811,14 @@ void Ekf::runYawEKFGSF()
 		}
 	}
 
+	const bool run_yaw_est = _control_status.flags.in_air || !_control_status.flags.vehicle_at_rest;
 	const Vector3f imu_gyro_bias = getGyroBias();
-	_yawEstimator.update(_imu_sample_delayed, _control_status.flags.in_air, TAS, imu_gyro_bias);
+	_yawEstimator.update(_imu_sample_delayed, run_yaw_est, TAS, imu_gyro_bias);
 
 	// basic sanity check on GPS velocity data
 	if (_gps_data_ready && _gps_sample_delayed.vacc > FLT_EPSILON &&
 	    PX4_ISFINITE(_gps_sample_delayed.vel(0)) && PX4_ISFINITE(_gps_sample_delayed.vel(1))) {
+
 		_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), _gps_sample_delayed.vacc);
 	}
 }
