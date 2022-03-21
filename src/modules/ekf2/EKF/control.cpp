@@ -1047,21 +1047,25 @@ void Ekf::controlBetaFusion()
 
 void Ekf::controlDragFusion()
 {
-	if ((_params.fusion_mode & MASK_USE_DRAG) && _drag_buffer &&
-	    !_using_synthetic_position && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
+	if ((_params.fusion_mode & MASK_USE_DRAG) && _drag_buffer) {
 
-		if (!_control_status.flags.wind) {
-			// reset the wind states and covariances when starting drag accel fusion
-			_control_status.flags.wind = true;
-			resetWind();
+		bool heading_fuse_recent = !isTimedOut(_time_last_mag_heading_fuse, (uint64_t)5e6)
+			|| !isTimedOut(_time_last_mag_3d_fuse, (uint64_t)5e6)
+			|| !isTimedOut(_time_last_heading_fuse, (uint64_t)5e6);
 
-		}
+		if (!_using_synthetic_position && _control_status.flags.in_air && heading_fuse_recent) {
 
+			if (!_control_status.flags.wind) {
+				// reset the wind states and covariances when starting drag accel fusion
+				_control_status.flags.wind = true;
+				resetWind();
+			}
 
-		dragSample drag_sample;
+			dragSample drag_sample;
 
-		if (_drag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &drag_sample)) {
-			fuseDrag(drag_sample);
+			if (_drag_buffer->pop_first_older_than(_imu_sample_delayed.time_us, &drag_sample)) {
+				fuseDrag(drag_sample);
+			}
 		}
 	}
 }

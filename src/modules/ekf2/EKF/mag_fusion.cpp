@@ -428,7 +428,12 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 		}
 	}
 
-	return !_fault_status.flags.bad_mag_x && !_fault_status.flags.bad_mag_y && !_fault_status.flags.bad_mag_z;
+	if (!_fault_status.flags.bad_mag_x && !_fault_status.flags.bad_mag_y && !_fault_status.flags.bad_mag_z) {
+		_time_last_mag_3d_fuse = _time_last_imu;
+		return true;
+	}
+
+	return false;
 }
 
 bool Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)

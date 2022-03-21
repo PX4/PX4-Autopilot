@@ -391,6 +391,8 @@ bool Ekf::realignYawGPS(bool force)
 	// correct yaw angle using GPS ground course if compass yaw bad or yaw is previously not aligned
 	if (badMagYaw || !_control_status.flags.yaw_align || force) {
 
+		ECL_INFO("realignYawGPS resetting yaw");
+
 		// calculate new yaw estimate
 		float yaw_new;
 
@@ -429,6 +431,7 @@ bool Ekf::realignYawGPS(bool force)
 		if (resetMagStates()) {
 			// record the start time for the magnetic field alignment
 			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+			_time_last_mag_heading_fuse = _time_last_imu;
 			_control_status.flags.mag_aligned_in_flight = true;
 		}
 
@@ -458,6 +461,8 @@ bool Ekf::resetMagHeading()
 			return false;
 		}
 
+		ECL_INFO("resetMagHeading resetting yaw");
+
 		// calculate the observed yaw angle and yaw variance
 
 		// rotate the magnetometer measurements into earth frame using a zero yaw angle
@@ -480,6 +485,7 @@ bool Ekf::resetMagHeading()
 
 		// record the time for the magnetic field alignment event
 		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+		_time_last_mag_heading_fuse = _time_last_imu;
 
 		return true;
 	}
@@ -1531,12 +1537,6 @@ void Ekf::startGpsFusion()
 			yaw_reset_needed = true;
 		}
 
-		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-			if (_mag_inhibit_yaw_reset_req || _mag_yaw_reset_req) {
-				yaw_reset_needed = true;
-			}
-		}
-
 		if (isYawEmergencyEstimateAvailable() && isYawError(math::radians(10.f))) {
 			yaw_reset_needed = true;
 		}
@@ -1558,8 +1558,7 @@ void Ekf::startGpsFusion()
 
 			} else {
 				// all failed
-				ECL_WARN("starting GPS, yaw reset failed");
-				_mag_yaw_reset_req = true;
+				ECL_ERR("starting GPS, yaw reset failed");
 			}
 		}
 
@@ -1744,6 +1743,8 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 
 	// capture the reset event
 	_state_reset_status.quat_counter++;
+
+	_time_last_heading_fuse = _time_last_imu;
 }
 
 // Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
@@ -1766,6 +1767,7 @@ bool Ekf::resetYawToEKFGSF()
 	if (resetMagStates()) {
 		// record the start time for the magnetic field alignment
 		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+		_time_last_mag_heading_fuse = _time_last_imu;
 		_control_status.flags.mag_aligned_in_flight = true;
 	}
 

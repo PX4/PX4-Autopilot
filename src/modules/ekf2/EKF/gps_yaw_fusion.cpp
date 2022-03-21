@@ -219,6 +219,7 @@ bool Ekf::resetYawToGps()
 		if (resetMagStates()) {
 			// record the start time for the magnetic field alignment
 			_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+			_time_last_mag_heading_fuse = _time_last_imu;
 			_control_status.flags.mag_aligned_in_flight = true;
 		}
 
