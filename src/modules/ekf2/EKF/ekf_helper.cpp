@@ -460,25 +460,24 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 }
 
 // Reset heading and magnetic field states
-bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
+bool Ekf::resetMagHeading()
 {
 	// prevent a reset being performed more than once on the same frame
 	if (_imu_sample_delayed.time_us == _flt_mag_align_start_time) {
 		return true;
 	}
 
+	const Vector3f mag_init = _mag_lpf.getState();
+
+	const bool mag_available = (_mag_counter != 0) && isRecent(_time_last_mag, 500000)
+				   && !magFieldStrengthDisturbed(mag_init);
+
 	// low pass filtered mag required
-	if (_mag_counter == 0) {
+	if (!mag_available) {
 		return false;
 	}
 
-	const Vector3f mag_init = _mag_lpf.getState();
-
-	// calculate the observed yaw angle and yaw variance
-	float yaw_new;
-	float yaw_new_variance = 0.0f;
-
-	const bool heading_required_for_navigation = _control_status.flags.gps || _control_status.flags.ev_pos;
+	const bool heading_required_for_navigation = _control_status.flags.gps;
 
 	if ((_params.mag_fusion_type <= MagFuseType::MAG_3D) || ((_params.mag_fusion_type == MagFuseType::INDOOR) && heading_required_for_navigation)) {
 
@@ -487,33 +486,26 @@ bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
 
 		// the angle of the projection onto the horizontal gives the yaw angle
 		const Vector3f mag_earth_pred = R_to_earth * mag_init;
-		yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
-		if (increase_yaw_var) {
-			yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
-		}
+		// calculate the observed yaw angle and yaw variance
+		float yaw_new = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+		float yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.e-2f));
 
-	} else if (_params.mag_fusion_type == MagFuseType::INDOOR) {
-		// we are operating temporarily without knowing the earth frame yaw angle
+		// update quaternion states and corresponding covarainces
+		resetQuatStateYaw(yaw_new, yaw_new_variance);
+
+		// set the earth magnetic field states using the updated rotation
+		_state.mag_I = _R_to_earth * mag_init;
+
+		resetMagCov();
+
+		// record the time for the magnetic field alignment event
+		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+
 		return true;
-
-	} else {
-		// there is no magnetic yaw observation
-		return false;
 	}
 
-	// update quaternion states and corresponding covarainces
-	resetQuatStateYaw(yaw_new, yaw_new_variance, update_buffer);
-
-	// set the earth magnetic field states using the updated rotation
-	_state.mag_I = _R_to_earth * mag_init;
-
-	resetMagCov();
-
-	// record the time for the magnetic field alignment event
-	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
-
-	return true;
+	return false;
 }
 
 bool Ekf::resetYawToEv()
@@ -1277,8 +1269,11 @@ void Ekf::stopMagHdgFusion()
 
 void Ekf::startMagHdgFusion()
 {
-	stopMag3DFusion();
-	_control_status.flags.mag_hdg = true;
+	if (!_control_status.flags.mag_hdg) {
+		stopMag3DFusion();
+		ECL_INFO("starting mag heading fusion");
+		_control_status.flags.mag_hdg = true;
+	}
 }
 
 void Ekf::startMag3DFusion()
@@ -1721,7 +1716,10 @@ void Ekf::stopEvVelFusion()
 
 void Ekf::stopEvYawFusion()
 {
-	_control_status.flags.ev_yaw = false;
+	if (_control_status.flags.ev_yaw) {
+		ECL_INFO("stopping EV yaw fusion");
+		_control_status.flags.ev_yaw = false;
+	}
 }
 
 void Ekf::stopAuxVelFusion()
@@ -1776,7 +1774,6 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 		// apply the change in attitude quaternion to our newest quaternion estimate
 		// which was already taken out from the output buffer
 		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
-
 	}
 
 	_last_static_yaw = NAN;
