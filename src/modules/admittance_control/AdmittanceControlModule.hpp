@@ -154,10 +154,12 @@ private:
 		(ParamFloat<px4::params::ADM_CTR_BEL_KAZ>) _param_adm_ctr_kmaxz,
 		(ParamFloat<px4::params::ADM_CTR_BEL_KAW>) _param_adm_ctr_kmaxyaw,
 		(ParamFloat<px4::params::ADM_CTR_BEL_LPF>) _param_adm_ctr_lpf,
+
 		(ParamFloat<px4::params::ADM_CTR_WRE_DZX>) _param_adm_ctr_dzx,
 		(ParamFloat<px4::params::ADM_CTR_WRE_DZY>) _param_adm_ctr_dzy,
 		(ParamFloat<px4::params::ADM_CTR_WRE_DZZ>) _param_adm_ctr_dzz,
 		(ParamFloat<px4::params::ADM_CTR_WRE_DZW>) _param_adm_ctr_dzw,
+
 		(ParamFloat<px4::params::ADM_CTR_WRE_SAX>) _param_adm_ctr_sax,
 		(ParamFloat<px4::params::ADM_CTR_WRE_SAY>) _param_adm_ctr_say,
 		(ParamFloat<px4::params::ADM_CTR_WRE_SAZ>) _param_adm_ctr_saz,
