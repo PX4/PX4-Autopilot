@@ -47,6 +47,12 @@
 
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/power_monitor.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/airspeed_validated.h>
+#include <uORB/topics/vehicle_air_data.h>
 
 #include "MspV1.hpp"
 
@@ -83,26 +89,35 @@ const char arduPlaneModeStr[24][15]  =  {
 //234 -> not visible. Horizontally 2048-2074(spacing 1), vertically 2048-2528(spacing 32). 26 characters X 15 lines
 
 //currently working elements
-const uint16_t osd_rssi_value_pos = 2179;
-const uint16_t osd_avg_cell_voltage_pos = 2072;
-const uint16_t osd_gps_lon_pos = 2113;
-const uint16_t osd_gps_lat_pos = 2081;
-const uint16_t osd_flymode_pos = 234;
+
+// Left
+const uint16_t osd_gps_lat_pos = 2048;
+const uint16_t osd_gps_lon_pos = 2080;
+uint16_t osd_gps_sats_pos = 2112;
+const uint16_t osd_rssi_value_pos = 2176;
+const uint16_t osd_flymode_pos = 2208;
+
+// Center
+const uint16_t osd_home_dir_pos = 2093;
 const uint16_t osd_craft_name_pos = 2543;
-const uint16_t osd_current_draw_pos = 2102;
-const uint16_t osd_mah_drawn_pos = 2136;
-uint16_t osd_gps_sats_pos = 2465;
-const uint16_t osd_main_batt_voltage_pos = 234;
+const uint16_t osd_horizon_sidebars_pos = 2318;
+
+// Right
+const uint16_t osd_main_batt_voltage_pos = 2073;
+const uint16_t osd_current_draw_pos = 2103;
+const uint16_t osd_mah_drawn_pos = 2138;
+const uint16_t osd_altitude_pos = 2233;
+const uint16_t osd_numerical_vario_pos = 2267;
+const uint16_t osd_gps_speed_pos = 2299;
+const uint16_t osd_home_dist_pos = 2331;
+
+// Disabled
 const uint16_t osd_pitch_angle_pos = 234;
 const uint16_t osd_roll_angle_pos = 234;
 const uint16_t osd_crosshairs_pos = 234;
-const uint16_t osd_numerical_vario_pos = 2532;
-const uint16_t osd_gps_speed_pos = 2394;
-const uint16_t osd_altitude_pos = 2455;
-const uint16_t osd_home_dir_pos = 2095;
-const uint16_t osd_home_dist_pos = 2426;
+const uint16_t osd_avg_cell_voltage_pos = 234;
 
-//not implemented or not available
+// Not implemented or not available
 const uint16_t osd_throttle_pos_pos = 234;
 const uint16_t osd_vtx_channel_pos = 234;
 const uint16_t osd_roll_pids_pos = 234;
@@ -113,7 +128,6 @@ const uint16_t osd_pidrate_profile_pos = 234;
 const uint16_t osd_warnings_pos = 234;
 const uint16_t osd_debug_pos = 234;
 const uint16_t osd_artificial_horizon_pos = 234;
-const uint16_t osd_horizon_sidebars_pos = 234;
 const uint16_t osd_item_timer_1_pos = 234;
 const uint16_t osd_item_timer_2_pos = 234;
 const uint16_t osd_main_batt_usage_pos = 234;
@@ -160,7 +174,7 @@ int MspOsd::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("module",
 	  SCHED_DEFAULT,
 	  SCHED_PRIORITY_DEFAULT,
-	  1024,
+	  2048,
 	  (px4_main_t)&run_trampoline,
 	  (char *const *)argv);
 
@@ -193,7 +207,7 @@ MspOsd::MspOsd()
 void MspOsd::SendConfig()
 {
 	msp_osd_config_t msp_osd_config;
-	
+
 	msp_osd_config.units = 0;
 
 	msp_osd_config.osd_item_count = 56;
@@ -261,90 +275,180 @@ void MspOsd::SendConfig()
 	msp_osd_config.osd_profile_name_pos = osd_profile_name_pos;
 	msp_osd_config.osd_rssi_dbm_value_pos = osd_rssi_dbm_value_pos;
 	msp_osd_config.osd_rc_channels_pos = osd_rc_channels_pos;
-	
+
 	_msp.Send(MSP_OSD_CONFIG, &msp_osd_config);
 }
 
 void MspOsd::SendTelemetry()
 {
-	//msp_battery_state_t battery_state = {0};
-	//msp_name_t name = {0};
-	msp_status_BF_t status_BF = {0};
-	msp_analog_t analog = {0};
-	/*msp_raw_gps_t raw_gps = {0};
-	msp_comp_gps_t comp_gps = {0};
-	msp_attitude_t attitude = {0};
-	msp_altitude_t altitude = {0};*/
-	
-    //MSP_NAME
-    //memcpy(name.craft_name, craftname, sizeof(craftname));
-    //msp.send(MSP_NAME, &name, sizeof(name));
-
-    //MSP_STATUS
-    status_BF.flightModeFlags = ARM_ACRO_BF;
-    _msp.Send(MSP_STATUS, &status_BF);
-
-    //MSP_ANALOG
-    analog.vbat = 24;
-    analog.rssi = 100;
-    analog.amperage = 20;
-    analog.mAhDrawn = 20;
-    _msp.Send(MSP_ANALOG, &analog);
-
 }
+
+#define SUB_COUNT 3
 
 void MspOsd::run()
 {
-	int sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
+	//uORB::Subscription power_monitor_sub(ORB_ID(power_monitor));
+	uORB::Subscription battery_status_sub(ORB_ID(battery_status));
+	uORB::Subscription vehicle_status_sub(ORB_ID(vehicle_status));
+	uORB::Subscription vehicle_gps_position_sub(ORB_ID(vehicle_gps_position));
+	uORB::Subscription airspeed_validated_sub(ORB_ID(airspeed_validated));
+	uORB::Subscription vehicle_air_data_sub(ORB_ID(vehicle_air_data));
 
-	px4_pollfd_struct_t fds[1];
-	fds[0].fd = sensor_combined_sub;
-	fds[0].events = POLLIN;
-	
+	msp_battery_state_t battery_state = {0};
+	msp_name_t name = {0};
+	msp_status_BF_t status_BF = {0};
+	msp_analog_t analog = {0};
+	msp_raw_gps_t raw_gps = {0};
+	msp_comp_gps_t comp_gps = {0};
+	msp_attitude_t attitude = {0};
+	msp_altitude_t altitude = {0};
+
 	int fd = -1;
 	struct termios t;
 
-	fd = open("/dev/ttyS2", O_RDWR | O_NONBLOCK);
+	fd = open("/dev/ttyS3", O_RDWR | O_NONBLOCK);
+
+	if (fd < 0)
+	{
+		PX4_ERR("failed to open err: %d", errno);
+		return;
+	}
+
 	tcgetattr(fd, &t);
-	cfsetspeed(&t, 57600);
-	t.c_cflag &= ~(CSTOPB | PARENB);
+	cfsetspeed(&t, B115200);
+	t.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+	t.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+	t.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+	t.c_oflag = 0;
 	tcsetattr(fd, TCSANOW, &t);
 
+	PX4_WARN("Startup");
+
 	parameters_update(true);
-	
+
 	_msp = MspV1(fd);
-	
-	
+
+	//struct power_monitor_s power_monitor_struct;
+	struct battery_status_s battery_status_struct = {0};
+	struct vehicle_status_s vehicle_status_struct;
+	struct vehicle_gps_position_s vehicle_gps_position_struct = {0};
+	struct airspeed_validated_s airspeed_validated_struct = {0};
+	struct vehicle_air_data_s vehicle_air_data_struct = {0};
 
 	while (!should_exit())
 	{
-		// wait for up to 1000ms for data
-		int pret = px4_poll(fds, (sizeof(fds) / sizeof(fds[0])), 100);
+		//power_monitor_sub.update(&power_monitor_struct);
+		battery_status_sub.update(&battery_status_struct);
+		vehicle_status_sub.update(&vehicle_status_struct);
+		vehicle_gps_position_sub.update(&vehicle_gps_position_struct);
+		airspeed_validated_sub.update(&airspeed_validated_struct);
+		vehicle_air_data_sub.update(&vehicle_air_data_struct);
+		
+		PX4_WARN("Update %f %i", (double)vehicle_air_data_struct.baro_alt_meter, battery_status_struct.cell_count);
 
-		if (pret == 0)
-		{
-			// Timeout: let the loop run anyway, don't do `continue` here
-		}
-		else if (pret < 0)
-		{
-			// this is undesirable but not much we can do
-			PX4_ERR("poll error %d, %d", pret, errno);
-			px4_usleep(50000);
-			continue;
+		// MSP_NAME
+		memcpy(name.craft_name, "test1234\0", sizeof("test1234\0"));
+		_msp.Send(MSP_NAME, &name);
 
-		}
-		else if (fds[0].revents & POLLIN)
+		// MSP_STATUS
+		switch (vehicle_status_struct.nav_state)
 		{
-			struct sensor_combined_s sensor_combined;
-			orb_copy(ORB_ID(sensor_combined), sensor_combined_sub, &sensor_combined);
+			case vehicle_status_struct.NAVIGATION_STATE_MANUAL:
+				status_BF.flightModeFlags = ARM_ACRO_BF;
+				break;
+				
+			case vehicle_status_struct.NAVIGATION_STATE_ACRO:
+				status_BF.flightModeFlags = ARM_ACRO_BF;
+				break;
+				
+			case vehicle_status_struct.NAVIGATION_STATE_STAB:
+				status_BF.flightModeFlags = STAB_BF;
+				break;
+				
+			case vehicle_status_struct.NAVIGATION_STATE_AUTO_RTL:
+				status_BF.flightModeFlags = RESC_BF;
+				break;
+				
+			default:
+				status_BF.flightModeFlags = 0;
+				break;
 		}
 		
+		_msp.Send(MSP_STATUS, &status_BF);
+
+		// MSP_ANALOG
+		analog.vbat = battery_status_struct.voltage_v * 10; // bottom right... v * 10
+		analog.rssi = 150;
+		analog.amperage = battery_status_struct.current_a * 100; // main amperage
+		analog.mAhDrawn = battery_status_struct.discharged_mah; // unused
+		_msp.Send(MSP_ANALOG, &analog);
+
+		// MSP_BATTERY_STATE
+		battery_state.amperage = 2500; // not used?
+		battery_state.batteryVoltage =  (uint16_t)(battery_status_struct.voltage_v * 400.0f); // OK
+		battery_state.mAhDrawn = battery_status_struct.discharged_mah ; // OK
+		battery_state.batteryCellCount = battery_status_struct.cell_count;
+		battery_state.batteryCapacity = battery_status_struct.capacity; // not used?
+		
+		// Voltage color 0==white, 1==red
+		if (battery_status_struct.voltage_v < 14.0f)
+		{
+			battery_state.batteryState = 1;
+		}
+		else
+		{
+			battery_state.batteryState = 0;
+		}
+		battery_state.legacyBatteryVoltage = battery_status_struct.voltage_v * 10;
+		_msp.Send(MSP_BATTERY_STATE, &battery_state);
+
+		// MSP_RAW_GPS
+		if (vehicle_gps_position_struct.fix_type >= 3)
+		{
+			raw_gps.lat = vehicle_gps_position_struct.lat;
+			raw_gps.lon = vehicle_gps_position_struct.lon;
+			raw_gps.alt =  vehicle_gps_position_struct.alt / 100;
+		}
+		else
+		{
+			raw_gps.lat = 0;
+			raw_gps.lon = 0;
+			raw_gps.alt = 0;
+		}
+		raw_gps.numSat = vehicle_gps_position_struct.satellites_used;
+		
+		
+		if (airspeed_validated_struct.airspeed_sensor_measurement_valid)
+		{
+			raw_gps.groundSpeed = airspeed_validated_struct.indicated_airspeed_m_s;
+		}
+		else
+		{
+			raw_gps.groundSpeed = 0;
+		}
+		_msp.Send(MSP_RAW_GPS, &raw_gps);
+
+		// MSP_COMP_GPS
+		comp_gps.distanceToHome = (int16_t)1000; // meters
+		comp_gps.directionToHome = 90; // degrees
+		_msp.Send(MSP_COMP_GPS, &comp_gps);
+
+		// MSP_ATTITUDE
+		attitude.pitch = 0;
+		attitude.roll = 90;
+		_msp.Send(MSP_ATTITUDE, &attitude);
+
+		// MSP_ALTITUDE
+		altitude.estimatedActualPosition = 350 / 10; //cm
+		altitude.estimatedActualVelocity = (int16_t)(5 * 100); //m/s to cm/s
+		_msp.Send(MSP_ALTITUDE, &altitude);
+
 		SendConfig();
 
 		parameters_update();
-	}
 
-	orb_unsubscribe(sensor_combined_sub);
+		px4_usleep(100 * 1000);
+	}
 }
 
 void MspOsd::parameters_update(bool force)

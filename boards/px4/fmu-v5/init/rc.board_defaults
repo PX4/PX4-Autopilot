@@ -25,3 +25,4 @@ fi
 
 rgbled_pwm start
 safety_button start
+msp_osd start

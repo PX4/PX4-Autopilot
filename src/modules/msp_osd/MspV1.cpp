@@ -31,13 +31,18 @@ struct msp_message_descriptor_t
 	uint8_t message_size;
 };
 
-#define MSP_DESCRIPTOR_COUNT 4
+#define MSP_DESCRIPTOR_COUNT 9
 const msp_message_descriptor_t msp_message_descriptors[MSP_DESCRIPTOR_COUNT] =
 {
 	{MSP_OSD_CONFIG, true, sizeof(msp_osd_config_t)},
-	{MSP_NAME, false, 0},
+	{MSP_NAME, true, sizeof(msp_name_t)},
 	{MSP_ANALOG, true, sizeof(msp_analog_t)},
 	{MSP_STATUS, true, sizeof(msp_status_BF_t)},
+	{MSP_BATTERY_STATE, true, sizeof(msp_battery_state_t)},
+	{MSP_RAW_GPS, true, sizeof(msp_raw_gps_t)},
+	{MSP_ATTITUDE, true, sizeof(msp_attitude_t)},
+	{MSP_ALTITUDE, true, sizeof(msp_altitude_t)},
+	{MSP_COMP_GPS, true, sizeof(msp_comp_gps_t)}
 };
 
 #define MSP_FRAME_START_SIZE 5
