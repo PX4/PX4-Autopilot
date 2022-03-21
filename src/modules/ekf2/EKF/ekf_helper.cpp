@@ -338,21 +338,25 @@ void Ekf::alignOutputFilter()
 
 // Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 // It is used to align the yaw angle after launch or takeoff for fixed wing vehicle only.
-bool Ekf::realignYawGPS(const Vector3f &mag)
+bool Ekf::realignYawGPS(bool force)
 {
+	if (!_control_status.flags.in_air || !_control_status.flags.fixed_wing) {
+		return false;
+	}
+
 	const float gpsSpeed = sqrtf(sq(_gps_sample_delayed.vel(0)) + sq(_gps_sample_delayed.vel(1)));
 
 	// Need at least 5 m/s of GPS horizontal speed and
 	// ratio of velocity error to velocity < 0.15  for a reliable alignment
-	const bool gps_yaw_alignment_possible = (gpsSpeed > 5.0f) && (_gps_sample_delayed.sacc < (0.15f * gpsSpeed));
+	const bool gps_yaw_alignment_possible = (gpsSpeed > 5.f) && (_gps_sample_delayed.sacc < (0.15f * gpsSpeed));
 
 	if (!gps_yaw_alignment_possible) {
 		// attempt a normal alignment using the magnetometer
-		return resetMagHeading();
+		return false;
 	}
 
 	// check for excessive horizontal GPS velocity innovations
-	const bool badVelInnov = (_gps_vel_test_ratio(0) > 1.0f) && _control_status.flags.gps;
+	const bool badVelInnov = (_gps_vel_test_ratio(0) > 1.f) && _control_status.flags.gps;
 
 	// calculate GPS course over ground angle
 	const float gpsCOG = atan2f(_gps_sample_delayed.vel(1), _gps_sample_delayed.vel(0));
@@ -364,25 +368,28 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 	const float courseYawError = wrap_pi(gpsCOG - ekfCOG);
 
 	// If the angles disagree and horizontal GPS velocity innovations are large or no previous yaw alignment, we declare the magnetic yaw as bad
-	const bool badYawErr = fabsf(courseYawError) > 0.5f;
+	const bool badYawErr = fabsf(courseYawError) > math::radians(25.f);
 	const bool badMagYaw = (badYawErr && badVelInnov);
 
 	if (badMagYaw) {
 		_num_bad_flight_yaw_events++;
-	}
 
-	// correct yaw angle using GPS ground course if compass yaw bad or yaw is previously not aligned
-	if (badMagYaw || !_control_status.flags.yaw_align) {
 		_warning_events.flags.bad_yaw_using_gps_course = true;
 		ECL_WARN("bad yaw, using GPS course");
 
 		// declare the magnetometer as failed if a bad yaw has occurred more than once
-		if (_control_status.flags.mag_aligned_in_flight && (_num_bad_flight_yaw_events >= 2)
+		if (_control_status.flags.mag_aligned_in_flight
+		    && (_num_bad_flight_yaw_events >= 2)
 		    && !_control_status.flags.mag_fault) {
+
 			_warning_events.flags.stopping_mag_use = true;
 			ECL_WARN("stopping mag use");
 			_control_status.flags.mag_fault = true;
 		}
+	}
+
+	// correct yaw angle using GPS ground course if compass yaw bad or yaw is previously not aligned
+	if (badMagYaw || !_control_status.flags.yaw_align || force) {
 
 		// calculate new yaw estimate
 		float yaw_new;
@@ -402,8 +409,7 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 
 		} else {
 			// we don't have wind estimates, so align yaw to the GPS velocity vector
-			yaw_new = atan2f(_gps_sample_delayed.vel(1), _gps_sample_delayed.vel(0));
-
+			yaw_new = gpsCOG;
 		}
 
 		// use the combined EKF and GPS speed variance to calculate a rough estimate of the yaw error after alignment
@@ -416,7 +422,7 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 
 		// Use the last magnetometer measurements to reset the field states
 		_state.mag_B.zero();
-		_state.mag_I = _R_to_earth * mag;
+		_state.mag_I = _R_to_earth * _mag_lpf.getState();
 
 		resetMagCov();
 
@@ -435,7 +441,7 @@ bool Ekf::realignYawGPS(const Vector3f &mag)
 		// align mag states only
 
 		// calculate initial earth magnetic field states
-		_state.mag_I = _R_to_earth * mag;
+		_state.mag_I = _R_to_earth * _mag_lpf.getState();
 
 		resetMagCov();
 
