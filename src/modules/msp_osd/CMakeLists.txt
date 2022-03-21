@@ -36,5 +36,7 @@ px4_add_module(
 	SRCS
 		msp_osd.cpp
 		MspV1.cpp
+	DEPENDS
+		px4_work_queue
 	)
 
