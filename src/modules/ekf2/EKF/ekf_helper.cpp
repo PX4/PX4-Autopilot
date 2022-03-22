@@ -872,6 +872,8 @@ void Ekf::resetMagBias()
 
 	// reset any saved covariance data for re-use when auto-switching between heading and 3-axis fusion
 	_saved_mag_bf_variance.zero();
+
+	_mag_counter = 0;
 }
 
 // get EKF innovation consistency check status information comprising of:
