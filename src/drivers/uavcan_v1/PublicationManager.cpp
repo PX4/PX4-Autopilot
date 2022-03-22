@@ -77,7 +77,7 @@ void PublicationManager::updateDynamicPublications()
 			uint16_t port_id = value.natural16.value.elements[0];
 
 			if (port_id <= CANARD_PORT_ID_MAX) { // PortID is set, create a subscriber
-				UavcanPublisher *dynpub = sub.create_pub(_canard_instance, _param_manager);
+				UavcanPublisher *dynpub = sub.create_pub(_canard_instance, _param_manager, _work_item);
 
 				if (dynpub == nullptr) {
 					PX4_ERR("Out of memory");

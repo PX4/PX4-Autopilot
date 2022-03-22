@@ -41,6 +41,8 @@
 
 #pragma once
 
+#include <uORB/SubscriptionCallback.hpp>
+
 // DS-15 Specification Messages
 #include <reg/drone/physics/kinematics/geodetic/Point_0_1.h>
 #include <reg/drone/service/gnss/DilutionOfPrecision_0_1.h>
@@ -49,11 +51,12 @@ class UavcanNode;
 
 #include "Publisher.hpp"
 
-class UavcanGnssPublisher : public UavcanPublisher
+class UavcanGnssPublisher : public UavcanPublisher, public uORB::SubscriptionCallbackWorkItem
 {
 public:
-	UavcanGnssPublisher(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanPublisher(ins, pmgr, "ds_015", "gps", instance)
+	UavcanGnssPublisher(CanardInstance &ins, UavcanParamManager &pmgr, px4::WorkItem *work_item, uint8_t instance = 0) :
+		UavcanPublisher(ins, pmgr, "ds_015", "gps", instance),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(sensor_gps), instance)
 	{
 
 	};
@@ -63,9 +66,9 @@ public:
 	// Update the uORB Subscription and broadcast a UAVCAN message
 	virtual void update() override
 	{
-		if (_gps_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
+		if (uORB::SubscriptionCallbackWorkItem::updated() && _port_id != CANARD_PORT_ID_UNSET) {
 			sensor_gps_s gps {};
-			_gps_sub.update(&gps);
+			uORB::SubscriptionCallbackWorkItem::update(&gps);
 
 			reg_drone_physics_kinematics_geodetic_Point_0_1 geo {};
 			geo.latitude = gps.lat;
@@ -134,7 +137,5 @@ public:
 
 private:
 
-	/// TODO: Allow >1 instance
-	uORB::Subscription _gps_sub{ORB_ID(sensor_gps)};
 	CanardTransferID _transfer_id_2 {0};
 };

@@ -43,18 +43,17 @@
 
 #include "../Publisher.hpp"
 
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_outputs.h>
 
 template <class T>
-class uORB_over_UAVCAN_Publisher : public UavcanPublisher
+class uORB_over_UAVCAN_Publisher : public UavcanPublisher, public uORB::SubscriptionCallbackWorkItem
 {
 public:
-	uORB_over_UAVCAN_Publisher(CanardInstance &ins, UavcanParamManager &pmgr, const orb_metadata *meta,
-				   uint8_t instance = 0) :
+	uORB_over_UAVCAN_Publisher(CanardInstance &ins, UavcanParamManager &pmgr, px4::WorkItem *work_item,
+				   const orb_metadata *meta, uint8_t instance = 0) :
 		UavcanPublisher(ins, pmgr, "uorb.", meta->o_name, instance),
-		_uorb_meta{meta},
-		_uorb_sub(meta)
+		uORB::SubscriptionCallbackWorkItem(work_item, meta, instance)
 	{};
 
 	~uORB_over_UAVCAN_Publisher() override = default;
@@ -63,9 +62,9 @@ public:
 	virtual void update() override
 	{
 		// Not sure if actuator_armed is a good indication of readiness but seems close to it
-		if (_uorb_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
+		if (uORB::SubscriptionCallbackWorkItem::updated() && _port_id != CANARD_PORT_ID_UNSET) {
 			T data {};
-			_uorb_sub.update(&data);
+			uORB::SubscriptionCallbackWorkItem::update(&data);
 
 			CanardTransfer transfer = {
 				.timestamp_usec = hrt_absolute_time() + PUBLISHER_DEFAULT_TIMEOUT_USEC,
@@ -82,6 +81,9 @@ public:
 			++_transfer_id;  // The transfer-ID shall be incremented after every transmission on this subject.
 			canardTxPush(&_canard_instance, &transfer);
 			transmit();
+
+			// ensure callback is registered
+			uORB::SubscriptionCallbackWorkItem::registerCallback();
 		}
 	};
 
@@ -94,8 +96,8 @@ protected:
 	}
 
 private:
-	const orb_metadata *_uorb_meta;
-	uORB::Subscription _uorb_sub;
+	// const orb_metadata *_uorb_meta;
+	// uORB::Subscription _uorb_sub;
 };
 
 /* ---- Specializations of get_payload_size() to reduce wasted bandwidth where possible ---- */

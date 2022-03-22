@@ -43,6 +43,7 @@
 
 #include <px4_platform_common/px4_config.h>
 
+#include <uORB/SubscriptionCallback.hpp>
 #include <lib/parameters/param.h>
 #include <containers/List.hpp>
 

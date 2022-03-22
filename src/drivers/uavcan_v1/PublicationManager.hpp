@@ -48,10 +48,6 @@
 #define CONFIG_UAVCAN_V1_GNSS_PUBLISHER 0
 #endif
 
-#ifndef CONFIG_UAVCAN_V1_ESC_CONTROLLER
-#define CONFIG_UAVCAN_V1_ESC_CONTROLLER 0
-#endif
-
 #ifndef CONFIG_UAVCAN_V1_READINESS_PUBLISHER
 #define CONFIG_UAVCAN_V1_READINESS_PUBLISHER 0
 #endif
@@ -67,7 +63,6 @@
 /* Preprocessor calculation of publisher count */
 
 #define UAVCAN_PUB_COUNT CONFIG_UAVCAN_V1_GNSS_PUBLISHER + \
-	CONFIG_UAVCAN_V1_ESC_CONTROLLER + \
 	CONFIG_UAVCAN_V1_READINESS_PUBLISHER + \
 	CONFIG_UAVCAN_V1_UORB_ACTUATOR_OUTPUTS_PUBLISHER + \
 	CONFIG_UAVCAN_V1_UORB_SENSOR_GPS_PUBLISHER
@@ -86,7 +81,7 @@
 #include "Publishers/uORB/uorb_publisher.hpp"
 
 typedef struct {
-	UavcanPublisher *(*create_pub)(CanardInstance &ins, UavcanParamManager &pmgr) {};
+	UavcanPublisher *(*create_pub)(CanardInstance &ins, UavcanParamManager &pmgr, px4::WorkItem *wrk) {};
 	const char *subject_name;
 	const uint8_t instance;
 } UavcanDynPubBinder;
@@ -94,7 +89,8 @@ typedef struct {
 class PublicationManager
 {
 public:
-	PublicationManager(CanardInstance &ins, UavcanParamManager &pmgr) : _canard_instance(ins), _param_manager(pmgr) {}
+	PublicationManager(CanardInstance &ins, UavcanParamManager &pmgr, px4::WorkItem *wrk) :
+		_canard_instance(ins), _param_manager(pmgr), _work_item(wrk) {}
 	~PublicationManager();
 
 	void update();
@@ -106,35 +102,26 @@ private:
 
 	CanardInstance &_canard_instance;
 	UavcanParamManager &_param_manager;
+	px4::WorkItem *_work_item;
 	List<UavcanPublisher *> _dynpublishers;
 
 
 	const UavcanDynPubBinder _uavcan_pubs[UAVCAN_PUB_COUNT] {
 #if CONFIG_UAVCAN_V1_GNSS_PUBLISHER
 		{
-			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanPublisher *
+			[](CanardInstance & ins, UavcanParamManager & pmgr, px4::WorkItem * wrk) -> UavcanPublisher *
 			{
-				return new UavcanGnssPublisher(ins, pmgr, 0);
+				return new UavcanGnssPublisher(ins, pmgr, wrk, 0);
 			},
 			"gps",
 			0
 		},
 #endif
-#if CONFIG_UAVCAN_V1_ESC_CONTROLLER
-		{
-			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanPublisher *
-			{
-				return new UavcanEscController(ins, pmgr);
-			},
-			"esc",
-			0
-		},
-#endif
 #if CONFIG_UAVCAN_V1_READINESS_PUBLISHER
 		{
-			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanPublisher *
+			[](CanardInstance & ins, UavcanParamManager & pmgr, px4::WorkItem * wrk) -> UavcanPublisher *
 			{
-				return new UavcanReadinessPublisher(ins, pmgr, 0);
+				return new UavcanReadinessPublisher(ins, pmgr, wrk, 0);
 			},
 			"readiness",
 			0
@@ -142,9 +129,9 @@ private:
 #endif
 #if CONFIG_UAVCAN_V1_UORB_ACTUATOR_OUTPUTS_PUBLISHER
 		{
-			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanPublisher *
+			[](CanardInstance & ins, UavcanParamManager & pmgr, px4::WorkItem * wrk) -> UavcanPublisher *
 			{
-				return new uORB_over_UAVCAN_Publisher<actuator_outputs_s>(ins, pmgr, ORB_ID(actuator_outputs));
+				return new uORB_over_UAVCAN_Publisher<actuator_outputs_s>(ins, pmgr, wrk, ORB_ID(actuator_outputs));
 			},
 			"uorb.actuator_outputs",
 			0
@@ -152,9 +139,9 @@ private:
 #endif
 #if CONFIG_UAVCAN_V1_UORB_SENSOR_GPS_PUBLISHER
 		{
-			[](CanardInstance & ins, UavcanParamManager & pmgr) -> UavcanPublisher *
+			[](CanardInstance & ins, UavcanParamManager & pmgr, px4::WorkItem * wrk) -> UavcanPublisher *
 			{
-				return new uORB_over_UAVCAN_Publisher<sensor_gps_s>(ins, pmgr, ORB_ID(sensor_gps));
+				return new uORB_over_UAVCAN_Publisher<sensor_gps_s>(ins, pmgr, wrk, ORB_ID(sensor_gps));
 			},
 			"uorb.sensor_gps",
 			0

@@ -78,7 +78,8 @@ static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree
 UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::uavcan),
-	_can_interface(interface)
+	_can_interface(interface),
+	_pub_manager(_canard_instance, _param_manager, this)
 {
 	pthread_mutex_init(&_node_mutex, nullptr);
 
@@ -248,8 +249,30 @@ void UavcanNode::Run()
 
 	transmit();
 
-	/* Process received messages */
+	// Process received messages
+	receive();
 
+	// Pop canardTx queue to send out responses to requets
+	transmit();
+
+	perf_end(_cycle_perf);
+
+	if (_instance && _task_should_exit.load()) {
+		ScheduleClear();
+
+		if (_initialized &&  _can_interface != nullptr) {
+			_can_interface->close();
+			_initialized = false;
+		}
+
+		_instance = nullptr;
+	}
+
+	pthread_mutex_unlock(&_node_mutex);
+}
+
+void UavcanNode::receive()
+{
 	uint8_t data[64] {};
 	CanardFrame received_frame{};
 	received_frame.payload = &data;
@@ -285,24 +308,6 @@ void UavcanNode::Run()
 			//PX4_INFO("RX canard %d", result);
 		}
 	}
-
-	// Pop canardTx queue to send out responses to requets
-	transmit();
-
-	perf_end(_cycle_perf);
-
-	if (_instance && _task_should_exit.load()) {
-		ScheduleClear();
-
-		if (_initialized &&  _can_interface != nullptr) {
-			_can_interface->close();
-			_initialized = false;
-		}
-
-		_instance = nullptr;
-	}
-
-	pthread_mutex_unlock(&_node_mutex);
 }
 
 void UavcanNode::transmit()

@@ -140,6 +140,7 @@ public:
 
 	static UavcanNode *instance() { return _instance; }
 
+	static void do_receive() { if (_instance) _instance->receive(); };
 	static void do_transmit() { if (_instance) _instance->transmit(); };
 
 	/* The bit rate that can be passed back to the bootloader */
@@ -150,6 +151,7 @@ private:
 	void Run() override;
 	void fill_node_info();
 
+	void receive();
 	void transmit();
 
 	// Sends a heartbeat at 1s intervals
@@ -195,12 +197,15 @@ private:
 	NodeClient *_node_client {nullptr};
 #endif
 
-	PublicationManager _pub_manager {_canard_instance, _param_manager};
+	PublicationManager _pub_manager;// {_canard_instance, _param_manager, this};
 	SubscriptionManager _sub_manager {_canard_instance, _param_manager};
 
-	/// TODO: Integrate with PublicationManager
+#if CONFIG_UAVCAN_V1_ESC_CONTROLLER
+	/// NOTE: This needs to be part of the OutputModuleInterface to run as a ScheduledWorkItem,
+	///       so **DON'T** use it within the PublicationManager!!
 	UavcanEscController _esc_controller {_canard_instance, _param_manager};
 
 	UavcanMixingInterface _mixing_output {_node_mutex, _esc_controller};
+#endif
 
 };

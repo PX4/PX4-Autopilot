@@ -42,16 +42,21 @@
 
 #pragma once
 
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/actuator_armed.h>
+
 // DS-15 Specification Messages
 #include <reg/drone/service/common/Readiness_0_1.h>
 
 #include "../Publisher.hpp"
 
-class UavcanReadinessPublisher : public UavcanPublisher
+class UavcanReadinessPublisher : public UavcanPublisher, public uORB::SubscriptionCallbackWorkItem
 {
 public:
-	UavcanReadinessPublisher(CanardInstance &ins, UavcanParamManager &pmgr, uint8_t instance = 0) :
-		UavcanPublisher(ins, pmgr, "ds_015", "readiness", instance)
+	UavcanReadinessPublisher(CanardInstance &ins, UavcanParamManager &pmgr, px4::WorkItem *work_item,
+				 uint8_t instance = 0) :
+		UavcanPublisher(ins, pmgr, "ds_015", "readiness", instance),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(actuator_armed), instance)
 	{
 
 	};
@@ -62,10 +67,11 @@ public:
 	virtual void update() override
 	{
 		// Not sure if actuator_armed is a good indication of readiness but seems close to it
-		if (_actuator_armed_sub.updated() && _port_id != CANARD_PORT_ID_UNSET) {
+		if (uORB::SubscriptionCallbackWorkItem::updated() && _port_id != CANARD_PORT_ID_UNSET) {
 			actuator_armed_s armed {};
-			_actuator_armed_sub.update(&armed);
+			uORB::SubscriptionCallbackWorkItem::update(&armed);
 
+			/// TODO: Replace this with Readiness publisher...
 			reg_drone_service_common_Readiness_0_1 readiness {};
 
 			if (armed.armed) {
