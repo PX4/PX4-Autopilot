@@ -1210,13 +1210,31 @@ void Ekf::stopMag3DFusion()
 	// save covariance data for re-use if currently doing 3-axis fusion
 	if (_control_status.flags.mag_3D) {
 		saveMagCovData();
+
 		_control_status.flags.mag_3D = false;
+		_control_status.flags.mag_dec = false;
+
+		_mag_innov.zero();
+		_mag_innov_var.zero();
+		_mag_test_ratio.zero();
+
+		_fault_status.flags.bad_mag_x = false;
+		_fault_status.flags.bad_mag_y = false;
+		_fault_status.flags.bad_mag_z = false;
+
+		_fault_status.flags.bad_mag_decl = false;
 	}
 }
 
 void Ekf::stopMagHdgFusion()
 {
-	_control_status.flags.mag_hdg = false;
+	if (_control_status.flags.mag_hdg) {
+		_control_status.flags.mag_hdg = false;
+
+		_fault_status.flags.bad_hdg = false;
+
+		_yaw_test_ratio = 0.f;
+	}
 }
 
 void Ekf::startMagHdgFusion()
@@ -1231,7 +1249,11 @@ void Ekf::startMagHdgFusion()
 void Ekf::startMag3DFusion()
 {
 	if (!_control_status.flags.mag_3D) {
+
 		stopMagHdgFusion();
+
+		_yaw_test_ratio = 0.0f;
+
 		zeroMagCov();
 		loadMagCovData();
 		_control_status.flags.mag_3D = true;

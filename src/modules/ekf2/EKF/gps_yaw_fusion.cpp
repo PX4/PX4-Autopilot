@@ -146,9 +146,6 @@ void Ekf::fuseGpsYaw()
 	// innovation test ratio
 	_yaw_test_ratio = sq(_heading_innov) / (sq(innov_gate) * _heading_innov_var);
 
-	// we are no longer using 3-axis fusion so set the reported test levels to zero
-	_mag_test_ratio.setZero();
-
 	if (_yaw_test_ratio > 1.0f) {
 		_innov_check_fail_status.flags.reject_yaw = true;
 		return;

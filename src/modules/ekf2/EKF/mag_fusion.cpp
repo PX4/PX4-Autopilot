@@ -195,9 +195,6 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 		}
 	}
 
-	// we are no longer using heading fusion so set the reported test level to zero
-	_yaw_test_ratio = 0.0f;
-
 	// if any axis fails, abort the mag fusion
 	if (!all_innovation_checks_passed) {
 		return false;
@@ -664,9 +661,6 @@ bool Ekf::updateQuaternion(const float innovation, const float variance, const f
 
 	// innovation test ratio
 	_yaw_test_ratio = sq(innovation) / (sq(gate_sigma) * _heading_innov_var);
-
-	// we are no longer using 3-axis fusion so set the reported test levels to zero
-	_mag_test_ratio.setZero();
 
 	// set the magnetometer unhealthy if the test fails
 	if (_yaw_test_ratio > 1.0f) {
