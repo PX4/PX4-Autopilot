@@ -63,10 +63,10 @@ public:
 	const matrix::Vector<float, 4> &getPositionExpo() { return _positions_expo; };
 
 	// Helper functions to get stick values more intuitively
-	float getPitch() { return _positions(0); }
-	float getRoll() { return _positions(1); }
-	float getThrottle() { return -_positions(2); } // Convert Z-axis(down) command to Up-axis frame
-	float getYaw() { return _positions(3); }
+	float getPitch() const { return _positions(0); }
+	float getRoll() const { return _positions(1); }
+	float getThrottle() const { return -_positions(2); } // Convert Z-axis(down) command to Up-axis frame
+	float getYaw() const { return _positions(3); }
 
 	/**
 	 * Limit the the horizontal input from a square shaped joystick gimbal to a unit circle
