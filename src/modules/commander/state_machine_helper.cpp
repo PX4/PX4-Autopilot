@@ -998,7 +998,6 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 			     const quadchute_actions_t quadchute_act)
 {
 	switch (quadchute_act) {
-
 	case quadchute_actions_t::NO_ACTION:
 		// If quadchute action is disabled then no action must be taken.
 		return;
@@ -1023,10 +1022,6 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 			return;
 		}
 	}
-
-	// If none of the above worked, force to AUTO_RTL mode
-	status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
-
 }
 
 void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
