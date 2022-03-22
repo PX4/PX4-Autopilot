@@ -132,7 +132,7 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 			is_fixed_wing = false;
 			break;
 
-		case MAV_TYPE_VTOL_RESERVED2:
+		case MAV_TYPE_VTOL_FIXEDROTOR:
 			pos_thrust_motors_count = 5;
 			is_fixed_wing = false;
 			break;
@@ -142,7 +142,7 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 			is_fixed_wing = false;
 			break;
 
-		case MAV_TYPE_VTOL_RESERVED3:
+		case MAV_TYPE_VTOL_TAILSITTER:
 			// this is the tricopter VTOL / quad plane with 3 motors and 2 servos
 			pos_thrust_motors_count = 3;
 			is_fixed_wing = false;
