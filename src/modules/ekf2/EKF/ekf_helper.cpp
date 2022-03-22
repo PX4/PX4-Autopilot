@@ -915,6 +915,8 @@ void Ekf::resetMagBiasAndYaw()
 	}
 
 	_control_status.flags.mag_fault = false;
+
+	_mag_counter = 0;
 }
 
 // get EKF innovation consistency check status information comprising of:
