@@ -116,6 +116,12 @@ UavcanNode::UavcanNode(CanardInterface *interface, uint32_t node_id) :
 	_pub_manager.updateParams();
 
 	_sub_manager.subscribe();
+
+#if CONFIG_UAVCAN_V1_ESC_CONTROLLER
+	_esc_controller.updateParam();
+	_mixing_output.updateParams();
+	_mixing_output.mixingOutput().updateSubscriptions(true, false);
+#endif
 }
 
 UavcanNode::~UavcanNode()
@@ -216,7 +222,9 @@ void UavcanNode::Run()
 		_pub_manager.updateParams();
 		_sub_manager.updateParams();
 
+#if CONFIG_UAVCAN_V1_ESC_CONTROLLER
 		_mixing_output.updateParams();
+#endif
 	}
 
 	perf_begin(_cycle_perf);
@@ -406,7 +414,9 @@ void UavcanNode::print_info()
 		rxs = rxs->next;
 	}
 
+#if CONFIG_UAVCAN_V1_ESC_CONTROLLER
 	_mixing_output.printInfo();
+#endif
 
 	pthread_mutex_unlock(&_node_mutex);
 }
