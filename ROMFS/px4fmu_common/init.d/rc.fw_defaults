@@ -16,8 +16,6 @@ param set-default MAV_TYPE 1
 param set-default COM_POS_FS_DELAY 5
 param set-default COM_POS_FS_EPH 15
 param set-default COM_POS_FS_EPV 30
-param set-default COM_POS_FS_GAIN 0
-param set-default COM_POS_FS_PROB 1
 param set-default COM_VEL_FS_EVH 5
 # Disable preflight disarm to not interfere with external launching
 param set-default COM_DISARM_PRFLT -1
