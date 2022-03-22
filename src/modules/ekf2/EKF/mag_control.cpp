@@ -353,7 +353,8 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 {
 	// For the first few seconds after in-flight alignment we allow the magnetic field state estimates to stabilise
 	// before they are used to constrain heading drift
-	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6);
+	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6)
+			&& !_control_status.flags.mag_fault && !_control_status.flags.mag_field_disturbed;
 
 	if (!_mag_decl_cov_reset) {
 		// After any magnetic field covariance reset event the earth field state
