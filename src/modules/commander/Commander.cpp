@@ -3237,7 +3237,7 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 }
 
 bool Commander::check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
-				      const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us,
+				      const hrt_abstime &data_timestamp_us, hrt_abstime &last_fail_time_us,
 				      const bool was_valid)
 {
 	bool valid = was_valid;
@@ -3250,7 +3250,7 @@ bool Commander::check_posvel_validity(const bool data_valid, const float data_ac
 	if (level_check_pass) {
 		if (!was_valid) {
 			// check if probation period has elapsed
-			if (hrt_elapsed_time(last_fail_time_us) > 1_s) {
+			if (hrt_elapsed_time(&last_fail_time_us) > 1_s) {
 				valid = true;
 			}
 		}
@@ -3262,7 +3262,7 @@ bool Commander::check_posvel_validity(const bool data_valid, const float data_ac
 			valid = false;
 		}
 
-		*last_fail_time_us = hrt_absolute_time();
+		last_fail_time_us = hrt_absolute_time();
 	}
 
 	if (was_valid != valid) {
@@ -4097,15 +4097,15 @@ void Commander::estimator_check()
 
 		_status_flags.global_position_valid =
 			check_posvel_validity(xy_valid, gpos.eph, _param_com_pos_fs_eph.get(), gpos.timestamp,
-					      &_last_gpos_fail_time_us, _status_flags.global_position_valid);
+					      _last_gpos_fail_time_us, _status_flags.global_position_valid);
 
 		_status_flags.local_position_valid =
 			check_posvel_validity(xy_valid, lpos.eph, lpos_eph_threshold_adj, lpos.timestamp,
-					      &_last_lpos_fail_time_us, _status_flags.local_position_valid);
+					      _last_lpos_fail_time_us, _status_flags.local_position_valid);
 
 		_status_flags.local_velocity_valid =
 			check_posvel_validity(v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
-					      &_last_lvel_fail_time_us, _status_flags.local_velocity_valid);
+					      _last_lvel_fail_time_us, _status_flags.local_velocity_valid);
 	}
 
 
