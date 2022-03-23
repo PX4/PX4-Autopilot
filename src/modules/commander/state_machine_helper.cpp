@@ -1002,6 +1002,7 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 		// If quadchute action is disabled then no action must be taken.
 		break;
 
+	default:
 	case quadchute_actions_t::AUTO_RTL:
 		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
@@ -1021,13 +1022,6 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 	case quadchute_actions_t::AUTO_LOITER:
 		if (status_flags.condition_global_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
-		}
-
-		break;
-
-	default:
-		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
-			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 		}
 
 		break;
