@@ -54,6 +54,9 @@
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/vehicle_air_data.h>
 
+#include <matrix/math.hpp>
+#include <lib/geo/geo.h>
+
 #include "MspV1.hpp"
 
 const char arduPlaneModeStr[24][15]  =  {
@@ -95,11 +98,13 @@ const uint16_t osd_gps_lon_pos = 2080;
 uint16_t osd_gps_sats_pos = 2112;
 const uint16_t osd_rssi_value_pos = 2176;
 const uint16_t osd_flymode_pos = 2208;
+const uint16_t osd_esc_tmp_pos = 2240;
 
 // Center
 const uint16_t osd_home_dir_pos = 2093;
 const uint16_t osd_craft_name_pos = 2543;
-const uint16_t osd_horizon_sidebars_pos = 2318;
+const uint16_t osd_horizon_sidebars_pos = 234;
+const uint16_t osd_disarmed_pos = 2125;
 
 // Right
 const uint16_t osd_main_batt_voltage_pos = 2073;
@@ -109,6 +114,7 @@ const uint16_t osd_altitude_pos = 2233;
 const uint16_t osd_numerical_vario_pos = 2267;
 const uint16_t osd_gps_speed_pos = 2299;
 const uint16_t osd_home_dist_pos = 2331;
+const uint16_t osd_power_pos = 234;
 
 // Disabled
 const uint16_t osd_pitch_angle_pos = 234;
@@ -122,7 +128,6 @@ const uint16_t osd_vtx_channel_pos = 234;
 const uint16_t osd_roll_pids_pos = 234;
 const uint16_t osd_pitch_pids_pos = 234;
 const uint16_t osd_yaw_pids_pos = 234;
-const uint16_t osd_power_pos = 234;
 const uint16_t osd_pidrate_profile_pos = 234;
 const uint16_t osd_warnings_pos = 234;
 const uint16_t osd_debug_pos = 234;
@@ -130,10 +135,8 @@ const uint16_t osd_artificial_horizon_pos = 234;
 const uint16_t osd_item_timer_1_pos = 234;
 const uint16_t osd_item_timer_2_pos = 234;
 const uint16_t osd_main_batt_usage_pos = 234;
-const uint16_t osd_disarmed_pos = 234;
 const uint16_t osd_numerical_heading_pos = 234;
 const uint16_t osd_compass_bar_pos = 234;
-const uint16_t osd_esc_tmp_pos = 234;
 const uint16_t osd_esc_rpm_pos = 234;
 const uint16_t osd_remaining_time_estimate_pos = 234;
 const uint16_t osd_rtc_datetime_pos = 234;
@@ -302,43 +305,44 @@ void MspOsd::Run()
 	msp_comp_gps_t comp_gps = {0};
 	msp_attitude_t attitude = {0};
 	msp_altitude_t altitude = {0};
-
-	//struct power_monitor_s power_monitor_struct;
-	struct battery_status_s battery_status_struct = {0};
-	struct vehicle_status_s vehicle_status_struct;
-	struct vehicle_gps_position_s vehicle_gps_position_struct = {0};
-	struct airspeed_validated_s airspeed_validated_struct = {0};
-	struct vehicle_air_data_s vehicle_air_data_struct = {0};
+	msp_esc_sensor_data_dji_t esc_sensor_data = {0};
+	//msp_motor_telemetry_t motor_telemetry = {0};
 
 	//power_monitor_sub.update(&power_monitor_struct);
-	_battery_status_sub.update(&battery_status_struct);
-	_vehicle_status_sub.update(&vehicle_status_struct);
-	_vehicle_gps_position_sub.update(&vehicle_gps_position_struct);
-	_airspeed_validated_sub.update(&airspeed_validated_struct);
-	_vehicle_air_data_sub.update(&vehicle_air_data_struct);
+	_battery_status_sub.update(&_battery_status_struct);
+	_vehicle_status_sub.update(&_vehicle_status_struct);
+	_vehicle_gps_position_sub.update(&_vehicle_gps_position_struct);
+	_airspeed_validated_sub.update(&_airspeed_validated_struct);
+	_vehicle_air_data_sub.update(&_vehicle_air_data_struct);
+	_home_position_sub.update(&_home_position_struct);
+	_vehicle_global_position_sub.update(&_vehicle_global_position_struct);
+	_vehicle_attitude_sub.update(&_vehicle_attitude_struct);
 
-	PX4_WARN("Update %f %i", (double)battery_status_struct.voltage_v , battery_status_struct.cell_count);
+	matrix::Eulerf euler_attitude(matrix::Quatf(_vehicle_attitude_struct.q));
+
+	//PX4_WARN("Update %f %f %f", (double)math::degrees(euler_attitude.phi()),  (double)math::degrees(euler_attitude.theta()),  (double)math::degrees(euler_attitude.psi()));
 
 	// MSP_NAME
-	memcpy(name.craft_name, "test1234\0", sizeof("test1234\0"));
+	snprintf(name.craft_name, sizeof(name.craft_name), "> %i", _x);
+	name.craft_name[14] = '\0';
 	_msp.Send(MSP_NAME, &name);
 
 	// MSP_STATUS
-	switch (vehicle_status_struct.nav_state)
+	switch (_vehicle_status_struct.nav_state)
 	{
-		case vehicle_status_struct.NAVIGATION_STATE_MANUAL:
+		case _vehicle_status_struct.NAVIGATION_STATE_MANUAL:
 			status_BF.flightModeFlags = ARM_ACRO_BF;
 			break;
 
-		case vehicle_status_struct.NAVIGATION_STATE_ACRO:
+		case _vehicle_status_struct.NAVIGATION_STATE_ACRO:
 			status_BF.flightModeFlags = ARM_ACRO_BF;
 			break;
 
-		case vehicle_status_struct.NAVIGATION_STATE_STAB:
+		case _vehicle_status_struct.NAVIGATION_STATE_STAB:
 			status_BF.flightModeFlags = STAB_BF;
 			break;
 
-		case vehicle_status_struct.NAVIGATION_STATE_AUTO_RTL:
+		case _vehicle_status_struct.NAVIGATION_STATE_AUTO_RTL:
 			status_BF.flightModeFlags = RESC_BF;
 			break;
 
@@ -347,24 +351,25 @@ void MspOsd::Run()
 			break;
 	}
 
+	status_BF.flightModeFlags = STAB_BF;
 	_msp.Send(MSP_STATUS, &status_BF);
 
 	// MSP_ANALOG
-	analog.vbat = battery_status_struct.voltage_v * 10; // bottom right... v * 10
+	analog.vbat = _battery_status_struct.voltage_v * 10; // bottom right... v * 10
 	analog.rssi = 150;
-	analog.amperage = battery_status_struct.current_a * 100; // main amperage
-	analog.mAhDrawn = battery_status_struct.discharged_mah; // unused
+	analog.amperage = _battery_status_struct.current_a * 100; // main amperage
+	analog.mAhDrawn = _battery_status_struct.discharged_mah; // unused
 	_msp.Send(MSP_ANALOG, &analog);
 
 	// MSP_BATTERY_STATE
 	battery_state.amperage = 2500; // not used?
-	battery_state.batteryVoltage =  (uint16_t)(battery_status_struct.voltage_v * 400.0f); // OK
-	battery_state.mAhDrawn = battery_status_struct.discharged_mah ; // OK
-	battery_state.batteryCellCount = battery_status_struct.cell_count;
-	battery_state.batteryCapacity = battery_status_struct.capacity; // not used?
+	battery_state.batteryVoltage =  (uint16_t)(_battery_status_struct.voltage_v * 400.0f); // OK
+	battery_state.mAhDrawn = _battery_status_struct.discharged_mah ; // OK
+	battery_state.batteryCellCount = _battery_status_struct.cell_count;
+	battery_state.batteryCapacity = _battery_status_struct.capacity; // not used?
 
 	// Voltage color 0==white, 1==red
-	if (battery_status_struct.voltage_v < 14.0f)
+	if (_battery_status_struct.voltage_v < 14.4f)
 	{
 		battery_state.batteryState = 1;
 	}
@@ -372,49 +377,103 @@ void MspOsd::Run()
 	{
 		battery_state.batteryState = 0;
 	}
-	battery_state.legacyBatteryVoltage = battery_status_struct.voltage_v * 10;
+	battery_state.legacyBatteryVoltage = _battery_status_struct.voltage_v * 10;
 	_msp.Send(MSP_BATTERY_STATE, &battery_state);
 
 	// MSP_RAW_GPS
-	if (vehicle_gps_position_struct.fix_type >= 3)
+	if (_vehicle_gps_position_struct.fix_type >= 2)
 	{
-		raw_gps.lat = vehicle_gps_position_struct.lat;
-		raw_gps.lon = vehicle_gps_position_struct.lon;
-		raw_gps.alt =  vehicle_gps_position_struct.alt / 100;
+		raw_gps.lat = _vehicle_gps_position_struct.lat;
+		raw_gps.lon = _vehicle_gps_position_struct.lon;
+		raw_gps.alt =  _vehicle_gps_position_struct.alt / 10;
+		//raw_gps.groundCourse = vehicle_gps_position_struct
+		altitude.estimatedActualPosition = _vehicle_gps_position_struct.alt / 10;
 	}
 	else
 	{
 		raw_gps.lat = 0;
 		raw_gps.lon = 0;
 		raw_gps.alt = 0;
+		altitude.estimatedActualPosition = 0;
 	}
-	raw_gps.numSat = vehicle_gps_position_struct.satellites_used;
 
-
-	if (airspeed_validated_struct.airspeed_sensor_measurement_valid)
+	if (_vehicle_gps_position_struct.fix_type == 0
+		|| _vehicle_gps_position_struct.fix_type == 1)
 	{
-		raw_gps.groundSpeed = airspeed_validated_struct.indicated_airspeed_m_s;
+		raw_gps.fixType = MSP_GPS_NO_FIX;
+	}
+	else if (_vehicle_gps_position_struct.fix_type == 2)
+	{
+		raw_gps.fixType = MSP_GPS_FIX_2D;
+	}
+	else if (_vehicle_gps_position_struct.fix_type >= 3 && _vehicle_gps_position_struct.fix_type <= 5)
+	{
+		raw_gps.fixType = MSP_GPS_FIX_3D;
 	}
 	else
 	{
-		raw_gps.groundSpeed = 0;
+		raw_gps.fixType = MSP_GPS_NO_FIX;
+	}
+
+	//raw_gps.hdop = vehicle_gps_position_struct.hdop
+	raw_gps.numSat = _vehicle_gps_position_struct.satellites_used;
+
+	if (_airspeed_validated_struct.airspeed_sensor_measurement_valid
+		&& _airspeed_validated_struct.indicated_airspeed_m_s != NAN
+		&& _airspeed_validated_struct.indicated_airspeed_m_s > 0)
+	{
+		raw_gps.groundSpeed = _airspeed_validated_struct.indicated_airspeed_m_s;
+	}
+	else
+	{
+		raw_gps.groundSpeed = 5;
 	}
 	_msp.Send(MSP_RAW_GPS, &raw_gps);
 
+	// Calculate distance and direction to home
+	float bearing_to_home = 0;
+	float distance_to_home = 0;
+
+	if (_home_position_struct.valid_hpos
+		&& _home_position_struct.valid_lpos)
+	{
+		bearing_to_home = get_bearing_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
+			_home_position_struct.lat, _home_position_struct.lon);
+
+		distance_to_home = get_distance_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
+			_home_position_struct.lat, _home_position_struct.lon);
+	}
+
 	// MSP_COMP_GPS
-	comp_gps.distanceToHome = (int16_t)1000; // meters
-	comp_gps.directionToHome = 90; // degrees
+	comp_gps.distanceToHome = (int16_t)distance_to_home; // meters
+	comp_gps.directionToHome = bearing_to_home; // degrees
+	comp_gps.heartbeat = _heartbeat;
+	_heartbeat = !_heartbeat;
 	_msp.Send(MSP_COMP_GPS, &comp_gps);
 
 	// MSP_ATTITUDE
-	attitude.pitch = 0;
-	attitude.roll = 90;
+	attitude.pitch = math::degrees(euler_attitude.theta()) * 10;
+	attitude.roll = math::degrees(euler_attitude.phi()) * 10;
+	attitude.yaw = math::degrees(euler_attitude.psi()) * 10;
 	_msp.Send(MSP_ATTITUDE, &attitude);
 
 	// MSP_ALTITUDE
-	altitude.estimatedActualPosition = 350 / 10; //cm
-	altitude.estimatedActualVelocity = (int16_t)(5 * 100); //m/s to cm/s
+	altitude.estimatedActualVelocity = 0; //m/s to cm/s
 	_msp.Send(MSP_ALTITUDE, &altitude);
+
+	// MSP_MOTOR_TELEMETRY
+	/*motor_telemetry.motor_count = 1;
+	motor_telemetry.rpm = 0;
+	motor_telemetry.invalid_percent = 0;
+	motor_telemetry.temperature = 20;
+	motor_telemetry.voltage = 0;
+	motor_telemetry.current = 0;
+	motor_telemetry.consumption = 0;
+	_msp.Send(MSP_MOTOR_TELEMETRY, &motor_telemetry);*/
+
+	esc_sensor_data.rpm = 0;
+	esc_sensor_data.temperature = 240;
+	_msp.Send(MSP_ESC_SENSOR_DATA, &esc_sensor_data);
 
 	SendConfig();
 }

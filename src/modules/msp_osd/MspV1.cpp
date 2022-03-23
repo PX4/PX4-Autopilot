@@ -31,7 +31,7 @@ struct msp_message_descriptor_t
 	uint8_t message_size;
 };
 
-#define MSP_DESCRIPTOR_COUNT 9
+#define MSP_DESCRIPTOR_COUNT 11
 const msp_message_descriptor_t msp_message_descriptors[MSP_DESCRIPTOR_COUNT] =
 {
 	{MSP_OSD_CONFIG, true, sizeof(msp_osd_config_t)},
@@ -42,7 +42,9 @@ const msp_message_descriptor_t msp_message_descriptors[MSP_DESCRIPTOR_COUNT] =
 	{MSP_RAW_GPS, true, sizeof(msp_raw_gps_t)},
 	{MSP_ATTITUDE, true, sizeof(msp_attitude_t)},
 	{MSP_ALTITUDE, true, sizeof(msp_altitude_t)},
-	{MSP_COMP_GPS, true, sizeof(msp_comp_gps_t)}
+	{MSP_COMP_GPS, true, sizeof(msp_comp_gps_t)},
+	{MSP_ESC_SENSOR_DATA, true, sizeof(msp_esc_sensor_data_dji_t)},
+	{MSP_MOTOR_TELEMETRY, true, sizeof(msp_motor_telemetry_t)},
 };
 
 #define MSP_FRAME_START_SIZE 5

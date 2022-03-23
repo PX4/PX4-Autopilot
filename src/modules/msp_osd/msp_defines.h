@@ -33,6 +33,8 @@
 #define MSP_SERVO_CONFIGURATIONS 120
 #define MSP_NAV_STATUS           121 // navigation status
 #define MSP_SENSOR_ALIGNMENT     126 // orientation of acc,gyro,mag
+#define MSP_ESC_SENSOR_DATA      134
+#define MSP_MOTOR_TELEMETRY      139
 #define MSP_STATUS_EX            150
 #define MSP_SENSOR_STATUS        151
 #define MSP_BOXIDS               119
@@ -79,6 +81,26 @@
 #define MSP_MODE_NAVLAUNCH   28
 #define MSP_MODE_AUTOTRIM    29
 
+struct msp_esc_sensor_data_t {
+	uint8_t motor_count;
+	uint8_t temperature;
+	uint16_t rpm;
+} __attribute__ ((packed));
+
+struct msp_esc_sensor_data_dji_t {
+	uint8_t temperature;
+	uint16_t rpm;
+} __attribute__ ((packed));
+
+struct msp_motor_telemetry_t {
+	uint8_t motor_count;
+	uint32_t rpm;
+	uint16_t invalid_percent;
+	uint8_t temperature;
+	uint16_t voltage;
+	uint16_t current;
+	uint16_t consumption;
+} __attribute__ ((packed));
 
 // MSP_API_VERSION reply
 struct msp_api_version_t {
@@ -134,15 +156,18 @@ struct msp_raw_imu_t {
 
 
 // MSP_STATUS_EX reply
+//HHH I B HH BB I B
 struct msp_status_ex_t {
   uint16_t cycleTime;
   uint16_t i2cErrorCounter;
   uint16_t sensor;                    // MSP_STATUS_SENSOR_...
   uint32_t flightModeFlags;           // see getActiveModes()
-  uint8_t  configProfileIndex;
-  uint16_t averageSystemLoadPercent;  // 0...100
-  uint16_t armingFlags;
-  uint8_t  accCalibrationAxisFlags;
+  uint8_t  nop_1;
+  uint16_t system_load;  // 0...100
+  uint16_t gyro_time;
+  uint8_t  nop_2;
+  uint32_t nop_3;
+  uint8_t extra;
 } __attribute__ ((packed));
 
 
@@ -153,6 +178,7 @@ struct msp_status_t {
   uint16_t sensor;                    // MSP_STATUS_SENSOR_...
   uint32_t flightModeFlags;           // see getActiveModes()
   uint8_t  configProfileIndex;
+  uint16_t gyroCycleTime;
 } __attribute__ ((packed));
 
 
