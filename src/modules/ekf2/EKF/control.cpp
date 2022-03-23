@@ -143,6 +143,7 @@ void Ekf::controlFusionModes()
 
 			// Run the kinematic consistency check when not moving horizontally
 			if ((sq(_state.vel(0)) + sq(_state.vel(1)) < fmaxf(P(4, 4) + P(5, 5), 0.1f))) {
+				_rng_consistency_check.setGate(_params.range_kin_consistency_gate);
 				_rng_consistency_check.update(_range_sensor.getDistBottom(), getRngHeightVariance(), _state.vel(2), P(6, 6), _time_last_imu);
 			}
 		}

@@ -1115,6 +1115,21 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
 PARAM_DEFINE_FLOAT(EKF2_RNG_QLTY_T, 1.0f);
 
 /**
+ * Gate size used for range finder kinematic consistency check
+ *
+ * To be used, the time derivative of the distance sensor measurements projected on the vertical axis
+ * needs to be statistically consistent with the estimated vertical velocity of the drone.
+ *
+ * Decrease this value to make the filter more robust against range finder faulty data (stuck, reflections, ...).
+ *
+ * @group EKF2
+ * @unit SD
+ * @min 0.01
+ * @max 5.0
+*/
+PARAM_DEFINE_FLOAT(EKF2_RNG_K_GATE, 0.2f);
+
+/**
  * Gate size for vision velocity estimate fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
