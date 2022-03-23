@@ -49,6 +49,9 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_attitude.h>
 
 #include "MspV1.hpp"
 
@@ -91,9 +94,24 @@ private:
 	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
+	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	
+	struct battery_status_s _battery_status_struct = {0};
+	struct vehicle_status_s _vehicle_status_struct;
+	struct vehicle_gps_position_s _vehicle_gps_position_struct = {0};
+	struct airspeed_validated_s _airspeed_validated_struct = {0};
+	struct vehicle_air_data_s _vehicle_air_data_struct = {0};
+	struct home_position_s _home_position_struct = {0};
+	struct vehicle_global_position_s _vehicle_global_position_struct = {0};
+	struct vehicle_attitude_s _vehicle_attitude_struct = {0};
 
 	void SendConfig();
 	void SendTelemetry();
+	
+	uint8_t _x{0};
+	bool _heartbeat{false};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
