@@ -1697,6 +1697,11 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		curr_wp(1) = lon;
 	}
 
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+	Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+	Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
+				 prev_wp(1));
+
 	// we want the plane to keep tracking the desired flight path until we start flaring
 	// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
 	if ((_param_fw_lnd_hhdist.get() > 0.0f) && !_land_noreturn_horizontal &&
@@ -1808,10 +1813,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 				_npfg.navigateHeading(_target_bearing, ground_speed, _wind_vel);
 
 			} else {
-				Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-				Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-				Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
-							 prev_wp(1));
 				// normal navigation
 				_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 			}
@@ -1826,10 +1827,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 			} else {
 				// normal navigation
-				Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-				Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-				Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
-							 prev_wp(1));
 				_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
 			}
 
@@ -1932,11 +1929,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 			} else {
 				// normal navigation
-				Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-				Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-				Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
-							 prev_wp(1));
-				// normal navigation
 				_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 			}
 
@@ -1950,10 +1942,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 			} else {
 				// normal navigation
-				Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-				Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-				Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
-							 prev_wp(1));
 				_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
 			}
 
