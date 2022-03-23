@@ -183,8 +183,9 @@ void Ekf::runInAirYawReset(const Vector3f &mag_sample)
 
 		if (_control_status.flags.gps && _control_status.flags.fixed_wing) {
 			has_realigned_yaw = realignYawGPS(mag_sample);
+		}
 
-		} else if (canResetMagHeading()) {
+		if (!has_realigned_yaw && canResetMagHeading()) {
 			has_realigned_yaw = resetMagHeading();
 		}
 
