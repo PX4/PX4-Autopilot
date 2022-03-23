@@ -49,12 +49,12 @@ public:
 
 	void update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, uint64_t time_us);
 
-	void setGate(float gate) { _vel_bottom_gate = gate; }
+	void setGate(float gate) { _gate = gate; }
 
-	float getTestRatio() const { return _vel_bottom_test_ratio; }
-	float getSignedTestRatioLpf() const { return _vel_bottom_signed_test_ratio_lpf.getState(); }
-	float getInnov() const { return _vel_bottom_innov; }
-	float getInnovVar() const { return _vel_bottom_innov_var; }
+	float getTestRatio() const { return _test_ratio; }
+	float getSignedTestRatioLpf() const { return _signed_test_ratio_lpf.getState(); }
+	float getInnov() const { return _innov; }
+	float getInnovVar() const { return _innov_var; }
 	bool isKinematicallyConsistent() const { return _is_kinematically_consistent; }
 
 private:
@@ -63,16 +63,16 @@ private:
 	uint64_t _time_last_update_us{};
 	float _dist_bottom_prev{};
 
-	float _vel_bottom_test_ratio{};
-	AlphaFilter<float> _vel_bottom_signed_test_ratio_lpf{}; // average signed test ratio used to detect a bias in the data
-	float _vel_bottom_gate{.2f};
-	float _vel_bottom_innov{};
-	float _vel_bottom_innov_var{};
+	float _test_ratio{};
+	AlphaFilter<float> _signed_test_ratio_lpf{}; // average signed test ratio used to detect a bias in the data
+	float _gate{.2f};
+	float _innov{};
+	float _innov_var{};
 
 	bool _is_kinematically_consistent{true};
 	uint64_t _time_last_inconsistent_us{};
 
-	static constexpr float _vel_bottom_signed_test_ratio_tau = 2.f;
+	static constexpr float _signed_test_ratio_tau = 2.f;
 
 	static constexpr float _min_vz_for_valid_consistency = .5f;
 	static constexpr uint64_t _consistency_hyst_time_us = 1e6;
