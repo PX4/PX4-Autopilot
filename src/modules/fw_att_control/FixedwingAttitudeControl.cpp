@@ -78,7 +78,7 @@ bool
 FixedwingAttitudeControl::init()
 {
 	if (!_att_sub.registerCallback()) {
-		PX4_ERR("vehicle attitude callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

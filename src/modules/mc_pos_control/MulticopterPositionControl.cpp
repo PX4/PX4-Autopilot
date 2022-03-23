@@ -65,7 +65,7 @@ MulticopterPositionControl::~MulticopterPositionControl()
 bool MulticopterPositionControl::init()
 {
 	if (!_local_pos_sub.registerCallback()) {
-		PX4_ERR("vehicle_local_position callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
