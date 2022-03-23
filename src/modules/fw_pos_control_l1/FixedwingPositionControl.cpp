@@ -1429,6 +1429,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 	/* current waypoint (the one currently heading for) */
 	Vector2d curr_wp(pos_sp_curr.lat, pos_sp_curr.lon);
 	Vector2d prev_wp{0, 0}; /* previous waypoint */
+	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+	Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
 
 	if (pos_sp_prev.valid) {
 		prev_wp(0) = pos_sp_prev.lat;
@@ -1480,8 +1482,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
 		 * If we use the navigator heading or not is decided later.
 		 */
-		Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-		Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
 		Vector2f prev_wp_local = _global_local_proj_ref.project(_runway_takeoff.getStartWP()(0),
 					 _runway_takeoff.getStartWP()(1));
 
@@ -1555,10 +1555,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			float target_airspeed = get_auto_airspeed_setpoint(now, _param_fw_airspd_trim.get(), ground_speed,
 						dt);
 
-			Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-			Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-			Vector2f prev_wp_local = _global_local_proj_ref.project(_runway_takeoff.getStartWP()(0),
-						 _runway_takeoff.getStartWP()(1));
+			Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0), prev_wp(1));
 
 			if (_param_fw_use_npfg.get()) {
 				_npfg.setAirspeedNom(target_airspeed * _eas2tas);

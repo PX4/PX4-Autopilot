@@ -82,9 +82,9 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector
 	float eta = 0.0f;
 
 	/* get the direction between the last (visited) and next waypoint */
-	Vector2f vector_B_to_P = vector_B - vector_curr_position;
-	Vector2f vector_B_to_P_unit = vector_B_to_P.normalized();
-	_target_bearing = atan2f(vector_B_to_P_unit(1), vector_B_to_P_unit(0));
+	Vector2f vector_P_to_B = vector_B - vector_curr_position;
+	Vector2f vector_P_to_B_unit = vector_P_to_B.normalized();
+	_target_bearing = atan2f(vector_P_to_B_unit(1), vector_P_to_B_unit(0));
 
 	/* enforce a minimum ground speed of 0.1 m/s to avoid singularities */
 	float ground_speed = math::max(ground_speed_vector.length(), 0.1f);
@@ -120,13 +120,13 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector
 	float alongTrackDist = vector_A_to_airplane * vector_AB;
 
 	/* estimate airplane position WRT to B */
-	Vector2f vector_P_to_B = vector_curr_position - vector_B;
-	Vector2f vector_P_to_B_unit = vector_P_to_B.normalized();
+	Vector2f vector_B_to_P = vector_curr_position - vector_B;
+	Vector2f vector_B_to_P_unit = vector_B_to_P.normalized();
 
 	/* calculate angle of airplane position vector relative to line) */
 
 	// XXX this could probably also be based solely on the dot product
-	float AB_to_BP_bearing = atan2f(vector_P_to_B_unit % vector_AB, vector_P_to_B_unit * vector_AB);
+	float AB_to_BP_bearing = atan2f(vector_B_to_P_unit % vector_AB, vector_B_to_P_unit * vector_AB);
 
 	/* extension from [2], fly directly to A */
 	if (distance_A_to_airplane > _L1_distance && alongTrackDist / math::max(distance_A_to_airplane, 1.0f) < -0.7071f) {
@@ -245,7 +245,7 @@ ECL_L1_Pos_Controller::navigate_loiter(const Vector2f &vector_A, const Vector2f 
 	}
 
 	/* update bearing to next waypoint */
-	_target_bearing = atan2f(vector_A_to_airplane_unit(1), vector_A_to_airplane_unit(0));
+	_target_bearing = atan2f(-vector_A_to_airplane_unit(1), -vector_A_to_airplane_unit(0));
 
 	/* calculate eta angle towards the loiter center */
 
