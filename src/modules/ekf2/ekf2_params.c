@@ -1122,12 +1122,14 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_QLTY_T, 1.0f);
  *
  * Decrease this value to make the filter more robust against range finder faulty data (stuck, reflections, ...).
  *
+ * Note: tune the range finder noise parameters (EKF2_RNG_NOISE and EKF2_RNG_SFE) before tuning this gate.
+ *
  * @group EKF2
  * @unit SD
- * @min 0.01
+ * @min 0.1
  * @max 5.0
 */
-PARAM_DEFINE_FLOAT(EKF2_RNG_K_GATE, 0.2f);
+PARAM_DEFINE_FLOAT(EKF2_RNG_K_GATE, 1.0f);
 
 /**
  * Gate size for vision velocity estimate fusion
