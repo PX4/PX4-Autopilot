@@ -361,9 +361,9 @@ private:
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
-	bool		_last_condition_local_altitude_valid{false};
-	bool		_last_condition_local_position_valid{false};
-	bool		_last_condition_global_position_valid{false};
+	bool		_last_local_altitude_valid{false};
+	bool		_last_local_position_valid{false};
+	bool		_last_global_position_valid{false};
 
 	bool		_last_overload{false};
 

@@ -98,8 +98,8 @@ void GyroCalibration::Run()
 		vehicle_status_flags_s vehicle_status_flags;
 
 		if (_vehicle_status_flags_sub.copy(&vehicle_status_flags)) {
-			if (_system_calibrating != vehicle_status_flags.condition_calibration_enabled) {
-				_system_calibrating = vehicle_status_flags.condition_calibration_enabled;
+			if (_system_calibrating != vehicle_status_flags.calibration_enabled) {
+				_system_calibrating = vehicle_status_flags.calibration_enabled;
 				Reset();
 				return;
 			}
