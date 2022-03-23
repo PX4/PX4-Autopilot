@@ -2710,14 +2710,14 @@ Commander::run()
 		}
 
 		/* handle commands last, as the system needs to be updated to handle them */
-		while (_cmd_sub.updated()) {
+		if (_vehicle_command_sub.updated()) {
 			/* got command */
-			const unsigned last_generation = _cmd_sub.get_last_generation();
+			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
 			vehicle_command_s cmd;
 
-			if (_cmd_sub.copy(&cmd)) {
-				if (_cmd_sub.get_last_generation() != last_generation + 1) {
-					PX4_ERR("vehicle_command lost, generation %u -> %u", last_generation, _cmd_sub.get_last_generation());
+			if (_vehicle_command_sub.copy(&cmd)) {
+				if (_vehicle_command_sub.get_last_generation() != last_generation + 1) {
+					PX4_ERR("vehicle_command lost, generation %u -> %u", last_generation, _vehicle_command_sub.get_last_generation());
 				}
 
 				if (handle_command(cmd)) {
@@ -2726,10 +2726,15 @@ Commander::run()
 			}
 		}
 
-		while (_action_request_sub.updated()) {
+		if (_action_request_sub.updated()) {
+			const unsigned last_generation = _action_request_sub.get_last_generation();
 			action_request_s action_request;
 
 			if (_action_request_sub.copy(&action_request)) {
+				if (_action_request_sub.get_last_generation() != last_generation + 1) {
+					PX4_ERR("action_request lost, generation %u -> %u", last_generation, _action_request_sub.get_last_generation());
+				}
+
 				executeActionRequest(action_request);
 			}
 		}
@@ -3080,7 +3085,10 @@ Commander::run()
 
 		px4_indicate_external_reset_lockout(LockoutComponent::Commander, _armed.armed);
 
-		px4_usleep(COMMANDER_MONITORING_INTERVAL);
+		// sleep if there are no vehicle_commands or action_requests to process
+		if (!_vehicle_command_sub.updated() && !_action_request_sub.updated()) {
+			px4_usleep(COMMANDER_MONITORING_INTERVAL);
+		}
 	}
 
 	rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_OFF);
