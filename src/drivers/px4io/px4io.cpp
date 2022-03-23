@@ -177,8 +177,6 @@ private:
 	unsigned		_max_rc_input{0};		///< Maximum receiver channels supported by PX4IO
 	unsigned		_max_transfer{16};		///< Maximum number of I2C transfers supported by PX4IO
 
-	uint64_t		_rc_last_valid{0};		///< last valid timestamp
-
 	int			_class_instance{-1};
 
 	hrt_abstime		_poll_last{0};
@@ -1200,6 +1198,7 @@ int PX4IO::io_get_status()
 int PX4IO::io_publish_raw_rc()
 {
 	input_rc_s input_rc{};
+	input_rc.timestamp_last_signal = hrt_absolute_time();
 
 	/* set the RC status flag ORDER MATTERS! */
 	input_rc.rc_lost = !(_status & PX4IO_P_STATUS_FLAGS_RC_OK);
@@ -1259,12 +1258,6 @@ int PX4IO::io_publish_raw_rc()
 	input_rc.rc_total_frame_count = regs[PX4IO_P_RAW_FRAME_COUNT];
 	input_rc.channel_count = channel_count;
 
-	/* rc_lost has to be set before the call to this function */
-	if ((channel_count > 0) && !input_rc.rc_lost && !input_rc.rc_failsafe) {
-		_rc_last_valid = input_rc.timestamp;
-	}
-
-	input_rc.timestamp_last_signal = _rc_last_valid;
 
 	/* FIELDS NOT SET HERE */
 	/* input_rc.input_source is set after this call XXX we might want to mirror the flags in the RC struct */
@@ -1310,18 +1303,13 @@ int PX4IO::io_publish_raw_rc()
 
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
 		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_ST24;
-
-	} else {
-		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
-
-		/* only keep publishing RC input if we ever got a valid input */
-		if (_rc_last_valid == 0) {
-			/* we have never seen valid RC signals, abort */
-			return OK;
-		}
 	}
 
-	_to_input_rc.publish(input_rc);
+	if ((input_rc.channel_count > 0) && !input_rc.rc_lost && !input_rc.rc_failsafe
+	    && (input_rc.input_source != input_rc_s::RC_INPUT_SOURCE_UNKNOWN)) {
+
+		_to_input_rc.publish(input_rc);
+	}
 
 	return ret;
 }
