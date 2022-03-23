@@ -134,7 +134,7 @@ void MagBiasEstimator::Run()
 		vehicle_status_flags_s vehicle_status_flags;
 
 		if (_vehicle_status_flags_sub.copy(&vehicle_status_flags)) {
-			bool system_calibrating = vehicle_status_flags.condition_calibration_enabled;
+			bool system_calibrating = vehicle_status_flags.calibration_enabled;
 
 			if (system_calibrating != _system_calibrating) {
 				_system_calibrating = system_calibrating;
