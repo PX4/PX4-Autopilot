@@ -46,7 +46,7 @@ bool
 EscBattery::init()
 {
 	if (!_esc_status_sub.registerCallback()) {
-		PX4_ERR("esc_status callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

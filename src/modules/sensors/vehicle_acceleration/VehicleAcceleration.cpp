@@ -63,7 +63,7 @@ bool VehicleAcceleration::Start()
 
 	// sensor_selection needed to change the active sensor if the primary stops updating
 	if (!_sensor_selection_sub.registerCallback()) {
-		PX4_ERR("sensor_selection callback registration failed");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
