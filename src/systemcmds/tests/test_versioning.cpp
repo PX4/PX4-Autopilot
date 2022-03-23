@@ -80,6 +80,7 @@ bool VersioningTest::run_tests()
 	ut_assert_true(_test_tag_to_version_number("v11.45.99-01.02.03", 				0x0B2D63FF, 0x010203FF));
 	ut_assert_true(_test_tag_to_version_number("v011.045.099-001.002.003", 			0x0B2D63FF, 0x010203FF));
 	ut_assert_true(_test_tag_to_version_number("v011.045.099-1.2.3",	 			0x0B2D63FF, 0x010203FF));
+#if !defined(CONFIG_BOARD_CONSTRAINED_MEMORY)
 	ut_assert_true(_test_tag_to_version_number("v1.2.3", 							0x010203FF, 0x000000FF));
 	ut_assert_true(_test_tag_to_version_number("v255.255.255", 						0xFFFFFFFF, 0x000000FF));
 	ut_assert_true(_test_tag_to_version_number("v255.255.255-11", 					0xFFFFFF00, 0x00000000));
@@ -163,6 +164,7 @@ bool VersioningTest::run_tests()
 
 	//TODO: fix me, this is unexpected behavior
 	ut_assert_true(_test_tag_to_version_number("v1.6.2-rc2-1.2.3-rc3", 				0x01060200, 0x00000000));
+#endif
 
 	return (_tests_failed == 0);
 }
