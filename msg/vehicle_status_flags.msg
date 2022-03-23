@@ -5,7 +5,6 @@ uint64 timestamp				# time since system start (microseconds)
 bool condition_calibration_enabled
 bool condition_system_sensors_initialized
 bool condition_system_hotplug_timeout		# true if the hotplug sensor search is over
-bool condition_system_returned_to_home
 bool condition_auto_mission_available
 bool condition_angular_velocity_valid
 bool condition_attitude_valid
