@@ -49,34 +49,31 @@ void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_va
 	}
 
 	const float vel_bottom = (dist_bottom - _dist_bottom_prev) / dt;
-	const float innov = -vel_bottom - vz; // vel_bottom is +up while vz is +down
-	const float vel_bottom_var = 2.f * dist_bottom_var / (dt * dt); // Variance of the time derivative of a random variable: var(dz/dt) = 2*var(z) / dt^2
-	const float innov_var = vel_bottom_var + vz_var;
-	const float normalized_innov_sq = (innov * innov) / innov_var;
-	_vel_bottom_test_ratio = normalized_innov_sq / (_vel_bottom_gate * _vel_bottom_gate);
+	_innov = -vel_bottom - vz; // vel_bottom is +up while vz is +down
 
-	_vel_bottom_signed_test_ratio_lpf.setParameters(dt, _vel_bottom_signed_test_ratio_tau);
-	const float signed_test_ratio = matrix::sign(innov) * _vel_bottom_test_ratio;
-	_vel_bottom_signed_test_ratio_lpf.update(signed_test_ratio);
+	const float var = 2.f * dist_bottom_var / (dt * dt); // Variance of the time derivative of a random variable: var(dz/dt) = 2*var(z) / dt^2
+	_innov_var = var + vz_var;
+
+	const float normalized_innov_sq = (_innov * _innov) / _innov_var;
+	_test_ratio = normalized_innov_sq / (_gate * _gate);
+	_signed_test_ratio_lpf.setParameters(dt, _signed_test_ratio_tau);
+	const float signed_test_ratio = matrix::sign(_innov) * _test_ratio;
+	_signed_test_ratio_lpf.update(signed_test_ratio);
 
 	updateConsistency(vz, time_us);
 
 	_time_last_update_us = time_us;
 	_dist_bottom_prev = dist_bottom;
-
-	// Save for logging
-	_vel_bottom_innov = innov;
-	_vel_bottom_innov_var = innov_var;
 }
 
 void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
 {
-	if (fabsf(_vel_bottom_signed_test_ratio_lpf.getState()) >= 1.f) {
+	if (fabsf(_signed_test_ratio_lpf.getState()) >= 1.f) {
 		_is_kinematically_consistent = false;
 		_time_last_inconsistent_us = time_us;
 
 	} else {
-		if (fabsf(vz) > _min_vz_for_valid_consistency && _vel_bottom_test_ratio < 1.f && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)) {
+		if (fabsf(vz) > _min_vz_for_valid_consistency && _test_ratio < 1.f && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)) {
 			_is_kinematically_consistent = true;
 		}
 	}
