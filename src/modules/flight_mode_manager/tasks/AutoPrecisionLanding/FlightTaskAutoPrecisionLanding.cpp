@@ -150,7 +150,13 @@ FlightTaskAutoPrecisionLanding::run_state_horizontal_approach()
 	_position_setpoint(0) = x;
 	_position_setpoint(1) = y;
 	_position_setpoint(2) = _target(2);
-	_velocity_setpoint(0) = _velocity_setpoint(1) = _velocity_setpoint(2) = NAN;
+
+	_velocity_setpoint(0) = _velocity_setpoint(1)  = NAN;
+
+	// If altitude setpoint is NAN, we stay at the current altitude
+	if (!PX4_ISFINITE(_position_setpoint(2))) {
+		_velocity_setpoint(2) = 0.0f;
+	}
 
 	// check if target visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
