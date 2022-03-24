@@ -2881,6 +2881,7 @@ Commander::run()
 						       _vehicle_land_detected.landed,
 						       static_cast<link_loss_actions_t>(_param_nav_rcl_act.get()),
 						       static_cast<offboard_loss_actions_t>(_param_com_obl_act.get()),
+						       static_cast<quadchute_actions_t>(_param_com_qc_act.get()),
 						       static_cast<offboard_loss_rc_actions_t>(_param_com_obl_rc_act.get()),
 						       static_cast<position_nav_loss_actions_t>(_param_com_posctl_navl.get()),
 						       _param_com_rcl_act_t.get(),
