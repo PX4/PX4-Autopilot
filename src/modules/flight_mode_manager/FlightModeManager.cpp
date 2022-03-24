@@ -166,7 +166,8 @@ void FlightModeManager::start_flight_task()
 
 		// Take-over landing from navigator if precision landing is enabled
 
-	} else if (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+	} else if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL ||
+		    _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
 		   && _param_rtl_pld_md.get() > 0) {
 		should_disable_task = false;
 
