@@ -191,6 +191,8 @@
 #define HW_INFO_INIT         {'V','5','x', 'x',0}
 #define HW_INFO_INIT_VER     2
 #define HW_INFO_INIT_REV     3
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
+
 /* CAN Silence
  *
  * Silent mode control \ ESC Mux select
