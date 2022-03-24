@@ -48,6 +48,8 @@ VehicleAirData::VehicleAirData() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_vehicle_air_data_pub.advertise();
+
 	_voter.set_timeout(SENSOR_TIMEOUT);
 }
 
@@ -334,7 +336,7 @@ void VehicleAirData::Run()
 	}
 
 	// reschedule timeout
-	ScheduleDelayed(100_ms);
+	ScheduleDelayed(50_ms);
 
 	perf_end(_cycle_perf);
 }

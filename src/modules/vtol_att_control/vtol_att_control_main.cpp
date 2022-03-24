@@ -141,12 +141,12 @@ bool
 VtolAttitudeControl::init()
 {
 	if (!_actuator_inputs_mc.registerCallback()) {
-		PX4_ERR("MC actuator controls callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
 	if (!_actuator_inputs_fw.registerCallback()) {
-		PX4_ERR("FW actuator controls callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

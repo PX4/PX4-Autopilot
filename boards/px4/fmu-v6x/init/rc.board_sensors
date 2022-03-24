@@ -32,8 +32,14 @@ bmi088 -G -R 4 -s start
 # Internal SPI bus ICM42688p
 icm42688p -R 6 -s start
 
-# Internal SPI bus ICM-20649 (hard-mounted)
-icm20649 -R 14 -s start
+if ver hwtypecmp V6X03 V6X13
+then
+	# Internal SPI bus ICM-42670-P (hard-mounted)
+	icm42670p -R 14 -s start
+else
+	# Internal SPI bus ICM-20649 (hard-mounted)
+	icm20649 -R 14 -s start
+fi
 
 # Internal magnetometer on I2c
 bmm150 -I start
@@ -44,7 +50,7 @@ ist8310 -X -b 1 -R 10 start
 # Possible internal Baro
 bmp388 -I -a 0x77 start
 
-if ver hwtypecmp V6X00
+if ver hwtypecmp V6X00 V6X10
 then
 	bmp388 -I start
 else

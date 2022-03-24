@@ -203,7 +203,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	/* Are Resistors in place ?*/
 
 	uint32_t dn_sum = 0;
-	uint16_t dn = 0;
+	uint32_t dn = 0;
 
 	if ((high ^ low) && low == 0) {
 
@@ -216,14 +216,14 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 			for (unsigned av = 0; av < samples; av++) {
 				dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
 
-				if (dn == 0xffff) {
+				if (dn == UINT32_MAX) {
 					break;
 				}
 
 				dn_sum  += dn;
 			}
 
-			if (dn != 0xffff) {
+			if (dn != UINT32_MAX) {
 				*id = dn_sum / samples;
 				rv = OK;
 			}
@@ -264,9 +264,9 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 	 */
 
 	uint32_t dn_sum = 0;
-	uint16_t dn = 0;
-	uint16_t high = 0;
-	uint16_t low = 0;
+	uint32_t dn = 0;
+	uint32_t high = 0;
+	uint32_t low = 0;
 
 	/*  Turn the drive lines to digital outputs High */
 
@@ -278,7 +278,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 		if (px4_arch_adc_init(HW_REV_VER_ADC_BASE) == OK) {
 			dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
 
-			if (dn == 0xffff) {
+			if (dn == UINT32_MAX) {
 				break;
 			}
 
@@ -286,7 +286,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 		}
 	}
 
-	if (dn != 0xffff) {
+	if (dn != UINT32_MAX) {
 		high = dn_sum / samples;
 	}
 
@@ -302,18 +302,18 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 		dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
 
-		if (dn == 0xffff) {
+		if (dn == UINT32_MAX) {
 			break;
 		}
 
 		dn_sum  += dn;
 	}
 
-	if (dn != 0xffff) {
+	if (dn != UINT32_MAX) {
 		low = dn_sum / samples;
 	}
 
-	if ((high > low) && high > px4_arch_adc_dn_fullcount() - 100) {
+	if ((high > low) && high > ((px4_arch_adc_dn_fullcount() * 975) / 1000)) {
 
 		*id = low;
 		rv = OK;

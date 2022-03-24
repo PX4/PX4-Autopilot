@@ -132,7 +132,7 @@ private:
 	void battery_status_check();
 
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
-				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us,
+				   const hrt_abstime &data_timestamp_us, hrt_abstime &last_fail_time_us,
 				   const bool was_valid);
 
 	void control_status_leds(bool changed, const uint8_t battery_warning);
@@ -146,7 +146,7 @@ private:
 
 	void esc_status_check();
 
-	void estimator_check(bool force = false);
+	void estimator_check();
 
 	bool handle_command(const vehicle_command_s &cmd);
 
@@ -158,8 +158,6 @@ private:
 	void offboard_control_update();
 
 	void print_reject_mode(uint8_t main_state);
-
-	void reset_posvel_validity();
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
@@ -207,8 +205,6 @@ private:
 		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,	/* failsafe response to loss of navigation accuracy */
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _param_com_pos_fs_delay,
-		(ParamInt<px4::params::COM_POS_FS_PROB>) _param_com_pos_fs_prob,
-		(ParamInt<px4::params::COM_POS_FS_GAIN>) _param_com_pos_fs_gain,
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
 		(ParamFloat<px4::params::COM_BAT_ACT_T>) _param_com_bat_act_t,
@@ -226,6 +222,9 @@ private:
 
 		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
 		(ParamInt<px4::params::RC_MAP_MODE_SW>) _param_rc_map_mode_sw,
+
+		// Quadchute
+		(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
@@ -291,9 +290,6 @@ private:
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
-	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
-	const int64_t POSVEL_PROBATION_MAX = 100_s;	/**< maximum probation duration (usec) */
-
 	PreFlightCheck::arm_requirements_t	_arm_requirements{};
 
 	hrt_abstime	_valid_distance_sensor_time_us{0}; /**< Last time that distance sensor data arrived (usec) */
@@ -301,11 +297,6 @@ private:
 	hrt_abstime	_last_gpos_fail_time_us{0};	/**< Last time that the global position validity recovery check failed (usec) */
 	hrt_abstime	_last_lpos_fail_time_us{0};	/**< Last time that the local position validity recovery check failed (usec) */
 	hrt_abstime	_last_lvel_fail_time_us{0};	/**< Last time that the local velocity validity recovery check failed (usec) */
-
-	// Probation times for position and velocity validity checks to pass if failed
-	hrt_abstime	_gpos_probation_time_us = POSVEL_PROBATION_MIN;
-	hrt_abstime	_lpos_probation_time_us = POSVEL_PROBATION_MIN;
-	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
 
 	/* class variables used to check for navigation failure after takeoff */
 	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity and position innovations passed */
@@ -361,9 +352,9 @@ private:
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
-	bool		_last_condition_local_altitude_valid{false};
-	bool		_last_condition_local_position_valid{false};
-	bool		_last_condition_global_position_valid{false};
+	bool		_last_local_altitude_valid{false};
+	bool		_last_local_position_valid{false};
+	bool		_last_global_position_valid{false};
 
 	bool		_last_overload{false};
 
@@ -392,7 +383,7 @@ private:
 
 	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
-	vehicle_land_detected_s	_land_detector{};
+	vehicle_land_detected_s	_vehicle_land_detected{};
 	safety_s		_safety{};
 	vtol_vehicle_status_s	_vtol_status{};
 
@@ -417,7 +408,7 @@ private:
 	uORB::Subscription					_estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
-	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};

@@ -36,6 +36,24 @@
 
 using namespace matrix;
 
+TEST(MatrixHelperTest, SignFloat)
+{
+	EXPECT_FLOAT_EQ(sign(-100.f), -1.f);
+	EXPECT_FLOAT_EQ(sign(-FLT_EPSILON), -1.f);
+	EXPECT_FLOAT_EQ(sign(0.f), 0.f);
+	EXPECT_FLOAT_EQ(sign(FLT_EPSILON), 1.f);
+	EXPECT_FLOAT_EQ(sign(100.f), 1.f);
+}
+
+TEST(MatrixHelperTest, SignInt)
+{
+	EXPECT_FLOAT_EQ(sign(-100), -1);
+	EXPECT_FLOAT_EQ(sign(-1), -1);
+	EXPECT_FLOAT_EQ(sign(0), 0);
+	EXPECT_FLOAT_EQ(sign(1), 1);
+	EXPECT_FLOAT_EQ(sign(100), 1);
+}
+
 TEST(MatrixHelperTest, Helper)
 {
 	// general wraps
@@ -43,16 +61,16 @@ TEST(MatrixHelperTest, Helper)
 	EXPECT_FLOAT_EQ(wrap(4., 0., 1.), 0.);
 	EXPECT_FLOAT_EQ(wrap(-4., 0., 10.), 6.);
 	EXPECT_FLOAT_EQ(wrap(-18., 0., 10.), 2.);
-	EXPECT_FLOAT_EQ(wrap(-1.5, 3., 5.), 4.);
-	EXPECT_FLOAT_EQ(wrap(15.5, 3., 5.), 3.);
+	EXPECT_FLOAT_EQ(wrap(-1.5, 3., 5.), 4.5);
+	EXPECT_FLOAT_EQ(wrap(15.5, 3., 5.), 3.5);
 	EXPECT_FLOAT_EQ(wrap(-1., 30., 40.), 39.);
 	EXPECT_FLOAT_EQ(wrap(-8000., -555., 1.), -216.);
 	EXPECT_FLOAT_EQ(wrap(0., 0., 360.), 0.);
-	EXPECT_FLOAT_EQ(wrap(0. - FLT_EPSILON, 0., 360.), 360.);
-	EXPECT_FLOAT_EQ(wrap(0. + FLT_EPSILON, 0., 360.), 0.);
+	EXPECT_FLOAT_EQ(wrap(0. - FLT_EPSILON, 0., 360.), 360. - FLT_EPSILON);
+	EXPECT_FLOAT_EQ(wrap(0. + FLT_EPSILON, 0., 360.), FLT_EPSILON);
 	EXPECT_FLOAT_EQ(wrap(360., 0., 360.), 0.);
-	EXPECT_FLOAT_EQ(wrap(360. - FLT_EPSILON, 0., 360.), 360.);
-	EXPECT_FLOAT_EQ(wrap(360. + FLT_EPSILON, 0., 360.), 0.);
+	EXPECT_FLOAT_EQ(wrap(360. - FLT_EPSILON, 0., 360.), 360. - FLT_EPSILON);
+	EXPECT_FLOAT_EQ(wrap(360. + FLT_EPSILON, 0., 360.), FLT_EPSILON);
 
 	// integer wraps
 	EXPECT_EQ(wrap(-10, 0, 10), 0);

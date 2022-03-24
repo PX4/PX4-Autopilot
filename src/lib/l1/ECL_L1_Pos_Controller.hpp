@@ -143,9 +143,8 @@ public:
 	 *
 	 * @return sets _lateral_accel setpoint
 	 */
-	void navigate_waypoints(const matrix::Vector2d &vector_A, const matrix::Vector2d &vector_B,
-				const matrix::Vector2d &vector_curr_position, const matrix::Vector2f &ground_speed);
-
+	void navigate_waypoints(const matrix::Vector2f &vector_A, const matrix::Vector2f &vector_B,
+				const matrix::Vector2f &vector_curr_position, const matrix::Vector2f &ground_speed);
 	/**
 	 * Navigate on an orbit around a loiter waypoint.
 	 *
@@ -154,7 +153,7 @@ public:
 	 *
 	 * @return sets _lateral_accel setpoint
 	 */
-	void navigate_loiter(const matrix::Vector2d &vector_A, const matrix::Vector2d &vector_curr_position, float radius,
+	void navigate_loiter(const matrix::Vector2f &vector_A, const matrix::Vector2f &vector_curr_position, float radius,
 			     int8_t loiter_direction, const matrix::Vector2f &ground_speed_vector);
 
 	/**
@@ -230,19 +229,6 @@ private:
 
 	bool _has_guidance_updated =
 		false;	///< this flag is set to true by any of the guidance methods. This flag has to be manually reset using has_guidance_updated_reset()
-
-	/**
-	 * Convert a 2D vector from WGS84 to planar coordinates.
-	 *
-	 * This converts from latitude and longitude to planar
-	 * coordinates with (0,0) being at the position of ref and
-	 * returns a vector in meters towards wp.
-	 *
-	 * @param ref The reference position in WGS84 coordinates
-	 * @param wp The point to convert to into the local coordinates, in WGS84 coordinates
-	 * @return The vector in meters pointing from the reference position to the coordinates
-	 */
-	matrix::Vector2f get_local_planar_vector(const matrix::Vector2d &origin, const matrix::Vector2d &target) const;
 
 	/**
 	 * Update roll angle setpoint. This will also apply slew rate limits if set.

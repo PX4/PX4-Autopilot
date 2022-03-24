@@ -73,7 +73,7 @@ bool
 RoverPositionControl::init()
 {
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
-		PX4_ERR("vehicle angular velocity callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
@@ -281,7 +281,11 @@ RoverPositionControl::control_position(const matrix::Vector2d &current_position,
 					_pos_ctrl_state = STOPPING;  // We are closer than loiter radius to waypoint, stop.
 
 				} else {
-					_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+					Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
+					Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
+					Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
+								 prev_wp(1));
+					_gnd_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed_2d);
 
 					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
 
@@ -417,17 +421,17 @@ RoverPositionControl::Run()
 
 			position_setpoint_triplet_poll();
 
+			if (!_global_local_proj_ref.isInitialized()
+			    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)) {
+
+				_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
+								     _local_pos.ref_timestamp);
+
+				_global_local_alt0 = _local_pos.ref_alt;
+			}
+
 			// Convert Local setpoints to global setpoints
 			if (_control_mode.flag_control_offboard_enabled) {
-				if (!_global_local_proj_ref.isInitialized()
-				    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)) {
-
-					_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
-									     _local_pos.ref_timestamp);
-
-					_global_local_alt0 = _local_pos.ref_alt;
-				}
-
 				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
 				// local -> global

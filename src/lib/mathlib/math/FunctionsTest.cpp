@@ -47,6 +47,15 @@ TEST(FunctionsTest, signNoZero)
 	EXPECT_FLOAT_EQ(signNoZero(123.456f), 1.f);
 }
 
+TEST(FunctionsTest, signFromBool)
+{
+	EXPECT_EQ(signFromBool(true), 1);
+	EXPECT_EQ(signFromBool(false), -1);
+	EXPECT_EQ(signFromBool(100), 1);
+	EXPECT_EQ(signFromBool(-100), 1);
+	EXPECT_EQ(signFromBool(0), -1);
+}
+
 TEST(FunctionsTest, expo)
 {
 	// input value limits

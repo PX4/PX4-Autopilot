@@ -163,5 +163,20 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-03-15: translate notch filter IMU_GYRO_NF_FREQ to IMU_GYRO_NF0_FRQ and IMU_GYRO_NF_BW -> IMU_GYRO_NF0_BW
+	{
+		if (strcmp("IMU_GYRO_NF_FREQ", node->name) == 0) {
+			strcpy(node->name, "IMU_GYRO_NF0_FRQ");
+			PX4_INFO("copying %s -> %s", "IMU_GYRO_NF_FREQ", "IMU_GYRO_NF0_FRQ");
+			return true;
+		}
+
+		if (strcmp("IMU_GYRO_NF_BW", node->name) == 0) {
+			strcpy(node->name, "IMU_GYRO_NF0_BW");
+			PX4_INFO("copying %s -> %s", "IMU_GYRO_NF_BW", "IMU_GYRO_NF0_BW");
+			return true;
+		}
+	}
+
 	return false;
 }
