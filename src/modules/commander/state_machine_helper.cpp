@@ -1004,7 +1004,7 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 
 	default:
 	case quadchute_actions_t::AUTO_RTL:
-		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+		if (status_flags.global_position_valid && status_flags.home_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 		}
 
@@ -1012,7 +1012,7 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 
 	// FALLTHROUGH
 	case quadchute_actions_t::AUTO_LAND:
-		if (status_flags.condition_global_position_valid) {
+		if (status_flags.global_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 		}
 
@@ -1020,7 +1020,7 @@ void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 
 	// FALLTHROUGH
 	case quadchute_actions_t::AUTO_LOITER:
-		if (status_flags.condition_global_position_valid) {
+		if (status_flags.global_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 		}
 
