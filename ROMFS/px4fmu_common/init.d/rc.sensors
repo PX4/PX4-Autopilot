@@ -155,6 +155,13 @@ then
 	irlock start -X
 fi
 
+# SPL06 sensor external I2C
+if param compare -s SENS_EN_SPL06 1
+then
+	spl06 -X start
+	spl06 -X -a 0x77 start
+fi
+
 # PCF8583 counter (RPM sensor)
 if param compare -s SENS_EN_PCF8583 1
 then

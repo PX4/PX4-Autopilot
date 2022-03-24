@@ -219,6 +219,21 @@ PARAM_DEFINE_INT32(SYS_HAS_MAG, 1);
 PARAM_DEFINE_INT32(SYS_HAS_BARO, 1);
 
 /**
+ * Control the number of distance sensors on the vehicle
+ *
+ * If set to the number of distance sensors, the preflight check will check
+ * for their presence and valid data publication. Disable with 0 if no distance
+ * sensor present or to disbale the preflight check.
+ *
+ * @reboot_required true
+ *
+ * @group System
+ * @min 0
+ * @max 4
+ */
+PARAM_DEFINE_INT32(SYS_HAS_NUM_DIST, 0);
+
+/**
  * Enable factory calibration mode
  *
  * If enabled, future sensor calibrations will be stored to /fs/mtd_caldata.

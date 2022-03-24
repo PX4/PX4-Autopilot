@@ -1,5 +1,10 @@
-menuconfig SYSTEMCMDS_UORB
+config SYSTEMCMDS_UORB
 	bool "uorb"
 	default n
 	---help---
 		Enable support for uorb
+
+config USER_UORB
+	bool
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_UORB

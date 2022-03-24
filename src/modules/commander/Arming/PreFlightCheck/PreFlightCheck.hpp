@@ -40,11 +40,15 @@
 
 #pragma once
 
+#include <uORB/uORB.h>
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vehicle_status.h>
 #include <drivers/drv_hrt.h>
+
+typedef bool (*sens_check_func_t)(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+				  const bool is_mandatory, bool &report_fail);
 
 class PreFlightCheck
 {
@@ -95,15 +99,24 @@ public:
 				bool report_fail = true);
 
 private:
+	static bool sensorAvailabilityCheck(const bool report_failure,
+					    const uint8_t nb_mandatory_instances, orb_advert_t *mavlink_log_pub,
+					    vehicle_status_s &status, sens_check_func_t sens_check);
+	static bool isMagRequired(uint8_t instance);
 	static bool magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-				      const bool optional, int32_t &device_id, const bool report_fail);
+				      const bool is_mandatory, bool &report_fail);
 	static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
+	static bool isAccelRequired(uint8_t instance);
 	static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-				       const bool optional, int32_t &device_id, const bool report_fail);
+				       const bool is_mandatory, bool &report_fail);
+	static bool isGyroRequired(uint8_t instance);
 	static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-			      const bool optional, int32_t &device_id, const bool report_fail);
+			      const bool is_mandatory, bool &report_fail);
+	static bool isBaroRequired(uint8_t instance);
 	static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-			      const bool optional, int32_t &device_id, const bool report_fail);
+			      const bool is_mandatory, bool &report_fail);
+	static bool distSensCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+				  const bool is_mandatory, bool &report_fail);
 	static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
 	static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool optional,
 				  const bool report_fail, const bool prearm, const bool max_airspeed_check_en, const float arming_max_airspeed_allowed);
@@ -119,6 +132,7 @@ private:
 					 const bool prearm);
 
 	static bool manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
+	static bool modeCheck(orb_advert_t *mavlink_log_pub, const bool report_fail, const vehicle_status_s &status);
 	static bool airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status);
 	static bool cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
 	static bool sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_detected_once, const bool report_fail);

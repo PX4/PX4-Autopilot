@@ -879,10 +879,7 @@ void Ekf::resetMagBias()
 	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
 
 	// reset any saved covariance data for re-use when auto-switching between heading and 3-axis fusion
-	// _saved_mag_bf_variance[0] is the the D earth axis
-	_saved_mag_bf_variance[1] = 0;
-	_saved_mag_bf_variance[2] = 0;
-	_saved_mag_bf_variance[3] = 0;
+	_saved_mag_bf_variance.zero();
 }
 
 // get EKF innovation consistency check status information comprising of:
@@ -1011,12 +1008,21 @@ void Ekf::update_deadreckoning_status()
 	_control_status.flags.inertial_dead_reckoning = !velPosAiding && !optFlowAiding && !airDataAiding;
 
 	if (!_control_status.flags.inertial_dead_reckoning) {
-		_time_last_aiding = _time_last_imu - _params.no_aid_timeout_max;
+		if (_time_last_imu > _params.no_aid_timeout_max) {
+			_time_last_aiding = _time_last_imu - _params.no_aid_timeout_max;
+		}
 	}
 
 	// report if we have been deadreckoning for too long, initial state is deadreckoning until aiding is present
-	_deadreckon_time_exceeded = (_time_last_aiding == 0)
+	bool deadreckon_time_exceeded = (_time_last_aiding == 0)
 				    || isTimedOut(_time_last_aiding, (uint64_t)_params.valid_timeout_max);
+
+	if (!_deadreckon_time_exceeded && deadreckon_time_exceeded) {
+		// deadreckon time now exceeded
+		ECL_WARN("dead reckon time exceeded");
+	}
+
+	_deadreckon_time_exceeded = deadreckon_time_exceeded;
 }
 
 // calculate the variances for the rotation vector equivalent
@@ -1478,24 +1484,30 @@ void Ekf::increaseQuatYawErrVariance(float yaw_variance)
 // save covariance data for re-use when auto-switching between heading and 3-axis fusion
 void Ekf::saveMagCovData()
 {
-	// save variances for the D earth axis and XYZ body axis field
-	for (uint8_t index = 0; index <= 3; index ++) {
-		_saved_mag_bf_variance[index] = P(index + 18, index + 18);
-	}
+	// save variances for XYZ body axis field
+	_saved_mag_bf_variance(0) = P(19, 19);
+	_saved_mag_bf_variance(1) = P(20, 20);
+	_saved_mag_bf_variance(2) = P(21, 21);
 
 	// save the NE axis covariance sub-matrix
-	_saved_mag_ef_covmat = P.slice<2, 2>(16, 16);
+	_saved_mag_ef_ne_covmat = P.slice<2, 2>(16, 16);
+
+	// save variance for the D earth axis
+	_saved_mag_ef_d_variance = P(18, 18);
 }
 
 void Ekf::loadMagCovData()
 {
-	// re-instate variances for the D earth axis and XYZ body axis field
-	for (uint8_t index = 0; index <= 3; index ++) {
-		P(index + 18, index + 18) = _saved_mag_bf_variance[index];
-	}
+	// re-instate variances for the XYZ body axis field
+	P(19, 19) = _saved_mag_bf_variance(0);
+	P(20, 20) = _saved_mag_bf_variance(1);
+	P(21, 21) = _saved_mag_bf_variance(2);
 
 	// re-instate the NE axis covariance sub-matrix
-	P.slice<2, 2>(16, 16) = _saved_mag_ef_covmat;
+	P.slice<2, 2>(16, 16) = _saved_mag_ef_ne_covmat;
+
+	// re-instate the D earth axis variance
+	P(18, 18) = _saved_mag_ef_d_variance;
 }
 
 void Ekf::startAirspeedFusion()
@@ -1652,10 +1664,13 @@ void Ekf::stopAuxVelFusion()
 
 void Ekf::stopFlowFusion()
 {
-	_control_status.flags.opt_flow = false;
-	_flow_innov.setZero();
-	_flow_innov_var.setZero();
-	_optflow_test_ratio = 0.0f;
+	if (_control_status.flags.opt_flow) {
+		ECL_INFO("stopping optical flow fusion");
+		_control_status.flags.opt_flow = false;
+		_flow_innov.setZero();
+		_flow_innov_var.setZero();
+		_optflow_test_ratio = 0.0f;
+	}
 }
 
 void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)

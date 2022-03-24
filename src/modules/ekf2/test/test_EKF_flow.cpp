@@ -64,7 +64,12 @@ public:
 		const float max_ground_distance = 50.f;
 		_ekf->set_optical_flow_limits(max_flow_rate, min_ground_distance, max_ground_distance);
 
+		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+
 		_sensor_simulator.runSeconds(7);
 	}
 
@@ -111,6 +116,7 @@ TEST_F(EkfFlowTest, resetToFlowVelocityInAir)
 	_sensor_simulator._trajectory[2].setCurrentPosition(-simulated_distance_to_ground);
 	startRangeFinderFusion(simulated_distance_to_ground);
 	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
 
 	_sensor_simulator.runSeconds(5.f);
 
@@ -182,7 +188,9 @@ TEST_F(EkfFlowTest, inAirConvergence)
 	const float simulated_distance_to_ground = 5.f;
 	_sensor_simulator._trajectory[2].setCurrentPosition(-simulated_distance_to_ground);
 	startRangeFinderFusion(simulated_distance_to_ground);
+
 	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
 
 	_sensor_simulator.runSeconds(5.f);
 
@@ -224,7 +232,9 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithAutopilotGyroData)
 	const float simulated_distance_to_ground = 5.f;
 	startRangeFinderFusion(simulated_distance_to_ground);
 	startZeroFlowFusion();
+
 	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
 
 	_sensor_simulator.runSeconds(5.f);
 
@@ -259,7 +269,9 @@ TEST_F(EkfFlowTest, yawMotionCorrectionWithFlowGyroData)
 	const float simulated_distance_to_ground = 5.f;
 	startRangeFinderFusion(simulated_distance_to_ground);
 	startZeroFlowFusion();
+
 	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
 
 	_sensor_simulator.runSeconds(5.f);
 

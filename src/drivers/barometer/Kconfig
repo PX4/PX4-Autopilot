@@ -9,6 +9,7 @@ menu "barometer"
         select DRIVERS_BAROMETER_LPS33HW
         select DRIVERS_BAROMETER_MS5611
         select DRIVERS_BAROMETER_MAIERTEK_MPC2520
+	select DRIVERS_BAROMETER_GOERTEK_SPL06 
         ---help---
             Enable default set of barometer drivers
     rsource "*/Kconfig"
