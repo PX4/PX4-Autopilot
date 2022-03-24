@@ -417,6 +417,17 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
 PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 
 /**
+ * Set command after a quadchute
+ *
+ * @value -1 No action: stay in current flight mode
+ * @value  0 Return mode
+ * @value  1 Land mode
+ * @value  2 Hold mode
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_QC_ACT, 0);
+
+/**
  * Set offboard loss failsafe mode when RC is available
  *
  * The offboard loss failsafe will only be entered after a timeout,
