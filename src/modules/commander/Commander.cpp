@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -463,6 +463,8 @@ int Commander::print_status()
 {
 	PX4_INFO("arming: %s", arming_state_names[_status.arming_state]);
 	PX4_INFO("navigation: %s", nav_state_names[_status.nav_state]);
+	perf_print_counter(_loop_perf);
+	perf_print_counter(_preflight_check_perf);
 	return 0;
 }
 
@@ -815,6 +817,12 @@ Commander::Commander() :
 
 	_vehicle_gps_position_valid.set_hysteresis_time_from(false, GPS_VALID_TIME);
 	_vehicle_gps_position_valid.set_hysteresis_time_from(true, GPS_VALID_TIME);
+}
+
+Commander::~Commander()
+{
+	perf_free(_loop_perf);
+	perf_free(_preflight_check_perf);
 }
 
 bool
@@ -1975,8 +1983,6 @@ Commander::run()
 
 	bool param_init_forced = true;
 
-	control_status_leds(true, _battery_warning);
-
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
 	_status.system_type = _param_mav_type.get();
 
@@ -2011,6 +2017,8 @@ Commander::run()
 				       false, true, hrt_elapsed_time(&_boot_timestamp));
 
 	while (!should_exit()) {
+
+		perf_begin(_loop_perf);
 
 		/* update parameters */
 		const bool params_updated = _parameter_update_sub.updated();
@@ -2348,8 +2356,6 @@ Commander::run()
 			_geofence_warning_action_on = false;
 		}
 
-		_cpuload_sub.update(&_cpuload);
-
 		if (_battery_status_subs.updated()) {
 			battery_status_check();
 		}
@@ -2548,7 +2554,8 @@ Commander::run()
 				send_parachute_command();
 			}
 
-			if (_counter % (1000000 / COMMANDER_MONITORING_INTERVAL) == 0) {
+			if (hrt_elapsed_time(&_last_termination_message_sent) > 4_s) {
+				_last_termination_message_sent = hrt_absolute_time();
 				mavlink_log_critical(&_mavlink_log_pub, "Flight termination active\t");
 				events::send(events::ID("commander_mission_termination_active"), {events::Log::Alert, events::LogInternal::Warning},
 					     "Flight termination active");
@@ -2959,8 +2966,10 @@ Commander::run()
 
 			// Evaluate current prearm status
 			if (!_armed.armed && !_status_flags.calibration_enabled) {
+				perf_begin(_preflight_check_perf);
 				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, _vehicle_control_mode,
 							   false, true, hrt_elapsed_time(&_boot_timestamp));
+				perf_end(_preflight_check_perf);
 
 				// skip arm authorization check until actual arming attempt
 				PreFlightCheck::arm_requirements_t arm_req = _arm_requirements;
@@ -3039,22 +3048,6 @@ Commander::run()
 			_status_changed = true;
 		}
 
-		_counter++;
-
-		int blink_state = blink_msg_state();
-
-		if (blink_state > 0) {
-			/* blinking LED message, don't touch LEDs */
-			if (blink_state == 2) {
-				/* blinking LED message completed, restore normal state */
-				control_status_leds(true, _battery_warning);
-			}
-
-		} else {
-			/* normal state */
-			control_status_leds(_status_changed, _battery_warning);
-		}
-
 		// check if the worker has finished
 		if (_worker_thread.hasResult()) {
 			int ret = _worker_thread.getResultAndReset();
@@ -3072,6 +3065,8 @@ Commander::run()
 			}
 		}
 
+		control_status_leds(_status_changed, _battery_warning);
+
 		_status_changed = false;
 
 		/* store last position lock state */
@@ -3084,6 +3079,8 @@ Commander::run()
 		arm_auth_update(now, params_updated || param_init_forced);
 
 		px4_indicate_external_reset_lockout(LockoutComponent::Commander, _armed.armed);
+
+		perf_end(_loop_perf);
 
 		// sleep if there are no vehicle_commands or action_requests to process
 		if (!_vehicle_command_sub.updated() && !_action_request_sub.updated()) {
@@ -3117,17 +3114,41 @@ Commander::get_circuit_breaker_params()
 			CBRK_VTOLARMING_KEY);
 }
 
-void
-Commander::control_status_leds(bool changed, const uint8_t battery_warning)
+void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 {
-	bool overload = (_cpuload.load > 0.95f) || (_cpuload.ram_usage > 0.98f);
+	switch (blink_msg_state()) {
+	case 1:
+		// blinking LED message, don't touch LEDs
+		return;
 
-	if (_overload_start == 0 && overload) {
-		_overload_start = hrt_absolute_time();
+	case 2:
+		// blinking LED message completed, restore normal state
+		changed = true;
+		break;
 
-	} else if (!overload) {
-		_overload_start = 0;
+	default:
+		break;
 	}
+
+	const hrt_abstime time_now_us = hrt_absolute_time();
+
+	if (_cpuload_sub.updated()) {
+		cpuload_s cpuload;
+
+		if (_cpuload_sub.copy(&cpuload)) {
+
+			bool overload = (cpuload.load > 0.95f) || (cpuload.ram_usage > 0.98f);
+
+			if (_overload_start == 0 && overload) {
+				_overload_start = time_now_us;
+
+			} else if (!overload) {
+				_overload_start = 0;
+			}
+		}
+	}
+
+	const bool overload = (_overload_start != 0);
 
 	// driving the RGB led
 	if (changed || _last_overload != overload) {
@@ -3137,8 +3158,8 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 
 		uint64_t overload_warn_delay = (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1_ms : 250_ms;
 
-		/* set mode */
-		if (overload && (hrt_elapsed_time(&_overload_start) > overload_warn_delay)) {
+		// set mode
+		if (overload && (time_now_us >= _overload_start + overload_warn_delay)) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_PURPLE;
 
@@ -3162,13 +3183,14 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			// if in init status it should not be in the error state
 			led_mode = led_control_s::MODE_OFF;
 
-		} else {	// STANDBY_ERROR and other states
+		} else {
+			// STANDBY_ERROR and other states
 			led_mode = led_control_s::MODE_BLINK_NORMAL;
 			led_color = led_control_s::COLOR_RED;
 		}
 
 		if (set_normal_color) {
-			/* set color */
+			// set color
 			if (_status.failsafe) {
 				led_color = led_control_s::COLOR_PURPLE;
 
@@ -3197,52 +3219,53 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 
 #if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 
-	/* this runs at around 20Hz, full cycle is 16 ticks = 10/16Hz */
 	if (_armed.armed) {
 		if (_status.failsafe) {
 			BOARD_ARMED_LED_OFF();
 
-			if (_leds_counter % 5 == 0) {
+			if (time_now_us >= _led_armed_state_toggle + 250_ms) {
+				_led_armed_state_toggle = time_now_us;
 				BOARD_ARMED_STATE_LED_TOGGLE();
 			}
 
 		} else {
 			BOARD_ARMED_STATE_LED_OFF();
 
-			/* armed, solid */
+			// armed, solid
 			BOARD_ARMED_LED_ON();
 		}
 
 	} else if (_armed.ready_to_arm) {
 		BOARD_ARMED_LED_OFF();
 
-		/* ready to arm, blink at 1Hz */
-		if (_leds_counter % 20 == 0) {
+		// ready to arm, blink at 1Hz
+		if (time_now_us >= _led_armed_state_toggle + 1_s) {
+			_led_armed_state_toggle = time_now_us;
 			BOARD_ARMED_STATE_LED_TOGGLE();
 		}
 
 	} else {
 		BOARD_ARMED_LED_OFF();
 
-		/* not ready to arm, blink at 10Hz */
-		if (_leds_counter % 2 == 0) {
+		// not ready to arm, blink at 10Hz
+		if (time_now_us >= _led_armed_state_toggle + 100_ms) {
+			_led_armed_state_toggle = time_now_us;
 			BOARD_ARMED_STATE_LED_TOGGLE();
 		}
 	}
 
 #endif
 
-	/* give system warnings on error LED */
+	// give system warnings on error LED
 	if (overload) {
-		if (_leds_counter % 2 == 0) {
+		if (time_now_us >= _led_overload_toggle + 50_ms) {
+			_led_overload_toggle = time_now_us;
 			BOARD_OVERLOAD_LED_TOGGLE();
 		}
 
 	} else {
 		BOARD_OVERLOAD_LED_OFF();
 	}
-
-	_leds_counter++;
 }
 
 bool Commander::check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
