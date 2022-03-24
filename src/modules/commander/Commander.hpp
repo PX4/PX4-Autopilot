@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,6 +42,7 @@
 #include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 
@@ -100,6 +101,7 @@ class Commander : public ModuleBase<Commander>, public ModuleParams
 {
 public:
 	Commander();
+	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -358,8 +360,6 @@ private:
 
 	bool		_last_overload{false};
 
-	unsigned int	_leds_counter{0};
-
 	hrt_abstime	_last_valid_manual_control_setpoint{0};
 
 	bool		_is_throttle_above_center{false};
@@ -370,7 +370,11 @@ private:
 	hrt_abstime	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
 	hrt_abstime	_overload_start{0};		///< time when CPU overload started
 
-	uint32_t	_counter{0};
+	hrt_abstime _led_armed_state_toggle{0};
+	hrt_abstime _led_overload_toggle{0};
+
+	hrt_abstime _last_termination_message_sent{0};
+
 	uint8_t		_heading_reset_counter{0};
 
 	bool		_status_changed{true};
@@ -381,7 +385,6 @@ private:
 	bool		_should_set_home_on_takeoff{true};
 	bool		_system_power_usb_connected{false};
 
-	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_vehicle_land_detected{};
 	safety_s		_safety{};
@@ -450,4 +453,7 @@ private:
 	uORB::Publication<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
+
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
 };
