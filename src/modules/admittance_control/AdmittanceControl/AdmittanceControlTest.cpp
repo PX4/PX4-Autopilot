@@ -151,7 +151,7 @@ TEST_F(AdmittanceControlBasicTest, BellTest)
 	_bell_params.K_min[0] = 1.f;
 	_bell_params.K_max[0] = 2.f;
 
-	_wrench(0) = (0.f);
+	_wrench(0) = (0.5f);
 	_wrench(1) = (1.f);
 
 	_admittance_control.initialize(_bell_params);
@@ -160,42 +160,42 @@ TEST_F(AdmittanceControlBasicTest, BellTest)
 	{
 	_admittance_control.update(_dt,_wrench,_actuator_output,0.f,q,_input_setpoint);
 	_output_setpoint = _admittance_control.getSetpoints();
-	// printf("x : %.6f\n",(double) _output_setpoint.x);
+	printf("x : %.6f\n",(double) _output_setpoint.x);
 	// printf("y : %.6f\n",(double) _output_setpoint.y);
 	}
 
-	_wrench(0) = -0.3f;
-	_wrench(1) = 0.f;
-	_wrench(2) = -30.f;
-	_wrench(3) = 0.01f;
+	// _wrench(0) = -0.3f;
+	// _wrench(1) = 0.f;
+	// _wrench(2) = -30.f;
+	// _wrench(3) = 0.01f;
 
-		printf("x : %.6f\n",(double) _wrench(0));
-		printf("y : %.6f\n",(double) _wrench(1));
-		printf("z : %.6f\n",(double) _wrench(2));
-		printf("yaw : %.6f\n",(double) _wrench(3));
+	// 	printf("x : %.6f\n",(double) _wrench(0));
+	// 	printf("y : %.6f\n",(double) _wrench(1));
+	// 	printf("z : %.6f\n",(double) _wrench(2));
+	// 	printf("yaw : %.6f\n",(double) _wrench(3));
 
-	//Saturate
-	_wrench(0) = math::constrain(_wrench(0), -2.5f, 2.5f);
-	_wrench(1) = math::constrain(_wrench(1), -2.5f, 2.5f);
-	_wrench(2) = math::constrain(_wrench(2), -15.f, 15.f);
-	_wrench(3) = math::constrain(_wrench(3), -0.5f, 0.5f);
+	// //Saturate
+	// _wrench(0) = math::constrain(_wrench(0), -2.5f, 2.5f);
+	// _wrench(1) = math::constrain(_wrench(1), -2.5f, 2.5f);
+	// _wrench(2) = math::constrain(_wrench(2), -15.f, 15.f);
+	// _wrench(3) = math::constrain(_wrench(3), -0.5f, 0.5f);
 
-		printf("x constraint : %.6f\n",(double) _wrench(0));
-		printf("y constraint : %.6f\n",(double) _wrench(1));
-		printf("z constraint : %.6f\n",(double) _wrench(2));
-		printf("yaw constraint : %.6f\n",(double) _wrench(3));
+	// 	printf("x constraint : %.6f\n",(double) _wrench(0));
+	// 	printf("y constraint : %.6f\n",(double) _wrench(1));
+	// 	printf("z constraint : %.6f\n",(double) _wrench(2));
+	// 	printf("yaw constraint : %.6f\n",(double) _wrench(3));
 
-		//Deadzone
-		_wrench(0) = (abs(_wrench(0)) > 0.25f) ? (_wrench(0)) : (0.f);
-		_wrench(1) = (abs(_wrench(1)) > 0.2f) ? (_wrench(1)) : (0.f);
-		_wrench(2) = (abs(_wrench(2)) > 0.2f) ? (_wrench(2)) : (0.f);
-		_wrench(3) = (abs(_wrench(3)) > 0.035f) ? (_wrench(3)) : (0.f);
+	// 	//Deadzone
+	// 	_wrench(0) = (abs(_wrench(0)) > 0.25f) ? (_wrench(0)) : (0.f);
+	// 	_wrench(1) = (abs(_wrench(1)) > 0.2f) ? (_wrench(1)) : (0.f);
+	// 	_wrench(2) = (abs(_wrench(2)) > 0.2f) ? (_wrench(2)) : (0.f);
+	// 	_wrench(3) = (abs(_wrench(3)) > 0.035f) ? (_wrench(3)) : (0.f);
 
 
-		printf("x dz: %.6f\n",(double) _wrench(0));
-		printf("y dz: %.6f\n",(double) _wrench(1));
-		printf("z dz: %.6f\n",(double) _wrench(2));
-		printf("yaw dz: %.6f\n",(double) _wrench(3));
+	// 	printf("x dz: %.6f\n",(double) _wrench(0));
+	// 	printf("y dz: %.6f\n",(double) _wrench(1));
+	// 	printf("z dz: %.6f\n",(double) _wrench(2));
+	// 	printf("yaw dz: %.6f\n",(double) _wrench(3));
 
 	EXPECT_EQ(0,cosf(-M_PI/4));
 

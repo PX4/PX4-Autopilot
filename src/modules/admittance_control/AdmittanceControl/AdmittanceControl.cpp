@@ -84,10 +84,10 @@ void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, cons
 	a[2] = _params_bell.A[2] - _sat_factor;
 	a[3] = _params_bell.A[3] - _sat_factor;
 
-	b[0] = _params_bell.B1[0] - (_params_bell.B2[0] * exp(-_params_bell.B3[0] * target_dist));
-	b[1] = _params_bell.B1[1] - (_params_bell.B2[1] * exp(-_params_bell.B3[1] * target_dist));
-	b[2] = _params_bell.B1[2] - (_params_bell.B2[2] * exp(-_params_bell.B3[2] * target_dist));
-	b[3] = _params_bell.B1[3] - (_params_bell.B2[3] * exp(-_params_bell.B3[3] * target_dist));
+	b[0] = _params_bell.B1[0] - (_params_bell.B2[0] * expf(-_params_bell.B3[0] * target_dist));
+	b[1] = _params_bell.B1[1] - (_params_bell.B2[1] * expf(-_params_bell.B3[1] * target_dist));
+	b[2] = _params_bell.B1[2] - (_params_bell.B2[2] * expf(-_params_bell.B3[2] * target_dist));
+	b[3] = _params_bell.B1[3] - (_params_bell.B2[3] * expf(-_params_bell.B3[3] * target_dist));
 
 	Vector3f pos_sp(setpoint.x,setpoint.y,setpoint.z);
 	Vector3f vel_sp(setpoint.vx,setpoint.vy,setpoint.vz);
@@ -98,20 +98,20 @@ void AdmittanceControl::update(const float &dt, const Vector<float, 4> &We, cons
 	vel_sp = q.conjugate_inversed(vel_sp);
 	acc_sp = q.conjugate_inversed(acc_sp);
 
-	_params.M[0] = (_params_bell.M_min[0] + ((_params_bell.M_max[0] - _params_bell.M_min[0]) / (1 + pow(abs((_We(0)) / (a[0])), (2 * b[0])))));
-	_params.M[1] = (_params_bell.M_min[1] + ((_params_bell.M_max[1] - _params_bell.M_min[1]) / (1 + pow(abs((_We(1)) / (a[1])), (2 * b[1])))));
-	_params.M[2] = (_params_bell.M_min[2] + ((_params_bell.M_max[2] - _params_bell.M_min[2]) / (1 + pow(abs((_We(2)) / (a[2])), (2 * b[2])))));
-	_params.M[3] = (_params_bell.M_min[3] + ((_params_bell.M_max[3] - _params_bell.M_min[3]) / (1 + pow(abs((_We(3)) / (a[3])), (2 * b[3])))));
+	_params.M[0] = (_params_bell.M_min[0] + ((_params_bell.M_max[0] - _params_bell.M_min[0]) / (1.f + powf(fabsf((_We(0)) / (a[0])), (2.f * b[0])))));
+	_params.M[1] = (_params_bell.M_min[1] + ((_params_bell.M_max[1] - _params_bell.M_min[1]) / (1.f + powf(fabsf((_We(1)) / (a[1])), (2.f * b[1])))));
+	_params.M[2] = (_params_bell.M_min[2] + ((_params_bell.M_max[2] - _params_bell.M_min[2]) / (1.f + powf(fabsf((_We(2)) / (a[2])), (2.f * b[2])))));
+	_params.M[3] = (_params_bell.M_min[3] + ((_params_bell.M_max[3] - _params_bell.M_min[3]) / (1.f + powf(fabsf((_We(3)) / (a[3])), (2.f * b[3])))));
 
-	_params.K[0] = (_params_bell.K_min[0] + ((_params_bell.K_max[0] - _params_bell.K_min[0]) / (1 + pow(abs((_We(0)) / (a[0])), (2 * b[0])))));
-	_params.K[1] = (_params_bell.K_min[1] + ((_params_bell.K_max[1] - _params_bell.K_min[1]) / (1 + pow(abs((_We(1)) / (a[1])), (2 * b[1])))));
-	_params.K[2] = (_params_bell.K_min[2] + ((_params_bell.K_max[2] - _params_bell.K_min[2]) / (1 + pow(abs((_We(2)) / (a[2])), (2 * b[2])))));
-	_params.K[3] = (_params_bell.K_min[3] + ((_params_bell.K_max[3] - _params_bell.K_min[3]) / (1 + pow(abs((_We(3)) / (a[3])), (2 * b[3])))));
+	_params.K[0] = (_params_bell.K_min[0] + ((_params_bell.K_max[0] - _params_bell.K_min[0]) / (1.f + powf(fabsf((_We(0)) / (a[0])), (2.f * b[0])))));
+	_params.K[1] = (_params_bell.K_min[1] + ((_params_bell.K_max[1] - _params_bell.K_min[1]) / (1.f + powf(fabsf((_We(1)) / (a[1])), (2.f * b[1])))));
+	_params.K[2] = (_params_bell.K_min[2] + ((_params_bell.K_max[2] - _params_bell.K_min[2]) / (1.f + powf(fabsf((_We(2)) / (a[2])), (2.f * b[2])))));
+	_params.K[3] = (_params_bell.K_min[3] + ((_params_bell.K_max[3] - _params_bell.K_min[3]) / (1.f + powf(fabsf((_We(3)) / (a[3])), (2.f * b[3])))));
 
-	_params.C[0] = 2 * sqrt(_params.K[0] * _params.M[0]);
-	_params.C[1] = 2 * sqrt(_params.K[1] * _params.M[1]);
-	_params.C[2] = 2 * sqrt(_params.K[2] * _params.M[2]);
-	_params.C[3] = 2 * sqrt(_params.K[3] * _params.M[3]);
+	_params.C[0] = 2.f * sqrtf(_params.K[0] * _params.M[0]);
+	_params.C[1] = 2.f * sqrtf(_params.K[1] * _params.M[1]);
+	_params.C[2] = 2.f * sqrtf(_params.K[2] * _params.M[2]);
+	_params.C[3] = 2.f * sqrtf(_params.K[3] * _params.M[3]);
 
 	_params.Fd[0] = (_params.M[0] * acc_sp(0)) + (_params.C[0] * vel_sp(0)) + (_params.K[0] * pos_sp(0));
 	_params.Fd[1] = (_params.M[1] * acc_sp(1)) + (_params.C[1] * vel_sp(1)) + (_params.K[1] * pos_sp(1));

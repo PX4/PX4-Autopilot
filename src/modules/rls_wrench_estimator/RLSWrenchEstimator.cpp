@@ -204,14 +204,14 @@ void RLSWrenchEstimator::Run()
 		_voltage = math::constrain(batt_stat.voltage_filtered_v, _param_n_cells.get() * 3.0f, _param_n_cells.get() * 4.2f);
 
 		float speed[8] = {
-			((actuator_outputs.output[0] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
-			((actuator_outputs.output[1] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
-			((actuator_outputs.output[2] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
-			((actuator_outputs.output[3] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
-			((actuator_outputs.output[4] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
-			((actuator_outputs.output[5] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
-			((actuator_outputs.output[6] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
-			((actuator_outputs.output[7] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrt(pow((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[0] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrtf(powf((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[1] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrtf(powf((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[2] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrtf(powf((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[3] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrtf(powf((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[4] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrtf(powf((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[5] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrtf(powf((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[6] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrtf(powf((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
+			((actuator_outputs.output[7] * _param_rls_speed_p1.get()) - _param_rls_speed_p2.get()) * sqrtf(powf((_voltage / _param_rls_speed_v1.get()),_param_rls_speed_v2.get())),
 		};
 
 		const matrix::Vector<float, 8> output =  matrix::Vector<float, 8>(speed);
