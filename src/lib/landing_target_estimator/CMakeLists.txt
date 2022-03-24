@@ -31,14 +31,14 @@
 #
 ############################################################################
 
-px4_add_library(LandingTargetEstimator
-	LandingTargetEstimator.cpp
-	KalmanFilter.cpp
-)
+px4_add_module(
+	MODULE modules__landing_target_estimator
+	MAIN landing_target_estimator
+	COMPILE_FLAGS
+	SRCS
+		landing_target_estimator_main.cpp
+		LandingTargetEstimator.cpp
+		KalmanFilter.cpp
+	DEPENDS
+	)
 
-target_compile_options(LandingTargetEstimator PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
-
-target_link_libraries(LandingTargetEstimator
-	PUBLIC
-	px4_work_queue
-)
