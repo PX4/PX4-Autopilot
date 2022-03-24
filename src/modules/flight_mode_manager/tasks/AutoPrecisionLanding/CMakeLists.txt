@@ -32,16 +32,8 @@
 ############################################################################
 
 px4_add_library(FlightTaskAutoPrecisionLanding
-	FlightTaskAutoPrecisionLanding.cpp
+FlightTaskAutoPrecisionLanding.cpp
 )
 
-target_link_libraries(FlightTaskAutoPrecisionLanding
-	PUBLIC
-	FlightTaskAuto
-	LandingTargetEstimator
-)
-
-target_include_directories(FlightTaskAutoPrecisionLanding
-	PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}
-)
+target_link_libraries(FlightTaskAutoPrecisionLanding PUBLIC FlightTaskAuto)
+target_include_directories(FlightTaskAutoPrecisionLanding PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -45,16 +45,6 @@
 
 static constexpr const char *LOST_TARGET_ERROR_MESSAGE = "Lost landing target while landing";
 
-FlightTaskAutoPrecisionLanding::FlightTaskAutoPrecisionLanding()
-{
-	_landing_target_estimator.Start();
-}
-
-FlightTaskAutoPrecisionLanding::~FlightTaskAutoPrecisionLanding()
-{
-	_landing_target_estimator.Stop();
-}
-
 bool FlightTaskAutoPrecisionLanding::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);

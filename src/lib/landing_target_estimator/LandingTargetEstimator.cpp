@@ -50,9 +50,7 @@
 namespace landing_target_estimator
 {
 
-LandingTargetEstimator::LandingTargetEstimator() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
+LandingTargetEstimator::LandingTargetEstimator()
 {
 	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
 	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
@@ -65,54 +63,7 @@ LandingTargetEstimator::LandingTargetEstimator() :
 	_paramHandle.offset_x = param_find("LTEST_SENS_POS_X");
 	_paramHandle.offset_y = param_find("LTEST_SENS_POS_Y");
 	_paramHandle.offset_z = param_find("LTEST_SENS_POS_Z");
-}
-
-LandingTargetEstimator::~LandingTargetEstimator()
-{
-	Stop();
-}
-
-bool LandingTargetEstimator::Start()
-{
-	// force initialize parameters update
 	_check_params(true);
-
-	// messages needed for estimation
-	if (!_vehicleLocalPositionSub.registerCallback()) {
-		PX4_ERR("landing_target_estimator callback registration failed");
-	}
-
-	if (!_attitudeSub.registerCallback()) {
-		PX4_ERR("landing_target_estimator callback registration failed");
-	}
-
-	if (!_vehicle_acceleration_sub.registerCallback()) {
-		PX4_ERR("landing_target_estimator callback registration failed");
-	}
-
-	if (!_irlockReportSub.registerCallback()) {
-		PX4_ERR("landing_target_estimator callback registration failed");
-	}
-
-	return true;
-}
-
-void LandingTargetEstimator::Stop()
-{
-	// clear all registered callbacks
-	_vehicleLocalPositionSub.unregisterCallback();
-	_attitudeSub.unregisterCallback();
-	_vehicle_acceleration_sub.unregisterCallback();
-	_irlockReportSub.unregisterCallback();
-
-	Deinit();
-}
-
-void LandingTargetEstimator::Run()
-{
-	ScheduleDelayed(10_ms);
-
-	update();
 }
 
 void LandingTargetEstimator::update()
