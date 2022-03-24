@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,7 +62,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("cpuload");
 	add_optional_topic("esc_status", 250);
 	add_topic("failure_detector_status", 100);
-	add_topic("follow_target", 500);
+	add_optional_topic("follow_target", 500);
 	add_optional_topic("generator_status");
 	add_optional_topic("gps_dump");
 	add_optional_topic("heater_status");
@@ -70,6 +70,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("hover_thrust_estimate", 100);
 	add_topic("input_rc", 500);
 	add_optional_topic("internal_combustion_engine_status", 10);
+	add_optional_topic("irlock_report", 1000);
+	add_optional_topic("landing_target_pose", 1000);
 	add_optional_topic("magnetometer_bias_estimate", 200);
 	add_topic("manual_control_setpoint", 200);
 	add_topic("manual_control_switches");
@@ -118,10 +120,10 @@ void LoggedTopics::add_default_topics()
 
 	// multi topics
 	add_optional_topic_multi("actuator_outputs", 100, 3);
-	add_topic_multi("airspeed_wind", 1000, 4);
-	add_topic_multi("control_allocator_status", 200, 2);
+	add_optional_topic_multi("airspeed_wind", 1000, 4);
+	add_optional_topic_multi("control_allocator_status", 200, 2);
 	add_optional_topic_multi("rate_ctrl_status", 200, 2);
-	add_topic_multi("sensor_hygrometer", 500, 4);
+	add_optional_topic_multi("sensor_hygrometer", 500, 4);
 	add_optional_topic_multi("rpm", 200);
 	add_optional_topic_multi("telemetry_status", 1000, 4);
 
@@ -130,7 +132,7 @@ void LoggedTopics::add_default_topics()
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 1;
 #else
 	static constexpr uint8_t MAX_ESTIMATOR_INSTANCES = 6; // artificially limited until PlotJuggler fixed
-	add_topic("estimator_selector_status");
+	add_optional_topic("estimator_selector_status");
 	add_optional_topic_multi("estimator_attitude", 500, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_global_position", 1000, MAX_ESTIMATOR_INSTANCES);
 	add_optional_topic_multi("estimator_local_position", 500, MAX_ESTIMATOR_INSTANCES);
@@ -438,7 +440,7 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 				if (_subscriptions.sub[j].id == static_cast<ORB_ID>(topics[i]->o_id) &&
 				    _subscriptions.sub[j].instance == instance) {
 
-					PX4_DEBUG("logging topic %s(%" PRUu8 "), interval: %" PRUu16 ", already added, only setting interval",
+					PX4_DEBUG("logging topic %s(%" PRIu8 "), interval: %" PRIu16 ", already added, only setting interval",
 						  topics[i]->o_name, instance, interval_ms);
 
 					_subscriptions.sub[j].interval_ms = interval_ms;
@@ -450,7 +452,11 @@ bool LoggedTopics::add_topic(const char *name, uint16_t interval_ms, uint8_t ins
 
 			if (!already_added) {
 				success = add_topic(topics[i], interval_ms, instance, optional);
-				PX4_DEBUG("logging topic: %s(%" PRUu8 "), interval: %" PRUu16, topics[i]->o_name, instance, interval_ms);
+
+				if (success) {
+					PX4_DEBUG("logging topic: %s(%" PRIu8 "), interval: %" PRIu16, topics[i]->o_name, instance, interval_ms);
+				}
+
 				break;
 			}
 		}

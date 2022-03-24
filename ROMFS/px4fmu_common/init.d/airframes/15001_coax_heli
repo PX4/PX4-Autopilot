@@ -17,7 +17,9 @@
 #
 
 . ${R}etc/init.d/rc.mc_defaults
-set MIXER coax
+
+# MAV_TYPE_COAXIAL 3
+param set-default MAV_TYPE 3
 
 param set-default MC_ROLLRATE_P 0.17
 param set-default MC_ROLLRATE_I 0.05
@@ -36,6 +38,9 @@ param set-default PWM_MAIN_RATE 400
 
 param set-default RTL_RETURN_ALT 30
 param set-default RTL_DESCEND_ALT 10
+
+set MIXER coax
+
 # This is the gimbal pass mixer
 set MIXER_AUX pass
 

@@ -36,6 +36,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
+#include <lib/sensor_calibration/Utilities.hpp>
 
 namespace sensors
 {
@@ -55,6 +56,20 @@ VehicleMagnetometer::VehicleMagnetometer() :
 	_voter.set_equal_value_threshold(1000);
 
 	ParametersUpdate(true);
+
+	_vehicle_magnetometer_pub[0].advertise();
+	_sensor_preflight_mag_pub.advertise();
+
+	// if publishing multiple mags advertise instances immediately for existing calibrations
+	if (!_param_sens_mag_mode.get()) {
+		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+			uint32_t device_id_mag = calibration::GetCalibrationParamInt32("MAG", "ID", i);
+
+			if (device_id_mag != 0) {
+				_vehicle_magnetometer_pub[i].advertise();
+			}
+		}
+	}
 }
 
 VehicleMagnetometer::~VehicleMagnetometer()
@@ -194,7 +209,6 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 						const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
 
 						if (_calibration[mag_index].set_offset(offset)) {
-							_calibration[mag_index].set_temperature(_last_data[mag_index].temperature);
 
 							// save parameters with preferred calibration slot to current sensor index
 							_calibration[mag_index].ParametersSave(mag_index);
@@ -253,7 +267,6 @@ void VehicleMagnetometer::UpdateMagCalibration()
 									     _calibration_estimator_bias[mag_index];
 
 							_mag_cal[i].variance = bias_variance;
-							_mag_cal[i].temperature = _last_data[mag_index].temperature;
 
 							_in_flight_mag_cal_available = true;
 							break;
@@ -297,8 +310,6 @@ void VehicleMagnetometer::UpdateMagCalibration()
 							 (double)mag_cal_orig(0), (double)mag_cal_orig(1), (double)mag_cal_orig(2),
 							 (double)mag_cal_offset(0), (double)mag_cal_offset(1), (double)mag_cal_offset(2),
 							 (double)_mag_cal[i].offset(0), (double)_mag_cal[i].offset(1), (double)_mag_cal[i].offset(2));
-
-						_calibration[mag_index].set_temperature(_last_data[mag_index].temperature);
 
 						_calibration[mag_index].ParametersSave();
 
@@ -551,7 +562,7 @@ void VehicleMagnetometer::Run()
 	UpdateMagCalibration();
 
 	// reschedule timeout
-	ScheduleDelayed(40_ms);
+	ScheduleDelayed(50_ms);
 
 	perf_end(_cycle_perf);
 }

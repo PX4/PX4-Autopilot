@@ -24,8 +24,6 @@
 
 set MIXER quad_s250aq
 
-set MAV_TYPE 2
-
 param set-default ATT_BIAS_MAX 0
 
 param set-default CBRK_IO_SAFETY 22027

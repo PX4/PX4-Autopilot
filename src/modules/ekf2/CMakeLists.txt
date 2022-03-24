@@ -42,6 +42,8 @@ px4_add_module(
 		#-DDEBUG_BUILD
 	INCLUDES
 		EKF
+	PRIORITY
+		"SCHED_PRIORITY_MAX - 18" # max priority below high priority WQ threads
 	STACK_MAX
 		3600
 	SRCS
@@ -69,6 +71,7 @@ px4_add_module(
 		EKF/terrain_estimator.cpp
 		EKF/utils.cpp
 		EKF/vel_pos_fusion.cpp
+		EKF/zero_velocity_update.cpp
 
 		EKF2.cpp
 		EKF2.hpp

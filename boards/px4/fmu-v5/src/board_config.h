@@ -49,6 +49,11 @@
 
 #include <stm32_gpio.h>
 
+#if !defined(CONFIG_BUILD_FLAT)
+#include <sys/boardctl.h>
+#include <px4_platform/board_ctrl.h>
+#endif
+
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
@@ -211,8 +216,26 @@
 #define GPIO_nARMED_INIT     /* PI0 */  (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTI|GPIO_PIN0)
 #define GPIO_nARMED          /* PI0 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTI|GPIO_PIN0)
 
+/* For protected build, define the LOCKOUT_STATE macros as function calls */
+#ifdef CONFIG_BUILD_FLAT
 #define BOARD_INDICATE_EXTERNAL_LOCKOUT_STATE(enabled)  px4_arch_configgpio((enabled) ? GPIO_nARMED : GPIO_nARMED_INIT)
 #define BOARD_GET_EXTERNAL_LOCKOUT_STATE() px4_arch_gpioread(GPIO_nARMED)
+#else
+static inline void board_indicate_external_lockout_state(bool enable)
+{
+	platformioclockoutstate_t state = {enable};
+	boardctl(PLATFORMIOCINDICATELOCKOUT, (uintptr_t)&state);
+}
+
+static inline bool board_get_external_lockout_state(void)
+{
+	platformioclockoutstate_t state = {false};
+	boardctl(PLATFORMIOCGETLOCKOUT, (uintptr_t)&state);
+	return state.enabled;
+}
+#define BOARD_INDICATE_EXTERNAL_LOCKOUT_STATE(enabled) board_indicate_external_lockout_state(enabled)
+#define BOARD_GET_EXTERNAL_LOCKOUT_STATE() board_get_external_lockout_state()
+#endif
 
 /* PWM
  */

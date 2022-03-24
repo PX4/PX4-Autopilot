@@ -24,6 +24,14 @@ serial_config:
         then
             set MAV_ARGS "${MAV_ARGS} -s"
         fi
+        if param compare MAV_${i}_FLOW_CTRL 0
+        then
+            set MAV_ARGS "${MAV_ARGS} -Z"
+        fi
+        if param compare MAV_${i}_FLOW_CTRL 1
+        then
+            set MAV_ARGS "${MAV_ARGS} -z"
+        fi
         mavlink start ${MAV_ARGS} -x
       port_config_param:
         name: MAV_${i}_CONFIG
@@ -73,7 +81,7 @@ parameters:
                     each stream is automatically decreased.
 
                     If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
-                    This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on 
+                    This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on
                     8N1-configured links).
 
             type: int32
@@ -116,7 +124,7 @@ parameters:
             description:
                 short: MAVLink Network Port for instance ${i}
                 long: |
-                    If ethernet enabled and selected as configuration for MAVLink instance ${i}, 
+                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
                     selected udp port will be set and used in MAVLink instance ${i}.
 
             type: int32
@@ -129,7 +137,7 @@ parameters:
             description:
                 short: MAVLink Remote Port for instance ${i}
                 long: |
-                    If ethernet enabled and selected as configuration for MAVLink instance ${i}, 
+                    If ethernet enabled and selected as configuration for MAVLink instance ${i},
                     selected remote port will be set and used in MAVLink instance ${i}.
 
             type: int32
@@ -142,14 +150,29 @@ parameters:
             description:
                 short: Broadcast heartbeats on local network for MAVLink instance ${i}
                 long: |
-                    This allows a ground control station to automatically find the drone 
+                    This allows a ground control station to automatically find the drone
                     on the local network.
 
             type: enum
             values:
                 0: Never broadcast
                 1: Always broadcast
-                2: Only multicast        
+                2: Only multicast
             num_instances: *max_num_config_instances
             default: [1, 0, 0]
             requires_ethernet: true
+
+        MAV_${i}_FLOW_CTRL:
+            description:
+                short: Enable serial flow control for instance ${i}
+                long: |
+                    This is used to force flow control on or off for the the mavlink
+                    instance. By default it is auto detected. Use when auto detction fails.
+
+            type: enum
+            values:
+                0: Force off
+                1: Force on
+                2: Auto-detected
+            num_instances: *max_num_config_instances
+            default: [2, 2, 2]

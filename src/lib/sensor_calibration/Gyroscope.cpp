@@ -192,16 +192,6 @@ bool Gyroscope::ParametersLoad()
 			_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 		}
 
-		// CAL_GYROx_TEMP
-		float cal_temp = GetCalibrationParamFloat(SensorString(), "TEMP", _calibration_index);
-
-		if (cal_temp > TEMPERATURE_INVALID) {
-			set_temperature(cal_temp);
-
-		} else {
-			set_temperature(NAN);
-		}
-
 		// CAL_GYROx_OFF{X,Y,Z}
 		set_offset(GetCalibrationParamsVector3f(SensorString(), "OFF", _calibration_index));
 
@@ -224,7 +214,6 @@ void Gyroscope::Reset()
 	_offset.zero();
 
 	_thermal_offset.zero();
-	_temperature = NAN;
 
 	_priority = _external ? DEFAULT_EXTERNAL_PRIORITY : DEFAULT_PRIORITY;
 
@@ -265,13 +254,6 @@ bool Gyroscope::ParametersSave(int desired_calibration_index, bool force)
 			success &= SetCalibrationParam(SensorString(), "ROT", _calibration_index, -1); // internal
 		}
 
-		if (PX4_ISFINITE(_temperature)) {
-			success &= SetCalibrationParam(SensorString(), "TEMP", _calibration_index, _temperature);
-
-		} else {
-			success &= SetCalibrationParam(SensorString(), "TEMP", _calibration_index, TEMPERATURE_INVALID);
-		}
-
 		return success;
 	}
 
@@ -282,17 +264,15 @@ void Gyroscope::PrintStatus()
 {
 	if (external()) {
 		PX4_INFO_RAW("%s %" PRIu32
-			     " EN: %d, offset: [%05.3f %05.3f %05.3f], %.1f degC, Ext ROT: %d\n",
+			     " EN: %d, offset: [%05.3f %05.3f %05.3f], Ext ROT: %d\n",
 			     SensorString(), device_id(), enabled(),
 			     (double)_offset(0), (double)_offset(1), (double)_offset(2),
-			     (double)_temperature,
 			     rotation_enum());
 
 	} else {
-		PX4_INFO_RAW("%s %" PRIu32 " EN: %d, offset: [%05.3f %05.3f %05.3f], %.1f degC, Internal\n",
+		PX4_INFO_RAW("%s %" PRIu32 " EN: %d, offset: [%05.3f %05.3f %05.3f], Internal\n",
 			     SensorString(), device_id(), enabled(),
-			     (double)_offset(0), (double)_offset(1), (double)_offset(2),
-			     (double)_temperature);
+			     (double)_offset(0), (double)_offset(1), (double)_offset(2));
 	}
 
 	if (_thermal_offset.norm() > 0.f) {

@@ -677,7 +677,8 @@ static constexpr const char *main_state_str(uint8_t main_state)
 transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks)
 {
 	// allow a grace period for re-arming: preflight checks don't need to pass during that time, for example for accidential in-air disarming
-	if (_param_com_rearm_grace.get() && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s)) {
+	if (calling_reason == arm_disarm_reason_t::rc_switch
+	    && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s)) {
 		run_preflight_checks = false;
 	}
 
@@ -715,7 +716,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		}
 
 		if ((_param_geofence_action.get() == geofence_result_s::GF_ACTION_RTL)
-		    && !_status_flags.condition_home_position_valid) {
+		    && !_status_flags.home_position_valid) {
 			mavlink_log_critical(&_mavlink_log_pub, "Arming denied: Geofence RTL requires valid home\t");
 			events::send(events::ID("commander_arm_denied_geofence_rtl"),
 			{events::Log::Critical, events::LogInternal::Info},
@@ -747,7 +748,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool forced)
 {
 	if (!forced) {
-		const bool landed = (_land_detector.landed || _land_detector.maybe_landed || is_ground_rover(_status));
+		const bool landed = (_vehicle_land_detected.landed || _vehicle_land_detected.maybe_landed || is_ground_rover(_status));
 		const bool mc_manual_thrust_mode = _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 						   && _vehicle_control_mode.flag_control_manual_enabled
 						   && !_vehicle_control_mode.flag_control_climb_rate_enabled;
@@ -790,10 +791,10 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_failure_detector(this)
 {
-	_land_detector.landed = true;
+	_vehicle_land_detected.landed = true;
 
 	// XXX for now just set sensors as initialized
-	_status_flags.condition_system_sensors_initialized = true;
+	_status_flags.system_sensors_initialized = true;
 
 	// We want to accept RC inputs as default
 	_status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
@@ -806,7 +807,7 @@ Commander::Commander() :
 
 	_status_flags.offboard_control_signal_lost = true;
 
-	_status_flags.condition_power_input_valid = true;
+	_status_flags.power_input_valid = true;
 	_status_flags.rc_calibration_valid = true;
 
 	// default for vtol is rotary wing
@@ -954,7 +955,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			}
 
 			if (desired_main_state != commander_state_s::MAIN_STATE_MAX) {
-				reset_posvel_validity();
 				main_ret = main_state_transition(_status, desired_main_state, _status_flags, _internal_state);
 			}
 
@@ -1094,7 +1094,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 							fillLocalHomePos(home, home_x, home_y, home_z, yaw);
 
 							/* mark home position as set */
-							_status_flags.condition_home_position_valid = _home_pub.update(home);
+							_status_flags.home_position_valid = _home_pub.update(home);
 
 							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1218,7 +1218,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 
 			// check if current mission and first item are valid
-			if (_status_flags.condition_auto_mission_available) {
+			if (_status_flags.auto_mission_available) {
 
 				// requested first mission item valid
 				if (PX4_ISFINITE(cmd.param1) && (cmd.param1 >= -1) && (cmd.param1 < _mission_result_sub.get().seq_total)) {
@@ -1368,7 +1368,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				if ((int)(cmd.param1) == 1) {
 					/* gyro calibration */
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_status_flags.condition_calibration_enabled = true;
+					_status_flags.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::GyroCalibration);
 
 				} else if ((int)(cmd.param1) == vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION ||
@@ -1380,7 +1380,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if ((int)(cmd.param2) == 1) {
 					/* magnetometer calibration */
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_status_flags.condition_calibration_enabled = true;
+					_status_flags.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::MagCalibration);
 
 				} else if ((int)(cmd.param3) == 1) {
@@ -1399,39 +1399,39 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				} else if ((int)(cmd.param4) == 2) {
 					/* RC trim calibration */
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_status_flags.condition_calibration_enabled = true;
+					_status_flags.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::RCTrimCalibration);
 
 				} else if ((int)(cmd.param5) == 1) {
 					/* accelerometer calibration */
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_status_flags.condition_calibration_enabled = true;
+					_status_flags.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AccelCalibration);
 
 				} else if ((int)(cmd.param5) == 2) {
 					// board offset calibration
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_status_flags.condition_calibration_enabled = true;
+					_status_flags.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::LevelCalibration);
 
 				} else if ((int)(cmd.param5) == 4) {
 					// accelerometer quick calibration
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_status_flags.condition_calibration_enabled = true;
+					_status_flags.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AccelCalibrationQuick);
 
 				} else if ((int)(cmd.param6) == 1 || (int)(cmd.param6) == 2) {
 					// TODO: param6 == 1 is deprecated, but we still accept it for a while (feb 2017)
 					/* airspeed calibration */
 					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-					_status_flags.condition_calibration_enabled = true;
+					_status_flags.calibration_enabled = true;
 					_worker_thread.startTask(WorkerThread::Request::AirspeedCalibration);
 
 				} else if ((int)(cmd.param7) == 1) {
 					/* do esc calibration */
 					if (check_battery_disconnected(&_mavlink_log_pub)) {
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-						_status_flags.condition_calibration_enabled = true;
+						_status_flags.calibration_enabled = true;
 						_armed.in_esc_calibration_mode = true;
 						_worker_thread.startTask(WorkerThread::Request::ESCCalibration);
 
@@ -1488,7 +1488,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 					}
 				}
 
-				_status_flags.condition_calibration_enabled = true;
+				_status_flags.calibration_enabled = true;
 				_worker_thread.setMagQuickData(heading_radians, latitude, longitude);
 				_worker_thread.startTask(WorkerThread::Request::MagCalibrationQuick);
 			}
@@ -1738,7 +1738,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 			const char kill_switch_string[] = "Kill-switch engaged\t";
 			events::LogLevels log_levels{events::Log::Info};
 
-			if (_land_detector.landed) {
+			if (_vehicle_land_detected.landed) {
 				mavlink_log_info(&_mavlink_log_pub, kill_switch_string);
 
 			} else {
@@ -1786,7 +1786,7 @@ Commander::set_home_position()
 	// Need global and local position fix to be able to set home
 	// but already set the home position in local coordinates if available
 	// in case the global position is only valid after takeoff
-	if (_param_com_home_en.get() && _status_flags.condition_local_position_valid) {
+	if (_param_com_home_en.get() && _status_flags.local_position_valid) {
 
 		// Set home position in local coordinates
 		const vehicle_local_position_s &lpos = _local_position_sub.get();
@@ -1797,7 +1797,7 @@ Commander::set_home_position()
 		home.manual_home = false;
 		fillLocalHomePos(home, lpos);
 
-		if (_status_flags.condition_global_position_valid) {
+		if (_status_flags.global_position_valid) {
 
 			const vehicle_global_position_s &gpos = _global_position_sub.get();
 
@@ -1811,15 +1811,15 @@ Commander::set_home_position()
 		_home_pub.update(home);
 	}
 
-	return _status_flags.condition_home_position_valid;
+	return _status_flags.home_position_valid;
 }
 
 bool
 Commander::set_in_air_home_position()
 {
 	if (_param_com_home_en.get()
-	    && _status_flags.condition_local_position_valid
-	    && _status_flags.condition_global_position_valid) {
+	    && _status_flags.local_position_valid
+	    && _status_flags.global_position_valid) {
 
 		const vehicle_global_position_s &gpos = _global_position_sub.get();
 		home_position_s home{};
@@ -1852,7 +1852,7 @@ Commander::set_in_air_home_position()
 		}
 	}
 
-	return _status_flags.condition_home_position_valid;
+	return _status_flags.home_position_valid;
 }
 
 bool
@@ -1896,12 +1896,12 @@ void Commander::fillGlobalHomePos(home_position_s &home, double lat, double lon,
 void Commander::setHomePosValid()
 {
 	// play tune first time we initialize HOME
-	if (!_status_flags.condition_home_position_valid) {
+	if (!_status_flags.home_position_valid) {
 		tune_home_set(true);
 	}
 
 	// mark home position as set
-	_status_flags.condition_home_position_valid = true;
+	_status_flags.home_position_valid = true;
 }
 
 bool
@@ -2136,10 +2136,10 @@ Commander::run()
 				    !system_power.brick_valid &&
 				    !system_power.usb_connected) {
 					/* flying only on servo rail, this is unsafe */
-					_status_flags.condition_power_input_valid = false;
+					_status_flags.power_input_valid = false;
 
 				} else {
-					_status_flags.condition_power_input_valid = true;
+					_status_flags.power_input_valid = true;
 				}
 
 				_system_power_usb_connected = system_power.usb_connected;
@@ -2147,36 +2147,29 @@ Commander::run()
 		}
 
 		/* Update land detector */
-		if (_land_detector_sub.updated()) {
-			const bool was_landed = _land_detector.landed;
-			_land_detector_sub.copy(&_land_detector);
+		if (_vehicle_land_detected_sub.updated()) {
+			const bool was_landed = _vehicle_land_detected.landed;
+			_vehicle_land_detected_sub.copy(&_vehicle_land_detected);
 
 			// Only take actions if armed
 			if (_armed.armed) {
-				if (!was_landed && _land_detector.landed) {
+				if (!was_landed && _vehicle_land_detected.landed) {
 					mavlink_log_info(&_mavlink_log_pub, "Landing detected\t");
 					events::send(events::ID("commander_landing_detected"), events::Log::Info, "Landing detected");
 					_status.takeoff_time = 0;
 
-				} else if (was_landed && !_land_detector.landed) {
+				} else if (was_landed && !_vehicle_land_detected.landed) {
 					mavlink_log_info(&_mavlink_log_pub, "Takeoff detected\t");
 					events::send(events::ID("commander_takeoff_detected"), events::Log::Info, "Takeoff detected");
 					_status.takeoff_time = hrt_absolute_time();
 					_have_taken_off_since_arming = true;
-
-					// Set all position and velocity test probation durations to takeoff value
-					// This is a larger value to give the vehicle time to complete a failsafe landing
-					// if faulty sensors cause loss of navigation shortly after takeoff.
-					_gpos_probation_time_us = _param_com_pos_fs_prob.get() * 1_s;
-					_lpos_probation_time_us = _param_com_pos_fs_prob.get() * 1_s;
-					_lvel_probation_time_us = _param_com_pos_fs_prob.get() * 1_s;
 				}
 
 				// automatically set or update home position
 				if (_param_com_home_en.get() && !_home_pub.get().manual_home) {
 					// set the home position when taking off, but only if we were previously disarmed
 					// and at least 500 ms from commander start spent to avoid setting home on in-air restart
-					if (_should_set_home_on_takeoff && !_land_detector.landed &&
+					if (_should_set_home_on_takeoff && !_vehicle_land_detected.landed &&
 					    (hrt_elapsed_time(&_boot_timestamp) > INAIR_RESTART_HOLDOFF_INTERVAL)) {
 						if (was_landed) {
 							_should_set_home_on_takeoff = !set_home_position();
@@ -2272,7 +2265,7 @@ Commander::run()
 
 		} else if (_param_escs_checks_required.get() != 0) {
 
-			if (!_status_flags.condition_escs_error) {
+			if (!_status_flags.escs_error) {
 
 				if ((_last_esc_status_updated != 0) && (hrt_elapsed_time(&_last_esc_status_updated) > 700_ms)) {
 					/* Detect timeout after first telemetry packet received
@@ -2282,14 +2275,14 @@ Commander::run()
 					mavlink_log_critical(&_mavlink_log_pub, "ESCs telemetry timeout\t");
 					events::send(events::ID("commander_esc_telemetry_timeout"), events::Log::Critical,
 						     "ESCs telemetry timeout");
-					_status_flags.condition_escs_error = true;
+					_status_flags.escs_error = true;
 
 				} else if (_last_esc_status_updated == 0 && hrt_elapsed_time(&_boot_timestamp) > 5000_ms) {
 					/* Detect if esc telemetry is not connected after reboot */
 					mavlink_log_critical(&_mavlink_log_pub, "ESCs telemetry not connected\t");
 					events::send(events::ID("commander_esc_telemetry_not_con"), events::Log::Critical,
 						     "ESCs telemetry not connected");
-					_status_flags.condition_escs_error = true;
+					_status_flags.escs_error = true;
 				}
 			}
 		}
@@ -2304,7 +2297,7 @@ Commander::run()
 
 				if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming) {
 					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
-					_auto_disarm_landed.set_state_and_update(_land_detector.landed, hrt_absolute_time());
+					_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
 
 				} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
 					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
@@ -2362,7 +2355,7 @@ Commander::run()
 		}
 
 		/* If in INIT state, try to proceed to STANDBY state */
-		if (!_status_flags.condition_calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
+		if (!_status_flags.calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
 			arming_state_transition(_status, _vehicle_control_mode, _safety, vehicle_status_s::ARMING_STATE_STANDBY, _armed,
 						true /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
@@ -2381,7 +2374,7 @@ Commander::run()
 			const bool mission_result_ok = (mission_result.timestamp > _boot_timestamp)
 						       && (mission_result.instance_count > 0);
 
-			_status_flags.condition_auto_mission_available = mission_result_ok && mission_result.valid;
+			_status_flags.auto_mission_available = mission_result_ok && mission_result.valid;
 
 			if (mission_result_ok) {
 				if (_status.mission_failure != mission_result.failure) {
@@ -2397,10 +2390,10 @@ Commander::run()
 				}
 
 				/* Only evaluate mission state if home is set */
-				if (_status_flags.condition_home_position_valid &&
+				if (_status_flags.home_position_valid &&
 				    (prev_mission_instance_count != mission_result.instance_count)) {
 
-					if (!_status_flags.condition_auto_mission_available) {
+					if (!_status_flags.auto_mission_available) {
 						/* the mission is invalid */
 						tune_mission_fail(true);
 
@@ -2416,13 +2409,13 @@ Commander::run()
 			}
 
 			// Transition main state to loiter or auto-mission after takeoff is completed.
-			if (_armed.armed && !_land_detector.landed
+			if (_armed.armed && !_vehicle_land_detected.landed
 			    && (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 				_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 			    && (mission_result.timestamp >= _status.nav_state_timestamp)
 			    && mission_result.finished) {
 
-				if ((_param_takeoff_finished_action.get() == 1) && _status_flags.condition_auto_mission_available) {
+				if ((_param_takeoff_finished_action.get() == 1) && _status_flags.auto_mission_available) {
 					main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_MISSION, _status_flags, _internal_state);
 
 				} else {
@@ -2710,7 +2703,7 @@ Commander::run()
 			 * we can as well just wait in a hold mode which enables tablet control.
 			 */
 			if (_status.rc_signal_lost && (_internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL)
-			    && _status_flags.condition_global_position_valid) {
+			    && _status_flags.global_position_valid) {
 
 				main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _status_flags, _internal_state);
 			}
@@ -2808,7 +2801,7 @@ Commander::run()
 		}
 
 		// Publish wind speed warning if enabled via parameter
-		if (_param_com_wind_warn.get() > FLT_EPSILON && !_land_detector.landed) {
+		if (_param_com_wind_warn.get() > FLT_EPSILON && !_vehicle_land_detected.landed) {
 			checkWindAndWarn();
 		}
 
@@ -2821,7 +2814,7 @@ Commander::run()
 
 			if (!_armed.armed) {
 				if (_home_pub.get().valid_lpos) {
-					if (_land_detector.landed && local_position.xy_valid && local_position.z_valid) {
+					if (_vehicle_land_detected.landed && local_position.xy_valid && local_position.z_valid) {
 						/* distance from home */
 						float home_dist_xy = -1.0f;
 						float home_dist_z = -1.0f;
@@ -2843,7 +2836,7 @@ Commander::run()
 					/* Set home position altitude to EKF origin height if home is not set and the EKF has a global origin.
 					 * This allows home altitude to be used in the calculation of height above takeoff location when GPS
 					 * use has commenced after takeoff. */
-					if (!_status_flags.condition_home_position_valid) {
+					if (!_status_flags.home_position_valid) {
 						set_home_position_alt_only();
 					}
 				}
@@ -2855,7 +2848,7 @@ Commander::run()
 			_status_changed = true;
 
 			if (_armed.armed) {
-				if (!_land_detector.landed) { // check if takeoff already detected upon arming
+				if (!_vehicle_land_detected.landed) { // check if takeoff already detected upon arming
 					_have_taken_off_since_arming = true;
 				}
 
@@ -2885,7 +2878,7 @@ Commander::run()
 						       _mission_result_sub.get().finished,
 						       _mission_result_sub.get().stay_in_failsafe,
 						       _status_flags,
-						       _land_detector.landed,
+						       _vehicle_land_detected.landed,
 						       static_cast<link_loss_actions_t>(_param_nav_rcl_act.get()),
 						       static_cast<offboard_loss_actions_t>(_param_com_obl_act.get()),
 						       static_cast<offboard_loss_rc_actions_t>(_param_com_obl_rc_act.get()),
@@ -2959,7 +2952,7 @@ Commander::run()
 			_commander_state_pub.publish(_internal_state);
 
 			// Evaluate current prearm status
-			if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
+			if (!_armed.armed && !_status_flags.calibration_enabled) {
 				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, _vehicle_control_mode,
 							   false, true, hrt_elapsed_time(&_boot_timestamp));
 
@@ -3030,10 +3023,10 @@ Commander::run()
 		}
 
 		/* play sensor failure tunes if we already waited for hotplug sensors to come up and failed */
-		_status_flags.condition_system_hotplug_timeout = (hrt_elapsed_time(&_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
+		_status_flags.system_hotplug_timeout = (hrt_elapsed_time(&_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
 
-		if (!sensor_fail_tune_played && (!_status_flags.condition_system_sensors_initialized
-						 && _status_flags.condition_system_hotplug_timeout)) {
+		if (!sensor_fail_tune_played && (!_status_flags.system_sensors_initialized
+						 && _status_flags.system_hotplug_timeout)) {
 
 			set_tune_override(tune_control_s::TUNE_ID_GPS_WARNING);
 			sensor_fail_tune_played = true;
@@ -3061,8 +3054,8 @@ Commander::run()
 			int ret = _worker_thread.getResultAndReset();
 			_armed.in_esc_calibration_mode = false;
 
-			if (_status_flags.condition_calibration_enabled) { // did we do a calibration?
-				_status_flags.condition_calibration_enabled = false;
+			if (_status_flags.calibration_enabled) { // did we do a calibration?
+				_status_flags.calibration_enabled = false;
 
 				if (ret == 0) {
 					tune_positive(true);
@@ -3076,9 +3069,9 @@ Commander::run()
 		_status_changed = false;
 
 		/* store last position lock state */
-		_last_condition_local_altitude_valid = _status_flags.condition_local_altitude_valid;
-		_last_condition_local_position_valid = _status_flags.condition_local_position_valid;
-		_last_condition_global_position_valid = _status_flags.condition_global_position_valid;
+		_last_local_altitude_valid = _status_flags.local_altitude_valid;
+		_last_local_position_valid = _status_flags.local_position_valid;
+		_last_global_position_valid = _status_flags.global_position_valid;
 
 		_was_armed = _armed.armed;
 
@@ -3144,7 +3137,7 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
-		} else if (!_status_flags.condition_system_sensors_initialized && _status_flags.condition_system_hotplug_timeout) {
+		} else if (!_status_flags.system_sensors_initialized && _status_flags.system_hotplug_timeout) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_RED;
 
@@ -3152,7 +3145,7 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 
-		} else if (!_status_flags.condition_system_sensors_initialized && !_status_flags.condition_system_hotplug_timeout) {
+		} else if (!_status_flags.system_sensors_initialized && !_status_flags.system_hotplug_timeout) {
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 
@@ -3177,7 +3170,7 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 				led_color = led_control_s::COLOR_RED;
 
 			} else {
-				if (_status_flags.condition_home_position_valid && _status_flags.condition_global_position_valid) {
+				if (_status_flags.home_position_valid && _status_flags.global_position_valid) {
 					led_color = led_control_s::COLOR_GREEN;
 
 				} else {
@@ -3243,46 +3236,21 @@ Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 	_leds_counter++;
 }
 
-void
-Commander::reset_posvel_validity()
-{
-	// reset all the check probation times back to the minimum value
-	_gpos_probation_time_us = POSVEL_PROBATION_MIN;
-	_lpos_probation_time_us = POSVEL_PROBATION_MIN;
-	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
-
-	// recheck validity (force update)
-	estimator_check(true);
-}
-
-bool
-Commander::check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
-				 const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us,
-				 const bool was_valid)
+bool Commander::check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
+				      const hrt_abstime &data_timestamp_us, hrt_abstime &last_fail_time_us,
+				      const bool was_valid)
 {
 	bool valid = was_valid;
-
-	// constrain probation times
-	if (_land_detector.landed) {
-		*probation_time_us = POSVEL_PROBATION_MIN;
-	}
-
 	const bool data_stale = ((hrt_elapsed_time(&data_timestamp_us) > _param_com_pos_fs_delay.get() * 1_s)
 				 || (data_timestamp_us == 0));
 	const float req_accuracy = (was_valid ? required_accuracy * 2.5f : required_accuracy);
-
 	const bool level_check_pass = data_valid && !data_stale && (data_accuracy < req_accuracy);
 
 	// Check accuracy with hysteresis in both test level and time
 	if (level_check_pass) {
-		if (was_valid) {
-			// still valid, continue to decrease probation time
-			const int64_t probation_time_new = *probation_time_us - hrt_elapsed_time(last_fail_time_us);
-			*probation_time_us = math::constrain(probation_time_new, POSVEL_PROBATION_MIN, POSVEL_PROBATION_MAX);
-
-		} else {
+		if (!was_valid) {
 			// check if probation period has elapsed
-			if (hrt_elapsed_time(last_fail_time_us) > *probation_time_us) {
+			if (hrt_elapsed_time(&last_fail_time_us) > 1_s) {
 				valid = true;
 			}
 		}
@@ -3292,15 +3260,9 @@ Commander::check_posvel_validity(const bool data_valid, const float data_accurac
 		if (was_valid) {
 			// FAILURE! no longer valid
 			valid = false;
-
-		} else {
-			// failed again, increase probation time
-			const int64_t probation_time_new = *probation_time_us + hrt_elapsed_time(last_fail_time_us) *
-							   _param_com_pos_fs_gain.get();
-			*probation_time_us = math::constrain(probation_time_new, POSVEL_PROBATION_MIN, POSVEL_PROBATION_MAX);
 		}
 
-		*last_fail_time_us = hrt_absolute_time();
+		last_fail_time_us = hrt_absolute_time();
 	}
 
 	if (was_valid != valid) {
@@ -3602,7 +3564,7 @@ void Commander::data_link_check()
 						events::send(events::ID("commander_dl_regained"), events::Log::Info, "Data link regained");
 					}
 
-					if (!_armed.armed && !_status_flags.condition_calibration_enabled) {
+					if (!_armed.armed && !_status_flags.calibration_enabled) {
 						// make sure to report preflight check failures to a connecting GCS
 						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, _vehicle_control_mode,
 									       true, false, hrt_elapsed_time(&_boot_timestamp));
@@ -3856,9 +3818,10 @@ void Commander::battery_status_check()
 
 	// Compare estimate of RTL time to estimate of remaining flight time
 	if (_rtl_time_estimate_sub.copy(&rtl_time_estimate)
-	    && hrt_absolute_time() - rtl_time_estimate.timestamp < 2_s
+	    && (hrt_absolute_time() - rtl_time_estimate.timestamp) < 2_s
 	    && rtl_time_estimate.valid
 	    && _armed.armed
+	    && !_vehicle_land_detected.ground_contact // not in any landing stage
 	    && !_rtl_time_actions_done
 	    && PX4_ISFINITE(worst_battery_time_s)
 	    && rtl_time_estimate.safe_time_estimate >= worst_battery_time_s
@@ -3899,7 +3862,7 @@ void Commander::battery_status_check()
 		_battery_warning = worst_warning;
 	}
 
-	_status_flags.condition_battery_healthy =
+	_status_flags.battery_healthy =
 		// All connected batteries are regularly being published
 		(hrt_elapsed_time(&oldest_update) < 5_s)
 		// There is at least one connected battery (in any slot)
@@ -3968,7 +3931,7 @@ void Commander::battery_status_check()
 	}
 }
 
-void Commander::estimator_check(bool force)
+void Commander::estimator_check()
 {
 	// Check if quality checking of position accuracy and consistency is to be performed
 	const bool run_quality_checks = !_status_flags.circuit_breaker_engaged_posfailure_check;
@@ -3979,7 +3942,7 @@ void Commander::estimator_check(bool force)
 	const vehicle_local_position_s &lpos = _local_position_sub.get();
 
 	if (lpos.heading_reset_counter != _heading_reset_counter) {
-		if (_status_flags.condition_home_position_valid) {
+		if (_status_flags.home_position_valid) {
 			updateHomePositionYaw(_home_pub.get().yaw + lpos.delta_heading);
 		}
 
@@ -3990,7 +3953,7 @@ void Commander::estimator_check(bool force)
 	const bool gnss_heading_fault_prev = _estimator_status_flags_sub.get().cs_gps_yaw_fault;
 
 	// use primary estimator_status
-	if (_estimator_selector_status_sub.updated() || force) {
+	if (_estimator_selector_status_sub.updated()) {
 		estimator_selector_status_s estimator_selector_status;
 
 		if (_estimator_selector_status_sub.copy(&estimator_selector_status)) {
@@ -4045,7 +4008,7 @@ void Commander::estimator_check(bool force)
 	bool pre_flt_fail_innov_heading = false;
 	bool pre_flt_fail_innov_vel_horiz = false;
 
-	if (_estimator_status_sub.updated() || force) {
+	if (_estimator_status_sub.updated()) {
 
 		estimator_status_s estimator_status;
 
@@ -4132,23 +4095,23 @@ void Commander::estimator_check(bool force)
 
 		const vehicle_global_position_s &gpos = _global_position_sub.get();
 
-		_status_flags.condition_global_position_valid =
+		_status_flags.global_position_valid =
 			check_posvel_validity(xy_valid, gpos.eph, _param_com_pos_fs_eph.get(), gpos.timestamp,
-					      &_last_gpos_fail_time_us, &_gpos_probation_time_us, _status_flags.condition_global_position_valid);
+					      _last_gpos_fail_time_us, _status_flags.global_position_valid);
 
-		_status_flags.condition_local_position_valid =
+		_status_flags.local_position_valid =
 			check_posvel_validity(xy_valid, lpos.eph, lpos_eph_threshold_adj, lpos.timestamp,
-					      &_last_lpos_fail_time_us, &_lpos_probation_time_us, _status_flags.condition_local_position_valid);
+					      _last_lpos_fail_time_us, _status_flags.local_position_valid);
 
-		_status_flags.condition_local_velocity_valid =
+		_status_flags.local_velocity_valid =
 			check_posvel_validity(v_xy_valid, lpos.evh, _param_com_vel_fs_evh.get(), lpos.timestamp,
-					      &_last_lvel_fail_time_us, &_lvel_probation_time_us, _status_flags.condition_local_velocity_valid);
+					      _last_lvel_fail_time_us, _status_flags.local_velocity_valid);
 	}
 
 
 	// altitude
-	_status_flags.condition_local_altitude_valid = lpos.z_valid
-			&& (hrt_elapsed_time(&lpos.timestamp) < (_param_com_pos_fs_delay.get() * 1_s));
+	_status_flags.local_altitude_valid = lpos.z_valid
+					     && (hrt_elapsed_time(&lpos.timestamp) < (_param_com_pos_fs_delay.get() * 1_s));
 
 
 	// attitude
@@ -4161,14 +4124,14 @@ void Commander::estimator_check(bool force)
 						&& (fabsf(q(3)) <= 1.f);
 	const bool norm_in_tolerance = (fabsf(1.f - q.norm()) <= 1e-6f);
 
-	const bool condition_attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
-					      && norm_in_tolerance && no_element_larger_than_one;
+	const bool attitude_valid = (hrt_elapsed_time(&attitude.timestamp) < 1_s)
+				    && norm_in_tolerance && no_element_larger_than_one;
 
-	if (_status_flags.condition_attitude_valid && !condition_attitude_valid) {
+	if (_status_flags.attitude_valid && !attitude_valid) {
 		PX4_ERR("attitude estimate no longer valid");
 	}
 
-	_status_flags.condition_attitude_valid = condition_attitude_valid;
+	_status_flags.attitude_valid = attitude_valid;
 
 
 	// angular velocity
@@ -4178,10 +4141,10 @@ void Commander::estimator_check(bool force)
 			&& (hrt_elapsed_time(&angular_velocity.timestamp) < 1_s);
 	const bool condition_angular_velocity_finite = PX4_ISFINITE(angular_velocity.xyz[0])
 			&& PX4_ISFINITE(angular_velocity.xyz[1]) && PX4_ISFINITE(angular_velocity.xyz[2]);
-	const bool condition_angular_velocity_valid = condition_angular_velocity_time_valid
-			&& condition_angular_velocity_finite;
+	const bool angular_velocity_valid = condition_angular_velocity_time_valid
+					    && condition_angular_velocity_finite;
 
-	if (_status_flags.condition_angular_velocity_valid && !condition_angular_velocity_valid) {
+	if (_status_flags.angular_velocity_valid && !angular_velocity_valid) {
 		const char err_str[] {"angular velocity no longer valid"};
 
 		if (!condition_angular_velocity_time_valid) {
@@ -4192,13 +4155,13 @@ void Commander::estimator_check(bool force)
 		}
 	}
 
-	_status_flags.condition_angular_velocity_valid = condition_angular_velocity_valid;
+	_status_flags.angular_velocity_valid = angular_velocity_valid;
 
 
 	// gps
-	const bool condition_gps_position_was_valid = _status_flags.condition_gps_position_valid;
+	const bool condition_gps_position_was_valid = _status_flags.gps_position_valid;
 
-	if (_vehicle_gps_position_sub.updated() || force) {
+	if (_vehicle_gps_position_sub.updated()) {
 		vehicle_gps_position_s vehicle_gps_position;
 
 		if (_vehicle_gps_position_sub.copy(&vehicle_gps_position)) {
@@ -4211,7 +4174,7 @@ void Commander::estimator_check(bool force)
 			bool evh = vehicle_gps_position.s_variance_m_s < _param_com_vel_fs_evh.get();
 
 			_vehicle_gps_position_valid.set_state_and_update(time && fix && eph && epv && evh, hrt_absolute_time());
-			_status_flags.condition_gps_position_valid = _vehicle_gps_position_valid.get_state();
+			_status_flags.gps_position_valid = _vehicle_gps_position_valid.get_state();
 
 			_vehicle_gps_position_timestamp_last = vehicle_gps_position.timestamp;
 		}
@@ -4221,11 +4184,11 @@ void Commander::estimator_check(bool force)
 
 		if (now_us > _vehicle_gps_position_timestamp_last + GPS_VALID_TIME) {
 			_vehicle_gps_position_valid.set_state_and_update(false, now_us);
-			_status_flags.condition_gps_position_valid = false;
+			_status_flags.gps_position_valid = false;
 		}
 	}
 
-	if (condition_gps_position_was_valid && !_status_flags.condition_gps_position_valid) {
+	if (condition_gps_position_was_valid && !_status_flags.gps_position_valid) {
 		PX4_WARN("GPS no longer valid");
 	}
 }
@@ -4257,13 +4220,13 @@ Commander::offboard_control_update()
 		}
 	}
 
-	if (_offboard_control_mode_sub.get().position && !_status_flags.condition_local_position_valid) {
+	if (_offboard_control_mode_sub.get().position && !_status_flags.local_position_valid) {
 		offboard_available = false;
 
-	} else if (_offboard_control_mode_sub.get().velocity && !_status_flags.condition_local_velocity_valid) {
+	} else if (_offboard_control_mode_sub.get().velocity && !_status_flags.local_velocity_valid) {
 		offboard_available = false;
 
-	} else if (_offboard_control_mode_sub.get().acceleration && !_status_flags.condition_local_velocity_valid) {
+	} else if (_offboard_control_mode_sub.get().acceleration && !_status_flags.local_velocity_valid) {
 		// OFFBOARD acceleration handled by position controller
 		offboard_available = false;
 	}
@@ -4294,14 +4257,14 @@ void Commander::esc_status_check()
 		// Check if ALL the ESCs are online
 		if (online_bitmask == esc_status.esc_online_flags) {
 
-			_status_flags.condition_escs_error = false;
+			_status_flags.escs_error = false;
 			_last_esc_online_flags = esc_status.esc_online_flags;
 
 		} else if (_last_esc_online_flags == esc_status.esc_online_flags)  {
 
 			// Avoid checking the status if the flags are the same or if the mixer has not yet been loaded in the ESC driver
 
-			_status_flags.condition_escs_error = true;
+			_status_flags.escs_error = true;
 
 		} else if (esc_status.esc_online_flags < _last_esc_online_flags) {
 
@@ -4321,14 +4284,14 @@ void Commander::esc_status_check()
 			mavlink_log_critical(&_mavlink_log_pub, "%soffline. %s\t", esc_fail_msg, _armed.armed ? "Land now!" : "");
 
 			_last_esc_online_flags = esc_status.esc_online_flags;
-			_status_flags.condition_escs_error = true;
+			_status_flags.escs_error = true;
 		}
 
-		_status_flags.condition_escs_failure = false;
+		_status_flags.escs_failure = false;
 
 		for (int index = 0; index < esc_status.esc_count; index++) {
 
-			_status_flags.condition_escs_failure |= esc_status.esc[index].failures > 0;
+			_status_flags.escs_failure |= esc_status.esc[index].failures > 0;
 
 			if (esc_status.esc[index].failures != _last_esc_failure[index]) {
 

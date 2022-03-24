@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,17 +43,18 @@ EKF2Selector::EKF2Selector() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem("ekf2_selector", px4::wq_configurations::nav_and_controllers)
 {
+	_estimator_selector_status_pub.advertise();
+	_sensor_selection_pub.advertise();
+	_vehicle_attitude_pub.advertise();
+	_vehicle_global_position_pub.advertise();
+	_vehicle_local_position_pub.advertise();
+	_vehicle_odometry_pub.advertise();
+	_wind_pub.advertise();
 }
 
 EKF2Selector::~EKF2Selector()
 {
 	Stop();
-}
-
-bool EKF2Selector::Start()
-{
-	ScheduleNow();
-	return true;
 }
 
 void EKF2Selector::Stop()
@@ -673,9 +674,6 @@ void EKF2Selector::PublishWindEstimate()
 
 void EKF2Selector::Run()
 {
-	// re-schedule as backup timeout
-	ScheduleDelayed(FILTER_UPDATE_PERIOD);
-
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -703,6 +701,7 @@ void EKF2Selector::Run()
 
 		// if still invalid return early and check again on next scheduled run
 		if (_selected_instance == INVALID_INSTANCE) {
+			ScheduleDelayed(100_ms);
 			return;
 		}
 	}
@@ -803,6 +802,9 @@ void EKF2Selector::Run()
 	PublishVehicleGlobalPosition();
 	PublishVehicleOdometry();
 	PublishWindEstimate();
+
+	// re-schedule as backup timeout
+	ScheduleDelayed(FILTER_UPDATE_PERIOD);
 }
 
 void EKF2Selector::PublishEstimatorSelectorStatus()

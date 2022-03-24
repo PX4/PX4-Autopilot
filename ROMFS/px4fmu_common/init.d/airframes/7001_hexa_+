@@ -23,6 +23,9 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
+# MAV_TYPE_HEXAROTOR 13
+param set-default MAV_TYPE 13
+
 param set-default CA_ROTOR_COUNT 6
 param set-default CA_ROTOR0_PX 0.5
 param set-default CA_ROTOR0_PY 0.0

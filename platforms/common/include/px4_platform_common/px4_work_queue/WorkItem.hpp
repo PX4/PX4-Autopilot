@@ -79,7 +79,7 @@ public:
 	 * @param config The WorkQueue configuration (see WorkQueueManager.hpp).
 	 * @return true if initialization was successful
 	 */
-	bool ChangeWorkQeue(const wq_config_t &config) { return Init(config); }
+	bool ChangeWorkQueue(const wq_config_t &config) { return Init(config); }
 
 	const char *ItemName() const { return _item_name; }
 

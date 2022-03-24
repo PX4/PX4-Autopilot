@@ -7,6 +7,9 @@
 
 set VEHICLE_TYPE airship
 
+# MAV_TYPE_AIRSHIP 7
+param set-default MAV_TYPE 7
+
 #
 # This is the gimbal pass mixer.
 #

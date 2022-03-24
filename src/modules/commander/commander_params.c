@@ -679,16 +679,6 @@ PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 45);
 PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 2);
 
 /**
- * Rearming grace period
- *
- * Re-arming grace allows to rearm the drone with manual command without running prearmcheck during 5 s after disarming.
- *
- * @group Commander
- * @boolean
- */
-PARAM_DEFINE_INT32(COM_REARM_GRACE, 1);
-
-/**
  * Enable RC stick override of auto and/or offboard modes
  *
  * When RC stick override is enabled, moving the RC sticks more than COM_RC_STICK_OV
@@ -805,33 +795,6 @@ PARAM_DEFINE_FLOAT(COM_ARM_AUTH_TO, 1);
  * @max 100
  */
 PARAM_DEFINE_INT32(COM_POS_FS_DELAY, 1);
-
-/**
- * Loss of position probation delay at takeoff.
- *
- * The probation delay is the number of seconds that the EKF innovation checks need to pass for the position to be declared good after it has been declared bad.
- * The probation delay will be reset to this parameter value when takeoff is detected.
- * After takeoff, if position checks are passing, the probation delay will reduce by one second for every lapsed second of valid position down to a minimum of 1 second.
- * If position checks are failing, the probation delay will increase by COM_POS_FS_GAIN seconds for every lapsed second up to a maximum of 100 seconds.
- * The default value has been optimised for rotary wing applications. For fixed wing applications, a value of 1 should be used.
- *
- * @unit s
- * @group Commander
- * @min 1
- * @max 100
- */
-PARAM_DEFINE_INT32(COM_POS_FS_PROB, 30);
-
-/**
- * Loss of position probation gain factor.
- *
- * This sets the rate that the loss of position probation time grows when position checks are failing.
- * The default value has been optimised for rotary wing applications. For fixed wing applications a value of 0 should be used.
- *
- * @reboot_required true
- * @group Commander
- */
-PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
 
 /**
  * Horizontal position error threshold.

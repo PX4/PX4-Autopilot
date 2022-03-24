@@ -18,6 +18,7 @@ param set IMU_GYRO_FFT_EN 1
 param set IMU_GYRO_FFT_MIN 10
 param set IMU_GYRO_FFT_MAX 1000
 param set IMU_GYRO_FFT_LEN 512
+param set IMU_GYRO_FFT_SNR 10
 
 # dynamic notches ESC/FFT/both
 #param set IMU_GYRO_DNF_EN 1
@@ -27,8 +28,8 @@ param set IMU_GYRO_DNF_EN 3
 # test values
 param set IMU_GYRO_CUTOFF 60
 param set IMU_DGYRO_CUTOFF 40
-#param set IMU_GYRO_NF_FREQ 60
-#param set IMU_GYRO_NF_BW 5
+#param set IMU_GYRO_NF0_FRQ 60
+#param set IMU_GYRO_NF0_BW 5
 
 # log nearly everything
 param set SDLOG_PROFILE 859

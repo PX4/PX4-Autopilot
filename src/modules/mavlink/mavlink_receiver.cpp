@@ -1562,6 +1562,14 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		vehicle_status_s vehicle_status{};
 		_vehicle_status_sub.copy(&vehicle_status);
 
+		if (attitude || body_rates) {
+			offboard_control_mode_s ocm{};
+			ocm.attitude = attitude;
+			ocm.body_rate = body_rates;
+			ocm.timestamp = hrt_absolute_time();
+			_offboard_control_mode_pub.publish(ocm);
+		}
+
 		if (attitude) {
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 
@@ -1586,12 +1594,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 				attitude_setpoint.thrust_body[2] = attitude_target.thrust_body[2];
 			}
 
-			// publish offboard_control_mode
-			offboard_control_mode_s ocm{};
-			ocm.attitude = true;
-			ocm.timestamp = hrt_absolute_time();
-			_offboard_control_mode_pub.publish(ocm);
-
 			// Publish attitude setpoint only once in OFFBOARD
 			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
 				attitude_setpoint.timestamp = hrt_absolute_time();
@@ -1607,7 +1609,9 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 				}
 			}
 
-		} else if (body_rates) {
+		}
+
+		if (body_rates) {
 			vehicle_rates_setpoint_s setpoint{};
 			setpoint.roll  = (type_mask & ATTITUDE_TARGET_TYPEMASK_BODY_ROLL_RATE_IGNORE)  ? (float)NAN :
 					 attitude_target.body_roll_rate;
@@ -1619,12 +1623,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			if (!(attitude_target.type_mask & ATTITUDE_TARGET_TYPEMASK_THROTTLE_IGNORE)) {
 				fill_thrust(setpoint.thrust_body, vehicle_status.vehicle_type, attitude_target.thrust);
 			}
-
-			// publish offboard_control_mode
-			offboard_control_mode_s ocm{};
-			ocm.body_rate = true;
-			ocm.timestamp = hrt_absolute_time();
-			_offboard_control_mode_pub.publish(ocm);
 
 			// Publish rate setpoint only once in OFFBOARD
 			if (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {

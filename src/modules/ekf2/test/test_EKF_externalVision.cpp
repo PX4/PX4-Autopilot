@@ -61,7 +61,11 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
+		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -117,6 +121,7 @@ TEST_F(EkfExternalVisionTest, visionVelocityReset)
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
 	// Note: test duration needs to allow time for tilt alignment to complete
+	_ekf->set_vehicle_at_rest(false);
 	_sensor_simulator.runMicroseconds(2e5);
 
 	// THEN: a reset to Vision velocity should be done
@@ -150,6 +155,7 @@ TEST_F(EkfExternalVisionTest, visionVelocityResetWithAlignment)
 	_sensor_simulator._vio.setVelocity(simulated_velocity_in_vision_frame);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
+	_ekf->set_vehicle_at_rest(false);
 	_sensor_simulator.runMicroseconds(2e5);
 
 	// THEN: a reset to Vision velocity should be done
@@ -261,6 +267,8 @@ TEST_F(EkfExternalVisionTest, velocityFrameBody)
 	_sensor_simulator.simulateOrientation(quat_sim);
 	_sensor_simulator.runSeconds(_tilt_align_time);
 
+	_ekf->set_vehicle_at_rest(false);
+
 	// Without any measurement x and y velocity variance are close
 	const Vector3f velVar_init = _ekf->getVelocityVariance();
 	EXPECT_NEAR(velVar_init(0), velVar_init(1), 0.0001);
@@ -314,6 +322,7 @@ TEST_F(EkfExternalVisionTest, velocityFrameLocal)
 	_sensor_simulator._vio.setVelocity(vel_earth);
 	_ekf_wrapper.enableExternalVisionVelocityFusion();
 	_sensor_simulator.startExternalVision();
+	_ekf->set_vehicle_at_rest(false);
 	_sensor_simulator.runSeconds(4);
 
 	// THEN: Independently on drones heading, velocity variance
@@ -332,6 +341,8 @@ TEST_F(EkfExternalVisionTest, positionFrameLocal)
 	const Quatf quat_sim(Eulerf(0.0f, 0.0f, math::radians(90.0f)));
 	_sensor_simulator.simulateOrientation(quat_sim);
 	_sensor_simulator.runSeconds(_tilt_align_time);
+
+	_ekf->set_vehicle_at_rest(false);
 
 	// WHEN: using EV yaw fusion and rotate EV is set
 	Quatf vision_to_ekf(Eulerf(0.0f, 0.0f, 0.f));
@@ -357,7 +368,8 @@ TEST_F(EkfExternalVisionTest, positionFrameLocal)
 	// WHEN: the measurement in EV FRD frame changes
 	pos_earth = Vector3f(0.3f, 0.0f, 0.0f);
 	_sensor_simulator._vio.setPosition(pos_earth);
-	_sensor_simulator.runSeconds(8);
+
+	_sensor_simulator.runSeconds(12);
 
 	// THEN: the position should converge to the EV position
 	// Note that the estimate is now in the EV frame because it is

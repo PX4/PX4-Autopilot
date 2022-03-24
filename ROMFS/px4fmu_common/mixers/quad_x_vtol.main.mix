@@ -1,5 +1,7 @@
 Mixer for Tailsitter with x motor configuration and elevons
 ===========================================================
+# @board px4_fmu-v2 exclude
+# @board omnibus_f4sd exclude
 
 This file defines a single mixer for tailsitter with motors in X configuration.  All controls
 are mixed 100%.

@@ -57,7 +57,12 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
+		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+
 		_sensor_simulator.runSeconds(2);
 	}
 
@@ -69,7 +74,11 @@ public:
 	void runFlowAndRngScenario(const float rng_height, const float flow_height)
 	{
 		_sensor_simulator.startGps();
+
 		_ekf->set_min_required_gps_health_time(1e6);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+
 		_ekf_wrapper.enableGpsFusion();
 		_ekf_wrapper.setBaroHeight();
 		_sensor_simulator.runSeconds(2); // Run to pass the GPS checks
@@ -100,7 +109,9 @@ public:
 		_sensor_simulator.startFlow();
 
 		_ekf->set_in_air_status(true);
-		_sensor_simulator.runSeconds(7);
+		_ekf->set_vehicle_at_rest(false);
+
+		_sensor_simulator.runSeconds(10);
 	}
 };
 
@@ -114,11 +125,11 @@ TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainRngFusion());
 	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainFlowFusion());
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
-	EXPECT_NEAR(estimated_distance_to_ground, simulated_distance_to_ground, 1e-4);
+	EXPECT_NEAR(estimated_distance_to_ground, simulated_distance_to_ground, 0.01);
 
 	// WHEN: rng fusion is disabled
 	_ekf_wrapper.disableTerrainRngFusion();
-	_sensor_simulator.runSeconds(5.);
+	_sensor_simulator.runSeconds(5.1);
 
 	// THEN: rng fusion should be disabled and flow fusion should take over
 	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainRngFusion());
