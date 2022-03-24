@@ -85,6 +85,8 @@ public:
 
 	void setGpsData(const gps_message &gps);
 
+	void setGpsOffset(const gps_message &gps, Vector3f gps_pos_body, Vector3f gps2_pos_body);
+
 	void setBaroData(const baroSample &baro_sample);
 
 	void setAirspeedData(const airspeedSample &airspeed_sample);
@@ -323,6 +325,8 @@ protected:
 	MapProjection _gps_pos_prev{}; // Contains WGS-84 position latitude and longitude of the previous GPS message
 	float _gps_alt_prev{0.0f};	// height from the previous GPS message (m)
 	float _gps_yaw_offset{0.0f};	// Yaw offset angle for dual GPS antennas used for yaw estimation (radians).
+
+	Vector3f _gps_antenna_offset{};	// Antenna offset w.r.t. body frame
 
 	// innovation consistency check monitoring ratios
 	float _yaw_test_ratio{};		// yaw innovation consistency check ratio

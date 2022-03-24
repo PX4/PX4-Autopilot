@@ -131,6 +131,9 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_gps_pos_x(_params->gps_pos_body(0)),
 	_param_ekf2_gps_pos_y(_params->gps_pos_body(1)),
 	_param_ekf2_gps_pos_z(_params->gps_pos_body(2)),
+	_param_ekf2_gps2_pos_x(_params->gps2_pos_body(0)),
+	_param_ekf2_gps2_pos_y(_params->gps2_pos_body(1)),
+	_param_ekf2_gps2_pos_z(_params->gps2_pos_body(2)),
 	_param_ekf2_rng_pos_x(_params->rng_pos_body(0)),
 	_param_ekf2_rng_pos_y(_params->rng_pos_body(1)),
 	_param_ekf2_rng_pos_z(_params->rng_pos_body(2)),
@@ -1664,6 +1667,8 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			perf_count(_msg_missed_gps_perf);
 		}
 
+		// TODO: access the selected GPS value here
+
 		gps_message gps_msg{
 			.time_usec = vehicle_gps_position.timestamp,
 			.lat = vehicle_gps_position.lat,
@@ -1685,8 +1690,10 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			.nsats = vehicle_gps_position.satellites_used,
 			.pdop = sqrtf(vehicle_gps_position.hdop *vehicle_gps_position.hdop
 				      + vehicle_gps_position.vdop * vehicle_gps_position.vdop),
+			.selected = vehicle_gps_position.selected,
 		};
 		_ekf.setGpsData(gps_msg);
+		_ekf.setGpsOffset(gps_msg, _params->gps_pos_body, _params->gps2_pos_body);
 
 		_gps_time_usec = gps_msg.time_usec;
 		_gps_alttitude_ellipsoid = vehicle_gps_position.alt_ellipsoid;

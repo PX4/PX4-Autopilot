@@ -188,6 +188,29 @@ void EstimatorInterface::setGpsData(const gps_message &gps)
 	}
 }
 
+void EstimatorInterface::setGpsOffset(const gps_message &gps, Vector3f gps_pos_body, Vector3f gps2_pos_body)
+{
+	if (gps.selected == 0)
+	{
+		_gps_antenna_offset(0) = gps_pos_body(0);
+		_gps_antenna_offset(1) = gps_pos_body(1);
+		_gps_antenna_offset(2) = gps_pos_body(2);
+	}
+	else if (gps.selected == 1)
+	{
+		_gps_antenna_offset(0) = gps2_pos_body(0);
+		_gps_antenna_offset(1) = gps2_pos_body(1);
+		_gps_antenna_offset(2) = gps2_pos_body(2);
+	}
+	//TODO: tackle the blending case: else if (gps.selected == 2)
+	else
+	{
+		_gps_antenna_offset(0) = gps_pos_body(0);
+		_gps_antenna_offset(1) = gps_pos_body(1);
+		_gps_antenna_offset(2) = gps_pos_body(2);
+	}
+}
+
 void EstimatorInterface::setBaroData(const baroSample &baro_sample)
 {
 	if (!_initialised) {

@@ -77,6 +77,7 @@ struct gps_message {
 	bool vel_ned_valid;	///< GPS ground speed is valid
 	uint8_t nsats;		///< number of satellites used
 	float pdop;		///< position dilution of precision
+	uint8_t selected;		///< GPS selection: 0: GPS1, 1: GPS2. 2:Blending multiple receivers
 };
 
 struct outputSample {
@@ -332,6 +333,7 @@ struct parameters {
 	// XYZ offset of sensors in body axes (m)
 	Vector3f imu_pos_body;			///< xyz position of IMU in body frame (m)
 	Vector3f gps_pos_body;			///< xyz position of the GPS antenna in body frame (m)
+	Vector3f gps2_pos_body;			///< xyz position of the GPS2 antenna in body frame (m)
 	Vector3f rng_pos_body;			///< xyz position of range sensor in body frame (m)
 	Vector3f flow_pos_body;			///< xyz position of range sensor focal point in body frame (m)
 	Vector3f ev_pos_body;			///< xyz position of VI-sensor focal point in body frame (m)
