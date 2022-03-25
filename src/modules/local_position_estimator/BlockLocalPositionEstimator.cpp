@@ -138,7 +138,7 @@ bool
 BlockLocalPositionEstimator::init()
 {
 	if (!_sensors_sub.registerCallback()) {
-		PX4_ERR("sensor combined callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

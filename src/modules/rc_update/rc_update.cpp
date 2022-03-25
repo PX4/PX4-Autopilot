@@ -115,7 +115,7 @@ RCUpdate::~RCUpdate()
 bool RCUpdate::init()
 {
 	if (!_input_rc_sub.registerCallback()) {
-		PX4_ERR("input_rc callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

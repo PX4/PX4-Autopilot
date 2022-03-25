@@ -27,6 +27,8 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+param set-default MAV_TYPE 21
+
 param set-default VT_IDLE_PWM_MC 1100
 param set-default VT_TYPE 1
 param set-default VT_MOT_ID 1234
@@ -56,8 +58,6 @@ param set-default CA_SV_CS2_TYPE 3
 param set-default CA_SV_CS3_TRQ_Y 1.0
 param set-default CA_SV_CS3_TYPE 4
 param set-default CA_SV_TL_COUNT 4
-
-set MAV_TYPE 21
 
 set MIXER quad_x
 set MIXER_AUX vtol_TTTTAAER

@@ -27,9 +27,8 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER hexa_x
-set PWM_OUT 12345678
-
+# MAV_TYPE_HEXAROTOR 13
+param set-default MAV_TYPE 13
 
 ###############################################
 # Attitude & rate gains
@@ -120,3 +119,7 @@ param set-default MAV_1_MODE 2
 param set-default MAV_1_FORWARD 1
 param set-default MAV_1_RATE 800000
 param set-default SER_TEL2_BAUD 921600
+
+
+set MIXER hexa_x
+set PWM_OUT 12345678

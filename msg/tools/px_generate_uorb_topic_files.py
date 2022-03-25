@@ -529,7 +529,8 @@ if __name__ == "__main__":
             generate_output_from_file(
                 generate_idx, f, args.temporarydir, args.package, args.templatedir, INCL_DEFAULT)
 
-        generate_topics_list_file_from_files(args.file, args.outputdir, TOPICS_LIST_TEMPLATE_FILE[generate_idx], args.templatedir)
+        if os.path.isfile(os.path.join(args.templatedir, TOPICS_LIST_TEMPLATE_FILE[generate_idx])):
+            generate_topics_list_file_from_files(args.file, args.outputdir, TOPICS_LIST_TEMPLATE_FILE[generate_idx], args.templatedir)
         copy_changed(args.temporarydir, args.outputdir, args.prefix, args.quiet)
     elif args.dir is not None:
         convert_dir_save(

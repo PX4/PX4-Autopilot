@@ -62,7 +62,7 @@
 #define rPCSEL(base) REG((base), STM32_ADC_PCSEL_OFFSET)
 #define rCFG(base)   REG((base), STM32_ADC_CFGR_OFFSET)
 #define rCFG2(base)  REG((base), STM32_ADC_CFGR2_OFFSET)
-#define rCCR()       REG((STM32_ADC1_BASE), (STM32_ADC_CCR_OFFSET))
+#define rCCR(base)   REG((base), STM32_ADC_CCR_OFFSET) // Offset has ADC CMN included
 #define rSQR1(base)  REG((base), STM32_ADC_SQR1_OFFSET)
 #define rSQR2(base)  REG((base), STM32_ADC_SQR2_OFFSET)
 #define rSQR3(base)  REG((base), STM32_ADC_SQR3_OFFSET)
@@ -168,8 +168,8 @@ int px4_arch_adc_init(uint32_t base_address)
 
 	/* enable the temperature sensor, VREFINT channel and VBAT */
 
-	rCCR() = (ADC_CCR_VREFEN | ADC_CCR_VSENSEEN | ADC_CCR_VBATEN |
-		  ADC_CCR_CKMODE_ASYCH | ADC_CCR_PRESC_DIV);
+	rCCR(base_address) = (ADC_CCR_VREFEN | ADC_CCR_VSENSEEN | ADC_CCR_VBATEN |
+			      ADC_CCR_CKMODE_ASYCH | ADC_CCR_PRESC_DIV);
 
 	/* Enable ADC calibration. ADCALDIF == 0 so this is only for
 	 * single-ended conversions, not for differential ones.

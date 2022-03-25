@@ -79,12 +79,6 @@ public:
 	VotedSensorsUpdate(bool hil_enabled, uORB::SubscriptionCallbackWorkItem(&vehicle_imu_sub)[MAX_SENSOR_COUNT]);
 
 	/**
-	 * initialize subscriptions etc.
-	 * @return 0 on success, <0 otherwise
-	 */
-	int init(sensor_combined_s &raw);
-
-	/**
 	 * This tries to find new sensor instances. This is called from init(), then it can be called periodically.
 	 */
 	void initializeSensors();

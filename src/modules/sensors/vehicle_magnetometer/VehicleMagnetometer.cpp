@@ -36,6 +36,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
+#include <lib/sensor_calibration/Utilities.hpp>
 
 namespace sensors
 {
@@ -55,6 +56,20 @@ VehicleMagnetometer::VehicleMagnetometer() :
 	_voter.set_equal_value_threshold(1000);
 
 	ParametersUpdate(true);
+
+	_vehicle_magnetometer_pub[0].advertise();
+	_sensor_preflight_mag_pub.advertise();
+
+	// if publishing multiple mags advertise instances immediately for existing calibrations
+	if (!_param_sens_mag_mode.get()) {
+		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+			uint32_t device_id_mag = calibration::GetCalibrationParamInt32("MAG", "ID", i);
+
+			if (device_id_mag != 0) {
+				_vehicle_magnetometer_pub[i].advertise();
+			}
+		}
+	}
 }
 
 VehicleMagnetometer::~VehicleMagnetometer()
@@ -547,7 +562,7 @@ void VehicleMagnetometer::Run()
 	UpdateMagCalibration();
 
 	// reschedule timeout
-	ScheduleDelayed(40_ms);
+	ScheduleDelayed(50_ms);
 
 	perf_end(_cycle_perf);
 }

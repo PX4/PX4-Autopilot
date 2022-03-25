@@ -67,7 +67,7 @@ FlightModeManager::~FlightModeManager()
 bool FlightModeManager::init()
 {
 	if (!_vehicle_local_position_sub.registerCallback()) {
-		PX4_ERR("vehicle_local_position callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

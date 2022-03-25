@@ -143,7 +143,6 @@ Type unwrap(const Type last_x, const Type new_x, const Type low, const Type high
  *
  * @param[in] last_angle Last unwrapped angle [rad]
  * @param[in] new_angle New angle in [-pi, pi] [rad]
- * @param
  * @return New unwrapped angle [rad]
  */
 template<typename Type>
@@ -152,10 +151,16 @@ Type unwrap_pi(const Type last_angle, const Type new_angle)
 	return unwrap(last_angle, new_angle, Type(-M_PI), Type(M_PI));
 }
 
+/**
+ * Type-safe sign/signum function
+ *
+ * @param[in] val Number to take the sign from
+ * @return -1 if val < 0, 0 if val == 0, 1 if val > 0
+ */
 template<typename T>
 int sign(T val)
 {
-	return (T(FLT_EPSILON) < val) - (val < T(FLT_EPSILON));
+	return (T(0) < val) - (val < T(0));
 }
 
 } // namespace matrix

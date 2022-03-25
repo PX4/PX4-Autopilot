@@ -36,4 +36,5 @@ param set-default MC_PITCHRATE_P 0.19
 param set-default MC_PITCHRATE_I 0.05
 param set-default MC_PITCHRATE_D 0.004
 param set-default MC_YAW_P 4
+
 set MIXER quad_w

@@ -73,6 +73,8 @@ Heater::Heater() :
 	}
 
 #endif
+
+	_heater_status_pub.advertise();
 }
 
 Heater::~Heater()

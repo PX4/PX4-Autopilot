@@ -233,6 +233,11 @@ Sensors::Sensors(bool hil_enabled) :
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_voted_sensors_update(hil_enabled, _vehicle_imu_sub)
 {
+	_sensor_pub.advertise();
+
+	_vehicle_angular_velocity.Start();
+	_vehicle_acceleration.Start();
+
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
@@ -250,11 +255,17 @@ Sensors::Sensors(bool hil_enabled) :
 	param_find("SYS_CAL_TMAX");
 	param_find("SYS_CAL_TMIN");
 
+	_sensor_combined.accelerometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
+
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
 
-	_vehicle_acceleration.Start();
-	_vehicle_angular_velocity.Start();
+	parameters_update();
+
+	InitializeVehicleAirData();
+	InitializeVehicleGPSPosition();
+	InitializeVehicleIMU();
+	InitializeVehicleMagnetometer();
 }
 
 Sensors::~Sensors()
@@ -368,6 +379,10 @@ int Sensors::parameters_update()
 			cal.ParametersLoad();
 		}
 	}
+
+	InitializeVehicleAirData();
+	InitializeVehicleGPSPosition();
+	InitializeVehicleMagnetometer();
 
 	return PX4_OK;
 }
@@ -569,14 +584,9 @@ void Sensors::InitializeVehicleIMU()
 		if (_vehicle_imu_list[i] == nullptr) {
 
 			uORB::Subscription accel_sub{ORB_ID(sensor_accel), i};
-			sensor_accel_s accel{};
-			accel_sub.copy(&accel);
-
 			uORB::Subscription gyro_sub{ORB_ID(sensor_gyro), i};
-			sensor_gyro_s gyro{};
-			gyro_sub.copy(&gyro);
 
-			if (accel.device_id > 0 && gyro.device_id > 0) {
+			if (accel_sub.advertised() && gyro_sub.advertised()) {
 				// if the sensors module is responsible for voting (SENS_IMU_MODE 1) then run every VehicleIMU in the same WQ
 				//   otherwise each VehicleIMU runs in a corresponding INSx WQ
 				const bool multi_mode = (_param_sens_imu_mode.get() == 0);
@@ -627,20 +637,7 @@ void Sensors::Run()
 		return;
 	}
 
-	// run once
-	if (_last_config_update == 0) {
-		InitializeVehicleAirData();
-		InitializeVehicleIMU();
-		InitializeVehicleGPSPosition();
-		InitializeVehicleMagnetometer();
-		_voted_sensors_update.init(_sensor_combined);
-		parameter_update_poll(true);
-	}
-
 	perf_begin(_loop_perf);
-
-	// backup schedule as a watchdog timeout
-	ScheduleDelayed(10_ms);
 
 	// check vehicle status for changes to publication state
 	if (_vcontrol_mode_sub.updated()) {
@@ -651,23 +648,9 @@ void Sensors::Run()
 		}
 	}
 
-	_voted_sensors_update.sensorsPoll(_sensor_combined);
-
-	// check analog airspeed
-	adc_poll();
-
-	diff_pres_poll();
-
-	if (_sensor_combined.timestamp != _sensor_combined_prev_timestamp) {
-
-		_voted_sensors_update.setRelativeTimestamps(_sensor_combined);
-		_sensor_pub.publish(_sensor_combined);
-		_sensor_combined_prev_timestamp = _sensor_combined.timestamp;
-	}
-
 	// keep adding sensors as long as we are not armed,
 	// when not adding sensors poll for param updates
-	if (!_armed && hrt_elapsed_time(&_last_config_update) > 1000_ms) {
+	if ((!_armed && hrt_elapsed_time(&_last_config_update) > 500_ms) || (_last_config_update == 0)) {
 
 		const int n_accel = orb_group_count(ORB_ID(sensor_accel));
 		const int n_baro  = orb_group_count(ORB_ID(sensor_baro));
@@ -683,10 +666,6 @@ void Sensors::Run()
 			_n_mag = n_mag;
 
 			parameters_update();
-
-			InitializeVehicleAirData();
-			InitializeVehicleGPSPosition();
-			InitializeVehicleMagnetometer();
 		}
 
 		// sensor device id (not just orb_group_count) must be populated before IMU init can succeed
@@ -699,6 +678,23 @@ void Sensors::Run()
 		// check parameters for updates
 		parameter_update_poll();
 	}
+
+	_voted_sensors_update.sensorsPoll(_sensor_combined);
+
+	if (_sensor_combined.timestamp != _sensor_combined_prev_timestamp) {
+
+		_voted_sensors_update.setRelativeTimestamps(_sensor_combined);
+		_sensor_pub.publish(_sensor_combined);
+		_sensor_combined_prev_timestamp = _sensor_combined.timestamp;
+	}
+
+	// check analog airspeed
+	adc_poll();
+
+	diff_pres_poll();
+
+	// backup schedule as a watchdog timeout
+	ScheduleDelayed(10_ms);
 
 	perf_end(_loop_perf);
 }

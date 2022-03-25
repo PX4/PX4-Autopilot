@@ -267,7 +267,9 @@ private:
 
 	bool _callback_registered{false};
 
-	hrt_abstime _last_status_flag_update{0};
+	hrt_abstime _last_event_flags_publish{0};
+	hrt_abstime _last_status_flags_publish{0};
+
 	hrt_abstime _last_range_sensor_update{0};
 
 	uint32_t _filter_control_status{0};
@@ -282,7 +284,7 @@ private:
 
 	uORB::PublicationMulti<ekf2_timestamps_s>            _ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::PublicationMulti<estimator_baro_bias_s>        _estimator_baro_bias_pub{ORB_ID(estimator_baro_bias)};
-	uORB::PublicationMulti<estimator_event_flags_s>      _estimator_event_flags_pub{ORB_ID(estimator_event_flags)};
+	uORB::PublicationMultiData<estimator_event_flags_s>  _estimator_event_flags_pub{ORB_ID(estimator_event_flags)};
 	uORB::PublicationMulti<estimator_gps_status_s>       _estimator_gps_status_pub{ORB_ID(estimator_gps_status)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::PublicationMulti<estimator_innovations_s>      _estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};

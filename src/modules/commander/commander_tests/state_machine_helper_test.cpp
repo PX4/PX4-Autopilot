@@ -76,7 +76,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		ArmingTransitionVolatileState_t current_state;                          // Machine state prior to transition
 		hil_state_t                     hil_state;                              // Current vehicle_status_s.hil_state
 		bool
-		condition_system_sensors_initialized;   // Current vehicle_status_s.condition_system_sensors_initialized
+		system_sensors_initialized;   // Current vehicle_status_s.system_sensors_initialized
 		bool                            safety_switch_available;                // Current safety_s.safety_switch_available
 		bool                            safety_off;                             // Current safety_s.safety_off
 		arming_state_t                  requested_state;                        // Requested arming state to transition to
@@ -290,7 +290,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 
 		// Setup initial machine state
 		status.arming_state = test->current_state.arming_state;
-		status_flags.condition_system_sensors_initialized = test->condition_system_sensors_initialized;
+		status_flags.system_sensors_initialized = test->system_sensors_initialized;
 		status.hil_state = test->hil_state;
 		// The power status of the test unit is not relevant for the unit test
 		status_flags.circuit_breaker_engaged_power_check = true;
@@ -512,11 +512,11 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 		current_commander_state.main_state = test->from_state;
 		current_vehicle_status.vehicle_type = (test->condition_bits & MTT_ROTARY_WING) ?
 						      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING : vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
-		current_status_flags.condition_local_altitude_valid = test->condition_bits & MTT_LOC_ALT_VALID;
-		current_status_flags.condition_local_position_valid = test->condition_bits & MTT_LOC_POS_VALID;
-		current_status_flags.condition_home_position_valid = test->condition_bits & MTT_HOME_POS_VALID;
-		current_status_flags.condition_global_position_valid = test->condition_bits & MTT_GLOBAL_POS_VALID;
-		current_status_flags.condition_auto_mission_available = true;
+		current_status_flags.local_altitude_valid = test->condition_bits & MTT_LOC_ALT_VALID;
+		current_status_flags.local_position_valid = test->condition_bits & MTT_LOC_POS_VALID;
+		current_status_flags.home_position_valid = test->condition_bits & MTT_HOME_POS_VALID;
+		current_status_flags.global_position_valid = test->condition_bits & MTT_GLOBAL_POS_VALID;
+		current_status_flags.auto_mission_available = true;
 
 		// Attempt transition
 		transition_result_t result = main_state_transition(current_vehicle_status, test->to_state, current_status_flags,
