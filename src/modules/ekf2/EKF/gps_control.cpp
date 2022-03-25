@@ -39,11 +39,46 @@
 #include "ekf.h"
 #include <mathlib/mathlib.h>
 
-void Ekf::controlGpsFusion()
+void Ekf::controlGpsFusion(const imuSample &imu_delayed)
 {
-	if (!((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))) {
+	if (!_gps_buffer || !((_params.gnss_ctrl & GnssCtrl::HPOS) || (_params.gnss_ctrl & GnssCtrl::VEL))) {
 		stopGpsFusion();
 		return;
+	}
+
+	_gps_intermittent = !isNewestSampleRecent(_time_last_gps_buffer_push, 2 * GNSS_MAX_INTERVAL);
+
+	// check for arrival of new sensor data at the fusion time horizon
+	_gps_data_ready = _gps_buffer->pop_first_older_than(imu_delayed.time_us, &_gps_sample_delayed);
+
+	if (_gps_data_ready) {
+		// correct velocity for offset relative to IMU
+		const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+		const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
+		const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
+		_gps_sample_delayed.vel -= vel_offset_earth;
+
+		// correct position and height for offset relative to IMU
+		const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+		_gps_sample_delayed.pos -= pos_offset_earth.xy();
+		_gps_sample_delayed.hgt += pos_offset_earth(2);
+	}
+
+	{
+		// run GSF yaw estimator
+		const float accel_norm = _accel_vec_filt.norm();
+
+		const bool motion_is_excessive = (accel_norm > (CONSTANTS_ONE_G * 2.0f)) // upper g limit
+						 || (accel_norm < (CONSTANTS_ONE_G * 0.5f)); // lower g limit
+
+		const bool run_yaw_estimator = (_control_status.flags.in_air || !_control_status.flags.vehicle_at_rest)
+					       && !motion_is_excessive && (_gps_sample_delayed.sacc < _params.req_sacc);
+
+		if (_gps_data_ready) {
+			_yawEstimator.setVelocity(_gps_sample_delayed.vel.xy(), math::max(_gps_sample_delayed.sacc, _params.gps_vel_noise));
+		}
+
+		_yawEstimator.update(imu_delayed, run_yaw_estimator, getGyroBias());
 	}
 
 	// Check for new GPS data that has fallen behind the fusion time horizon
@@ -236,8 +271,8 @@ bool Ekf::shouldResetGpsFusion() const
 	 * with no aiding we need to do something
 	 */
 	const bool has_horizontal_aiding_timed_out = isTimedOut(_time_last_hor_pos_fuse, _params.reset_timeout_max)
-						     && isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
-						     && isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max);
+			&& isTimedOut(_time_last_hor_vel_fuse, _params.reset_timeout_max)
+			&& isTimedOut(_aid_src_optical_flow.time_last_fuse, _params.reset_timeout_max);
 
 	const bool is_reset_required = has_horizontal_aiding_timed_out
 				       || isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max);
