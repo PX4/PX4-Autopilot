@@ -28,7 +28,7 @@ pipeline {
           ]
 
           def base_builds = [
-            target: ["px4_sitl_rtps"],
+            target: ["px4_sitl_default"],
             image: docker_images.base,
             archive: false
           ]
