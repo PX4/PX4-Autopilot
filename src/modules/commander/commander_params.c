@@ -417,7 +417,7 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
 PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 
 /**
- * Set command after a quadchute
+ * Set action after a quadchute
  *
  * @value -1 No action: stay in current flight mode
  * @value  0 Return mode
