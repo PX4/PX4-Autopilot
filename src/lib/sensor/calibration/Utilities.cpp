@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,26 +31,21 @@
  *
  ****************************************************************************/
 
+#include "Utilities.hpp"
+
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/log.h>
 #include <lib/conversion/rotation.h>
-#include <lib/drivers/device/Device.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
-
-#if defined(CONFIG_I2C)
-# include <px4_platform_common/i2c.h>
-#endif // CONFIG_I2C
-
-#if defined(CONFIG_SPI)
-# include <px4_platform_common/spi.h>
-#endif // CONFIG_SPI
 
 using math::radians;
 using matrix::Eulerf;
 using matrix::Dcmf;
 using matrix::Vector3f;
 
+namespace sensor
+{
 namespace calibration
 {
 
@@ -63,8 +58,8 @@ int8_t FindCurrentCalibrationIndex(const char *sensor_type, uint32_t device_id)
 	}
 
 	for (unsigned i = 0; i < MAX_SENSOR_COUNT; ++i) {
-		char str[20] {};
-		sprintf(str, "CAL_%s%u_ID", sensor_type, i);
+		char str[16 + 1] {};
+		snprintf(str, sizeof(str), "CAL_%s%u_ID", sensor_type, i);
 
 		int32_t device_id_val = 0;
 
@@ -102,8 +97,8 @@ int8_t FindAvailableCalibrationIndex(const char *sensor_type, uint32_t device_id
 	uint32_t cal_device_ids[MAX_SENSOR_COUNT] {};
 
 	for (unsigned i = 0; i < MAX_SENSOR_COUNT; ++i) {
-		char str[20] {};
-		sprintf(str, "CAL_%s%u_ID", sensor_type, i);
+		char str[16 + 1] {};
+		snprintf(str, sizeof(str), "CAL_%s%u_ID", sensor_type, i);
 		int32_t device_id_val = 0;
 
 		if (param_get(param_find_no_notification(str), &device_id_val) == PX4_OK) {
@@ -136,9 +131,9 @@ int8_t FindAvailableCalibrationIndex(const char *sensor_type, uint32_t device_id
 
 int32_t GetCalibrationParamInt32(const char *sensor_type, const char *cal_type, uint8_t instance)
 {
-	// eg CAL_MAGn_ID/CAL_MAGn_ROT
-	char str[20] {};
-	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
+	// eg CAL_MAGn_ID
+	char str[16 + 1] {};
+	snprintf(str, sizeof(str), "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 
 	int32_t value = 0;
 
@@ -152,8 +147,8 @@ int32_t GetCalibrationParamInt32(const char *sensor_type, const char *cal_type, 
 float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, uint8_t instance)
 {
 	// eg CAL_BAROn_OFF
-	char str[20] {};
-	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
+	char str[16 + 1] {};
+	snprintf(str, sizeof(str), "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 
 	float value = NAN;
 
@@ -168,13 +163,13 @@ Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_t
 {
 	Vector3f values{0.f, 0.f, 0.f};
 
-	char str[20] {};
+	char str[16 + 1] {};
 
 	for (int axis = 0; axis < 3; axis++) {
 		char axis_char = 'X' + axis;
 
 		// eg CAL_MAGn_{X,Y,Z}OFF
-		sprintf(str, "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
+		snprintf(str, sizeof(str), "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
 
 		if (param_get(param_find(str), &values(axis)) != 0) {
 			PX4_ERR("failed to get %s", str);
@@ -187,13 +182,13 @@ Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_t
 bool SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance, Vector3f values)
 {
 	int ret = PX4_OK;
-	char str[20] {};
+	char str[16 + 1] {};
 
 	for (int axis = 0; axis < 3; axis++) {
 		char axis_char = 'X' + axis;
 
 		// eg CAL_MAGn_{X,Y,Z}OFF
-		sprintf(str, "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
+		snprintf(str, sizeof(str), "CAL_%s%" PRIu8 "_%c%s", sensor_type, instance, axis_char, cal_type);
 
 		if (param_set_no_notification(param_find(str), &values(axis)) != 0) {
 			PX4_ERR("failed to set %s = %.4f", str, (double)values(axis));
@@ -204,84 +199,5 @@ bool SetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type,
 	return ret == PX4_OK;
 }
 
-Eulerf GetSensorLevelAdjustment()
-{
-	float x_offset = 0.f;
-	float y_offset = 0.f;
-	float z_offset = 0.f;
-	param_get(param_find("SENS_BOARD_X_OFF"), &x_offset);
-	param_get(param_find("SENS_BOARD_Y_OFF"), &y_offset);
-	param_get(param_find("SENS_BOARD_Z_OFF"), &z_offset);
-
-	return Eulerf{radians(x_offset), radians(y_offset), radians(z_offset)};
-}
-
-enum Rotation GetBoardRotation()
-{
-	// get transformation matrix from sensor/board to body frame
-	int32_t board_rot = -1;
-	param_get(param_find("SENS_BOARD_ROT"), &board_rot);
-
-	if (board_rot >= 0 && board_rot <= Rotation::ROTATION_MAX) {
-		return static_cast<enum Rotation>(board_rot);
-
-	} else {
-		PX4_ERR("invalid SENS_BOARD_ROT: %" PRId32, board_rot);
-	}
-
-	return Rotation::ROTATION_NONE;
-}
-
-Dcmf GetBoardRotationMatrix()
-{
-	return get_rot_matrix(GetBoardRotation());
-}
-
-bool DeviceExternal(uint32_t device_id)
-{
-	bool external = true;
-
-	// decode device id to determine if external
-	union device::Device::DeviceId id {};
-	id.devid = device_id;
-
-	const device::Device::DeviceBusType bus_type = id.devid_s.bus_type;
-
-	switch (bus_type) {
-	case device::Device::DeviceBusType_I2C:
-#if defined(CONFIG_I2C)
-		external = px4_i2c_bus_external(id.devid_s.bus);
-#endif // CONFIG_I2C
-		break;
-
-	case device::Device::DeviceBusType_SPI:
-#if defined(CONFIG_SPI)
-		external = px4_spi_bus_external(id.devid_s.bus);
-#endif // CONFIG_SPI
-		break;
-
-	case device::Device::DeviceBusType_UAVCAN:
-		external = true;
-		break;
-
-	case device::Device::DeviceBusType_SIMULATION:
-		external = false;
-		break;
-
-	case device::Device::DeviceBusType_SERIAL:
-		external = true;
-		break;
-
-	case device::Device::DeviceBusType_MAVLINK:
-		external = true;
-		break;
-
-	case device::Device::DeviceBusType_UNKNOWN:
-		external = true;
-		break;
-	}
-
-	return external;
-}
-
 } // namespace calibration
+} // namespace sensor

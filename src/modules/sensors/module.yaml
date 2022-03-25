@@ -545,3 +545,70 @@ parameters:
             volatile: true
             num_instances: *max_num_sensor_instances
             instance_start: 0
+
+        # GNSS configuration
+        SENS_GNSS${i}_ID:
+            description:
+                short: GNSS ${i} calibration device ID
+                long: Device ID of the GNSS this calibration applies to.
+            category: System
+            type: int32
+            default: 0
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_PRIO:
+            description:
+                short: GNSS ${i} priority
+            category: System
+            type: enum
+            values:
+                -1: Uninitialized
+                0: Disabled
+                1: Min
+                25: Low
+                50: Medium (Default)
+                75: High
+                100: Max
+            default: -1
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_XPOS:
+            description:
+                short: GNSS ${i} antenna X position
+                long: |
+                    X position of GNSS antenna in body frame (forward axis with origin relative to vehicle centre of gravity)
+            category: System
+            type: float
+            default: 0.0
+            unit: m
+            volatile: true
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_YPOS:
+            description:
+                short: GNSS ${i} antenna Y position
+                long: |
+                    Y position of GNSS antenna in body frame (forward axis with origin relative to vehicle centre of gravity)
+            category: System
+            type: float
+            default: 0.0
+            unit: m
+            volatile: true
+            num_instances: *max_num_sensor_instances
+            instance_start: 0
+
+        SENS_GNSS${i}_ZPOS:
+            description:
+                short: GNSS ${i} antenna Z position
+                long: |
+                    Z position of GNSS antenna in body frame (forward axis with origin relative to vehicle centre of gravity)
+            category: System
+            type: float
+            default: 0.0
+            unit: m
+            volatile: true
+            num_instances: *max_num_sensor_instances
+            instance_start: 0

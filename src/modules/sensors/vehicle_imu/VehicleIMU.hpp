@@ -39,8 +39,8 @@
 #include <lib/mathlib/math/WelfordMean.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
-#include <lib/sensor_calibration/Accelerometer.hpp>
-#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/sensor/calibration/Accelerometer.hpp>
+#include <lib/sensor/calibration/Gyroscope.hpp>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_config.h>
@@ -105,8 +105,8 @@ private:
 
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 
-	calibration::Accelerometer _accel_calibration{};
-	calibration::Gyroscope _gyro_calibration{};
+	sensor::calibration::Accelerometer _accel_calibration{};
+	sensor::calibration::Gyroscope _gyro_calibration{};
 
 	sensors::Integrator       _accel_integrator{};
 	sensors::IntegratorConing _gyro_integrator{};

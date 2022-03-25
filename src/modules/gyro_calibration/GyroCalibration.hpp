@@ -41,7 +41,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/mathlib/math/WelfordMean.hpp>
 #include <lib/perf/perf_counter.h>
-#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/sensor/calibration/Gyroscope.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
@@ -92,7 +92,7 @@ private:
 	uORB::SubscriptionMultiArray<sensor_accel_s, MAX_SENSORS> _sensor_accel_subs{ORB_ID::sensor_accel};
 	uORB::SubscriptionMultiArray<sensor_gyro_s, MAX_SENSORS>  _sensor_gyro_subs{ORB_ID::sensor_gyro};
 
-	calibration::Gyroscope _gyro_calibration[MAX_SENSORS] {};
+	sensor::calibration::Gyroscope _gyro_calibration[MAX_SENSORS] {};
 	math::WelfordMean<matrix::Vector3f> _gyro_mean[MAX_SENSORS] {};
 	float _temperature[MAX_SENSORS] {};
 	hrt_abstime _gyro_last_update[MAX_SENSORS] {};

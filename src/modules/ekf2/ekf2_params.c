@@ -843,33 +843,6 @@ PARAM_DEFINE_FLOAT(EKF2_IMU_POS_Y, 0.0f);
 PARAM_DEFINE_FLOAT(EKF2_IMU_POS_Z, 0.0f);
 
 /**
- * X position of GPS antenna in body frame (forward axis with origin relative to vehicle centre of gravity)
- *
- * @group EKF2
- * @unit m
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(EKF2_GPS_POS_X, 0.0f);
-
-/**
- * Y position of GPS antenna in body frame (right axis with origin relative to vehicle centre of gravity)
- *
- * @group EKF2
- * @unit m
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Y, 0.0f);
-
-/**
- * Z position of GPS antenna in body frame (down axis with origin relative to vehicle centre of gravity)
- *
- * @group EKF2
- * @unit m
- * @decimal 3
- */
-PARAM_DEFINE_FLOAT(EKF2_GPS_POS_Z, 0.0f);
-
-/**
  * X position of range finder origin in body frame (forward axis with origin relative to vehicle centre of gravity)
  *
  * @group EKF2

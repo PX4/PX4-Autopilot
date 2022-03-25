@@ -33,13 +33,15 @@
 
 #include "Accelerometer.hpp"
 
-#include "Utilities.hpp"
-
 #include <lib/parameters/param.h>
+#include <lib/sensor/Utilities.hpp>
 
 using namespace matrix;
 using namespace time_literals;
+using namespace sensor::utilities;
 
+namespace sensor
+{
 namespace calibration
 {
 
@@ -305,3 +307,4 @@ void Accelerometer::PrintStatus()
 }
 
 } // namespace calibration
+} // namespace sensor

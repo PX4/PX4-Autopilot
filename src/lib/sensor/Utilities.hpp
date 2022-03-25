@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,33 +31,47 @@
  *
  ****************************************************************************/
 
-/**
- * Multi GPS Blending Control Mask.
- *
- * Set bits in the following positions to set which GPS accuracy metrics will be used to calculate the blending weight. Set to zero to disable and always used first GPS instance.
- * 0 : Set to true to use speed accuracy
- * 1 : Set to true to use horizontal position accuracy
- * 2 : Set to true to use vertical position accuracy
- *
- * @group Sensors
- * @min 0
- * @max 7
- * @bit 0 use speed accuracy
- * @bit 1 use hpos accuracy
- * @bit 2 use vpos accuracy
- */
-PARAM_DEFINE_INT32(SENS_GPS_MASK, 7);
+#pragma once
+
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <lib/conversion/rotation.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
+#include <matrix/math.hpp>
+
+namespace sensor
+{
+namespace utilities
+{
 
 /**
- * Multi GPS Blending Time Constant
+ * @brief Get the board sensor level adjustment (SENS_BOARD_X_OFF, SENS_BOARD_Y_OFF, SENS_BOARD_Z_OFF).
  *
- * Sets the longest time constant that will be applied to the calculation of GPS position and height offsets used to correct data from multiple GPS data for steady state position differences.
- *
- *
- * @group Sensors
- * @min 1.0
- * @max 100.0
- * @unit s
- * @decimal 1
+ * @return matrix::Eulerf
  */
-PARAM_DEFINE_FLOAT(SENS_GPS_TAU, 10.0f);
+matrix::Eulerf GetSensorLevelAdjustment();
+
+/**
+ * @brief Get the board rotation.
+ *
+ * @return enum Rotation
+ */
+Rotation GetBoardRotation();
+
+/**
+ * @brief Get the board rotation Dcm.
+ *
+ * @return matrix::Dcmf
+ */
+matrix::Dcmf GetBoardRotationMatrix();
+
+/**
+ * @brief Determine if device is on an external bus
+ *
+ * @return true if device is on an external bus
+ */
+bool DeviceExternal(uint32_t device_id);
+
+} // namespace utilities
+} // namespace sensor

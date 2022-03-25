@@ -37,7 +37,7 @@
 #include <lib/field_sensor_bias_estimator/FieldSensorBiasEstimator.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/sensor_calibration/Magnetometer.hpp>
+#include <lib/sensor/calibration/Magnetometer.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
@@ -95,7 +95,7 @@ private:
 
 	uORB::Publication<magnetometer_bias_estimate_s> _magnetometer_bias_estimate_pub{ORB_ID(magnetometer_bias_estimate)};
 
-	calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
+	sensor::calibration::Magnetometer _calibration[MAX_SENSOR_COUNT];
 
 	hrt_abstime _time_valid[MAX_SENSOR_COUNT] {};
 

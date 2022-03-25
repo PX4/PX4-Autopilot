@@ -35,7 +35,7 @@
 
 #include "data_validator/DataValidatorGroup.hpp"
 
-#include <lib/sensor_calibration/Barometer.hpp>
+#include <lib/sensor/calibration/Barometer.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
@@ -98,7 +98,7 @@ private:
 		{this, ORB_ID(sensor_baro), 3},
 	};
 
-	calibration::Barometer _calibration[MAX_SENSOR_COUNT];
+	sensor::calibration::Barometer _calibration[MAX_SENSOR_COUNT];
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 

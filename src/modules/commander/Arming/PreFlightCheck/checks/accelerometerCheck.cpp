@@ -37,7 +37,7 @@
 #include <HealthFlags.h>
 #include <math.h>
 #include <px4_defines.h>
-#include <lib/sensor_calibration/Utilities.hpp>
+#include <lib/sensor/calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_status.h>
@@ -84,7 +84,7 @@ bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_s
 			is_calibration_valid = true;
 
 		} else {
-			is_calibration_valid = (calibration::FindCurrentCalibrationIndex("ACC", accel.get().device_id) >= 0);
+			is_calibration_valid = (sensor::calibration::FindCurrentCalibrationIndex("ACC", accel.get().device_id) >= 0);
 		}
 
 		const float accel_magnitude = sqrtf(accel.get().x * accel.get().x

@@ -55,9 +55,9 @@ param set-default EKF2_BCOEF_X 31.5
 param set-default EKF2_BCOEF_Y 25.5
 
 param set-default EKF2_GPS_DELAY 100
-param set-default EKF2_GPS_POS_X 0.06
-param set-default EKF2_GPS_POS_Y 0.0
-param set-default EKF2_GPS_POS_Z 0.0
+param set-default SENS_GNSS0_XPOS 0.06
+param set-default SENS_GNSS0_YPOS 0.0
+param set-default SENS_GNSS0_ZPOS 0.0
 param set-default EKF2_GPS_V_NOISE 0.5
 
 param set-default EKF2_IMU_POS_X 0.06

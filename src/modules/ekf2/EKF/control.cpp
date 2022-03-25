@@ -109,7 +109,7 @@ void Ekf::controlFusionModes()
 
 		if (_gps_data_ready) {
 			// correct velocity for offset relative to IMU
-			const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
+			const Vector3f pos_offset_body = _gps_sample_delayed.position_body - _params.imu_pos_body;
 			const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
 			const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 			_gps_sample_delayed.vel -= vel_offset_earth;

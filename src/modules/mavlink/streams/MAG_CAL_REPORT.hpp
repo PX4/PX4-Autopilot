@@ -34,7 +34,7 @@
 #ifndef MAG_CAL_REPORT_HPP
 #define MAG_CAL_REPORT_HPP
 
-#include <lib/sensor_calibration/Magnetometer.hpp>
+#include <lib/sensor/calibration/Magnetometer.hpp>
 
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_mag.h>
@@ -73,7 +73,7 @@ private:
 				sensor_mag_s sensor_mag;
 
 				if (_sensor_mag_subs[mag].update(&sensor_mag) && (sensor_mag.device_id != 0)) {
-					calibration::Magnetometer calibration{sensor_mag.device_id};
+					sensor::calibration::Magnetometer calibration{sensor_mag.device_id};
 
 					if (calibration.calibrated()) {
 						mavlink_mag_cal_report_t msg{};

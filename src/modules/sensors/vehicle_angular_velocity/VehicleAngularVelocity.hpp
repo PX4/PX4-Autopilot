@@ -34,7 +34,7 @@
 #pragma once
 
 #include <containers/Bitset.hpp>
-#include <lib/sensor_calibration/Gyroscope.hpp>
+#include <lib/sensor/calibration/Gyroscope.hpp>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
@@ -115,7 +115,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _sensor_sub{this, ORB_ID(sensor_gyro)};
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_fifo_sub{this, ORB_ID(sensor_gyro_fifo)};
 
-	calibration::Gyroscope _calibration{};
+	sensor::calibration::Gyroscope _calibration{};
 
 	matrix::Vector3f _bias{};
 
