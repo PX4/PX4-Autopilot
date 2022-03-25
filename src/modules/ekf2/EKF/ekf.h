@@ -330,6 +330,9 @@ public:
 	bool getDataEKFGSF(float *yaw_composite, float *yaw_variance, float yaw[N_MODELS_EKFGSF],
 			   float innov_VN[N_MODELS_EKFGSF], float innov_VE[N_MODELS_EKFGSF], float weight[N_MODELS_EKFGSF]);
 
+	// Returns true if the output of the yaw emergency estimator can be used for a reset
+	bool isYawEmergencyEstimateAvailable() const;
+
 	const BaroBiasEstimator::status &getBaroBiasEstimatorStatus() const { return _baro_b_est.getStatus(); }
 
 private:
@@ -1039,9 +1042,6 @@ private:
 	// Resets the horizontal velocity and position to the default navigation sensor
 	// Returns true if the reset was successful
 	bool resetYawToEKFGSF();
-
-	// Returns true if the output of the yaw emergency estimator can be used for a reset
-	bool isYawEmergencyEstimateAvailable() const;
 
 	void resetGpsDriftCheckFilters();
 };
