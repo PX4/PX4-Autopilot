@@ -57,6 +57,12 @@ typedef enum eRole  {
 	BootLoader
 } eRole_t;
 
+typedef enum booted_state {
+	Booted_State_Empty = 0,
+	Booted_State_Booting,
+	Booted_State_Booted,
+} booted_state_t;
+
 /****************************************************************************
  *
  * Bootloader and Application shared structure.
@@ -216,5 +222,41 @@ void bootloader_app_shared_write(bootloader_app_shared_t *shared, eRole_t role);
  ****************************************************************************/
 
 void bootloader_app_shared_invalidate(void);
+
+/****************************************************************************
+ * Name: booted_app_shared_read
+ *
+ * Description:
+ *   This function will populate
+ *   a booted value from the physical locations used
+ *   to transfer the shared data to/from an application (internal data) .
+ *
+ *
+ * Returned value:
+ *   booted - Value of the booted state.
+ *
+ *
+ ****************************************************************************/
+
+int booted_app_shared_read(void);
+
+/****************************************************************************
+ * Name: booted_app_shared_write
+ *
+ * Description:
+ *   This function will commit the data passed
+ *   into the physical locations used to transfer the shared data to/from
+ *   an application (internal data) .
+ *
+ *
+ * Input Parameters:
+ *   booted - Value of the booted state.
+ *
+ * Returned value:
+ *   None.
+ *
+ ****************************************************************************/
+
+void booted_app_shared_write(uint32_t booted);
 
 __END_DECLS

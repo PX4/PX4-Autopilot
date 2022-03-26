@@ -951,6 +951,7 @@ static void application_run(size_t fw_image_size, bootloader_app_shared_t *commo
 			bootloader_app_shared_write(common, BootLoader);
 		}
 
+		booted_app_shared_write(Booted_State_Booting);
 
 		/* the interface */
 
@@ -1184,6 +1185,19 @@ __EXPORT int main(int argc, char *argv[])
 
 
 	} else {
+		if (bootloader.fw_image_descriptor->major_version > 0) {
+
+			uint32_t booted = booted_app_shared_read();
+
+			// If app is already valid, and we didn't already try to boot, jump straight to app
+			if ((bootloader.app_valid) && (booted != Booted_State_Booting) && (booted != Booted_State_Booted)) {
+				common.node_id = 0; // For normal boots there is nothing connected, we need to do dynamic ID allocation
+
+				goto boot;
+			}
+		}
+
+		// Otherwise this is a bad/blank app and we need to be updated
 
 		/*
 		 * It is a regular boot, So we need to autobaud and get a node ID

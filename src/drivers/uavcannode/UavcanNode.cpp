@@ -103,6 +103,7 @@ UavcanNode::UavcanNode(CanInitHelper *can_init, uint32_t bitrate, uavcan::ICanDr
 	_time_sync_slave(_node),
 	_fw_update_listner(_node),
 	_param_server(_node),
+	_dyn_node_id_client(_node),
 	_reset_timer(_node)
 {
 	int res = pthread_mutex_init(&_node_mutex, nullptr);
@@ -113,6 +114,12 @@ UavcanNode::UavcanNode(CanInitHelper *can_init, uint32_t bitrate, uavcan::ICanDr
 	if (res < 0) {
 		std::abort();
 	}
+
+	// Ensure these params are marked as used
+	int32_t node_id_temp = 0;
+	int32_t bitrate_temp = 0;
+	(void)param_get(param_find("CANNODE_NODE_ID"), &node_id_temp);
+	(void)param_get(param_find("CANNODE_BITRATE"), &bitrate_temp);
 }
 
 UavcanNode::~UavcanNode()
@@ -198,7 +205,12 @@ int UavcanNode::start(uavcan::NodeID node_id, uint32_t bitrate)
 	// Keep the bit rate for reboots on BenginFirmware updates
 	_instance->active_bitrate = bitrate;
 
-	_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
+	if (node_id != 0) {
+		_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
+
+	} else {
+		_instance->ScheduleNow();
+	}
 
 	return PX4_OK;
 }
@@ -340,6 +352,31 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	bus_events.registerSignalCallback(UavcanNode::busevent_signal_trampoline);
 
+	const int can_init_res = _can->init((uint32_t)_bitrate);
+
+	if (can_init_res < 0) {
+		PX4_ERR("CAN driver init failed %i", can_init_res);
+	}
+
+	int rv = _node.start();
+
+	if (rv < 0) {
+		PX4_ERR("Failed to start the node");
+	}
+
+	// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
+
+	if (_node.getNodeID() == 0) {
+
+		int client_start_res = _dyn_node_id_client.start(
+					       _node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
+					       _node.getNodeID());
+
+		if (client_start_res < 0) {
+			PX4_ERR("Failed to start the dynamic node ID client");
+		}
+	}
+
 	return 1;
 }
 
@@ -366,67 +403,40 @@ void UavcanNode::Run()
 
 	if (!_initialized) {
 
+		/*
+		 * Waiting for the client to obtain a node ID.
+		 * This may take a few seconds.
+		 */
 
-		const int can_init_res = _can->init((uint32_t)_bitrate);
+		if (_dyn_node_id_client.isAllocationComplete()) {
+			PX4_INFO("Got node ID %d", _dyn_node_id_client.getAllocatedNodeID().get());
 
-		if (can_init_res < 0) {
-			PX4_ERR("CAN driver init failed %i", can_init_res);
+			_node.setNodeID(_dyn_node_id_client.getAllocatedNodeID());
 		}
 
-		int rv = _node.start();
+		if (_node.getNodeID() != 0) {
+			up_time = hrt_absolute_time();
+			get_node().setRestartRequestHandler(&restart_request_handler);
+			_param_server.start(&_param_manager);
 
-		if (rv < 0) {
-			PX4_ERR("Failed to start the node");
-		}
+			// Set up the time synchronization
+			const int slave_init_res = _time_sync_slave.start();
 
-		// If the node_id was not supplied by the bootloader do Dynamic Node ID allocation
-
-		if (_node.getNodeID() == 0) {
-
-			uavcan::DynamicNodeIDClient client(_node);
-
-			int client_start_res = client.start(_node.getHardwareVersion().unique_id,    // USING THE SAME UNIQUE ID AS ABOVE
-							    _node.getNodeID());
-
-			if (client_start_res < 0) {
-				PX4_ERR("Failed to start the dynamic node ID client");
+			if (slave_init_res < 0) {
+				PX4_ERR("Failed to start time_sync_slave");
+				_task_should_exit.store(true);
 			}
 
-			watchdog_pet(); // If allocation takes too long reboot
+			_node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
 
-			/*
-			 * Waiting for the client to obtain a node ID.
-			 * This may take a few seconds.
-			 */
+			_node.setModeOperational();
 
-			while (!client.isAllocationComplete()) {
-				const int res = _node.spin(uavcan::MonotonicDuration::fromMSec(200));    // Spin duration doesn't matter
+			_initialized = true;
 
-				if (res < 0) {
-					PX4_ERR("Transient failure: %d", res);
-				}
-			}
+			booted_app_shared_write(Booted_State_Booted);
 
-			_node.setNodeID(client.getAllocatedNodeID());
+			_instance->ScheduleOnInterval(ScheduleIntervalMs * 1000);
 		}
-
-		up_time = hrt_absolute_time();
-		get_node().setRestartRequestHandler(&restart_request_handler);
-		_param_server.start(&_param_manager);
-
-		// Set up the time synchronization
-		const int slave_init_res = _time_sync_slave.start();
-
-		if (slave_init_res < 0) {
-			PX4_ERR("Failed to start time_sync_slave");
-			_task_should_exit.store(true);
-		}
-
-		_node.getLogger().setLevel(uavcan::protocol::debug::LogLevel::DEBUG);
-
-		_node.setModeOperational();
-
-		_initialized = true;
 	}
 
 	perf_begin(_cycle_perf);
@@ -585,12 +595,20 @@ void UavcanNode::shrink()
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
 
+void UavcanNode::request_reboot()
+{
+	booted_app_shared_write(Booted_State_Empty);
+
+	_reset_timer.setCallback(cb_reboot);
+	_reset_timer.startOneShotWithDelay(uavcan::MonotonicDuration::fromMSec(1000));
+}
+
 } // namespace uavcannode
 
 static void print_usage()
 {
 	PX4_INFO("usage: \n"
-		 "\tuavcannode {start|status|stop|arm|disarm}");
+		 "\tuavcannode {start|status|reboot|stop|arm|disarm}");
 }
 
 extern "C" int uavcannode_start(int argc, char *argv[])
@@ -650,7 +668,7 @@ extern "C" int uavcannode_start(int argc, char *argv[])
 #if defined(SUPPORT_ALT_CAN_BOOTLOADER)
 		board_booted_by_px4() &&
 #endif
-		(node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast())) {
+		(node_id < 0 || node_id > uavcan::NodeID::Max)) {
 		PX4_ERR("Invalid Node ID %" PRId32, node_id);
 		return 1;
 	}
@@ -691,6 +709,11 @@ extern "C" __EXPORT int uavcannode_main(int argc, char *argv[])
 			inst->PrintInfo();
 		}
 
+		return 0;
+	}
+
+	if (!std::strcmp(argv[1], "reboot")) {
+		inst->request_reboot();
 		return 0;
 	}
 

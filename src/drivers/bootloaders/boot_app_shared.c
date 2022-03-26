@@ -192,3 +192,50 @@ __EXPORT void bootloader_app_shared_invalidate(void)
 	bootloader_app_shared_init(&working, Invalid);
 	write_shared(&working);
 }
+
+/****************************************************************************
+ * Name: booted_app_shared_read
+ *
+ * Description:
+ *   This function will populate
+ *   a booted value from the physical locations used
+ *   to transfer the shared data to/from an application (internal data) .
+ *
+ *
+ * Input Parameters:
+ *   booted - A pointer to a booted return the data
+ *
+ * Returned value:
+ *   OK     - Indicates that the internal data has been copied to callers
+ *            booted structure.
+ *
+ *
+ ****************************************************************************/
+__EXPORT int booted_app_shared_read()
+{
+	uint32_t booted = getreg32(booted_LOC);
+
+	return booted;
+}
+
+/****************************************************************************
+ * Name: booted_app_shared_write
+ *
+ * Description:
+ *   This function will commit the data passed
+ *   into the physical locations used to transfer the shared data to/from
+ *   an application (internal data) .
+ *
+ *
+ * Input Parameters:
+ *   booted - A pointer to a booted data to commit to
+ *   the internal data for passing to/from an application.
+ *
+ * Returned value:
+ *   None.
+ *
+ ****************************************************************************/
+__EXPORT void booted_app_shared_write(uint32_t booted)
+{
+	putreg32(booted, booted_LOC);
+}

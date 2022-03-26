@@ -126,6 +126,7 @@ __BEGIN_DECLS
 #define signature_LOC   STM32_CAN1_FIR(3,1)
 #define bus_speed_LOC   STM32_CAN1_FIR(3,2)
 #define node_id_LOC     STM32_CAN1_FIR(4,1)
+#define booted_LOC      STM32_CAN1_FIR(4,2)
 
 #if defined(CONFIG_ARMV7M_DCACHE)
 #  define PX4_ARCH_DCACHE_ALIGNMENT ARMV7M_DCACHE_LINESIZE

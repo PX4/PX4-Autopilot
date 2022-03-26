@@ -133,6 +133,8 @@ public:
 
 	void		shrink();
 
+	void		request_reboot(); ///< Requests a fast reboot of the node avoiding waiting for a node id
+
 	static UavcanNode	*instance() { return _instance; }
 	static int		 getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
 
@@ -180,6 +182,8 @@ private:
 
 	UavcanNodeParamManager _param_manager;
 	uavcan::ParamServer _param_server;
+
+	uavcan::DynamicNodeIDClient _dyn_node_id_client;
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")};
 	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": cycle interval")};
