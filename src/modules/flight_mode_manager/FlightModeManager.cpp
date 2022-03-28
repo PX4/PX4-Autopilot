@@ -429,7 +429,6 @@ void FlightModeManager::handleCommand()
 					// if we just switched and parameters are not accepted, go to failsafe
 					if (switch_result >= FlightTaskError::NoError) {
 						switchTask(FlightTaskIndex::Failsafe);
-						cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 					}
 				}
 			}
