@@ -39,8 +39,9 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/perf/perf_counter.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_baro.h>
 
 class SPL06 : public I2CSPIDriver<SPL06>
 {
@@ -62,7 +63,7 @@ private:
 	int			collect(); //get results and publish
 	int			calibrate();
 
-	PX4Barometer		_px4_baro;
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
 	spl06::ISPL06		*_interface;
 	spl06::data_s		_data;

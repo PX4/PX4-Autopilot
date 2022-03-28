@@ -223,6 +223,13 @@ rc_update start
 manual_control start
 sensors start
 commander start
+
+# Configure vehicle type specific parameters.
+# Note: rc.vehicle_setup is the entry point for rc.interface,
+#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
+#
+. ${R}etc/init.d/rc.vehicle_setup
+
 navigator start
 
 # Try to start the micrortps_client with UDP transport if module exists
@@ -251,12 +258,6 @@ if param compare -s IMU_GYRO_CAL_EN 1
 then
 	gyro_calibration start
 fi
-
-# Configure vehicle type specific parameters.
-# Note: rc.vehicle_setup is the entry point for rc.interface,
-#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
-#
-. ${R}etc/init.d/rc.vehicle_setup
 
 #user defined mavlink streams for instances can be in PATH
 . px4-rc.mavlink

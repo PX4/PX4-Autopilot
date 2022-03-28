@@ -35,7 +35,8 @@
 
 #include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_baro.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -79,7 +80,7 @@ public:
 private:
 	int			probe() override;
 
-	PX4Barometer		_px4_barometer;
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 
 	ms5837::prom_u	   	_prom{};
 
@@ -89,6 +90,8 @@ private:
 	/* intermediate temperature values per MS5611/MS5607 datasheet */
 	int64_t			_OFF{0};
 	int64_t			_SENS{0};
+
+	float _last_temperature{NAN};
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;

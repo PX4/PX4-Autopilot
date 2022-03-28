@@ -41,6 +41,5 @@ px4_add_module(
 		SPL06_SPI.cpp
 		spl06_main.cpp
 	DEPENDS
-		drivers_barometer
 		px4_work_queue
 	)

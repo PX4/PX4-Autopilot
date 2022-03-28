@@ -54,6 +54,17 @@ int signNoZero(T val)
 	return (T(0) <= val) - (val < T(0));
 }
 
+/**
+ * Sign function based on a boolean
+ *
+ * @param[in] positive Truth value to take the sign from
+ * @return 1 if positive is true, -1 if positive is false
+ */
+inline int signFromBool(bool positive)
+{
+	return positive ? 1 : -1;
+}
+
 template<typename T>
 T sq(T val)
 {

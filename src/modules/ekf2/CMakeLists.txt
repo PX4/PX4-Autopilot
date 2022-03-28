@@ -42,6 +42,8 @@ px4_add_module(
 		#-DDEBUG_BUILD
 	INCLUDES
 		EKF
+	PRIORITY
+		"SCHED_PRIORITY_MAX - 18" # max priority below high priority WQ threads
 	STACK_MAX
 		3600
 	SRCS

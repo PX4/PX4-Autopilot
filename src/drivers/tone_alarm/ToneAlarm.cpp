@@ -62,7 +62,7 @@ bool ToneAlarm::Init()
 	_tune_control_sub.set_interval_us(10_ms);
 
 	if (!_tune_control_sub.registerCallback()) {
-		PX4_ERR("tune_control callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return PX4_ERROR;
 	}
 

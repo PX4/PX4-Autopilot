@@ -38,7 +38,7 @@
 * This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
 * This only affects the signal sent to the controllers, not the estimators.
 * Applies to both angular velocity and angular acceleration sent to the controllers.
-* See "IMU_GYRO_NF_BW" to set the bandwidth of the filter.
+* See "IMU_GYRO_NF0_BW" to set the bandwidth of the filter.
 *
 * A value of 0 disables the filter.
 *
@@ -48,13 +48,13 @@
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_NF_FREQ, 0.0f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_NF0_FRQ, 0.0f);
 
 /**
 * Notch filter bandwidth for gyro
 *
 * The frequency width of the stop band for the 2nd order notch filter on the primary gyro.
-* See "IMU_GYRO_NF_FREQ" to activate the filter and to set the notch frequency.
+* See "IMU_GYRO_NF0_FRQ" to activate the filter and to set the notch frequency.
 * Applies to both angular velocity and angular acceleration sent to the controllers.
 *
 * @min 0
@@ -63,7 +63,42 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF_FREQ, 0.0f);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_NF_BW, 20.0f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_NF0_BW, 20.0f);
+
+/**
+* Notch filter 2 frequency for gyro
+*
+* The center frequency for the 2nd order notch filter on the primary gyro.
+* This filter can be enabled to avoid feedback amplification of structural resonances at a specific frequency.
+* This only affects the signal sent to the controllers, not the estimators.
+* Applies to both angular velocity and angular acceleration sent to the controllers.
+* See "IMU_GYRO_NF1_BW" to set the bandwidth of the filter.
+*
+* A value of 0 disables the filter.
+*
+* @min 0
+* @max 1000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_FRQ, 0.0f);
+
+/**
+* Notch filter 1 bandwidth for gyro
+*
+* The frequency width of the stop band for the 2nd order notch filter on the primary gyro.
+* See "IMU_GYRO_NF1_FRQ" to activate the filter and to set the notch frequency.
+* Applies to both angular velocity and angular acceleration sent to the controllers.
+*
+* @min 0
+* @max 100
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_GYRO_NF1_BW, 20.0f);
+
 
 /**
 * Low pass filter cutoff frequency for gyro
