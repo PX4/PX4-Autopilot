@@ -81,6 +81,7 @@ bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setp
 	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
+	_commanded_speed_ts = 0;
 
 	return ret;
 }
@@ -344,8 +345,13 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	_type = (WaypointType)_sub_triplet_setpoint.get().current.type;
 
-	// Always update cruise speed since that can change without waypoint changes.
-	_mc_cruise_speed = _sub_triplet_setpoint.get().current.cruising_speed;
+	// Override a commanded cruise speed if the cruise speed from the triplet is valid and more recent
+	const float cruise_speed_from_triplet = _sub_triplet_setpoint.get().current.cruising_speed;
+
+	if (PX4_ISFINITE(cruise_speed_from_triplet) && cruise_speed_from_triplet >= 0
+	    && _sub_triplet_setpoint.get().current.timestamp > _commanded_speed_ts) {
+		_mc_cruise_speed = cruise_speed_from_triplet;
+	}
 
 	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
 		// If no speed is planned use the default cruise speed as limit

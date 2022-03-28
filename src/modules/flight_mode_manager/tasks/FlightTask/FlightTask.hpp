@@ -175,6 +175,8 @@ public:
 		_acceleration_setpoint_feedback = acc_sp;
 	}
 
+	virtual bool setCruisingSpeed(const float cruising_speed_m_s) { return false; }
+
 protected:
 	uORB::SubscriptionData<vehicle_local_position_s> _sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
