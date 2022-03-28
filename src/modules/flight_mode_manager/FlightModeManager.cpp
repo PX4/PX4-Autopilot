@@ -571,7 +571,7 @@ const char *FlightModeManager::errorToString(const FlightTaskError error)
 	switch (error) {
 	case FlightTaskError::NoError: return "No Error";
 
-	case FlightTaskError::InvalidTask: return "Invalid Task ";
+	case FlightTaskError::InvalidTask: return "Invalid Task";
 
 	case FlightTaskError::ActivationFailed: return "Activation Failed";
 	}
