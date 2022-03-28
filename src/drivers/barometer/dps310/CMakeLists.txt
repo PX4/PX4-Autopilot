@@ -40,6 +40,5 @@ px4_add_module(
 		DPS310_SPI.cpp
 		dps310_main.cpp
 	DEPENDS
-		drivers_barometer
 		px4_work_queue
 	)

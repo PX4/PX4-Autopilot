@@ -44,8 +44,7 @@ static constexpr int32_t combine(uint8_t h, uint8_t m, uint8_t l)
 
 MPC2520::MPC2520(const I2CSPIDriverConfig &config) :
 	I2C(config),
-	I2CSPIDriver(config),
-	_px4_baro(get_device_id())
+	I2CSPIDriver(config)
 {
 	//_debug_enabled = true;
 }
@@ -232,7 +231,6 @@ void MPC2520::RunImpl()
 				static constexpr float kT = 7864320; // temperature 8 times oversampling
 				float Traw_sc = static_cast<float>(Traw) / kT;
 				float Tcomp = _prom.c0 * 0.5f + _prom.c1 * Traw_sc;
-				_px4_baro.set_temperature(Tcomp);
 
 				int32_t Praw = (int32_t)(buffer.PSR_B2 << 16) | (int32_t)(buffer.PSR_B1 << 8) | (int32_t)buffer.PSR_B1;
 				Praw = (Praw & 0x800000) ? (0xFF000000 | Praw) : Praw;
@@ -244,9 +242,15 @@ void MPC2520::RunImpl()
 				float Pcomp = _prom.c00 + Praw_sc * (_prom.c10 + Praw_sc * (_prom.c20 + Praw_sc * _prom.c30)) + Traw_sc * _prom.c01 +
 					      Traw_sc * Praw_sc * (_prom.c11 + Praw_sc * _prom.c21);
 
-				float pressure_mbar = Pcomp / 100.0f; // convert to millibar
-
-				_px4_baro.update(now, pressure_mbar);
+				// publish
+				sensor_baro_s sensor_baro{};
+				sensor_baro.timestamp_sample = now;
+				sensor_baro.device_id = get_device_id();
+				sensor_baro.pressure = Pcomp;
+				sensor_baro.temperature = Tcomp;
+				sensor_baro.error_count = perf_event_count(_bad_transfer_perf) + perf_event_count(_bad_register_perf);
+				sensor_baro.timestamp = hrt_absolute_time();
+				_sensor_baro_pub.publish(sensor_baro);
 
 				success = true;
 

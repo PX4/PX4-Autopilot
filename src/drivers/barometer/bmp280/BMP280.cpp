@@ -35,7 +35,6 @@
 
 BMP280::BMP280(const I2CSPIDriverConfig &config, bmp280::IBMP280 *interface) :
 	I2CSPIDriver(config),
-	_px4_baro(interface->get_device_id()),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
@@ -172,11 +171,15 @@ BMP280::collect()
 	float pf = ((float) p_raw + x1) / x2;
 	const float P = (pf * _fcal.p9 + _fcal.p8) * pf + _fcal.p7;
 
-	_px4_baro.set_error_count(perf_event_count(_comms_errors));
-	_px4_baro.set_temperature(T);
-
-	float pressure = P / 100.0f; // to mbar
-	_px4_baro.update(timestamp_sample, pressure);
+	// publish
+	sensor_baro_s sensor_baro{};
+	sensor_baro.timestamp_sample = timestamp_sample;
+	sensor_baro.device_id = _interface->get_device_id();
+	sensor_baro.pressure = P;
+	sensor_baro.temperature = T;
+	sensor_baro.error_count = perf_event_count(_comms_errors);
+	sensor_baro.timestamp = hrt_absolute_time();
+	_sensor_baro_pub.publish(sensor_baro);
 
 	perf_end(_sample_perf);
 

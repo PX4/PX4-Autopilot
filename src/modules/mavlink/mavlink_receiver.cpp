@@ -73,7 +73,6 @@ MavlinkReceiver::~MavlinkReceiver()
 {
 	delete _tune_publisher;
 	delete _px4_accel;
-	delete _px4_baro;
 	delete _px4_gyro;
 	delete _px4_mag;
 #if !defined(CONSTRAINED_FLASH)
@@ -2309,15 +2308,15 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 
 	// baro
 	if ((hil_sensor.fields_updated & SensorSource::BARO) == SensorSource::BARO) {
-		if (_px4_baro == nullptr) {
-			// 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
-			_px4_baro = new PX4Barometer(6620172);
-		}
-
-		if (_px4_baro != nullptr) {
-			_px4_baro->set_temperature(hil_sensor.temperature);
-			_px4_baro->update(timestamp, hil_sensor.abs_pressure);
-		}
+		// publish
+		sensor_baro_s sensor_baro{};
+		sensor_baro.timestamp_sample = timestamp;
+		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		sensor_baro.pressure = hil_sensor.abs_pressure;
+		sensor_baro.temperature = hil_sensor.temperature;
+		sensor_baro.error_count = 0;
+		sensor_baro.timestamp = hrt_absolute_time();
+		_sensor_baro_pub.publish(sensor_baro);
 	}
 
 	// differential pressure

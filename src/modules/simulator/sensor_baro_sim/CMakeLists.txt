@@ -39,7 +39,6 @@ px4_add_module(
 		SensorBaroSim.cpp
 		SensorBaroSim.hpp
 	DEPENDS
-		drivers_barometer
 		geo
 		px4_work_queue
 	)

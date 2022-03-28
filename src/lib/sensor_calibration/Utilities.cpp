@@ -149,6 +149,21 @@ int32_t GetCalibrationParamInt32(const char *sensor_type, const char *cal_type, 
 	return value;
 }
 
+float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, uint8_t instance)
+{
+	// eg CAL_BAROn_OFF
+	char str[20] {};
+	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
+
+	float value = NAN;
+
+	if (param_get(param_find(str), &value) != 0) {
+		PX4_ERR("failed to get %s", str);
+	}
+
+	return value;
+}
+
 Vector3f GetCalibrationParamsVector3f(const char *sensor_type, const char *cal_type, uint8_t instance)
 {
 	Vector3f values{0.f, 0.f, 0.f};

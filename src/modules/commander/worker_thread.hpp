@@ -58,6 +58,7 @@ public:
 		AirspeedCalibration,
 		ESCCalibration,
 		MagCalibrationQuick,
+		BaroCalibration,
 
 		ParamLoadDefault,
 		ParamSaveDefault,
