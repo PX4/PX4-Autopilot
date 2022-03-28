@@ -101,7 +101,6 @@ px4_add_module(
 		airspeed
 		component_general_json # for checksums.h
 		drivers_accelerometer
-		drivers_barometer
 		drivers_gyroscope
 		drivers_magnetometer
 		conversion

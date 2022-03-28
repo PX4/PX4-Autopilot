@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -104,6 +104,8 @@ private:
 		_fft_input_buffer = new q15_t[N];
 		_fft_outupt_buffer = new q15_t[N * 2];
 
+		_peak_magnitudes_all = new float[N];
+
 		return (_gyro_data_buffer_x && _gyro_data_buffer_y && _gyro_data_buffer_z
 			&& _hanning_window
 			&& _fft_input_buffer
@@ -139,6 +141,8 @@ private:
 	q15_t *_fft_input_buffer{nullptr};
 	q15_t *_fft_outupt_buffer{nullptr};
 
+	float *_peak_magnitudes_all{nullptr};
+
 	float _gyro_sample_rate_hz{8000}; // 8 kHz default
 
 	float _fifo_last_scale{0};
@@ -147,7 +151,7 @@ private:
 
 	unsigned _gyro_last_generation{0};
 
-	math::MedianFilter<float, 5> _median_filter[3][MAX_NUM_PEAKS] {};
+	math::MedianFilter<float, 7> _median_filter[3][MAX_NUM_PEAKS] {};
 
 	sensor_gyro_fft_s _sensor_gyro_fft{};
 

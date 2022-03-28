@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,40 +31,61 @@
  *
  ****************************************************************************/
 
+#pragma once
 
-#include "PX4Barometer.hpp"
+#include <px4_platform_common/module.h>
 
-#include <lib/drivers/device/Device.hpp>
+#include <src/modules/micrortps_bridge/micrortps_client/dds_topics.h>
 
-PX4Barometer::PX4Barometer(uint32_t device_id)
+extern "C" __EXPORT int microdds_client_main(int argc, char *argv[]);
+
+
+class MicroddsClient : public ModuleBase<MicroddsClient>
 {
-	_sensor_baro_pub.get().device_id = device_id;
-}
+public:
+	enum class Transport {
+		Serial,
+		Udp
+	};
 
-PX4Barometer::~PX4Barometer()
-{
-	_sensor_baro_pub.unadvertise();
-}
+	MicroddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *port,
+		       bool localhost_only);
 
-void PX4Barometer::set_device_type(uint8_t devtype)
-{
-	// current DeviceStructure
-	union device::Device::DeviceId device_id;
-	device_id.devid = _sensor_baro_pub.get().device_id;
+	~MicroddsClient();
 
-	// update to new device type
-	device_id.devid_s.devtype = devtype;
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	// copy back to report
-	_sensor_baro_pub.get().device_id = device_id.devid;
-}
+	/** @see ModuleBase */
+	static MicroddsClient *instantiate(int argc, char *argv[]);
 
-void PX4Barometer::update(const hrt_abstime &timestamp_sample, float pressure)
-{
-	sensor_baro_s &report = _sensor_baro_pub.get();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	report.timestamp_sample = timestamp_sample;
-	report.pressure = pressure;
-	report.timestamp = hrt_absolute_time();
-	_sensor_baro_pub.update();
-}
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
+private:
+	int setBaudrate(int fd, unsigned baud);
+
+	const bool _localhost_only;
+
+	SendTopicsSubs *_subs{nullptr};
+	RcvTopicsPubs *_pubs{nullptr};
+
+	uxrSerialTransport *_transport_serial{nullptr};
+	uxrUDPTransport *_transport_udp{nullptr};
+	uxrCommunication *_comm{nullptr};
+	int _fd{-1};
+
+	int _last_payload_tx_rate{}; ///< in B/s
+	int _last_payload_rx_rate{}; ///< in B/s
+	bool _connected{false};
+};
+

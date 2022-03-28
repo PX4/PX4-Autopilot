@@ -35,7 +35,6 @@
 
 LPS25H::LPS25H(const I2CSPIDriverConfig &config, device::Device *interface) :
 	I2CSPIDriver(config),
-	_px4_barometer(interface->get_device_id()),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors"))
@@ -162,19 +161,25 @@ int LPS25H::collect()
 		return ret;
 	}
 
-	_px4_barometer.set_error_count(perf_event_count(_comms_errors));
-
 	/* get measurements from the device */
 	float temperature = 42.5f + (report.t / 480);
-	_px4_barometer.set_temperature(temperature);
 
 	/* raw pressure */
 	uint32_t raw = report.p_xl + (report.p_l << 8) + (report.p_h << 16);
 
 	/* Pressure and MSL in mBar */
 	float pressure = raw / 4096.0f;
+	float pressure_pa = pressure * 100.f;
 
-	_px4_barometer.update(timestamp_sample, pressure);
+	// publish
+	sensor_baro_s sensor_baro{};
+	sensor_baro.timestamp_sample = timestamp_sample;
+	sensor_baro.device_id = _interface->get_device_id();
+	sensor_baro.pressure = pressure_pa;
+	sensor_baro.temperature = temperature;
+	sensor_baro.error_count = perf_event_count(_comms_errors);
+	sensor_baro.timestamp = hrt_absolute_time();
+	_sensor_baro_pub.publish(sensor_baro);
 
 	perf_end(_sample_perf);
 	return PX4_OK;

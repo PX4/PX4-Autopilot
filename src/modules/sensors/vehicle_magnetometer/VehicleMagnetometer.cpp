@@ -36,6 +36,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
+#include <lib/sensor_calibration/Utilities.hpp>
 
 namespace sensors
 {
@@ -55,6 +56,20 @@ VehicleMagnetometer::VehicleMagnetometer() :
 	_voter.set_equal_value_threshold(1000);
 
 	ParametersUpdate(true);
+
+	_vehicle_magnetometer_pub[0].advertise();
+	_sensor_preflight_mag_pub.advertise();
+
+	// if publishing multiple mags advertise instances immediately for existing calibrations
+	if (!_param_sens_mag_mode.get()) {
+		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+			uint32_t device_id_mag = calibration::GetCalibrationParamInt32("MAG", "ID", i);
+
+			if (device_id_mag != 0) {
+				_vehicle_magnetometer_pub[i].advertise();
+			}
+		}
+	}
 }
 
 VehicleMagnetometer::~VehicleMagnetometer()
@@ -194,7 +209,6 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 						const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
 
 						if (_calibration[mag_index].set_offset(offset)) {
-
 							// save parameters with preferred calibration slot to current sensor index
 							_calibration[mag_index].ParametersSave(mag_index);
 
@@ -351,7 +365,6 @@ void VehicleMagnetometer::UpdatePowerCompensation()
 			}
 		}
 	}
-
 }
 
 void VehicleMagnetometer::Run()
@@ -383,12 +396,14 @@ void VehicleMagnetometer::Run()
 
 		if (!_advertised[uorb_index]) {
 			// use data's timestamp to throttle advertisement checks
-			if ((_last_data[uorb_index].timestamp == 0) || (time_now_us > _last_data[uorb_index].timestamp + 1_s)) {
+			if ((_last_publication_timestamp[uorb_index] == 0)
+			    || (time_now_us > _last_publication_timestamp[uorb_index] + 1_s)) {
+
 				if (_sensor_sub[uorb_index].advertised()) {
 					_advertised[uorb_index] = true;
 
 				} else {
-					_last_data[uorb_index].timestamp = time_now_us;
+					_last_publication_timestamp[uorb_index] = time_now_us;
 				}
 			}
 		}
@@ -409,7 +424,7 @@ void VehicleMagnetometer::Run()
 						if (uorb_index > 0) {
 							/* the first always exists, but for each further sensor, add a new validator */
 							if (!_voter.add_new_validator()) {
-								PX4_ERR("failed to add validator for %s %i", "MAG", uorb_index);
+								PX4_ERR("failed to add validator for %s %i", _calibration[uorb_index].SensorString(), uorb_index);
 							}
 						}
 
@@ -423,6 +438,8 @@ void VehicleMagnetometer::Run()
 						if (_selected_sensor_sub_index < 0) {
 							_sensor_sub[uorb_index].registerCallback();
 						}
+
+						ParametersUpdate(true);
 					}
 
 					const Vector3f vect{_calibration[uorb_index].Correct(Vector3f{report.x, report.y, report.z}) - _calibration_estimator_bias[uorb_index]};
@@ -431,13 +448,10 @@ void VehicleMagnetometer::Run()
 					_voter.put(uorb_index, report.timestamp, mag_array, report.error_count, _priority[uorb_index]);
 
 					_timestamp_sample_sum[uorb_index] += report.timestamp_sample;
-					_mag_sum[uorb_index] += vect;
-					_mag_sum_count[uorb_index]++;
+					_data_sum[uorb_index] += vect;
+					_data_sum_count[uorb_index]++;
 
-					_last_data[uorb_index] = report;
-					_last_data[uorb_index].x = vect(0);
-					_last_data[uorb_index].y = vect(1);
-					_last_data[uorb_index].z = vect(2);
+					_last_data[uorb_index] = vect;
 
 					updated[uorb_index] = true;
 				}
@@ -459,7 +473,8 @@ void VehicleMagnetometer::Run()
 
 			if (_param_sens_mag_mode.get()) {
 				if (_selected_sensor_sub_index >= 0) {
-					PX4_INFO("%s switch from #%" PRId8 " -> #%d", "MAG", _selected_sensor_sub_index, best_index);
+					PX4_INFO("%s switch from #%" PRId8 " -> #%d", _calibration[_selected_sensor_sub_index].SensorString(),
+						 _selected_sensor_sub_index, best_index);
 				}
 			}
 
@@ -469,75 +484,58 @@ void VehicleMagnetometer::Run()
 	}
 
 	// Publish
-	if (_param_sens_mag_mode.get()) {
-		// publish only best mag
-		if ((_selected_sensor_sub_index >= 0)
-		    && (_voter.get_sensor_state(_selected_sensor_sub_index) == DataValidator::ERROR_FLAG_NO_ERROR)
-		    && updated[_selected_sensor_sub_index]) {
+	if (_param_sens_mag_rate.get() > 0) {
+		int interval_us = 1e6f / _param_sens_mag_rate.get();
+		const bool multi_mode = (_param_sens_mag_mode.get() == 1);
 
-			Publish(_selected_sensor_sub_index);
-		}
+		for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
+			if (updated[instance] && (_data_sum_count[instance] > 0)) {
 
-	} else {
-		// publish all
-		for (int uorb_index = 0; uorb_index < MAX_SENSOR_COUNT; uorb_index++) {
-			// publish all magnetometers as separate instances
-			if (updated[uorb_index] && (_calibration[uorb_index].device_id() != 0)) {
-				Publish(uorb_index, true);
+				const hrt_abstime timestamp_sample = _timestamp_sample_sum[instance] / _data_sum_count[instance];
+
+				if (timestamp_sample >= _last_publication_timestamp[instance] + interval_us) {
+
+					bool publish = (time_now_us <= timestamp_sample + 1_s);
+
+					if (!multi_mode && publish) {
+						publish = (_selected_sensor_sub_index >= 0)
+							  && (instance == _selected_sensor_sub_index)
+							  && (_voter.get_sensor_state(_selected_sensor_sub_index) == DataValidator::ERROR_FLAG_NO_ERROR);
+					}
+
+					if (publish) {
+						const Vector3f magnetometer_data = _data_sum[instance] / _data_sum_count[instance];
+
+						// populate vehicle_magnetometer and publish
+						vehicle_magnetometer_s out{};
+						out.timestamp_sample = timestamp_sample;
+						out.device_id = _calibration[instance].device_id();
+						magnetometer_data.copyTo(out.magnetometer_ga);
+						out.calibration_count = _calibration[instance].calibration_count();
+						out.timestamp = hrt_absolute_time();
+
+						if (multi_mode) {
+							_vehicle_magnetometer_pub[instance].publish(out);
+
+						} else {
+							// otherwise only ever publish the first instance
+							_vehicle_magnetometer_pub[0].publish(out);
+						}
+					}
+
+					_last_publication_timestamp[instance] = timestamp_sample;
+
+					// reset
+					_timestamp_sample_sum[instance] = 0;
+					_data_sum[instance].zero();
+					_data_sum_count[instance] = 0;
+				}
 			}
 		}
 	}
 
-
-	if (_param_sens_mag_mode.get()) {
-		// check failover and report (save failover report for a cycle where parameters didn't update)
-		if (_last_failover_count != _voter.failover_count() && !parameter_update) {
-			uint32_t flags = _voter.failover_state();
-			int failover_index = _voter.failover_index();
-
-			if (flags != DataValidator::ERROR_FLAG_NO_ERROR) {
-				if (failover_index != -1) {
-
-					if (time_now_us > _last_error_message + 3_s) {
-						mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!\t",
-								      "MAG",
-								      failover_index,
-								      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
-								      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
-								      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
-								      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
-								      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
-
-						events::px4::enums::sensor_failover_reason_t failover_reason{};
-
-						if (flags & DataValidator::ERROR_FLAG_NO_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::no_data; }
-
-						if (flags & DataValidator::ERROR_FLAG_STALE_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::stale_data; }
-
-						if (flags & DataValidator::ERROR_FLAG_TIMEOUT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::timeout; }
-
-						if (flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_count; }
-
-						if (flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_density; }
-
-						/* EVENT
-						 * @description
-						 * Land immediately and check the system.
-						 */
-						events::send<uint8_t, events::px4::enums::sensor_failover_reason_t>(
-							events::ID("sensor_failover_mag"), events::Log::Emergency, "Magnetometer sensor #{1} failure: {2}", failover_index,
-							failover_reason);
-
-						_last_error_message = time_now_us;
-					}
-
-					// reduce priority of failed sensor to the minimum
-					_priority[failover_index] = 1;
-				}
-			}
-
-			_last_failover_count = _voter.failover_count();
-		}
+	if (!parameter_update && _param_sens_mag_mode.get()) {
+		CheckFailover(time_now_us);
 	}
 
 	if (!_armed) {
@@ -546,97 +544,158 @@ void VehicleMagnetometer::Run()
 
 	UpdateMagCalibration();
 
+	UpdateStatus();
+
 	// reschedule timeout
-	ScheduleDelayed(40_ms);
+	ScheduleDelayed(50_ms);
 
 	perf_end(_cycle_perf);
 }
 
-void VehicleMagnetometer::Publish(uint8_t instance, bool multi)
+void VehicleMagnetometer::CheckFailover(const hrt_abstime &time_now_us)
 {
-	if ((_param_sens_mag_rate.get() > 0) && ((_last_publication_timestamp[instance] == 0) ||
-			(hrt_elapsed_time(&_last_publication_timestamp[instance]) >= (1e6f / _param_sens_mag_rate.get())))) {
+	// check failover and report (save failover report for a cycle where parameters didn't update)
+	if (_last_failover_count != _voter.failover_count()) {
+		uint32_t flags = _voter.failover_state();
+		int failover_index = _voter.failover_index();
 
-		const Vector3f magnetometer_data = _mag_sum[instance] / _mag_sum_count[instance];
-		const hrt_abstime timestamp_sample = _timestamp_sample_sum[instance] / _mag_sum_count[instance];
+		if (flags != DataValidator::ERROR_FLAG_NO_ERROR) {
+			if (failover_index >= 0 && failover_index < MAX_SENSOR_COUNT) {
 
-		// reset
-		_timestamp_sample_sum[instance] = 0;
-		_mag_sum[instance].zero();
-		_mag_sum_count[instance] = 0;
+				if (time_now_us > _last_error_message + 3_s) {
+					mavlink_log_emergency(&_mavlink_log_pub, "%s #%i failed: %s%s%s%s%s!\t",
+							      _calibration[failover_index].SensorString(),
+							      failover_index,
+							      ((flags & DataValidator::ERROR_FLAG_NO_DATA) ? " OFF" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_STALE_DATA) ? " STALE" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_TIMEOUT) ? " TIMEOUT" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) ? " ERR CNT" : ""),
+							      ((flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) ? " ERR DNST" : ""));
 
-		// populate vehicle_magnetometer with primary mag and publish
-		vehicle_magnetometer_s out{};
-		out.timestamp_sample = timestamp_sample;
-		out.device_id = _calibration[instance].device_id();
-		magnetometer_data.copyTo(out.magnetometer_ga);
-		out.calibration_count = _calibration[instance].calibration_count();
+					events::px4::enums::sensor_failover_reason_t failover_reason{};
 
-		out.timestamp = hrt_absolute_time();
+					if (flags & DataValidator::ERROR_FLAG_NO_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::no_data; }
 
-		if (multi) {
-			_vehicle_magnetometer_pub[instance].publish(out);
+					if (flags & DataValidator::ERROR_FLAG_STALE_DATA) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::stale_data; }
 
-		} else {
-			// otherwise only ever publish the first instance
-			_vehicle_magnetometer_pub[0].publish(out);
+					if (flags & DataValidator::ERROR_FLAG_TIMEOUT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::timeout; }
+
+					if (flags & DataValidator::ERROR_FLAG_HIGH_ERRCOUNT) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_count; }
+
+					if (flags & DataValidator::ERROR_FLAG_HIGH_ERRDENSITY) { failover_reason = failover_reason | events::px4::enums::sensor_failover_reason_t::high_error_density; }
+
+					/* EVENT
+					 * @description
+					 * Land immediately and check the system.
+					 */
+					events::send<uint8_t, events::px4::enums::sensor_failover_reason_t>(
+						events::ID("sensor_failover_mag"), events::Log::Emergency, "Magnetometer sensor #{1} failure: {2}", failover_index,
+						failover_reason);
+
+					_last_error_message = time_now_us;
+				}
+
+				// reduce priority of failed sensor to the minimum
+				_priority[failover_index] = 1;
+			}
 		}
 
-		_last_publication_timestamp[instance] = out.timestamp;
+		_last_failover_count = _voter.failover_count();
 	}
 }
 
 void VehicleMagnetometer::calcMagInconsistency()
 {
-	sensor_preflight_mag_s preflt{};
+	if (_selected_sensor_sub_index >= 0) {
+		sensor_preflight_mag_s preflt{};
 
-	const sensor_mag_s &primary_mag_report = _last_data[_selected_sensor_sub_index];
-	const Vector3f primary_mag(primary_mag_report.x, primary_mag_report.y,
-				   primary_mag_report.z); // primary mag field vector
+		const Vector3f primary_mag(_last_data[_selected_sensor_sub_index]); // primary mag field vector
 
-	float mag_angle_diff_max = 0.0f; // the maximum angle difference
-	unsigned check_index = 0; // the number of sensors the primary has been checked against
+		float mag_angle_diff_max = 0.0f; // the maximum angle difference
+		unsigned check_index = 0; // the number of sensors the primary has been checked against
 
-	// Check each sensor against the primary
-	for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
-		// check that the sensor we are checking against is not the same as the primary
-		if (_advertised[i] && (_priority[i] > 0) && (i != _selected_sensor_sub_index)) {
-			// calculate angle to 3D magnetic field vector of the primary sensor
-			const sensor_mag_s &current_mag_report = _last_data[i];
-			Vector3f current_mag{current_mag_report.x, current_mag_report.y, current_mag_report.z};
+		// Check each sensor against the primary
+		for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
+			// check that the sensor we are checking against is not the same as the primary
+			if (_advertised[i] && (_priority[i] > 0) && (i != _selected_sensor_sub_index)) {
+				// calculate angle to 3D magnetic field vector of the primary sensor
+				Vector3f current_mag{_last_data[i]};
 
-			float angle_error = AxisAnglef(Quatf(current_mag, primary_mag)).angle();
+				float angle_error = AxisAnglef(Quatf(current_mag, primary_mag)).angle();
 
-			// complementary filter to not fail/pass on single outliers
-			_mag_angle_diff[check_index] *= 0.95f;
-			_mag_angle_diff[check_index] += 0.05f * angle_error;
+				// complementary filter to not fail/pass on single outliers
+				_mag_angle_diff[check_index] *= 0.95f;
+				_mag_angle_diff[check_index] += 0.05f * angle_error;
 
-			mag_angle_diff_max = math::max(mag_angle_diff_max, _mag_angle_diff[check_index]);
+				mag_angle_diff_max = math::max(mag_angle_diff_max, _mag_angle_diff[check_index]);
 
-			// increment the check index
-			check_index++;
+				// increment the check index
+				check_index++;
+			}
+
+			// check to see if the maximum number of checks has been reached and break
+			if (check_index >= 2) {
+				break;
+			}
 		}
 
-		// check to see if the maximum number of checks has been reached and break
-		if (check_index >= 2) {
-			break;
-		}
+		// get the vector length of the largest difference and write to the combined sensor struct
+		// will be zero if there is only one magnetometer and hence nothing to compare
+		preflt.mag_inconsistency_angle = mag_angle_diff_max;
+
+		preflt.timestamp = hrt_absolute_time();
+		_sensor_preflight_mag_pub.publish(preflt);
 	}
+}
 
-	// get the vector length of the largest difference and write to the combined sensor struct
-	// will be zero if there is only one magnetometer and hence nothing to compare
-	preflt.mag_inconsistency_angle = mag_angle_diff_max;
+void VehicleMagnetometer::UpdateStatus()
+{
+	if (_selected_sensor_sub_index >= 0) {
+		sensors_status_s sensors_status{};
+		sensors_status.device_id_primary = _calibration[_selected_sensor_sub_index].device_id();
 
-	preflt.timestamp = hrt_absolute_time();
-	_sensor_preflight_mag_pub.publish(preflt);
+		matrix::Vector3f mean{};
+		int sensor_count = 0;
+
+		for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
+			if ((_calibration[sensor_index].device_id() != 0) && (_calibration[sensor_index].enabled())) {
+				sensor_count++;
+				mean += _last_data[sensor_index];
+			}
+		}
+
+		if (sensor_count > 0) {
+			mean /= sensor_count;
+		}
+
+		for (int sensor_index = 0; sensor_index < MAX_SENSOR_COUNT; sensor_index++) {
+			if (_calibration[sensor_index].device_id() != 0) {
+
+				_sensor_diff[sensor_index] = 0.95f * _sensor_diff[sensor_index] + 0.05f * (_last_data[sensor_index] - mean);
+
+				sensors_status.device_ids[sensor_index] = _calibration[sensor_index].device_id();
+				sensors_status.inconsistency[sensor_index] = _sensor_diff[sensor_index].norm();
+				sensors_status.healthy[sensor_index] = (_voter.get_sensor_state(sensor_index) == DataValidator::ERROR_FLAG_NO_ERROR);
+				sensors_status.priority[sensor_index] = _voter.get_sensor_priority(sensor_index);
+				sensors_status.enabled[sensor_index] = _calibration[sensor_index].enabled();
+				sensors_status.external[sensor_index] = _calibration[sensor_index].external();
+
+			} else {
+				sensors_status.inconsistency[sensor_index] = NAN;
+			}
+		}
+
+		sensors_status.timestamp = hrt_absolute_time();
+		_sensors_status_mag_pub.publish(sensors_status);
+	}
 }
 
 void VehicleMagnetometer::PrintStatus()
 {
 	if (_selected_sensor_sub_index >= 0) {
-		PX4_INFO_RAW("[vehicle_magnetometer] selected magnetometer: %" PRIu32 " (%" PRId8 ")\n",
-			     _last_data[_selected_sensor_sub_index].device_id,
-			     _selected_sensor_sub_index);
+		PX4_INFO_RAW("[vehicle_magnetometer] selected %s: %" PRIu32 " (%" PRId8 ")\n",
+			     _calibration[_selected_sensor_sub_index].SensorString(),
+			     _calibration[_selected_sensor_sub_index].device_id(), _selected_sensor_sub_index);
 	}
 
 	_voter.print();
