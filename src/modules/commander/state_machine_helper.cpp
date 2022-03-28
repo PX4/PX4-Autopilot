@@ -592,7 +592,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		} else if (status.engine_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (status_flags.vtol_transition_failure) {
+		} else if (status.vtol_fw_actuation_failure) {
 
 			set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
 
@@ -646,7 +646,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
-		} else if (status_flags.vtol_transition_failure) {
+		} else if (status.vtol_fw_actuation_failure) {
 
 			set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
 
@@ -762,7 +762,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
-		} else if (status_flags.vtol_transition_failure) {
+		} else if (status.vtol_fw_actuation_failure) {
 
 			set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
 

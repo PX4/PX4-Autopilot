@@ -140,11 +140,6 @@ public:
 	virtual void waiting_on_tecs() {}
 
 	/**
-	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
-	 */
-	void check_quadchute_condition();
-
-	/**
 	 * Returns true if we're allowed to do a mode transition on the ground.
 	 */
 	bool can_transition_on_ground();
@@ -192,6 +187,7 @@ public:
 	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
+	struct vehicle_status_s				*_vehicle_status;
 
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_0;
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_1;
@@ -209,9 +205,6 @@ public:
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 	float _last_thr_in_fw_mode = 0.0f;
 
-	float _ra_hrate = 0.0f;			// rolling average on height rate for quadchute condition
-	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
-
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
 
 	hrt_abstime _trans_finished_ts = 0;
@@ -226,9 +219,6 @@ public:
 	float _transition_dt = 0;
 
 	float _accel_to_pitch_integ = 0;
-
-	bool _quadchute_command_treated{false};
-
 
 	/**
 	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures
@@ -256,10 +246,7 @@ public:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
 					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
-					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
-					(ParamFloat<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
-					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
-					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
+
 					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
 					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,
 
@@ -270,7 +257,6 @@ public:
 					(ParamFloat<px4::params::VT_B_TRANS_THR>) _param_vt_b_trans_thr,
 					(ParamFloat<px4::params::VT_ARSP_BLEND>) _param_vt_arsp_blend,
 					(ParamBool<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
-					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 					(ParamBool<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
 					(ParamFloat<px4::params::VT_FW_DIFTHR_SC>) _param_vt_fw_difthr_sc,

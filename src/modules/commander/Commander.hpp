@@ -227,6 +227,7 @@ private:
 
 		// Quadchute
 		(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
+
 		(ParamBool<px4::params::COM_FW_PERM_STAB>) _param_com_fw_perm_stab,
 
 		// Offboard
@@ -323,7 +324,7 @@ private:
 	bool		_flight_termination_triggered{false};
 	bool		_lockdown_triggered{false};
 	bool            _imbalanced_propeller_check_triggered{false};
-
+	bool		_quadchute_triggered{false};
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 	hrt_abstime	_datalink_last_heartbeat_avoidance_system{0};

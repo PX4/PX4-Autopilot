@@ -77,6 +77,7 @@ bool is_vtol				# True if the system is VTOL capable
 bool is_vtol_tailsitter                 # True if the system performs a 90° pitch down rotation during transition from MC to FW
 bool in_transition_mode			# True if VTOL is doing a transition
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
+bool vtol_fw_actuation_failure          # True if an issue with fixed-wing actuation was detected
 
 bool rc_signal_lost				# true if RC reception lost
 

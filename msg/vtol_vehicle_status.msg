@@ -8,5 +8,3 @@ uint8 VEHICLE_VTOL_STATE_FW = 4
 uint64 timestamp			# time since system start (microseconds)
 
 uint8 vehicle_vtol_state		# current state of the vtol, see VEHICLE_VTOL_STATE
-
-bool vtol_transition_failsafe		# vtol in transition failsafe mode
