@@ -128,6 +128,7 @@ private:
 	float _initial_heading = 0.f; /**< the heading of the drone when the orbit command was issued */
 	SlewRateYaw<float> _slew_rate_yaw;
 
+	orb_advert_t _mavlink_log_pub{nullptr};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
 	DEFINE_PARAMETERS(
