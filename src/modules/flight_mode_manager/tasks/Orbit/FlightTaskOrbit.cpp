@@ -38,6 +38,7 @@
 #include "FlightTaskOrbit.hpp"
 
 #include <mathlib/mathlib.h>
+#include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
 
 using namespace matrix;
@@ -77,6 +78,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 		_orbit_velocity = new_velocity;
 
 	} else {
+		events::send(events::ID("orbit_radius_exceeded"), events::Log::Alert, "Orbit radius limit exceeded");
 		ret = false;
 	}
 
