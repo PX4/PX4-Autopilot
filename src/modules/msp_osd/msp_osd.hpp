@@ -51,7 +51,9 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/estimator_status.h>
 
 #include "MspV1.hpp"
 
@@ -97,6 +99,8 @@ private:
 	uORB::Subscription _home_position_sub{ORB_ID(home_position)};
 	uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	
 	struct battery_status_s _battery_status_struct = {0};
 	struct vehicle_status_s _vehicle_status_struct;
@@ -106,6 +110,8 @@ private:
 	struct home_position_s _home_position_struct = {0};
 	struct vehicle_global_position_s _vehicle_global_position_struct = {0};
 	struct vehicle_attitude_s _vehicle_attitude_struct = {0};
+	struct estimator_status_s _estimator_status_struct = {0};
+	struct vehicle_local_position_s _vehicle_local_position_struct = {0};
 
 	void SendConfig();
 	void SendTelemetry();

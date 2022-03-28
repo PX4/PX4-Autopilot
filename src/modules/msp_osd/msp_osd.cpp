@@ -316,11 +316,11 @@ void MspOsd::Run()
 	_vehicle_air_data_sub.update(&_vehicle_air_data_struct);
 	_home_position_sub.update(&_home_position_struct);
 	_vehicle_global_position_sub.update(&_vehicle_global_position_struct);
+	_vehicle_local_position_sub.update(&_vehicle_local_position_struct);
 	_vehicle_attitude_sub.update(&_vehicle_attitude_struct);
+	_estimator_status_sub.update(&_estimator_status_struct);
 
 	matrix::Eulerf euler_attitude(matrix::Quatf(_vehicle_attitude_struct.q));
-
-	//PX4_WARN("Update %f %f %f", (double)math::degrees(euler_attitude.phi()),  (double)math::degrees(euler_attitude.theta()),  (double)math::degrees(euler_attitude.psi()));
 
 	// MSP_NAME
 	snprintf(name.craft_name, sizeof(name.craft_name), "> %i", _x);
@@ -362,7 +362,7 @@ void MspOsd::Run()
 	_msp.Send(MSP_ANALOG, &analog);
 
 	// MSP_BATTERY_STATE
-	battery_state.amperage = 2500; // not used?
+	battery_state.amperage = _battery_status_struct.current_a; // not used?
 	battery_state.batteryVoltage =  (uint16_t)(_battery_status_struct.voltage_v * 400.0f); // OK
 	battery_state.mAhDrawn = _battery_status_struct.discharged_mah ; // OK
 	battery_state.batteryCellCount = _battery_status_struct.cell_count;
@@ -431,22 +431,26 @@ void MspOsd::Run()
 	_msp.Send(MSP_RAW_GPS, &raw_gps);
 
 	// Calculate distance and direction to home
-	float bearing_to_home = 0;
-	float distance_to_home = 0;
-
 	if (_home_position_struct.valid_hpos
-		&& _home_position_struct.valid_lpos)
+		&& _home_position_struct.valid_lpos
+		&& _estimator_status_struct.solution_status_flags & (1 << 4))
 	{
-		bearing_to_home = get_bearing_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
+		float bearing_to_home = get_bearing_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
 			_home_position_struct.lat, _home_position_struct.lon);
 
-		distance_to_home = get_distance_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
+		float distance_to_home = get_distance_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
 			_home_position_struct.lat, _home_position_struct.lon);
+
+		comp_gps.distanceToHome = (int16_t)distance_to_home; // meters
+		comp_gps.directionToHome = bearing_to_home; // degrees
+	}
+	else
+	{
+		comp_gps.distanceToHome = 0; // meters
+		comp_gps.directionToHome = 0; // degrees
 	}
 
 	// MSP_COMP_GPS
-	comp_gps.distanceToHome = (int16_t)distance_to_home; // meters
-	comp_gps.directionToHome = bearing_to_home; // degrees
 	comp_gps.heartbeat = _heartbeat;
 	_heartbeat = !_heartbeat;
 	_msp.Send(MSP_COMP_GPS, &comp_gps);
@@ -458,7 +462,14 @@ void MspOsd::Run()
 	_msp.Send(MSP_ATTITUDE, &attitude);
 
 	// MSP_ALTITUDE
-	altitude.estimatedActualVelocity = 0; //m/s to cm/s
+	if (_estimator_status_struct.solution_status_flags & (1 << 5))
+	{
+		altitude.estimatedActualVelocity = -_vehicle_local_position_struct.vz * 10; //m/s to cm/s
+	}
+	else
+	{
+		altitude.estimatedActualVelocity = 0;
+	}
 	_msp.Send(MSP_ALTITUDE, &altitude);
 
 	// MSP_MOTOR_TELEMETRY
