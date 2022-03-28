@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -102,30 +102,39 @@ private:
 	static bool sensorAvailabilityCheck(const bool report_failure,
 					    const uint8_t nb_mandatory_instances, orb_advert_t *mavlink_log_pub,
 					    vehicle_status_s &status, sens_check_func_t sens_check);
-	static bool isMagRequired(uint8_t instance);
+
+	static bool isMagRequired(uint32_t device_id);
 	static bool magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				      const bool is_mandatory, bool &report_fail);
 	static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
-	static bool isAccelRequired(uint8_t instance);
+
+	static bool isAccelRequired(uint32_t device_id);
 	static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				       const bool is_mandatory, bool &report_fail);
-	static bool isGyroRequired(uint8_t instance);
+
+	static bool isGyroRequired(uint32_t device_id);
 	static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			      const bool is_mandatory, bool &report_fail);
-	static bool isBaroRequired(uint8_t instance);
+
+	static bool isBaroRequired(uint32_t device_id);
 	static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			      const bool is_mandatory, bool &report_fail);
+
 	static bool distSensCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				  const bool is_mandatory, bool &report_fail);
+
 	static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
+
 	static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool optional,
 				  const bool report_fail, const bool prearm, const bool max_airspeed_check_en, const float arming_max_airspeed_allowed);
+
 	static int rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail);
+
 	static bool powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
 			       const bool prearm);
+
 	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
 			      const bool report_fail);
-
 	static bool ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bool report_fail);
 
 	static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,

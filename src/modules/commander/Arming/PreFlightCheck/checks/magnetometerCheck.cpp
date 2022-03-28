@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,55 +44,62 @@
 
 using namespace time_literals;
 
-bool PreFlightCheck::isMagRequired(const uint8_t instance)
+bool PreFlightCheck::isMagRequired(uint32_t device_id)
 {
-	uORB::SubscriptionData<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), instance};
-	const uint32_t device_id = static_cast<uint32_t>(magnetometer.get().device_id);
-
-	bool is_used_by_nav = false;
-
 	for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
 
-		if (device_id > 0 && estimator_status_sub.get().mag_device_id == device_id) {
-			is_used_by_nav = true;;
+		if (!estimator_status_sub.advertised()) {
 			break;
+		}
+
+		if (device_id != 0 && estimator_status_sub.get().mag_device_id == device_id) {
+			return true;
 		}
 	}
 
-	return is_used_by_nav;
+	return false;
 }
 
 bool PreFlightCheck::magnetometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				       const bool is_mandatory, bool &report_fail)
 {
-	const bool exists = (orb_exists(ORB_ID(sensor_mag), instance) == PX4_OK);
-	const bool is_required = is_mandatory || isMagRequired(instance);
+	uORB::SubscriptionData<sensor_mag_s> mag{ORB_ID(sensor_mag), instance};
 
+	const bool exists = mag.advertised();
+
+	bool is_required = is_mandatory;
 	bool is_valid = false;
 	bool is_calibration_valid = false;
 	bool is_mag_fault = false;
 
 	if (exists) {
-		uORB::SubscriptionData<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), instance};
 
-		const sensor_mag_s &mag_data = magnetometer.get();
-		is_valid = (mag_data.device_id != 0) && (mag_data.timestamp != 0) && (hrt_elapsed_time(&mag_data.timestamp) < 1_s);
+		is_valid = (mag.get().device_id != 0) && (mag.get().timestamp != 0)
+			   && (hrt_elapsed_time(&mag.get().timestamp) < 1_s);
 
 		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 			is_calibration_valid = true;
 
-		} else {
-			is_calibration_valid = (calibration::FindCurrentCalibrationIndex("MAG", mag_data.device_id) >= 0);
-		}
+		} else if (is_valid) {
+			is_calibration_valid = (calibration::FindCurrentCalibrationIndex("MAG", mag.get().device_id) >= 0);
 
-		for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
+			if (!is_required && isMagRequired(mag.get().device_id)) {
+				is_required = true;
+			}
 
-			if (estimator_status_sub.get().mag_device_id == static_cast<uint32_t>(mag_data.device_id)) {
-				if (estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT)) {
-					is_mag_fault = true;
+			for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
+
+				if (!estimator_status_sub.advertised()) {
 					break;
+				}
+
+				if (estimator_status_sub.get().mag_device_id == static_cast<uint32_t>(mag.get().device_id)) {
+					if (estimator_status_sub.get().control_mode_flags & (1 << estimator_status_s::CS_MAG_FAULT)) {
+						is_mag_fault = true;
+						break;
+					}
 				}
 			}
 		}

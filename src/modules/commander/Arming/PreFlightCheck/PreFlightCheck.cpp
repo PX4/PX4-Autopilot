@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,8 @@
 #include <uORB/Subscription.hpp>
 
 using namespace time_literals;
+
+static constexpr unsigned MAX_SENSORS = 4;
 
 static constexpr unsigned max_mandatory_mag_count = 1;
 static constexpr unsigned max_mandatory_gyro_count = 1;
@@ -240,7 +242,7 @@ bool PreFlightCheck::sensorAvailabilityCheck(const bool report_failure,
 	bool report_fail = report_failure;
 
 	/* check all sensors, but fail only for mandatory ones */
-	for (uint8_t i = 0u; i < ORB_MULTI_MAX_INSTANCES; i++) {
+	for (uint8_t i = 0u; i < MAX_SENSORS; i++) {
 		const bool is_mandatory = i < nb_mandatory_instances;
 
 		if (!sens_check(mavlink_log_pub, status, i, is_mandatory, report_fail)) {

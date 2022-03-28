@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <HealthFlags.h>
-#include <math.h>
 #include <px4_defines.h>
 #include <lib/sensor_calibration/Utilities.hpp>
 #include <lib/systemlib/mavlink_log.h>
@@ -45,37 +44,36 @@
 
 using namespace time_literals;
 
-bool PreFlightCheck::isAccelRequired(const uint8_t instance)
+bool PreFlightCheck::isAccelRequired(uint32_t device_id)
 {
-	uORB::SubscriptionData<sensor_accel_s> accel{ORB_ID(sensor_accel), instance};
-	const uint32_t device_id = static_cast<uint32_t>(accel.get().device_id);
-
-	bool is_used_by_nav = false;
-
 	for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
 
-		if (device_id > 0 && estimator_status_sub.get().accel_device_id == device_id) {
-			is_used_by_nav = true;
+		if (!estimator_status_sub.advertised()) {
 			break;
+		}
+
+		if (device_id != 0 && estimator_status_sub.get().accel_device_id == device_id) {
+			return true;
 		}
 	}
 
-	return is_used_by_nav;
+	return false;
 }
 
 bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 					const bool is_mandatory, bool &report_fail)
 {
-	const bool exists = (orb_exists(ORB_ID(sensor_accel), instance) == PX4_OK);
-	const bool is_required = is_mandatory || isAccelRequired(instance);
+	uORB::SubscriptionData<sensor_accel_s> accel{ORB_ID(sensor_accel), instance};
 
+	const bool exists = accel.advertised();
+
+	bool is_required = is_mandatory;
 	bool is_valid = false;
 	bool is_calibration_valid = false;
 	bool is_value_valid = false;
 
 	if (exists) {
-		uORB::SubscriptionData<sensor_accel_s> accel{ORB_ID(sensor_accel), instance};
 
 		is_valid = (accel.get().device_id != 0) && (accel.get().timestamp != 0)
 			   && (hrt_elapsed_time(&accel.get().timestamp) < 1_s);
@@ -83,8 +81,12 @@ bool PreFlightCheck::accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_s
 		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 			is_calibration_valid = true;
 
-		} else {
+		} else if (is_valid) {
 			is_calibration_valid = (calibration::FindCurrentCalibrationIndex("ACC", accel.get().device_id) >= 0);
+
+			if (!is_required && isAccelRequired(accel.get().device_id)) {
+				is_required = true;
+			}
 		}
 
 		const float accel_magnitude = sqrtf(accel.get().x * accel.get().x

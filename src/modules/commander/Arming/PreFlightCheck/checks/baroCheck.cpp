@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,41 +43,46 @@
 
 using namespace time_literals;
 
-bool PreFlightCheck::isBaroRequired(const uint8_t instance)
+bool PreFlightCheck::isBaroRequired(uint32_t device_id)
 {
-	uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
-	const uint32_t device_id = static_cast<uint32_t>(baro.get().device_id);
-
-	bool is_used_by_nav = false;
-
 	for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
 
-		if (device_id > 0 && estimator_status_sub.get().baro_device_id == device_id) {
-			is_used_by_nav = true;
+		if (!estimator_status_sub.advertised()) {
 			break;
+		}
+
+		if (device_id != 0 && estimator_status_sub.get().baro_device_id == device_id) {
+			return true;
 		}
 	}
 
-	return is_used_by_nav;
+	return false;
 }
 
 bool PreFlightCheck::baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 			       const bool is_mandatory, bool &report_fail)
 {
-	const bool exists = (orb_exists(ORB_ID(sensor_baro), instance) == PX4_OK);
-	const bool is_required = is_mandatory || isBaroRequired(instance);
+	uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
 
-	bool valid = false;
+	const bool exists = baro.advertised();
+
+	bool is_required = is_mandatory;
+	bool is_valid = false;
 
 	if (exists) {
-		uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
 
-		valid = (baro.get().device_id != 0) && (baro.get().timestamp != 0) && (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
+		is_valid = (baro.get().timestamp != 0) && (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
+
+		if (is_valid) {
+			if (!is_required && isBaroRequired(baro.get().device_id)) {
+				is_required = true;
+			}
+		}
 	}
 
 	if (instance == 0) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, exists, is_required, valid, status);
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, exists, is_required, is_valid, status);
 	}
 
 	if (report_fail && is_required) {
@@ -85,11 +90,13 @@ bool PreFlightCheck::baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Baro Sensor %u missing", instance);
 			report_fail = false;
 
-		} else if (!valid) {
+		} else if (!is_valid) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Baro %u", instance);
 			report_fail = false;
 		}
 	}
 
-	return valid || !is_required;
+	const bool is_sensor_ok = is_valid;
+
+	return is_sensor_ok || !is_required;
 }
