@@ -73,7 +73,7 @@ bool
 RoverPositionControl::init()
 {
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
-		PX4_ERR("vehicle angular velocity callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
@@ -421,17 +421,17 @@ RoverPositionControl::Run()
 
 			position_setpoint_triplet_poll();
 
+			if (!_global_local_proj_ref.isInitialized()
+			    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)) {
+
+				_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
+								     _local_pos.ref_timestamp);
+
+				_global_local_alt0 = _local_pos.ref_alt;
+			}
+
 			// Convert Local setpoints to global setpoints
 			if (_control_mode.flag_control_offboard_enabled) {
-				if (!_global_local_proj_ref.isInitialized()
-				    || (_global_local_proj_ref.getProjectionReferenceTimestamp() != _local_pos.ref_timestamp)) {
-
-					_global_local_proj_ref.initReference(_local_pos.ref_lat, _local_pos.ref_lon,
-									     _local_pos.ref_timestamp);
-
-					_global_local_alt0 = _local_pos.ref_alt;
-				}
-
 				_trajectory_setpoint_sub.update(&_trajectory_setpoint);
 
 				// local -> global

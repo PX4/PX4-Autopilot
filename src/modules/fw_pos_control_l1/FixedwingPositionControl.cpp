@@ -89,7 +89,7 @@ bool
 FixedwingPositionControl::init()
 {
 	if (!_local_pos_sub.registerCallback()) {
-		PX4_ERR("vehicle local position callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

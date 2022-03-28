@@ -89,12 +89,12 @@ bool
 ControlAllocator::init()
 {
 	if (!_vehicle_torque_setpoint_sub.registerCallback()) {
-		PX4_ERR("vehicle_torque_setpoint callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
 	if (!_vehicle_thrust_setpoint_sub.registerCallback()) {
-		PX4_ERR("vehicle_thrust_setpoint callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

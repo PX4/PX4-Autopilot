@@ -219,6 +219,7 @@ private:
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
 	uint8_t _accel_calibration_count{0};
+	uint8_t _baro_calibration_count{0};
 	uint8_t _gyro_calibration_count{0};
 	uint8_t _mag_calibration_count{0};
 

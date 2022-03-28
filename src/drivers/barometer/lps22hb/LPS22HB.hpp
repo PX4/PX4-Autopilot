@@ -39,7 +39,8 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_baro.h>
 
 static constexpr uint8_t WHO_AM_I = 0x0F;
 static constexpr uint8_t LPS22HB_ID_WHO_AM_I = 0xB1;
@@ -92,7 +93,8 @@ public:
 	void			RunImpl();
 
 private:
-	PX4Barometer		_px4_baro;
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
+
 	device::Device		*_interface;
 
 	bool			_collect_phase{false};

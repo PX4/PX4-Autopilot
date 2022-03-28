@@ -258,11 +258,11 @@ public:
 	 *      created instance, ie. 0 for the first advertiser, 1 for the next and so on.
 	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
 	 *      used.
-	 * @return    PX4_ERROR on error, otherwise returns a handle
+	 * @return    nullptr on error, otherwise returns a handle
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
-	 *      this function will return -1 and set errno to ENOENT.
+	 *      this function will return nullptr and set errno to ENOENT.
 	 */
 	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
 					 unsigned int queue_size = 1);

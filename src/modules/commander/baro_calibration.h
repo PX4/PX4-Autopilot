@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,30 +33,8 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
+#include <math.h>
+#include <stdint.h>
 #include <uORB/uORB.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
 
-class PX4Barometer
-{
-public:
-	PX4Barometer(uint32_t device_id);
-	~PX4Barometer();
-
-	const sensor_baro_s &get() { return _sensor_baro_pub.get(); }
-
-	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_baro_pub.get().error_count = error_count; }
-
-	void set_temperature(float temperature) { _sensor_baro_pub.get().temperature = temperature; }
-
-	void update(const hrt_abstime &timestamp_sample, float pressure);
-
-	int get_instance() { return _sensor_baro_pub.get_instance(); };
-
-private:
-
-	uORB::PublicationMultiData<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
-};
+int do_baro_calibration(orb_advert_t *mavlink_log_pub);
