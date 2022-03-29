@@ -44,9 +44,10 @@
 #include "Publishers/FlowMeasurement.hpp"
 #include "Publishers/GnssFix2.hpp"
 #include "Publishers/MagneticFieldStrength2.hpp"
+#include "Publishers/MovingBaselineData.hpp"
 #include "Publishers/RangeSensorMeasurement.hpp"
 #include "Publishers/RawAirData.hpp"
-#include "Publishers/MovingBaselineData.hpp"
+#include "Publishers/RelPosHeading.hpp"
 #include "Publishers/SafetyButton.hpp"
 #include "Publishers/StaticPressure.hpp"
 #include "Publishers/StaticTemperature.hpp"
@@ -304,6 +305,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new MagneticFieldStrength2(this, _node));
 	_publisher_list.add(new RangeSensorMeasurement(this, _node));
 	_publisher_list.add(new RawAirData(this, _node));
+	_publisher_list.add(new RelPosHeadingPub(this, _node));
 
 	int32_t enable_movingbaselinedata = 0;
 	param_get(param_find("CANNODE_GPS_RTCM"), &enable_movingbaselinedata);
