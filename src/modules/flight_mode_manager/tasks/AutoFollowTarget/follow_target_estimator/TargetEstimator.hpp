@@ -205,7 +205,7 @@ protected:
 	matrix::Vector3f _vel_measurement_old{};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_FT_RS>) _param_nav_ft_rs
+		(ParamFloat<px4::params::FLW_TGT_RS>) _param_flw_tgt_rs
 	)
 
 	// Subscriptions

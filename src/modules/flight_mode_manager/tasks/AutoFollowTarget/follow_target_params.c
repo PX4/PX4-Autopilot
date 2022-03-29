@@ -52,7 +52,7 @@
  * @min 8.0
  * @group Follow target
  */
-PARAM_DEFINE_FLOAT(NAV_FT_HT, 8.0f);
+PARAM_DEFINE_FLOAT(FLW_TGT_HT, 8.0f);
 
 /**
  * Distance to follow target from
@@ -63,7 +63,7 @@ PARAM_DEFINE_FLOAT(NAV_FT_HT, 8.0f);
  * @min 1.0
  * @group Follow target
  */
-PARAM_DEFINE_FLOAT(NAV_FT_DST, 8.0f);
+PARAM_DEFINE_FLOAT(FLW_TGT_DST, 8.0f);
 
 /**
  * Side to follow target from
@@ -84,7 +84,7 @@ PARAM_DEFINE_FLOAT(NAV_FT_DST, 8.0f);
  * @max 8
  * @group Follow target
  */
-PARAM_DEFINE_INT32(NAV_FT_FS, 1);
+PARAM_DEFINE_INT32(FLW_TGT_FS, 1);
 
 /**
  * Altitude control mode
@@ -99,7 +99,17 @@ PARAM_DEFINE_INT32(NAV_FT_FS, 1);
  * @value 2 3D Tracking : Track target's altitude (be aware that GPS altitude bias usually makes this useless)
  * @group Follow target
  */
-PARAM_DEFINE_INT32(NAV_FT_ALT_M, 0);
+PARAM_DEFINE_INT32(FLW_TGT_ALT_M, 0);
+
+/**
+ * Yaw setpoint filter time constant
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @group Follow target
+ */
+PARAM_DEFINE_FLOAT(FLW_TGT_YAW_T, 0.1f);
 
 /**
  * Dynamic filtering algorithm responsiveness to target movement in Target Estimator
@@ -112,14 +122,8 @@ PARAM_DEFINE_INT32(NAV_FT_ALT_M, 0);
  * @decimal 2
  * @group Follow target
  */
-PARAM_DEFINE_FLOAT(NAV_FT_RS, 0.1f);
+PARAM_DEFINE_FLOAT(FLW_TGT_RS, 0.1f);
 
-/**
- * Yaw setpoint filter time constant
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @group Follow target
- */
-PARAM_DEFINE_FLOAT(NAV_FT_YAW_T, 0.1f);
+PARAM_DEFINE_FLOAT(FLW_TGT_MAX_VEL, 5.0f);
+
+PARAM_DEFINE_FLOAT(FLW_TGT_MAX_ACC, 5.0f);
