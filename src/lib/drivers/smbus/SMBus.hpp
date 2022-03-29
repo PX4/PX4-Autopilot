@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 /**
  * @file SMBus.hpp
  * SMBus v2.0 protocol implementation.
@@ -57,7 +59,7 @@ public:
 	 * @brief Sends a block write command.
 	 * @param cmd_code The command code.
 	 * @param data The data to be written.
-	 * @param length The number of bytes being written. Maximum is SMBus::MAX_BLOCK_LEN.
+	 * @param length The number of bytes being written. No greater than SMBus::MAX_BLOCK_LEN.
 	 * @return Returns PX4_OK on success, -errno on failure.
 	 */
 	int block_write(const uint8_t cmd_code, const void *data, uint8_t byte_count, const bool use_pec);
@@ -65,8 +67,8 @@ public:
 	/**
 	 * @brief Sends a block read command.
 	 * @param cmd_code The command code.
-	 * @param data The returned data.
-	 * @param length The number of bytes being read. Maximum is SMBus::MAX_BLOCK_LEN.
+	 * @param data The returned data. The returned data will always contain 2 bytes of address information followed by data[length].
+	 * @param length The number of bytes being read. No greater than SMBus::MAX_BLOCK_LEN.
 	 * @return Returns PX4_OK on success, -errno on failure.
 	 */
 	int block_read(const uint8_t cmd_code, void *data, const uint8_t length, const bool use_pec);
@@ -93,7 +95,7 @@ public:
 	 * @param length The number of bytes being written.
 	 * @return Returns PX4_OK on success, -errno on failure.
 	 */
-	uint8_t get_pec(uint8_t *buffer, uint8_t length);
+	uint8_t get_pec(const uint8_t *buffer, uint8_t length);
 
 	perf_counter_t _interface_errors{perf_alloc(PC_COUNT, MODULE_NAME": errors")};
 
