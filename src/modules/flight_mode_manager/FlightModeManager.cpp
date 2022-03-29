@@ -441,6 +441,7 @@ void FlightModeManager::handleCommand()
 			command_ack.target_component = command.source_component;
 			command_ack.timestamp = hrt_absolute_time();
 			_vehicle_command_ack_pub.publish(command_ack);
+
 		} else if (_current_task.task) {
 			// check for other commands not related to task switching
 			if (command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED && command.param2 >= 0
