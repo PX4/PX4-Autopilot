@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,295 +32,268 @@
  ****************************************************************************/
 
 /**
- * @file SBS.hpp
+ * @file SBSBattery.h
  *
- * Header for a core SBS 1.1 specification of Smart Battery
- * http://sbs-forum.org/specs/sbdat110.pdf
+ * Header for a battery monitor connected via SMBus (I2C).
+ * Designed for SMBUS SBS v1.1-compatible Smart Batteries
  *
- * @author Eohan George <eohan@rotoye.com>
+ * @author Jacob Dahl <dahl.jakejacob@gmail.com>
+ * @author Alex Klimaj <alexklimaj@gmail.com>
+ * @author Bazooka Joe <BazookaJoe1900@gmail.com>
  * @author Nick Belanger <nbelanger@mail.skymul.com>
+ * @author Eohan George <eg@.skymul.com>
+ * @author Alex Mikhalev <alex@corvus-robotics.com>
  */
 
 #pragma once
 
-#include <px4_platform_common/i2c_spi_buses.h>
+#include <drivers/drv_hrt.h>
 #include <lib/drivers/smbus/SMBus.hpp>
-#include <uORB/topics/battery_status.h>
+#include <mathlib/mathlib.h>
+#include <perf/perf_counter.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/param.h>
-#include <geo/geo.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/battery_status.h>
 
+#include <board_config.h>
 
 using namespace time_literals;
 
-#define SBS_MEASUREMENT_INTERVAL_US             	100_ms          ///< time in microseconds, measure at 10Hz (not part of SBS spec)
-
-template<class T>
-class SMBUS_SBS_BaseClass : public I2CSPIDriver<T>
+class SBSBatteryBase : public ModuleParams
 {
+protected:
+	static constexpr hrt_abstime MEASUREMENT_INTERVAL_US =	100_ms;	///< time in microseconds, measure at 10Hz
+
+	static constexpr uint8_t BATT_ADDR = 			0x0B;	///< Default 7 bit address I2C address. 8 bit = 0x16
+
+	enum SBS_Register {
+		SBS_REG_TEMP =                                  0x08,   ///< temperature register
+		SBS_REG_VOLTAGE =                               0x09,   ///< voltage register
+		SBS_REG_CURRENT =                               0x0A,   ///< current register
+		SBS_REG_AVERAGE_CURRENT =                       0x0B,   ///< average current register
+		SBS_REG_MAX_ERROR =                             0x0C,   ///< max error
+		SBS_REG_RELATIVE_SOC =                          0x0D,   ///< Relative State Of Charge
+		SBS_REG_ABSOLUTE_SOC =                          0x0E,   ///< Absolute State of charge
+		SBS_REG_REMAINING_CAPACITY =                    0x0F,   ///< predicted remaining battery capacity as in mAh
+		SBS_REG_FULL_CHARGE_CAPACITY =                  0x10,   ///< capacity when fully charged
+		SBS_REG_RUN_TIME_TO_EMPTY =                     0x11,   ///< predicted remaining battery capacity based on the present rate of discharge in min
+		SBS_REG_AVERAGE_TIME_TO_EMPTY =                 0x12,   ///< predicted remaining battery capacity based on the present rate of discharge in min
+		SBS_REG_AVERAGE_TIME_TO_FULL =                  0x13,   ///< predicted time to full charge based on average charging current
+		SBS_REG_CYCLE_COUNT =                           0x17,   ///< number of cycles the battery has experienced
+		SBS_REG_DESIGN_CAPACITY =                       0x18,   ///< design capacity register
+		SBS_REG_DESIGN_VOLTAGE =                        0x19,   ///< design voltage register
+		SBS_REG_MANUFACTURER_NAME =                     0x20,   ///< manufacturer name
+		SBS_REG_MANUFACTURE_DATE =                      0x1B,   ///< manufacture date register
+		SBS_REG_SERIAL_NUMBER =                         0x1C,   ///< serial number register
+		SBS_REG_MANUFACTURER_ACCESS =                   0x00,
+		SBS_REG_MANUFACTURER_DATA =                     0x23,
+	};
+
+	static constexpr size_t MANUFACTURER_NAME_SIZE =        32;     ///< manufacturer name data size
+
 public:
-	SMBUS_SBS_BaseClass(const I2CSPIDriverConfig &config, SMBus *interface);
-	SMBUS_SBS_BaseClass();
+	SBSBatteryBase(SMBus *interface);
 
-	~SMBUS_SBS_BaseClass();
+	~SBSBatteryBase();
 
-	static void print_usage();
+	virtual int populate_startup_data();
 
-	friend SMBus;
+	virtual int populate_runtime_data(battery_status_s &data);
 
-	int populate_smbus_data(battery_status_s &msg);
-
-	virtual void RunImpl(); // Can be overriden by derived implimentation
-
-	virtual void custom_method(const BusCLIArguments &cli) = 0; //Has be overriden by derived implimentation
-
-	/**
-	 * @brief Returns the SBS serial number of the battery device.
-	 * @return Returns the SBS serial number of the battery device.
-	 */
-	uint16_t get_serial_number();
-
-	/**
-	* @brief Read info from battery on startup.
-	* @return Returns PX4_OK on success, PX4_ERROR on failure. Can be overriden by derived implimentation
-	*/
-	virtual int get_startup_info();
-
-	/**
-	 * @brief Gets the SBS manufacture date of the battery.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int manufacture_date();
-
-	/**
-	 * @brief Gets the SBS manufacturer name of the battery device.
-	 * @param manufacturer_name Pointer to a buffer into which the manufacturer name is to be written.
-	 * @param max_length The maximum number of bytes to attempt to read from the manufacturer name register,
-	 *                   including the null character that is appended to the end.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int manufacturer_name(uint8_t *manufacturer_name, const uint8_t length);
-
-	/**
-	 * @brief Enables or disables the cell under voltage protection emergency shut off.
-	 */
-
-	void suspend();
-
-	void resume();
-	enum {
-		BATT_SMBUS_TEMP                         =	0x08,           ///< temperature register
-		BATT_SMBUS_VOLTAGE                      =       0x09,           ///< voltage register
-		BATT_SMBUS_CURRENT                      =       0x0A,           ///< current register
-		BATT_SMBUS_AVERAGE_CURRENT              =       0x0B,           ///< average current register
-		BATT_SMBUS_MAX_ERROR                    =       0x0C,           ///< max error
-		BATT_SMBUS_RELATIVE_SOC                 =       0x0D,           ///< Relative State Of Charge
-		BATT_SMBUS_ABSOLUTE_SOC                 =       0x0E,           ///< Absolute State of charge
-		BATT_SMBUS_REMAINING_CAPACITY           =       0x0F,           ///< predicted remaining battery capacity as a percentage
-		BATT_SMBUS_FULL_CHARGE_CAPACITY         =       0x10,           ///< capacity when fully charged
-		BATT_SMBUS_RUN_TIME_TO_EMPTY            =       0x11,           ///< predicted remaining battery capacity based on the present rate of discharge in min
-		BATT_SMBUS_AVERAGE_TIME_TO_EMPTY        =       0x12,           ///< predicted remaining battery capacity based on the present rate of discharge in min
-		BATT_SMBUS_CYCLE_COUNT                  =       0x17,           ///< number of cycles the battery has experienced
-		BATT_SMBUS_DESIGN_CAPACITY              =       0x18,           ///< design capacity register
-		BATT_SMBUS_DESIGN_VOLTAGE               =       0x19,           ///< design voltage register
-		BATT_SMBUS_MANUFACTURER_NAME            =       0x20,           ///< manufacturer name
-		BATT_SMBUS_MANUFACTURER_NAME_SIZE       =       21,             ///< manufacturer name data size (not part of SBS spec)
-		BATT_SMBUS_DEVICE_NAME			=	0x21,		///< character string that contains the battery's name
-		BATT_SMBUS_MANUFACTURE_DATE             =       0x1B,           ///< manufacture date register
-		BATT_SMBUS_SERIAL_NUMBER                =       0x1C,           ///< serial number register
-		BATT_SMBUS_MANUFACTURER_ACCESS          =       0x00,
-		BATT_SMBUS_MANUFACTURER_DATA            =       0x23
-	} SBS_REGISTERS;
+	virtual void run();
 
 protected:
-
 	SMBus *_interface;
 
-	perf_counter_t _cycle{perf_alloc(PC_ELAPSED, "batmon_cycle")}; // TODO
+	perf_counter_t _cycle{nullptr};
 
-	/** @param _batt_topic uORB battery topic. */
-	orb_advert_t _batt_topic{nullptr};
+	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
-	/** @param _cell_count Number of series cell (retrieved from cell_count PX4 params) */
 	uint8_t _cell_count{0};
-
-	/** @param _batt_capacity Battery design capacity in mAh (0 means unknown). */
-	uint16_t _batt_capacity{0};
-
-	/** @param _batt_startup_capacity Battery remaining capacity in mAh on startup. */
-	uint16_t _batt_startup_capacity{0};
-
-	/** @param _cycle_count The number of cycles the battery has experienced. */
-	uint16_t _cycle_count{0};
-
-	/** @param _serial_number Serial number register. */
+	float _design_voltage{0};
+	uint16_t _design_capacity{0};
+	uint16_t _actual_capacity{0};
 	uint16_t _serial_number{0};
-
-	/** @param _manufacturer_name Name of the battery manufacturer. */
-	char _manufacturer_name[BATT_SMBUS_MANUFACTURER_NAME_SIZE + 1] {};	// Plus one for terminator
-
-	/** @param _manufacture_date Date of the battery manufacturing. */
+	char _manufacturer_name[MANUFACTURER_NAME_SIZE + 1] {};	// Plus one for terminator
 	uint16_t _manufacture_date{0};
 
-	/** @param _state_of_health state of health as read on connection  */
-	float _state_of_health{0.f}; // Not part of SBS, can be calculated from FullChargeCapacity
-	// and DesignCapacity
+	SBSBatteryBase(const SBSBatteryBase &) = delete;
+	SBSBatteryBase operator=(const SBSBatteryBase &) = delete;
 
-	void print_man_info();
-
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		ModuleParams,
+		(ParamFloat<px4::params::BAT_CRIT_THR>)		_param_bat_crit_thr,
+		(ParamFloat<px4::params::BAT_LOW_THR>)  	_param_bat_low_thr,
+		(ParamFloat<px4::params::BAT_EMERGEN_THR>)	_param_bat_emergen_thr,
+		(ParamInt<px4::params::SBS_BAT_N_CELLS>)	_param_sbs_bat_n_cells,
+		(ParamFloat<px4::params::SBS_BAT_C_MULT>)	_param_sbs_bat_c_mult
+	)
 };
 
-template<class T>
-SMBUS_SBS_BaseClass<T>::SMBUS_SBS_BaseClass(const I2CSPIDriverConfig &config, SMBus *interface):
-	I2CSPIDriver<T>(config),
-	_interface(interface)
+
+template<typename ThisDriver>
+class SBSBattery : public SBSBatteryBase, public I2CSPIDriver<ThisDriver>
 {
-	battery_status_s new_report = {};
-	int SBS_instance_number = 0;
-	_batt_topic = orb_advertise_multi(ORB_ID(battery_status), &new_report, &SBS_instance_number);
-	_interface->init();
+public:
+	static constexpr int NO_SUCH_COMMAND = 0xABCD;
+
+	SBSBattery(const I2CSPIDriverConfig &config, SMBus *interface);
+	~SBSBattery();
+
+	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
+
+	void print_status() override;
+
+	void RunImpl();
+
+	/**
+	 * Handle a command verb.
+	 *
+	 * Returns NO_SUCH_COMMAND if no such command verb exists.
+	 */
+	static int handle_command(const char *verb, BusCLIArguments &cli, BusInstanceIterator &iterator,
+				  int argc, char *argv[]);
+
+	static void print_module_description();
+	static void print_usage_commands();
+	static void print_usage();
+
+	static int main(int argc, char *argv[]);
+};
+
+template<typename ThisDriver>
+SBSBattery<ThisDriver>::SBSBattery(const I2CSPIDriverConfig &config, SMBus *interface) :
+	SBSBatteryBase(interface),
+	I2CSPIDriver<ThisDriver>(config)
+{
 }
 
-template<class T>
-SMBUS_SBS_BaseClass<T>::~SMBUS_SBS_BaseClass()
+template<typename ThisDriver>
+SBSBattery<ThisDriver>::~SBSBattery()
 {
-	orb_unadvertise(_batt_topic);
-	perf_free(_cycle); // TODO
+}
 
-	if (_interface != nullptr) {
-		delete _interface;
+template<typename ThisDriver>
+void SBSBattery<ThisDriver>::RunImpl()
+{
+	run();
+}
+
+template<typename ThisDriver>
+I2CSPIDriverBase *SBSBattery<ThisDriver>::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
+{
+	SMBus *interface = new SMBus(config.devid_driver_index, config.bus, config.i2c_address);
+
+	if (interface == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-}
+	SBSBattery<ThisDriver> *instance = new ThisDriver(config, interface);
 
-template<class T>
-void SMBUS_SBS_BaseClass<T>::suspend()
-{
-	this->ScheduleClear();
-}
-
-template<class T>
-void SMBUS_SBS_BaseClass<T>::resume()
-{
-	this->ScheduleOnInterval(SBS_MEASUREMENT_INTERVAL_US);
-}
-
-template<class T>
-uint16_t SMBUS_SBS_BaseClass<T>::get_serial_number()
-{
-	uint16_t serial_num = 0;
-
-	if (_interface->read_word(BATT_SMBUS_SERIAL_NUMBER, serial_num) == PX4_OK) {
-		return serial_num;
+	if (instance == nullptr) {
+		PX4_ERR("alloc failed");
+		return nullptr;
 	}
 
-	return PX4_ERROR;
-}
+	// TODO: need a better probe mechanism here?
+	int ret = instance->populate_startup_data();
 
-template<class T>
-int SMBUS_SBS_BaseClass<T>::get_startup_info()
-{
-	int ret = PX4_OK;
-
-	ret |= _interface->block_read(BATT_SMBUS_MANUFACTURER_NAME, _manufacturer_name, BATT_SMBUS_MANUFACTURER_NAME_SIZE,
-				      true);
-	_manufacturer_name[sizeof(_manufacturer_name) - 1] = '\0';
-
-	uint16_t serial_num;
-	ret |= _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, serial_num);
-
-	uint16_t remaining_cap;
-	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, remaining_cap);
-
-	uint16_t cycle_count;
-	ret |= _interface->read_word(BATT_SMBUS_CYCLE_COUNT, cycle_count);
-
-	uint16_t full_cap;
-	ret |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, full_cap);
-
-	uint16_t manufacture_date;
-	ret |= _interface->read_word(BATT_SMBUS_MANUFACTURE_DATE, manufacture_date);
-
-	if (!ret) {
-		_serial_number = serial_num;
-		_batt_startup_capacity = (uint16_t)((float)remaining_cap);
-		_cycle_count = cycle_count;
-		_batt_capacity = (uint16_t)((float)full_cap);
-		_manufacture_date = manufacture_date;
+	if (ret != PX4_OK) {
+		delete instance;
+		return nullptr;
 	}
 
-	return ret;
+	instance->ScheduleOnInterval(ThisDriver::MEASUREMENT_INTERVAL_US);
+
+	return instance;
 }
 
-template<class T>
-int SMBUS_SBS_BaseClass<T>::populate_smbus_data(battery_status_s &data)
+template<typename ThisDriver>
+int SBSBattery<ThisDriver>::handle_command(const char *verb, BusCLIArguments &cli, BusInstanceIterator &iterator,
+		int argc, char *argv[])
 {
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+	}
 
-	// Temporary variable for storing SMBUS reads.
-	uint16_t result;
+	if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+	}
 
-	int ret = _interface->read_word(BATT_SMBUS_VOLTAGE, result);
+	if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
 
-	// Convert millivolts to volts.
-	data.voltage_v = ((float)result) * 0.001f;
-	data.voltage_filtered_v = data.voltage_v;
-
-	// Read current.
-	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
-
-	data.current_a = (-1.0f * ((float)(*(int16_t *)&result)) * 0.001f);
-	data.current_filtered_a = data.current_a;
-
-	// Read remaining capacity.
-	ret |= _interface->read_word(BATT_SMBUS_RELATIVE_SOC, result);
-	data.remaining = (float)result * 0.01f;
-
-	// Read remaining capacity.
-	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
-	data.discharged_mah = _batt_startup_capacity - result;
-
-	// Read full capacity.
-	ret |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, result);
-	data.capacity = result;
-
-	// Read cycle count.
-	ret |= _interface->read_word(BATT_SMBUS_CYCLE_COUNT, result);
-	data.cycle_count = result;
-
-	// Read serial number.
-	ret |= _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, result);
-	data.serial_number = result;
-
-	// Read battery temperature and covert to Celsius.
-	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
-	data.temperature = ((float)result * 0.1f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
-
-	return ret;
-
+	return NO_SUCH_COMMAND;
 }
 
-template<class T>
-void SMBUS_SBS_BaseClass<T>::RunImpl()
+template<typename ThisDriver>
+void SBSBattery<ThisDriver>::print_status()
 {
+	I2CSPIDriver<ThisDriver>::print_status();
 
-	// Get the current time.
-	uint64_t now = hrt_absolute_time();
+	PX4_INFO("The manufacturer name: %s", _manufacturer_name);
+	PX4_INFO("The manufacturer date: %d", _manufacture_date);
+	PX4_INFO("The serial number: %d", _serial_number);
 
-	// Read data from sensor.
-	battery_status_s new_report = {};
+	perf_print_counter(_cycle);
+}
 
-	new_report.id = 1;
+template<typename ThisDriver>
+void SBSBattery<ThisDriver>::print_module_description()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Driver for generic SMBUS Compatible smart-batteries.
+)DESCR_STR");
+}
 
-	// Set time of reading.
-	new_report.timestamp = now;
+template<typename ThisDriver>
+void SBSBattery<ThisDriver>::print_usage_commands()
+{
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(ThisDriver::BATT_ADDR);
+}
 
-	new_report.connected = true;
+template<typename ThisDriver>
+void SBSBattery<ThisDriver>::print_usage()
+{
+	ThisDriver::print_module_description();
+	PRINT_MODULE_USAGE_NAME(ThisDriver::MOD_NAME, "driver");
 
-	int ret = populate_smbus_data(new_report);
+	ThisDriver::print_usage_commands();
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
 
-	new_report.cell_count = _cell_count;
+template<typename ThisDriver>
+int SBSBattery<ThisDriver>::main(int argc, char *argv[])
+{
+	BusCLIArguments cli{true, false};
+	cli.default_i2c_frequency = 100000;
+	cli.i2c_address = ThisDriver::BATT_ADDR;
 
-	// Only publish if no errors.
-	if (!ret) {
-		orb_publish(ORB_ID(battery_status), _batt_topic, &new_report);
+	const char *verb = cli.parseDefaultArguments(argc, argv);
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(ThisDriver::MOD_NAME, cli, DRV_BAT_DEVTYPE_SMBUS);
+
+	int res = ThisDriver::handle_command(verb, cli, iterator, argc, argv);
+
+	if (res == NO_SUCH_COMMAND) {
+		ThisDriver::print_usage();
+		return -1;
+	} else {
+		return res;
 	}
 }

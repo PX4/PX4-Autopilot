@@ -30,6 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+px4_add_module(
+	MODULE drivers__bq40z80
+	MAIN bq40z80
+	COMPILE_FLAGS
+	SRCS
+		bq40z80.cpp
 
-px4_add_library(drivers__smbus_sbs SBS.hpp SBS.cpp)
-set_target_properties(drivers__smbus_sbs PROPERTIES LINKER_LANGUAGE CXX)
+	DEPENDS
+		drivers__smbus_sbs
+	)

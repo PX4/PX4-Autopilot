@@ -1,0 +1,5 @@
+menuconfig DRIVERS_SMART_BATTERY_SBS_GENERIC
+	bool "SBS Generic"
+	default n
+	---help---
+		Enable generic Smart Battery System battery support

@@ -1,0 +1,5 @@
+menuconfig DRIVERS_SMART_BATTERY_BQ40Z80
+	bool "BQ40Z80"
+	default n
+	---help---
+		Enable support for TI BQ40Z80 based smart batteries
