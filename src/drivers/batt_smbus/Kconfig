@@ -1,5 +1,0 @@
-menuconfig DRIVERS_BATT_SMBUS
-	bool "batt_smbus"
-	default n
-	---help---
-		Enable support for batt_smbus
