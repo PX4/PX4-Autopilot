@@ -1,0 +1,13 @@
+# Google C++ style as base
+Language: Cpp
+BasedOnStyle: Google
+
+# Indentation using tabs
+UseTab: ForContinuationAndIndentation
+TabWidth: 8
+IndentWidth: 8
+ContinuationIndentWidth: 8
+ConstructorInitializerIndentWidth: 8
+AccessModifierOffset: -8
+
+ColumnLimit: 120 # Allow more collumns
