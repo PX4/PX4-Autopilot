@@ -191,6 +191,15 @@
 #define HW_INFO_INIT         {'V','5','x', 'x',0}
 #define HW_INFO_INIT_VER     2
 #define HW_INFO_INIT_REV     3
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
+#define V500   HW_VER_REV(0x0,0x0) // FMUV5,                    Rev 0
+#define V515   HW_VER_REV(0x1,0x5) // CUAV V5,                  Rev 5
+#define V540   HW_VER_REV(0x4,0x0) // HolyBro mini no can 2,3,  Rev 0
+#define V550   HW_VER_REV(0x5,0x0) // CUAV V5+,                 Rev 0
+#define V552   HW_VER_REV(0x5,0x2) // CUAV V5+ ICM42688P,       Rev 2
+#define V560   HW_VER_REV(0x6,0x0) // CUAV V5nano with can 2,   Rev 0
+#define V562   HW_VER_REV(0x6,0x2) // CUAV V5nano ICM42688P,    Rev 2
+
 /* CAN Silence
  *
  * Silent mode control \ ESC Mux select

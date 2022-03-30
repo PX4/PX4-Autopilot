@@ -37,7 +37,9 @@
 
 #include "FlightTaskOrbit.hpp"
 
+#include <lib/systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
+#include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
 
 using namespace matrix;
@@ -77,6 +79,8 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 		_orbit_velocity = new_velocity;
 
 	} else {
+		mavlink_log_critical(&_mavlink_log_pub, "Orbit radius limit exceeded\t");
+		events::send(events::ID("orbit_radius_exceeded"), events::Log::Alert, "Orbit radius limit exceeded");
 		ret = false;
 	}
 
