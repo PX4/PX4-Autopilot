@@ -1,0 +1,5 @@
+menuconfig DRIVERS_TMOTOR_ALPHA_ESC
+	bool "tmotor_alpha_esc"
+	default n
+	---help---
+		Enable support for TMotor Alpha ESC

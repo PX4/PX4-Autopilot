@@ -1,0 +1,7 @@
+module_name: TMotor Alpha ESC telemetry
+serial_config:
+    - command: tmotor_alpha_esc start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_TMESC_CFG
+        group: Telemetry
+

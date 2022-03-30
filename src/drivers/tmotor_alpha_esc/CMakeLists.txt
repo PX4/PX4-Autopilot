@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,8 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(bst)
-add_subdirectory(frsky_telemetry)
-add_subdirectory(hott)
-#add_subdirectory(iridiumsbd)
+px4_add_module(
+	MODULE drivers__tmotor_alpha_esc
+	MAIN tmotor_alpha_esc
+	COMPILE_FLAGS
+	SRCS
+		TmotorAlphaEsc.cpp
+		TmotorAlphaEsc.hpp
+	MODULE_CONFIG
+		module.yaml
+	DEPENDS
+		px4_work_queue
+	)
