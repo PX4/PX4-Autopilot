@@ -13,17 +13,10 @@ bool status_fmu_ok
 bool status_init_ok
 bool status_outputs_armed
 bool status_raw_pwm
-bool status_rc_ok
-bool status_rc_dsm
-bool status_rc_ppm
-bool status_rc_sbus
-bool status_rc_st24
-bool status_rc_sumd
 bool status_safety_off
 
 # PX4IO alarms (PX4IO_P_STATUS_ALARMS)
 bool alarm_pwm_error
-bool alarm_rc_lost
 
 # PX4IO arming (PX4IO_P_SETUP_ARMING)
 bool arming_failsafe_custom
@@ -39,5 +32,3 @@ uint16[8] pwm_disarmed
 uint16[8] pwm_failsafe
 
 uint16[8] pwm_rate_hz
-
-uint16[18] raw_inputs

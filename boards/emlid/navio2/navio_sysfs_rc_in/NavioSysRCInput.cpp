@@ -119,8 +119,6 @@ void NavioSysRCInput::Run()
 	connected_buf[sizeof(connected_buf) - 1] = '\0';
 	_connected = (atoi(connected_buf) == 1);
 
-	data.rc_lost = !_connected;
-
 	uint64_t timestamp_sample = hrt_absolute_time();
 
 	for (int i = 0; i < CHANNELS; ++i) {
@@ -145,11 +143,11 @@ void NavioSysRCInput::Run()
 		}
 	}
 
-	if (all_zero) {
+	if (all_zero || !_connected) {
 		return;
 	}
 
-	data.timestamp_last_signal = timestamp_sample;
+	data.timestamp_sample = timestamp_sample;
 	data.channel_count = CHANNELS;
 	data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
 	data.timestamp = hrt_absolute_time();

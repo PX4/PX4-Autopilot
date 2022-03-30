@@ -649,7 +649,7 @@ void Simulator::handle_message_rc_channels(const mavlink_message_t *msg)
 	mavlink_msg_rc_channels_decode(msg, &rc_channels);
 
 	input_rc_s rc_input{};
-	rc_input.timestamp_last_signal = hrt_absolute_time();
+	rc_input.timestamp_sample = hrt_absolute_time();
 	rc_input.channel_count = rc_channels.chancount;
 	rc_input.rssi = rc_channels.rssi;
 	rc_input.values[0] = rc_channels.chan1_raw;

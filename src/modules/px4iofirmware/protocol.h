@@ -98,29 +98,19 @@
 #define PX4IO_PAGE_STATUS			1
 #define PX4IO_P_STATUS_FREEMEM			0
 #define PX4IO_P_STATUS_CPULOAD			1
-
 #define PX4IO_P_STATUS_FLAGS			2	 /* monitoring flags */
 #define PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED	(1 << 0) /* arm-ok and locally armed */
-#define PX4IO_P_STATUS_FLAGS_RC_OK		(1 << 1) /* RC input is valid */
-#define PX4IO_P_STATUS_FLAGS_RC_PPM		(1 << 2) /* PPM input is valid */
-#define PX4IO_P_STATUS_FLAGS_RC_DSM		(1 << 3) /* DSM input is valid */
-#define PX4IO_P_STATUS_FLAGS_RC_SBUS		(1 << 4) /* SBUS input is valid */
-#define PX4IO_P_STATUS_FLAGS_FMU_OK		(1 << 5) /* controls from FMU are valid */
-#define PX4IO_P_STATUS_FLAGS_RAW_PWM		(1 << 6) /* raw PWM from FMU */
-#define PX4IO_P_STATUS_FLAGS_ARM_SYNC		(1 << 7) /* the arming state between IO and FMU is in sync */
-#define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 8) /* initialisation of the IO completed without error */
-#define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 9) /* failsafe is active */
-#define PX4IO_P_STATUS_FLAGS_SAFETY_OFF         (1 << 10) /* safety is off */
-#define PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED	(1 << 11) /* FMU was initialized and OK once */
-#define PX4IO_P_STATUS_FLAGS_RC_ST24		(1 << 12) /* ST24 input is valid */
-#define PX4IO_P_STATUS_FLAGS_RC_SUMD		(1 << 13) /* SUMD input is valid */
-
+#define PX4IO_P_STATUS_FLAGS_FMU_OK		(1 << 1) /* controls from FMU are valid */
+#define PX4IO_P_STATUS_FLAGS_RAW_PWM		(1 << 2) /* raw PWM from FMU */
+#define PX4IO_P_STATUS_FLAGS_ARM_SYNC		(1 << 3) /* the arming state between IO and FMU is in sync */
+#define PX4IO_P_STATUS_FLAGS_INIT_OK		(1 << 4) /* initialisation of the IO completed without error */
+#define PX4IO_P_STATUS_FLAGS_FAILSAFE		(1 << 5) /* failsafe is active */
+#define PX4IO_P_STATUS_FLAGS_SAFETY_OFF         (1 << 6) /* safety is off */
+#define PX4IO_P_STATUS_FLAGS_FMU_INITIALIZED	(1 << 7) /* FMU was initialized and OK once */
 #define PX4IO_P_STATUS_ALARMS			3	 /* alarm flags - alarms latch, write 1 to a bit to clear it */
-#define PX4IO_P_STATUS_ALARMS_RC_LOST           (1 << 0) /* timed out waiting for RC input */
 #define PX4IO_P_STATUS_ALARMS_PWM_ERROR         (1 << 1) /* PWM configuration or output was bad */
-
-#define PX4IO_P_STATUS_VSERVO			6	/* [2] servo rail voltage in mV */
-#define PX4IO_P_STATUS_VRSSI			7	/* [2] RSSI voltage */
+#define PX4IO_P_STATUS_VSERVO			4	/* [2] servo rail voltage in mV */
+#define PX4IO_P_STATUS_VRSSI			5	/* [2] RSSI voltage */
 
 /* array of PWM servo output values, microseconds */
 #define PX4IO_PAGE_SERVOS			3	/* 0..CONFIG_ACTUATOR_COUNT-1 */
@@ -129,17 +119,16 @@
 #define PX4IO_PAGE_RAW_RC_INPUT			4
 #define PX4IO_P_RAW_RC_COUNT			0	/* number of valid channels */
 #define PX4IO_P_RAW_RC_FLAGS			1	/* RC detail status flags */
-#define PX4IO_P_RAW_RC_FLAGS_FRAME_DROP		(1 << 0) /* single frame drop */
-#define PX4IO_P_RAW_RC_FLAGS_FAILSAFE		(1 << 1) /* receiver is in failsafe mode */
-#define PX4IO_P_RAW_RC_FLAGS_RC_DSM11		(1 << 2) /* DSM decoding is 11 bit mode */
-#define PX4IO_P_RAW_RC_FLAGS_MAPPING_OK		(1 << 3) /* Channel mapping is ok */
-#define PX4IO_P_RAW_RC_FLAGS_RC_OK		(1 << 4) /* RC reception ok */
-
+#define PX4IO_P_RAW_RC_FLAGS_FAILSAFE         (1 << 0) /* receiver is in failsafe mode */
+#define PX4IO_P_RAW_RC_FLAGS_RC_DSM           (1 << 1) /* DSM decoding */
+#define PX4IO_P_RAW_RC_FLAGS_RC_PPM           (1 << 2) /* PPM decoding */
+#define PX4IO_P_RAW_RC_FLAGS_RC_SBUS          (1 << 3) /* SBUS decoding */
+#define PX4IO_P_RAW_RC_FLAGS_RC_ST24          (1 << 4) /* ST24 decoding */
+#define PX4IO_P_RAW_RC_FLAGS_RC_SUMD          (1 << 5) /* SUMD decoding */
 #define PX4IO_P_RAW_RC_NRSSI			2	/* [2] Normalized RSSI value, 0: no reception, 255: perfect reception */
-#define PX4IO_P_RAW_RC_DATA			3	/* [1] + [2] Details about the RC source (PPM frame length, Spektrum protocol type) */
-#define PX4IO_P_RAW_FRAME_COUNT			4	/* Number of total received frames (wrapping counter) */
-#define PX4IO_P_RAW_LOST_FRAME_COUNT		5	/* Number of total dropped frames (wrapping counter) */
-#define PX4IO_P_RAW_RC_BASE			6	/* CONFIG_RC_INPUT_COUNT channels from here */
+#define PX4IO_P_RAW_FRAME_COUNT                 3	/* Number of total received frames (wrapping counter) */
+#define PX4IO_P_RAW_LOST_FRAME_COUNT		4	/* Number of total dropped frames (wrapping counter) */
+#define PX4IO_P_RAW_RC_BASE			5	/* CONFIG_RC_INPUT_COUNT channels from here */
 
 /* array of raw ADC values */
 #define PX4IO_PAGE_RAW_ADC_INPUT		6	/* 0..CONFIG_ADC_INPUT_COUNT-1 */

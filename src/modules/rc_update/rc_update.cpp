@@ -372,16 +372,14 @@ void RCUpdate::Run()
 	if (_input_rc_sub.update(&input_rc)) {
 
 		// warn if the channel count is changing (possibly indication of error)
-		if (!input_rc.rc_lost) {
-			if ((_channel_count_previous != input_rc.channel_count)
-			    && (_channel_count_previous > 0)) {
-				PX4_WARN("channel count changed %d -> %d", _channel_count_previous, input_rc.channel_count);
-			}
+		if ((_channel_count_previous != input_rc.channel_count)
+		    && (_channel_count_previous > 0)) {
+			PX4_WARN("channel count changed %d -> %d", _channel_count_previous, input_rc.channel_count);
+		}
 
-			if ((_input_source_previous != input_rc.input_source)
-			    && (_input_source_previous != input_rc_s::RC_INPUT_SOURCE_UNKNOWN)) {
-				PX4_WARN("input source changed %d -> %d", _input_source_previous, input_rc.input_source);
-			}
+		if ((_input_source_previous != input_rc.input_source)
+		    && (_input_source_previous != input_rc_s::RC_INPUT_SOURCE_UNKNOWN)) {
+			PX4_WARN("input source changed %d -> %d", _input_source_previous, input_rc.input_source);
 		}
 
 		const bool input_source_stable = (input_rc.input_source == _input_source_previous);
@@ -400,7 +398,7 @@ void RCUpdate::Run()
 		bool signal_lost = true;
 
 		/* check flags and require at least four channels to consider the signal valid */
-		if (input_rc.rc_lost || input_rc.rc_failsafe || input_rc.channel_count < 4) {
+		if (input_rc.rc_failsafe || input_rc.channel_count < 4) {
 			/* signal is lost or no enough channels */
 			signal_lost = true;
 
@@ -503,7 +501,7 @@ void RCUpdate::Run()
 		_rc.channel_count = input_rc.channel_count;
 		_rc.rssi = input_rc.rssi;
 		_rc.signal_lost = _rc_signal_lost_hysteresis.get_state();
-		_rc.timestamp = input_rc.timestamp_last_signal;
+		_rc.timestamp = input_rc.timestamp;
 		_rc.frame_drop_count = input_rc.rc_lost_frame_count;
 
 		/* publish rc_channels topic even if signal is invalid, for debug */
@@ -512,8 +510,8 @@ void RCUpdate::Run()
 		// only publish manual control if the signal is present and regularly updating
 		if (input_source_stable && channel_count_stable && !_rc_signal_lost_hysteresis.get_state()) {
 
-			if ((input_rc.timestamp_last_signal > _last_timestamp_signal)
-			    && (input_rc.timestamp_last_signal < _last_timestamp_signal + VALID_DATA_MIN_INTERVAL_US)) {
+			if ((input_rc.timestamp_sample > _last_timestamp_sample)
+			    && (input_rc.timestamp_sample < _last_timestamp_sample + VALID_DATA_MIN_INTERVAL_US)) {
 
 				perf_count(_valid_data_interval_perf);
 
@@ -529,10 +527,10 @@ void RCUpdate::Run()
 
 				// limit processing if there's no update
 				if (rc_updated || (hrt_elapsed_time(&_last_manual_control_input_publish) > 300_ms)) {
-					UpdateManualControlInput(input_rc.timestamp_last_signal);
+					UpdateManualControlInput(input_rc.timestamp_sample);
 				}
 
-				UpdateManualSwitches(input_rc.timestamp_last_signal);
+				UpdateManualSwitches(input_rc.timestamp_sample);
 
 				/* Update parameters from RC Channels (tuning with RC) if activated */
 				if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1_s) {
@@ -541,7 +539,7 @@ void RCUpdate::Run()
 				}
 			}
 
-			_last_timestamp_signal = input_rc.timestamp_last_signal;
+			_last_timestamp_sample = input_rc.timestamp_sample;
 
 		} else {
 			// RC input unstable or lost, clear any previous manual_switches

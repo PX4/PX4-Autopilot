@@ -525,16 +525,9 @@ Syslink::handle_raw(syslink_message_t *sys)
 
 		crtp_commander *cmd = (crtp_commander *) &c->data[0];
 
-		input_rc_s rc = {};
-
-		rc.timestamp = hrt_absolute_time();
-		rc.timestamp_last_signal = rc.timestamp;
+		input_rc_s rc{};
+		rc.timestamp_sample = hrt_absolute_time();
 		rc.channel_count = 5;
-		rc.rc_failsafe = false;
-		rc.rc_lost = false;
-		rc.rc_lost_frame_count = 0;
-		rc.rc_total_frame_count = 1;
-		rc.rc_ppm_frame_length = 0;
 		rc.input_source = input_rc_s::RC_INPUT_SOURCE_MAVLINK;
 		rc.rssi = _rssi;
 
@@ -548,6 +541,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 		rc.values[3] = cmd->thrust * 1000 / USHRT_MAX + 1000;
 		rc.values[4] = 1000; // Dummy channel as px4 needs at least 5
 
+		rc.timestamp = hrt_absolute_time();
 		_rc_pub.publish(rc);
 
 	} else if (c->port == CRTP_PORT_MAVLINK) {

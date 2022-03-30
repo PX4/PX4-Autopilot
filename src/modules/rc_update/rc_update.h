@@ -181,7 +181,7 @@ private:
 
 	hrt_abstime _last_manual_control_input_publish{0};
 	hrt_abstime _last_rc_to_param_map_time{0};
-	hrt_abstime _last_timestamp_signal{0};
+	hrt_abstime _last_timestamp_sample{0};
 
 	uint16_t _rc_values_previous[RC_MAX_CHAN_COUNT] {};
 	float _last_manual_control_input[3] {};

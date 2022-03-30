@@ -118,7 +118,7 @@ int test_rc(int argc, char *argv[])
 						return ERROR;
 					}
 
-					if (hrt_absolute_time() - rc_input.timestamp_last_signal > 100000) {
+					if (hrt_absolute_time() - rc_input.timestamp_sample > 100000) {
 						PX4_ERR("TIMEOUT, less than 10 Hz updates");
 						(void)orb_unsubscribe(_rc_sub);
 						return ERROR;

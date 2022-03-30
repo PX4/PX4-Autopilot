@@ -48,12 +48,6 @@ RCInput::RCInput(const char *device) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_publish_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval"))
 {
-	// rc input, published to ORB
-	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-
-	// initialize it as RC lost
-	_rc_in.rc_lost = true;
-
 	// initialize raw_rc values and count
 	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
 		_raw_rc_values[i] = UINT16_MAX;
@@ -203,8 +197,7 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 	}
 
 	_rc_in.timestamp = now;
-	_rc_in.timestamp_last_signal = _rc_in.timestamp;
-	_rc_in.rc_ppm_frame_length = 0;
+	_rc_in.timestamp_sample = _rc_in.timestamp;
 
 	/* fake rssi if no value was provided */
 	if (rssi == -1) {
@@ -244,9 +237,7 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 	}
 
 	_rc_in.rc_failsafe = failsafe;
-	_rc_in.rc_lost = (valid_chans == 0);
 	_rc_in.rc_lost_frame_count = frame_drops;
-	_rc_in.rc_total_frame_count = 0;
 }
 
 void RCInput::set_rc_scan_state(RC_SCAN newState)
@@ -531,10 +522,6 @@ void RCInput::Run()
 							fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp,
 								   false, false, frame_drops, st24_rssi);
 							_rc_scan_locked = true;
-
-						} else {
-							// if the lost count > 0 means that there is an RC loss
-							_rc_in.rc_lost = true;
 						}
 					}
 				}
@@ -600,14 +587,13 @@ void RCInput::Run()
 			} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 				// see if we have new PPM input data
-				if ((ppm_last_valid_decode != _rc_in.timestamp_last_signal) && ppm_decoded_channels > 3) {
+				if ((ppm_last_valid_decode != _rc_in.timestamp_sample) && ppm_decoded_channels > 3) {
 					// we have a new PPM frame. Publish it.
 					rc_updated = true;
 					_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
 					fill_rc_in(ppm_decoded_channels, ppm_buffer, cycle_timestamp, false, false, 0);
 					_rc_scan_locked = true;
-					_rc_in.rc_ppm_frame_length = ppm_frame_length;
-					_rc_in.timestamp_last_signal = ppm_last_valid_decode;
+					_rc_in.timestamp_sample = ppm_last_valid_decode;
 				}
 
 			} else {
@@ -730,7 +716,7 @@ void RCInput::Run()
 
 			_to_input_rc.publish(_rc_in);
 
-		} else if (!rc_updated && !_armed && (hrt_elapsed_time(&_rc_in.timestamp_last_signal) > 1_s)) {
+		} else if (!rc_updated && !_armed && (hrt_elapsed_time(&_rc_in.timestamp_sample) > 1_s)) {
 			_rc_scan_locked = false;
 		}
 

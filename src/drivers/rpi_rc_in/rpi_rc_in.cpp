@@ -115,14 +115,9 @@ void RcInput::_measure(void)
 
 	ts = hrt_absolute_time();
 	_data.timestamp = ts;
-	_data.timestamp_last_signal = ts;
+	_data.timestamp_sample = ts;
 	_data.channel_count = _channels;
 	_data.rssi = 100;
-	_data.rc_lost_frame_count = 0;
-	_data.rc_total_frame_count = 1;
-	_data.rc_ppm_frame_length = 100;
-	_data.rc_failsafe = false;
-	_data.rc_lost = false;
 	_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
 
 	_rcinput_pub.publish(_data);
