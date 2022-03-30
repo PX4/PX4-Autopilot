@@ -322,7 +322,7 @@ private:
 	bool		_flight_termination_triggered{false};
 	bool		_lockdown_triggered{false};
 	bool            _imbalanced_propeller_check_triggered{false};
-
+	bool		_quadchute_triggered{false};
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 	hrt_abstime	_datalink_last_heartbeat_avoidance_system{0};

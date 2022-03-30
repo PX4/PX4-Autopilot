@@ -107,16 +107,11 @@ void Standard::update_vtol_state()
 	float mc_weight = _mc_roll_weight;
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.transition_start) * 1e-6f;
 
-	if (_vtol_vehicle_status->vtol_transition_failsafe) {
+	if (_attc->get_vehicle_status()->vtol_fw_actuation_failure) {
 		// Failsafe event, engage mc motors immediately
 		_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 		_pusher_throttle = 0.0f;
 		_reverse_output = 0.0f;
-
-		//reset failsafe when FW is no longer requested
-		if (!_attc->is_fixed_wing_requested()) {
-			_vtol_vehicle_status->vtol_transition_failsafe = false;
-		}
 
 	} else if (!_attc->is_fixed_wing_requested()) {
 
@@ -279,14 +274,6 @@ void Standard::update_transition_state()
 
 		const Quatf q_sp(Eulerf(_v_att_sp->roll_body, _v_att_sp->pitch_body, _v_att_sp->yaw_body));
 		q_sp.copyTo(_v_att_sp->q_d);
-
-		// check front transition timeout
-		if (_params->front_trans_timeout > FLT_EPSILON) {
-			if (time_since_trans_start > _params->front_trans_timeout) {
-				// transition timeout occured, abort transition
-				_attc->quadchute(VtolAttitudeControl::QuadchuteReason::TransitionTimeout);
-			}
-		}
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 

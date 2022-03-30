@@ -78,10 +78,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
-	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
-	_params_handles.fw_alt_err = param_find("VT_FW_ALT_ERR");
-	_params_handles.fw_qc_max_pitch = param_find("VT_FW_QC_P");
-	_params_handles.fw_qc_max_roll = param_find("VT_FW_QC_R");
 	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
 	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
 
@@ -180,8 +176,6 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 	while (_vehicle_cmd_sub.update(&vehicle_command)) {
 		if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION) {
-			vehicle_status_s vehicle_status{};
-			_vehicle_status_sub.copy(&vehicle_status);
 
 			uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
@@ -189,10 +183,10 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 
 			// deny transition from MC to FW in Takeoff, Land, RTL and Orbit
 			if (transition_command_param1 == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW &&
-			    (vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
-			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
-			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
-			     ||  vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
+			    (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+			     || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
 
 				result = vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED;
 
@@ -213,58 +207,6 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 				command_ack_pub.publish(command_ack);
 			}
 		}
-	}
-}
-
-void
-VtolAttitudeControl::quadchute(QuadchuteReason reason)
-{
-	if (!_vtol_vehicle_status.vtol_transition_failsafe) {
-		switch (reason) {
-		case QuadchuteReason::TransitionTimeout:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: transition timeout\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_tout"), events::Log::Critical,
-				     "Quadchute triggered, due to transition timeout");
-			break;
-
-		case QuadchuteReason::ExternalCommand:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: external command\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_ext_cmd"), events::Log::Critical,
-				     "Quadchute triggered, due to external command");
-			break;
-
-		case QuadchuteReason::MinimumAltBreached:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: minimum altitude breached\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_min_alt"), events::Log::Critical,
-				     "Quadchute triggered, due to minimum altitude breach");
-			break;
-
-		case QuadchuteReason::LossOfAlt:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: loss of altitude\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_alt_loss"), events::Log::Critical,
-				     "Quadchute triggered, due to loss of altitude");
-			break;
-
-		case QuadchuteReason::LargeAltError:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: large altitude error\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_alt_err"), events::Log::Critical,
-				     "Quadchute triggered, due to large altitude error");
-			break;
-
-		case QuadchuteReason::MaximumPitchExceeded:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum pitch exceeded\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_max_pitch"), events::Log::Critical,
-				     "Quadchute triggered, due to maximum pitch angle exceeded");
-			break;
-
-		case QuadchuteReason::MaximumRollExceeded:
-			mavlink_log_critical(&_mavlink_log_pub, "Quadchute: maximum roll exceeded\t");
-			events::send(events::ID("vtol_att_ctrl_quadchute_max_roll"), events::Log::Critical,
-				     "Quadchute triggered, due to maximum roll angle exceeded");
-			break;
-		}
-
-		_vtol_vehicle_status.vtol_transition_failsafe = true;
 	}
 }
 
@@ -295,22 +237,6 @@ VtolAttitudeControl::parameters_update()
 	/* vtol lock elevons in multicopter */
 	param_get(_params_handles.elevons_mc_lock, &l);
 	_params.elevons_mc_lock = (l == 1);
-
-	/* minimum relative altitude for FW mode (QuadChute) */
-	param_get(_params_handles.fw_min_alt, &v);
-	_params.fw_min_alt = v;
-
-	/* maximum negative altitude error for FW mode (Adaptive QuadChute) */
-	param_get(_params_handles.fw_alt_err, &v);
-	_params.fw_alt_err = v;
-
-	/* maximum pitch angle (QuadChute) */
-	param_get(_params_handles.fw_qc_max_pitch, &l);
-	_params.fw_qc_max_pitch = l;
-
-	/* maximum roll angle (QuadChute) */
-	param_get(_params_handles.fw_qc_max_roll, &l);
-	_params.fw_qc_max_roll = l;
 
 	param_get(_params_handles.front_trans_time_openloop, &_params.front_trans_time_openloop);
 
@@ -457,6 +383,7 @@ VtolAttitudeControl::Run()
 		_airspeed_validated_sub.update(&_airspeed_validated);
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
+		_vehicle_status_sub.update(&_vehicle_status);
 		action_request_poll();
 		vehicle_cmd_poll();
 

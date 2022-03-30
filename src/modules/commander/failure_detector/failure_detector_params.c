@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -156,3 +156,63 @@ PARAM_DEFINE_INT32(FD_ESCS_EN, 1);
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_IMB_PROP_THR, 30);
+
+/**
+ * QuadChute minimum height threshold
+ *
+ * If the current height (relative to takeoff point) drops below this value in fixed-wing mode, a "QuadChute" is triggered,
+ * which immediately switches the vehicle to hover flight and executes the action defined in COM_QC_ACT.
+ * Only enabled for VTOL vehicles.
+ * Set to 0 to disable the check.
+ *
+ * @min 0
+ * @max 500
+ * @unit m
+ * @increment 1
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(VT_FW_MIN_ALT, 0);
+
+/**
+ * QuadChute altitude error thershold
+ *
+ * If the current altitude is more than this amount below the setpoint, a "QuadChute" is triggered,
+ * which immediately switches the vehicle to hover flight and executes the action defined in COM_QC_ACT.
+ * Only enabled for VTOL vehicles.
+ * Set to 0 to disable the check.
+ *
+ * @min 0
+ * @max 200
+ * @unit m
+ * @increment 1
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(VT_FW_ALT_ERR, 0);
+
+/**
+ * QuadChute pitch threshold
+ *
+ * If the current pitch angle estimate is above this value, a "QuadChute" is triggered,
+ * which immediately switches the vehicle to hover flight and executes the action defined in COM_QC_ACT.
+ * Set to 0 to disable the check.
+ *
+ * @min 0
+ * @max 180
+ * @unit deg
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
+
+/**
+ * QuadChute roll threshold
+ *
+ * If the current roll angle estimate is above this value, a "QuadChute" is triggered,
+ * which immediately switches the vehicle to hover flight and executes the action defined in COM_QC_ACT.
+ * Set to 0 to disable the check.
+ *
+ * @min 0
+ * @max 180
+ * @unit deg
+ * @group Failure Detector
+ */
+PARAM_DEFINE_INT32(VT_FW_QC_R, 0);

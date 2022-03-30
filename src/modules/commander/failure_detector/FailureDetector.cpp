@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,7 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 	failure_detector_status_u status_prev = _status;
 
 	if (vehicle_control_mode.flag_control_attitude_enabled) {
-		updateAttitudeStatus();
+		updateAttitudeStatus(vehicle_status);
 
 		if (_param_fd_ext_ats_en.get()) {
 			updateExternalAtsStatus();
@@ -73,10 +73,81 @@ bool FailureDetector::update(const vehicle_status_s &vehicle_status, const vehic
 		updateImbalancedPropStatus();
 	}
 
+
+	if (vehicle_status.is_vtol) {
+		updateMinHeightStatus(vehicle_status);
+		updateAdaptiveQC(vehicle_status, vehicle_control_mode);
+		updateTransitionTimeout();
+	}
+
 	return _status.value != status_prev.value;
 }
 
-void FailureDetector::updateAttitudeStatus()
+void FailureDetector::updateMinHeightStatus(const vehicle_status_s &vehicle_status)
+{
+	vehicle_local_position_s vehicle_local_position;
+
+	if (_vehicle_local_position_sub.update(&vehicle_local_position)) {
+		if (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    && _param_vt_fw_min_alt.get() > 0
+		    && -(vehicle_local_position.z) < _param_vt_fw_min_alt.get()) {
+			_status.flags.qc_min_alt = true;
+
+		} else {
+			_status.flags.qc_min_alt = false;
+		}
+	}
+}
+
+void FailureDetector::updateAdaptiveQC(const vehicle_status_s &vehicle_status,
+				       const vehicle_control_mode_s &vehicle_control_mode)
+{
+	// adaptive quadchute, only enabled when TECS is running (so pure FW mode)
+	if (_param_vt_fw_alt_err.get() > 0 && vehicle_control_mode.flag_control_climb_rate_enabled
+	    && vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		tecs_status_s tecs_status;
+
+		if (_tecs_status_sub.update(&tecs_status)) {
+			// 1 second rolling average
+			_ra_hrate = (49 * _ra_hrate + tecs_status.height_rate) / 50;
+			_ra_hrate_sp = (49 * _ra_hrate_sp + tecs_status.height_rate_setpoint) / 50;
+
+			// are we dropping while requesting significant ascend?
+			if (((tecs_status.altitude_sp - tecs_status.altitude_filtered) > _param_vt_fw_alt_err.get()) &&
+			    (_ra_hrate < -1.0f) && (_ra_hrate_sp > 1.0f)) {
+
+				_status.flags.qc_alt_err = true;
+			}
+		}
+
+	} else {
+		// reset the filtered height rate and heigh rate setpoint if TECS is not running
+		_ra_hrate = 0.0f;
+		_ra_hrate_sp = 0.0f;
+	}
+}
+
+void FailureDetector::updateTransitionTimeout()
+{
+	vtol_vehicle_status_s vtol_vehicle_status;
+	_vtol_vehicle_status_sub.update(&vtol_vehicle_status);
+
+	const bool transitioning_to_FW = vtol_vehicle_status.in_transition_to_fw;
+
+	if (!_was_in_transition_FW_prev && transitioning_to_FW) {
+		_transition_start_timestamp = hrt_absolute_time();
+		_was_in_transition_FW_prev = true;
+	}
+
+	if (transitioning_to_FW && _param_vt_trans_timeout.get() > FLT_EPSILON) {
+		if (hrt_elapsed_time(&_transition_start_timestamp) > _param_vt_trans_timeout.get() * 1_s) {
+			// transition timeout occured, abort transition
+			_status.flags.qc_trans_tmt = true;
+		}
+	}
+}
+
+void FailureDetector::updateAttitudeStatus(const vehicle_status_s &vehicle_status)
 {
 	vehicle_attitude_s attitude;
 
@@ -105,6 +176,31 @@ void FailureDetector::updateAttitudeStatus()
 		// Update status
 		_status.flags.roll = _roll_failure_hysteresis.get_state();
 		_status.flags.pitch = _pitch_failure_hysteresis.get_state();
+
+		const bool enable_quadchte = vehicle_status.is_vtol
+					     && vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+		if (enable_quadchte) {
+
+			// fixed-wing maximum roll angle
+			if (_param_vt_fw_qc_r.get() > 0) {
+				if (fabsf(roll) > fabsf(math::radians(_param_vt_fw_qc_r.get()))) {
+					_status.flags.qc_roll = true;
+				}
+			}
+
+			// fixed-wing maximum pitch angle
+			if (_param_vt_fw_qc_p.get() > 0) {
+				if (fabsf(pitch) > fabsf(math::radians(_param_vt_fw_qc_p.get()))) {
+					_status.flags.qc_pitch = true;
+				}
+			}
+
+		} else {
+			// reset if not in transition or FW
+			_status.flags.qc_roll = true;
+			_status.flags.qc_pitch = true;
+		}
 	}
 }
 

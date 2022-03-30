@@ -105,14 +105,9 @@ void Tiltrotor::update_vtol_state()
 	 * forward completely. For the backtransition the motors simply rotate back.
 	*/
 
-	if (_vtol_vehicle_status->vtol_transition_failsafe) {
+	if (_attc->get_vehicle_status()->vtol_fw_actuation_failure) {
 		// Failsafe event, switch to MC mode immediately
 		_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
-
-		//reset failsafe when FW is no longer requested
-		if (!_attc->is_fixed_wing_requested()) {
-			_vtol_vehicle_status->vtol_transition_failsafe = false;
-		}
 
 	} else 	if (!_attc->is_fixed_wing_requested()) {
 
@@ -197,14 +192,6 @@ void Tiltrotor::update_vtol_state()
 				if (transition_to_p2) {
 					_vtol_schedule.flight_mode = vtol_mode::TRANSITION_FRONT_P2;
 					_vtol_schedule.transition_start = hrt_absolute_time();
-				}
-
-				// check front transition timeout
-				if (_params->front_trans_timeout > FLT_EPSILON) {
-					if (time_since_trans_start > _params->front_trans_timeout) {
-						// transition timeout occured, abort transition
-						_attc->quadchute(VtolAttitudeControl::QuadchuteReason::TransitionTimeout);
-					}
 				}
 
 				break;
