@@ -214,34 +214,6 @@ PARAM_DEFINE_FLOAT(COM_RCL_ACT_T, 15.0f);
 PARAM_DEFINE_INT32(COM_HOME_EN, 1);
 
 /**
- * Home set horizontal threshold
- *
- * The home position will be set if the estimated positioning accuracy is below the threshold.
- *
- * @group Commander
- * @unit m
- * @min 2
- * @max 15
- * @decimal 2
- * @increment 0.5
- */
-PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
-
-/**
- * Home set vertical threshold
- *
- * The home position will be set if the estimated positioning accuracy is below the threshold.
- *
- * @group Commander
- * @unit m
- * @min 5
- * @max 25
- * @decimal 2
- * @increment 0.5
- */
-PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
-
-/**
  * Allows setting the home position after takeoff
  *
  * If set to true, the autopilot is allowed to set its home position after takeoff
