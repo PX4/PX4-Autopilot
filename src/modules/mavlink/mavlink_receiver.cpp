@@ -2603,6 +2603,8 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 
 	gps_inject_data_s gps_inject_data_topic{};
 
+	gps_inject_data_topic.timestamp = hrt_absolute_time();
+
 	gps_inject_data_topic.len = math::min((int)sizeof(gps_rtcm_data_msg.data),
 					      (int)sizeof(uint8_t) * gps_rtcm_data_msg.len);
 	gps_inject_data_topic.flags = gps_rtcm_data_msg.flags;
