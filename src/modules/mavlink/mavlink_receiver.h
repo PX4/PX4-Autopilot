@@ -330,6 +330,7 @@ private:
 
 	// ORB publications (multi)
 	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor)};
+	uORB::PublicationMulti<gps_inject_data_s>		_gps_inject_data_pub{ORB_ID(gps_inject_data)};
 	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc)};
 	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_input_pub{ORB_ID(manual_control_input)};
 	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping)};
@@ -339,7 +340,6 @@ private:
 	uORB::PublicationMulti<sensor_optical_flow_s>         _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	// ORB publications (queue length > 1)
-	uORB::Publication<gps_inject_data_s>     _gps_inject_data_pub{ORB_ID(gps_inject_data)};
 	uORB::Publication<transponder_report_s>  _transponder_report_pub{ORB_ID(transponder_report)};
 	uORB::Publication<vehicle_command_s>     _cmd_pub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _cmd_ack_pub{ORB_ID(vehicle_command_ack)};
