@@ -37,3 +37,5 @@ px4_add_library(ArmStateMachine
 )
 target_include_directories(ArmStateMachine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ArmStateMachine PUBLIC PreFlightCheck)
+
+px4_add_functional_gtest(SRC ArmStateMachineTest.cpp LINKLIBS ArmStateMachine)
