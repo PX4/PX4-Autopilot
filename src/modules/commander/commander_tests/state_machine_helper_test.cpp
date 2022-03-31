@@ -42,6 +42,7 @@
 
 #include "../state_machine_helper.h"
 #include <unit_test.h>
+#include "../Arming/ArmStateMachine/ArmStateMachine.hpp"
 #include "../Arming/PreFlightCheck/PreFlightCheck.hpp"
 
 class StateMachineHelperTest : public UnitTest
@@ -49,6 +50,8 @@ class StateMachineHelperTest : public UnitTest
 public:
 	StateMachineHelperTest() = default;
 	~StateMachineHelperTest() override = default;
+
+	ArmStateMachine _arm_state_machine{};
 
 	bool run_tests() override;
 
@@ -303,13 +306,18 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		vehicle_control_mode_s control_mode{};
 
 		// Attempt transition
-		transition_result_t result = arming_state_transition(status, control_mode, safety, test->requested_state, armed,
-					     true /* enable pre-arm checks */,
-					     nullptr /* no mavlink_log_pub */,
-					     status_flags,
-					     arm_req,
-					     2e6, /* 2 seconds after boot, everything should be checked */
-					     arm_disarm_reason_t::unit_test);
+		transition_result_t result = _arm_state_machine.arming_state_transition(
+						     status,
+						     control_mode,
+						     safety,
+						     test->requested_state,
+						     armed,
+						     true /* enable pre-arm checks */,
+						     nullptr /* no mavlink_log_pub */,
+						     status_flags,
+						     arm_req,
+						     2e6, /* 2 seconds after boot, everything should be checked */
+						     arm_disarm_reason_t::unit_test);
 
 		// Validate result of transition
 		ut_compare(test->assertMsg, test->expected_transition_result, result);
