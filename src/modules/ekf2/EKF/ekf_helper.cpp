@@ -865,7 +865,7 @@ void Ekf::resetMagBias()
 	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
 
 	// reset any saved covariance data for re-use when auto-switching between heading and 3-axis fusion
-	_saved_mag_bf_variance.zero();
+	_saved_mag_bf_covmat.zero();
 
 	_mag_counter = 0;
 }
@@ -1198,13 +1198,18 @@ void Ekf::stopMagFusion()
 {
 	stopMag3DFusion();
 	stopMagHdgFusion();
-	clearMagCov();
+
+	P.uncorrelateCovarianceSetVariance<3>(16, 0.0f);
+	P.uncorrelateCovarianceSetVariance<3>(19, 0.0f);
+
+	_mag_decl_cov_reset = false;
 }
 
 void Ekf::stopMag3DFusion()
 {
 	// save covariance data for re-use if currently doing 3-axis fusion
 	if (_control_status.flags.mag_3D) {
+
 		saveMagCovData();
 
 		_control_status.flags.mag_3D = false;
@@ -1250,8 +1255,12 @@ void Ekf::startMag3DFusion()
 
 		_yaw_test_ratio = 0.0f;
 
-		zeroMagCov();
-		loadMagCovData();
+		// re-instate the NE axis covariance sub-matrix
+		P.slice<3, 3>(16, 16) = _saved_mag_ef_covmat;
+
+		// re-instate variances for the XYZ body axis field
+		P.slice<3, 3>(19, 19) = _saved_mag_bf_covmat;
+
 		_control_status.flags.mag_3D = true;
 	}
 }
@@ -1497,33 +1506,11 @@ void Ekf::increaseQuatYawErrVariance(float yaw_variance)
 // save covariance data for re-use when auto-switching between heading and 3-axis fusion
 void Ekf::saveMagCovData()
 {
-	// save variances for XYZ body axis field
-	_saved_mag_bf_variance(0) = P(19, 19);
-	_saved_mag_bf_variance(1) = P(20, 20);
-	_saved_mag_bf_variance(2) = P(21, 21);
-
 	// save the NE axis covariance sub-matrix
-	_saved_mag_ef_ne_covmat = P.slice<2, 2>(16, 16);
+	_saved_mag_ef_covmat = P.slice<3, 3>(16, 16);
 
-	// save variance for the D earth axis
-	_saved_mag_ef_d_variance = P(18, 18);
-}
-
-void Ekf::loadMagCovData()
-{
-	P.uncorrelateCovarianceSetVariance<3>(16, 0.0f);
-	P.uncorrelateCovarianceSetVariance<3>(19, 0.0f);
-
-	// re-instate variances for the XYZ body axis field
-	P(19, 19) = _saved_mag_bf_variance(0);
-	P(20, 20) = _saved_mag_bf_variance(1);
-	P(21, 21) = _saved_mag_bf_variance(2);
-
-	// re-instate the NE axis covariance sub-matrix
-	P.slice<2, 2>(16, 16) = _saved_mag_ef_ne_covmat;
-
-	// re-instate the D earth axis variance
-	P(18, 18) = _saved_mag_ef_d_variance;
+	// save variances for XYZ body axis field
+	_saved_mag_bf_covmat = P.slice<3, 3>(19, 19);
 }
 
 void Ekf::startAirspeedFusion()
