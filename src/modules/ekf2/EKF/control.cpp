@@ -1048,13 +1048,12 @@ void Ekf::controlBetaFusion()
 void Ekf::controlDragFusion()
 {
 	if ((_params.fusion_mode & MASK_USE_DRAG) && _drag_buffer &&
-	    !_using_synthetic_position && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
+	    !_using_synthetic_position && _control_status.flags.in_air) {
 
 		if (!_control_status.flags.wind) {
 			// reset the wind states and covariances when starting drag accel fusion
 			_control_status.flags.wind = true;
 			resetWind();
-
 		}
 
 

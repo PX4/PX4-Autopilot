@@ -97,10 +97,12 @@ void Ekf::controlGpsFusion()
 								// and cause another navigation failure
 								_control_status.flags.mag_fault = true;
 								_warning_events.flags.emergency_yaw_reset_mag_stopped = true;
+								stopMagFusion();
 
 							} else if (_control_status.flags.gps_yaw) {
 								_control_status.flags.gps_yaw_fault = true;
 								_warning_events.flags.emergency_yaw_reset_gps_yaw_stopped = true;
+								stopGpsYawFusion();
 
 							} else if (_control_status.flags.ev_yaw) {
 								stopEvYawFusion();
