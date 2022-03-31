@@ -144,18 +144,21 @@ void Sih::lockstep_loop()
 
 		// Only do lock-step once we received the first actuator output
 		int sleep_time;
+		uint64_t current_wall_time_us = micros();
 
 		if (_last_actuator_output_time <= 0) {
 			PX4_DEBUG("SIH starting up - no lockstep yet");
-			sleep_time = math::max(0, sim_interval_us - (int)(micros() - _last_iteration_wall_time_us));
+			sleep_time = math::max(0, sim_interval_us - (int)(current_wall_time_us - _last_iteration_wall_time_us));
 
 		} else {
 			px4_lockstep_wait_for_components();
-			sleep_time = math::max(0, rt_interval_us - (int)(micros() - _last_iteration_wall_time_us));
+			sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - _last_iteration_wall_time_us));
 		}
 
+		_achieved_speedup = 0.99f * _achieved_speedup + 0.01f * ((float)sim_interval_us / (float)(
+					    current_wall_time_us - _last_iteration_wall_time_us + sleep_time));
+		_last_iteration_wall_time_us = current_wall_time_us;
 		usleep(sleep_time);
-		_last_iteration_wall_time_us = micros();
 	}
 }
 #endif
@@ -708,6 +711,11 @@ Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
 
 int Sih::print_status()
 {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	PX4_INFO("Running in lockstep mode");
+	PX4_INFO("Achieved speedup: %.2fX", (double)_achieved_speedup);
+#endif
+
 	if (_vehicle == VehicleType::MC) {
 		PX4_INFO("Running MultiCopter");
 
