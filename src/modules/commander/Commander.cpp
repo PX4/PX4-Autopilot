@@ -479,7 +479,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 bool Commander::shutdown_if_allowed()
 {
-	return TRANSITION_DENIED != arming_state_transition(_status, _vehicle_control_mode, _safety,
+	return TRANSITION_DENIED != _arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, _safety,
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			_armed, false /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags, _arm_requirements,
 			hrt_elapsed_time(&_boot_timestamp), arm_disarm_reason_t::shutdown);
@@ -732,7 +732,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		}
 	}
 
-	transition_result_t arming_res = arming_state_transition(_status, _vehicle_control_mode, _safety,
+	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, _safety,
 					 vehicle_status_s::ARMING_STATE_ARMED, _armed, run_preflight_checks,
 					 &_mavlink_log_pub, _status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
 					 calling_reason);
@@ -774,7 +774,7 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 		}
 	}
 
-	transition_result_t arming_res = arming_state_transition(_status, _vehicle_control_mode, _safety,
+	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, _safety,
 					 vehicle_status_s::ARMING_STATE_STANDBY, _armed, false,
 					 &_mavlink_log_pub, _status_flags, _arm_requirements,
 					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
@@ -1368,7 +1368,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			} else {
 
 				/* try to go to INIT/PREFLIGHT arming state */
-				if (TRANSITION_DENIED == arming_state_transition(_status, _vehicle_control_mode, safety_s{},
+				if (TRANSITION_DENIED == _arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, safety_s{},
 						vehicle_status_s::ARMING_STATE_INIT, _armed,
 						false /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
 						PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
@@ -2375,10 +2375,11 @@ Commander::run()
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!_status_flags.calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
-			arming_state_transition(_status, _vehicle_control_mode, _safety, vehicle_status_s::ARMING_STATE_STANDBY, _armed,
-						true /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
-						_arm_requirements, hrt_elapsed_time(&_boot_timestamp),
-						arm_disarm_reason_t::transition_to_standby);
+			_arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, _safety,
+					vehicle_status_s::ARMING_STATE_STANDBY, _armed,
+					true /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
+					_arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+					arm_disarm_reason_t::transition_to_standby);
 		}
 
 		/* start mission result check */
