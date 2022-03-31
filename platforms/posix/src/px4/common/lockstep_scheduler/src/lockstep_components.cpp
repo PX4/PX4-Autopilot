@@ -84,7 +84,7 @@ void LockstepComponents::unregister_component(int component)
 
 	int components_used_bitset = _components_used_bitset;
 
-	if (_components_progress_bitset == components_used_bitset && components_used_bitset != 0) {
+	if (_components_progress_bitset == components_used_bitset) {
 		_components_progress_bitset = 0;
 		px4_sem_post(&_components_sem);
 	}
