@@ -422,11 +422,8 @@ private:
 	bool _yaw_angle_observable{false};	///< true when there is enough horizontal acceleration to make yaw observable
 	uint64_t _time_yaw_started{0};		///< last system time in usec that a yaw rotation manoeuvre was detected
 	uint8_t _num_bad_flight_yaw_events{0};	///< number of times a bad heading has been detected in flight and required a yaw reset
-	uint64_t _mag_use_not_inhibit_us{0};	///< last system time in usec before magnetometer use was inhibited
 	float _last_static_yaw{NAN};		///< last yaw angle recorded when on ground motion checks were passing (rad)
 
-	bool _mag_inhibit_yaw_reset_req{false};	///< true when magnetometer inhibit has been active for long enough to require a yaw reset when conditions improve.
-	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	bool _synthetic_mag_z_active{false};	///< true if we are generating synthetic magnetometer Z measurements
 	bool _is_yaw_fusion_inhibited{false};		///< true when yaw sensor use is being inhibited
@@ -536,6 +533,8 @@ private:
 	Vector3f _saved_mag_bf_variance {}; ///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
 	Matrix2f _saved_mag_ef_ne_covmat{}; ///< NE magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
 	float _saved_mag_ef_d_variance{};   ///< D magnetic field state variance saved for use at the next initialisation (Gauss**2)
+
+	float _mag_heading_last_declination{NAN};
 
 	gps_check_fail_status_u _gps_check_fail_status{};
 
@@ -859,7 +858,6 @@ private:
 	bool canUse3DMagFusion() const;
 
 	void checkMagDeclRequired();
-	void checkMagInhibition();
 	bool shouldInhibitMag() const;
 	bool magFieldStrengthDisturbed(const Vector3f &mag) const;
 	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);

@@ -481,6 +481,7 @@ bool Ekf::resetMagHeading()
 
 		// record the time for the magnetic field alignment event
 		_flt_mag_align_start_time = _imu_sample_delayed.time_us;
+		_time_last_mag_heading_fuse = _time_last_imu;
 
 		return true;
 	}
@@ -1556,18 +1557,11 @@ void Ekf::startGpsFusion()
 			yaw_reset_needed = true;
 		}
 
-		if (_control_status.flags.mag_hdg || _control_status.flags.mag_3D) {
-			if (_mag_inhibit_yaw_reset_req || _mag_yaw_reset_req) {
-				yaw_reset_needed = true;
-			}
-		}
-
 		if (isYawEmergencyEstimateAvailable() && isYawError(math::radians(10.f))) {
 			yaw_reset_needed = true;
 		}
 
-		// Do not use external vision for yaw if using GPS because yaw needs to be
-		// defined relative to an NED reference frame
+		// yaw needs to be defined relative to an NED reference frame
 		if (yaw_reset_needed) {
 			if (resetYawToEKFGSF()) {
 				ECL_INFO("starting GPS, reset yaw using yaw estimator");
@@ -1583,8 +1577,7 @@ void Ekf::startGpsFusion()
 
 			} else {
 				// all failed
-				ECL_WARN("starting GPS, yaw reset failed");
-				_mag_yaw_reset_req = true;
+				ECL_ERR("starting GPS, yaw reset failed");
 			}
 		}
 
@@ -1769,6 +1762,8 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 
 	// capture the reset event
 	_state_reset_status.quat_counter++;
+
+	_time_last_heading_fuse = _time_last_imu;
 }
 
 // Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator

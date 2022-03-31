@@ -126,12 +126,21 @@ void Ekf::controlMagFusion()
 
 		const bool mag_enabled = _control_status.flags.mag_hdg || _control_status.flags.mag_3D;
 
+		const bool declination_changed = _control_status.flags.mag_hdg && (fabsf(_mag_heading_last_declination - getMagDeclination()) > math::radians(1.f));
+
+		bool mag_fuse_recent = !isTimedOut(_time_last_mag_heading_fuse, (uint64_t)5e6) || !isTimedOut(_time_last_mag_3d_fuse, (uint64_t)5e6);
+
 		if (!_control_status.flags.yaw_align
-		    || _mag_yaw_reset_req || _mag_inhibit_yaw_reset_req
+		    || !mag_fuse_recent
+		    || declination_changed
 		    || haglYawResetReq()
 		    || (!mag_enabled_previously && mag_enabled)) {
 
 			runYawReset();
+		}
+
+		if (_control_status.flags.mag_hdg) {
+			_mag_heading_last_declination = getMagDeclination();
 		}
 
 		if (!_control_status.flags.yaw_align) {
@@ -140,7 +149,8 @@ void Ekf::controlMagFusion()
 		}
 
 		checkMagDeclRequired();
-		checkMagInhibition();
+
+		_is_yaw_fusion_inhibited = shouldInhibitMag();
 
 		runMagAndMagDeclFusions(mag_sample.mag);
 	}
@@ -165,34 +175,34 @@ bool Ekf::haglYawResetReq() const
 
 void Ekf::runYawReset()
 {
-	if (!_is_yaw_fusion_inhibited) {
-		bool has_realigned_yaw = false;
+	bool has_realigned_yaw = false;
 
-		if (_control_status.flags.gps && _control_status.flags.fixed_wing) {
-			has_realigned_yaw = realignYawGPS();
+	if (_control_status.flags.gps && _control_status.flags.fixed_wing) {
+		has_realigned_yaw = realignYawGPS();
+	}
+
+	if (!has_realigned_yaw) {
+		has_realigned_yaw = resetMagHeading();
+	}
+
+	if (has_realigned_yaw) {
+		_control_status.flags.yaw_align = true;
+
+		if (_control_status.flags.in_air) {
+			_control_status.flags.mag_aligned_in_flight = true;
 		}
 
-		if (!has_realigned_yaw) {
-			has_realigned_yaw = resetMagHeading();
+		// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
+		// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
+		bool mag_fuse_recent = !isTimedOut(_time_last_mag_heading_fuse, (uint64_t)5e6) || !isTimedOut(_time_last_mag_3d_fuse, (uint64_t)5e6);
+
+		if (!mag_fuse_recent) {
+			// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
+			P.uncorrelateCovarianceSetVariance<1>(12, sq(_params.switch_on_gyro_bias * _dt_ekf_avg));
 		}
 
-		if (has_realigned_yaw) {
-			_mag_yaw_reset_req = false;
-			_control_status.flags.yaw_align = true;
-
-			if (_control_status.flags.in_air) {
-				_control_status.flags.mag_aligned_in_flight = true;
-			}
-
-			// Handle the special case where we have not been constraining yaw drift or learning yaw bias due
-			// to assumed invalid mag field associated with indoor operation with a downwards looking flow sensor.
-			if (_mag_inhibit_yaw_reset_req) {
-				_mag_inhibit_yaw_reset_req = false;
-				// Zero the yaw bias covariance and set the variance to the initial alignment uncertainty
-				P.uncorrelateCovarianceSetVariance<1>(12, sq(_params.switch_on_gyro_bias * _dt_ekf_avg));
-			}
-		}
-
+		// reset
+		_time_last_mag_heading_fuse = _time_last_imu;
 	}
 }
 
@@ -259,20 +269,6 @@ void Ekf::checkMagDeclRequired()
 	const bool user_selected = (_params.mag_declination_source & MASK_FUSE_DECL);
 	const bool not_using_ne_aiding = !_control_status.flags.gps;
 	_control_status.flags.mag_dec = (_control_status.flags.mag_3D && (not_using_ne_aiding || user_selected));
-}
-
-void Ekf::checkMagInhibition()
-{
-	_is_yaw_fusion_inhibited = shouldInhibitMag();
-
-	if (!_is_yaw_fusion_inhibited) {
-		_mag_use_not_inhibit_us = _imu_sample_delayed.time_us;
-	}
-
-	// If magnetometer use has been inhibited continuously then a yaw reset is required for a valid heading
-	if (uint32_t(_imu_sample_delayed.time_us - _mag_use_not_inhibit_us) > (uint32_t)5e6) {
-		_mag_inhibit_yaw_reset_req = true;
-	}
 }
 
 bool Ekf::shouldInhibitMag() const
@@ -404,10 +400,6 @@ bool Ekf::resetMagStates()
 
 	if (reset) {
 		resetMagCov();
-
-		// clear any pending resets
-		_mag_yaw_reset_req = false;
-		_mag_inhibit_yaw_reset_req = false;
 
 		if (mag_available) {
 			// record the start time for the magnetic field alignment
