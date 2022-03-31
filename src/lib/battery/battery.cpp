@@ -56,7 +56,6 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
 	_current_filter_a.setParameters(expected_filter_dt, .5f);
 	_current_average_filter_a.setParameters(expected_filter_dt, 50.f);
-
 	_throttle_filter.setParameters(expected_filter_dt, 1.f);
 
 	if (index > 9 || index < 1) {
@@ -275,14 +274,19 @@ float Battery::computeRemainingTime(float current_a)
 
 	// Remaining time estimation only possible with capacity
 	if (_params.capacity > 0.f) {
-		vehicle_status_s vehicle_status{};
-		_vehicle_status_sub.copy(&vehicle_status);
+		if (_vehicle_status_sub.updated()) {
+			vehicle_status_s vehicle_status;
+
+			if (_vehicle_status_sub.copy(&vehicle_status)) {
+				_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+			}
+		}
 
 		if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON) {
 			_current_average_filter_a.reset(_params.bat_avrg_current);
 		}
 
-		if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED && PX4_ISFINITE(current_a)) {
+		if (_armed && PX4_ISFINITE(current_a)) {
 			// only update with positive numbers
 			_current_average_filter_a.update(fmaxf(current_a, 0.f));
 		}
