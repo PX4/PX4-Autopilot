@@ -63,7 +63,7 @@
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
 
-#include "arm_arch.h"
+#include "arm_internal.h"
 #include "arm_internal.h"
 #include "imxrt_flexspi_nor_boot.h"
 #include "imxrt_iomuxc.h"

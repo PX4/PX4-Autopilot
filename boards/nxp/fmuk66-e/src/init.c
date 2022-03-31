@@ -67,7 +67,7 @@
 #include <kinetis_lpuart.h>
 #include "board_config.h"
 
-#include "arm_arch.h"
+#include "arm_internal.h"
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>

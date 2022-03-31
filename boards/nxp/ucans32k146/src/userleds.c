@@ -45,7 +45,7 @@
 
 #include <nuttx/board.h>
 
-#include "arm_arch.h"
+#include "arm_internal.h"
 #include "arm_internal.h"
 
 #include "s32k1xx_pin.h"

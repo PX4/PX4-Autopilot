@@ -43,7 +43,7 @@
 #include <errno.h>
 
 #include <px4_arch/micro_hal.h>
-#include "arm_arch.h"
+#include "arm_internal.h"
 #include "boot_app_shared.h"
 
 #include <lib/systemlib/crc.h>

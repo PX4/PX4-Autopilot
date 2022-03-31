@@ -55,7 +55,7 @@
 #include <uORB/uORB.h>
 #include <uORB/Publication.hpp>
 
-#include <arm_arch.h>
+#include <arm_internal.h>
 #include "board_config.h"
 #include <stm32_pwr.h>
 
