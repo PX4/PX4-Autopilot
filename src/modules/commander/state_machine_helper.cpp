@@ -61,16 +61,6 @@ static constexpr const char reason_no_datalink[] = "no datalink";
 static constexpr const char reason_no_rc_and_no_datalink[] = "no RC and no datalink";
 static constexpr const char reason_no_gps[] = "no GPS";
 
-// You can index into the array with an arming_state_t in order to get its textual representation
-const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
-	"INIT",
-	"STANDBY",
-	"ARMED",
-	"STANDBY_ERROR",
-	"SHUTDOWN",
-	"IN_AIR_RESTORE",
-};
-
 // You can index into the array with an navigation_state_t in order to get its textual representation
 const char *const nav_state_names[vehicle_status_s::NAVIGATION_STATE_MAX] = {
 	"MANUAL",

@@ -465,7 +465,7 @@ int Commander::custom_command(int argc, char *argv[])
 
 int Commander::print_status()
 {
-	PX4_INFO("arming: %s", arming_state_names[_status.arming_state]);
+	PX4_INFO("arming: %s", _arm_state_machine.arming_state_names[_status.arming_state]);
 	PX4_INFO("navigation: %s", nav_state_names[_status.nav_state]);
 	perf_print_counter(_loop_perf);
 	perf_print_counter(_preflight_check_perf);

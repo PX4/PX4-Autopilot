@@ -59,6 +59,16 @@ public:
 				vehicle_status_flags_s &status_flags, const PreFlightCheck::arm_requirements_t &arm_requirements,
 				const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason);
 
+	// You can index into the array with an arming_state_t in order to get its textual representation
+	const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
+		"INIT",
+		"STANDBY",
+		"ARMED",
+		"STANDBY_ERROR",
+		"SHUTDOWN",
+		"IN_AIR_RESTORE",
+	};
+
 private:
 	static inline events::px4::enums::arming_state_t eventArmingState(uint8_t arming_state);
 
