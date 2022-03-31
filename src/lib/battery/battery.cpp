@@ -272,25 +272,25 @@ float Battery::computeRemainingTime(float current_a)
 {
 	float time_remaining_s = NAN;
 
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+		}
+	}
+
+	if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON) {
+		_current_average_filter_a.reset(_params.bat_avrg_current);
+	}
+
+	if (_armed && PX4_ISFINITE(current_a)) {
+		// only update with positive numbers
+		_current_average_filter_a.update(fmaxf(current_a, 0.f));
+	}
+
 	// Remaining time estimation only possible with capacity
 	if (_params.capacity > 0.f) {
-		if (_vehicle_status_sub.updated()) {
-			vehicle_status_s vehicle_status;
-
-			if (_vehicle_status_sub.copy(&vehicle_status)) {
-				_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			}
-		}
-
-		if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON) {
-			_current_average_filter_a.reset(_params.bat_avrg_current);
-		}
-
-		if (_armed && PX4_ISFINITE(current_a)) {
-			// only update with positive numbers
-			_current_average_filter_a.update(fmaxf(current_a, 0.f));
-		}
-
 		const float remaining_capacity_mah = _state_of_charge * _params.capacity;
 		const float current_ma = fmaxf(_current_average_filter_a.getState() * 1e3f, FLT_EPSILON);
 		time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
