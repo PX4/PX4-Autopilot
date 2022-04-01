@@ -587,28 +587,10 @@ private:
 	// ekf sequential fusion of magnetometer measurements
 	bool fuseMag(const Vector3f &mag, bool update_all_states = true);
 
-	// fuse the first euler angle from either a 321 or 312 rotation sequence as the observation (currently measures yaw using the magnetometer)
-	bool fuseHeading(float measured_hdg = NAN, float obs_var = NAN);
-
-	// fuse the yaw angle defined as the first rotation in a 321 Tait-Bryan rotation sequence
-	// yaw : angle observation defined as the first rotation in a 321 Tait-Bryan rotation sequence (rad)
-	// yaw_variance : variance of the yaw angle observation (rad^2)
-	// zero_innovation : Fuse data with innovation set to zero
-	bool fuseYaw321(const float yaw, const float yaw_variance, bool zero_innovation = false);
-
-	// fuse the yaw angle defined as the first rotation in a 312 Tait-Bryan rotation sequence
-	// yaw : angle observation defined as the first rotation in a 312 Tait-Bryan rotation sequence (rad)
-	// yaw_variance : variance of the yaw angle observation (rad^2)
-	// zero_innovation : Fuse data with innovation set to zero
-	bool fuseYaw312(const float yaw, const float yaw_variance, bool zero_innovation = false);
-
-	// update quaternion states and covariances using an innovation, observation variance and Jacobian vector
+	// update quaternion states and covariances using a yaw innovation and yaw observation variance
 	// innovation : prediction - measurement
 	// variance : observaton variance
-	// gate_sigma : innovation consistency check gate size (Sigma)
-	// jacobian : 4x1 vector of partial derivatives of observation wrt each quaternion state
-	bool updateQuaternion(const float innovation, const float variance, const float gate_sigma,
-			      const Vector4f &yaw_jacobian);
+	bool updateQuaternion(const float innovation, const float variance);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsYaw();
@@ -881,6 +863,8 @@ private:
 	void controlFakePosFusion();
 
 	void controlZeroVelocityUpdate();
+
+	void controlZeroInnovationHeadingUpdate();
 
 	// control fusion of auxiliary velocity observations
 	void controlAuxVelFusion();

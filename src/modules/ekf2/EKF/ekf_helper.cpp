@@ -1211,7 +1211,6 @@ void Ekf::stopMag3DFusion()
 	if (_control_status.flags.mag_3D) {
 
 		saveMagCovData();
-
 		_control_status.flags.mag_3D = false;
 		_control_status.flags.mag_dec = false;
 
@@ -1746,6 +1745,8 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 		// which was already taken out from the output buffer
 		_output_new.quat_nominal = _state_reset_status.quat_change * _output_new.quat_nominal;
 	}
+
+	_last_static_yaw = NAN;
 
 	// capture the reset event
 	_state_reset_status.quat_counter++;

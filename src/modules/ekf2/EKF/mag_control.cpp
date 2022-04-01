@@ -83,25 +83,11 @@ void Ekf::controlMagFusion()
 		_time_last_mov_3d_mag_suitable = _imu_sample_delayed.time_us;
 	}
 
-	// When operating without a magnetometer and no other source of yaw aiding is active,
-	// yaw fusion is run selectively to enable yaw gyro bias learning when stationary on
-	// ground and to prevent uncontrolled yaw variance growth
-	// Also fuse zero heading innovation during the leveling fine alignment step to keep the yaw variance low
 	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE
 	    || _control_status.flags.mag_fault
 	    || !_control_status.flags.tilt_align) {
 
 		stopMagFusion();
-
-		if (!_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw) {
-			// TODO: setting _is_yaw_fusion_inhibited to true is required to tell
-			// fuseHeading to perform a "zero innovation heading fusion"
-			// We should refactor it to avoid using this flag here
-			_is_yaw_fusion_inhibited = true;
-			fuseHeading();
-			_is_yaw_fusion_inhibited = false;
-		}
-
 		return;
 	}
 
@@ -340,9 +326,15 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 		Vector3f mag_earth_pred = R_to_earth * (mag - _state.mag_B);
 
 		// the angle of the projection onto the horizontal gives the yaw angle
+		// calculate the yaw innovation and wrap to the interval between +-pi
 		float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
-		if (fuseHeading(measured_hdg, sq(_params.mag_heading_noise))) {
+		float innovation = wrap_pi(getEulerYaw(_R_to_earth)) - wrap_pi(measured_hdg);
+
+		float obs_var = fmaxf(sq(_params.mag_heading_noise), 1.e-4f);
+
+		// Update the quaternion states and covariance matrix
+		if (updateQuaternion(innovation, obs_var)) {
 			_time_last_mag_heading_fuse = _time_last_imu;
 		}
 	}
