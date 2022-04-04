@@ -39,15 +39,11 @@
 #pragma once
 
 #include <uORB/uORB.h>
-#include <px4_platform_common/defines.h>
-
-#include "uORBDeviceNode.hpp"
-#include "uORBManager.hpp"
-#include "uORBUtils.hpp"
+#include <mathlib/mathlib.h>
+#include <drivers/drv_hrt.h>
+#include <stdint.h>
 
 #include "Subscription.hpp"
-
-#include <mathlib/mathlib.h>
 
 namespace uORB
 {
@@ -66,6 +62,7 @@ public:
 	 */
 	SubscriptionInterval(ORB_ID id, uint32_t interval_us = 0, uint8_t instance = 0) :
 		_subscription{id, instance},
+		_last_update(hrt_absolute_time() - interval_us),
 		_interval_us(interval_us)
 	{}
 
@@ -78,6 +75,7 @@ public:
 	 */
 	SubscriptionInterval(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
 		_subscription{meta, instance},
+		_last_update(hrt_absolute_time() - interval_us),
 		_interval_us(interval_us)
 	{}
 
@@ -85,7 +83,7 @@ public:
 
 	virtual ~SubscriptionInterval() = default;
 
-	bool subscribe() { return _subscription.subscribe(); }
+	bool subscribe(bool create = false) { return _subscription.subscribe(create); }
 	void unsubscribe() { _subscription.unsubscribe(); }
 
 	bool advertised() { return _subscription.advertised(); }
@@ -120,7 +118,7 @@ public:
 	 * Set the interval in microseconds
 	 * @param interval The interval in microseconds.
 	 */
-	void		set_interval_us(uint32_t interval) { _interval_us = interval; }
+	void		set_interval_us(uint32_t interval) { _interval_us = interval; _last_update = hrt_absolute_time() - interval; }
 
 	/**
 	 * Set the interval in milliseconds

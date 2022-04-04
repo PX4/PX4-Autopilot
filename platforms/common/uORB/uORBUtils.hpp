@@ -50,6 +50,11 @@ public:
 	 */
 	static int node_mkpath(char *buf, const char *orbMsgName);
 
+#if defined(NAME_MAX)
+	// Do compile-time length check on systems which support NAME_MAX
+	// (NAME_MAX excludes the null terminator)
+	static_assert(NAME_MAX >= (orb_maxpath - 1), "NAME_MAX too small");
+#endif
 };
 
 #endif // _uORBUtils_hpp_
