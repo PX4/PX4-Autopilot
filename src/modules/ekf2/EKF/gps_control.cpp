@@ -53,12 +53,16 @@ void Ekf::controlGpsFusion()
 
 		controlGpsYawFusion(gps_checks_passing, gps_checks_failing);
 
-		if (!_control_status.flags.yaw_align && _control_status.flags.tilt_align
-		    && gps_checks_passing && !gps_checks_failing
-		    && isYawEmergencyEstimateAvailable()) {
+		if (gps_checks_passing && !gps_checks_failing && isYawEmergencyEstimateAvailable()) {
 
-			if (resetYawToEKFGSF()) {
-				ECL_INFO("Yaw aligned using IMU and GPS");
+			bool perform_yaw_align = !_control_status.flags.yaw_align && _control_status.flags.tilt_align;
+			bool no_yaw_aid_src = !yawAidingAvailable();
+			bool yaw_error = isYawError(math::radians(10.f)); // 10 degrees yaw error
+
+			if (perform_yaw_align || (no_yaw_aid_src && yaw_error)) {
+				if (resetYawToEKFGSF()) {
+					ECL_INFO("Yaw aligned using IMU and GPS");
+				}
 			}
 		}
 

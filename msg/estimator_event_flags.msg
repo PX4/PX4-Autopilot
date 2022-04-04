@@ -16,6 +16,7 @@ bool starting_vision_pos_fusion         #  9 - true when the filter starts using
 bool starting_vision_vel_fusion         # 10 - true when the filter starts using vision system velocity measurements to correct the state estimates
 bool starting_vision_yaw_fusion         # 11 - true when the filter starts using vision system yaw  measurements to correct the state estimates
 bool yaw_aligned_to_imu_gps             # 12 - true when the filter resets the yaw to an estimate derived from IMU and GPS data
+bool yaw_aligned_to_param               # 13 - true when the filter resets the yaw to initial heading parameter
 
 # warning events
 uint32 warning_event_changes            # number of warning event changes

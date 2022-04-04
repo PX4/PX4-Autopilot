@@ -1004,6 +1004,17 @@ private:
 	// update_buffer : true if the state change should be also applied to the output observer buffer
 	void resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer = true);
 
+	bool resetYawToParameter();
+
+	bool yawAidingAvailable() const
+	{
+		const bool mag = (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D);
+		const bool gps_yaw = (_params.fusion_mode & MASK_USE_GPSYAW);
+		const bool ev_yaw = _params.fusion_mode & MASK_USE_EVYAW;
+
+		return mag || gps_yaw || ev_yaw;
+	}
+
 	// Declarations used to control use of the EKF-GSF yaw estimator
 
 	// yaw estimator instance
@@ -1022,6 +1033,7 @@ private:
 	bool resetYawToEKFGSF();
 
 	void resetGpsDriftCheckFilters();
+
 };
 
 #endif // !EKF_EKF_H

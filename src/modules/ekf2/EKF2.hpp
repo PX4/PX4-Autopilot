@@ -385,6 +385,7 @@ private:
 		(ParamExtFloat<px4::params::EKF2_MAG_DECL>) _param_ekf2_mag_decl,///< magnetic declination (degrees)
 		(ParamExtFloat<px4::params::EKF2_HDG_GATE>)
 		_param_ekf2_hdg_gate,///< heading fusion innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_HDG_INIT>) _param_ekf2_hdg_init,
 		(ParamExtFloat<px4::params::EKF2_MAG_GATE>)
 		_param_ekf2_mag_gate,	///< magnetometer fusion innovation consistency gate size (STD)
 		(ParamExtInt<px4::params::EKF2_DECL_TYPE>)

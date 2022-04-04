@@ -208,6 +208,10 @@ bool Ekf::initialiseFilter()
 		// set the earth magnetic field states using the updated rotation
 		_state.mag_I = _R_to_earth * _mag_lpf.getState();
 		_state.mag_B.zero();
+	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
+
+		float yaw_new = wrap_pi(math::radians(_params.heading_init_deg));
+		resetQuatStateYaw(yaw_new, 0.f, false);
 	}
 
 	// initialise the state covariance matrix now we have starting values for all the states

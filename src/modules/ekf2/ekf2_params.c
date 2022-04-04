@@ -443,6 +443,19 @@ PARAM_DEFINE_FLOAT(EKF2_BETA_NOISE, 0.3f);
 PARAM_DEFINE_FLOAT(EKF2_HDG_GATE, 2.6f);
 
 /**
+ * Initial heading angle
+ *
+ * Initial heading angle to use when no yaw source is available (magnetometer, GPS yaw, vision yaw)
+ *
+ * @group EKF2
+ * @min 0
+ * @max 359
+ * @unit deg
+ * @decimal 1
+ */
+PARAM_DEFINE_FLOAT(EKF2_HDG_INIT, 2.6f);
+
+/**
  * Gate size for magnetometer XYZ component fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.

@@ -270,6 +270,7 @@ struct parameters {
 	float gnd_effect_max_hgt{0.5f};		///< Height above ground at which baro ground effect becomes insignificant (m)
 
 	// magnetometer fusion
+	float heading_init_deg{0.f};		///< initial heading to use when no yaw aiding source is available
 	float mag_heading_noise{3.0e-1f};	///< measurement noise used for simple heading fusion (rad)
 	float mag_noise{5.0e-2f};		///< measurement noise used for 3-axis magnetoemeter fusion (Gauss)
 	float mag_declination_deg{0.0f};	///< magnetic declination (degrees)
@@ -382,7 +383,7 @@ struct parameters {
 	float EKFGSF_tas_default{15.0f};	///< default airspeed value assumed during fixed wing flight if no airspeed measurement available (m/s)
 	const unsigned EKFGSF_reset_delay{1000000};	///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f}; 	///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
-	const unsigned EKFGSF_reset_count_limit{3};	///< Maximum number of times the yaw can be reset to the EKF-GSF yaw estimator value
+	const unsigned EKFGSF_reset_count_limit{5};	///< Maximum number of times the yaw can be reset to the EKF-GSF yaw estimator value
 };
 
 struct stateSample {
@@ -540,6 +541,7 @@ union information_event_status_u {
 		bool starting_vision_vel_fusion	: 1; ///< 10 - true when the filter starts using vision system velocity measurements to correct the state estimates
 		bool starting_vision_yaw_fusion	: 1; ///< 11 - true when the filter starts using vision system yaw  measurements to correct the state estimates
 		bool yaw_aligned_to_imu_gps	: 1; ///< 12 - true when the filter resets the yaw to an estimate derived from IMU and GPS data
+		bool yaw_aligned_to_param	: 1; ///< 13 - true when the filter resets the yaw to initial heading parameter
 	} flags;
 	uint32_t value;
 };

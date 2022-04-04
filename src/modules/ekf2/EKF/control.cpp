@@ -56,6 +56,11 @@ void Ekf::controlFusionModes()
 		// Once the tilt variances have reduced to equivalent of 3deg uncertainty
 		// and declare the tilt alignment complete
 		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < sq(math::radians(3.0f))) {
+
+			if (!yawAidingAvailable()) {
+				resetYawToParameter();
+			}
+
 			_control_status.flags.tilt_align = true;
 
 			// send alignment status message to the console

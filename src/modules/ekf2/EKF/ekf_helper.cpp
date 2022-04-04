@@ -420,7 +420,7 @@ bool Ekf::realignYawGPS(bool force)
 		const float yaw_variance_new = sq(asinf(sineYawError));
 
 		// Apply updated yaw and yaw variance to states and covariances
-		resetQuatStateYaw(yaw_new, yaw_variance_new, true);
+		resetQuatStateYaw(yaw_new, yaw_variance_new);
 		_control_status.flags.yaw_align = true;
 
 		// If heading was bad, then we also need to reset the velocity and position states
@@ -1752,6 +1752,23 @@ void Ekf::resetQuatStateYaw(float yaw, float yaw_variance, bool update_buffer)
 	_state_reset_status.quat_counter++;
 
 	_time_last_heading_fuse = _time_last_imu;
+}
+
+bool Ekf::resetYawToParameter()
+{
+	if (!_control_status.flags.yaw_align && PX4_ISFINITE(_params.heading_init_deg)) {
+
+		float yaw_new = wrap_pi(math::radians(_params.heading_init_deg));
+		resetQuatStateYaw(yaw_new, 0.f);
+
+		_control_status.flags.yaw_align = true;
+		_information_events.flags.yaw_aligned_to_param = true;
+		ECL_INFO("Yaw aligned using parameter");
+
+		return true;
+	}
+
+	return false;
 }
 
 // Resets the main Nav EKf yaw to the estimator from the EKF-GSF yaw estimator
