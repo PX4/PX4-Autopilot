@@ -33,8 +33,6 @@
 
 #include "FixedwingAttitudeControl.hpp"
 
-#include <vtol_att_control/vtol_type.h>
-
 using namespace time_literals;
 using math::constrain;
 using math::gradual;
@@ -48,15 +46,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
-	// check if VTOL first
-	if (vtol) {
-		int32_t vt_type = -1;
-
-		if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-			_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
-		}
-	}
-
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -128,7 +117,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	if (_vehicle_status.is_vtol) {
 		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 					 && !_vehicle_status.in_transition_mode;
-		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
+		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _vehicle_status.is_vtol_tailsitter;
 
 		if (is_hovering || is_tailsitter_transition) {
 			_vcontrol_mode.flag_control_attitude_enabled = false;
@@ -140,7 +129,7 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 void
 FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 {
-	const bool is_tailsitter_transition = _is_tailsitter && _vehicle_status.in_transition_mode;
+	const bool is_tailsitter_transition = _vehicle_status.is_vtol_tailsitter && _vehicle_status.in_transition_mode;
 	const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
 	if (_vcontrol_mode.flag_control_manual_enabled && (!is_tailsitter_transition || is_fixed_wing)) {
@@ -212,7 +201,7 @@ void
 FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 {
 	if (_rates_sp_sub.update(&_rates_sp)) {
-		if (_is_tailsitter) {
+		if (_vehicle_status.is_vtol_tailsitter) {
 			float tmp = _rates_sp.roll;
 			_rates_sp.roll = -_rates_sp.yaw;
 			_rates_sp.yaw = tmp;
@@ -311,7 +300,7 @@ void FixedwingAttitudeControl::Run()
 		float pitchspeed = angular_velocity.xyz[1];
 		float yawspeed = angular_velocity.xyz[2];
 
-		if (_is_tailsitter) {
+		if (_vehicle_status.is_vtol_tailsitter) {
 			/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 			 *
 			 * Since the VTOL airframe is initialized as a multicopter we need to
@@ -379,7 +368,7 @@ void FixedwingAttitudeControl::Run()
 		// lock integrator if no rate control enabled, or in RW mode (but not transitioning VTOL or tailsitter), or for long intervals (> 20 ms)
 		bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled
 				       || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
-					   !_vehicle_status.in_transition_mode && !_is_tailsitter)
+					   !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)
 				       || (dt > 0.02f);
 
 		/* if we are in rotary wing mode, do nothing */
@@ -417,7 +406,7 @@ void FixedwingAttitudeControl::Run()
 			 */
 			if (_landed
 			    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-				&& !_vehicle_status.in_transition_mode && !_is_tailsitter)) {
+				&& !_vehicle_status.in_transition_mode && !_vehicle_status.is_vtol_tailsitter)) {
 
 				_roll_ctrl.reset_integrator();
 				_pitch_ctrl.reset_integrator();
