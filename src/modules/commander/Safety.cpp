@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,50 @@
  *
  ****************************************************************************/
 
-#pragma once
+/**
+ * @file Safety.cpp
+ */
 
-#include <float.h>
+#include "Safety.hpp"
+#include <circuit_breaker/circuit_breaker.h>
 
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <button/ButtonPublisher.hpp>
+using namespace time_literals;
 
-class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
+Safety::Safety()
 {
-public:
-	SafetyButton();
-	~SafetyButton() override;
+	/*
+	 * Safety can be turned off with the CBRK_IO_SAFETY parameter.
+	 */
+	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+}
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+void Safety::safetyButtonHandler()
+{
+	if (_safety_disabled) {
+		_safety.safety_switch_available = true;
+		_safety.safety_off = true;
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+	} else {
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
+		button_event_s button_event;
 
-	int Start();
+		while (_safety_button_sub.update(&button_event)) {
+			_safety.safety_switch_available = true;
+			_safety.safety_off |= button_event.triggered; // triggered safety button activates safety off
+		}
+	}
 
-private:
-	void Run() override;
+	// publish immediately on change, otherwise at 1 Hz for logging
+	if ((hrt_elapsed_time(&_safety.timestamp) >= 1_s) ||
+	    (_safety.safety_off != _previous_safety_off)) {
+		_safety.timestamp = hrt_absolute_time();
+		_safety_pub.publish(_safety);
+	}
 
-	void CheckSafetyRequest(bool button_pressed);
-	void CheckPairingRequest(bool button_pressed);
-	void FlashButton();
+	_previous_safety_off = _safety.safety_off;
+}
 
-	bool			_has_px4io{false};
-	ButtonPublisher	_button_publisher;
-	uint8_t			_button_counter{0};
-	uint8_t			_blink_counter{0};
-	bool			_button_prev_sate{false};	///< Previous state of the HW button
-
-	// Pairing request
-	hrt_abstime		_pairing_start{0};
-	int				_pairing_button_counter{0};
-
-	uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
-
-};
+void Safety::enableSafety()
+{
+	_safety.safety_off = false;
+}
