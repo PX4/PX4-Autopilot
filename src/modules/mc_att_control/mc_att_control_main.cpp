@@ -58,13 +58,6 @@ MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_vtol(vtol)
 {
-	if (_vtol) {
-		int32_t vt_type = -1;
-
-		if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-			_vtol_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
-		}
-	}
 
 	parameters_updated();
 }
@@ -301,6 +294,8 @@ MulticopterAttitudeControl::Run()
 				_vehicle_type_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 				_vtol = vehicle_status.is_vtol;
 				_vtol_in_transition_mode = vehicle_status.in_transition_mode;
+				_vtol_tailsitter = vehicle_status.is_vtol_tailsitter;
+
 			}
 		}
 

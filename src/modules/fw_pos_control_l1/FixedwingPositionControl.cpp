@@ -33,7 +33,6 @@
 
 #include "FixedwingPositionControl.hpp"
 
-#include <vtol_att_control/vtol_type.h>
 #include <px4_platform_common/events.h>
 
 using math::constrain;
@@ -59,12 +58,6 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 {
 	if (vtol) {
 		_param_handle_airspeed_trans = param_find("VT_ARSP_TRANS");
-
-		// VTOL parameter VTOL_TYPE
-		int32_t vt_type = -1;
-		param_get(param_find("VT_TYPE"), &vt_type);
-
-		_vtol_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
 	}
 
 	// limit to 50 Hz
@@ -370,7 +363,7 @@ FixedwingPositionControl::vehicle_attitude_poll()
 
 		// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 		// between multirotor and fixed wing flight
-		if (_vtol_tailsitter) {
+		if (_vehicle_status.is_vtol_tailsitter) {
 			const Dcmf R_offset{Eulerf{0.f, M_PI_2_F, 0.f}};
 			R = R * R_offset;
 
