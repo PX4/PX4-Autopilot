@@ -79,6 +79,8 @@
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
 
+#include <uORB/uORBManager.hpp>
+
 #define MODULE_NAME "px4"
 
 static const char *LOCK_FILE_PATH = "/tmp/px4_lock";

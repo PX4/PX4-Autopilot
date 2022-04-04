@@ -56,7 +56,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1] {};
 
-	int test_multi_sub = orb_subscribe_multi(ORB_ID(orb_test_medium), 0);
+	orb_sub_t test_multi_sub = orb_subscribe_multi(ORB_ID(orb_test_medium), 0);
 
 	orb_test_medium_s t{};
 
@@ -258,13 +258,13 @@ int uORBTest::UnitTest::test_single()
 	t.val = 0;
 	ptopic = orb_advertise(ORB_ID(orb_test), &t);
 
-	if (ptopic == nullptr) {
+	if (!orb_advert_valid(ptopic)) {
 		return test_fail("advertise failed: %d", errno);
 	}
 
-	int sfd = orb_subscribe(ORB_ID(orb_test));
+	orb_sub_t sfd = orb_subscribe(ORB_ID(orb_test));
 
-	if (sfd < 0) {
+	if (!orb_sub_valid(sfd)) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 
@@ -355,7 +355,7 @@ int uORBTest::UnitTest::test_multi()
 	}
 
 	/* subscribe to both topics and ensure valid data is received */
-	int sfd0 = orb_subscribe_multi(ORB_ID(orb_multitest), 0);
+	orb_sub_t sfd0 = orb_subscribe_multi(ORB_ID(orb_multitest), 0);
 
 	if (PX4_OK != orb_copy(ORB_ID(orb_multitest), sfd0, &u)) {
 		return test_fail("sub #0 copy failed: %d", errno);
@@ -365,7 +365,7 @@ int uORBTest::UnitTest::test_multi()
 		return test_fail("sub #0 val. mismatch: %d", u.val);
 	}
 
-	int sfd1 = orb_subscribe_multi(ORB_ID(orb_multitest), 1);
+	orb_sub_t sfd1 = orb_subscribe_multi(ORB_ID(orb_multitest), 1);
 
 	if (PX4_OK != orb_copy(ORB_ID(orb_multitest), sfd1, &u)) {
 		return test_fail("sub #1 copy failed: %d", errno);
@@ -449,7 +449,7 @@ int uORBTest::UnitTest::test_multi2()
 
 	_thread_should_exit = false;
 	const int num_instances = 3;
-	int orb_data_fd[num_instances] {-1, -1, -1};
+	orb_sub_t orb_data_fd[num_instances] {ORB_SUB_INVALID, ORB_SUB_INVALID, ORB_SUB_INVALID};
 	int orb_data_next = 0;
 
 	for (int i = 0; i < num_instances; ++i) {
@@ -476,7 +476,7 @@ int uORBTest::UnitTest::test_multi2()
 		px4_usleep(1000);
 
 		bool updated = false;
-		int orb_data_cur_fd = orb_data_fd[orb_data_next];
+		orb_sub_t orb_data_cur_fd = orb_data_fd[orb_data_next];
 		orb_check(orb_data_cur_fd, &updated);
 
 		if (updated) {
@@ -508,9 +508,9 @@ int uORBTest::UnitTest::test_multi_reversed()
 	/* For these tests 0 and 1 instances are taken from before, therefore continue with 2 and 3. */
 
 	/* Subscribe first and advertise afterwards. */
-	int sfd2 = orb_subscribe_multi(ORB_ID(orb_multitest), 2);
+	orb_sub_t sfd2 = orb_subscribe_multi(ORB_ID(orb_multitest), 2);
 
-	if (sfd2 < 0) {
+	if (!orb_sub_valid(sfd2)) {
 		return test_fail("sub. id2: ret: %d", sfd2);
 	}
 
@@ -551,7 +551,7 @@ int uORBTest::UnitTest::test_multi_reversed()
 		return test_fail("sub #3 val. mismatch: %d", u.val);
 	}
 
-	int sfd3 = orb_subscribe_multi(ORB_ID(orb_multitest), 3);
+	orb_sub_t sfd3 = orb_subscribe_multi(ORB_ID(orb_multitest), 3);
 
 	if (PX4_OK != orb_copy(ORB_ID(orb_multitest), sfd3, &u)) {
 		return test_fail("sub #3 copy failed: %d", errno);
@@ -570,20 +570,21 @@ int uORBTest::UnitTest::test_wrap_around()
 
 	orb_test_medium_s t{};
 	orb_test_medium_s u{};
-	orb_advert_t ptopic{nullptr};
+	orb_advert_t ptopic{ORB_ADVERT_INVALID};
 	bool updated{false};
 
 	// Advertise but not publish topics, only generate device_node, which is convenient for modifying DeviceNode::_generation
 	const int queue_size = 16;
 	ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_wrap_around), nullptr, queue_size);
 
-	if (ptopic == nullptr) {
+	if (!orb_advert_valid(ptopic)) {
 		return test_fail("advertise failed: %d", errno);
 	}
 
-	auto node = uORB::Manager::get_instance()->get_device_master()->getDeviceNode(ORB_ID(orb_test_medium_wrap_around), 0);
+	orb_advert_t handle = uORB::DeviceNode::nodeOpen(ORB_ID::orb_test_medium_wrap_around, 0, false);
+	auto node = static_cast<uORB::DeviceNode *>(handle.node);
 
-	if (node == nullptr) {
+	if (!orb_advert_valid(handle)) {
 		return test_fail("get device node failed.");
 	}
 
@@ -600,9 +601,9 @@ int uORBTest::UnitTest::test_wrap_around()
 	t.val = 0;
 	orb_publish(ORB_ID(orb_test_medium_wrap_around), &ptopic, &t);
 
-	int sfd = orb_subscribe(ORB_ID(orb_test_medium_wrap_around));
+	orb_sub_t sfd = orb_subscribe(ORB_ID(orb_test_medium_wrap_around));
 
-	if (sfd < 0) {
+	if (!orb_sub_valid(sfd)) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 
@@ -822,9 +823,9 @@ int uORBTest::UnitTest::test_queue()
 	orb_advert_t ptopic{nullptr};
 	bool updated{false};
 
-	int sfd = orb_subscribe(ORB_ID(orb_test_medium_queue));
+	orb_sub_t sfd = orb_subscribe(ORB_ID(orb_test_medium_queue));
 
-	if (sfd < 0) {
+	if (!orb_sub_valid(sfd)) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 
@@ -832,7 +833,7 @@ int uORBTest::UnitTest::test_queue()
 	orb_test_medium_s t{};
 	ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_queue), &t, queue_size);
 
-	if (ptopic == nullptr) {
+	if (!orb_advert_valid(ptopic)) {
 		return test_fail("advertise failed: %d", errno);
 	}
 
@@ -934,10 +935,10 @@ int uORBTest::UnitTest::pub_test_queue_entry(int argc, char *argv[])
 int uORBTest::UnitTest::pub_test_queue_main()
 {
 	orb_test_medium_s t{};
-	orb_advert_t ptopic{nullptr};
+	orb_advert_t ptopic{ORB_ADVERT_INVALID};
 	const int queue_size = 50;
 
-	if ((ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_queue_poll), &t, queue_size)) == nullptr) {
+	if (!orb_advert_valid(ptopic = orb_advertise_queue(ORB_ID(orb_test_medium_queue_poll), &t, queue_size))) {
 		_thread_should_exit = true;
 		return test_fail("advertise failed: %d", errno);
 	}
@@ -974,9 +975,9 @@ int uORBTest::UnitTest::test_queue_poll_notify()
 	test_note("Testing orb queuing (poll & notify)");
 
 	orb_test_medium_s t{};
-	int sfd = -1;
+	orb_sub_t sfd = ORB_SUB_INVALID;
 
-	if ((sfd = orb_subscribe(ORB_ID(orb_test_medium_queue_poll))) < 0) {
+	if (!orb_sub_valid(sfd = orb_subscribe(ORB_ID(orb_test_medium_queue_poll)))) {
 		return test_fail("subscribe failed: %d", errno);
 	}
 
@@ -1042,7 +1043,7 @@ int uORBTest::UnitTest::latency_test(bool print)
 
 	orb_advert_t pfd0 = orb_advertise(ORB_ID(orb_test_medium), &t);
 
-	if (pfd0 == nullptr) {
+	if (!orb_advert_valid(pfd0)) {
 		return test_fail("orb_advertise failed (%i)", errno);
 	}
 
