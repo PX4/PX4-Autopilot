@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,47 @@
  *
  ****************************************************************************/
 
+/**
+ * @file ButtonPublisher.hpp
+ *
+ * Library for button functionality.
+ *
+ */
+
 #pragma once
 
-#include <float.h>
-
+#include <drivers/drv_tone_alarm.h>
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <button/ButtonPublisher.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/button_event.h>
+#include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/led_control.h>
+#include <uORB/topics/tune_control.h>
 
-class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
+class ButtonPublisher
 {
 public:
-	SafetyButton();
-	~SafetyButton() override;
+	ButtonPublisher();
+	~ButtonPublisher() = default;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	/**
+	 * Function for publishing safety button trigger event
+	 */
+	void safetyButtonTriggerEvent();
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+	/**
+	 * Function for publishing pairing button trigger event
+	 */
+	void pairingButtonTriggerEvent();
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	int Start();
+	static constexpr uint8_t PAIRING_BUTTON_EVENT_COUNT{3};
 
 private:
-	void Run() override;
-
-	void CheckSafetyRequest(bool button_pressed);
-	void CheckPairingRequest(bool button_pressed);
-	void FlashButton();
-
-	bool			_has_px4io{false};
-	ButtonPublisher	_button_publisher;
-	uint8_t			_button_counter{0};
-	uint8_t			_blink_counter{0};
-	bool			_button_prev_sate{false};	///< Previous state of the HW button
-
-	// Pairing request
-	hrt_abstime		_pairing_start{0};
-	int				_pairing_button_counter{0};
-
-	uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
-
+	uORB::Publication<button_event_s>		_safety_button_pub{ORB_ID(safety_button)};
+	uORB::Publication<vehicle_command_s>	_vehicle_command_pub{ORB_ID(vehicle_command)};
+	uORB::Publication<led_control_s> 		_led_control_pub{ORB_ID(led_control)};
+	uORB::Publication<tune_control_s> 		_tune_control_pub{ORB_ID(tune_control)};
 };

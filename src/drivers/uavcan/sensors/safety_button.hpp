@@ -34,7 +34,7 @@
 #pragma once
 
 #include "sensor_bridge.hpp"
-#include <uORB/topics/safety.h>
+#include "button/ButtonPublisher.hpp"
 
 #include <ardupilot/indication/Button.hpp>
 
@@ -61,6 +61,8 @@ private:
 		ButtonCbBinder;
 
 	uavcan::Subscriber<ardupilot::indication::Button, ButtonCbBinder> _sub_button;
-
-
+	ButtonPublisher _button_publisher;
+	uint8_t _pairing_button_counter{0u};
+	hrt_abstime _start_timestamp{0};
+	hrt_abstime _new_press_timestamp{0};
 };

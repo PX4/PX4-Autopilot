@@ -979,6 +979,16 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 0);
 PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 
 /**
+ * Enable force safety
+ *
+ * Force safety when the vehicle disarms. Not supported when safety button used over PX4IO board.
+ *
+ * @boolean
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_FORCE_SAFETY, 0);
+
+/**
  * Enable Motor Testing
  *
  * If set, enables the motor test interface via MAVLink (DO_MOTOR_TEST), that
