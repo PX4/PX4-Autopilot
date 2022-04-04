@@ -38,10 +38,10 @@
 
 const char *const UavcanSafetyButtonBridge::NAME = "safety_button";
 
+using namespace time_literals;
+
 UavcanSafetyButtonBridge::UavcanSafetyButtonBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_safety_button",
-			       ORB_ID(safety)), // TODO: either multiple publishers or `button_event` uORB topic
-	_sub_button(node)
+	UavcanSensorBridgeBase("uavcan_safety_button", ORB_ID(button_event)), _sub_button(node)
 { }
 
 int UavcanSafetyButtonBridge::init()
@@ -60,14 +60,33 @@ void UavcanSafetyButtonBridge::button_sub_cb(const
 		uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
 {
 	bool is_safety = msg.button == ardupilot::indication::Button::BUTTON_SAFETY;
-	bool pressed = msg.press_time >= 10; // 0.1s increments
+	bool pressed = msg.press_time >= 10; // 0.1s increments (1s press time for safety button trigger event)
 
+	// Detect safety button trigger event
 	if (is_safety && pressed) {
-		safety_s safety = {};
-		safety.timestamp = hrt_absolute_time();
-		safety.safety_switch_available = true;
-		safety.safety_off = true;
-		publish(msg.getSrcNodeID().get(), &safety);
+		_button_publisher.safetyButtonTriggerEvent();
+	}
+
+	// Detect pairing button trigger event
+	if (is_safety) {
+
+		if (hrt_elapsed_time(&_start_timestamp) > 2_s) {
+			_start_timestamp = hrt_absolute_time();
+			_pairing_button_counter = 0u;
+		}
+
+		hrt_abstime press_time_us = (msg.press_time * 100 * 1000);
+		hrt_abstime elasped_time = hrt_elapsed_time(&_new_press_timestamp);
+
+		if (elasped_time > press_time_us) {
+			_pairing_button_counter++;
+			_new_press_timestamp = hrt_absolute_time();
+		}
+
+		if (_pairing_button_counter == ButtonPublisher::PAIRING_BUTTON_EVENT_COUNT) {
+			_button_publisher.pairingButtonTriggerEvent();
+			_start_timestamp = 0u;
+		}
 	}
 }
 
