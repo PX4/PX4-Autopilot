@@ -256,21 +256,13 @@ PrecLand::run_state_horizontal_approach()
 		if (hrt_absolute_time() - _point_reached_time > 2000000) {
 			// if close enough for descent above target go to descend above target
 			if (switch_to_state_descend_above_target()) {
+
 				return;
 			}
 		}
 
 	}
 
-	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT) {
-		PX4_ERR("Precision landing took too long during horizontal approach phase.");
-
-		if (switch_to_state_fallback()) {
-			return;
-		}
-
-		PX4_ERR("Can't switch to fallback landing");
-	}
 
 	float x = _target_pose.x_abs;
 	float y = _target_pose.y_abs;
@@ -388,6 +380,7 @@ bool
 PrecLand::switch_to_state_horizontal_approach()
 {
 	if (check_state_conditions(PrecLandState::HorizontalApproach)) {
+		PX4_INFO("Precland: switching to horizontal approach!");
 		_approach_alt = _navigator->get_global_position()->alt;
 
 		_point_reached_time = 0;
@@ -404,6 +397,7 @@ bool
 PrecLand::switch_to_state_descend_above_target()
 {
 	if (check_state_conditions(PrecLandState::DescendAboveTarget)) {
+		PX4_INFO("Precland: switching to descend!");
 		_state = PrecLandState::DescendAboveTarget;
 		_state_start_time = hrt_absolute_time();
 		return true;
@@ -416,6 +410,7 @@ bool
 PrecLand::switch_to_state_final_approach()
 {
 	if (check_state_conditions(PrecLandState::FinalApproach)) {
+		PX4_INFO("Precland: switching ot final approach");
 		_state = PrecLandState::FinalApproach;
 		_state_start_time = hrt_absolute_time();
 		return true;
