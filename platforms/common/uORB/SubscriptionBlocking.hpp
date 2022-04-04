@@ -80,7 +80,7 @@ public:
 	 */
 	bool updatedBlocking(uint32_t timeout_us = 0)
 	{
-		if (!_registered) {
+		if (!registered()) {
 			registerCallback();
 		}
 

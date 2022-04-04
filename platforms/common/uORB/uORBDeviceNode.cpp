@@ -31,6 +31,8 @@
  *
  ****************************************************************************/
 
+#include <sys/shm.h>
+
 #include "uORBDeviceNode.hpp"
 
 #include "uORBUtils.hpp"
@@ -43,209 +45,450 @@
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
 #if defined(__PX4_NUTTX)
+#include <nuttx/arch.h>
 #include <nuttx/mm/mm.h>
+#include <px4_platform/micro_hal.h>
 #endif
 
-static uORB::SubscriptionInterval *filp_to_subscription(cdev::file_t *filp) { return static_cast<uORB::SubscriptionInterval *>(filp->f_priv); }
+#include <px4_platform_common/mmap.h>
+#include <px4_platform_common/sem.hpp>
+#include <drivers/drv_hrt.h>
 
-uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path) :
-	CDev(strdup(path)), // success is checked in CDev::init
-	_meta(meta),
+// Every subscriber thread has it's own list of cached subscriptions
+uORB::DeviceNode::MappingCache::MappingCacheListItem *uORB::DeviceNode::MappingCache::g_cache =
+	nullptr;
+
+// This lock protects the subscription cache list from concurrent accesses by the threads in the same process
+px4_sem_t uORB::DeviceNode::MappingCache::g_cache_lock;
+
+orb_advert_t uORB::DeviceNode::MappingCache::get(ORB_ID orb_id, uint8_t instance)
+{
+	lock();
+
+	MappingCacheListItem *item = g_cache;
+
+	while (item &&
+	       (orb_id != node(item->handle)->id() ||
+		instance != node(item->handle)->get_instance())) {
+		item = item->next;
+	}
+
+	unlock();
+
+	return item != nullptr ? item->handle : ORB_ADVERT_INVALID;
+}
+
+orb_advert_t uORB::DeviceNode::MappingCache::map_node(ORB_ID orb_id, uint8_t instance, int shm_fd)
+{
+
+	// Check if it is already mapped
+	orb_advert_t handle = get(orb_id, instance);
+
+	if (orb_advert_valid(handle)) {
+		return handle;
+	}
+
+	lock();
+
+	// Not mapped yet, map it
+	void *ptr = px4_mmap(0, get_orb_size(orb_id), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd,
+			     0);
+
+	if (ptr != MAP_FAILED) {
+		// In NuttX flat and protected builds we can just drop the mappings
+		// to save some kernel memory. There is no MMU, and the memory is
+		// there until the shm object is unlinked
+#if defined(CONFIG_BUILD_FLAT)
+		px4_munmap(ptr, get_orb_size(orb_id));
+#endif
+
+		// Create a list item and add to the beginning of the list
+		handle = ptr;
+		MappingCacheListItem *item = new MappingCacheListItem{g_cache, handle};
+
+		if (item) {
+			g_cache = item;
+		}
+	}
+
+	unlock();
+
+	return handle;
+}
+
+bool uORB::DeviceNode::MappingCache::del(const orb_advert_t &handle)
+{
+	MappingCacheListItem *prev = nullptr;
+
+	lock();
+
+	MappingCacheListItem *item = g_cache;
+
+	while (item &&
+	       handle != item->handle) {
+		prev = item;
+		item = item->next;
+	}
+
+	if (item != nullptr) {
+		if (prev == nullptr) {
+			// Remove the first item
+			g_cache = item->next;
+
+		} else {
+			prev->next = item->next;
+		}
+
+		px4_munmap(handle, node(handle)->get_size());
+
+		delete (item);
+	}
+
+	unlock();
+
+	return item != nullptr ? true : false;
+}
+
+// round up to nearest power of two
+// Such as 0 => 1, 1 => 1, 2 => 2 ,3 => 4, 10 => 16, 60 => 64, 65...255 => 128
+// Note: When the input value > 128, the output is always 128
+static inline uint8_t round_pow_of_two_8(uint8_t n)
+{
+	if (n == 0) {
+		return 1;
+	}
+
+	// Avoid is already a power of 2
+	uint8_t value = n - 1;
+
+	// Fill 1
+	value |= value >> 1U;
+	value |= value >> 2U;
+	value |= value >> 4U;
+
+	// Unable to round-up, take the value of round-down
+	if (value == UINT8_MAX) {
+		value >>= 1U;
+	}
+
+	return value + 1;
+}
+
+orb_advert_t uORB::DeviceNode::nodeOpen(const ORB_ID id, const uint8_t instance, bool create)
+{
+	/*
+	 * Generate the path to the node and try to open it.
+	 */
+
+	orb_advert_t handle = MappingCache::get(id, instance);
+
+	if (orb_advert_valid(handle)) {
+		return handle;
+	}
+
+	char nodepath[orb_maxpath];
+	int inst = instance;
+	int ret = uORB::Utils::node_mkpath(nodepath, get_orb_meta(id), &inst);
+	bool created = false;
+
+	if (ret == -ENAMETOOLONG || strlen(nodepath) > NAME_MAX) {
+		PX4_ERR("Device node name too long! '%s' (len: %lu vs. NAME_MAX: %lu)",
+			get_orb_meta(id)->o_name, ((long unsigned int) strlen(nodepath)), ((long unsigned int) NAME_MAX));
+	}
+
+	if (ret != OK) {
+		return handle;
+	}
+
+	// First, try to create the node. This will fail if it already exists
+
+	int shm_fd = -1;
+
+	if (create) {
+		shm_fd = shm_open(nodepath, O_CREAT | O_RDWR | O_EXCL, 0666);
+
+		if (shm_fd >= 0) {
+
+			// If the creation succeeded, set the size of the shm region
+			if (ftruncate(shm_fd, get_orb_size(id)) != 0) {
+				::close(shm_fd);
+				shm_fd = -1;
+				PX4_ERR("truncate fail!\n");
+
+			} else {
+				created = true;
+			}
+		}
+	}
+
+	if (shm_fd < 0) {
+		// Now try to open an existing one
+
+		shm_fd = shm_open(nodepath, O_RDWR, 0666);
+	}
+
+	if (shm_fd < 0) {
+		// We were not able to create a new node or open an existing one
+		return handle;
+	}
+
+	handle = MappingCache::map_node(id, instance, shm_fd);
+
+	// No need to keep the fd any more, close it
+
+	::close(shm_fd);
+
+	if (orb_advert_valid(handle) && created) {
+		// construct the new node in the region
+		new (node(handle)) uORB::DeviceNode(id, instance, nodepath);
+	}
+
+	return handle;
+}
+
+int uORB::DeviceNode::nodeClose(orb_advert_t &handle)
+{
+	if (!orb_advert_valid(handle)) {
+		return PX4_ERROR;
+	}
+
+	if (node(handle)->_publisher_count == 0) {
+		node(handle)->_data_valid = false;
+
+		// If there are no more subscribers, delete the node and its mapping
+		if (node(handle)->_subscriber_count == 0) {
+
+			// Close the Node object
+			shm_unlink(node(handle)->get_devname());
+
+			// Uninitialize the node
+			delete (node(handle));
+
+			// Delete the mappings for this process
+			MappingCache::del(handle);
+		}
+	}
+
+	handle = ORB_ADVERT_INVALID;
+
+	return PX4_OK;
+}
+
+orb_advert_t uORB::DeviceNode::orb_advertise(const ORB_ID id, int instance,
+		bool publisher)
+{
+	/* Open the node, if it exists or create a new one */
+
+	orb_advert_t handle;
+	handle = nodeOpen(id, instance, true);
+
+	if (orb_advert_valid(handle)) {
+		node(handle)->advertise(publisher);
+	}
+
+	return handle;
+}
+
+int uORB::DeviceNode::advertise(bool publisher)
+{
+	int ret = -1;
+
+	ret = ++_advertiser_count;
+
+	if (publisher) {
+		ret = ++_publisher_count;
+	}
+
+	return ret;
+}
+
+int uORB::DeviceNode::orb_unadvertise(orb_advert_t &handle, bool publisher)
+{
+	int ret = -1;
+
+	if (orb_advert_valid(handle)) {
+		ret = node(handle)->unadvertise(publisher);
+		nodeClose(handle);
+	}
+
+	return ret;
+}
+
+int uORB::DeviceNode::unadvertise(bool publisher)
+{
+	int ret = -1;
+
+	ret = --_advertiser_count;
+
+	if (publisher) {
+		--_publisher_count;
+	}
+
+	return ret;
+}
+
+uORB::DeviceNode::DeviceNode(const ORB_ID id, const uint8_t instance, const char *path) :
+	_orb_id(id),
 	_instance(instance)
 {
+	int ret = px4_sem_init(&_lock, 1, 1);
+
+	if (ret != 0) {
+		PX4_DEBUG("SEM INIT FAIL: ret %d", ret);
+	}
+
+#if defined(CONFIG_BUILD_FLAT)
+	_devname = strdup(path);
+#else
+
+	if (strnlen(path, sizeof(_devname)) == sizeof(_devname)) {
+		PX4_ERR("node path too long %s", path);
+	}
+
+	strncpy(_devname, path, sizeof(_devname));
+#endif
 }
 
 uORB::DeviceNode::~DeviceNode()
 {
-	free(_data);
+#if defined(CONFIG_BUILD_FLAT)
 
-	const char *devname = get_devname();
+	// Delete all the allocated free callback items.
+	// There should not be any left in use, since the node is
+	// deleted only if there are no more publishers or subscribers registered
 
-	if (devname) {
-#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
-		kmm_free((void *)devname);
-#else
-		free((void *)devname);
+	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
+	uorb_cb_handle_t handle = callbacks.pop_free();
+
+	while (callbacks.handle_valid(handle)) {
+		delete (static_cast<EventWaitItem *>(callbacks.peek(handle)));
+		handle = callbacks.pop_free();
+	}
+
+	free(_devname);
 #endif
-	}
+	px4_sem_destroy(&_lock);
 }
 
-int
-uORB::DeviceNode::open(cdev::file_t *filp)
+/**
+        * Copies data and the corresponding generation
+        * from a node to the buffer provided.
+        *
+        * @param dst
+        *   The buffer into which the data is copied.
+        * @param generation
+        *   The generation that was copied.
+        * @return bool
+        *   Returns true if the data was copied.
+        */
+bool uORB::DeviceNode::copy(void *dst, orb_advert_t &handle, unsigned &generation)
 {
-	/* is this a publisher? */
-	if (filp->f_oflags == PX4_F_WRONLY) {
-
-		lock();
-		mark_as_advertised();
-		unlock();
-
-		/* now complete the open */
-		return CDev::open(filp);
+	if (dst == nullptr || !_data_valid) {
+		return false;
 	}
 
-	/* is this a new subscriber? */
-	if (filp->f_oflags == PX4_F_RDONLY) {
+	size_t o_size = get_meta()->o_size;
+	size_t o_queue = get_meta()->o_queue;
 
-		/* allocate subscriber data */
-		SubscriptionInterval *sd = new SubscriptionInterval(_meta, 0, _instance);
+	lock();
 
-		if (nullptr == sd) {
-			return -ENOMEM;
+	if (o_queue == 1) {
+		memcpy(dst, _data, o_size);
+		generation = _generation.load();
+
+	} else {
+		const unsigned current_generation = _generation.load();
+
+		if (current_generation == generation) {
+			/* The subscriber already read the latest message, but nothing new was published yet.
+			 * Return the previous message
+			 */
+			--generation;
 		}
 
-		filp->f_priv = (void *)sd;
-
-		int ret = CDev::open(filp);
-
-		if (ret != PX4_OK) {
-			PX4_ERR("CDev::open failed");
-			delete sd;
+		/* Compatible with normal and overflow conditions */
+		if (current_generation - generation > o_queue) {
+			/* Reader is too far behind: some messages are lost */
+			generation = current_generation - o_queue;
 		}
 
-		return ret;
+		memcpy(dst, _data + (o_size * (generation % o_queue)), o_size);
+
+		++generation;
 	}
 
-	if (filp->f_oflags == 0) {
-		return CDev::open(filp);
-	}
+	unlock();
 
-	/* can only be pub or sub, not both */
-	return -EINVAL;
-}
+	return true;
 
-int
-uORB::DeviceNode::close(cdev::file_t *filp)
-{
-	if (filp->f_oflags == PX4_F_RDONLY) { /* subscriber */
-		SubscriptionInterval *sd = filp_to_subscription(filp);
-		delete sd;
-	}
-
-	return CDev::close(filp);
-}
-
-ssize_t
-uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
-{
-	/* if the caller's buffer is the wrong size, that's an error */
-	if (buflen != _meta->o_size) {
-		return -EIO;
-	}
-
-	return filp_to_subscription(filp)->copy(buffer) ? _meta->o_size : 0;
 }
 
 ssize_t
-uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
+uORB::DeviceNode::write(const char *buffer, const orb_metadata *meta, orb_advert_t &handle)
 {
-	/*
-	 * Writes are legal from interrupt context as long as the
-	 * object has already been initialised from thread context.
-	 *
-	 * Writes outside interrupt context will allocate the object
-	 * if it has not yet been allocated.
-	 *
-	 * Note that filp will usually be NULL.
-	 */
-	if (nullptr == _data) {
-
-#ifdef __PX4_NUTTX
-
-		if (!up_interrupt_context()) {
-#endif /* __PX4_NUTTX */
-
-			lock();
-
-			/* re-check size */
-			if (nullptr == _data) {
-				const size_t data_size = _meta->o_size * _meta->o_queue;
-				_data = (uint8_t *) px4_cache_aligned_alloc(data_size);
-
-				if (_data) {
-					memset(_data, 0, data_size);
-				}
-			}
-
-			unlock();
-
-#ifdef __PX4_NUTTX
-		}
-
-#endif /* __PX4_NUTTX */
-
-		/* failed or could not allocate */
-		if (nullptr == _data) {
-			return -ENOMEM;
-		}
-	}
-
-	/* If write size does not match, that is an error */
-	if (_meta->o_size != buflen) {
-		return -EIO;
-	}
+	size_t o_size = meta->o_size;
+	size_t o_queue = meta->o_queue;
 
 	/* Perform an atomic copy. */
-	ATOMIC_ENTER;
+	lock();
+
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	unsigned generation = _generation.fetch_add(1);
 
-	memcpy(_data + (_meta->o_size * (generation % _meta->o_queue)), buffer, _meta->o_size);
-
-	// callbacks
-	for (auto item : _callbacks) {
-		item->call();
-	}
+	memcpy(_data + o_size * (generation % o_queue), buffer, o_size);
 
 	/* Mark at least one data has been published */
 	_data_valid = true;
 
-	ATOMIC_LEAVE;
+	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
 
-	/* notify any poll waiters */
-	poll_notify(POLLIN);
+	uorb_cb_handle_t cb = callbacks.head();
 
-	return _meta->o_size;
-}
+	while (callbacks.handle_valid(cb)) {
+		EventWaitItem *item = callbacks.peek(cb);
 
-int
-uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case ORBIOCUPDATED: {
-			ATOMIC_ENTER;
-			*(bool *)arg = filp_to_subscription(filp)->updated();
-			ATOMIC_LEAVE;
-			return PX4_OK;
+		if (item->interval_us == 0 || hrt_elapsed_time(&item->last_update) >= item->interval_us) {
+
+#ifdef CONFIG_BUILD_FLAT
+
+			if (item->subscriber != nullptr) {
+				// execute callback
+				item->subscriber->call();
+
+			} else {
+				// release poll
+				Manager::unlockThread(item->lock);
+			}
+
+#else
+
+			// Release poll waiters and callback threads
+			if (item->cb_triggered < CB_ALIVE_MAX_VALUE) {
+				__atomic_fetch_add(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
+				Manager::unlockThread(item->lock);
+
+			} else if (item->cb_triggered == CB_ALIVE_MAX_VALUE) {
+				// Callbacks are not being handled? Post once more and print an error
+				__atomic_fetch_add(&item->cb_triggered, 1, __ATOMIC_SEQ_CST);
+				Manager::unlockThread(item->lock);
+				PX4_ERR("CB triggered from %s is not being handled?\n", get_name());
+			}
+
+#endif
 		}
 
-	case ORBIOCSETINTERVAL:
-		filp_to_subscription(filp)->set_interval_us(arg);
-		return PX4_OK;
-
-	case ORBIOCGADVERTISER:
-		*(uintptr_t *)arg = (uintptr_t)this;
-		return PX4_OK;
-
-	case ORBIOCGETINTERVAL:
-		*(unsigned *)arg = filp_to_subscription(filp)->get_interval_us();
-		return PX4_OK;
-
-	case ORBIOCISADVERTISED:
-		*(unsigned long *)arg = _advertised;
-
-		return PX4_OK;
-
-	default:
-		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
+		cb = callbacks.next(cb);
 	}
+
+	unlock();
+
+	return o_size;
 }
 
 ssize_t
-uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const void *data)
+uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t &handle, const void *data)
 {
-	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
+	uORB::DeviceNode *devnode = node(handle);
 	int ret;
 
 	/* check if the device handle is initialized and data is valid */
@@ -255,18 +498,13 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	}
 
 	/* check if the orb meta data matches the publication */
-	if (devnode->_meta->o_id != meta->o_id) {
+	if (static_cast<orb_id_size_t>(devnode->id()) != meta->o_id) {
 		errno = EINVAL;
 		return PX4_ERROR;
 	}
 
-	/* call the devnode write method with no file pointer */
-	ret = devnode->write(nullptr, (const char *)data, meta->o_size);
-
-	if (ret < 0) {
-		errno = -ret;
-		return PX4_ERROR;
-	}
+	/* call the devnode write method */
+	ret = devnode->write((const char *)data, meta, handle);
 
 	if (ret != (int)meta->o_size) {
 		errno = EIO;
@@ -291,30 +529,6 @@ uORB::DeviceNode::publish(const orb_metadata *meta, orb_advert_t handle, const v
 	return PX4_OK;
 }
 
-int uORB::DeviceNode::unadvertise(orb_advert_t handle)
-{
-	if (handle == nullptr) {
-		return -EINVAL;
-	}
-
-	uORB::DeviceNode *devnode = (uORB::DeviceNode *)handle;
-
-	/*
-	 * We are cheating a bit here. First, with the current implementation, we can only
-	 * have multiple publishers for instance 0. In this case the caller will have
-	 * instance=nullptr and _published has no effect at all. Thus no unadvertise is
-	 * necessary.
-	 * In case of multiple instances, we have at most 1 publisher per instance and
-	 * we can signal an instance as 'free' by setting _published to false.
-	 * We never really free the DeviceNode, for this we would need reference counting
-	 * of subscribers and publishers. But we also do not have a leak since future
-	 * publishers reuse the same DeviceNode object.
-	 */
-	devnode->_advertised = false;
-
-	return PX4_OK;
-}
-
 #ifdef CONFIG_ORB_COMMUNICATOR
 int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
 {
@@ -328,121 +542,139 @@ int16_t uORB::DeviceNode::topic_advertised(const orb_metadata *meta)
 }
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
-px4_pollevent_t
-uORB::DeviceNode::poll_state(cdev::file_t *filp)
-{
-	// If the topic appears updated to the subscriber, say so.
-	return filp_to_subscription(filp)->updated() ? POLLIN : 0;
-}
-
-void
-uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events)
-{
-	// If the topic looks updated to the subscriber, go ahead and notify them.
-	if (filp_to_subscription((cdev::file_t *)fds->priv)->updated()) {
-		CDev::poll_notify_one(fds, events);
-	}
-}
-
 bool
 uORB::DeviceNode::print_statistics(int max_topic_length)
 {
-	if (!_advertised) {
-		return false;
-	}
-
 	lock();
 
 	const uint8_t instance = get_instance();
 	const int8_t sub_count = subscriber_count();
+	const uint8_t queue_size = get_queue_size();
 
 	unlock();
 
-	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %s\n", max_topic_length, get_meta()->o_name, (int)instance, (int)sub_count,
-		     get_meta()->o_queue, get_meta()->o_size, get_devname());
+	const orb_metadata *meta = get_meta();
+
+	PX4_INFO_RAW("%-*s %2i %4i %2i %4i %s\n", max_topic_length, meta->o_name, (int)instance, (int)sub_count,
+		     queue_size, meta->o_size, get_devname());
 
 	return true;
 }
 
-void uORB::DeviceNode::add_internal_subscriber()
+orb_advert_t uORB::DeviceNode::add_subscriber(ORB_ID orb_id, uint8_t instance,
+		unsigned *initial_generation, bool advertise)
 {
-	lock();
+	orb_advert_t handle;
+
+	if (advertise) {
+		handle = orb_advertise(orb_id, instance, false);
+
+	} else {
+		handle = nodeOpen(orb_id, instance, false);
+	}
+
+	if (orb_advert_valid(handle)) {
+		node(handle)->_add_subscriber(initial_generation);
+
+	} else {
+		*initial_generation = 0;
+	}
+
+	return handle;
+}
+
+
+void uORB::DeviceNode::_add_subscriber(unsigned *initial_generation)
+{
+	*initial_generation = _generation.load() - (_data_valid ? 1 : 0);
 	_subscriber_count++;
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
 	if (ch != nullptr && _subscriber_count > 0) {
-		unlock(); //make sure we cannot deadlock if add_subscription calls back into DeviceNode
-		ch->add_subscription(_meta->o_name, 1);
+		ch->add_subscription(get_name(), 1);
 
-	} else
-#endif /* CONFIG_ORB_COMMUNICATOR */
-
-	{
-		unlock();
 	}
+
+#endif /* CONFIG_ORB_COMMUNICATOR */
 }
 
-void uORB::DeviceNode::remove_internal_subscriber()
+
+int8_t uORB::DeviceNode::remove_subscriber(orb_advert_t &handle, bool advertiser)
 {
-	lock();
-	_subscriber_count--;
+	int8_t ret = _subscriber_count--;
+
+	if (advertiser) {
+		orb_unadvertise(handle, false);
+
+	} else {
+		nodeClose(handle);
+
+	}
 
 #ifdef CONFIG_ORB_COMMUNICATOR
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (ch != nullptr && _subscriber_count == 0) {
-		unlock(); //make sure we cannot deadlock if remove_subscription calls back into DeviceNode
-		ch->remove_subscription(_meta->o_name);
+	if (ch != nullptr && ret == 0) {
+		ch->remove_subscription(get_meta()->o_name);
 
-	} else
-#endif /* CONFIG_ORB_COMMUNICATOR */
-	{
-		unlock();
 	}
+
+#endif /* ORB_COMMUNICATOR */
+
+	return ret;
 }
 
 #ifdef CONFIG_ORB_COMMUNICATOR
-int16_t uORB::DeviceNode::process_add_subscription()
+int16_t uORB::DeviceNode::process_add_subscription(orb_advert_t &handle)
 {
 	// if there is already data in the node, send this out to
 	// the remote entity.
 	// send the data to the remote entity.
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
+	const orb_metadata *meta = get_meta();
 
-	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
+	if (ch != nullptr) {
 		// Only send the most recent data to initialize the remote end.
 		if (_data_valid) {
-			ch->send_message(_meta->o_name, _meta->o_size, _data + (_meta->o_size * ((_generation.load() - 1) % _meta->o_queue)));
+			ch->send_message(meta->o_name, meta->o_size,
+					 _data + (meta->o_size * ((_generation.load() - 1) % meta->o_queue)));
 		}
 	}
 
 	return PX4_OK;
 }
 
-int16_t uORB::DeviceNode::process_remove_subscription()
+int16_t uORB::DeviceNode::process_remove_subscription(orb_advert_t &handle)
 {
 	return PX4_OK;
 }
 
-int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data)
+int16_t uORB::DeviceNode::process_received_message(orb_advert_t &handle, int32_t length, uint8_t *data)
 {
 	int16_t ret = -1;
 
-	if (length != (int32_t)(_meta->o_size)) {
-		PX4_ERR("Received '%s' with DataLength[%d] != ExpectedLen[%d]", _meta->o_name, (int)length, (int)_meta->o_size);
+	if (!orb_advert_valid(handle)) {
+		return ret;
+	}
+
+	const orb_metadata *meta = get_meta();
+
+	if (length != (int32_t)(meta->o_size)) {
+		PX4_ERR("Received '%s' with DataLength[%d] != ExpectedLen[%d]", meta->o_name, (int)length,
+			(int)meta->o_size);
 		return PX4_ERROR;
 	}
 
-	/* call the devnode write method with no file pointer */
-	ret = write(nullptr, (const char *)data, _meta->o_size);
+	/* call the devnode write method */
+	ret = write((const char *)data, meta, handle);
 
 	if (ret < 0) {
 		return PX4_ERROR;
 	}
 
-	if (ret != (int)_meta->o_size) {
+	if (ret != (int)meta->o_size) {
 		errno = EIO;
 		return PX4_ERROR;
 	}
@@ -451,44 +683,74 @@ int16_t uORB::DeviceNode::process_received_message(int32_t length, uint8_t *data
 }
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
-unsigned uORB::DeviceNode::get_initial_generation()
-{
-	ATOMIC_ENTER;
-
-	// If there any previous publications allow the subscriber to read them
-	unsigned generation = _generation.load() - (_data_valid ? 1 : 0);
-
-	ATOMIC_LEAVE;
-
-	return generation;
-}
-
 bool
-uORB::DeviceNode::register_callback(uORB::SubscriptionCallback *callback_sub)
+uORB::DeviceNode::_register_callback(uORB::SubscriptionCallback *cb_sub,
+				     int8_t poll_lock, hrt_abstime last_update, uint32_t interval_us, uorb_cb_handle_t &cb_handle)
 {
-	if (callback_sub != nullptr) {
-		ATOMIC_ENTER;
+	int8_t cb_lock = poll_lock;
 
-		// prevent duplicate registrations
-		for (auto existing_callbacks : _callbacks) {
-			if (callback_sub == existing_callbacks) {
-				ATOMIC_LEAVE;
-				return true;
-			}
-		}
+	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
 
-		_callbacks.add(callback_sub);
-		ATOMIC_LEAVE;
-		return true;
+	lock();
+
+	cb_handle = callbacks.pop_free();
+	EventWaitItem *item = callbacks.peek(cb_handle);
+
+#ifdef CONFIG_BUILD_FLAT
+	/* With flat mode it is OK to allocate more items for the list */
+
+	if (!item) {
+		item = new EventWaitItem;
+		cb_handle = item;
 	}
 
-	return false;
+#endif
+
+	if (item != nullptr) {
+		item->lock = cb_lock;
+#ifdef CONFIG_BUILD_FLAT
+		item->subscriber = cb_sub;
+#else
+		item->cb_triggered = 0;
+#endif
+		item->last_update = last_update;
+		item->interval_us = interval_us;
+		callbacks.push(cb_handle);
+
+	} else {
+		PX4_ERR("register fail\n");
+	}
+
+	unlock();
+
+	return uorb_cb_handle_valid(cb_handle);
 }
 
-void
-uORB::DeviceNode::unregister_callback(uORB::SubscriptionCallback *callback_sub)
+int
+uORB::DeviceNode::_unregister_callback(uorb_cb_handle_t &cb_handle)
 {
-	ATOMIC_ENTER;
-	_callbacks.remove(callback_sub);
-	ATOMIC_LEAVE;
+	IndexedStackHandle<CB_LIST_T> callbacks(_callbacks);
+#ifndef CONFIG_BUILD_FLAT
+	EventWaitItem *item = callbacks.peek(cb_handle);
+#endif
+	int ret = 0;
+
+	lock();
+
+	bool ret_rm = callbacks.rm(cb_handle);
+
+	if (!ret_rm) {
+		PX4_ERR("unregister fail\n");
+
+	} else {
+#ifndef CONFIG_BUILD_FLAT
+		ret = item->cb_triggered;
+#endif
+		callbacks.push_free(cb_handle);
+		cb_handle = UORB_INVALID_CB_HANDLE;
+	}
+
+	unlock();
+
+	return ret;
 }

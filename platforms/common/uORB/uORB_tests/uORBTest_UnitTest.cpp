@@ -581,9 +581,10 @@ int uORBTest::UnitTest::test_wrap_around()
 		return test_fail("advertise failed: %d", errno);
 	}
 
-	auto node = uORB::Manager::get_instance()->get_device_master()->getDeviceNode(ORB_ID(orb_test_medium_wrap_around), 0);
+	orb_advert_t handle = uORB::DeviceNode::nodeOpen(ORB_ID::orb_test_medium_wrap_around, 0, false);
+	auto node = static_cast<uORB::DeviceNode *>(handle);
 
-	if (node == nullptr) {
+	if (!orb_advert_valid(handle)) {
 		return test_fail("get device node failed.");
 	}
 

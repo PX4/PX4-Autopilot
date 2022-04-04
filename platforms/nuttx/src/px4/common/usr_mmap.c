@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2022 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,117 +31,15 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <sys/mman.h>
+#include <sys/types.h>
 
-#include <uORB/uORBDeviceNode.hpp>
-
-class ORBSet
+void *px4_mmap(void *start, size_t length, int prot, int flags, int fd, off_t offset)
 {
-public:
-	struct Node {
-		Node *next{nullptr};
-		orb_advert_t handle{ORB_ADVERT_INVALID};
-	};
+	return mmap(start, length, prot, flags, fd, offset);
+}
 
-	ORBSet() = default;
-
-	~ORBSet()
-	{
-		while (_top != nullptr) {
-			unlinkNext(_top);
-
-			if (_top->next == nullptr) {
-
-				delete _top;
-				_top = nullptr;
-			}
-		}
-	}
-
-	void insert(const orb_advert_t &handle)
-	{
-		Node **p;
-
-		if (_top == nullptr) {
-			p = &_top;
-
-		} else {
-			p = &_end->next;
-		}
-
-		*p = new Node();
-
-		if (_end) {
-			_end = _end->next;
-
-		} else {
-			_end = _top;
-		}
-
-		_end->next = nullptr;
-		_end->handle = handle;
-	}
-
-	orb_advert_t find(const char *node_name)
-	{
-		Node *p = _top;
-
-		while (p) {
-			if (strcmp(uORB::DeviceNode::get_name(p->handle), node_name) == 0) {
-				return p->handle;
-			}
-
-			p = p->next;
-		}
-
-		return ORB_ADVERT_INVALID;
-	}
-
-	bool erase(const char *node_name)
-	{
-		Node *p = _top;
-
-		if (_top && (strcmp(uORB::DeviceNode::get_name(_top->handle), node_name) == 0)) {
-			p = _top->next;
-
-			delete _top;
-			_top = p;
-
-			if (_top == nullptr) {
-				_end = nullptr;
-			}
-
-			return true;
-		}
-
-		while (p->next) {
-			if (strcmp(uORB::DeviceNode::get_name(p->next->handle), node_name) == 0) {
-				unlinkNext(p);
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-private:
-
-	void unlinkNext(Node *a)
-	{
-		Node *b = a->next;
-
-		if (b != nullptr) {
-			if (_end == b) {
-				_end = a;
-			}
-
-			a->next = b->next;
-
-			delete b;
-			b = nullptr;
-		}
-	}
-
-	Node *_top{nullptr};
-	Node *_end{nullptr};
-};
+int px4_munmap(void *start, size_t length)
+{
+	return munmap(start, length);
+}

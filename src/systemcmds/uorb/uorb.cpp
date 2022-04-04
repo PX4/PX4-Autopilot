@@ -38,9 +38,27 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 
+#include "uORBDeviceMaster.hpp"
+
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 
 static void usage();
+
+static int uorb_status(void)
+{
+	uORB::DeviceMaster dev;
+	dev.printStatistics();
+
+	return OK;
+}
+
+static int uorb_top(char **topic_filter, int num_filters)
+{
+	uORB::DeviceMaster dev;
+	dev.showTop(topic_filter, num_filters);
+
+	return OK;
+}
 
 int uorb_main(int argc, char *argv[])
 {
@@ -49,10 +67,7 @@ int uorb_main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (!strcmp(argv[1], "start")) {
-		return uorb_start();
-
-	} else if (!strcmp(argv[1], "status")) {
+	if (!strcmp(argv[1], "status")) {
 		return uorb_status();
 
 	} else if (!strcmp(argv[1], "top")) {

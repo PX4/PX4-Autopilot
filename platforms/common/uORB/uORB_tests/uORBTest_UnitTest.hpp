@@ -35,7 +35,6 @@
 #define _uORBTest_UnitTest_hpp_
 
 #include <uORB/uORB.h>
-#include <uORB/uORBDeviceMaster.hpp>
 #include <uORB/uORBDeviceNode.hpp>
 #include <uORB/uORBManager.hpp>
 #include <uORB/topics/orb_test.h>
@@ -75,6 +74,7 @@ public:
 	// Assist in testing the wrap-around situation
 	static void set_generation(uORB::DeviceNode &node, unsigned generation)
 	{
+		node._data_valid = true;
 		node._generation.store(generation);
 	}
 

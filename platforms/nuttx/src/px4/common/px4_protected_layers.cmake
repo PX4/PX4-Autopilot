@@ -19,6 +19,8 @@ add_library(px4_layer
 )
 
 target_link_libraries(px4_layer
+	PUBLIC
+		board_bus_info
 	PRIVATE
 		m
 		nuttx_c
@@ -36,11 +38,6 @@ add_library(px4_board_ctrl
 add_dependencies(px4_board_ctrl nuttx_context px4_kernel_builtin_list_target)
 target_compile_options(px4_board_ctrl PRIVATE -D__KERNEL__)
 
-target_link_libraries(px4_layer
-	PUBLIC
-		board_bus_info
-)
-
 # Build the kernel side px4_kernel_layer
 
 add_library(px4_kernel_layer
@@ -49,6 +46,9 @@ add_library(px4_kernel_layer
 )
 
 target_link_libraries(px4_kernel_layer
+	PUBLIC
+		px4_board_ctrl
+		board_bus_info
 	PRIVATE
 		${KERNEL_LIBS}
 		nuttx_kc
@@ -56,11 +56,6 @@ target_link_libraries(px4_kernel_layer
 		nuttx_kmm
 	PRIVATE
 		kernel_events_interface # events_ioctl_init
-)
-
-target_link_libraries(px4_kernel_layer
-	PUBLIC
-		board_bus_info
 )
 
 if (DEFINED PX4_CRYPTO)
@@ -71,3 +66,8 @@ endif()
 add_dependencies(px4_kernel_layer prebuild_targets)
 target_compile_options(px4_kernel_layer PRIVATE -D__KERNEL__)
 target_link_libraries(px4_kernel_layer PUBLIC px4_board_ctrl)
+
+if (CONFIG_BUILD_KERNEL)
+	target_sources(px4_layer PRIVATE usr_mmap.c)
+	target_sources(px4_kernel_layer PRIVATE px4_kmmap.c)
+endif()
