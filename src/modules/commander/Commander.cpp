@@ -4227,7 +4227,7 @@ void Commander::estimator_check()
 	}
 
 	if (condition_gps_position_was_valid && !_status_flags.gps_position_valid) {
-		PX4_WARN("GPS no longer valid");
+		PX4_DEBUG("GPS no longer valid");
 	}
 }
 
