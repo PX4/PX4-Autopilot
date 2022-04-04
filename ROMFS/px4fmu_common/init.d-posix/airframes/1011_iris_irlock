@@ -10,6 +10,7 @@
 # enable fusion of landing target velocity
 param set-default LTEST_MODE 1
 param set-default PLD_HACC_RAD 0.1
+param set-default RTL_PLD_MD 2
 
 # Start up Landing Target Estimator module
 landing_target_estimator start
