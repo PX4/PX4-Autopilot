@@ -36,5 +36,6 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		uorb.cpp
+		uORBDeviceMaster.cpp
 	DEPENDS
 	)

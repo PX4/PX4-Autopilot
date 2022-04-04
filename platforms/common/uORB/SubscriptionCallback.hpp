@@ -39,14 +39,14 @@
 #pragma once
 
 #include <uORB/SubscriptionInterval.hpp>
-#include <containers/List.hpp>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/posix.h>
 
 namespace uORB
 {
 
 // Subscription wrapper class with callbacks on new publications
-class SubscriptionCallback : public SubscriptionInterval, public ListNode<SubscriptionCallback *>
+class SubscriptionCallback : public SubscriptionInterval
 {
 public:
 	/**
@@ -68,36 +68,29 @@ public:
 
 	bool registerCallback()
 	{
-		if (!_registered) {
-			if (_subscription.get_node() && Manager::register_callback(_subscription.get_node(), this)) {
-				// registered
-				_registered = true;
-
-			} else {
-				// force topic creation by subscribing with old API
-				int fd = orb_subscribe_multi(_subscription.get_topic(), _subscription.get_instance());
-
-				// try to register callback again
-				if (_subscription.subscribe()) {
-					if (_subscription.get_node() && Manager::register_callback(_subscription.get_node(), this)) {
-						_registered = true;
-					}
+		if (!registered()) {
+			if (!orb_advert_valid(_subscription.get_node())) {
+				// force topic creation
+				if (!_subscription.subscribe(true)) {
+					return false;
 				}
+			}
 
-				orb_unsubscribe(fd);
+			if (orb_advert_valid(_subscription.get_node())) {
+				_cb_handle = DeviceNode::register_callback(_subscription.get_node(), this, -1, _last_update, _interval_us);
 			}
 		}
 
-		return _registered;
+		return registered();
 	}
 
 	void unregisterCallback()
 	{
-		if (_subscription.get_node()) {
-			Manager::unregister_callback(_subscription.get_node(), this);
+		if (registered()) {
+			DeviceNode::unregister_callback(_subscription.get_node(), _cb_handle);
 		}
 
-		_registered = false;
+		_cb_handle = UORB_INVALID_CB_HANDLE;
 	}
 
 	/**
@@ -109,9 +102,9 @@ public:
 		bool ret = false;
 
 		if (instance != get_instance()) {
-			const bool registered = _registered;
+			const bool reg = registered();
 
-			if (registered) {
+			if (reg) {
 				unregisterCallback();
 			}
 
@@ -119,13 +112,13 @@ public:
 				ret = true;
 			}
 
-			if (registered) {
+			if (reg) {
 				registerCallback();
 			}
 
 		} else {
 			// already on desired index
-			return true;
+			ret = true;
 		}
 
 		return ret;
@@ -133,12 +126,11 @@ public:
 
 	virtual void call() = 0;
 
-	bool registered() const { return _registered; }
+	bool registered() const { return uorb_cb_handle_valid(_cb_handle); }
 
 protected:
 
-	bool _registered{false};
-
+	uorb_cb_handle_t _cb_handle{UORB_INVALID_CB_HANDLE};
 };
 
 // Subscription with callback that schedules a WorkItem
@@ -186,6 +178,36 @@ private:
 	px4::WorkItem *_work_item;
 
 	uint8_t _required_updates{0};
+};
+
+class SubscriptionPollable : public SubscriptionInterval
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param instance The instance for multi sub.
+	 */
+	SubscriptionPollable(const orb_metadata *meta, uint8_t instance = 0) :
+		SubscriptionInterval(meta, 0, instance)
+	{
+	}
+
+	virtual ~SubscriptionPollable() = default;
+
+	void registerPoll(int8_t lock_idx)
+	{
+		_cb_handle = DeviceNode::register_callback(_subscription.get_node(), nullptr, lock_idx, _last_update, _interval_us);
+	}
+
+	void unregisterPoll()
+	{
+		DeviceNode::unregister_callback(_subscription.get_node(), _cb_handle);
+		_cb_handle = UORB_INVALID_CB_HANDLE;
+	}
+private:
+	uorb_cb_handle_t _cb_handle{UORB_INVALID_CB_HANDLE};
 };
 
 } // namespace uORB

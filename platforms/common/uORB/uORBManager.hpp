@@ -31,12 +31,13 @@
  *
  ****************************************************************************/
 
-#ifndef _uORBManager_hpp_
-#define _uORBManager_hpp_
+#pragma once
+
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/sem.h>
 
 #include "uORBDeviceNode.hpp"
 #include "uORBCommon.hpp"
-#include "uORBDeviceMaster.hpp"
 
 #include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
 #include <stdint.h>
@@ -47,119 +48,17 @@
 #include "uORBCommunicator.hpp"
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
+#define NUM_GLOBAL_SEMS 40
+
 namespace uORB
 {
-class Manager;
-class SubscriptionCallback;
-}
-
-
-/*
- * IOCTLs for manager to access device nodes using
- * a handle
- */
-
-#define _ORBIOCDEV(_n) (_PX4_IOC(_ORBIOCDEVBASE, _n))
-#define ORBIOCDEVEXISTS	_ORBIOCDEV(30)
-typedef struct orbiocdevexists {
-	const ORB_ID orb_id;
-	const uint8_t instance;
-	const bool check_advertised;
-	int ret;
-} orbiocdevexists_t;
-
-#define ORBIOCDEVADVERTISE	_ORBIOCDEV(31)
-typedef struct orbiocadvertise {
-	const struct orb_metadata *meta;
-	bool is_advertiser;
-	int *instance;
-	int ret;
-} orbiocdevadvertise_t;
-
-#define ORBIOCDEVUNADVERTISE	_ORBIOCDEV(32)
-typedef struct orbiocunadvertise {
-	void *handle;
-	int ret;
-} orbiocdevunadvertise_t;
-
-#define ORBIOCDEVPUBLISH	_ORBIOCDEV(33)
-typedef struct orbiocpublish {
-	const struct orb_metadata *meta;
-	orb_advert_t handle;
-	const void *data;
-	int ret;
-} orbiocdevpublish_t;
-
-#define ORBIOCDEVADDSUBSCRIBER	_ORBIOCDEV(34)
-typedef struct {
-	const ORB_ID orb_id;
-	const uint8_t instance;
-	unsigned *initial_generation;
-	void *handle;
-} orbiocdevaddsubscriber_t;
-
-#define ORBIOCDEVREMSUBSCRIBER	_ORBIOCDEV(35)
-
-#define ORBIOCDEVQUEUESIZE	_ORBIOCDEV(36)
-typedef struct {
-	const void *handle;
-	uint8_t size;
-} orbiocdevqueuesize_t;
-
-#define ORBIOCDEVDATACOPY	_ORBIOCDEV(37)
-typedef struct {
-	void *handle;
-	void *dst;
-	unsigned generation;
-	bool only_if_updated;
-	bool ret;
-} orbiocdevdatacopy_t;
-
-#define ORBIOCDEVREGCALLBACK	_ORBIOCDEV(38)
-typedef struct {
-	void *handle;
-	class uORB::SubscriptionCallback *callback_sub;
-	bool registered;
-} orbiocdevregcallback_t;
-
-#define ORBIOCDEVUNREGCALLBACK	_ORBIOCDEV(39)
-typedef struct {
-	void *handle;
-	class uORB::SubscriptionCallback *callback_sub;
-} orbiocdevunregcallback_t;
-
-#define ORBIOCDEVGETINSTANCE	_ORBIOCDEV(40)
-typedef struct {
-	const void *handle;
-	uint8_t instance;
-} orbiocdevgetinstance_t;
-
-#define ORBIOCDEVUPDATESAVAIL	_ORBIOCDEV(41)
-typedef struct {
-	const void *handle;
-	unsigned last_generation;
-	unsigned ret;
-} orbiocdevupdatesavail_t;
-
-#define ORBIOCDEVISADVERTISED	_ORBIOCDEV(42)
-typedef struct {
-	const void *handle;
-	bool ret;
-} orbiocdevisadvertised_t;
-
-typedef enum {
-	ORB_DEVMASTER_STATUS = 0,
-	ORB_DEVMASTER_TOP = 1
-} orbiocdevmastercmd_t;
-#define ORBIOCDEVMASTERCMD	_ORBIOCDEV(45)
-
 
 /**
  * This is implemented as a singleton.  This class manages creating the
  * uORB nodes for each uORB topics and also implements the behavor of the
  * uORB Api's.
  */
-class uORB::Manager
+class Manager
 #ifdef CONFIG_ORB_COMMUNICATOR
 	: public uORBCommunicator::IChannelRxHandler
 #endif /* CONFIG_ORB_COMMUNICATOR */
@@ -181,22 +80,16 @@ public:
 
 	/**
 	 * Method to get the singleton instance for the uORB::Manager.
-	 * Make sure initialize() is called first.
 	 * @return uORB::Manager*
 	 */
-	static uORB::Manager *get_instance() { return _Instance; }
+	static uORB::Manager *get_instance()
+	{
+		if (_Instance == nullptr) {
+			map_instance();
+		}
 
-	/**
-	 * Get the DeviceMaster. If it does not exist,
-	 * it will be created and initialized.
-	 * Note: the first call to this is not thread-safe.
-	 * @return nullptr if initialization failed (and errno will be set)
-	 */
-	uORB::DeviceMaster *get_device_master();
-
-#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
-	static int orb_ioctl(unsigned int cmd, unsigned long arg);
-#endif
+		return _Instance;
+	}
 
 	// ==== uORB interface methods ====
 	/**
@@ -259,7 +152,7 @@ public:
 	 *      this function will return nullptr and set errno to ENOENT.
 	 */
 	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
-					 unsigned int queue_size = 1);
+					 uint8_t queue_size = 1);
 
 	/**
 	 * Unadvertise a topic.
@@ -267,7 +160,7 @@ public:
 	 * @param handle  handle returned by orb_advertise or orb_advertise_multi.
 	 * @return 0 on success
 	 */
-	static int orb_unadvertise(orb_advert_t handle);
+	static int orb_unadvertise(orb_advert_t &handle);
 
 	/**
 	 * Publish new data to a topic.
@@ -282,12 +175,12 @@ public:
 	 * @param data    A pointer to the data to be published.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	static int  orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data);
+	static int  orb_publish(const struct orb_metadata *meta, orb_advert_t &handle, const void *data) {return uORB::DeviceNode::publish(meta, handle, data);}
 
 	/**
 	 * Subscribe to a topic.
 	 *
-	 * The returned value is a file descriptor that can be passed to poll()
+	 * The returned value is a handle that can be passed to orb_poll()
 	 * in order to wait for updates to a topic, as well as topic_read,
 	 * orb_check.
 	 *
@@ -312,12 +205,12 @@ public:
 	 * @return    PX4_ERROR on error, otherwise returns a handle
 	 *      that can be used to read and update the topic.
 	 */
-	int  orb_subscribe(const struct orb_metadata *meta);
+	orb_sub_t orb_subscribe(const struct orb_metadata *meta);
 
 	/**
 	 * Subscribe to a multi-instance of a topic.
 	 *
-	 * The returned value is a file descriptor that can be passed to poll()
+	 * The returned value is a handle that can be passed to orb_poll()
 	 * in order to wait for updates to a topic, as well as topic_read,
 	 * orb_check.
 	 *
@@ -344,13 +237,13 @@ public:
 	 * @param instance  The instance of the topic. Instance 0 matches the
 	 *      topic of the orb_subscribe() call, higher indices
 	 *      are for topics created with orb_advertise_multi().
-	 * @return    PX4_ERROR on error, otherwise returns a handle
+	 * @return returns a handle
 	 *      that can be used to read and update the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE_OPTIONAL with no corresponding ORB_DECLARE)
-	 *      this function will return -1 and set errno to ENOENT.
+	 *      this function will return an invalid handle and set errno to ENOENT.
 	 */
-	int  orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance);
+	orb_sub_t orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance);
 
 	/**
 	 * Unsubscribe from a topic.
@@ -358,14 +251,14 @@ public:
 	 * @param handle  A handle returned from orb_subscribe.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_unsubscribe(int handle);
+	static int  orb_unsubscribe(orb_sub_t handle);
 
 	/**
 	 * Fetch data from a topic.
 	 *
 	 * This is the only operation that will reset the internal marker that
 	 * indicates that a topic has been updated for a subscriber. Once poll
-	 * or check return indicating that an updaet is available, this call
+	 * or check return indicating that an update is available, this call
 	 * must be used to update the subscription.
 	 *
 	 * @param meta    The uORB metadata (usually from the ORB_ID() macro)
@@ -376,7 +269,7 @@ public:
 	 *      using the data.
 	 * @return    OK on success, PX4_ERROR otherwise with errno set accordingly.
 	 */
-	int  orb_copy(const struct orb_metadata *meta, int handle, void *buffer);
+	static int  orb_copy(const struct orb_metadata *meta, orb_sub_t handle, void *buffer);
 
 	/**
 	 * Check whether a topic has been published to since the last orb_copy.
@@ -394,7 +287,7 @@ public:
 	 * @return    OK if the check was successful, PX4_ERROR otherwise with
 	 *      errno set accordingly.
 	 */
-	int  orb_check(int handle, bool *updated);
+	static int  orb_check(orb_sub_t handle, bool *updated);
 
 	/**
 	 * Check if a topic has already been created and published (advertised)
@@ -403,7 +296,7 @@ public:
 	 * @param instance  ORB instance
 	 * @return    OK if the topic exists, PX4_ERROR otherwise.
 	 */
-	int  orb_exists(const struct orb_metadata *meta, int instance);
+	static int  orb_exists(const struct orb_metadata *meta, int instance);
 
 	/**
 	 * Set the minimum interval between which updates are seen for a subscription.
@@ -423,8 +316,7 @@ public:
 	 * @param interval  An interval period in milliseconds.
 	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
-	int  orb_set_interval(int handle, unsigned interval);
-
+	static int  orb_set_interval(orb_sub_t handle, unsigned interval);
 
 	/**
 	 * Get the minimum interval between which updates are seen for a subscription.
@@ -435,37 +327,80 @@ public:
 	 * @param interval  The returned interval period in milliseconds.
 	 * @return    OK on success, PX4_ERROR otherwise with ERRNO set accordingly.
 	 */
-	int	orb_get_interval(int handle, unsigned *interval);
+	static int	orb_get_interval(orb_sub_t handle, unsigned *interval);
 
-	static bool orb_device_node_exists(ORB_ID orb_id, uint8_t instance);
+	int orb_poll(orb_poll_struct_t *fds, unsigned int nfds, int timeout);
 
-	static void *orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation);
+	static orb_advert_t orb_add_internal_subscriber(ORB_ID orb_id, uint8_t instance, unsigned *initial_generation,
+			bool advertise)
+	{
+		if (!advertise && !has_publisher(orb_id, instance)) {
+			return ORB_ADVERT_INVALID;
+		}
 
-	static void orb_remove_internal_subscriber(void *node_handle);
+		_Instance->lock();
+		orb_advert_t handle = uORB::DeviceNode::add_subscriber(orb_id, instance, initial_generation, advertise);
+		_Instance->unlock();
 
-	static uint8_t orb_get_queue_size(const void *node_handle);
+		return handle;
+	}
 
-	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated);
+	static void orb_remove_internal_subscriber(orb_advert_t &node_handle, bool advertiser)
+	{
+		_Instance->lock();
+		node(node_handle)->remove_subscriber(node_handle, advertiser);
+		_Instance->unlock();
+	}
 
-	static bool register_callback(void *node_handle, SubscriptionCallback *callback_sub);
+	static uint8_t orb_get_queue_size(const orb_advert_t &node_handle) {return node(node_handle)->get_queue_size();}
 
-	static void unregister_callback(void *node_handle, SubscriptionCallback *callback_sub);
+	static bool orb_data_copy(orb_advert_t &node_handle, void *dst, unsigned &generation,
+				  bool only_if_updated)
+	{
+		if (!orb_advert_valid(node_handle) ||
+		    (only_if_updated && !node(node_handle)->updates_available(generation))) {
+			return false;
+		}
 
-	static uint8_t orb_get_instance(const void *node_handle);
+		return node(node_handle)->copy(dst, node_handle, generation);
+	}
 
-#if defined(CONFIG_BUILD_FLAT)
-	/* These are optimized by inlining in NuttX Flat build */
-	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return is_advertised(node_handle) ? static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation) : 0; }
+#ifndef CONFIG_BUILD_FLAT
+	static uint8_t getCallbackLock()
+	{
+		uint8_t cbLock;
 
-	static bool is_advertised(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->is_advertised(); }
+		// TODO: think about if this needs protection, maybe not use the
+		// same lock as for node advertise/subscribe
 
-#else
-	static unsigned updates_available(const void *node_handle, unsigned last_generation);
-
-	static bool is_advertised(const void *node_handle);
+		_Instance->lock();
+		cbLock = per_process_lock >= 0 ? per_process_lock : launchCallbackThread();
+		_Instance->unlock();
+		return cbLock;
+	}
 #endif
 
+	static uint8_t orb_get_instance(orb_advert_t &node_handle)
+	{
+		if (orb_advert_valid(node_handle)) {
+			return node(node_handle)->get_instance();
+		}
+
+		return -1;
+	}
+
+	static unsigned updates_available(const orb_advert_t &node_handle, unsigned last_generation)
+	{
+		return node(node_handle)->updates_available(last_generation);
+	}
+
+	static bool has_publisher(ORB_ID orb_id, uint8_t instance)
+	{
+		return (get_instance()->g_has_publisher[static_cast<uint8_t>(orb_id)] & (1 << instance)) != 0;
+	}
+
 #ifdef CONFIG_ORB_COMMUNICATOR
+
 	/**
 	 * Method to set the uORBCommunicator::IChannel instance.
 	 * @param comm_channel
@@ -483,15 +418,43 @@ public:
 
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
-private: // class methods
+	void *operator new (size_t, void *p)
+	{
+		return p;
+	}
 
-	/**
-	 * Common implementation for orb_advertise and orb_subscribe.
-	 *
-	 * Handles creation of the object and the initial publication for
-	 * advertisers.
-	 */
-	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr);
+	void operator delete (void *p)
+	{
+		munmap(p, sizeof(uORB::Manager));
+	}
+
+	static void lockThread(int idx)
+	{
+		_Instance->g_sem_pool.take(idx);
+	}
+
+	static void unlockThread(int idx)
+	{
+		_Instance->g_sem_pool.release(idx);
+	}
+
+	static void freeThreadLock(int i) {_Instance->g_sem_pool.free(i);}
+
+	static int8_t getThreadLock() {return _Instance->g_sem_pool.reserve();}
+
+	static void queueCallback(class SubscriptionCallback *sub)
+	{
+		_Instance->lock_callbacks();
+		_Instance->_callback_ptr = sub;
+		// The manager is unlocked in callback thread
+	}
+
+private: // class methods
+	inline static uORB::DeviceNode *node(orb_advert_t handle) {return static_cast<uORB::DeviceNode *>(handle.node);}
+
+	static void cleanup();
+	static int callback_thread(int argc, char *argv[]);
+	static int8_t launchCallbackThread();
 
 private: // data members
 	static Manager *_Instance;
@@ -505,13 +468,34 @@ private: // data members
 	ORBSet _remote_topics;
 #endif /* CONFIG_ORB_COMMUNICATOR */
 
-	DeviceMaster *_device_master{nullptr};
-
 private: //class methods
 	Manager();
-	virtual ~Manager();
+	~Manager();
+
+	/**
+	 * Lock against node concurrent node creation
+	 */
+	void		lock() { do {} while (px4_sem_wait(&_lock) != 0); }
+
+	/**
+	 * Release the node creation lock
+	 */
+	void		unlock() { px4_sem_post(&_lock); }
+
+	px4_sem_t	_lock;
 
 #ifdef CONFIG_ORB_COMMUNICATOR
+	/**
+	 * Helper function to find orb_metadata struct by topic name
+	 * @param topic_name
+	 * 	This represents the uORB message Name (topic); This message Name should be
+	 * 	globally unique.
+	 * @return
+	 *  pointer to struct orb_metadata
+	 *  nullptr = failure
+	 */
+	const struct orb_metadata *topic_name_to_meta(const char *topic_name);
+
 	/**
 	 * Interface to process a received topic advertisement from remote.
 	 * @param topic_name
@@ -598,12 +582,104 @@ private: //class methods
 	 * @return 0 on success, <0 otherwise
 	 */
 	int readPublisherRulesFromFile(const char *file_name, PublisherRule &rule);
-
 	PublisherRule _publisher_rule;
 	bool _has_publisher_rules = false;
 
 #endif /* ORB_USE_PUBLISHER_RULES */
 
-};
+	/**
+	 * Method to map the singleton instance for the uORB::Manager
+	 * to the processes address space. Make sure initialize() is called first.
+	 */
+	static void map_instance();
 
-#endif /* _uORBManager_hpp_ */
+	void set_has_publisher(ORB_ID orb_id, uint8_t instance)
+	{
+		static_assert(sizeof(g_has_publisher[0]) * 8 >= ORB_MULTI_MAX_INSTANCES);
+		g_has_publisher[static_cast<uint8_t>(orb_id)] |= (1 << instance);
+	}
+
+	void unset_has_publisher(ORB_ID orb_id, uint8_t instance)
+	{
+		static_assert(sizeof(g_has_publisher[0]) * 8 >= ORB_MULTI_MAX_INSTANCES);
+		g_has_publisher[static_cast<uint8_t>(orb_id)] &= ~(1 << instance);
+	}
+
+	// Global cache for advertised uORB node instances
+	uint16_t g_has_publisher[ORB_TOPICS_COUNT + 1];
+
+	// This (system global) variable is used to pass the subsriber
+	// pointer to the callback thread. This is in Manager, since
+	// it needs to be mapped for both advertisers and the subscribers
+	class SubscriptionCallback *_callback_ptr {nullptr};
+
+	// This mutex protects the above pointer for one writer at a time
+	px4_sem_t	_callback_lock;
+
+	void		lock_callbacks() { do {} while (px4_sem_wait(&_callback_lock) != 0); }
+	void		unlock_callbacks() { px4_sem_post(&_callback_lock); }
+
+	// A global pool of semaphores for
+	// 1) poll locks
+	// 2) callback thread signalling (except in NuttX flat build)
+
+	class GlobalSemPool
+	{
+	public:
+		void init();
+		int8_t reserve();
+		void free(int8_t i);
+
+		void set(int8_t i, int val) {_global_sem[i].set(val);}
+		void take(int8_t i) { do {} while (_global_sem[i].take() != 0); }
+		int take_interruptible(int8_t i) { return _global_sem[i].take(); }
+		int take_timedwait(int8_t i, struct timespec *abstime) { return _global_sem[i].take_timedwait(abstime); }
+		void release(int8_t i) {_global_sem[i].release(); }
+
+		class GlobalLock
+		{
+		public:
+			void init()
+			{
+				px4_sem_init(&_sem, 1, 0);
+#if __PX4_NUTTX
+				sem_setprotocol(&_sem, SEM_PRIO_NONE);
+#endif
+				in_use = false;
+			}
+			void set(int val)
+			{
+				px4_sem_destroy(&_sem);
+				px4_sem_init(&_sem, 1, val);
+#if __PX4_NUTTX
+				sem_setprotocol(&_sem, SEM_PRIO_NONE);
+#endif
+			}
+			int take() {return px4_sem_wait(&_sem);}
+			int take_timedwait(struct timespec *abstime) { return px4_sem_timedwait(&_sem, abstime); }
+			void release() {px4_sem_post(&_sem); }
+
+			bool in_use{false};
+
+		private:
+			struct SubscriptionCallback *subscriber;
+			px4_sem_t _sem;
+		};
+	private:
+
+		void lock()
+		{
+			do {} while (px4_sem_wait(&_semLock) != 0);
+		}
+		void unlock() { px4_sem_post(&_semLock); }
+
+		GlobalLock _global_sem[NUM_GLOBAL_SEMS];
+		px4_sem_t _semLock;
+	} g_sem_pool;
+
+#ifndef CONFIG_BUILD_FLAT
+	static int8_t per_process_lock;
+	static pid_t per_process_cb_thread;
+#endif
+};
+} // namespace uORB

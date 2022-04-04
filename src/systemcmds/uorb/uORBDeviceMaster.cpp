@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 #include "uORBDeviceMaster.hpp"
-#include "uORBDeviceNode.hpp"
-#include "uORBManager.hpp"
-#include "uORBUtils.hpp"
+#include <uORB/uORBDeviceNode.hpp>
+#include <uORB/uORBManager.hpp>
+#include <uORB/uORBUtils.hpp>
 
 #include <px4_platform_common/sem.hpp>
 #include <systemlib/px4_macros.h>
@@ -45,6 +45,12 @@
 #include <poll.h>
 #endif // PX4_QURT
 
+#ifndef CONFIG_FS_SHMFS_VFS_PATH
+#define CONFIG_FS_SHMFS_VFS_PATH "/dev/shm"
+#endif
+
+#include <dirent.h>
+
 uORB::DeviceMaster::DeviceMaster()
 {
 	px4_sem_init(&_lock, 0, 1);
@@ -53,115 +59,6 @@ uORB::DeviceMaster::DeviceMaster()
 uORB::DeviceMaster::~DeviceMaster()
 {
 	px4_sem_destroy(&_lock);
-}
-
-int uORB::DeviceMaster::advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance)
-{
-	int ret = PX4_ERROR;
-
-	char nodepath[orb_maxpath];
-
-	/* construct a path to the node - this also checks the node name */
-	ret = uORB::Utils::node_mkpath(nodepath, meta, instance);
-
-	if (ret != PX4_OK) {
-		return ret;
-	}
-
-	ret = PX4_ERROR;
-
-	/* try for topic groups */
-	const unsigned max_group_tries = (instance != nullptr) ? ORB_MULTI_MAX_INSTANCES : 1;
-	unsigned group_tries = 0;
-
-	if (instance) {
-		/* for an advertiser, this will be 0, but a for subscriber that requests a certain instance,
-		 * we do not want to start with 0, but with the instance the subscriber actually requests.
-		 */
-		group_tries = *instance;
-
-		if (group_tries >= max_group_tries) {
-			return -ENOMEM;
-		}
-	}
-
-	SmartLock smart_lock(_lock);
-
-	do {
-		/* if path is modifyable change try index */
-		if (instance != nullptr) {
-			/* replace the number at the end of the string */
-			nodepath[strlen(nodepath) - 1] = '0' + group_tries;
-			*instance = group_tries;
-		}
-
-		/* construct the new node, passing the ownership of path to it */
-		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, nodepath);
-
-		/* if we didn't get a device, that's bad */
-		if (node == nullptr) {
-			return -ENOMEM;
-		}
-
-		/* initialise the node - this may fail if e.g. a node with this name already exists */
-		ret = node->init();
-
-		/* if init failed, discard the node and its name */
-		if (ret != PX4_OK) {
-			delete node;
-
-			if (ret == -EEXIST) {
-				/* if the node exists already, get the existing one and check if it's advertised. */
-				uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
-
-				/*
-				 * We can claim an existing node in these cases:
-				 * - The node is not advertised (yet). It means there is already one or more subscribers or it was
-				 *   unadvertised.
-				 * - We are a single-instance advertiser requesting the first instance.
-				 *   (Usually we don't end up here, but we might in case of a race condition between 2
-				 *   advertisers).
-				 * - We are a subscriber requesting a certain instance.
-				 *   (Also we usually don't end up in that case, but we might in case of a race condtion
-				 *   between an advertiser and subscriber).
-				 */
-				bool is_single_instance_advertiser = is_advertiser && !instance;
-
-				if (existing_node != nullptr &&
-				    (!existing_node->is_advertised() || is_single_instance_advertiser || !is_advertiser)) {
-					if (is_advertiser) {
-						/* Set as advertised to avoid race conditions (otherwise 2 multi-instance advertisers
-						 * could get the same instance).
-						 */
-						existing_node->mark_as_advertised();
-					}
-
-					ret = PX4_OK;
-
-				} else {
-					/* otherwise: already advertised, keep looking */
-				}
-			}
-
-		} else {
-			if (is_advertiser) {
-				node->mark_as_advertised();
-			}
-
-			// add to the node map.
-			_node_list.add(node);
-			_node_exists[node->get_instance()].set((uint8_t)node->id(), true);
-		}
-
-		group_tries++;
-
-	} while (ret != PX4_OK && (group_tries < max_group_tries));
-
-	if (ret != PX4_OK && group_tries >= max_group_tries) {
-		ret = -ENOMEM;
-	}
-
-	return ret;
 }
 
 void uORB::DeviceMaster::printStatistics()
@@ -190,6 +87,7 @@ void uORB::DeviceMaster::printStatistics()
 
 		DeviceNodeStatisticsData *prev = cur_node;
 		cur_node = cur_node->next;
+		munmap(prev->node, sizeof(uORB::DeviceNode));
 		delete prev;
 	}
 }
@@ -207,7 +105,36 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 		}
 	}
 
-	for (const auto &node : _node_list) {
+	DIR *shm_dir = opendir(CONFIG_FS_SHMFS_VFS_PATH);
+	struct dirent *shm;
+	const char orb_name_prefix[] = "_orb_";
+
+	while ((shm = readdir(shm_dir)) != nullptr) {
+
+		if (strncmp(orb_name_prefix, shm->d_name, sizeof(orb_name_prefix) - 1)) {
+			continue;
+		}
+
+		void *ptr = nullptr;
+		uORB::DeviceNode *node = nullptr;
+
+		// open and mmap the shared memory segment
+		int shm_fd = shm_open(shm->d_name, O_RDWR, 0666);
+
+		if (shm_fd >= 0) {
+			ptr = mmap(0, sizeof(uORB::DeviceNode), PROT_READ, MAP_SHARED, shm_fd, 0);
+		}
+
+		if (ptr != MAP_FAILED) {
+			node = static_cast<uORB::DeviceNode *>(ptr);
+		}
+
+		close(shm_fd);
+
+		if (node == nullptr) {
+			PX4_ERR("Failed to MMAP an existing node\n");
+			continue;
+		}
 
 		++num_topics;
 
@@ -219,6 +146,8 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 		}
 
 		if (cur_node) {
+			// currently nuttx creates a new mapping on every mmap. TODO: check linux
+			munmap(node, sizeof(uORB::DeviceNode));
 			continue;
 		}
 
@@ -260,6 +189,7 @@ int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node,
 		last_node->last_pub_msg_count = last_node->node->updates_available(0);
 	}
 
+	closedir(shm_dir);
 	return 0;
 }
 
@@ -292,12 +222,6 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 	PX4_INFO_RAW("\033[2J\n"); //clear screen
 
 	lock();
-
-	if (_node_list.empty()) {
-		unlock();
-		PX4_INFO("no active topics");
-		return;
-	}
 
 	DeviceNodeStatisticsData *first_node = nullptr;
 	DeviceNodeStatisticsData *cur_node = nullptr;
@@ -424,36 +348,8 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 
 	while (cur_node) {
 		DeviceNodeStatisticsData *next_node = cur_node->next;
-		delete cur_node;
+		munmap(cur_node->node, sizeof(uORB::DeviceNode));
+		delete (cur_node);
 		cur_node = next_node;
 	}
-}
-
-#undef CLEAR_LINE
-
-uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
-{
-	lock();
-
-	for (uORB::DeviceNode *node : _node_list) {
-		if (strcmp(node->get_devname(), nodepath) == 0) {
-			unlock();
-			return node;
-		}
-	}
-
-	unlock();
-
-	return nullptr;
-}
-
-uORB::DeviceNode *uORB::DeviceMaster::getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance)
-{
-	for (uORB::DeviceNode *node : _node_list) {
-		if ((strcmp(node->get_name(), meta->o_name) == 0) && (node->get_instance() == instance)) {
-			return node;
-		}
-	}
-
-	return nullptr;
 }

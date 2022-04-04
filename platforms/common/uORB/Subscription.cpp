@@ -36,26 +36,24 @@
  *
  */
 
+#include <uORB/uORB.h>
 #include "Subscription.hpp"
-#include <px4_platform_common/defines.h>
+#include "uORBManager.hpp"
 
 namespace uORB
 {
 
-bool Subscription::subscribe()
+bool Subscription::subscribe(bool advertise)
 {
-	// check if already subscribed
-	if (_node != nullptr) {
+	if (orb_advert_valid(_node)) {
 		return true;
 	}
 
-	if (_orb_id != ORB_ID::INVALID && uORB::Manager::get_instance()) {
-		unsigned initial_generation;
-		void *node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &initial_generation);
+	if (_orb_id != ORB_ID::INVALID) {
+		_node = uORB::Manager::orb_add_internal_subscriber(_orb_id, _instance, &_last_generation, advertise);
 
-		if (node) {
-			_node = node;
-			_last_generation = initial_generation;
+		if (orb_advert_valid(_node)) {
+			_advertiser = advertise;
 			return true;
 		}
 	}
@@ -65,22 +63,30 @@ bool Subscription::subscribe()
 
 void Subscription::unsubscribe()
 {
-	if (_node != nullptr) {
-		uORB::Manager::orb_remove_internal_subscriber(_node);
+	if (orb_advert_valid(_node)) {
+		uORB::Manager::orb_remove_internal_subscriber(_node, _advertiser);
 	}
 
-	_node = nullptr;
 	_last_generation = 0;
 }
 
 bool Subscription::ChangeInstance(uint8_t instance)
 {
 	if (instance != _instance) {
-		if (uORB::Manager::orb_device_node_exists(_orb_id, _instance)) {
-			// if desired new instance exists, unsubscribe from current
+		// Subscribe to the new existing node
+		unsigned generation;
+
+		if (orb_exists(get_topic(), instance) != PX4_OK) {
+			return false;
+		}
+
+		orb_advert_t new_node = uORB::Manager::orb_add_internal_subscriber(_orb_id, instance, &generation, false);
+
+		if (orb_advert_valid(new_node)) {
 			unsubscribe();
+			_node = new_node;
 			_instance = instance;
-			subscribe();
+			_last_generation = generation;
 			return true;
 		}
 

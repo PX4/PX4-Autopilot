@@ -45,18 +45,20 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <uORB/uORB.h>
 
 #include "sem.h"
 
 #define  PX4_F_RDONLY 1
 #define  PX4_F_WRONLY 2
 
+typedef orb_poll_struct_t px4_pollfd_struct_t;
+typedef orb_pollevent_t px4_pollevent_t;
+#define px4_poll 	orb_poll
+
 #ifdef __PX4_NUTTX
 
 #include <poll.h>
-
-typedef struct pollfd px4_pollfd_struct_t;
-typedef pollevent_t px4_pollevent_t;
 
 #if defined(__cplusplus)
 #define _GLOBAL ::
@@ -68,7 +70,6 @@ typedef pollevent_t px4_pollevent_t;
 #define px4_ioctl 	_GLOBAL ioctl
 #define px4_write 	_GLOBAL write
 #define px4_read 	_GLOBAL read
-#define px4_poll 	_GLOBAL poll
 #define px4_access 	_GLOBAL access
 #define px4_getpid 	_GLOBAL getpid
 
@@ -83,19 +84,6 @@ typedef pollevent_t px4_pollevent_t;
 
 __BEGIN_DECLS
 
-typedef short px4_pollevent_t;
-
-typedef struct {
-	/* This part of the struct is POSIX-like */
-	int		fd;       /* The descriptor being polled */
-	px4_pollevent_t 	events;   /* The input event flags */
-	px4_pollevent_t 	revents;  /* The output event flags */
-
-	/* Required for PX4 compatibility */
-	px4_sem_t   *arg;  	/* Pointer to semaphore used to post output event */
-	void   *priv;     	/* For use by drivers */
-} px4_pollfd_struct_t;
-
 #ifndef POLLIN
 #define POLLIN       (0x01)
 #endif
@@ -105,7 +93,6 @@ __EXPORT int 		px4_close(int fd);
 __EXPORT ssize_t	px4_read(int fd, void *buffer, size_t buflen);
 __EXPORT ssize_t	px4_write(int fd, const void *buffer, size_t buflen);
 __EXPORT int		px4_ioctl(int fd, int cmd, unsigned long arg);
-__EXPORT int		px4_poll(px4_pollfd_struct_t *fds, unsigned int nfds, int timeout);
 __EXPORT int		px4_access(const char *pathname, int mode);
 __EXPORT px4_task_t	px4_getpid(void);
 

@@ -35,7 +35,6 @@
 #define _uORBTest_UnitTest_hpp_
 
 #include <uORB/uORB.h>
-#include <uORB/uORBDeviceMaster.hpp>
 #include <uORB/uORBDeviceNode.hpp>
 #include <uORB/uORBManager.hpp>
 #include <uORB/topics/orb_test.h>

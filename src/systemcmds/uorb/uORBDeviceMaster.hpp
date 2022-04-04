@@ -35,7 +35,7 @@
 
 #include <stdint.h>
 
-#include "uORBCommon.hpp"
+#include <uORB/uORBCommon.hpp>
 #include <uORB/topics/uORBTopics.hpp>
 
 #include <px4_platform_common/posix.h>
@@ -64,42 +64,8 @@ using px4::AtomicBitset;
 class uORB::DeviceMaster
 {
 public:
-
-	int advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance);
-
-	/**
-	 * Public interface for getDeviceNodeLocked(). Takes care of synchronization.
-	 * @return node if exists, nullptr otherwise
-	 */
-	uORB::DeviceNode *getDeviceNode(const char *node_name);
-	uORB::DeviceNode *getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
-	{
-		if (meta == nullptr) {
-			return nullptr;
-		}
-
-		if (!deviceNodeExists(static_cast<ORB_ID>(meta->o_id), instance)) {
-			return nullptr;
-		}
-
-		lock();
-		uORB::DeviceNode *node = getDeviceNodeLocked(meta, instance);
-		unlock();
-
-		//We can safely return the node that can be used by any thread, because
-		//a DeviceNode never gets deleted.
-		return node;
-
-	}
-
-	bool deviceNodeExists(ORB_ID id, const uint8_t instance)
-	{
-		if ((id == ORB_ID::INVALID) || (instance > ORB_MULTI_MAX_INSTANCES - 1)) {
-			return false;
-		}
-
-		return _node_exists[instance][(uint8_t)id];
-	}
+	DeviceMaster();
+	~DeviceMaster();
 
 	/**
 	 * Print statistics for each existing topic.
@@ -116,9 +82,6 @@ public:
 	void showTop(char **topic_filter, int num_filters);
 
 private:
-	// Private constructor, uORB::Manager takes care of its creation
-	DeviceMaster();
-	~DeviceMaster();
 
 	struct DeviceNodeStatisticsData {
 		DeviceNode *node;
@@ -131,16 +94,6 @@ private:
 			      char **topic_filter, int num_filters);
 
 	friend class uORB::Manager;
-
-	/**
-	 * Find a node give its name.
-	 * _lock must already be held when calling this.
-	 * @return node if exists, nullptr otherwise
-	 */
-	uORB::DeviceNode *getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance);
-
-	IntrusiveSortedList<uORB::DeviceNode *> _node_list;
-	AtomicBitset<ORB_TOPICS_COUNT> _node_exists[ORB_MULTI_MAX_INSTANCES];
 
 	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
 
