@@ -33,12 +33,14 @@
 
 #pragma once
 
+#include <uORB/uORBDeviceNode.hpp>
+
 class ORBSet
 {
 public:
 	struct Node {
 		Node *next{nullptr};
-		const char *node_name{nullptr};
+		orb_advert_t handle{ORB_ADVERT_INVALID};
 	};
 
 	ORBSet() = default;
@@ -49,8 +51,6 @@ public:
 			unlinkNext(_top);
 
 			if (_top->next == nullptr) {
-				free((void *)_top->node_name);
-				_top->node_name = nullptr;
 
 				delete _top;
 				_top = nullptr;
@@ -58,7 +58,7 @@ public:
 		}
 	}
 
-	void insert(const char *node_name)
+	void insert(const orb_advert_t &handle)
 	{
 		Node **p;
 
@@ -79,35 +79,30 @@ public:
 		}
 
 		_end->next = nullptr;
-		_end->node_name = strdup(node_name);
+		_end->handle = handle;
 	}
 
-	bool find(const char *node_name)
+	orb_advert_t find(const char *node_name)
 	{
 		Node *p = _top;
 
 		while (p) {
-			if (strcmp(p->node_name, node_name) == 0) {
-				return true;
+			if (strcmp(uORB::DeviceNode::get_name(p->handle), node_name) == 0) {
+				return p->handle;
 			}
 
 			p = p->next;
 		}
 
-		return false;
+		return ORB_ADVERT_INVALID;
 	}
 
 	bool erase(const char *node_name)
 	{
 		Node *p = _top;
 
-		if (_top && (strcmp(_top->node_name, node_name) == 0)) {
+		if (_top && (strcmp(uORB::DeviceNode::get_name(_top->handle), node_name) == 0)) {
 			p = _top->next;
-
-			if (_top->node_name) {
-				free((void *)_top->node_name);
-				_top->node_name = nullptr;
-			}
 
 			delete _top;
 			_top = p;
@@ -120,7 +115,7 @@ public:
 		}
 
 		while (p->next) {
-			if (strcmp(p->next->node_name, node_name) == 0) {
+			if (strcmp(uORB::DeviceNode::get_name(p->next->handle), node_name) == 0) {
 				unlinkNext(p);
 				return true;
 			}
@@ -141,11 +136,6 @@ private:
 			}
 
 			a->next = b->next;
-
-			if (b->node_name) {
-				free((void *)b->node_name);
-				b->node_name = nullptr;
-			}
 
 			delete b;
 			b = nullptr;

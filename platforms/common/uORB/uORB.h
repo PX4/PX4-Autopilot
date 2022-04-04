@@ -56,6 +56,7 @@ struct orb_metadata {
 
 typedef const struct orb_metadata *orb_id_t;
 
+
 /**
  * Maximum number of multi topic instances. This must be <= 10 (because it's the last char of the node path)
  */
@@ -114,26 +115,54 @@ typedef const struct orb_metadata *orb_id_t;
 __BEGIN_DECLS
 
 int uorb_start(void);
-int uorb_status(void);
-int uorb_top(char **topic_filter, int num_filters);
 
 /**
  * ORB topic advertiser handle.
- *
- * Advertiser handles are global; once obtained they can be shared freely
- * and do not need to be closed or released.
- *
- * This permits publication from interrupt context and other contexts where
- * a file-descriptor-based handle would not otherwise be in scope for the
- * publisher.
  */
-typedef void 	*orb_advert_t;
-typedef void 	*orb_sub_t;
 
-static inline bool orb_advert_valid(orb_advert_t handle) {return handle != NULL;}
-static const orb_advert_t ORB_ADVERT_INVALID = NULL;
+typedef struct {
+	void *node;
+#ifndef CONFIG_BUILD_FLAT
+	void *data;
+#endif
+	size_t data_size;
+} orb_advert_t;
+
+/**
+ * ORB topic subscriber handle.
+ */
+
+typedef void *orb_sub_t;
+
+/**
+ * Helper functions to initialize and check the handles
+ */
+
+static inline bool orb_advert_valid(orb_advert_t handle) {return handle.node != NULL;}
+#ifndef CONFIG_BUILD_FLAT
+static const orb_advert_t ORB_ADVERT_INVALID = {NULL, NULL, 0};
+#else
+static const orb_advert_t ORB_ADVERT_INVALID = {NULL, 0};
+#endif
 static inline bool orb_sub_valid(orb_sub_t handle) {return handle != NULL;}
 static const orb_sub_t ORB_SUB_INVALID = NULL;
+
+/**
+ * orb_poll struct
+ */
+
+typedef short orb_pollevent_t;
+typedef struct {
+	/* This part of the struct is POSIX-like */
+	orb_sub_t           fd;       /* The polling subscriber handle */
+	orb_pollevent_t         events;   /* The input event flags */
+	orb_pollevent_t         revents;  /* The output event flags */
+} orb_poll_struct_t;
+
+/**
+ * @see uORB::Manager::orb_poll()
+ */
+extern int orb_poll(orb_poll_struct_t *fds, unsigned int nfds, int timeout) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_advertise()
@@ -178,10 +207,10 @@ extern int	orb_publish(const struct orb_metadata *meta, orb_advert_t *handle, co
 static inline int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t *handle, const void *data,
 				   int *instance)
 {
-	if (!*handle) {
+	if (!orb_advert_valid(*handle)) {
 		*handle = orb_advertise_multi(meta, data, instance);
 
-		if (*handle) {
+		if (orb_advert_valid(*handle)) {
 			return 0;
 		}
 

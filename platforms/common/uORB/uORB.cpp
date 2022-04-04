@@ -40,7 +40,7 @@
 
 #include "uORBManager.hpp"
 #include "uORBCommon.hpp"
-
+#include "Publication.hpp"
 
 #include <lib/drivers/device/Device.hpp>
 #include <matrix/Quaternion.hpp>
@@ -50,11 +50,11 @@
 #include <sys/boardctl.h>
 #endif
 
-static uORB::DeviceMaster *g_dev = nullptr;
+static bool initialized = false;
 
 int uorb_start(void)
 {
-	if (g_dev != nullptr) {
+	if (initialized) {
 		PX4_WARN("already loaded");
 		/* user wanted to start uorb, its already running, no error */
 		return 0;
@@ -65,51 +65,13 @@ int uorb_start(void)
 		return -ENOMEM;
 	}
 
-#if !defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
-	/* create the driver */
-	g_dev = uORB::Manager::get_instance()->get_device_master();
-
-	if (g_dev == nullptr) {
-		return -errno;
-	}
-
-#endif
-
+	initialized = true;
 	return OK;
 }
 
-int uorb_status(void)
+int orb_poll(orb_poll_struct_t *fds, unsigned int nfds, int timeout)
 {
-#if !defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
-
-	if (g_dev != nullptr) {
-		g_dev->printStatistics();
-
-	} else {
-		PX4_INFO("uorb is not running");
-	}
-
-#else
-	boardctl(ORBIOCDEVMASTERCMD, ORB_DEVMASTER_STATUS);
-#endif
-	return OK;
-}
-
-int uorb_top(char **topic_filter, int num_filters)
-{
-#if !defined(__PX4_NUTTX) || defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
-
-	if (g_dev != nullptr) {
-		g_dev->showTop(topic_filter, num_filters);
-
-	} else {
-		PX4_INFO("uorb is not running");
-	}
-
-#else
-	boardctl(ORBIOCDEVMASTERCMD, ORB_DEVMASTER_TOP);
-#endif
-	return OK;
+	return uORB::Manager::get_instance()->orb_poll(fds, nfds, timeout);
 }
 
 orb_advert_t orb_advertise(const struct orb_metadata *meta, const void *data)
@@ -135,12 +97,12 @@ orb_advert_t orb_advertise_multi_queue(const struct orb_metadata *meta, const vo
 
 int orb_unadvertise(orb_advert_t handle)
 {
-	return uORB::Manager::get_instance()->orb_unadvertise(handle);
+	return uORB::Manager::orb_unadvertise(handle);
 }
 
 int orb_publish(const struct orb_metadata *meta, orb_advert_t *handle, const void *data)
 {
-	return uORB::Manager::get_instance()->orb_publish(meta, *handle, data);
+	return uORB::Manager::orb_publish(meta, *handle, data);
 }
 
 orb_sub_t orb_subscribe(const struct orb_metadata *meta)
@@ -160,7 +122,7 @@ int orb_unsubscribe(orb_sub_t handle)
 
 int orb_copy(const struct orb_metadata *meta, orb_sub_t handle, void *buffer)
 {
-	return uORB::Manager::get_instance()->orb_copy(meta, handle, buffer);
+	return uORB::Manager::orb_copy(meta, handle, buffer);
 }
 
 int orb_check(orb_sub_t handle, bool *updated)
@@ -170,14 +132,14 @@ int orb_check(orb_sub_t handle, bool *updated)
 
 int orb_exists(const struct orb_metadata *meta, int instance)
 {
-	return uORB::Manager::get_instance()->orb_exists(meta, instance);
+	return uORB::Manager::orb_exists(meta, instance);
 }
 
 int orb_group_count(const struct orb_metadata *meta)
 {
 	unsigned instance = 0;
 
-	while (uORB::Manager::get_instance()->orb_exists(meta, instance) == OK) {
+	while (orb_exists(meta, instance) == OK) {
 		++instance;
 	};
 
@@ -186,12 +148,12 @@ int orb_group_count(const struct orb_metadata *meta)
 
 int orb_set_interval(orb_sub_t handle, unsigned interval)
 {
-	return uORB::Manager::get_instance()->orb_set_interval(handle, interval);
+	return uORB::Manager::orb_set_interval(handle, interval);
 }
 
 int orb_get_interval(orb_sub_t handle, unsigned *interval)
 {
-	return uORB::Manager::get_instance()->orb_get_interval(handle, interval);
+	return uORB::Manager::orb_get_interval(handle, interval);
 }
 
 const char *orb_get_c_type(unsigned char short_type)

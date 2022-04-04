@@ -45,12 +45,9 @@
 #include <lib/mathlib/mathlib.h>
 
 #include "uORBManager.hpp"
-#include "uORBUtils.hpp"
 
 namespace uORB
 {
-
-class SubscriptionCallback;
 
 // Base subscription wrapper class
 class Subscription
@@ -112,25 +109,13 @@ public:
 		unsubscribe();
 	}
 
-	bool subscribe();
+	bool subscribe(bool advertise = false);
 	void unsubscribe();
 
-	bool valid() const { return _node != nullptr; }
+	bool valid() const { return orb_advert_valid(_node); }
 	bool advertised()
 	{
-		if (valid()) {
-			return Manager::is_advertised(_node);
-		}
-
-		// try to initialize
-		if (subscribe()) {
-			// check again if valid
-			if (valid()) {
-				return Manager::is_advertised(_node);
-			}
-		}
-
-		return false;
+		return Manager::has_publisher(_orb_id, _instance);
 	}
 
 	/**
@@ -186,16 +171,18 @@ public:
 protected:
 
 	friend class SubscriptionCallback;
+	friend class SubscriptionPollable;
 	friend class SubscriptionCallbackWorkItem;
 
-	void *get_node() { return _node; }
+	orb_advert_t &get_node() { return _node; }
 
-	void *_node{nullptr};
+	orb_advert_t _node{ORB_ADVERT_INVALID};
 
 	unsigned _last_generation{0}; /**< last generation the subscriber has seen */
 
 	ORB_ID _orb_id{ORB_ID::INVALID};
 	uint8_t _instance{0};
+	bool _advertiser{false};
 };
 
 // Subscription wrapper class with data

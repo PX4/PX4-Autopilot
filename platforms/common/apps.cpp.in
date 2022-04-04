@@ -2,6 +2,7 @@
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/log.h>
+#include <uORB/uORBManager.hpp>
 
 #include "apps.h"
 
@@ -43,6 +44,7 @@ void list_builtins(apps_map_type &apps)
 int shutdown_main(int argc, char *argv[])
 {
 	printf("Exiting NOW.\n");
+	uORB::Manager::terminate();
 	system_exit(0);
 }
 

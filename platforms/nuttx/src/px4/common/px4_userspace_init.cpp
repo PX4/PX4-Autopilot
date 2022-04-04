@@ -55,8 +55,6 @@ extern "C" void px4_userspace_init(void)
 
 	px4::WorkQueueManagerStart();
 
-	uorb_start();
-
 	px4_log_initialize();
 
 #if defined(CONFIG_SYSTEM_CDCACM)

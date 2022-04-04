@@ -39,15 +39,11 @@
 #pragma once
 
 #include <uORB/uORB.h>
-#include <px4_platform_common/defines.h>
-
-#include "uORBDeviceNode.hpp"
-#include "uORBManager.hpp"
-#include "uORBUtils.hpp"
+#include <mathlib/mathlib.h>
+#include <drivers/drv_hrt.h>
+#include <stdint.h>
 
 #include "Subscription.hpp"
-
-#include <mathlib/mathlib.h>
 
 namespace uORB
 {
@@ -85,7 +81,7 @@ public:
 
 	virtual ~SubscriptionInterval() = default;
 
-	bool subscribe() { return _subscription.subscribe(); }
+	bool subscribe(bool create = false) { return _subscription.subscribe(create); }
 	void unsubscribe() { _subscription.unsubscribe(); }
 
 	bool advertised() { return _subscription.advertised(); }
