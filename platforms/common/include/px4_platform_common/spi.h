@@ -50,7 +50,7 @@
 
 typedef uint32_t spi_drdy_gpio_t;
 
-#define SPI_BUS_MAX_DEVICES 6
+#define SPI_BUS_MAX_DEVICES 7
 struct px4_spi_bus_device_t {
 	uint32_t cs_gpio; ///< chip-select GPIO (0 if this device is not used)
 	spi_drdy_gpio_t drdy_gpio; ///< data ready GPIO (0 if not set)

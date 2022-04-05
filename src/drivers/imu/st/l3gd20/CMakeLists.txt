@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,15 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__imu__l3gd20
+	MODULE drivers__imu__st__l3gd20
 	MAIN l3gd20
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
+		#-DDEBUG_BUILD
 	SRCS
-		L3GD20.hpp
-		L3GD20.cpp
 		l3gd20_main.cpp
+		L3GD20.cpp
+		L3GD20.hpp
+		ST_L3GD20_registers.hpp
 	DEPENDS
 		drivers_gyroscope
 		px4_work_queue
