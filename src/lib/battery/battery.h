@@ -57,6 +57,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_status.h>
 
 /**
  * BatteryBase is a base class for any type of battery.
@@ -119,6 +120,7 @@ protected:
 		param_t crit_thr;
 		param_t emergen_thr;
 		param_t source;
+		param_t bat_avrg_current;
 	} _param_handles{};
 
 	struct {
@@ -132,6 +134,7 @@ protected:
 		float crit_thr;
 		float emergen_thr;
 		int32_t source;
+		float bat_avrg_current;
 	} _params{};
 
 	const int _index;
@@ -147,6 +150,7 @@ private:
 	float computeRemainingTime(float current_a);
 
 	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::PublicationMulti<battery_status_s> _battery_status_pub{ORB_ID(battery_status)};
 
 	bool _connected{false};
@@ -166,4 +170,5 @@ private:
 	float _scale{1.f};
 	uint8_t _warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime _last_timestamp{0};
+	bool _armed{false};
 };

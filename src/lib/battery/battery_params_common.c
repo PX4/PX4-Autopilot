@@ -85,3 +85,17 @@ PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
+
+/**
+ * Expected battery current in flight.
+ *
+ * This value is used to initialize the in-flight average current estimation,
+ * which in turn is used for estimating remaining flight time and RTL triggering.
+ *
+ * @group Battery Calibration
+ * @unit A
+ * @min 0
+ * @max 500
+ * @increment 0.1
+ */
+PARAM_DEFINE_FLOAT(BAT_AVRG_CURRENT, 15.0f);
