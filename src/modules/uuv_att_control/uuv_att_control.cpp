@@ -73,7 +73,7 @@ UUVAttitudeControl::~UUVAttitudeControl()
 bool UUVAttitudeControl::init()
 {
 	if (!_vehicle_attitude_sub.registerCallback()) {
-		PX4_ERR("vehicle_attitude callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

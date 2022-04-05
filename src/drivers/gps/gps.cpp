@@ -63,6 +63,7 @@
 #include <uORB/topics/gps_dump.h>
 #include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_gnss_relative.h>
 
 #ifndef CONSTRAINED_FLASH
 # include "devices/src/ashtech.h"
@@ -181,6 +182,8 @@ private:
 	satellite_info_s		*_p_report_sat_info{nullptr};			///< pointer to uORB topic for satellite info
 
 	uORB::PublicationMulti<sensor_gps_s>	_report_gps_pos_pub{ORB_ID(sensor_gps)};	///< uORB pub for gps position
+	uORB::PublicationMulti<sensor_gnss_relative_s> _sensor_gnss_relative_pub{ORB_ID(sensor_gnss_relative)};
+
 	uORB::PublicationMulti<satellite_info_s>	_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
 
 	float				_rate{0.0f};					///< position update rate
@@ -219,6 +222,11 @@ private:
 	 * Publish RTCM corrections
 	 */
 	void 				publishRTCMCorrections(uint8_t *data, size_t len);
+
+	/**
+	 * Publish RTCM corrections
+	 */
+	void 				publishRelativePosition(sensor_gnss_relative_s &gnss_relative);
 
 	/**
 	 * This is an abstraction for the poll on serial used.
@@ -394,6 +402,13 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 	case GPSCallbackType::gotRTCMMessage:
 		gps->publishRTCMCorrections((uint8_t *)data1, (size_t)data2);
 		gps->dumpGpsData((uint8_t *)data1, (size_t)data2, gps_dump_comm_mode_t::RTCM, false);
+		break;
+
+	case GPSCallbackType::gotRelativePositionMessage:
+		if (data1 && data2 == sizeof(sensor_gnss_relative_s)) {
+			gps->publishRelativePosition(*static_cast<sensor_gnss_relative_s *>(data1));
+		}
+
 		break;
 
 	case GPSCallbackType::surveyInStatus:
@@ -1182,6 +1197,14 @@ GPS::publishRTCMCorrections(uint8_t *data, size_t len)
 
 		written = written + gps_inject_data.len;
 	}
+}
+
+void
+GPS::publishRelativePosition(sensor_gnss_relative_s &gnss_relative)
+{
+	gnss_relative.device_id = get_device_id();
+	gnss_relative.timestamp = hrt_absolute_time();
+	_sensor_gnss_relative_pub.publish(gnss_relative);
 }
 
 int

@@ -67,7 +67,7 @@ FlightModeManager::~FlightModeManager()
 bool FlightModeManager::init()
 {
 	if (!_vehicle_local_position_sub.registerCallback()) {
-		PX4_ERR("vehicle_local_position callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
@@ -415,11 +415,11 @@ void FlightModeManager::handleCommand()
 		// ignore all unkown commands
 		if (desired_task != FlightTaskIndex::None) {
 			// switch to the commanded task
-			FlightTaskError switch_result = switchTask(desired_task);
+			bool switch_succeeded = (switchTask(desired_task) == FlightTaskError::NoError);
 			uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 
 			// if we are in/switched to the desired task
-			if (switch_result >= FlightTaskError::NoError) {
+			if (switch_succeeded) {
 				cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
 				// if the task is running apply parameters to it and see if it rejects
@@ -427,9 +427,8 @@ void FlightModeManager::handleCommand()
 					cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 
 					// if we just switched and parameters are not accepted, go to failsafe
-					if (switch_result >= FlightTaskError::NoError) {
-						switchTask(FlightTaskIndex::ManualPosition);
-						cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+					if (switch_succeeded) {
+						switchTask(FlightTaskIndex::Failsafe);
 					}
 				}
 			}
@@ -438,7 +437,6 @@ void FlightModeManager::handleCommand()
 			vehicle_command_ack_s command_ack{};
 			command_ack.command = command.command;
 			command_ack.result = cmd_result;
-			command_ack.result_param1 = static_cast<int>(switch_result);
 			command_ack.target_system = command.source_system;
 			command_ack.target_component = command.source_component;
 			command_ack.timestamp = hrt_absolute_time();
@@ -573,7 +571,7 @@ const char *FlightModeManager::errorToString(const FlightTaskError error)
 	switch (error) {
 	case FlightTaskError::NoError: return "No Error";
 
-	case FlightTaskError::InvalidTask: return "Invalid Task ";
+	case FlightTaskError::InvalidTask: return "Invalid Task";
 
 	case FlightTaskError::ActivationFailed: return "Activation Failed";
 	}

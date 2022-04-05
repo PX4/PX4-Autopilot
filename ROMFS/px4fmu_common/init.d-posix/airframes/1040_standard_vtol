@@ -80,7 +80,5 @@ param set-default VT_FW_MOT_OFFID 1234
 param set-default VT_B_TRANS_DUR 8
 param set-default VT_TYPE 2
 
-set MAV_TYPE 22
-
 set MIXER_FILE etc/mixers-sitl/standard_vtol_sitl.main.mix
 set MIXER custom

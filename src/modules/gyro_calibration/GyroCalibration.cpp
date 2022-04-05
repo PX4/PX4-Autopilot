@@ -98,8 +98,8 @@ void GyroCalibration::Run()
 		vehicle_status_flags_s vehicle_status_flags;
 
 		if (_vehicle_status_flags_sub.copy(&vehicle_status_flags)) {
-			if (_system_calibrating != vehicle_status_flags.condition_calibration_enabled) {
-				_system_calibrating = vehicle_status_flags.condition_calibration_enabled;
+			if (_system_calibrating != vehicle_status_flags.calibration_enabled) {
+				_system_calibrating = vehicle_status_flags.calibration_enabled;
 				Reset();
 				return;
 			}
@@ -246,7 +246,6 @@ void GyroCalibration::Run()
 				const Vector3f old_offset{_gyro_calibration[gyro].offset()};
 
 				if (_gyro_calibration[gyro].set_offset(_gyro_mean[gyro].mean())) {
-					_gyro_calibration[gyro].set_temperature(_temperature[gyro]);
 
 					calibration_updated = true;
 

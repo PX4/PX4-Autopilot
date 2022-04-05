@@ -147,6 +147,10 @@ void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &arm
 				 const vehicle_status_flags_s &status_flags,
 				 const offboard_loss_actions_t offboard_loss_act);
 
+void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
+			     const vehicle_status_flags_s &status_flags,
+			     const quadchute_actions_t quadchute_act);
+
 void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 				    const vehicle_status_flags_s &status_flags,
 				    const offboard_loss_rc_actions_t offboard_loss_rc_act);
@@ -192,14 +196,14 @@ transition_result_t arming_state_transition(vehicle_status_s &status,
 					      true, true, time_since_boot);
 
 			if (preflight_check_ret) {
-				status_flags.condition_system_sensors_initialized = true;
+				status_flags.system_sensors_initialized = true;
 			}
 
 			feedback_provided = true;
 		}
 
 		/* re-run the pre-flight check as long as sensors are failing */
-		if (!status_flags.condition_system_sensors_initialized
+		if (!status_flags.system_sensors_initialized
 		    && fRunPreArmChecks
 		    && ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 			|| (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
@@ -207,7 +211,7 @@ transition_result_t arming_state_transition(vehicle_status_s &status,
 
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
-				status_flags.condition_system_sensors_initialized = PreFlightCheck::preflightCheck(mavlink_log_pub, status,
+				status_flags.system_sensors_initialized = PreFlightCheck::preflightCheck(mavlink_log_pub, status,
 						status_flags, control_mode, false, status.arming_state != vehicle_status_s::ARMING_STATE_ARMED,
 						time_since_boot);
 
@@ -246,7 +250,7 @@ transition_result_t arming_state_transition(vehicle_status_s &status,
 		if (hil_enabled) {
 			/* enforce lockdown in HIL */
 			armed.lockdown = true;
-			status_flags.condition_system_sensors_initialized = true;
+			status_flags.system_sensors_initialized = true;
 
 			/* recover from a prearm fail */
 			if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
@@ -264,7 +268,7 @@ transition_result_t arming_state_transition(vehicle_status_s &status,
 		    (status.arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
 
 			// Sensors need to be initialized for STANDBY state, except for HIL
-			if (!status_flags.condition_system_sensors_initialized) {
+			if (!status_flags.system_sensors_initialized) {
 				feedback_provided = true;
 				valid_transition = false;
 			}
@@ -333,8 +337,8 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_ALTCTL:
 
 		/* need at minimum altitude estimate */
-		if (status_flags.condition_local_altitude_valid ||
-		    status_flags.condition_global_position_valid) {
+		if (status_flags.local_altitude_valid ||
+		    status_flags.global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -343,8 +347,8 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_POSCTL:
 
 		/* need at minimum local position estimate */
-		if (status_flags.condition_local_position_valid ||
-		    status_flags.condition_global_position_valid) {
+		if (status_flags.local_position_valid ||
+		    status_flags.global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -353,7 +357,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_AUTO_LOITER:
 
 		/* need global position estimate */
-		if (status_flags.condition_global_position_valid) {
+		if (status_flags.global_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -379,8 +383,8 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_AUTO_MISSION:
 
 		/* need global position, home position, and a valid mission */
-		if (status_flags.condition_global_position_valid &&
-		    status_flags.condition_auto_mission_available) {
+		if (status_flags.global_position_valid &&
+		    status_flags.auto_mission_available) {
 
 			ret = TRANSITION_CHANGED;
 		}
@@ -390,7 +394,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_AUTO_RTL:
 
 		/* need global position and home position */
-		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+		if (status_flags.global_position_valid && status_flags.home_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -400,7 +404,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_AUTO_LAND:
 
 		/* need local position */
-		if (status_flags.condition_local_position_valid) {
+		if (status_flags.local_position_valid) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -409,8 +413,8 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_AUTO_PRECLAND:
 
 		/* need local and global position, and precision land only implemented for multicopters */
-		if (status_flags.condition_local_position_valid
-		    && status_flags.condition_global_position_valid
+		if (status_flags.local_position_valid
+		    && status_flags.global_position_valid
 		    && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			ret = TRANSITION_CHANGED;
@@ -497,6 +501,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		   orb_advert_t *mavlink_log_pub, const link_loss_actions_t data_link_loss_act, const bool mission_finished,
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
 		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
+		   const quadchute_actions_t quadchute_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act,
 		   const float param_com_rcl_act_t, const int param_com_rcl_except)
@@ -588,7 +593,8 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
 		} else if (status_flags.vtol_transition_failure) {
-			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+			set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
 
 		} else if (status.mission_failure) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
@@ -641,7 +647,8 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else if (status_flags.vtol_transition_failure) {
-			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+			set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
 
 		} else if (status.data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
 			// Data link lost, data link loss reaction configured -> do configured reaction
@@ -756,7 +763,8 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else if (status_flags.vtol_transition_failure) {
-			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+
+			set_quadchute_nav_state(status, armed, status_flags, quadchute_act);
 
 		} else if (status.data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
 			// Data link lost, data link loss reaction configured -> do configured reaction
@@ -863,11 +871,11 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 {
 	bool fallback_required = false;
 
-	if (using_global_pos && !status_flags.condition_global_position_valid) {
+	if (using_global_pos && !status_flags.global_position_valid) {
 		fallback_required = true;
 
 	} else if (!using_global_pos
-		   && (!status_flags.condition_local_position_valid || !status_flags.condition_local_velocity_valid)) {
+		   && (!status_flags.local_position_valid || !status_flags.local_velocity_valid)) {
 
 		fallback_required = true;
 	}
@@ -876,10 +884,10 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 		if (use_rc) {
 			// fallback to a mode that gives the operator stick control
 			if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-			    && status_flags.condition_local_position_valid) {
+			    && status_flags.local_position_valid) {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 
-			} else if (status_flags.condition_local_altitude_valid) {
+			} else if (status_flags.local_altitude_valid) {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 
 			} else {
@@ -888,10 +896,10 @@ bool check_invalid_pos_nav_state(vehicle_status_s &status, bool old_failsafe, or
 
 		} else {
 			// go into a descent that does not require stick control
-			if (status_flags.condition_local_position_valid) {
+			if (status_flags.local_position_valid) {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
-			} else if (status_flags.condition_local_altitude_valid) {
+			} else if (status_flags.local_altitude_valid) {
 
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
@@ -930,7 +938,7 @@ void set_link_loss_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 		break;
 
 	case link_loss_actions_t::AUTO_RTL:
-		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+		if (status_flags.global_position_valid && status_flags.home_position_valid) {
 			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 			return;
@@ -938,23 +946,23 @@ void set_link_loss_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 
 	// FALLTHROUGH
 	case link_loss_actions_t::AUTO_LOITER:
-		if (status_flags.condition_global_position_valid) {
+		if (status_flags.global_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 			return;
 		}
 
 	// FALLTHROUGH
 	case link_loss_actions_t::AUTO_LAND:
-		if (status_flags.condition_global_position_valid) {
+		if (status_flags.global_position_valid) {
 			main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags, internal_state);
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 			return;
 
 		} else {
-			if (status_flags.condition_local_position_valid) {
+			if (status_flags.local_position_valid) {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
-			} else if (status_flags.condition_local_altitude_valid) {
+			} else if (status_flags.local_altitude_valid) {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 			}
 
@@ -985,6 +993,41 @@ void reset_link_loss_globals(actuator_armed_s &armed, const bool old_failsafe, c
 	}
 }
 
+void set_quadchute_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
+			     const vehicle_status_flags_s &status_flags,
+			     const quadchute_actions_t quadchute_act)
+{
+	switch (quadchute_act) {
+	case quadchute_actions_t::NO_ACTION:
+		// If quadchute action is disabled then no action must be taken.
+		break;
+
+	default:
+	case quadchute_actions_t::AUTO_RTL:
+		if (status_flags.global_position_valid && status_flags.home_position_valid) {
+			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+		}
+
+		break;
+
+	// FALLTHROUGH
+	case quadchute_actions_t::AUTO_LAND:
+		if (status_flags.global_position_valid) {
+			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+		}
+
+		break;
+
+	// FALLTHROUGH
+	case quadchute_actions_t::AUTO_LOITER:
+		if (status_flags.global_position_valid) {
+			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+		}
+
+		break;
+	}
+}
+
 void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 				 const vehicle_status_flags_s &status_flags,
 				 const offboard_loss_actions_t offboard_loss_act)
@@ -1004,28 +1047,28 @@ void set_offboard_loss_nav_state(vehicle_status_s &status, actuator_armed_s &arm
 		return;
 
 	case offboard_loss_actions_t::AUTO_RTL:
-		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+		if (status_flags.global_position_valid && status_flags.home_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 			return;
 		}
 
 	// FALLTHROUGH
 	case offboard_loss_actions_t::AUTO_LOITER:
-		if (status_flags.condition_global_position_valid) {
+		if (status_flags.global_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 			return;
 		}
 
 	// FALLTHROUGH
 	case offboard_loss_actions_t::AUTO_LAND:
-		if (status_flags.condition_global_position_valid) {
+		if (status_flags.global_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 			return;
 		}
 	}
 
 	// If none of the above worked, try to mitigate
-	if (status_flags.condition_local_altitude_valid) {
+	if (status_flags.local_altitude_valid) {
 		status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 	} else {
@@ -1053,19 +1096,19 @@ void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &
 
 	case offboard_loss_rc_actions_t::MANUAL_POSITION:
 		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-		    && status_flags.condition_local_position_valid) {
+		    && status_flags.local_position_valid) {
 
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 			return;
 
-		} else if (status_flags.condition_global_position_valid) {
+		} else if (status_flags.global_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 			return;
 		}
 
 	// FALLTHROUGH
 	case offboard_loss_rc_actions_t::MANUAL_ALTITUDE:
-		if (status_flags.condition_local_altitude_valid) {
+		if (status_flags.local_altitude_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
 			return;
 		}
@@ -1076,28 +1119,28 @@ void set_offboard_loss_rc_nav_state(vehicle_status_s &status, actuator_armed_s &
 		return;
 
 	case offboard_loss_rc_actions_t::AUTO_RTL:
-		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+		if (status_flags.global_position_valid && status_flags.home_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 			return;
 		}
 
 	// FALLTHROUGH
 	case offboard_loss_rc_actions_t::AUTO_LOITER:
-		if (status_flags.condition_global_position_valid) {
+		if (status_flags.global_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 			return;
 		}
 
 	// FALLTHROUGH
 	case offboard_loss_rc_actions_t::AUTO_LAND:
-		if (status_flags.condition_global_position_valid) {
+		if (status_flags.global_position_valid) {
 			status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 			return;
 		}
 	}
 
 	// If none of the above worked, try to mitigate
-	if (status_flags.condition_local_altitude_valid) {
+	if (status_flags.local_altitude_valid) {
 		//TODO: Add case for rover
 		status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
@@ -1261,7 +1304,7 @@ void imbalanced_prop_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_statu
 
 	case imbalanced_propeller_action_t::RETURN:
 
-		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+		if (status_flags.global_position_valid && status_flags.home_position_valid) {
 			if (!(internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
 			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
 			      internal_state->main_state == commander_state_s::MAIN_STATE_AUTO_PRECLAND)) {

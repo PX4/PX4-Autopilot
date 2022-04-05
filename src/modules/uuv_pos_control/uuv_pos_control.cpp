@@ -70,7 +70,7 @@ UUVPOSControl::~UUVPOSControl()
 bool UUVPOSControl::init()
 {
 	if (!_vehicle_local_position_sub.registerCallback()) {
-		PX4_ERR("vehicle_pos callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
@@ -122,7 +122,7 @@ void UUVPOSControl::pose_controller_6dof(const float x_pos_des, const float y_po
 					     _param_pose_gain_y.get() * (pos_des(1) - vlocal_pos.y) - _param_pose_gain_d_y.get() * vlocal_pos.vy,
 					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z) - _param_pose_gain_d_z.get() * vlocal_pos.vz);
 
-	Vector3f rotated_input = q_att.conjugate_inversed(p_control_output);//rotate the coord.sys (from global to body)
+	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
 
 	publish_attitude_setpoint(rotated_input(0),
 				  rotated_input(1),
@@ -143,7 +143,7 @@ void UUVPOSControl::stabilization_controller_6dof(const float x_pos_des, const f
 					     0,
 					     _param_pose_gain_z.get() * (pos_des(2) - vlocal_pos.z));
 	//potential d controller missing
-	Vector3f rotated_input = q_att.conjugate_inversed(p_control_output);//rotate the coord.sys (from global to body)
+	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
 
 	publish_attitude_setpoint(rotated_input(0) + x_pos_des, rotated_input(1) + y_pos_des, rotated_input(2),
 				  roll_des, pitch_des, yaw_des);

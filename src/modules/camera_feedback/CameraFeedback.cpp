@@ -48,7 +48,7 @@ bool
 CameraFeedback::init()
 {
 	if (!_trigger_sub.registerCallback()) {
-		PX4_ERR("camera_trigger callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

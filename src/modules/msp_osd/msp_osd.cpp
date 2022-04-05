@@ -59,33 +59,6 @@
 
 #include "MspV1.hpp"
 
-const char arduPlaneModeStr[24][15]  =  {
-	"MANUAL",
-	"CIRCLE",
-	"STABILIZE",
-	"TRAINING",
-	"ACRO",
-	"FLY BY WIRE A",
-	"FLY BY WIRE B",
-	"CRUISE",
-	"AUTOTUNE",
-	"",
-	"AUTO",
-	"RTL",
-	"LOITER",
-	"TAKEOFF",
-	"AVOID_ADSB",
-	"GUIDED",
-	"INITIALISING",
-	"QSTABILIZE",
-	"QHOVER",
-	"QLOITER",
-	"QLAND",
-	"QRTL",
-	"QAUTOTUNE",
-	"QACRO"
-};
-
 //OSD elements positions
 //in betaflight configurator set OSD elements to your desired positions and in CLI type "set osd" to retreieve the numbers.
 //234 -> not visible. Horizontally 2048-2074(spacing 1), vertically 2048-2528(spacing 32). 26 characters X 15 lines
@@ -307,6 +280,7 @@ void MspOsd::Run()
 	msp_altitude_t altitude = {0};
 	msp_esc_sensor_data_dji_t esc_sensor_data = {0};
 	//msp_motor_telemetry_t motor_telemetry = {0};
+	msp_fc_variant_t variant = {0};
 
 	//power_monitor_sub.update(&power_monitor_struct);
 	_battery_status_sub.update(&_battery_status_struct);
@@ -319,8 +293,12 @@ void MspOsd::Run()
 	_vehicle_local_position_sub.update(&_vehicle_local_position_struct);
 	_vehicle_attitude_sub.update(&_vehicle_attitude_struct);
 	_estimator_status_sub.update(&_estimator_status_struct);
+	_input_rc_sub.update(&_input_rc_struct);
 
 	matrix::Eulerf euler_attitude(matrix::Quatf(_vehicle_attitude_struct.q));
+	
+	memcpy(variant.flightControlIdentifier, "BTFL", sizeof(variant.flightControlIdentifier));
+	_msp.Send(MSP_FC_VARIANT, &variant);
 
 	// MSP_NAME
 	snprintf(name.craft_name, sizeof(name.craft_name), "> %i", _x);
@@ -328,35 +306,45 @@ void MspOsd::Run()
 	_msp.Send(MSP_NAME, &name);
 
 	// MSP_STATUS
-	switch (_vehicle_status_struct.nav_state)
+	if (_vehicle_status_struct.arming_state == _vehicle_status_struct.ARMING_STATE_ARMED)
 	{
-		case _vehicle_status_struct.NAVIGATION_STATE_MANUAL:
-			status_BF.flightModeFlags = ARM_ACRO_BF;
-			break;
+		status_BF.flight_mode_flags |= ARM_ACRO_BF;
+		
+		switch (_vehicle_status_struct.nav_state)
+		{
+			case _vehicle_status_struct.NAVIGATION_STATE_MANUAL:
+				status_BF.flight_mode_flags |= 0;
+				break;
 
-		case _vehicle_status_struct.NAVIGATION_STATE_ACRO:
-			status_BF.flightModeFlags = ARM_ACRO_BF;
-			break;
+			case _vehicle_status_struct.NAVIGATION_STATE_ACRO:
+				status_BF.flight_mode_flags |= 0;
+				break;
 
-		case _vehicle_status_struct.NAVIGATION_STATE_STAB:
-			status_BF.flightModeFlags = STAB_BF;
-			break;
+			case _vehicle_status_struct.NAVIGATION_STATE_STAB:
+				status_BF.flight_mode_flags |= STAB_BF;
+				break;
 
-		case _vehicle_status_struct.NAVIGATION_STATE_AUTO_RTL:
-			status_BF.flightModeFlags = RESC_BF;
-			break;
+			case _vehicle_status_struct.NAVIGATION_STATE_AUTO_RTL:
+				status_BF.flight_mode_flags |= RESC_BF;
+				break;
+				
+			case _vehicle_status_struct.NAVIGATION_STATE_TERMINATION:
+				status_BF.flight_mode_flags |= FS_BF;
+				break;
 
-		default:
-			status_BF.flightModeFlags = 0;
-			break;
+			default:
+				status_BF.flight_mode_flags = 0;
+				break;
+		}
 	}
 
-	status_BF.flightModeFlags = STAB_BF;
+	status_BF.arming_disable_flags_count = 1;
+	status_BF.arming_disable_flags  = !(_vehicle_status_struct.arming_state == _vehicle_status_struct.ARMING_STATE_ARMED);
 	_msp.Send(MSP_STATUS, &status_BF);
 
 	// MSP_ANALOG
 	analog.vbat = _battery_status_struct.voltage_v * 10; // bottom right... v * 10
-	analog.rssi = 150;
+	analog.rssi = (uint16_t)((_input_rc_struct.rssi * 1023.0f) / 100.0f);
 	analog.amperage = _battery_status_struct.current_a * 100; // main amperage
 	analog.mAhDrawn = _battery_status_struct.discharged_mah; // unused
 	_msp.Send(MSP_ANALOG, &analog);
@@ -473,17 +461,8 @@ void MspOsd::Run()
 	_msp.Send(MSP_ALTITUDE, &altitude);
 
 	// MSP_MOTOR_TELEMETRY
-	/*motor_telemetry.motor_count = 1;
-	motor_telemetry.rpm = 0;
-	motor_telemetry.invalid_percent = 0;
-	motor_telemetry.temperature = 20;
-	motor_telemetry.voltage = 0;
-	motor_telemetry.current = 0;
-	motor_telemetry.consumption = 0;
-	_msp.Send(MSP_MOTOR_TELEMETRY, &motor_telemetry);*/
-
 	esc_sensor_data.rpm = 0;
-	esc_sensor_data.temperature = 240;
+	esc_sensor_data.temperature = 50;
 	_msp.Send(MSP_ESC_SENSOR_DATA, &esc_sensor_data);
 
 	SendConfig();

@@ -147,7 +147,7 @@ bool VehicleIMU::ParametersUpdate(bool force)
 
 		// constrain IMU integration time 1-20 milliseconds (50-1000 Hz)
 		int32_t imu_integration_rate_hz = constrain(_param_imu_integ_rate.get(),
-						  (int32_t)50, math::max(_param_imu_gyro_ratemax.get(), (int32_t) 1000));
+						  (int32_t)50, math::min(_param_imu_gyro_ratemax.get(), (int32_t) 1000));
 
 		if (imu_integration_rate_hz != _param_imu_integ_rate.get()) {
 			PX4_WARN("IMU_INTEG_RATE updated %" PRId32 " -> %" PRIu32, _param_imu_integ_rate.get(), imu_integration_rate_hz);
@@ -650,8 +650,8 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 		_gyro_integrator.set_reset_interval(roundf((gyro_integral_samples - 0.5f) * _gyro_interval_us));
 		_gyro_integrator.set_reset_samples(gyro_integral_samples);
 
-		_backup_schedule_timeout_us = math::min(sensor_accel_s::ORB_QUEUE_LENGTH * _accel_interval_us,
-							sensor_gyro_s::ORB_QUEUE_LENGTH * _gyro_interval_us);
+		_backup_schedule_timeout_us = math::constrain((int)math::min(sensor_accel_s::ORB_QUEUE_LENGTH * _accel_interval_us,
+					      sensor_gyro_s::ORB_QUEUE_LENGTH * _gyro_interval_us) / 2, 1000, 20000);
 
 		// gyro: find largest integer multiple of gyro_integral_samples
 		for (int n = sensor_gyro_s::ORB_QUEUE_LENGTH; n > 0; n--) {

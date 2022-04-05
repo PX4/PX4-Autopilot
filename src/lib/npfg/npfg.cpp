@@ -518,8 +518,8 @@ float NPFG::lateralAccel(const Vector2f &air_vel, const Vector2f &air_vel_ref, c
  * PX4 NAVIGATION INTERFACE FUNCTIONS (provide similar functionality to ECL_L1_Pos_Controller)
  */
 
-void NPFG::navigateWaypoints(const Vector2d &waypoint_A, const Vector2d &waypoint_B,
-			     const Vector2d &vehicle_pos, const Vector2f &ground_vel, const Vector2f &wind_vel)
+void NPFG::navigateWaypoints(const Vector2f &waypoint_A, const Vector2f &waypoint_B,
+			     const Vector2f &vehicle_pos, const Vector2f &ground_vel, const Vector2f &wind_vel)
 {
 	// similar to logic found in ECL_L1_Pos_Controller method of same name
 	// BUT no arbitrary max approach angle, approach entirely determined by generated
@@ -527,8 +527,8 @@ void NPFG::navigateWaypoints(const Vector2d &waypoint_A, const Vector2d &waypoin
 
 	path_type_loiter_ = false;
 
-	Vector2f vector_A_to_B = getLocalPlanarVector(waypoint_A, waypoint_B);
-	Vector2f vector_A_to_vehicle = getLocalPlanarVector(waypoint_A, vehicle_pos);
+	Vector2f vector_A_to_B = waypoint_B - waypoint_A;
+	Vector2f vector_A_to_vehicle = vehicle_pos - waypoint_A;
 
 	if (vector_A_to_B.norm() < NPFG_EPSILON) {
 		// the waypoints are on top of each other and should be considered as a
@@ -573,14 +573,14 @@ void NPFG::navigateWaypoints(const Vector2d &waypoint_A, const Vector2d &waypoin
 	updateRollSetpoint();
 } // navigateWaypoints
 
-void NPFG::navigateLoiter(const Vector2d &loiter_center, const Vector2d &vehicle_pos,
+void NPFG::navigateLoiter(const Vector2f &loiter_center, const Vector2f &vehicle_pos,
 			  float radius, int8_t loiter_direction, const Vector2f &ground_vel, const Vector2f &wind_vel)
 {
 	path_type_loiter_ = true;
 
 	radius = math::max(radius, MIN_RADIUS);
 
-	Vector2f vector_center_to_vehicle = getLocalPlanarVector(loiter_center, vehicle_pos);
+	Vector2f vector_center_to_vehicle = vehicle_pos - loiter_center;
 	const float dist_to_center = vector_center_to_vehicle.norm();
 
 	// find the direction from the circle center to the closest point on its perimeter
@@ -618,7 +618,7 @@ void NPFG::navigateLoiter(const Vector2d &loiter_center, const Vector2d &vehicle
 } // navigateLoiter
 
 
-void NPFG::navigatePathTangent(const matrix::Vector2d &vehicle_pos, const matrix::Vector2d &position_setpoint,
+void NPFG::navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
 			       const matrix::Vector2f &tangent_setpoint,
 			       const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature)
 {
@@ -628,7 +628,7 @@ void NPFG::navigatePathTangent(const matrix::Vector2d &vehicle_pos, const matrix
 	unit_path_tangent_ = tangent_setpoint.normalized();
 
 	// closest point to vehicle
-	matrix::Vector2f error_vector = getLocalPlanarVector(position_setpoint, vehicle_pos);
+	matrix::Vector2f error_vector = vehicle_pos - position_setpoint;
 	signed_track_error_ = unit_path_tangent_.cross(error_vector);
 
 	guideToPath(ground_vel, wind_vel, unit_path_tangent_, signed_track_error_, curvature);
@@ -683,19 +683,6 @@ float NPFG::switchDistance(float wp_radius) const
 {
 	return math::min(wp_radius, track_error_bound_ * switch_distance_multiplier_);
 } // switchDistance
-
-Vector2f NPFG::getLocalPlanarVector(const Vector2d &origin, const Vector2d &target) const
-{
-	/* this is an approximation for small angles, proposed by [2] */
-	const double x_angle = math::radians(target(0) - origin(0));
-	const double y_angle = math::radians(target(1) - origin(1));
-	const double x_origin_cos = cos(math::radians(origin(0)));
-
-	return Vector2f{
-		static_cast<float>(x_angle * CONSTANTS_RADIUS_OF_EARTH),
-		static_cast<float>(y_angle *x_origin_cos * CONSTANTS_RADIUS_OF_EARTH),
-	};
-} // getLocalPlanarVector
 
 void NPFG::updateRollSetpoint()
 {

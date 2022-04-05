@@ -42,5 +42,6 @@ PARAM_DEFINE_FLOAT(SIM_BARO_OFF_P, 0.0f);
  * simulated barometer temperature offset
  *
  * @group Simulator
+ * @unit celcius
  */
 PARAM_DEFINE_FLOAT(SIM_BARO_OFF_T, 0.0f);

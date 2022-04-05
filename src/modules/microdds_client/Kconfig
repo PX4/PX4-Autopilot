@@ -1,0 +1,5 @@
+menuconfig MODULES_MICRODDS_CLIENT
+	bool "microdds_client"
+	default n
+	---help---
+		Enable support for the MicroDDS Client

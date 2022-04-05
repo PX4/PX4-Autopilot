@@ -70,6 +70,13 @@ enum class link_loss_actions_t {
 	LOCKDOWN = 6,		// Lock actuators (set actuator outputs to disarmed values)
 };
 
+enum class quadchute_actions_t {
+	NO_ACTION = -1,
+	AUTO_RTL = 0,		// Return mode
+	AUTO_LAND = 1,		// Land mode
+	AUTO_LOITER = 2,	// Hold mode
+};
+
 enum class offboard_loss_actions_t {
 	DISABLED = -1,
 	AUTO_LAND = 0,		// Land mode
@@ -122,6 +129,7 @@ bool set_nav_state(vehicle_status_s &status, actuator_armed_s &armed, commander_
 		   orb_advert_t *mavlink_log_pub, const link_loss_actions_t data_link_loss_act, const bool mission_finished,
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
 		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
+		   const quadchute_actions_t quadchute_act,
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act,
 		   const float param_com_rcl_act_t, const int param_com_rcl_except);

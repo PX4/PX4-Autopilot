@@ -23,6 +23,8 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+param set-default MAV_TYPE 22
+
 param set-default BAT1_N_CELLS 6
 
 param set-default FW_AIRSPD_MAX 30
@@ -93,8 +95,6 @@ param set-default VT_MOT_ID 5678
 param set-default VT_PSHER_RMP_DT 2
 param set-default VT_TRANS_MIN_TM 4
 param set-default VT_TYPE 2
-
-set MAV_TYPE 22
 
 set MIXER babyshark
 set MIXER_AUX pass

@@ -1,0 +1,5 @@
+menuconfig DRIVERS_UWB_UWB_SR150
+	bool "uwb_sr150"
+	default n
+	---help---
+		Enable support for uwb sr150

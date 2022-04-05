@@ -181,7 +181,7 @@ bool
 AttitudeEstimatorQ::init()
 {
 	if (!_sensors_sub.registerCallback()) {
-		PX4_ERR("sensor combined callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
@@ -327,7 +327,7 @@ AttitudeEstimatorQ::Run()
 					if (_vel_prev_t != 0 && lpos.timestamp != _vel_prev_t) {
 						float vel_dt = (lpos.timestamp - _vel_prev_t) / 1e6f;
 						/* calculate acceleration in body frame */
-						_pos_acc = _q.conjugate_inversed((vel - _vel_prev) / vel_dt);
+						_pos_acc = _q.rotateVectorInverse((vel - _vel_prev) / vel_dt);
 					}
 
 					_vel_prev_t = lpos.timestamp;
@@ -452,26 +452,26 @@ AttitudeEstimatorQ::update(float dt)
 		if (_param_att_ext_hdg_m.get() == 1) {
 			// Vision heading correction
 			// Project heading to global frame and extract XY component
-			Vector3f vision_hdg_earth = _q.conjugate(_vision_hdg);
+			Vector3f vision_hdg_earth = _q.rotateVector(_vision_hdg);
 			float vision_hdg_err = wrap_pi(atan2f(vision_hdg_earth(1), vision_hdg_earth(0)));
 			// Project correction to body frame
-			corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -vision_hdg_err)) * _param_att_w_ext_hdg.get();
+			corr += _q.rotateVectorInverse(Vector3f(0.0f, 0.0f, -vision_hdg_err)) * _param_att_w_ext_hdg.get();
 		}
 
 		if (_param_att_ext_hdg_m.get() == 2) {
 			// Mocap heading correction
 			// Project heading to global frame and extract XY component
-			Vector3f mocap_hdg_earth = _q.conjugate(_mocap_hdg);
+			Vector3f mocap_hdg_earth = _q.rotateVector(_mocap_hdg);
 			float mocap_hdg_err = wrap_pi(atan2f(mocap_hdg_earth(1), mocap_hdg_earth(0)));
 			// Project correction to body frame
-			corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -mocap_hdg_err)) * _param_att_w_ext_hdg.get();
+			corr += _q.rotateVectorInverse(Vector3f(0.0f, 0.0f, -mocap_hdg_err)) * _param_att_w_ext_hdg.get();
 		}
 	}
 
 	if (_param_att_ext_hdg_m.get() == 0 || !_ext_hdg_good) {
 		// Magnetometer correction
 		// Project mag field vector to global frame and extract XY component
-		Vector3f mag_earth = _q.conjugate(_mag);
+		Vector3f mag_earth = _q.rotateVector(_mag);
 		float mag_err = wrap_pi(atan2f(mag_earth(1), mag_earth(0)) - _mag_decl);
 		float gainMult = 1.0f;
 		const float fifty_dps = 0.873f;
@@ -481,7 +481,7 @@ AttitudeEstimatorQ::update(float dt)
 		}
 
 		// Project magnetometer correction to body frame
-		corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -mag_err)) * _param_att_w_mag.get() * gainMult;
+		corr += _q.rotateVectorInverse(Vector3f(0.0f, 0.0f, -mag_err)) * _param_att_w_mag.get() * gainMult;
 	}
 
 	_q.normalize();
@@ -489,7 +489,7 @@ AttitudeEstimatorQ::update(float dt)
 
 	// Accelerometer correction
 	// Project 'k' unit vector of earth frame to body frame
-	// Vector3f k = _q.conjugate_inversed(Vector3f(0.0f, 0.0f, 1.0f));
+	// Vector3f k = _q.rotateVectorInverse(Vector3f(0.0f, 0.0f, 1.0f));
 	// Optimized version with dropped zeros
 	Vector3f k(
 		2.0f * (_q(1) * _q(3) - _q(0) * _q(2)),

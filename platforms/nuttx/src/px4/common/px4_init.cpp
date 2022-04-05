@@ -62,12 +62,42 @@
 
 extern void cdcacm_init(void);
 
+#if !defined(CONFIG_BUILD_FLAT)
+typedef CODE void (*initializer_t)(void);
+extern initializer_t _sinit;
+extern initializer_t _einit;
+extern uint32_t _stext;
+extern uint32_t _etext;
+
+static void cxx_initialize(void)
+{
+	initializer_t *initp;
+
+	/* Visit each entry in the initialization table */
+
+	for (initp = &_sinit; initp != &_einit; initp++) {
+		initializer_t initializer = *initp;
+
+		/* Make sure that the address is non-NULL and lies in the text
+		* region defined by the linker script.  Some toolchains may put
+		* NULL values or counts in the initialization table.
+		*/
+
+		if ((FAR void *)initializer >= (FAR void *)&_stext &&
+		    (FAR void *)initializer < (FAR void *)&_etext) {
+			initializer();
+		}
+	}
+}
+#endif
+
 int px4_platform_init()
 {
 
 #if !defined(CONFIG_BUILD_FLAT)
-	/* initialize userspace-kernelspace call gate interface */
+	cxx_initialize();
 
+	/* initialize userspace-kernelspace call gate interface */
 	kernel_ioctl_initialize();
 #endif
 
