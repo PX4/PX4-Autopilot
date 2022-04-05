@@ -784,6 +784,10 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 		events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_disarmed_by"), events::Log::Info,
 				"Disarmed by {1}", calling_reason);
 
+		if (_param_com_force_safety.get()) {
+			_safety_handler.enableSafety();
+		}
+
 		_status_changed = true;
 
 	} else if (arming_res == TRANSITION_DENIED) {
@@ -2195,6 +2199,8 @@ Commander::run()
 				}
 			}
 		}
+
+		_safety_handler.safetyButtonHandler();
 
 		/* update safety topic */
 		const bool safety_updated = _safety_sub.updated();
@@ -4227,7 +4233,7 @@ void Commander::estimator_check()
 	}
 
 	if (condition_gps_position_was_valid && !_status_flags.gps_position_valid) {
-		PX4_WARN("GPS no longer valid");
+		PX4_DEBUG("GPS no longer valid");
 	}
 }
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,47 +33,36 @@
 
 #pragma once
 
-#include <float.h>
+#include "sensor_bridge.hpp"
+#include "button/ButtonPublisher.hpp"
 
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <button/ButtonPublisher.hpp>
+#include <ardupilot/indication/Button.hpp>
 
-class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
+class UavcanSafetyButtonBridge : public UavcanSensorBridgeBase
 {
 public:
-	SafetyButton();
-	~SafetyButton() override;
+	static const char *const NAME;
 
-	/** @see ModuleBase */
-	static int task_spawn(int argc, char *argv[]);
+	UavcanSafetyButtonBridge(uavcan::INode &node);
 
-	/** @see ModuleBase */
-	static int custom_command(int argc, char *argv[]);
+	const char *get_name() const override { return NAME; }
 
-	/** @see ModuleBase */
-	static int print_usage(const char *reason = nullptr);
-
-	int Start();
+	int init() override;
 
 private:
-	void Run() override;
 
-	void CheckSafetyRequest(bool button_pressed);
-	void CheckPairingRequest(bool button_pressed);
-	void FlashButton();
+	int init_driver(uavcan_bridge::Channel *channel) override;
 
-	bool			_has_px4io{false};
-	ButtonPublisher	_button_publisher;
-	uint8_t			_button_counter{0};
-	uint8_t			_blink_counter{0};
-	bool			_button_prev_sate{false};	///< Previous state of the HW button
+	void button_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg);
 
-	// Pairing request
-	hrt_abstime		_pairing_start{0};
-	int				_pairing_button_counter{0};
+	typedef uavcan::MethodBinder < UavcanSafetyButtonBridge *,
+		void (UavcanSafetyButtonBridge::*)
+		(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &) >
+		ButtonCbBinder;
 
-	uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
-
+	uavcan::Subscriber<ardupilot::indication::Button, ButtonCbBinder> _sub_button;
+	ButtonPublisher _button_publisher;
+	uint8_t _pairing_button_counter{0u};
+	hrt_abstime _start_timestamp{0};
+	hrt_abstime _new_press_timestamp{0};
 };

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,66 +32,33 @@
  ****************************************************************************/
 
 /**
- * @author CUAVcaijie <caijie@cuav.net>
+ * @file Safety.hpp
  */
 
-#include "safetybutton.hpp"
-#include <cstdint>
-#include <drivers/drv_hrt.h>
-#include <systemlib/err.h>
-#include <mathlib/mathlib.h>
+#pragma once
 
-using namespace time_literals;
-const char *const UavcanSafetyBridge::NAME = "safety";
+#include <uORB/SubscriptionMultiArray.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/button_event.h>
+#include <uORB/topics/safety.h>
 
-UavcanSafetyBridge::UavcanSafetyBridge(uavcan::INode &node) :
-	_node(node),
-	_sub_safety(node),
-	_pub_safety(node)
+class Safety
 {
-}
 
-int UavcanSafetyBridge::init()
-{
-	int res = _pub_safety.init(uavcan::TransferPriority::MiddleLower);
+public:
 
-	if (res < 0) {
-		printf("safety pub failed %i", res);
-		return res;
-	}
+	Safety();
+	~Safety() = default;
 
-	res = _sub_safety.start(SafetyCommandCbBinder(this, &UavcanSafetyBridge::safety_sub_cb));
+	void safetyButtonHandler();
+	void enableSafety();
 
-	if (res < 0) {
-		printf("safety pub failed %i", res);
-		return res;
-	}
+private:
 
-	return 0;
-}
+	uORB::Subscription _safety_button_sub{ORB_ID::safety_button};
+	uORB::Publication<safety_s>	_safety_pub{ORB_ID(safety)};
 
-unsigned UavcanSafetyBridge::get_num_redundant_channels() const
-{
-	return 0;
-}
-
-void UavcanSafetyBridge::print_status() const
-{
-}
-
-void UavcanSafetyBridge::safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
-{
-	if (msg.press_time > 10 && msg.button == 1) {
-		if (_safety_disabled) { return; }
-
-		_safety_disabled = true;
-
-	} else {
-
-		_safety_disabled = false;
-	}
-
-
-
-
-}
+	safety_s _safety{};
+	bool _safety_disabled{false};
+	bool _previous_safety_off{false};
+};
