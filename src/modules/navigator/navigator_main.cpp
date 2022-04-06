@@ -1555,8 +1555,7 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
 
 		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
-			return _geofence.check(pos, _gps_pos, _home_pos,
-					       home_position_valid());
+			return _geofence.check(pos, _gps_pos);
 		}
 	}
 
