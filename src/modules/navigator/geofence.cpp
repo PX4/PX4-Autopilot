@@ -213,8 +213,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 	}
 }
 
-bool Geofence::check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position,
-		     const home_position_s home_pos, bool home_position_set)
+bool Geofence::check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position)
 {
 	if (_param_gf_altmode.get() == Geofence::GF_ALT_MODE_WGS84) {
 		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
