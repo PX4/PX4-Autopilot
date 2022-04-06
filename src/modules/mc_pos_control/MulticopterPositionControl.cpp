@@ -332,7 +332,7 @@ void MulticopterPositionControl::Run()
 
 				} else if (previous_position_control_enabled && !_vehicle_control_mode.flag_multicopter_position_control_enabled) {
 					// clear existing setpoint when controller is no longer active
-					_setpoint = {};
+					reset_setpoint_to_nan(_setpoint);
 				}
 			}
 		}
@@ -403,7 +403,6 @@ void MulticopterPositionControl::Run()
 			    && (vehicle_local_position.timestamp_sample > _time_position_control_enabled)) {
 
 				failsafe(vehicle_local_position.timestamp_sample, _setpoint, states);
-				_setpoint.timestamp = vehicle_local_position.timestamp;
 			}
 		}
 
@@ -469,6 +468,7 @@ void MulticopterPositionControl::Run()
 				if (not_taken_off || flying_but_ground_contact) {
 					// we are not flying yet and need to avoid any corrections
 					reset_setpoint_to_nan(_setpoint);
+					_setpoint.timestamp = vehicle_local_position.timestamp_sample;
 					Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
 
 					// prevent any integrator windup
@@ -582,6 +582,7 @@ void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_
 
 	if (_failsafe_land_hysteresis.get_state()) {
 		reset_setpoint_to_nan(setpoint);
+		setpoint.timestamp = now;
 
 		if (PX4_ISFINITE(states.velocity(0)) && PX4_ISFINITE(states.velocity(1))) {
 			// don't move along xy
@@ -621,10 +622,12 @@ void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_
 
 void MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint)
 {
+	setpoint.timestamp = 0;
 	setpoint.x = setpoint.y = setpoint.z = NAN;
-	setpoint.vx = setpoint.vy = setpoint.vz = NAN;
 	setpoint.yaw = setpoint.yawspeed = NAN;
+	setpoint.vx = setpoint.vy = setpoint.vz = NAN;
 	setpoint.acceleration[0] = setpoint.acceleration[1] = setpoint.acceleration[2] = NAN;
+	setpoint.jerk[0] = setpoint.jerk[1] = setpoint.jerk[2] = NAN;
 	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
 }
 
