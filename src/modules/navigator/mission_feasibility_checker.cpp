@@ -70,7 +70,7 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	bool failed = false;
 
 	// first check if we have a valid position
-	const bool home_valid = _navigator->home_position_valid();
+	const bool home_valid = _navigator->home_global_position_valid();
 	const bool home_alt_valid = _navigator->home_alt_valid();
 
 	if (!home_alt_valid) {
