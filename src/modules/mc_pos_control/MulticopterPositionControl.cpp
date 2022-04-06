@@ -51,7 +51,6 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	_vel_z_deriv(this, "VELD")
 {
 	parameters_update(true);
-	_failsafe_land_hysteresis.set_hysteresis_time_from(false, LOITER_TIME_BEFORE_DESCEND);
 	_tilt_limit_slew_rate.setSlewRate(.2f);
 	reset_setpoint_to_nan(_setpoint);
 	_takeoff_status_pub.advertise();
@@ -402,7 +401,7 @@ void MulticopterPositionControl::Run()
 			if ((_setpoint.timestamp < _time_position_control_enabled)
 			    && (vehicle_local_position.timestamp_sample > _time_position_control_enabled)) {
 
-				failsafe(vehicle_local_position.timestamp_sample, _setpoint, states);
+				_setpoint = generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states);
 			}
 		}
 
@@ -514,19 +513,11 @@ void MulticopterPositionControl::Run()
 			_control.setState(states);
 
 			// Run position control
-			if (_control.update(dt)) {
-				_failsafe_land_hysteresis.set_state_and_update(false, vehicle_local_position.timestamp_sample);
-
-			} else {
+			if (!_control.update(dt)) {
 				// Failsafe
-				vehicle_local_position_setpoint_s failsafe_setpoint{};
+				_vehicle_constraints = {0, NAN, NAN, false, {}}; // reset constraints
 
-				failsafe(vehicle_local_position.timestamp_sample, failsafe_setpoint, states);
-
-				// reset constraints
-				_vehicle_constraints = {0, NAN, NAN, false, {}};
-
-				_control.setInputSetpoint(failsafe_setpoint);
+				_control.setInputSetpoint(generateFailsafeSetpoint(vehicle_local_position.timestamp_sample, states));
 				_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
 				_control.update(dt);
 			}
@@ -566,7 +557,7 @@ void MulticopterPositionControl::Run()
 	perf_end(_cycle_perf);
 }
 
-void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint,
+vehicle_local_position_setpoint_s MulticopterPositionControl::generateFailsafeSetpoint(const hrt_abstime &now,
 		const PositionControlStates &states)
 {
 	// do not warn while we are disarmed, as we might not have valid setpoints yet
@@ -577,47 +568,45 @@ void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_
 		_last_warn = now;
 	}
 
-	// Only react after a short delay
-	_failsafe_land_hysteresis.set_state_and_update(true, now);
+	vehicle_local_position_setpoint_s failsafe_setpoint{};
+	reset_setpoint_to_nan(failsafe_setpoint);
+	failsafe_setpoint.timestamp = now;
 
-	if (_failsafe_land_hysteresis.get_state()) {
-		reset_setpoint_to_nan(setpoint);
-		setpoint.timestamp = now;
+	if (PX4_ISFINITE(states.velocity(0)) && PX4_ISFINITE(states.velocity(1))) {
+		// don't move along xy
+		failsafe_setpoint.vx = failsafe_setpoint.vy = 0.f;
 
-		if (PX4_ISFINITE(states.velocity(0)) && PX4_ISFINITE(states.velocity(1))) {
-			// don't move along xy
-			setpoint.vx = setpoint.vy = 0.f;
-
-			if (warn) {
-				PX4_WARN("Failsafe: stop and wait");
-			}
-
-		} else {
-			// descend with land speed since we can't stop
-			setpoint.acceleration[0] = setpoint.acceleration[1] = 0.f;
-			setpoint.vz = _param_mpc_land_speed.get();
-
-			if (warn) {
-				PX4_WARN("Failsafe: blind land");
-			}
+		if (warn) {
+			PX4_WARN("Failsafe: stop and wait");
 		}
 
-		if (PX4_ISFINITE(states.velocity(2))) {
-			// don't move along z if we can stop in all dimensions
-			if (!PX4_ISFINITE(setpoint.vz)) {
-				setpoint.vz = 0.f;
-			}
+	} else {
+		// descend with land speed since we can't stop
+		failsafe_setpoint.acceleration[0] = failsafe_setpoint.acceleration[1] = 0.f;
+		failsafe_setpoint.vz = _param_mpc_land_speed.get();
 
-		} else {
-			// emergency descend with a bit below hover thrust
-			setpoint.vz = NAN;
-			setpoint.acceleration[2] = .3f;
-
-			if (warn) {
-				PX4_WARN("Failsafe: blind descend");
-			}
+		if (warn) {
+			PX4_WARN("Failsafe: blind land");
 		}
 	}
+
+	if (PX4_ISFINITE(states.velocity(2))) {
+		// don't move along z if we can stop in all dimensions
+		if (!PX4_ISFINITE(failsafe_setpoint.vz)) {
+			failsafe_setpoint.vz = 0.f;
+		}
+
+	} else {
+		// emergency descend with a bit below hover thrust
+		failsafe_setpoint.vz = NAN;
+		failsafe_setpoint.acceleration[2] = .3f;
+
+		if (warn) {
+			PX4_WARN("Failsafe: blind descend");
+		}
+	}
+
+	return failsafe_setpoint;
 }
 
 void MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint)
