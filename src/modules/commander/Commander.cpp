@@ -1902,34 +1902,81 @@ Commander::set_home_position()
 void
 Commander::set_in_air_home_position()
 {
-	if (_status_flags.local_position_valid
-	    && _status_flags.global_position_valid) {
+	home_position_s home{};
+	home = _home_pub.get();
+	const bool global_home_valid = home.valid_hpos && home.valid_alt;
+	const bool local_home_valid = home.valid_lpos;
 
-		const vehicle_global_position_s &gpos = _global_position_sub.get();
-		home_position_s home{};
-		home = _home_pub.get();
-		const vehicle_local_position_s &lpos = _local_position_sub.get();
+	if (local_home_valid && !global_home_valid) {
+		if (_status_flags.local_position_valid && _status_flags.global_position_valid) {
+			// Back-compute lon, lat and alt of home position given the local home position
+			// and current positions in local and global (GNSS fused) frames
+			const vehicle_local_position_s &lpos = _local_position_sub.get();
+			const vehicle_global_position_s &gpos = _global_position_sub.get();
 
-		if (home.valid_lpos) {
-			// Back-compute lon, lat and alt of home position given the home
-			// and current positions in local frame
 			MapProjection ref_pos{gpos.lat, gpos.lon};
+
 			double home_lat;
 			double home_lon;
 			ref_pos.reproject(home.x - lpos.x, home.y - lpos.y, home_lat, home_lon);
+
 			const float home_alt = gpos.alt + home.z;
 			fillGlobalHomePos(home, home_lat, home_lon, home_alt);
 
-		} else {
-			// Home position in local frame is unknowm, set
-			// home as current position
-			fillLocalHomePos(home, lpos);
-			fillGlobalHomePos(home, gpos);
+			setHomePosValid();
+			home.timestamp = hrt_absolute_time();
+			_home_pub.update(home);
+
+		} else if (_status_flags.local_position_valid && _status_flags.gps_position_valid) {
+			// Back-compute lon, lat and alt of home position given the local home position
+			// and current positions in local and global (GNSS raw) frames
+			const vehicle_local_position_s &lpos = _local_position_sub.get();
+			vehicle_gps_position_s gps;
+			_vehicle_gps_position_sub.copy(&gps);
+
+			const double lat = static_cast<double>(gps.lat) * 1e-7;
+			const double lon = static_cast<double>(gps.lon) * 1e-7;
+			const float alt = static_cast<float>(gps.alt) * 1e-3f;
+
+			MapProjection ref_pos{lat, lon};
+
+			double home_lat;
+			double home_lon;
+			ref_pos.reproject(home.x - lpos.x, home.y - lpos.y, home_lat, home_lon);
+
+			const float home_alt = alt + home.z;
+			fillGlobalHomePos(home, home_lat, home_lon, home_alt);
+
+			setHomePosValid();
+			home.timestamp = hrt_absolute_time();
+			_home_pub.update(home);
 		}
 
-		setHomePosValid();
-		home.timestamp = hrt_absolute_time();
-		_home_pub.update(home);
+	} else if (!local_home_valid && global_home_valid) {
+		const vehicle_local_position_s &lpos = _local_position_sub.get();
+
+		if (_status_flags.local_position_valid && lpos.xy_global && lpos.z_global) {
+			// Back-compute x, y and z of home position given the global home position
+			// and the global reference of the local frame
+			MapProjection ref_pos{lpos.ref_lat, lpos.ref_lon};
+
+			float home_x;
+			float home_y;
+			ref_pos.project(home.lat, home.lon, home_x, home_y);
+
+			const float home_z = -(home.alt - lpos.ref_alt);
+			fillLocalHomePos(home, home_x, home_y, home_z, NAN);
+
+			home.timestamp = hrt_absolute_time();
+			_home_pub.update(home);
+		}
+
+	} else if (!local_home_valid && !global_home_valid) {
+		// Home position is not known in any frame, set home at current position
+		set_home_position();
+
+	} else {
+		// nothing to do
 	}
 }
 
@@ -2225,7 +2272,8 @@ Commander::run()
 						if (was_landed) {
 							set_home_position();
 
-						} else if (!_status_flags.home_position_valid && _param_com_home_in_air.get()) {
+						} else if (_param_com_home_in_air.get()
+							   && (!_home_pub.get().valid_lpos || !_home_pub.get().valid_hpos || !_home_pub.get().valid_alt)) {
 							set_in_air_home_position();
 						}
 					}
