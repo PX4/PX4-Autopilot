@@ -316,9 +316,9 @@ void MulticopterPositionControl::Run()
 	vehicle_local_position_s vehicle_local_position;
 
 	if (_local_pos_sub.update(&vehicle_local_position)) {
-		const hrt_abstime time_stamp_now = vehicle_local_position.timestamp_sample;
-		const float dt = math::constrain(((time_stamp_now - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
-		_time_stamp_last_loop = time_stamp_now;
+		const float dt =
+			math::constrain(((vehicle_local_position.timestamp_sample - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
+		_time_stamp_last_loop = vehicle_local_position.timestamp_sample;
 
 		// set _dt in controllib Block for BlockDerivative
 		setDt(dt);
@@ -400,9 +400,9 @@ void MulticopterPositionControl::Run()
 			// set failsafe setpoint if there hasn't been a new
 			// trajectory setpoint since position control started
 			if ((_setpoint.timestamp < _time_position_control_enabled)
-			    && (time_stamp_now > _time_position_control_enabled)) {
+			    && (vehicle_local_position.timestamp_sample > _time_position_control_enabled)) {
 
-				failsafe(time_stamp_now, _setpoint, states);
+				failsafe(vehicle_local_position.timestamp_sample, _setpoint, states);
 				_setpoint.timestamp = vehicle_local_position.timestamp;
 			}
 		}
@@ -422,7 +422,7 @@ void MulticopterPositionControl::Run()
 			if (_vehicle_control_mode.flag_control_offboard_enabled) {
 
 				bool want_takeoff = _vehicle_control_mode.flag_armed && _vehicle_land_detected.landed
-						    && (time_stamp_now < _setpoint.timestamp + 1_s);
+						    && (vehicle_local_position.timestamp_sample < _setpoint.timestamp + 1_s);
 
 				if (want_takeoff && PX4_ISFINITE(_setpoint.z)
 				    && (_setpoint.z < states.position(2))) {
@@ -451,7 +451,7 @@ void MulticopterPositionControl::Run()
 			// handle smooth takeoff
 			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed,
 						    _vehicle_constraints.want_takeoff,
-						    _vehicle_constraints.speed_up, false, time_stamp_now);
+						    _vehicle_constraints.speed_up, false, vehicle_local_position.timestamp_sample);
 
 			const bool flying = (_takeoff.getTakeoffState() >= TakeoffState::flight);
 
@@ -515,13 +515,13 @@ void MulticopterPositionControl::Run()
 
 			// Run position control
 			if (_control.update(dt)) {
-				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_now);
+				_failsafe_land_hysteresis.set_state_and_update(false, vehicle_local_position.timestamp_sample);
 
 			} else {
 				// Failsafe
 				vehicle_local_position_setpoint_s failsafe_setpoint{};
 
-				failsafe(time_stamp_now, failsafe_setpoint, states);
+				failsafe(vehicle_local_position.timestamp_sample, failsafe_setpoint, states);
 
 				// reset constraints
 				_vehicle_constraints = {0, NAN, NAN, false, {}};
@@ -548,7 +548,7 @@ void MulticopterPositionControl::Run()
 		} else {
 			// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
 			_takeoff.updateTakeoffState(_vehicle_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, true,
-						    time_stamp_now);
+						    vehicle_local_position.timestamp_sample);
 		}
 
 		// Publish takeoff status
