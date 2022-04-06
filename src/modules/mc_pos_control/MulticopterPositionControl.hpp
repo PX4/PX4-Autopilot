@@ -42,7 +42,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <lib/controllib/blocks.hpp>
-#include <lib/hysteresis/hysteresis.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRateYaw.hpp>
 #include <lib/systemlib/mavlink_log.h>
@@ -189,15 +188,11 @@ private:
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
 
-	/** If Flighttask fails, keep 0.2 seconds the current setpoint before going into failsafe land */
-	static constexpr uint64_t LOITER_TIME_BEFORE_DESCEND = 200_ms;
-
 	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off and tilt is limited */
 	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
 
 	static constexpr float MAX_SAFE_TILT_DEG = 89.f; // Numerical issues above this value due to tanf
 
-	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 	SlewRate<float> _tilt_limit_slew_rate;
 
 	uint8_t _vxy_reset_counter{0};
@@ -221,13 +216,11 @@ private:
 	PositionControlStates set_vehicle_states(const vehicle_local_position_s &local_pos);
 
 	/**
-	 * Failsafe.
-	 * If flighttask fails for whatever reason, then do failsafe. This could
-	 * occur if the commander fails to switch to a mode in case of invalid states or
-	 * setpoints. The failsafe will occur after LOITER_TIME_BEFORE_DESCEND. If force is set
-	 * to true, the failsafe will be initiated immediately.
+	 * Generate setpoint to bridge no executable setpoint being available.
+	 * Used to handle transitions where no proper setpoint was generated yet and when the received setpoint is invalid.
+	 * This should only happen briefly when transitioning and never during mode operation or by design.
 	 */
-	void failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states);
+	vehicle_local_position_setpoint_s generateFailsafeSetpoint(const hrt_abstime &now, const PositionControlStates &states);
 
 	/**
 	 * Reset setpoints to NAN
