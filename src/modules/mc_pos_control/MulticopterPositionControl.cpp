@@ -241,32 +241,35 @@ void MulticopterPositionControl::parameters_update(bool force)
 	}
 }
 
-PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehicle_local_position_s &local_pos)
+PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehicle_local_position_s
+		&vehicle_local_position)
 {
 	PositionControlStates states;
 
 	// only set position states if valid and finite
-	if (PX4_ISFINITE(local_pos.x) && PX4_ISFINITE(local_pos.y) && local_pos.xy_valid) {
-		states.position(0) = local_pos.x;
-		states.position(1) = local_pos.y;
+	if (PX4_ISFINITE(vehicle_local_position.x) && PX4_ISFINITE(vehicle_local_position.y)
+	    && vehicle_local_position.xy_valid) {
+		states.position(0) = vehicle_local_position.x;
+		states.position(1) = vehicle_local_position.y;
 
 	} else {
 		states.position(0) = NAN;
 		states.position(1) = NAN;
 	}
 
-	if (PX4_ISFINITE(local_pos.z) && local_pos.z_valid) {
-		states.position(2) = local_pos.z;
+	if (PX4_ISFINITE(vehicle_local_position.z) && vehicle_local_position.z_valid) {
+		states.position(2) = vehicle_local_position.z;
 
 	} else {
 		states.position(2) = NAN;
 	}
 
-	if (PX4_ISFINITE(local_pos.vx) && PX4_ISFINITE(local_pos.vy) && local_pos.v_xy_valid) {
-		states.velocity(0) = local_pos.vx;
-		states.velocity(1) = local_pos.vy;
-		states.acceleration(0) = _vel_x_deriv.update(local_pos.vx);
-		states.acceleration(1) = _vel_y_deriv.update(local_pos.vy);
+	if (PX4_ISFINITE(vehicle_local_position.vx) && PX4_ISFINITE(vehicle_local_position.vy)
+	    && vehicle_local_position.v_xy_valid) {
+		states.velocity(0) = vehicle_local_position.vx;
+		states.velocity(1) = vehicle_local_position.vy;
+		states.acceleration(0) = _vel_x_deriv.update(vehicle_local_position.vx);
+		states.acceleration(1) = _vel_y_deriv.update(vehicle_local_position.vy);
 
 	} else {
 		states.velocity(0) = NAN;
@@ -279,8 +282,8 @@ PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehic
 		_vel_y_deriv.reset();
 	}
 
-	if (PX4_ISFINITE(local_pos.vz) && local_pos.v_z_valid) {
-		states.velocity(2) = local_pos.vz;
+	if (PX4_ISFINITE(vehicle_local_position.vz) && vehicle_local_position.v_z_valid) {
+		states.velocity(2) = vehicle_local_position.vz;
 		states.acceleration(2) = _vel_z_deriv.update(states.velocity(2));
 
 	} else {
@@ -291,7 +294,7 @@ PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehic
 		_vel_z_deriv.reset();
 	}
 
-	states.yaw = local_pos.heading;
+	states.yaw = vehicle_local_position.heading;
 
 	return states;
 }
@@ -310,10 +313,10 @@ void MulticopterPositionControl::Run()
 	parameters_update(false);
 
 	perf_begin(_cycle_perf);
-	vehicle_local_position_s local_pos;
+	vehicle_local_position_s vehicle_local_position;
 
-	if (_local_pos_sub.update(&local_pos)) {
-		const hrt_abstime time_stamp_now = local_pos.timestamp_sample;
+	if (_local_pos_sub.update(&vehicle_local_position)) {
+		const hrt_abstime time_stamp_now = vehicle_local_position.timestamp_sample;
 		const float dt = math::constrain(((time_stamp_now - _time_stamp_last_loop) * 1e-6f), 0.002f, 0.04f);
 		_time_stamp_last_loop = time_stamp_now;
 
@@ -349,48 +352,48 @@ void MulticopterPositionControl::Run()
 		const bool is_trajectory_setpoint_updated = _trajectory_setpoint_sub.update(&_setpoint);
 
 		// adjust existing (or older) setpoint with any EKF reset deltas
-		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < local_pos.timestamp)) {
-			if (local_pos.vxy_reset_counter != _vxy_reset_counter) {
-				_setpoint.vx += local_pos.delta_vxy[0];
-				_setpoint.vy += local_pos.delta_vxy[1];
+		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
+			if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
+				_setpoint.vx += vehicle_local_position.delta_vxy[0];
+				_setpoint.vy += vehicle_local_position.delta_vxy[1];
 			}
 
-			if (local_pos.vz_reset_counter != _vz_reset_counter) {
-				_setpoint.vz += local_pos.delta_vz;
+			if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
+				_setpoint.vz += vehicle_local_position.delta_vz;
 			}
 
-			if (local_pos.xy_reset_counter != _xy_reset_counter) {
-				_setpoint.x += local_pos.delta_xy[0];
-				_setpoint.y += local_pos.delta_xy[1];
+			if (vehicle_local_position.xy_reset_counter != _xy_reset_counter) {
+				_setpoint.x += vehicle_local_position.delta_xy[0];
+				_setpoint.y += vehicle_local_position.delta_xy[1];
 			}
 
-			if (local_pos.z_reset_counter != _z_reset_counter) {
-				_setpoint.z += local_pos.delta_z;
+			if (vehicle_local_position.z_reset_counter != _z_reset_counter) {
+				_setpoint.z += vehicle_local_position.delta_z;
 			}
 
-			if (local_pos.heading_reset_counter != _heading_reset_counter) {
-				_setpoint.yaw += local_pos.delta_heading;
+			if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
+				_setpoint.yaw += vehicle_local_position.delta_heading;
 			}
 		}
 
-		if (local_pos.vxy_reset_counter != _vxy_reset_counter) {
+		if (vehicle_local_position.vxy_reset_counter != _vxy_reset_counter) {
 			_vel_x_deriv.reset();
 			_vel_y_deriv.reset();
 		}
 
-		if (local_pos.vz_reset_counter != _vz_reset_counter) {
+		if (vehicle_local_position.vz_reset_counter != _vz_reset_counter) {
 			_vel_z_deriv.reset();
 		}
 
 		// save latest reset counters
-		_vxy_reset_counter = local_pos.vxy_reset_counter;
-		_vz_reset_counter = local_pos.vz_reset_counter;
-		_xy_reset_counter = local_pos.xy_reset_counter;
-		_z_reset_counter = local_pos.z_reset_counter;
-		_heading_reset_counter = local_pos.heading_reset_counter;
+		_vxy_reset_counter = vehicle_local_position.vxy_reset_counter;
+		_vz_reset_counter = vehicle_local_position.vz_reset_counter;
+		_xy_reset_counter = vehicle_local_position.xy_reset_counter;
+		_z_reset_counter = vehicle_local_position.z_reset_counter;
+		_heading_reset_counter = vehicle_local_position.heading_reset_counter;
 
 
-		PositionControlStates states{set_vehicle_states(local_pos)};
+		PositionControlStates states{set_vehicle_states(vehicle_local_position)};
 
 
 		if (_vehicle_control_mode.flag_multicopter_position_control_enabled) {
@@ -400,7 +403,7 @@ void MulticopterPositionControl::Run()
 			    && (time_stamp_now > _time_position_control_enabled)) {
 
 				failsafe(time_stamp_now, _setpoint, states);
-				_setpoint.timestamp = local_pos.timestamp;
+				_setpoint.timestamp = vehicle_local_position.timestamp;
 			}
 		}
 
@@ -498,14 +501,14 @@ void MulticopterPositionControl::Run()
 			// update states
 			if (!PX4_ISFINITE(_setpoint.z)
 			    && PX4_ISFINITE(_setpoint.vz) && (fabsf(_setpoint.vz) > FLT_EPSILON)
-			    && PX4_ISFINITE(local_pos.z_deriv) && local_pos.z_valid && local_pos.v_z_valid) {
+			    && PX4_ISFINITE(vehicle_local_position.z_deriv) && vehicle_local_position.z_valid && vehicle_local_position.v_z_valid) {
 				// A change in velocity is demanded and the altitude is not controlled.
 				// Set velocity to the derivative of position
 				// because it has less bias but blend it in across the landing speed range
 				//  <  MPC_LAND_SPEED: ramp up using altitude derivative without a step
 				//  >= MPC_LAND_SPEED: use altitude derivative
 				float weighting = fminf(fabsf(_setpoint.vz) / _param_mpc_land_speed.get(), 1.f);
-				states.velocity(2) = local_pos.z_deriv * weighting + local_pos.vz * (1.f - weighting);
+				states.velocity(2) = vehicle_local_position.z_deriv * weighting + vehicle_local_position.vz * (1.f - weighting);
 			}
 
 			_control.setState(states);
