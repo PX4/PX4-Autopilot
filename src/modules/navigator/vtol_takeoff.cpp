@@ -51,7 +51,7 @@ VtolTakeoff::VtolTakeoff(Navigator *navigator) :
 void
 VtolTakeoff::on_activation()
 {
-	if (_navigator->home_position_valid()) {
+	if (_navigator->home_global_position_valid()) {
 		set_takeoff_position();
 		_takeoff_state = vtol_takeoff_state::TAKEOFF_HOVER;
 		_navigator->reset_cruising_speed();
