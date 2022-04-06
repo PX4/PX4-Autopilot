@@ -44,18 +44,18 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 	// bias learning when stationary on ground and to prevent uncontrolled yaw variance growth
 	if (_control_status.flags.vehicle_at_rest && _control_status.flags.tilt_align) {
 
-		const float euler_yaw = wrap_pi(getEulerYaw(_R_to_earth));
+		const float euler_yaw = getEulerYaw(_R_to_earth);
 
 		// record static yaw when transitioning to at rest
 		if (!PX4_ISFINITE(_last_static_yaw)) {
 			_last_static_yaw = euler_yaw;
 		}
 
-		// fuse last static yaw at a limited rate (every 200 milliseconds)
-		if (isTimedOut(_time_last_heading_fuse, (uint64_t)200'000)) {
-			float innovation = euler_yaw - _last_static_yaw;
+		// fuse last static yaw at a limited rate (every 1000 milliseconds)
+		if (isTimedOut(_time_last_heading_fuse, (uint64_t)1'000'000)) {
+			float innovation = wrap_pi(euler_yaw - _last_static_yaw);
 			float obs_var = 0.001f;
-			updateQuaternion(innovation, obs_var);
+			fuseYaw(innovation, obs_var);
 		}
 
 	} else {
@@ -67,15 +67,15 @@ void Ekf::controlZeroInnovationHeadingUpdate()
 			// if necessary fuse zero innovation to prevent unconstrained quaternion variance growth
 			float innovation = 0.f;
 			float obs_var = 0.25f;
-			updateQuaternion(innovation, obs_var);
+			fuseYaw(innovation, obs_var);
 
 		} else if (!_control_status.flags.tilt_align) {
 			// fuse zero heading innovation during the leveling fine alignment step to keep the yaw variance low
 			float innovation = 0.f;
 			float obs_var = 0.01f;
-			updateQuaternion(innovation, obs_var);
+			fuseYaw(innovation, obs_var);
 		}
 
-		_last_static_yaw = wrap_pi(getEulerYaw(_R_to_earth));
+		_last_static_yaw = getEulerYaw(_R_to_earth);
 	}
 }

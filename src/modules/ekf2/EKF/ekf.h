@@ -590,7 +590,7 @@ private:
 	// update quaternion states and covariances using a yaw innovation and yaw observation variance
 	// innovation : prediction - measurement
 	// variance : observaton variance
-	bool updateQuaternion(const float innovation, const float variance);
+	bool fuseYaw(const float innovation, const float variance);
 
 	// fuse the yaw angle obtained from a dual antenna GPS unit
 	void fuseGpsYaw();

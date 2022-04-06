@@ -327,14 +327,14 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 
 		// the angle of the projection onto the horizontal gives the yaw angle
 		// calculate the yaw innovation and wrap to the interval between +-pi
-		float measured_hdg = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+		float measured_hdg = wrap_pi(-atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination());
 
-		float innovation = wrap_pi(getEulerYaw(_R_to_earth)) - wrap_pi(measured_hdg);
+		float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
 
 		float obs_var = fmaxf(sq(_params.mag_heading_noise), 1.e-4f);
 
 		// Update the quaternion states and covariance matrix
-		if (updateQuaternion(innovation, obs_var)) {
+		if (fuseYaw(innovation, obs_var)) {
 			_time_last_mag_heading_fuse = _time_last_imu;
 		}
 	}

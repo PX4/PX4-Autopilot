@@ -434,7 +434,7 @@ bool Ekf::fuseMag(const Vector3f &mag, bool update_all_states)
 }
 
 // update quaternion states and covariances using the yaw innovation and yaw observation variance
-bool Ekf::updateQuaternion(const float innovation, const float variance)
+bool Ekf::fuseYaw(const float innovation, const float variance)
 {
 	// assign intermediate state variables
 	const float q0 = _state.quat_nominal(0);

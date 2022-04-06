@@ -366,9 +366,9 @@ void Ekf::controlExternalVisionFusion()
 
 			float measured_hdg = shouldUse321RotationSequence(_R_to_earth) ? getEuler321Yaw(_ev_sample_delayed.quat) : getEuler312Yaw(_ev_sample_delayed.quat);
 
-			float innovation = wrap_pi(getEulerYaw(_R_to_earth)) - wrap_pi(measured_hdg);
+			float innovation = wrap_pi(getEulerYaw(_R_to_earth) - measured_hdg);
 			float obs_var = fmaxf(_ev_sample_delayed.angVar, 1.e-4f);
-			updateQuaternion(innovation, obs_var);
+			fuseYaw(innovation, obs_var);
 		}
 
 		// record observation and estimate for use next time
