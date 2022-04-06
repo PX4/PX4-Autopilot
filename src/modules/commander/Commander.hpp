@@ -34,6 +34,7 @@
 #pragma once
 
 /*   Helper classes  */
+#include "Arming/ArmStateMachine/ArmStateMachine.hpp"
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
 #include "Safety.hpp"
@@ -294,6 +295,7 @@ private:
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
+	ArmStateMachine _arm_state_machine{};
 	PreFlightCheck::arm_requirements_t	_arm_requirements{};
 
 	hrt_abstime	_valid_distance_sensor_time_us{0}; /**< Last time that distance sensor data arrived (usec) */
