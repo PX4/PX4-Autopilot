@@ -98,7 +98,9 @@ Takeoff::set_takeoff_position()
 
 	float min_abs_altitude;
 
-	if (_navigator->home_position_valid()) { //only use home position if it is valid
+	// TODO: review this, comments are talking about home pos, the validity is checked but the
+	// current altitude is used instead. Also, the "else" case does not consider the current altitude at all.
+	if (_navigator->home_alt_valid()) { //only use home position if it is valid
 		min_abs_altitude = _navigator->get_global_position()->alt + _navigator->get_takeoff_min_alt();
 
 	} else { //e.g. flow
@@ -108,7 +110,7 @@ Takeoff::set_takeoff_position()
 	// Use altitude if it has been set. If home position is invalid use min_abs_altitude
 	events::LogLevel log_level = events::LogLevel::Disabled;
 
-	if (rep->current.valid && PX4_ISFINITE(rep->current.alt) && _navigator->home_position_valid()) {
+	if (rep->current.valid && PX4_ISFINITE(rep->current.alt) && _navigator->home_alt_valid()) {
 		abs_altitude = rep->current.alt;
 
 		// If the altitude suggestion is lower than home + minimum clearance, raise it and complain.
