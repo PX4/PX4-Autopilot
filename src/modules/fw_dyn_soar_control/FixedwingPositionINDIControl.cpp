@@ -45,3 +45,41 @@ using matrix::Vector2f;
 using matrix::Vector2d;
 using matrix::Vector3f;
 using matrix::wrap_pi;
+
+
+FixedwingPositionINDIControl::FixedwingPositionINDIControl() :
+	ModuleParams(nullptr),
+	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+{
+	// limit to 50 Hz
+	_local_pos_sub.set_interval_ms(20);
+
+	/* fetch initial parameter values */
+	parameters_update();
+}
+
+FixedwingPositionINDIControl::~FixedwingPositionINDIControl()
+{
+	perf_free(_loop_perf);
+}
+
+void
+FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
+{
+    _wind_estimate = wind;
+}
+
+Vector
+FixedwingPositionINDIControl::_get_basis_funs(float t)
+{
+    std::vector<float> vec = {1};
+    float sigma = 0.5/_num_basis_funs;
+    for(int i=1; i<_num_basis_funs; i++){
+        float fun1 = sinf(M_PI*t);
+        float fun2 = exp(-pow((t-i/_num_basis_funs),2)/sigma);
+        vec.push_back(fun1*fun2);
+    }
+    return Vector(vec);
+}
