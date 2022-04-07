@@ -186,9 +186,7 @@ private:
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	void lockstep_loop();
-	int _lockstep_component{-1};
 	uint64_t _current_simulation_time_us{0};
-	uint64_t _last_iteration_wall_time_us{0};
 	float _achieved_speedup{0.f};
 #endif
 

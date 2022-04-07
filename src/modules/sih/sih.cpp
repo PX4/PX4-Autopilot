@@ -127,10 +127,10 @@ void Sih::lockstep_loop()
 
 	PX4_INFO("Simulation loop with %d Hz (%d us sim time interval)", rate, sim_interval_us);
 	PX4_INFO("Simulation with %.1fx speedup. Loop with (%d us wall time interval)", (double)speed_factor, rt_interval_us);
-
-	_last_iteration_wall_time_us = micros();
+	uint64_t pre_compute_wall_time_us;
 
 	while (!should_exit()) {
+		pre_compute_wall_time_us = micros();
 		perf_count(_loop_interval_perf);
 
 		_current_simulation_time_us += sim_interval_us;
@@ -144,20 +144,21 @@ void Sih::lockstep_loop()
 
 		// Only do lock-step once we received the first actuator output
 		int sleep_time;
-		uint64_t current_wall_time_us = micros();
+		uint64_t current_wall_time_us;
 
 		if (_last_actuator_output_time <= 0) {
 			PX4_DEBUG("SIH starting up - no lockstep yet");
-			sleep_time = math::max(0, sim_interval_us - (int)(current_wall_time_us - _last_iteration_wall_time_us));
+			current_wall_time_us = micros();
+			sleep_time = math::max(0, sim_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
 
 		} else {
 			px4_lockstep_wait_for_components();
-			sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - _last_iteration_wall_time_us));
+			current_wall_time_us = micros();
+			sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
 		}
 
 		_achieved_speedup = 0.99f * _achieved_speedup + 0.01f * ((float)sim_interval_us / (float)(
-					    current_wall_time_us - _last_iteration_wall_time_us + sleep_time));
-		_last_iteration_wall_time_us = current_wall_time_us;
+					    current_wall_time_us - pre_compute_wall_time_us + sleep_time));
 		usleep(sleep_time);
 	}
 }
