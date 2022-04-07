@@ -53,6 +53,9 @@ bool PreFlightCheck::modeCheck(orb_advert_t *mavlink_log_pub, const bool report_
 	case vehicle_status_s::NAVIGATION_STATE_STAB:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
+
+	// allow arming in land mode to prevent MAVSDK examples from failing on master until the workflow is changed
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 		break;
 
 	default:
