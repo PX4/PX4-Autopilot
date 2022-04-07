@@ -13,6 +13,8 @@
 
 #include <float.h>
 
+#include <vector>
+#include <array>
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
@@ -41,6 +43,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_angular_acceleration.h>
+#include <uORB/topics/vehicle_angular_acceleration_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
@@ -54,6 +57,14 @@
 
 
 using namespace time_literals;
+
+using matrix::Dcmf;
+using matrix::Eulerf;
+using matrix::Quatf;
+using matrix::Vector;
+using matrix::Vector2f;
+using matrix::Vector2d;
+using matrix::Vector3f;
 
 
 class FixedwingPositionINDIControl final : public ModuleBase<FixedwingPositionINDIControl>, public ModuleParams,
@@ -97,29 +108,16 @@ private:
 	
 
     // Publishers
-	uORB::Publication<vehicle_attitude_setpoint_s>		_attitude_sp_pub;
-	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication
-
+	uORB::Publication<vehicle_angular_acceleration_setpoint_s>		_alpha_sp_pub;
+	
     // Message structs
 	manual_control_setpoint_s	_manual_control_setpoint {};			///< r/c channel data
-	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items
-	vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint
 	vehicle_control_mode_s		_control_mode {};		///< control mode
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position
 	vehicle_status_s		    _vehicle_status {};		///< vehicle status
 
-	double _current_latitude{0};
-	double _current_longitude{0};
-	float _current_altitude{0.f};
 
 	perf_counter_t	_loop_perf;				///< loop performance counter
-
-	float _pitch{0.0f};
-	float _yaw{0.0f};
-	float _yawrate{0.0f};
-
-	matrix::Vector3f _body_acceleration{};
-	matrix::Vector3f _body_velocity{};
 
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position
@@ -139,16 +137,52 @@ private:
 	void		vehicle_status_poll();
 	void        wind_poll();
 
+	//
 	void		status_publish();
 
-	DEFINE_PARAMETERS(
+	const int _num_points = 30;				// number of points on the precomputed trajectory
+	const static size_t _num_basis_funs = 15;			// number of basis functions used for the trajectory approximation
 
-		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
-		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
+	// controller methods
+	void _set_wind_estimate(Vector3f wind);
+	Vector<float, _num_basis_funs> _get_basis_funs(float t=0);			// compute the vector of basis functions at normalized time t in [0,1]
+	Vector<float, _num_basis_funs> _get_d_dt_basis_funs(float t=0);	// compute the vector of basis function gradients at normalized time t in [0,1]
+	Vector<float, _num_basis_funs> _get_d2_dt2_basis_funs(float t=0);	// compute the vector of basis function curvatures at normalized time t in [0,1]
+	void _load_basis_coefficients();		// load the coefficients of the current path approximation
+	Vector3f _get_position_ref(float t=0);	// get the reference position on the current path, at normalized time t in [0,1]
+	Vector3f _get_velocity_ref(float t=0, float T=1);	// get the reference velocity on the current path, at normalized time t in [0,1], with an intended cycle time of T
+	Vector3f _get_acceleration_ref(float t=0, float T=1);	// get the reference acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
+	Quatf _get_attitude_ref(float t=0, float T=1);	// get the reference attitude on the current path, at normalized time t in [0,1], with an intended cycle time of T
+	Vector3f _get_angular_velocity_ref(float t=0, float T=1);	// get the reference angular velocity on the current path, at normalized time t in [0,1], with an intended cycle time of T
+	Vector3f _get_angular_acceleration_ref(float t=0, float T=1);	// get the reference angular acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
+	float _get_closest_t(Vector3f pos);				// get the normalized time, at which the reference path is closest to the current position
+	Quatf _get_attitude(Vector3f vel, Vector3f f);	// get the attitude to produce force f while flying with velocity vel
+	void _compute_NDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
+	void _compute_INDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
 
-	)
+	// control variables
+	Vector<float, _num_basis_funs> _basis_coeffs_x;				// coefficients of the current path
+	Vector<float, _num_basis_funs> _basis_coeffs_y;				// coefficients of the current path
+	Vector<float, _num_basis_funs> _basis_coeffs_z;				// coefficients of the current path
+	Vector3f _pos;
+	Vector3f _pos_sp;
+	Vector3f _vel;
+	Vector3f _vel_sp;
+	Vector3f _acc;
+	Vector3f _acc_sp;
+	Quatf _att;
+	Quatf _att_sp;
+	Vector3f _omega;
+	Vector3f _omega_sp;
+	Vector3f _alpha;
+	Vector3f _alpha_sp;
+	Vector3f _wind_estimate;
 
+	// filter variables
+	std::array<Vector3f, 3> _f_list;
+	std::array<Vector3f, 3> _a_list;
+	std::array<Vector3f, 3> _f_lpf_list;
+	std::array<Vector3f, 3> _a_lpf_list;
 };
 
 

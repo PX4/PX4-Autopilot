@@ -33,25 +33,29 @@
 
 #include "FixedwingPositionINDIControl.hpp"
 
+using namespace std;
+
 using math::constrain;
 using math::max;
 using math::min;
 using math::radians;
 
 using matrix::Dcmf;
+using matrix::Matrix;
 using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector2d;
 using matrix::Vector3f;
+using matrix::Vector;
 using matrix::wrap_pi;
 
 
 FixedwingPositionINDIControl::FixedwingPositionINDIControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
-	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
+	_alpha_sp_pub(ORB_ID(vehicle_angular_acceleration_setpoint)),
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	// limit to 50 Hz
 	_local_pos_sub.set_interval_ms(20);
@@ -71,15 +75,161 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
     _wind_estimate = wind;
 }
 
-Vector
+Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
 FixedwingPositionINDIControl::_get_basis_funs(float t)
 {
-    std::vector<float> vec = {1};
+    Vector<float, _num_basis_funs> vec;
+    vec(0) = 1;
     float sigma = 0.5/_num_basis_funs;
-    for(int i=1; i<_num_basis_funs; i++){
-        float fun1 = sinf(M_PI*t);
-        float fun2 = exp(-pow((t-i/_num_basis_funs),2)/sigma);
-        vec.push_back(fun1*fun2);
+    for(uint i=1; i<_num_basis_funs; i++){
+        float fun1 = sinf(M_PI_F*t);
+        float fun2 = exp(-powf((t-i/_num_basis_funs),2)/sigma);
+        vec(i) = fun1*fun2;
     }
-    return Vector(vec);
+    return vec;
+}
+
+Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
+FixedwingPositionINDIControl::_get_d_dt_basis_funs(float t)
+{
+    Vector<float, _num_basis_funs> vec;
+    vec(0) = 1;
+    float sigma = 0.5/_num_basis_funs;
+    for(uint i=1; i<_num_basis_funs; i++){
+        float fun1 = sinf(M_PI_F*t);
+        float fun2 = exp(-powf((t-i/_num_basis_funs),2)/sigma);
+        vec(i) = fun2*(M_PI_F*sigma*cosf(M_PI_F*t)-2*(t-i/_num_basis_funs)*fun1)/sigma;
+    }
+    return vec;
+}
+
+Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
+FixedwingPositionINDIControl::_get_d2_dt2_basis_funs(float t)
+{
+    Vector<float, _num_basis_funs> vec;
+    vec(0) = 1;
+    float sigma = 0.5/_num_basis_funs;
+    for(uint i=1; i<_num_basis_funs; i++){
+        float fun1 = sinf(M_PI_F*t);
+        float fun2 = exp(-powf((t-i/_num_basis_funs),2)/sigma);
+        vec(i) = fun2 * (fun1 * (4*powf((i/_num_basis_funs-t),2) - \
+                        sigma*(powf(M_PI_F,2)*sigma + 2)) + 4*M_PI_F*sigma*(i/_num_basis_funs-t)*cosf(M_PI_F*t))/(powf(sigma,2));
+ 
+    }
+    return vec;
+}
+
+Vector3f
+FixedwingPositionINDIControl::_get_position_ref(float t)
+{
+    Vector<float, _num_basis_funs> basis = _get_basis_funs(t);
+    float x = _basis_coeffs_x*basis;
+    float y = _basis_coeffs_y*basis;
+    float z = _basis_coeffs_z*basis;
+    return Vector3f{x, y, z};
+}
+
+Vector3f
+FixedwingPositionINDIControl::_get_velocity_ref(float t, float T)
+{
+    Vector<float, _num_basis_funs> basis = _get_d_dt_basis_funs(t);
+    float x = _basis_coeffs_x*basis;
+    float y = _basis_coeffs_y*basis;
+    float z = _basis_coeffs_z*basis;
+    return Vector3f{x, y, z}/T;
+}
+
+Vector3f
+FixedwingPositionINDIControl::_get_acceleration_ref(float t, float T)
+{
+    Vector<float, _num_basis_funs> basis = _get_d2_dt2_basis_funs(t);
+    float x = _basis_coeffs_x*basis;
+    float y = _basis_coeffs_y*basis;
+    float z = _basis_coeffs_z*basis;
+    return Vector3f{x, y, z}/powf(T,2);
+}
+
+Quatf
+FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
+{
+    Vector3f vel = _get_velocity_ref(t,T);
+    Vector3f vel_air = vel - _wind_estimate;
+    Vector3f acc = _get_acceleration_ref(t,T);
+    // add gravity
+    acc(2) += 9.81;
+    // compute required force
+    Vector3f f = FW_MASS*acc;
+    // compute force component projected onto lift axis
+    Vector3f vel_normalized = normalized(vel_air);
+    Vector3f f_lift = f - f*vel_normalized;
+    Vector3f f_lift_normalized = normalized(f_lift);
+    Vector3f wing_normalized = -vel_normalized.cross(lift_normalized);
+    // compute rotation matrix
+    Dcmf R_bi;
+    R_bi(0,0) = vel_normalized(0);
+    R_bi(0,1) = vel_normalized(1);
+    R_bi(0,2) = vel_normalized(2);
+    R_bi(1,0) = wing_normalized(0);
+    R_bi(1,1) = wing_normalized(1);
+    R_bi(1,2) = wing_normalized(2);
+    R_bi(2,0) = lift_normalized(0);
+    R_bi(2,1) = lift_normalized(1);
+    R_bi(2,2) = lift_normalized(2);
+    // compute required AoA
+    Vector3f f_phi = R_bi*f_lift;
+    float AoA = (2*f_phi(2))/(1.223*0.4*powf(unit(vel_air),2)) - 0.356)/2.354;
+    // compute final rotation matrix
+    Euler e;
+    Euler(0, AoA, 0);
+    Dcmf R_pitch;
+    R_pitch(e);
+    Dcmf Rotation;
+    Rotation(R_pitch*R_bi);
+    // switch from FRD to ENU frame
+    Rotation(1,0) *= -1;
+    Rotation(1,1) *= -1;
+    Rotation(1,2) *= -1;
+    Rotation(2,0) *= -1;
+    Rotation(2,1) *= -1;
+    Rotation(2,2) *= -1;
+
+
+
+
+
+
+
+    return 1;
+}
+
+
+int FixedwingPositionINDIControl::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int FixedwingPositionINDIControl::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+fw_dyn_soar_control is the fixed wing controller for soaring tasks.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("fw_dyn_soar_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+extern "C" __EXPORT int fw_dyn_soar_control_main(int argc, char *argv[])
+{
+	return FixedwingPositionINDIControl::main(argc, argv);
 }
