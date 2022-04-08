@@ -31,42 +31,66 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
+#include <drivers/drv_hrt.h>
+#include <parameters/param.h>
+#include "safety_button.hpp"
+#include <math.h>
 
-#include <systemlib/mavlink_log.h>
+const char *const UavcanSafetyButtonBridge::NAME = "safety_button";
 
 using namespace time_literals;
 
-bool PreFlightCheck::modeCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
-			       const vehicle_status_s &vehicle_status)
+UavcanSafetyButtonBridge::UavcanSafetyButtonBridge(uavcan::INode &node) :
+	UavcanSensorBridgeBase("uavcan_safety_button", ORB_ID(button_event)), _sub_button(node)
+{ }
+
+int UavcanSafetyButtonBridge::init()
 {
-	bool success = true;
+	int res = _sub_button.start(ButtonCbBinder(this, &UavcanSafetyButtonBridge::button_sub_cb));
 
-	switch (vehicle_status.nav_state) {
-	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
-	case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
-	case vehicle_status_s::NAVIGATION_STATE_POSCTL:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER:
-	case vehicle_status_s::NAVIGATION_STATE_ACRO:
-	case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
-	case vehicle_status_s::NAVIGATION_STATE_STAB:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
-
-	// allow arming in land mode to prevent MAVSDK examples from failing on master until the workflow is changed
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
-		break;
-
-	default:
-		success = false;
-
-		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Mode not suitable for takeoff");
-		}
-
-		break;
+	if (res < 0) {
+		DEVICE_LOG("failed to start uavcan sub: %d", res);
+		return res;
 	}
 
-	return success;
+	return 0;
+}
+
+void UavcanSafetyButtonBridge::button_sub_cb(const
+		uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
+{
+	bool is_safety = msg.button == ardupilot::indication::Button::BUTTON_SAFETY;
+	bool pressed = msg.press_time >= 10; // 0.1s increments (1s press time for safety button trigger event)
+
+	// Detect safety button trigger event
+	if (is_safety && pressed) {
+		_button_publisher.safetyButtonTriggerEvent();
+	}
+
+	// Detect pairing button trigger event
+	if (is_safety) {
+
+		if (hrt_elapsed_time(&_start_timestamp) > 2_s) {
+			_start_timestamp = hrt_absolute_time();
+			_pairing_button_counter = 0u;
+		}
+
+		hrt_abstime press_time_us = (msg.press_time * 100 * 1000);
+		hrt_abstime elasped_time = hrt_elapsed_time(&_new_press_timestamp);
+
+		if (elasped_time > press_time_us) {
+			_pairing_button_counter++;
+			_new_press_timestamp = hrt_absolute_time();
+		}
+
+		if (_pairing_button_counter == ButtonPublisher::PAIRING_BUTTON_EVENT_COUNT) {
+			_button_publisher.pairingButtonTriggerEvent();
+			_start_timestamp = 0u;
+		}
+	}
+}
+
+int UavcanSafetyButtonBridge::init_driver(uavcan_bridge::Channel *channel)
+{
+	return PX4_OK;
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,48 +32,49 @@
  ****************************************************************************/
 
 /**
- * @author CUAVcaijie <caijie@cuav.net>
+ * @file Safety.cpp
  */
 
-#pragma once
+#include "Safety.hpp"
+#include <circuit_breaker/circuit_breaker.h>
 
-#include <uORB/Subscription.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/safety.h>
+using namespace time_literals;
 
-#include <uavcan/uavcan.hpp>
-#include <ardupilot/indication/Button.hpp>
-#include "sensor_bridge.hpp"
-
-class UavcanSafetyBridge : public IUavcanSensorBridge
+Safety::Safety()
 {
-public:
-	static const char *const NAME;
+	/*
+	 * Safety can be turned off with the CBRK_IO_SAFETY parameter.
+	 */
+	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+}
 
-	UavcanSafetyBridge(uavcan::INode &node);
-	~UavcanSafetyBridge() = default;
+void Safety::safetyButtonHandler()
+{
+	if (_safety_disabled) {
+		_safety.safety_switch_available = true;
+		_safety.safety_off = true;
 
-	const char *get_name() const override { return NAME; }
+	} else {
 
-	int init() override;
+		button_event_s button_event;
 
-	unsigned get_num_redundant_channels() const override;
+		while (_safety_button_sub.update(&button_event)) {
+			_safety.safety_switch_available = true;
+			_safety.safety_off |= button_event.triggered; // triggered safety button activates safety off
+		}
+	}
 
-	void print_status() const override;
-private:
-	safety_s _safety{};  //
-	bool _safety_disabled{false};
+	// publish immediately on change, otherwise at 1 Hz for logging
+	if ((hrt_elapsed_time(&_safety.timestamp) >= 1_s) ||
+	    (_safety.safety_off != _previous_safety_off)) {
+		_safety.timestamp = hrt_absolute_time();
+		_safety_pub.publish(_safety);
+	}
 
-	bool _safety_btn_off{false};		///< State of the safety button read from the HW button
-	void safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg);
+	_previous_safety_off = _safety.safety_off;
+}
 
-	typedef uavcan::MethodBinder < UavcanSafetyBridge *,
-		void (UavcanSafetyBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &) >
-		SafetyCommandCbBinder;
-
-	uavcan::INode &_node;
-	uavcan::Subscriber<ardupilot::indication::Button, SafetyCommandCbBinder> _sub_safety;
-	uavcan::Publisher<ardupilot::indication::Button> _pub_safety;
-
-	uORB::PublicationMulti<safety_s> _safety_pub{ORB_ID(safety)};
-};
+void Safety::enableSafety()
+{
+	_safety.safety_off = false;
+}

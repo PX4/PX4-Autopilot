@@ -465,7 +465,7 @@ int Commander::custom_command(int argc, char *argv[])
 
 int Commander::print_status()
 {
-	PX4_INFO("arming: %s", arming_state_names[_status.arming_state]);
+	PX4_INFO("arming: %s", _arm_state_machine.arming_state_names[_status.arming_state]);
 	PX4_INFO("navigation: %s", nav_state_names[_status.nav_state]);
 	perf_print_counter(_loop_perf);
 	perf_print_counter(_preflight_check_perf);
@@ -479,7 +479,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 bool Commander::shutdown_if_allowed()
 {
-	return TRANSITION_DENIED != arming_state_transition(_status, _vehicle_control_mode, _safety,
+	return TRANSITION_DENIED != _arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, _safety,
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			_armed, false /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags, _arm_requirements,
 			hrt_elapsed_time(&_boot_timestamp), arm_disarm_reason_t::shutdown);
@@ -732,7 +732,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		}
 	}
 
-	transition_result_t arming_res = arming_state_transition(_status, _vehicle_control_mode, _safety,
+	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, _safety,
 					 vehicle_status_s::ARMING_STATE_ARMED, _armed, run_preflight_checks,
 					 &_mavlink_log_pub, _status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
 					 calling_reason);
@@ -774,7 +774,7 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 		}
 	}
 
-	transition_result_t arming_res = arming_state_transition(_status, _vehicle_control_mode, _safety,
+	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, _safety,
 					 vehicle_status_s::ARMING_STATE_STANDBY, _armed, false,
 					 &_mavlink_log_pub, _status_flags, _arm_requirements,
 					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
@@ -783,6 +783,10 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 		mavlink_log_info(&_mavlink_log_pub, "Disarmed by %s\t", arm_disarm_reason_str(calling_reason));
 		events::send<events::px4::enums::arm_disarm_reason_t>(events::ID("commander_disarmed_by"), events::Log::Info,
 				"Disarmed by {1}", calling_reason);
+
+		if (_param_com_force_safety.get()) {
+			_safety_handler.enableSafety();
+		}
 
 		_status_changed = true;
 
@@ -1364,7 +1368,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			} else {
 
 				/* try to go to INIT/PREFLIGHT arming state */
-				if (TRANSITION_DENIED == arming_state_transition(_status, _vehicle_control_mode, safety_s{},
+				if (TRANSITION_DENIED == _arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, safety_s{},
 						vehicle_status_s::ARMING_STATE_INIT, _armed,
 						false /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
 						PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
@@ -2196,6 +2200,8 @@ Commander::run()
 			}
 		}
 
+		_safety_handler.safetyButtonHandler();
+
 		/* update safety topic */
 		const bool safety_updated = _safety_sub.updated();
 
@@ -2369,10 +2375,11 @@ Commander::run()
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!_status_flags.calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
-			arming_state_transition(_status, _vehicle_control_mode, _safety, vehicle_status_s::ARMING_STATE_STANDBY, _armed,
-						true /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
-						_arm_requirements, hrt_elapsed_time(&_boot_timestamp),
-						arm_disarm_reason_t::transition_to_standby);
+			_arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, _safety,
+					vehicle_status_s::ARMING_STATE_STANDBY, _armed,
+					true /* fRunPreArmChecks */, &_mavlink_log_pub, _status_flags,
+					_arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+					arm_disarm_reason_t::transition_to_standby);
 		}
 
 		/* start mission result check */

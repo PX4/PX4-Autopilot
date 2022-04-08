@@ -34,8 +34,10 @@
 #pragma once
 
 /*   Helper classes  */
+#include "Arming/ArmStateMachine/ArmStateMachine.hpp"
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
+#include "Safety.hpp"
 #include "state_machine_helper.h"
 #include "worker_thread.hpp"
 
@@ -234,6 +236,7 @@ private:
 		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 
 		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
+		(ParamBool<px4::params::COM_FORCE_SAFETY>) _param_com_force_safety,
 		(ParamBool<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
 
 		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
@@ -292,6 +295,7 @@ private:
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
+	ArmStateMachine _arm_state_machine{};
 	PreFlightCheck::arm_requirements_t	_arm_requirements{};
 
 	hrt_abstime	_valid_distance_sensor_time_us{0}; /**< Last time that distance sensor data arrived (usec) */
@@ -398,6 +402,8 @@ private:
 	vehicle_control_mode_s  _vehicle_control_mode{};
 	vehicle_status_s        _status{};
 	vehicle_status_flags_s  _status_flags{};
+
+	Safety _safety_handler{};
 
 	WorkerThread _worker_thread;
 

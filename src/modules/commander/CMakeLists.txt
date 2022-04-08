@@ -52,6 +52,7 @@ px4_add_module(
 		lm_fit.cpp
 		mag_calibration.cpp
 		rc_calibration.cpp
+		Safety.cpp
 		state_machine_helper.cpp
 		worker_thread.cpp
 	DEPENDS
@@ -61,6 +62,7 @@ px4_add_module(
 		hysteresis
 		PreFlightCheck
 		ArmAuthorization
+		ArmStateMachine
 		HealthFlags
 		sensor_calibration
 		world_magnetic_model
