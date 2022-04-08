@@ -43,8 +43,8 @@ PARAM_DEFINE_FLOAT(FW_WING_AREA, 0.4f);
  * @unit 
  * @min 0.5
  * @max 1.225
- * @decimal 2
- * @increment 0.01
+ * @decimal 3
+ * @increment 0.001
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(RHO, 1.223f);

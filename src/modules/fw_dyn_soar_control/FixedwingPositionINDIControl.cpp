@@ -42,10 +42,9 @@ using math::radians;
 
 using matrix::Dcmf;
 using matrix::Matrix;
-using matrix::Eulerf;
+using matrix::Euler;
 using matrix::Quatf;
-using matrix::Vector2f;
-using matrix::Vector2d;
+using matrix::AxisAnglef;
 using matrix::Vector3f;
 using matrix::Vector;
 using matrix::wrap_pi;
@@ -149,20 +148,20 @@ FixedwingPositionINDIControl::_get_acceleration_ref(float t, float T)
     return Vector3f{x, y, z}/powf(T,2);
 }
 
-Quatf
+Dcmf
 FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
 {
     Vector3f vel = _get_velocity_ref(t,T);
     Vector3f vel_air = vel - _wind_estimate;
     Vector3f acc = _get_acceleration_ref(t,T);
     // add gravity
-    acc(2) += 9.81;
+    acc(2) += 9.81f;
     // compute required force
-    Vector3f f = FW_MASS*acc;
+    Vector3f f = _param_fw_mass.get()*acc;
     // compute force component projected onto lift axis
-    Vector3f vel_normalized = normalized(vel_air);
+    Vector3f vel_normalized = vel_air.normalized();
     Vector3f f_lift = f - f*vel_normalized;
-    Vector3f f_lift_normalized = normalized(f_lift);
+    Vector3f lift_normalized = f_lift.normalized();
     Vector3f wing_normalized = -vel_normalized.cross(lift_normalized);
     // compute rotation matrix
     Dcmf R_bi;
@@ -177,14 +176,11 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     R_bi(2,2) = lift_normalized(2);
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = (2*f_phi(2))/(1.223*0.4*powf(unit(vel_air),2)) - 0.356)/2.354;
+    float AoA = ((2.f*f_phi(2))/(1.223f*0.4f*(vel_air*vel_air)) - 0.356f)/2.354f;
     // compute final rotation matrix
-    Euler e;
-    Euler(0, AoA, 0);
-    Dcmf R_pitch;
-    R_pitch(e);
-    Dcmf Rotation;
-    Rotation(R_pitch*R_bi);
+    Eulerf e(0.f, AoA, 0.f);
+    Dcmf R_pitch(e);
+    Dcmf Rotation(R_pitch*R_bi);
     // switch from FRD to ENU frame
     Rotation(1,0) *= -1;
     Rotation(1,1) *= -1;
@@ -192,15 +188,106 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     Rotation(2,0) *= -1;
     Rotation(2,1) *= -1;
     Rotation(2,2) *= -1;
-
-
-
-
-
-
-
-    return 1;
+    return Rotation.transpose();
+    // compute quaternion
+    //Quatf q;
+    //q(transpose(Rotation));
+    //return q;
 }
+
+Vector3f
+FixedwingPositionINDIControl::_get_angular_velocity_ref(float t, float T)
+{
+    float dt = 0.001;
+    float t_lower = fmaxf(0.f,t-dt);
+    float t_upper = fminf(t+dt,1.f);
+    Dcmf R_i0 = _get_attitude_ref(t_lower, T);
+    Dcmf R_i1 = _get_attitude_ref(t_upper, T);
+    Dcmf R_10 = R_i1.transpose()*R_i0;
+    AxisAnglef w_01(R_10);
+    return -w_01.axis()*w_01.angle()/(T*(t_upper-t_lower));
+}
+
+Vector3f
+FixedwingPositionINDIControl::_get_angular_acceleration_ref(float t, float T)
+{
+    float dt = 0.001;
+    float t_lower = fmaxf(0.f,t-dt);
+    float t_upper = fminf(t+dt,1.f);
+    // compute roational velocity in inertial frame
+    Dcmf R_i0 = _get_attitude_ref(t_lower, T);
+    AxisAnglef w_0(R_i0*_get_angular_velocity_ref(t_lower, T));
+    // compute roational velocity in inertial frame
+    Dcmf R_i1 = _get_attitude_ref(t_upper, T);
+    AxisAnglef w_1(R_i1*_get_angular_velocity_ref(t_upper, T));
+    // compute gradient via finite differences
+    Vector3f dw_dt = (w_1.axis()*w_1.angle() - w_0.axis()*w_0.angle()) / (T*(t_upper-t_lower));
+    // transform back to body frame
+    return R_i0.transpose()*dw_dt;
+}
+
+float
+FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
+{
+    const uint n = 100;
+    Vector<float, n> distances;
+    // compute all distances
+    for(uint i=0; i<n; i++){
+        float t_ref = float(i)/n;
+        Vector3f pos_ref = _get_position_ref(t_ref);
+        distances(i) = (pos_ref - pos)*(pos_ref - pos);
+    }
+    // get index of smallest distance
+    float t = 0;
+    float min_dist = distances(0);
+    for(uint i=1; i<n; i++){
+        if(distances(i)<min_dist){
+            min_dist = distances(i);
+            t = float(i)/n;
+        }
+    }
+    return t;
+}
+
+Dcmf
+FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
+{
+    Vector3f vel_air = vel - _wind_estimate;
+    // compute force component projected onto lift axis
+    Vector3f vel_normalized = vel_air.normalized();
+    Vector3f f_lift = f - (f*vel_normalized)*vel_normalized;
+    Vector3f lift_normalized = f_lift.normalized();
+    Vector3f wing_normalized = -vel_normalized.cross(lift_normalized);
+    // compute rotation matrix
+    Dcmf R_bi;
+    R_bi(0,0) = vel_normalized(0);
+    R_bi(0,1) = vel_normalized(1);
+    R_bi(0,2) = vel_normalized(2);
+    R_bi(1,0) = wing_normalized(0);
+    R_bi(1,1) = wing_normalized(1);
+    R_bi(1,2) = wing_normalized(2);
+    R_bi(2,0) = lift_normalized(0);
+    R_bi(2,1) = lift_normalized(1);
+    R_bi(2,2) = lift_normalized(2);
+    // compute required AoA
+    Vector3f f_phi = R_bi*f_lift;
+    float AoA = ((2.f*f_phi(2))/(1.223f*0.4f*(vel_air*vel_air)) - 0.356f)/2.354f;
+    // compute final rotation matrix
+    Eulerf e(0.f, AoA, 0.f);
+    Dcmf R_pitch(e);
+    Dcmf Rotation(R_pitch*R_bi);
+    // switch from FRD to ENU frame
+    Rotation(1,0) *= -1;
+    Rotation(1,1) *= -1;
+    Rotation(1,2) *= -1;
+    Rotation(2,0) *= -1;
+    Rotation(2,1) *= -1;
+    Rotation(2,2) *= -1;
+    return Rotation.transpose();
+}
+
+
+
 
 
 int FixedwingPositionINDIControl::custom_command(int argc, char *argv[])

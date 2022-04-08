@@ -116,6 +116,28 @@ private:
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position
 	vehicle_status_s		    _vehicle_status {};		///< vehicle status
 
+	// parameter struct
+	DEFINE_PARAMETERS(
+		// aircraft params
+		(ParamFloat<px4::params::FW_MASS>) _param_fw_mass,
+		(ParamFloat<px4::params::FW_WING_AREA>) _param_fw_wing_area,
+		(ParamFloat<px4::params::RHO>) _param_rho
+		// aerodynamic params
+		/*
+		(ParamFloat<px4::params::C_l0>) _param_fw_c_l0,
+		(ParamFloat<px4::params::C_l1>) _param_fw_c_l1,
+		(ParamFloat<px4::params::C_d0>) _param_fw_c_d0,
+		(ParamFloat<px4::params::C_d1>) _param_fw_c_d1,
+		(ParamFloat<px4::params::C_d2>) _param_fw_c_d2,
+		// filter params
+		(ParamFloat<px4::params::FILTER_A1>) _param_filter_a1,
+		(ParamFloat<px4::params::FILTER_A2>) _param_filter_a2,
+		(ParamFloat<px4::params::FILTER_B1>) _param_filter_b1,
+		(ParamFloat<px4::params::FILTER_B2>) _param_filter_b2,
+		(ParamFloat<px4::params::FILTER_B3>) _param_filter_b3
+		*/
+	)
+
 
 	perf_counter_t	_loop_perf;				///< loop performance counter
 
@@ -152,11 +174,11 @@ private:
 	Vector3f _get_position_ref(float t=0);	// get the reference position on the current path, at normalized time t in [0,1]
 	Vector3f _get_velocity_ref(float t=0, float T=1);	// get the reference velocity on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Vector3f _get_acceleration_ref(float t=0, float T=1);	// get the reference acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
-	Quatf _get_attitude_ref(float t=0, float T=1);	// get the reference attitude on the current path, at normalized time t in [0,1], with an intended cycle time of T
+	Dcmf _get_attitude_ref(float t=0, float T=1);	// get the reference attitude on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Vector3f _get_angular_velocity_ref(float t=0, float T=1);	// get the reference angular velocity on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Vector3f _get_angular_acceleration_ref(float t=0, float T=1);	// get the reference angular acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	float _get_closest_t(Vector3f pos);				// get the normalized time, at which the reference path is closest to the current position
-	Quatf _get_attitude(Vector3f vel, Vector3f f);	// get the attitude to produce force f while flying with velocity vel
+	Dcmf _get_attitude(Vector3f vel, Vector3f f);	// get the attitude to produce force f while flying with velocity vel
 	void _compute_NDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
 	void _compute_INDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
 
@@ -183,6 +205,7 @@ private:
 	std::array<Vector3f, 3> _a_list;
 	std::array<Vector3f, 3> _f_lpf_list;
 	std::array<Vector3f, 3> _a_lpf_list;
+
 };
 
 
