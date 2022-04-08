@@ -72,6 +72,7 @@ void
 FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
 {
     _wind_estimate = wind;
+    return;
 }
 
 Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
@@ -148,7 +149,7 @@ FixedwingPositionINDIControl::_get_acceleration_ref(float t, float T)
     return Vector3f{x, y, z}/powf(T,2);
 }
 
-Dcmf
+Quatf
 FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
 {
     Vector3f vel = _get_velocity_ref(t,T);
@@ -176,7 +177,7 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     R_bi(2,2) = lift_normalized(2);
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = ((2.f*f_phi(2))/(1.223f*0.4f*(vel_air*vel_air)) - 0.356f)/2.354f;
+    float AoA = ((2.f*f_phi(2))/(_param_rho.get()*_param_fw_wing_area.get()*(vel_air*vel_air)) - _param_fw_c_l0.get())/_param_fw_c_l1.get();
     // compute final rotation matrix
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
@@ -188,11 +189,8 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     Rotation(2,0) *= -1;
     Rotation(2,1) *= -1;
     Rotation(2,2) *= -1;
-    return Rotation.transpose();
-    // compute quaternion
-    //Quatf q;
-    //q(transpose(Rotation));
-    //return q;
+    Quatf q(Rotation.transpose());
+    return q;
 }
 
 Vector3f
@@ -201,8 +199,8 @@ FixedwingPositionINDIControl::_get_angular_velocity_ref(float t, float T)
     float dt = 0.001;
     float t_lower = fmaxf(0.f,t-dt);
     float t_upper = fminf(t+dt,1.f);
-    Dcmf R_i0 = _get_attitude_ref(t_lower, T);
-    Dcmf R_i1 = _get_attitude_ref(t_upper, T);
+    Dcmf R_i0(_get_attitude_ref(t_lower, T));
+    Dcmf R_i1(_get_attitude_ref(t_upper, T));
     Dcmf R_10 = R_i1.transpose()*R_i0;
     AxisAnglef w_01(R_10);
     return -w_01.axis()*w_01.angle()/(T*(t_upper-t_lower));
@@ -215,10 +213,10 @@ FixedwingPositionINDIControl::_get_angular_acceleration_ref(float t, float T)
     float t_lower = fmaxf(0.f,t-dt);
     float t_upper = fminf(t+dt,1.f);
     // compute roational velocity in inertial frame
-    Dcmf R_i0 = _get_attitude_ref(t_lower, T);
+    Dcmf R_i0(_get_attitude_ref(t_lower, T));
     AxisAnglef w_0(R_i0*_get_angular_velocity_ref(t_lower, T));
     // compute roational velocity in inertial frame
-    Dcmf R_i1 = _get_attitude_ref(t_upper, T);
+    Dcmf R_i1(_get_attitude_ref(t_upper, T));
     AxisAnglef w_1(R_i1*_get_angular_velocity_ref(t_upper, T));
     // compute gradient via finite differences
     Vector3f dw_dt = (w_1.axis()*w_1.angle() - w_0.axis()*w_0.angle()) / (T*(t_upper-t_lower));
@@ -249,7 +247,7 @@ FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
     return t;
 }
 
-Dcmf
+Quatf
 FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
 {
     Vector3f vel_air = vel - _wind_estimate;
@@ -271,7 +269,7 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
     R_bi(2,2) = lift_normalized(2);
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = ((2.f*f_phi(2))/(1.223f*0.4f*(vel_air*vel_air)) - 0.356f)/2.354f;
+    float AoA = ((2.f*f_phi(2))/(_param_rho.get()*_param_fw_wing_area.get()*(vel_air*vel_air)) - _param_fw_c_l0.get())/_param_fw_c_l1.get();
     // compute final rotation matrix
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
@@ -283,7 +281,52 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
     Rotation(2,0) *= -1;
     Rotation(2,1) *= -1;
     Rotation(2,2) *= -1;
-    return Rotation.transpose();
+    Quatf q(Rotation.transpose());
+    return q;
+}
+
+void
+FixedwingPositionINDIControl::_compute_NDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha)
+{
+    Dcmf R_ib(att);
+    Dcmf R_bi(R_ib.transpose());
+    // get reference values
+    float t_ref = _get_closest_t(pos);
+    // downscale velocity to match current one, 
+    // terminal time is determined such that current velocity is met
+    Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.f);
+    float T = sqrt((v_ref_*v_ref_)/(vel*vel+0.01f));
+    // get time-scaled version of reference trajectory
+    Vector3f x_ref = _get_position_ref(t_ref);
+    Vector3f v_ref = _get_velocity_ref(t_ref,T);
+    Vector3f a_ref = _get_acceleration_ref(t_ref,T);
+    Vector3f omega_ref = _get_angular_velocity_ref(t_ref,T);
+    Vector3f alpha_ref = _get_angular_acceleration_ref(t_ref,T);
+    // get acceleration command in world frame (without gravity)
+    Vector3f acc_command = R_ib*(_K_x*R_bi*(x_ref-pos) + _K_v*R_bi*(v_ref-vel) + _K_a*R_bi*(a_ref-acc)) + a_ref;
+    // add gravity
+    acc_command(2) += 9.81f;
+    // get force comand in world frame
+    Vector3f f_command = _param_fw_mass.get()*acc_command;
+    // get required attitude (assuming we can fly the target velocity)
+    Dcmf R_ref(_get_attitude(v_ref,f_command));
+    // get attitude error
+    Dcmf R_ref_true(R_ref.transpose()*R_ib);
+    // get required rotation vector (in body frame)
+    AxisAnglef q_err(R_ref_true);
+    Vector3f w_err = -q_err.angle()*q_err.axis();
+    //Vector3f v_norm = (vel-_wind_estimate).unit();
+    //Vector3f v_ref_norm = (v_ref-_wind_estimate).unit();
+    // compute angular acceleration command (in body frame)
+    Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-omega) + alpha_ref;
+    // publish control input
+    _angular_accel_sp = {}; 
+    _angular_accel_sp.timestamp = hrt_absolute_time();
+    _angular_accel_sp.xyz[0] = rot_acc_command(0);
+    _angular_accel_sp.xyz[1] = rot_acc_command(1);
+    _angular_accel_sp.xyz[2] = rot_acc_command(2);
+    _alpha_sp_pub.publish(_angular_accel_sp);
+    return;
 }
 
 
