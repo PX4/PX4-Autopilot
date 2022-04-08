@@ -38,7 +38,7 @@
 #include <ardupilot/indication/Button.hpp>
 
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/safety.h>
+#include <uORB/topics/button_event.h>
 
 namespace uavcannode
 {
@@ -51,7 +51,7 @@ class SafetyButton :
 public:
 	SafetyButton(px4::WorkItem *work_item, uavcan::INode &node) :
 		UavcanPublisherBase(ardupilot::indication::Button::DefaultDataTypeID),
-		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety)),
+		uORB::SubscriptionCallbackWorkItem(work_item, ORB_ID(safety_button)),
 		uavcan::Publisher<ardupilot::indication::Button>(node)
 	{
 		this->setPriority(uavcan::TransferPriority::Default);
@@ -69,14 +69,13 @@ public:
 
 	void BroadcastAnyUpdates() override
 	{
-		// safety -> standard::indication::button
-		safety_s safety;
+		button_event_s safety_button;
 
-		if (uORB::SubscriptionCallbackWorkItem::update(&safety)) {
-			if (safety.safety_switch_available) {
+		if (uORB::SubscriptionCallbackWorkItem::update(&safety_button)) {
+			if (safety_button.triggered) {
 				ardupilot::indication::Button Button{};
 				Button.button = ardupilot::indication::Button::BUTTON_SAFETY;
-				Button.press_time = safety.safety_off ? UINT8_MAX : 0;
+				Button.press_time = UINT8_MAX;
 				uavcan::Publisher<ardupilot::indication::Button>::broadcast(Button);
 			}
 		}
