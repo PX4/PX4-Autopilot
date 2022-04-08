@@ -121,20 +121,24 @@ bool FlightTaskAutoPrecisionLanding::update()
 void
 FlightTaskAutoPrecisionLanding::run_state_start()
 {
-	_position_setpoint = _target; // Follow navigator triplet
+	// In this state simply track the navigator setpoint triplet
+	// This ensures that the behaviour for precision landing during RTL / LAND
+	// is the same as without precision landing.
+	// This flight task will generate independent setpoints once the vehicle
+	// is in the vertical landing phase.
+	_position_setpoint = _target;
 
-	// check if target visible and go to horizontal approach directly
 	if (switch_to_state_horizontal_approach()) {
+		// If target visible and go to horizontal approach directly
 		return;
 
 	} else if ((PrecLandMode)_param_rtl_pld_md.get() == PrecLandMode::Opportunistic) {
-
 		// could not see the target immediately, so just fall back to normal landing
 		switch_to_state_fallback();
 
 	} else if (_type == WaypointType::land) {
-
 		// Navigator already entered land stage. Take over with precision landing
+		// This is where the vehicle starts to behave differently than in regular land!
 		switch_to_state_search();
 	}
 }

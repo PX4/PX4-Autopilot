@@ -44,6 +44,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/topics/navigator_mission_item.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/takeoff_status.h>
@@ -150,6 +151,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionData<navigator_mission_item_s> _navigator_mission_item_sub{ORB_ID(navigator_mission_item)};
 
 	uORB::Publication<landing_gear_s> _landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<trajectory_setpoint_s> _trajectory_setpoint_pub{ORB_ID(trajectory_setpoint)};
