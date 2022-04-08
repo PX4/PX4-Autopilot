@@ -513,7 +513,7 @@ void RCUpdate::Run()
 		if (input_source_stable && channel_count_stable && !_rc_signal_lost_hysteresis.get_state()) {
 
 			if ((input_rc.timestamp_last_signal > _last_timestamp_signal)
-			    && (input_rc.timestamp_last_signal - _last_timestamp_signal < 1_s)) {
+			    && (input_rc.timestamp_last_signal < _last_timestamp_signal + VALID_DATA_MIN_INTERVAL_US)) {
 
 				perf_count(_valid_data_interval_perf);
 
@@ -651,7 +651,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 
 	// last 2 switch updates identical within 1 second (simple protection from bad RC data)
 	if ((switches == _manual_switches_previous)
-	    && (switches.timestamp_sample < _manual_switches_previous.timestamp_sample + 1_s)) {
+	    && (switches.timestamp_sample < _manual_switches_previous.timestamp_sample + VALID_DATA_MIN_INTERVAL_US)) {
 
 		const bool switches_changed = (switches != _manual_switches_last_publish);
 

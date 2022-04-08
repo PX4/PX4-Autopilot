@@ -7,7 +7,7 @@
 
 set VEHICLE_TYPE vtol
 
-# MAV_TYPE_VTOL_RESERVED2 22
+# MAV_TYPE_VTOL_FIXEDROTOR 22
 param set-default MAV_TYPE 22
 
 param set-default MIS_TAKEOFF_ALT 20
