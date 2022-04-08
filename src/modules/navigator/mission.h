@@ -287,9 +287,12 @@ private:
 		WORK_ITEM_TYPE_MOVE_TO_LAND,	/**< move to land waypoint before descent */
 		WORK_ITEM_TYPE_ALIGN,		/**< align for next waypoint */
 		WORK_ITEM_TYPE_TRANSITION_AFTER_TAKEOFF,
-		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION
+		WORK_ITEM_TYPE_MOVE_TO_LAND_AFTER_TRANSITION,
+		WORK_ITEM_TYPE_PRECISION_LAND
 	} _work_item_type{WORK_ITEM_TYPE_DEFAULT};	/**< current type of work to do (sub mission item) */
 
 	uint8_t _mission_execution_mode{mission_result_s::MISSION_EXECUTION_MODE_NORMAL};	/**< the current mode of how the mission is executed,look at mission_result.msg for the definition */
 	bool _execution_mode_changed{false};
+
+	uint8_t _mission_sub_mode{navigator_mission_item_s::MISSION_SUBMODE_NONE};
 };

@@ -107,6 +107,7 @@ void FlightModeManager::Run()
 		_vehicle_control_mode_sub.update();
 		_vehicle_land_detected_sub.update();
 		_vehicle_status_sub.update();
+		_navigator_mission_item_sub.update();
 
 		start_flight_task();
 
@@ -139,6 +140,14 @@ void FlightModeManager::start_flight_task()
 	bool task_failure = false;
 	bool should_disable_task = true;
 
+	const bool land_should_be_precland = (_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+					      ||
+					      _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
+					     && _param_rtl_pld_md.get() > 0;
+	const bool precland_mission_item_active = _vehicle_status_sub.get().nav_state ==
+			vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION &&
+			_navigator_mission_item_sub.get().nav_sub_cmd == navigator_mission_item_s::MISSION_SUBMODE_PRECLAND;
+
 	// Do not run any flight task for VTOLs in fixed-wing mode
 	if (_vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		switchTask(FlightTaskIndex::None);
@@ -164,11 +173,8 @@ void FlightModeManager::start_flight_task()
 			task_failure = true;
 		}
 
+	} else if (land_should_be_precland || precland_mission_item_active) {
 		// Take-over landing from navigator if precision landing is enabled
-
-	} else if ((_vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL ||
-		    _vehicle_status_sub.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
-		   && _param_rtl_pld_md.get() > 0) {
 		should_disable_task = false;
 
 		if (switchTask(FlightTaskIndex::AutoPrecisionLanding) != FlightTaskError::NoError) {

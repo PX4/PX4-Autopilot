@@ -6,6 +6,11 @@ uint16 sequence_current          # Sequence of the current mission item
 
 uint16 nav_cmd
 
+uint8 MISSION_SUBMODE_NONE = 0
+uint8 MISSION_SUBMODE_PRECLAND = 1
+
+uint8 nav_sub_cmd	          # sub-command, for example AUTO_PRECLAND in main command AUTO_MISSION
+
 float32 latitude
 float32 longitude
 
