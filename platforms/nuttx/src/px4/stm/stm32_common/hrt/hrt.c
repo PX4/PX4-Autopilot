@@ -209,7 +209,7 @@ void hrt_usr_call(void *arg)
  * reading a time and writing a deadline to the timer cannot
  * result in missing the deadline.
  */
-#define HRT_INTERVAL_MIN	50
+#define HRT_INTERVAL_MIN	10
 #define HRT_INTERVAL_MAX	50000
 
 /*

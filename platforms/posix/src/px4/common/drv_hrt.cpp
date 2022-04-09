@@ -55,8 +55,8 @@
 #endif
 
 // Intervals in usec
-static constexpr unsigned HRT_INTERVAL_MIN = 50;
-static constexpr unsigned HRT_INTERVAL_MAX = 50000000;
+static constexpr unsigned HRT_INTERVAL_MIN = 10;
+static constexpr unsigned HRT_INTERVAL_MAX = 50000;
 
 /*
  * Queue of callout entries.
