@@ -155,7 +155,7 @@ static void hrt_work_process()
 		if (elapsed >= work->delay) {
 			/* Remove the ready-to-execute work from the list */
 
-			(void)dq_rem((struct dq_entry_s *) & (work->dq), &(wqueue->q));
+			(void)dq_rem((dq_entry_t *)&work->dq, &wqueue->q);
 			//PX4_INFO("Dequeued work=%p", work);
 
 			/* Extract the work description from the entry (in case the work

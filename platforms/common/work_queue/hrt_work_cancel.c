@@ -103,7 +103,7 @@ void hrt_work_cancel(struct work_s *work)
 		 * mark as availalbe (i.e., the worker field is nullified).
 		 */
 
-		dq_rem((dq_entry_t *)work, &wqueue->q);
+		dq_rem(&work->dq, &wqueue->q);
 		work->worker = NULL;
 	}
 
