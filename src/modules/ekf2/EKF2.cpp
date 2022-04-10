@@ -446,6 +446,28 @@ void EKF2::Run()
 			}
 
 			imu_dt = sensor_combined.gyro_integral_dt;
+
+			if (sensor_combined.accel_calibration_count != _accel_calibration_count) {
+
+				PX4_DEBUG("%d - resetting accelerometer bias", _instance);
+
+				_ekf.resetAccelBias();
+				_accel_calibration_count = sensor_combined.accel_calibration_count;
+
+				// reset bias learning
+				_accel_cal = {};
+			}
+
+			if (sensor_combined.gyro_calibration_count != _gyro_calibration_count) {
+
+				PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+
+				_ekf.resetGyroBias();
+				_gyro_calibration_count = sensor_combined.gyro_calibration_count;
+
+				// reset bias learning
+				_gyro_cal = {};
+			}
 		}
 
 		if (_sensor_selection_sub.updated() || (_device_id_accel == 0 || _device_id_gyro == 0)) {
