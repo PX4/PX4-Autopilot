@@ -47,21 +47,6 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-/* Run time Hardware detection */
-#define BOARD_HAS_SIMPLE_HW_VERSIONING 1
-#define HW_VER_PA8             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTA|GPIO_PIN8)
-#define HW_VER_PB4             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
-#define HW_VER_PB12            (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN12)
-#define HW_VER_PA8_INIT        (GPIO_VDD_5V_PERIPH_EN)
-#define HW_VER_PB4_INIT        (GPIO_SPI1_EXTI_DRDY_PB4)
-#define HW_VER_PB12_INIT       (GPIO_CAN2_RX | GPIO_PULLUP) /* Assume V2 needing pull up */
-#define HW_VER_FMUV2_STATE     0x8 /* PB12:PU:1 PB12:PD:0 PB4:PU:0 PB4PD:0 */
-#define HW_VER_FMUV3_STATE     0xE /* PB12:PU:1 PB12:PD:1 PB4:PU:1 PB4PD:0 */
-#define HW_VER_FMUV2MINI_STATE 0xA /* PB12:PU:1 PB12:PD:0 PB4:PU:1 PB4PD:0 */
-#define HW_VER_FMUV2X_STATE    0xB /* PB12:PU:1 PB12:PD:0 PB4:PU:1 PB4PD:1 */
-#define HW_VER_TYPE_INIT {'V','2',0, 0}
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
-
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
@@ -91,9 +76,6 @@
 #define GPIO_SPI1_EXTI_DRDY_PB4          (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTB|GPIO_PIN4)
 
 #define BOARD_SPI_BUS_MAX_BUS_ITEMS 3
-
-/* I2C busses */
-#define BOARD_OVERRIDE_I2C_BUS_EXTERNAL
 
 /*
  * ADC channels
@@ -158,6 +140,7 @@
 
 #define BOARD_HAS_ON_RESET 1
 
+#define BOARD_HAS_STATIC_MANIFEST 1
 
 __BEGIN_DECLS
 

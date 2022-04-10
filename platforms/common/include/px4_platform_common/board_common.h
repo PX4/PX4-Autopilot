@@ -224,6 +224,7 @@
 #  define BOARD_USES_PX4IO	1
 #  if defined(BOARD_HAS_STATIC_MANIFEST) && BOARD_HAS_STATIC_MANIFEST == 1
 #     define PX4_MFT_HW_SUPPORTED_PX4_MFT_PX4IO 1
+#     define PX4_MFT_HW_IS_CONNECTION_KNOWN_PX4_MFT_PX4IO 1
 #  endif
 /*  Allow a board_config to override the PX4IO FW search paths */
 #  if defined(BOARD_PX4IO_FW_SEARCH_PATHS)
@@ -249,11 +250,6 @@
 #if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 #  define BOARD_HAS_VERSIONING 1
 #  define HW_VER_SIMPLE(s)	     0x90000+(s)
-
-#  define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
-#  define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
-#  define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
-#  define HW_VER_FMUV2X          HW_VER_SIMPLE(HW_VER_FMUV2X_STATE)
 #endif
 
 #if defined(BOARD_HAS_HW_VERSIONING)

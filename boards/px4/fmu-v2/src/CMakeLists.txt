@@ -39,7 +39,6 @@ add_library(drivers_board
 	spi.cpp
 	timer_config.cpp
 	usb.c
-	manifest.c
 )
 
 target_link_libraries(drivers_board

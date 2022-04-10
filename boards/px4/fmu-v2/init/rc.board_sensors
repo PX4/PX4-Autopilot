@@ -4,84 +4,28 @@
 #------------------------------------------------------------------------------
 
 rgbled start -I
-rgbled_ncp5623c start -I
 
 board_adc start
 
 # Internal I2C bus
 hmc5883 -T -I -R 4 start
 
-# V2
-if ver hwtypecmp V2
+# SPI1
+if ! mpu6000 -s -b 1 -R 14 start
 then
-	# SPI1
-	mpu6000 -s -b 1 -R 14 start
-
-	lsm303d -s -b 1 -R 8 start
-
-	if ! l3gd20 -s -b 1 -R 14 start
-	then
-		l3gd20h -s -b 1 -R 12 start
-	fi
-
-	# SPI1 (auto detect ms5611 or ms5607)
-	if ! ms5611 -T 5607 -s -b 1 start
-	then
-		ms5611 -s -b 1 start
-	fi
+	mpu9250 -s -b 1 -R 14 start
 fi
 
+lsm303d -s -b 1 -R 8 start
 
-# V2M Pixhawk mini
-if ver hwtypecmp V2M
+if ! l3gd20 -s -b 1 -R 14 start
 then
-	# SPI1
-	icm20608g -s -b 1 -R 14 start
+	l3gd20h -s -b 1 -R 12 start
+fi
 
-	#mpu9250 -s -b 1 -R 14 start # unused mpu9250
-
+# SPI1 (auto detect ms5611 or ms5607)
+if ! ms5611 -T 5607 -s -b 1 start
+then
 	ms5611 -s -b 1 start
-fi
-
-
-# V3 build hwtypecmp supports V2|V2M|V30
-if ver hwtypecmp V30
-then
-	# sensor heating is available, but we disable it for now
-	param set-default SENS_EN_THERMAL 0
-
-	# SPI 4  (external/isolated)
-	if mpu9250 -s -b 4 -R 10 start
-	then
-		mpu6000 -s -b 4 -R 10 start
-	fi
-
-	ms5611 -s -b 4 start
-
-	# l3gd20 (external/isolated SPI4)
-	if ! l3gd20 -s -b 4 -R 14 start
-	then
-		l3gd20h -s -b 4 -R 14 start
-	fi
-
-	# lsm303d (external/isolated SPI4)
-	lsm303d -s -b 4 -R 14 start
-
-
-	# SPI1 internal mpu9250 (v2.1) or mpu6000 (v2.0)
-	if ! mpu9250 -s -b 1 start
-	then
-		# v2.0 internal mpu6000
-		mpu6000 -s -b 1 start
-
-		# v2.0 Has internal hmc5883 on SPI1
-		hmc5883 -T -s -b 1 -R 8 start
-	fi
-
-	# SPI1 Internal SPI (auto detect ms5611 or ms5607)
-	if ! ms5611 -T 5607 -s -b 1 start
-	then
-		ms5611 -s -b 1 start
-	fi
 fi
 

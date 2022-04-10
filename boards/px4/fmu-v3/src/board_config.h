@@ -62,6 +62,11 @@
 #define HW_VER_TYPE_INIT {'V','2',0, 0}
 #define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
 
+#define HW_VER_FMUV2           HW_VER_SIMPLE(HW_VER_FMUV2_STATE)
+#define HW_VER_FMUV3           HW_VER_SIMPLE(HW_VER_FMUV3_STATE)
+#define HW_VER_FMUV2MINI       HW_VER_SIMPLE(HW_VER_FMUV2MINI_STATE)
+#define HW_VER_FMUV2X          HW_VER_SIMPLE(HW_VER_FMUV2X_STATE)
+
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
