@@ -68,6 +68,197 @@ FixedwingPositionINDIControl::~FixedwingPositionINDIControl()
 	perf_free(_loop_perf);
 }
 
+int
+FixedwingPositionINDIControl::parameters_update()
+{
+	updateParams();
+
+	// INDI parameters
+    _K_x *= 0.f;
+    _K_v *= 0.f;
+    _K_a *= 0.f;
+    _K_q *= 0.f;
+    _K_w *= 0.f;
+    _K_x(0,0) = _param_k_x_roll.get();
+    _K_x(1,1) = _param_k_x_pitch.get();
+    _K_x(2,2) = _param_k_x_yaw.get();
+    _K_v(0,0) = _param_k_v_roll.get();
+    _K_v(1,1) = _param_k_v_pitch.get();
+    _K_v(2,2) = _param_k_v_yaw.get();
+    _K_a(0,0) = _param_k_a_roll.get();
+    _K_a(1,1) = _param_k_a_pitch.get();
+    _K_a(2,2) = _param_k_a_yaw.get();
+    _K_q(0,0) = _param_k_q_roll.get();
+    _K_q(1,1) = _param_k_q_pitch.get();
+    _K_q(2,2) = _param_k_q_yaw.get();
+    _K_w(0,0) = _param_k_w_roll.get();
+    _K_w(1,1) = _param_k_w_pitch.get();
+    _K_w(2,2) = _param_k_w_yaw.get();
+
+    // aircraft parameters
+    _mass = _param_fw_mass.get();
+    _area = _param_fw_wing_area.get();
+    _rho = _param_rho.get();
+    _C_L0 = _param_fw_c_l0.get();
+    _C_L1 = _param_fw_c_l1.get();
+    _C_D0 = _param_fw_c_d0.get();
+    _C_D1 = _param_fw_c_d1.get();
+    _C_D2 = _param_fw_c_d2.get();
+
+    // filter parameters
+    _a1 = _param_filter_a1.get();
+    _a2 = _param_filter_a2.get();
+    _b1 = _param_filter_b1.get();
+    _b2 = _param_filter_b2.get();
+    _b3 = _param_filter_b3.get();
+
+	// sanity check parameters
+    // TODO: include sanity check
+
+	return PX4_OK;
+}
+
+void
+FixedwingPositionINDIControl::airspeed_poll()
+{
+	bool airspeed_valid = _airspeed_valid;
+	airspeed_validated_s airspeed_validated;
+
+	if (_airspeed_validated_sub.update(&airspeed_validated)) {
+
+		if (PX4_ISFINITE(airspeed_validated.calibrated_airspeed_m_s)
+		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
+		    && (airspeed_validated.calibrated_airspeed_m_s > 0.0f)) {
+
+			airspeed_valid = true;
+
+			_airspeed_last_valid = airspeed_validated.timestamp;
+			_airspeed = airspeed_validated.calibrated_airspeed_m_s;
+		}
+
+	} else {
+		// no airspeed updates for one second
+		if (airspeed_valid && (hrt_elapsed_time(&_airspeed_last_valid) > 1_s)) {
+			airspeed_valid = false;
+		}
+	}
+    _airspeed_valid = airspeed_valid;
+}
+
+void
+FixedwingPositionINDIControl::airflow_aoa_poll()
+{
+	bool aoa_valid = _aoa_valid;
+	airflow_aoa_s aoa_validated;
+
+	if (_airflow_aoa_sub.update(&aoa_validated)) {
+
+		if (PX4_ISFINITE(aoa_validated.aoa_rad)
+		    && (aoa_validated.valid)) {
+
+			aoa_valid = true;
+
+			_aoa_last_valid = aoa_validated.timestamp;
+			_aoa = aoa_validated.aoa_rad;
+		}
+
+	} else {
+		// no aoa updates for one second
+		if (aoa_valid && (hrt_elapsed_time(&_aoa_last_valid) > 1_s)) {
+			aoa_valid = false;
+		}
+	}
+    _aoa_valid = aoa_valid;
+}
+
+void
+FixedwingPositionINDIControl::airflow_slip_poll()
+{
+	bool slip_valid = _slip_valid;
+	airflow_slip_s slip_validated;
+
+	if (_airflow_slip_sub.update(&slip_validated)) {
+
+		if (PX4_ISFINITE(slip_validated.slip_rad)
+		    && (slip_validated.valid)) {
+
+			slip_valid = true;
+
+			_slip_last_valid = slip_validated.timestamp;
+			_slip = slip_validated.slip_rad;
+		}
+
+	} else {
+		// no aoa updates for one second
+		if (slip_valid && (hrt_elapsed_time(&_slip_last_valid) > 1_s)) {
+			slip_valid = false;
+		}
+	}
+    _slip_valid = slip_valid;
+}
+
+void
+FixedwingPositionINDIControl::vehicle_attitude_poll()
+{
+	vehicle_attitude_s att;
+	if (_vehicle_attitude_sub.update(&att)) {
+		_att = Quatf(att.q);
+    }
+    if(att.timestamp_sample-hrt_absolute_time() > 50_ms){
+        PX4_ERR("attitude sample is too old");
+    }
+}
+
+void
+FixedwingPositionINDIControl::vehicle_angular_velocity_poll()
+{
+	vehicle_angular_velocity_s omega;
+	if (_vehicle_angular_velocity_sub.update(&omega)) {
+		_omega = Vector3f(omega.xyz);
+    }
+    if(omega.timestamp_sample-hrt_absolute_time() > 50_ms){
+        PX4_ERR("angular velocity sample is too old");
+    }
+}
+
+void
+FixedwingPositionINDIControl::vehicle_angular_acceleration_poll()
+{
+	vehicle_angular_acceleration_s alpha;
+	if (_vehicle_angular_acceleration_sub.update(&alpha)) {
+		_alpha = Vector3f(alpha.xyz);
+    }
+    if(alpha.timestamp_sample-hrt_absolute_time() > 50_ms){
+        PX4_ERR("angular acceleration sample is too old");
+    }
+}
+
+void
+FixedwingPositionINDIControl::vehicle_local_position_poll()
+{
+    vehicle_local_position_s pos;
+    if (_vehicle_local_position_sub.update(&pos)) {
+		_pos = Vector3f(pos.x,pos.y,pos.z);
+        _vel = Vector3f(pos.vx,pos.vy,pos.vz);
+        _acc = Vector3f(pos.ax,pos.ay,pos.az);
+    }
+    if(pos.timestamp_sample-hrt_absolute_time() > 50_ms){
+        PX4_ERR("local position sample is too old");
+    }
+}
+
+void
+FixedwingPositionINDIControl::Run()
+{
+    // only run controller if pos, vel, acc changed
+	vehicle_local_position_s pos;
+
+	if (_vehicle_local_position_sub.update(&pos))
+    {
+        PX4_INFO("running");
+    }
+}
+
 void
 FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
 {
@@ -158,7 +349,7 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     // add gravity
     acc(2) += 9.81f;
     // compute required force
-    Vector3f f = _param_fw_mass.get()*acc;
+    Vector3f f = _mass*acc;
     // compute force component projected onto lift axis
     Vector3f vel_normalized = vel_air.normalized();
     Vector3f f_lift = f - f*vel_normalized;
@@ -177,7 +368,7 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     R_bi(2,2) = lift_normalized(2);
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = ((2.f*f_phi(2))/(_param_rho.get()*_param_fw_wing_area.get()*(vel_air*vel_air)) - _param_fw_c_l0.get())/_param_fw_c_l1.get();
+    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)) - _C_L0)/_C_L1;
     // compute final rotation matrix
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
@@ -269,7 +460,7 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
     R_bi(2,2) = lift_normalized(2);
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = ((2.f*f_phi(2))/(_param_rho.get()*_param_fw_wing_area.get()*(vel_air*vel_air)) - _param_fw_c_l0.get())/_param_fw_c_l1.get();
+    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)) - _C_L0)/_C_L1;
     // compute final rotation matrix
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
@@ -307,7 +498,7 @@ FixedwingPositionINDIControl::_compute_NDI_control_input(Vector3f pos, Vector3f 
     // add gravity
     acc_command(2) += 9.81f;
     // get force comand in world frame
-    Vector3f f_command = _param_fw_mass.get()*acc_command;
+    Vector3f f_command = _mass*acc_command;
     // get required attitude (assuming we can fly the target velocity)
     Dcmf R_ref(_get_attitude(v_ref,f_command));
     // get attitude error
@@ -329,9 +520,39 @@ FixedwingPositionINDIControl::_compute_NDI_control_input(Vector3f pos, Vector3f 
     return;
 }
 
+int FixedwingPositionINDIControl::task_spawn(int argc, char *argv[])
+{
+	FixedwingPositionINDIControl *instance = new FixedwingPositionINDIControl();
 
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
 
+		if (instance->init()) {
+			return PX4_OK;
+		}
 
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
+
+bool
+FixedwingPositionINDIControl::init()
+{
+	if (!_local_pos_sub.registerCallback()) {
+		PX4_ERR("vehicle position callback registration failed!");
+		return false;
+	}
+
+	return true;
+}
 
 int FixedwingPositionINDIControl::custom_command(int argc, char *argv[])
 {

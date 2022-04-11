@@ -97,7 +97,7 @@ private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};             // airspeed 
     uORB::Subscription _airflow_aoa_sub{ORB_ID(airflow_aoa)};                           // angle of attack
     uORB::Subscription _airflow_slip_sub{ORB_ID(airflow_slip)};                         // angle of sideslip
-    uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};   // global position
+    //uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};   // global position
     uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};     // local NED position
     uORB::Subscription _vehicle_odometry_sub{ORB_ID(vehicle_odometry)};                 // vehicle velocity
     uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};         // vehicle acceleration
@@ -123,7 +123,6 @@ private:
 		(ParamFloat<px4::params::FW_WING_AREA>) _param_fw_wing_area,
 		(ParamFloat<px4::params::RHO>) _param_rho,
 		// aerodynamic params
-
 		(ParamFloat<px4::params::C_L0>) _param_fw_c_l0,
 		(ParamFloat<px4::params::C_L1>) _param_fw_c_l1,
 		(ParamFloat<px4::params::C_D0>) _param_fw_c_d0,
@@ -166,14 +165,21 @@ private:
 	int		parameters_update();
 
 	// Update subscriptions
+	void        wind_poll();
 	void		airspeed_poll();
+	void		airflow_aoa_poll();
+	void 		airflow_slip_poll();
+
+	void		vehicle_local_position_poll();
+	void		vehicle_attitude_poll();
+	void		vehicle_angular_velocity_poll();
+	void		vehicle_angular_acceleration_poll();
+	
 	void		control_update();
 	void 		manual_control_setpoint_poll();
-	void		vehicle_attitude_poll();
 	void		vehicle_command_poll();
 	void		vehicle_control_mode_poll();
 	void		vehicle_status_poll();
-	void        wind_poll();
 
 	//
 	void		status_publish();
@@ -202,19 +208,6 @@ private:
 	Vector<float, _num_basis_funs> _basis_coeffs_x;				// coefficients of the current path
 	Vector<float, _num_basis_funs> _basis_coeffs_y;				// coefficients of the current path
 	Vector<float, _num_basis_funs> _basis_coeffs_z;				// coefficients of the current path
-	/*
-	Vector3f _pos;
-	Vector3f _pos_sp;
-	Vector3f _vel;
-	Vector3f _vel_sp;
-	Vector3f _acc;
-	Vector3f _acc_sp;
-	Quatf _att;
-	Quatf _att_sp;
-	Vector3f _omega;
-	Vector3f _omega_sp;
-	Vector3f _alpha;
-	*/
 	Vector3f _alpha_sp;
 	Vector3f _wind_estimate;
 	Matrix3f _K_x;
@@ -222,12 +215,47 @@ private:
 	Matrix3f _K_a;
 	Matrix3f _K_q;
 	Matrix3f _K_w;
+	Vector3f _pos;
+	Vector3f _vel;
+	Vector3f _acc;
+	Quatf _att;			// attitude quaternion
+	Vector3f _omega;	// angular rate vector
+	Vector3f _alpha;	// angular acceleration vector
 
 	// filter variables
 	std::array<Vector3f, 3> _f_list;
 	std::array<Vector3f, 3> _a_list;
 	std::array<Vector3f, 3> _f_lpf_list;
 	std::array<Vector3f, 3> _a_lpf_list;
+
+	// parameter variables
+	float _mass;
+	float _area;
+	float _rho;
+	float _C_L0;
+	float _C_L1;
+	float _C_D0;
+	float _C_D1;
+	float _C_D2;
+	float _a1;
+	float _a2;
+	float _b1;
+	float _b2;
+	float _b3;
+
+	// misc. variables
+	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
+	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.
+	float _airspeed{0.0f};
+
+	bool _aoa_valid{false};				///< flag if a valid AoA estimate exists
+	hrt_abstime _aoa_last_valid{0};			///< last time Aoa was received. Used to detect timeouts.
+	float _aoa{0.0f};
+
+	bool _slip_valid{false};				///< flag if a valid AoA estimate exists
+	hrt_abstime _slip_last_valid{0};			///< last time Aoa was received. Used to detect timeouts.
+	float _slip{0.0f};
+
 
 };
 
