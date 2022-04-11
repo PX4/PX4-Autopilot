@@ -201,8 +201,8 @@ private:
 	Vector3f _get_angular_velocity_ref(float t=0, float T=1);	// get the reference angular velocity on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Vector3f _get_angular_acceleration_ref(float t=0, float T=1);	// get the reference angular acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Quatf _get_attitude(Vector3f vel, Vector3f f);	// get the attitude to produce force f while flying with velocity vel
-	void _compute_NDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
-	void _compute_INDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
+	Vector3f _compute_NDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
+	Vector3f _compute_INDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
 
 	// control variables
 	Vector<float, _num_basis_funs> _basis_coeffs_x;				// coefficients of the current path
@@ -221,6 +221,7 @@ private:
 	Quatf _att;			// attitude quaternion
 	Vector3f _omega;	// angular rate vector
 	Vector3f _alpha;	// angular acceleration vector
+	hrt_abstime _last_run{0};
 
 	// filter variables
 	std::array<Vector3f, 3> _f_list;
