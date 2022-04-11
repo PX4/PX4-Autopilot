@@ -18,3 +18,6 @@ uint8 CLIPPING_X = 1
 uint8 CLIPPING_Y = 2
 uint8 CLIPPING_Z = 4
 uint8 accelerometer_clipping            # bitfield indicating if there was any accelerometer clipping (per axis) during the sampling period
+
+uint8 accel_calibration_count  	# Calibration changed counter. Monotonically increases whenever accelermeter calibration changes.
+uint8 gyro_calibration_count   	# Calibration changed counter. Monotonically increases whenever rate gyro calibration changes.
