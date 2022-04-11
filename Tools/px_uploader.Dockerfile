@@ -2,11 +2,12 @@ FROM python:alpine3.14
 
 # run this with something like:
 #
-#   $ docker run --rm -it --device=/dev/ttyS7:/dev/px4serial px4-fw-updater \
-# 		--port=/dev/px4serial \
-#		--baud-bootloader=115200 \
-#		--baud-flightstack=1000000 \
-#		px4_fmu-v5_ssrc.px4
+#   $ docker run --rm -it --network=host --device=/dev/ttyS7:/dev/px4serial px4-fw-updater \
+#     --udp-addr=192.168.200.101 \
+#     --udp-port=14541 \
+#     --port=/dev/px4serial \
+#     --baud-bootloader=2000000 \
+#     px4_fmu-v5_ssrc.px4
 
 # This gets built in environment with somewhat unorthodox paths:
 # - The build context is at /
