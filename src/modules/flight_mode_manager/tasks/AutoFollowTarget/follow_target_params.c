@@ -37,6 +37,7 @@
  * Parameters for follow target mode
  *
  * @author Jimmy Johnson <catch22@fastmail.net>
+ * @author Junwoo Hwang <junwoo091400@gmail.com>
  */
 
 /*
@@ -44,7 +45,20 @@
  */
 
 /**
- * Follow target altitude
+ * Dynamic filtering algorithm responsiveness to target movement in Target Estimator
+ *
+ * lower values increase the responsiveness to changing long lat
+ * but also ignore less noise
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @group Follow target
+ */
+PARAM_DEFINE_FLOAT(FLW_TGT_RS, 0.1f);
+
+/**
+ * Follow target height
  *
  * The height in meters for following a target
  *
@@ -102,28 +116,14 @@ PARAM_DEFINE_INT32(FLW_TGT_FS, 1);
 PARAM_DEFINE_INT32(FLW_TGT_ALT_M, 0);
 
 /**
- * Yaw setpoint filter time constant
+ * Maximum velocity setting for generating the follow orbit trajectory
+ *
+ * This is the maximum velocity the drone will circle around the target whenever
+ * an orbit angle setpoint changes. Higher value means more aggressive follow behavior.
  *
  * @min 0.0
- * @max 1.0
- * @decimal 2
+ * @max 20.0
+ * @decimal 1
  * @group Follow target
  */
-PARAM_DEFINE_FLOAT(FLW_TGT_YAW_T, 0.1f);
-
-/**
- * Dynamic filtering algorithm responsiveness to target movement in Target Estimator
- *
- * lower values increase the responsiveness to changing long lat
- * but also ignore less noise
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @group Follow target
- */
-PARAM_DEFINE_FLOAT(FLW_TGT_RS, 0.1f);
-
 PARAM_DEFINE_FLOAT(FLW_TGT_MAX_VEL, 5.0f);
-
-PARAM_DEFINE_FLOAT(FLW_TGT_MAX_ACC, 5.0f);

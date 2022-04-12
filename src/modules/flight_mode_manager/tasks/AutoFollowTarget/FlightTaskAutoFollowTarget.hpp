@@ -57,9 +57,10 @@
 #include <uORB/topics/vehicle_command.h>
 
 #include <lib/mathlib/math/filter/second_order_reference_model.hpp>
-#include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <lib/matrix/matrix/helper_functions.hpp>
 #include <motion_planning/VelocitySmoothing.hpp>
+
+// << Follow Target Behavior related constants >>
 
 // [m] Minimum safety altitude above home (or bottom distance sensor)
 // underneath which the flight task will stop moving horizontally
@@ -76,16 +77,32 @@ static constexpr float ALT_ACCEPTANCE_THRESHOLD = 3.0f;
 // [m] Minimum distance between drone and target for the drone to do any yaw control.
 static constexpr float MINIMUM_DISTANCE_TO_TARGET_FOR_YAW_CONTROL = 1.0f;
 
-// Second order filter parameter for target position filter
-static constexpr float TARGET_POS_VEL_FILTER_NATURAL_FREQUENCY = 1.0f; // [rad/s]
+// << Target Position Velocity Estimator related constants >>
+
+// [rad/s] Second Order reference model filter natural frequency
+static constexpr float TARGET_POS_VEL_FILTER_NATURAL_FREQUENCY = 1.0f;
+
+// [.] Second Order reference model filter damping ratio
 static constexpr float TARGET_POS_VEL_FILTER_DAMPING_RATIO = 0.7071;
 
 // [us] If the target estimator output isn't updated longer than this, reset pose filter.
 static constexpr uint64_t TARGET_ESTIMATOR_TIMEOUT_US = 1500000UL;
 
+// << Target Course Angle Tracking related constants >>
+
 // [m/s] Speed deadzone for which, under this velocity, the target orientation
 // tracking will freeze, since orientation can be noisy in low velocities
 static constexpr float TARGET_SPEED_DEADZONE_FOR_ORIENTATION_TRACKING = 1.0;
+
+// << Orbit Angle control related constants >>
+
+// [m/s^3] Maximum Jerk setting for generating the Follow Target Orbit trajectory
+static constexpr float ORBIT_TRAJECTORY_MAX_JERK = 4.0;
+
+// [m/s^2] Maximum acceleration setting for generating the Follow Target Orbit trajectory
+static constexpr float ORBIT_TRAJECTORY_MAX_ACCELERATION = 2.0;
+
+// << RC Adjustment related constants >>
 
 // [m/s] Speed with which the follow distance will be adjusted by when commanded with deflection via RC command
 static constexpr float FOLLOW_DISTANCE_USER_ADJUST_SPEED = 2.0;
@@ -100,10 +117,10 @@ static constexpr float FOLLOW_HEIGHT_MAX = 100.f;
 // [rad/s] Angular rate with which the follow distance will be adjusted by when commanded with full deflection via RC command
 static constexpr float FOLLOW_ANGLE_USER_ADJUST_SPEED = 1.5;
 
-// [seconds] Arbitrary time window constant that gets multiplied to user adjustment speed, to calculate the
-// 'acceptable' error in orbit angle / height and distance, to which if the difference between the setpoint
-// and actual state is smaller than this error, RC adjustments get applied.
-// This is introduced to prevent setpoint adjustments becoming too diverged from the vehicle's actual position
+// [s] Time window constant that gets multiplied to user adjustment speed, to calculate the
+// 'acceptable' error in orbit angle / height / distance. If the difference between the setpoint
+// and actual state of the drone is smaller than this error, RC adjustments get applied.
+// Prevents setpoints diverging from the vehicle's actual position too much
 static constexpr float USER_ADJUSTMENT_ERROR_TIME_WINDOW = 0.5f;
 
 // Deadzone on both +/- direction for normalized stick input (-1, +1) where user adjustment will be ignored
@@ -202,18 +219,16 @@ protected:
 	/**
 	 * Calculate the tracked target orientation and overwrite the tracked target orientation if necessary
 	 *
-	 * @param target_velocity Filtered Target velocity from which we will calculate target orientation
-	 * @param current_target_orientation  Tracked target orientation value that will be over-written with new orientation
-	 */
-	void update_target_orientation(const Vector2f &target_velocity, float &current_target_orientation);
-
-	/**
-	 * Release Gimbal Control
+	 * Note : Filtered target velocity is generated via 2nd order reference model filter can have overshooting behaviors
+	 * when target stops it's motion. This can generate a target velocity output that is opposite direction to where target was heading originally.
+	 * To check if the filtered velocity is staying true to target's actual motion, unfiltered velocity needs to be taken into account. Since during
+	 * overshoot, the unfiltered velocity stays close to 0 (indicating target already stopped), therefore not triggering a target orientation setting.
 	 *
-	 * Releases Gimbal Control Authority of Follow-Target Flight Task, to allow other modules / Ground station
-	 * to control the gimbal when the task exits.
+	 * @param current_target_orientation  Tracked target orientation value that will be over-written with new orientation
+	 * @param target_velocity Filtered Target velocity from which we will calculate target orientation
+	 * @param target_velocity_unfiltered Unfiltered Target velocity that aids in verifying if filtered velocity is accurate
 	 */
-	void release_gimbal_control();
+	void update_target_orientation(float &current_target_orientation, const Vector2f &target_velocity, const Vector2f &target_velocity_unfiltered);
 
 	/**
 	 * Updates the orbit angle setpoint, taking into account the maximal orbit tangential speed
@@ -232,6 +247,8 @@ protected:
 	 * Returns the orbit angle setpoint, taking into account the maximal orbit tangential speed.
 	 *
 	 * @param orbit_angle_setpoint Orbit angle setpoint
+	 *
+	 * @return 2D Velocity Vector [m/s, m/s] of current orbit position setpoint
 	*/
 	Vector2f get_orbit_tangential_velocity(const float orbit_angle_setpoint) const;
 
@@ -273,11 +290,20 @@ protected:
 	 */
 	float get_follow_angle_setting_deg(const FollowPerspective follow_perspective) const;
 
+	/**
+	 * Release Gimbal Control
+	 *
+	 * Releases Gimbal Control Authority of Follow-Target Flight Task, to allow other modules / Ground station
+	 * to control the gimbal when the task exits.
+	 */
+	void release_gimbal_control();
+
 	// Sticks object to read in stick commands from the user
 	Sticks _sticks;
 
-	// Estimator for target position and velocity
+	// Alpha-Beta-Gamma estimator for initial estimation of target position and velocity
 	TargetEstimator _target_estimator;
+	// Struct to hold target estimator's output data
 	follow_target_estimator_s _follow_target_estimator;
 
 	// Last target estimator timestamp to handle timeout filter reset
@@ -291,38 +317,33 @@ protected:
 	float _follow_height{10.0f}; // [m]
 	float _follow_angle_rad{0.0f}; // [rad]
 
-	// Tracked estimate of target's course (where velocity vector is pointing)
+	// Tracked estimate of target's course (where velocity vector is pointing). Initialized as North direction
 	float _target_course_rad{0.0f};
-	// Tracked orbit angle setpoint
+	// Tracked orbit angle setpoint that gets calculated from Jerk-limited trajectory. Initialized in North direction.
 	float _orbit_angle_setpoint_rad{0.0f};
 
-	// Angular acceleration limited orbit angle setpoint curve trajectory generator
+	// Angular Jerk limited orbit angle setpoint trajectory generator
 	VelocitySmoothing _orbit_angle_traj_generator;
 
-	// Yaw setpoint filter to remove jitter-ness
-	AlphaFilter<float> _yaw_setpoint_filter;
-
-	// Variable to remember the home position's z coordinate, which will be baseline for the position z setpoint
+	// Variable to remember the home position (take-off point) z coordinate, where the follow height will be measured from
 	float _home_position_z;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		FlightTask,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
-		(ParamFloat<px4::params::NAV_MIN_FT_HT>) _param_nav_min_ft_ht,
-		(ParamFloat<px4::params::NAV_FT_MIN_HT>) _param_nav_ft_min_ht,
-		(ParamFloat<px4::params::NAV_FT_DST>) _param_nav_ft_dst,
-		(ParamInt<px4::params::NAV_FT_FS>) _param_nav_ft_fs,
-		(ParamInt<px4::params::NAV_FT_ALT_M>) _param_nav_ft_alt_m,
-		(ParamFloat<px4::params::NAV_FT_YAW_T>) _param_ft_yaw_t
+		(ParamFloat<px4::params::FLW_TGT_HT>) _param_flw_tgt_ht,
+		(ParamFloat<px4::params::FLW_TGT_DST>) _param_flw_tgt_dst,
+		(ParamInt<px4::params::FLW_TGT_FS>) _param_flw_tgt_fs,
+		(ParamInt<px4::params::FLW_TGT_ALT_M>) _param_flw_tgt_alt_m,
+		(ParamFloat<px4::params::FLW_TGT_MAX_VEL>) _param_flw_tgt_max_vel
 	)
 
+	// uORB topics to subscribe to
 	uORB::Subscription _follow_target_estimator_sub{ORB_ID(follow_target_estimator)};
 
+	// uORB topics to publish
 	uORB::Publication<follow_target_status_s> _follow_target_status_pub{ORB_ID(follow_target_status)};
 	uORB::Publication<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
-
-	// Debugging
-	float _gimbal_pitch{0};
 };
