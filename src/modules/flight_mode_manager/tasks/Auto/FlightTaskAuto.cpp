@@ -81,7 +81,7 @@ bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setp
 	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
-	_commanded_speed_ts = 0;
+	_time_last_cruise_speed_override = 0;
 
 	return ret;
 }
@@ -226,7 +226,7 @@ bool FlightTaskAuto::update()
 void FlightTaskAuto::overrideCruiseSpeed(const float cruise_speed_m_s)
 {
 	_mc_cruise_speed = cruise_speed_m_s;
-	_commanded_speed_ts = hrt_absolute_time();
+	_time_last_cruise_speed_override = hrt_absolute_time();
 }
 
 void FlightTaskAuto::_prepareLandSetpoints()
@@ -354,8 +354,9 @@ bool FlightTaskAuto::_evaluateTriplets()
 	// Prioritize cruise speed from the triplet when it's valid and more recent than the previously commanded cruise speed
 	const float cruise_speed_from_triplet = _sub_triplet_setpoint.get().current.cruising_speed;
 
-	if (PX4_ISFINITE(cruise_speed_from_triplet) && cruise_speed_from_triplet >= 0
-	    && _sub_triplet_setpoint.get().current.timestamp > _commanded_speed_ts) {
+	if (PX4_ISFINITE(cruise_speed_from_triplet)
+	    && (cruise_speed_from_triplet > 0.f)
+	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_cruise_speed_override)) {
 		_mc_cruise_speed = cruise_speed_from_triplet;
 	}
 
