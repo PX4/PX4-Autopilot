@@ -57,7 +57,7 @@ FixedwingPositionINDIControl::FixedwingPositionINDIControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	// limit to 50 Hz
-	_local_pos_sub.set_interval_ms(20);
+	_vehicle_local_position_sub.set_interval_ms(20);
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -236,15 +236,22 @@ FixedwingPositionINDIControl::vehicle_angular_acceleration_poll()
 void
 FixedwingPositionINDIControl::vehicle_local_position_poll()
 {
-    vehicle_local_position_s pos;
-    if (_vehicle_local_position_sub.update(&pos)) {
-		_pos = Vector3f(pos.x,pos.y,pos.z);
-        _vel = Vector3f(pos.vx,pos.vy,pos.vz);
-        _acc = Vector3f(pos.ax,pos.ay,pos.az);
+    //vehicle_local_position_s pos;
+    if (_vehicle_local_position_sub.update(&_local_pos)) {
+        PX4_INFO("updated position!");
+		_pos = Vector3f(_local_pos.x,_local_pos.y,_local_pos.z);
+        _vel = Vector3f(_local_pos.vx,_local_pos.vy,_local_pos.vz);
+        _acc = Vector3f(_local_pos.ax,_local_pos.ay,_local_pos.az);
     }
-    if(hrt_absolute_time()-pos.timestamp > 50_ms){
-        //PX4_ERR("local position sample is too old");
-        PX4_INFO("timestamps:\t%.1f\t%.1f",(double)hrt_absolute_time(),(double)pos.timestamp);
+    if(hrt_absolute_time()-_local_pos.timestamp > 50_ms){
+        PX4_ERR("local position sample is too old");
+        /*
+        PX4_INFO("timestamps:\t%.4f\t%.4f\t%.4f",
+            (double)hrt_absolute_time(),
+            (double)_local_pos.timestamp,
+            (double)_local_pos.timestamp_sample);
+            */  
+        //print_message(_local_pos);
     }
 }
 
@@ -259,11 +266,9 @@ void
 FixedwingPositionINDIControl::Run()
 {
     // only run controller if pos, vel, acc changed
-	vehicle_local_position_s pos;
-
     perf_begin(_loop_perf);
 
-	if (_vehicle_local_position_sub.update(&pos))
+	if (_vehicle_local_position_sub.update(&_local_pos))
     {   
         // only update parameters if they changed
 		bool params_updated = _parameter_update_sub.updated();
@@ -280,7 +285,7 @@ FixedwingPositionINDIControl::Run()
 		}
 
 		//const float dt = math::constrain((pos.timestamp - _last_run) * 1e-6f, 0.002f, 0.04f);
-		_last_run = pos.timestamp;
+		_last_run = _local_pos.timestamp;
 
         // run polls
         _set_wind_estimate(Vector3f(0.f,0.f,0.f));
@@ -289,9 +294,9 @@ FixedwingPositionINDIControl::Run()
         //airflow_slip_poll();
 
         vehicle_local_position_poll();
-        //vehicle_attitude_poll();
-        //vehicle_angular_velocity_poll();
-        //vehicle_angular_acceleration_poll();
+        vehicle_attitude_poll();
+        vehicle_angular_velocity_poll();
+        vehicle_angular_acceleration_poll();
 
         // compute control input
         Vector3f ctrl = _compute_NDI_control_input(_pos,_vel,_acc,_att,_omega,_alpha);
@@ -303,6 +308,7 @@ FixedwingPositionINDIControl::Run()
         _angular_accel_sp.xyz[1] = ctrl(1);
         _angular_accel_sp.xyz[2] = ctrl(2);
         _alpha_sp_pub.publish(_angular_accel_sp);
+        //print_message(_angular_accel_sp);
 
         //PX4_INFO("running");
     }
@@ -582,7 +588,7 @@ int FixedwingPositionINDIControl::task_spawn(int argc, char *argv[])
 bool
 FixedwingPositionINDIControl::init()
 {
-	if (!_local_pos_sub.registerCallback()) {
+	if (!_vehicle_local_position_sub.registerCallback()) {
 		PX4_ERR("vehicle position callback registration failed!");
 		return false;
 	}

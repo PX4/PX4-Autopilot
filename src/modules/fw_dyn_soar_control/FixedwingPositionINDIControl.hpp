@@ -49,7 +49,6 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
@@ -89,7 +88,7 @@ private:
 
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
-	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -98,7 +97,7 @@ private:
     uORB::Subscription _airflow_aoa_sub{ORB_ID(airflow_aoa)};                           // angle of attack
     uORB::Subscription _airflow_slip_sub{ORB_ID(airflow_slip)};                         // angle of sideslip
     //uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};   // global position
-    uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};     // local NED position
+    //uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};     // local NED position
     uORB::Subscription _vehicle_odometry_sub{ORB_ID(vehicle_odometry)};                 // vehicle velocity
     uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};         // vehicle acceleration
     uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};                 // vehicle attitude
