@@ -447,7 +447,7 @@ void FlightModeManager::handleCommand()
 			if ((command.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED)
 			    && (static_cast<uint8_t>(command.param1 + .5f) == vehicle_command_s::SPEED_TYPE_GROUNDSPEED)
 			    && (command.param2 > 0.f)) {
-				_current_task.task->setCruisingSpeed(command.param2);
+				_current_task.task->overrideCruiseSpeed(command.param2);
 			}
 		}
 	}

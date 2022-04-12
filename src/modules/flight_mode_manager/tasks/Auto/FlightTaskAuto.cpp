@@ -223,6 +223,12 @@ bool FlightTaskAuto::update()
 	return ret;
 }
 
+void FlightTaskAuto::overrideCruiseSpeed(const float cruise_speed_m_s)
+{
+	_mc_cruise_speed = cruise_speed_m_s;
+	_commanded_speed_ts = hrt_absolute_time();
+}
+
 void FlightTaskAuto::_prepareLandSetpoints()
 {
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
@@ -345,7 +351,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	_type = (WaypointType)_sub_triplet_setpoint.get().current.type;
 
-	// Override a commanded cruise speed if the cruise speed from the triplet is valid and more recent
+	// Prioritize cruise speed from the triplet when it's valid and more recent than the previously commanded cruise speed
 	const float cruise_speed_from_triplet = _sub_triplet_setpoint.get().current.cruising_speed;
 
 	if (PX4_ISFINITE(cruise_speed_from_triplet) && cruise_speed_from_triplet >= 0
