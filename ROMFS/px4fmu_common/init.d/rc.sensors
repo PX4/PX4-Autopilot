@@ -95,6 +95,12 @@ then
 	paw3902 -S start
 fi
 
+# Check for px4flow sensor
+if param compare -s SENS_EN_PX4FLOW 1
+then
+	px4flow start -X
+fi
+
 # vl53l1x i2c distance sensor
 if param compare -s SENS_EN_VL53L1X 1
 then
