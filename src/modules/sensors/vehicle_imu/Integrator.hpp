@@ -51,7 +51,7 @@ public:
 	Integrator() = default;
 	~Integrator() = default;
 
-	static constexpr float DT_MIN{FLT_MIN};
+	static constexpr float DT_MIN{1e-6f}; // 1 microsecond
 	static constexpr float DT_MAX{static_cast<float>(UINT16_MAX) * 1e-6f};
 
 	/**
