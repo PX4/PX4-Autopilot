@@ -75,7 +75,7 @@ bool MulticopterPositionControl::init()
 	return true;
 }
 
-int MulticopterPositionControl::parameters_update(bool force)
+void MulticopterPositionControl::parameters_update(bool force)
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
@@ -239,8 +239,6 @@ int MulticopterPositionControl::parameters_update(bool force)
 		_takeoff.setTakeoffRampTime(_param_mpc_tko_ramp_t.get());
 		_takeoff.generateInitialRampValue(_param_mpc_z_vel_p_acc.get());
 	}
-
-	return OK;
 }
 
 PositionControlStates MulticopterPositionControl::set_vehicle_states(const vehicle_local_position_s &local_pos)
