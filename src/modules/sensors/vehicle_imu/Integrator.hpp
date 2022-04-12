@@ -188,6 +188,8 @@ public:
 		_last_alpha.zero();
 	}
 
+	const matrix::Vector3f &accumulated_coning_corrections() const { return _beta; }
+
 	/* Reset integrator and return current integral & integration time
 	 *
 	 * @param integral_dt	Get the dt in us of the current integration.
