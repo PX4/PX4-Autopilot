@@ -214,7 +214,7 @@ private:
 	 * Parameter update can be forced when argument is true.
 	 * @param force forces parameter update.
 	 */
-	int parameters_update(bool force);
+	void parameters_update(bool force);
 
 	/**
 	 * Check for validity of positon/velocity states.
