@@ -167,6 +167,7 @@ public:
 	 * This method does nothing, each flighttask which wants to use the yaw handler needs to override this method.
 	 */
 	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {}
+	virtual void overrideCruiseSpeed(const float cruise_speed_m_s) {}
 
 	void updateVelocityControllerFeedback(const matrix::Vector3f &vel_sp,
 					      const matrix::Vector3f &acc_sp)
@@ -174,8 +175,6 @@ public:
 		_velocity_setpoint_feedback = vel_sp;
 		_acceleration_setpoint_feedback = acc_sp;
 	}
-
-	virtual bool setCruisingSpeed(const float cruising_speed_m_s) { return false; }
 
 protected:
 	uORB::SubscriptionData<vehicle_local_position_s> _sub_vehicle_local_position{ORB_ID(vehicle_local_position)};

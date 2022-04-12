@@ -92,17 +92,11 @@ public:
 	bool updateInitialize() override;
 	bool update() override;
 
-	bool setCruisingSpeed(const float cruising_speed_m_s) override
-	{
-		_mc_cruise_speed = cruising_speed_m_s;
-		_commanded_speed_ts = hrt_absolute_time();
-		return true;
-	}
-
 	/**
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
 	 */
 	void setYawHandler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
+	void overrideCruiseSpeed(const float cruise_speed_m_s) override;
 
 protected:
 	matrix::Vector2f _getTargetVelocityXY(); /**< only used for follow-me and only here because of legacy reason.*/
