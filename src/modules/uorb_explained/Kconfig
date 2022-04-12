@@ -1,0 +1,5 @@
+menuconfig MODULES_UORB_EXPLAINED
+	bool "uorb_explained module"
+	default y
+	---help---
+		uORB Explained Module

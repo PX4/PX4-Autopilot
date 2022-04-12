@@ -81,6 +81,12 @@ void LoggedTopics::add_default_topics()
 	add_topic("offboard_control_mode", 100);
 	add_topic("onboard_computer_status", 10);
 	add_topic("parameter_update");
+
+	// Pasta cook request from waiter to the chef
+	add_topic("pasta_cook");
+	// Pasta order from customer to the waiter
+	add_topic("pasta_order");
+
 	add_topic("position_controller_status", 500);
 	add_topic("position_setpoint_triplet", 200);
 	add_optional_topic("px4io_status");

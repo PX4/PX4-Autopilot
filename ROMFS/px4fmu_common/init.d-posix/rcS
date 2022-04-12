@@ -267,3 +267,5 @@ fi
 
 mavlink boot_complete
 replay trystart
+
+uorb_explained start
