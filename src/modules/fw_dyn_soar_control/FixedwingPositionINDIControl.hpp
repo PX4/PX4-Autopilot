@@ -53,6 +53,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind.h>
 #include <uORB/uORB.h>
+#include <iostream>
+#include <fstream>
 
 
 using namespace time_literals;
@@ -106,13 +108,16 @@ private:
 	
 
     // Publishers
-	uORB::Publication<vehicle_angular_acceleration_setpoint_s>		_alpha_sp_pub;
+	uORB::Publication<vehicle_angular_acceleration_setpoint_s>		_angular_accel_sp_pub;
 	
     // Message structs
 	vehicle_angular_acceleration_setpoint_s _angular_accel_sp {};
 	manual_control_setpoint_s	_manual_control_setpoint {};			///< r/c channel data
-	vehicle_control_mode_s		_control_mode {};		///< control mode
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position
+	vehicle_attitude_s			_attitude {};			///< vehicle attitude
+	vehicle_angular_velocity_s 	_angular_vel {};		///< vehicle angular velocity
+	vehicle_angular_acceleration_s	_angular_accel {};	///< vehicle angular acceleration
+	vehicle_control_mode_s		_control_mode {};		///< control mode
 	vehicle_status_s		    _vehicle_status {};		///< vehicle status
 
 	// parameter struct
@@ -184,9 +189,10 @@ private:
 	void		status_publish();
 
 	const int _num_points = 30;				// number of points on the precomputed trajectory
-	const static size_t _num_basis_funs = 15;			// number of basis functions used for the trajectory approximation
+	const static size_t _num_basis_funs = 16;			// number of basis functions used for the trajectory approximation
 
 	// controller methods
+	void _read_trajectory_coeffs_csv();				// read in the correct coefficients of the appropriate trajectory
 	void _set_wind_estimate(Vector3f wind);
 	float _get_closest_t(Vector3f pos);				// get the normalized time, at which the reference path is closest to the current position
 	Vector<float, _num_basis_funs> _get_basis_funs(float t=0);			// compute the vector of basis functions at normalized time t in [0,1]
@@ -204,9 +210,9 @@ private:
 	Vector3f _compute_INDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
 
 	// control variables
-	Vector<float, _num_basis_funs> _basis_coeffs_x;				// coefficients of the current path
-	Vector<float, _num_basis_funs> _basis_coeffs_y;				// coefficients of the current path
-	Vector<float, _num_basis_funs> _basis_coeffs_z;				// coefficients of the current path
+	Vector<float, _num_basis_funs> _basis_coeffs_x = {};				// coefficients of the current path
+	Vector<float, _num_basis_funs> _basis_coeffs_y = {};				// coefficients of the current path
+	Vector<float, _num_basis_funs> _basis_coeffs_z = {};				// coefficients of the current path
 	Vector3f _alpha_sp;
 	Vector3f _wind_estimate;
 	Matrix3f _K_x;

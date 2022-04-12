@@ -53,7 +53,7 @@ using matrix::wrap_pi;
 FixedwingPositionINDIControl::FixedwingPositionINDIControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_alpha_sp_pub(ORB_ID(vehicle_angular_acceleration_setpoint)),
+	_angular_accel_sp_pub(ORB_ID(vehicle_angular_acceleration_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	// limit to 50 Hz
@@ -200,11 +200,10 @@ FixedwingPositionINDIControl::airflow_slip_poll()
 void
 FixedwingPositionINDIControl::vehicle_attitude_poll()
 {
-	vehicle_attitude_s att;
-	if (_vehicle_attitude_sub.update(&att)) {
-		_att = Quatf(att.q);
+	if (_vehicle_attitude_sub.update(&_attitude)) {
+		_att = Quatf(_attitude.q);
     }
-    if(att.timestamp_sample-hrt_absolute_time() > 50_ms){
+    if(hrt_absolute_time()-_attitude.timestamp_sample > 50_ms){
         PX4_ERR("attitude sample is too old");
     }
 }
@@ -212,11 +211,10 @@ FixedwingPositionINDIControl::vehicle_attitude_poll()
 void
 FixedwingPositionINDIControl::vehicle_angular_velocity_poll()
 {
-	vehicle_angular_velocity_s omega;
-	if (_vehicle_angular_velocity_sub.update(&omega)) {
-		_omega = Vector3f(omega.xyz);
+	if (_vehicle_angular_velocity_sub.update(&_angular_vel)) {
+		_omega = Vector3f(_angular_vel.xyz);
     }
-    if(omega.timestamp_sample-hrt_absolute_time() > 50_ms){
+    if(hrt_absolute_time()-_angular_vel.timestamp_sample > 50_ms){
         PX4_ERR("angular velocity sample is too old");
     }
 }
@@ -224,11 +222,10 @@ FixedwingPositionINDIControl::vehicle_angular_velocity_poll()
 void
 FixedwingPositionINDIControl::vehicle_angular_acceleration_poll()
 {
-	vehicle_angular_acceleration_s alpha;
-	if (_vehicle_angular_acceleration_sub.update(&alpha)) {
-		_alpha = Vector3f(alpha.xyz);
+	if (_vehicle_angular_acceleration_sub.update(&_angular_accel)) {
+		_alpha = Vector3f(_angular_accel.xyz);
     }
-    if(alpha.timestamp_sample-hrt_absolute_time() > 50_ms){
+    if(hrt_absolute_time()-_angular_accel.timestamp_sample > 50_ms){
         PX4_ERR("angular acceleration sample is too old");
     }
 }
@@ -260,6 +257,73 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
 {
     _wind_estimate = wind;
     return;
+}
+
+void
+FixedwingPositionINDIControl::_read_trajectory_coeffs_csv()
+{
+        /*
+        std::ifstream file_reader;
+        std::string line;
+        std::vector<float> vars;
+        file_reader.open(model_input_mean_path_, std::ifstream::in);
+        for (int i = 0; i < _num_basis_funs; i++){
+            file_reader >> line;
+            _basis_coeffs_x(i) = std::stof(line);
+        }
+        file_reader.close();
+        */
+    _basis_coeffs_x(0) = -0.026399f;
+    _basis_coeffs_x(0) = 826.714294f;
+    _basis_coeffs_x(2) = -3432.814434f;
+    _basis_coeffs_x(3) = 7863.143292f;
+    _basis_coeffs_x(4) = -13322.886901f;
+    _basis_coeffs_x(5) = 18316.582356f;
+    _basis_coeffs_x(6) = -21634.179996f;
+    _basis_coeffs_x(7) = 22466.018036f;
+    _basis_coeffs_x(8) = -20949.604526f;
+    _basis_coeffs_x(9) = 17621.148149f;
+    _basis_coeffs_x(10) = -13520.515123f;
+    _basis_coeffs_x(11) = 9422.542947f;
+    _basis_coeffs_x(12) = -6018.861971f;
+    _basis_coeffs_x(13) = 3385.119029f;
+    _basis_coeffs_x(14) = -1600.362985f;
+    _basis_coeffs_x(15) = 439.235977f;
+
+    _basis_coeffs_y(0) = -0.139214f;
+    _basis_coeffs_y(1) = 1528.730954f;
+    _basis_coeffs_y(2) = -6325.861755f;
+    _basis_coeffs_y(3) = 15443.549565f;
+    _basis_coeffs_y(4) = -28040.238622f;
+    _basis_coeffs_y(5) = 41980.028597f;
+    _basis_coeffs_y(6) = -54384.100803f;
+    _basis_coeffs_y(7) = 62686.013646f;
+    _basis_coeffs_y(8) = -65075.809430f;
+    _basis_coeffs_y(9) = 61050.185712f;
+    _basis_coeffs_y(10) = -51403.496086f;
+    _basis_coeffs_y(11) = 38173.744062f;
+    _basis_coeffs_y(12) = -24154.989309f;
+    _basis_coeffs_y(13) = 12186.703620f;
+    _basis_coeffs_y(14) = -4286.372935f;
+    _basis_coeffs_y(15) = 679.830536f;
+
+    _basis_coeffs_z(0) = 4.971065f;
+    _basis_coeffs_z(1) = -354.548028f;
+    _basis_coeffs_z(2) = 1506.974164f;
+    _basis_coeffs_z(3) = -3506.606108f;
+    _basis_coeffs_z(4) = 5944.806897f;
+    _basis_coeffs_z(5) = -8122.670014f;
+    _basis_coeffs_z(6) = 9471.905195f;
+    _basis_coeffs_z(7) = -9711.318513f;
+    _basis_coeffs_z(8) =  8958.890412f;
+    _basis_coeffs_z(9) =  -7501.461083f;
+    _basis_coeffs_z(10) =   5797.319144f;
+    _basis_coeffs_z(11) =   -4126.927355f;
+    _basis_coeffs_z(12) =   2727.759847f;
+    _basis_coeffs_z(13) = -1570.235132f;
+    _basis_coeffs_z(14) =  727.014138f;
+    _basis_coeffs_z(15) = -189.177675;
+   
 }
 
 void
@@ -304,13 +368,21 @@ FixedwingPositionINDIControl::Run()
         // publish control input
         //_angular_accel_sp = {}; 
         _angular_accel_sp.timestamp = hrt_absolute_time();
+        _angular_accel_sp.timestamp_sample = hrt_absolute_time();
         _angular_accel_sp.xyz[0] = ctrl(0);
         _angular_accel_sp.xyz[1] = ctrl(1);
         _angular_accel_sp.xyz[2] = ctrl(2);
-        _alpha_sp_pub.publish(_angular_accel_sp);
+        _angular_accel_sp_pub.publish(_angular_accel_sp);
         //print_message(_angular_accel_sp);
-
-        //PX4_INFO("running");
+        /*
+        Quatf vec = _get_attitude_ref(0.2,1);
+        
+        PX4_INFO("control setpoints:\t%.4f\t%.4f\t%.4f",
+            (double)vec(0),
+            (double)vec(1),
+            (double)vec(2));
+            */
+            
     }
 }
 
@@ -416,7 +488,7 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     R_bi(2,2) = lift_normalized(2);
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)) - _C_L0)/_C_L1;
+    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1;
     // compute final rotation matrix
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
@@ -531,10 +603,11 @@ FixedwingPositionINDIControl::_compute_NDI_control_input(Vector3f pos, Vector3f 
     Dcmf R_bi(R_ib.transpose());
     // get reference values
     float t_ref = _get_closest_t(pos);
+    PX4_INFO("computed t_ref:\t%.4f",(double)t_ref);
     // downscale velocity to match current one, 
     // terminal time is determined such that current velocity is met
     Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.f);
-    float T = sqrt((v_ref_*v_ref_)/(vel*vel+0.01f));
+    float T = sqrt((v_ref_*v_ref_)/(vel*vel+0.001f));
     // get time-scaled version of reference trajectory
     Vector3f x_ref = _get_position_ref(t_ref);
     Vector3f v_ref = _get_velocity_ref(t_ref,T);
@@ -592,6 +665,7 @@ FixedwingPositionINDIControl::init()
 		PX4_ERR("vehicle position callback registration failed!");
 		return false;
 	}
+    _read_trajectory_coeffs_csv();
 	return true;
 }
 
