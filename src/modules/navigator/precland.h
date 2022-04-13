@@ -101,6 +101,8 @@ private:
 	bool switch_to_state_fallback();
 	bool switch_to_state_done();
 
+	void print_state_switch_message(const char *state_name);
+
 	// check if a given state could be changed into. Return true if possible to transition to state, false otherwise
 	bool check_state_conditions(PrecLandState state);
 	void slewrate(float &sp_x, float &sp_y);

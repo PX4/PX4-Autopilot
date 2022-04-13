@@ -38,7 +38,6 @@ param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_D_ACC 0.1
 
 param set-default NAV_ACC_RAD 5
-param set-default NAV_LOITER_RAD 80
 
 param set-default VT_FWD_THRUST_EN 4
 param set-default VT_F_TRANS_THR 0.75
@@ -50,8 +49,6 @@ param set-default VT_TYPE 2
 param set-default RC_MAP_AUX1 8
 param set-default RC_MAP_AUX2 9
 param set-default RC_MAP_AUX3 10
-
-set MAV_TYPE 22
 
 set MIXER_FILE etc/mixers-sitl/standard_vtol_sitl.main.mix
 set MIXER custom

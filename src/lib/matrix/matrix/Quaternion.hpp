@@ -485,7 +485,7 @@ public:
 	 * @param vec vector to rotate in frame 1 (typically body frame)
 	 * @return rotated vector in frame 2 (typically reference frame)
 	 */
-	Vector3<Type> conjugate(const Vector3<Type> &vec) const
+	Vector3<Type> rotateVector(const Vector3<Type> &vec) const
 	{
 		const Quaternion &q = *this;
 		Quaternion v(Type(0), vec(0), vec(1), vec(2));
@@ -502,7 +502,7 @@ public:
 	 * @param vec vector to rotate in frame 2 (typically reference frame)
 	 * @return rotated vector in frame 1 (typically body frame)
 	 */
-	Vector3<Type> conjugate_inversed(const Vector3<Type> &vec) const
+	Vector3<Type> rotateVectorInverse(const Vector3<Type> &vec) const
 	{
 		const Quaternion &q = *this;
 		Quaternion v(Type(0), vec(0), vec(1), vec(2));

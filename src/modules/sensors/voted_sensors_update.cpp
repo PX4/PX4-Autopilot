@@ -54,22 +54,17 @@ VotedSensorsUpdate::VotedSensorsUpdate(bool hil_enabled,
 	_vehicle_imu_sub(vehicle_imu_sub),
 	_hil_enabled(hil_enabled)
 {
+	_sensor_selection_pub.advertise();
+	_sensors_status_imu_pub.advertise();
+
 	if (_hil_enabled) { // HIL has less accurate timing so increase the timeouts a bit
 		_gyro.voter.set_timeout(500000);
 		_accel.voter.set_timeout(500000);
 	}
-}
-
-int VotedSensorsUpdate::init(sensor_combined_s &raw)
-{
-	raw.accelerometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
-	raw.timestamp = 0;
 
 	initializeSensors();
 
-	_selection_changed = true;
-
-	return 0;
+	parametersUpdate();
 }
 
 void VotedSensorsUpdate::initializeSensors()
@@ -177,7 +172,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 			_last_sensor_data[uorb_index].gyro_rad[1] = gyro_rate(1);
 			_last_sensor_data[uorb_index].gyro_rad[2] = gyro_rate(2);
 			_last_sensor_data[uorb_index].gyro_integral_dt = imu_report.delta_angle_dt;
-
+			_last_sensor_data[uorb_index].accel_calibration_count = imu_report.accel_calibration_count;
+			_last_sensor_data[uorb_index].gyro_calibration_count = imu_report.gyro_calibration_count;
 
 			_last_accel_timestamp[uorb_index] = imu_report.timestamp_sample;
 
@@ -236,6 +232,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 		raw.accelerometer_integral_dt = _last_sensor_data[accel_best_index].accelerometer_integral_dt;
 		raw.gyro_integral_dt = _last_sensor_data[gyro_best_index].gyro_integral_dt;
 		raw.accelerometer_clipping = _last_sensor_data[accel_best_index].accelerometer_clipping;
+		raw.accel_calibration_count = _last_sensor_data[accel_best_index].accel_calibration_count;
+		raw.gyro_calibration_count = _last_sensor_data[gyro_best_index].gyro_calibration_count;
 
 		if ((accel_best_index != _accel.last_best_vote) || (_selection.accel_device_id != _accel_device_id[accel_best_index])) {
 			_accel.last_best_vote = (uint8_t)accel_best_index;

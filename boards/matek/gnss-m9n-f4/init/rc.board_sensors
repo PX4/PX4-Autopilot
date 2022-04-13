@@ -3,9 +3,9 @@
 # Matek M9NF4 CAN specific board sensors init
 #------------------------------------------------------------------------------
 
-icm20602 -s start
+icm20602 -s -R 10 start
 
-rm3100 -b 2 -s start
+rm3100 -b 2 -s -R 12 start
 
 dps310 -a 118 -X start
 

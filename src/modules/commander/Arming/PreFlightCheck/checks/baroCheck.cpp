@@ -38,36 +38,58 @@
 #include <px4_defines.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/estimator_status.h>
 #include <uORB/topics/sensor_baro.h>
 
 using namespace time_literals;
 
+bool PreFlightCheck::isBaroRequired(const uint8_t instance)
+{
+	uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
+	const uint32_t device_id = static_cast<uint32_t>(baro.get().device_id);
+
+	bool is_used_by_nav = false;
+
+	for (uint8_t i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		uORB::SubscriptionData<estimator_status_s> estimator_status_sub{ORB_ID(estimator_status), i};
+
+		if (device_id > 0 && estimator_status_sub.get().baro_device_id == device_id) {
+			is_used_by_nav = true;
+			break;
+		}
+	}
+
+	return is_used_by_nav;
+}
+
 bool PreFlightCheck::baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
-			       const bool optional, int32_t &device_id, const bool report_fail)
+			       const bool is_mandatory, bool &report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_baro), instance) == PX4_OK);
+	const bool is_required = is_mandatory || isBaroRequired(instance);
+
 	bool valid = false;
 
 	if (exists) {
 		uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
 
-		valid = (baro.get().device_id != 0) && (baro.get().timestamp != 0);
-
-		if (!valid) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Baro %u", instance);
-			}
-		}
-
-	} else {
-		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Baro Sensor %u missing", instance);
-		}
+		valid = (baro.get().device_id != 0) && (baro.get().timestamp != 0) && (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
 	}
 
 	if (instance == 0) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, exists, !optional, valid, status);
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, exists, is_required, valid, status);
 	}
 
-	return valid;
+	if (report_fail && is_required) {
+		if (!exists) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Baro Sensor %u missing", instance);
+			report_fail = false;
+
+		} else if (!valid) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Baro %u", instance);
+			report_fail = false;
+		}
+	}
+
+	return valid || !is_required;
 }

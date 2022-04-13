@@ -48,8 +48,6 @@ param set-default NAV_ACC_RAD 0.5
 param set-default PWM_MAIN_DISARM 1500
 param set-default PWM_MAIN_MAX 2000
 param set-default PWM_MAIN_MIN 1000
-# Configure this as rover
-set MAV_TYPE 10
 
 # Set mixer
 set MIXER rover_generic

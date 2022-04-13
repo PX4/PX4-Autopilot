@@ -63,6 +63,7 @@
 #include "common.h"
 #include "RingBuffer.h"
 #include "imu_down_sampler.hpp"
+#include "range_finder_consistency_check.hpp"
 #include "sensor_range_finder.hpp"
 #include "utils.hpp"
 
@@ -258,12 +259,7 @@ public:
 
 protected:
 
-	EstimatorInterface()
-	{
-		_control_status.flags.in_air = true;
-		_control_status.flags.vehicle_at_rest = false;
-	};
-
+	EstimatorInterface() = default;
 	virtual ~EstimatorInterface();
 
 	virtual bool init(uint64_t timestamp) = 0;
@@ -301,6 +297,8 @@ protected:
 	extVisionSample _ev_sample_delayed{};
 	extVisionSample _ev_sample_delayed_prev{};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
+
+	RangeFinderConsistencyCheck _rng_consistency_check;
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
 
@@ -349,9 +347,9 @@ protected:
 
 	bool _deadreckon_time_exceeded{true};	// true if the horizontal nav solution has been deadreckoning for too long and is invalid
 
-	float _gps_horizontal_position_drift_rate_m_s{0}; // Horizontal position drift rate (m/s)
-	float _gps_vertical_position_drift_rate_m_s{0};   // Vertical position drift rate (m/s)
-	float _gps_filtered_horizontal_velocity_m_s{0};   // Filtered horizontal velocity (m/s)
+	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
+	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)
+	float _gps_filtered_horizontal_velocity_m_s{NAN};   // Filtered horizontal velocity (m/s)
 
 	uint64_t _time_last_on_ground_us{0};	///< last time we were on the ground (uSec)
 	uint64_t _time_last_in_air{0};		///< last time we were in air (uSec)

@@ -147,7 +147,7 @@ bool VehicleIMU::ParametersUpdate(bool force)
 
 		// constrain IMU integration time 1-20 milliseconds (50-1000 Hz)
 		int32_t imu_integration_rate_hz = constrain(_param_imu_integ_rate.get(),
-						  (int32_t)50, math::max(_param_imu_gyro_ratemax.get(), (int32_t) 1000));
+						  (int32_t)50, math::min(_param_imu_gyro_ratemax.get(), (int32_t) 1000));
 
 		if (imu_integration_rate_hz != _param_imu_integ_rate.get()) {
 			PX4_WARN("IMU_INTEG_RATE updated %" PRId32 " -> %" PRIu32, _param_imu_integ_rate.get(), imu_integration_rate_hz);
@@ -547,6 +547,8 @@ bool VehicleIMU::Publish()
 	Vector3f delta_angle;
 	Vector3f delta_velocity;
 
+	const Vector3f accumulated_coning_corrections = _gyro_integrator.accumulated_coning_corrections();
+
 	if (_accel_integrator.reset(delta_velocity, imu.delta_velocity_dt)
 	    && _gyro_integrator.reset(delta_angle, imu.delta_angle_dt)) {
 
@@ -554,17 +556,22 @@ bool VehicleIMU::Publish()
 
 			// delta angle: apply offsets, scale, and board rotation
 			_gyro_calibration.SensorCorrectionsUpdate();
-			const float gyro_dt_inv = 1.e6f / imu.delta_angle_dt;
-			const Vector3f angular_velocity{_gyro_calibration.Correct(delta_angle * gyro_dt_inv)};
+			const float gyro_dt_s = 1.e-6f * imu.delta_angle_dt;
+			const Vector3f angular_velocity{_gyro_calibration.Correct(delta_angle / gyro_dt_s)};
 			UpdateGyroVibrationMetrics(angular_velocity);
-			const Vector3f delta_angle_corrected{angular_velocity / gyro_dt_inv};
+			const Vector3f delta_angle_corrected{angular_velocity * gyro_dt_s};
+
+			// accumulate delta angle coning corrections
+			_coning_norm_accum += accumulated_coning_corrections.norm() * gyro_dt_s;
+			_coning_norm_accum_total_time_s += gyro_dt_s;
+
 
 			// delta velocity: apply offsets, scale, and board rotation
 			_accel_calibration.SensorCorrectionsUpdate();
-			const float accel_dt_inv = 1.e6f / imu.delta_velocity_dt;
-			const Vector3f acceleration{_accel_calibration.Correct(delta_velocity * accel_dt_inv)};
+			const float accel_dt_s = 1.e-6f * imu.delta_velocity_dt;
+			const Vector3f acceleration{_accel_calibration.Correct(delta_velocity / accel_dt_s)};
 			UpdateAccelVibrationMetrics(acceleration);
-			const Vector3f delta_velocity_corrected{acceleration / accel_dt_inv};
+			const Vector3f delta_velocity_corrected{acceleration * accel_dt_s};
 
 			// vehicle_imu_status
 			//  publish before vehicle_imu so that error counts are available synchronously if needed
@@ -590,6 +597,11 @@ bool VehicleIMU::Publish()
 				Vector3f(_gyro_calibration.rotation() * _raw_gyro_mean.mean()).copyTo(_status.mean_gyro);
 				Vector3f(_gyro_calibration.rotation() * _raw_gyro_mean.variance()).copyTo(_status.var_gyro);
 				_raw_gyro_mean.reset();
+
+				// Gyro delta angle coning metric = length of coning corrections averaged since last status publication
+				_status.delta_angle_coning_metric = _coning_norm_accum / _coning_norm_accum_total_time_s;
+				_coning_norm_accum = 0;
+				_coning_norm_accum_total_time_s = 0;
 
 				// gyro temperature
 				_status.temperature_gyro = _gyro_temperature_sum / _gyro_temperature_sum_count;
@@ -650,8 +662,8 @@ void VehicleIMU::UpdateIntegratorConfiguration()
 		_gyro_integrator.set_reset_interval(roundf((gyro_integral_samples - 0.5f) * _gyro_interval_us));
 		_gyro_integrator.set_reset_samples(gyro_integral_samples);
 
-		_backup_schedule_timeout_us = math::min(sensor_accel_s::ORB_QUEUE_LENGTH * _accel_interval_us,
-							sensor_gyro_s::ORB_QUEUE_LENGTH * _gyro_interval_us);
+		_backup_schedule_timeout_us = math::constrain((int)math::min(sensor_accel_s::ORB_QUEUE_LENGTH * _accel_interval_us,
+					      sensor_gyro_s::ORB_QUEUE_LENGTH * _gyro_interval_us) / 2, 1000, 20000);
 
 		// gyro: find largest integer multiple of gyro_integral_samples
 		for (int n = sensor_gyro_s::ORB_QUEUE_LENGTH; n > 0; n--) {
@@ -691,10 +703,6 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &angular_velocity)
 	// Gyro high frequency vibe = filtered length of (angular_velocity - angular_velocity_prev)
 	_status.gyro_vibration_metric = 0.99f * _status.gyro_vibration_metric
 					+ 0.01f * Vector3f(angular_velocity - _angular_velocity_prev).norm();
-
-	// Gyro delta angle coning metric = filtered length of (angular_velocity x angular_velocity_prev)
-	const Vector3f coning_metric{angular_velocity % _angular_velocity_prev};
-	_status.gyro_coning_vibration = 0.99f * _status.gyro_coning_vibration + 0.01f * coning_metric.norm();
 
 	_angular_velocity_prev = angular_velocity;
 }

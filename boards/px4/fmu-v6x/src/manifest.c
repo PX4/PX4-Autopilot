@@ -81,10 +81,27 @@ static const px4_hw_mft_item_t hw_mft_list_v0600[] = {
 	},
 };
 
+static const px4_hw_mft_item_t hw_mft_list_v0610[] = {
+	{
+		.present     = 0,
+		.mandatory   = 0,
+		.connection  = px4_hw_con_unknown,
+	},
+	{
+		.present     = 1,
+		.mandatory   = 1,
+		.connection  = px4_hw_con_onboard,
+	},
+};
+
+
 static px4_hw_mft_list_entry_t mft_lists[] = {
 //  ver_rev
-	{0x0000, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
-	{0x0001, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2
+	{V6X00, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)},
+	{V6X10, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO
+	{V6X01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2
+	{V6X03, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 3
+	{V6X13, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 3
 };
 
 /************************************************************************************

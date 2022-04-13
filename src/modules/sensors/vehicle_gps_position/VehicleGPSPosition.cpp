@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,6 +43,7 @@ VehicleGPSPosition::VehicleGPSPosition() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
 {
+	_vehicle_gps_position_pub.advertise();
 }
 
 VehicleGPSPosition::~VehicleGPSPosition()
@@ -103,9 +104,6 @@ void VehicleGPSPosition::Run()
 	perf_begin(_cycle_perf);
 	ParametersUpdate();
 
-	// GPS blending
-	ScheduleDelayed(500_ms); // backup schedule
-
 	// Check all GPS instance
 	bool any_gps_updated = false;
 	bool gps_updated = false;
@@ -134,6 +132,8 @@ void VehicleGPSPosition::Run()
 			Publish(_gps_blending.getOutputGpsData(), _gps_blending.getSelectedGps());
 		}
 	}
+
+	ScheduleDelayed(300_ms); // backup schedule
 
 	perf_end(_cycle_perf);
 }

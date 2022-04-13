@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -119,6 +119,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
 	_param_ekf2_rng_qlty_t(_params->range_valid_quality_s),
+	_param_ekf2_rng_k_gate(_params->range_kin_consistency_gate),
 	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
 	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
 	_param_ekf2_of_n_min(_params->flow_noise),
@@ -164,6 +165,18 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_synthetic_mag_z(_params->synthesize_mag_z),
 	_param_ekf2_gsf_tas_default(_params->EKFGSF_tas_default)
 {
+	// advertise expected minimal topic set immediately to ensure logging
+	_attitude_pub.advertise();
+	_local_position_pub.advertise();
+
+	_estimator_event_flags_pub.advertise();
+	_estimator_innovation_test_ratios_pub.advertise();
+	_estimator_innovation_variances_pub.advertise();
+	_estimator_innovations_pub.advertise();
+	_estimator_sensor_bias_pub.advertise();
+	_estimator_states_pub.advertise();
+	_estimator_status_flags_pub.advertise();
+	_estimator_status_pub.advertise();
 }
 
 EKF2::~EKF2()
@@ -183,13 +196,7 @@ EKF2::~EKF2()
 
 bool EKF2::multi_init(int imu, int mag)
 {
-	// advertise immediately to ensure consistent uORB instance numbering
-	_attitude_pub.advertise();
-	_local_position_pub.advertise();
-	_global_position_pub.advertise();
-	_odometry_pub.advertise();
-	_wind_pub.advertise();
-
+	// advertise all topics to ensure consistent uORB instance numbering
 	_ekf2_timestamps_pub.advertise();
 	_estimator_baro_bias_pub.advertise();
 	_estimator_event_flags_pub.advertise();
@@ -202,8 +209,14 @@ bool EKF2::multi_init(int imu, int mag)
 	_estimator_states_pub.advertise();
 	_estimator_status_flags_pub.advertise();
 	_estimator_status_pub.advertise();
-	_estimator_visual_odometry_aligned_pub.advertised();
+	_estimator_visual_odometry_aligned_pub.advertise();
 	_yaw_est_pub.advertise();
+
+	_attitude_pub.advertise();
+	_local_position_pub.advertise();
+	_global_position_pub.advertise();
+	_odometry_pub.advertise();
+	_wind_pub.advertise();
 
 	bool changed_instance = _vehicle_imu_sub.ChangeInstance(imu) && _magnetometer_sub.ChangeInstance(mag);
 
@@ -320,8 +333,7 @@ void EKF2::Run()
 		}
 
 		if (!_callback_registered) {
-			PX4_WARN("%d - failed to register callback, retrying", _instance);
-			ScheduleDelayed(1_s);
+			ScheduleDelayed(10_ms);
 			return;
 		}
 	}
@@ -413,7 +425,7 @@ void EKF2::Run()
 		}
 
 	} else {
-		const unsigned last_generation = _vehicle_imu_sub.get_last_generation();
+		const unsigned last_generation = _sensor_combined_sub.get_last_generation();
 		sensor_combined_s sensor_combined;
 		imu_updated = _sensor_combined_sub.update(&sensor_combined);
 
@@ -435,6 +447,28 @@ void EKF2::Run()
 			}
 
 			imu_dt = sensor_combined.gyro_integral_dt;
+
+			if (sensor_combined.accel_calibration_count != _accel_calibration_count) {
+
+				PX4_DEBUG("%d - resetting accelerometer bias", _instance);
+
+				_ekf.resetAccelBias();
+				_accel_calibration_count = sensor_combined.accel_calibration_count;
+
+				// reset bias learning
+				_accel_cal = {};
+			}
+
+			if (sensor_combined.gyro_calibration_count != _gyro_calibration_count) {
+
+				PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+
+				_ekf.resetGyroBias();
+				_gyro_calibration_count = sensor_combined.gyro_calibration_count;
+
+				// reset bias learning
+				_gyro_cal = {};
+			}
 		}
 
 		if (_sensor_selection_sub.updated() || (_device_id_accel == 0 || _device_id_gyro == 0)) {
@@ -593,6 +627,9 @@ void EKF2::Run()
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
 	}
+
+	// re-schedule as backup timeout
+	ScheduleDelayed(100_ms);
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -692,11 +729,19 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 		event_flags.emergency_yaw_reset_gps_yaw_stopped = _ekf.warning_event_flags().emergency_yaw_reset_gps_yaw_stopped;
 
 		event_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
-		_estimator_event_flags_pub.publish(event_flags);
-	}
+		_estimator_event_flags_pub.update(event_flags);
 
-	_ekf.clear_information_events();
-	_ekf.clear_warning_events();
+		_last_event_flags_publish = event_flags.timestamp;
+
+		_ekf.clear_information_events();
+		_ekf.clear_warning_events();
+
+	} else if ((_last_event_flags_publish != 0) && (timestamp >= _last_event_flags_publish + 1_s)) {
+		// continue publishing periodically
+		_estimator_event_flags_pub.get().timestamp = _replay_mode ? timestamp : hrt_absolute_time();
+		_estimator_event_flags_pub.update();
+		_last_event_flags_publish = _estimator_event_flags_pub.get().timestamp;
+	}
 }
 
 void EKF2::PublishGlobalPosition(const hrt_abstime &timestamp)
@@ -794,6 +839,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_ekf.getAirspeedInnov(innovations.airspeed);
 	_ekf.getBetaInnov(innovations.beta);
 	_ekf.getHaglInnov(innovations.hagl);
+	_ekf.getHaglRateInnov(innovations.hagl_rate);
 	// Not yet supported
 	innovations.aux_vvel = NAN;
 
@@ -834,6 +880,7 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
 	_ekf.getBetaInnovRatio(test_ratios.beta);
 	_ekf.getHaglInnovRatio(test_ratios.hagl);
+	_ekf.getHaglRateInnovRatio(test_ratios.hagl_rate);
 	// Not yet supported
 	test_ratios.aux_vvel = NAN;
 
@@ -858,6 +905,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_ekf.getAirspeedInnovVar(variances.airspeed);
 	_ekf.getBetaInnovVar(variances.beta);
 	_ekf.getHaglInnovVar(variances.hagl);
+	_ekf.getHaglRateInnovVar(variances.hagl_rate);
 	// Not yet supported
 	variances.aux_vvel = NAN;
 
@@ -1198,7 +1246,7 @@ void EKF2::PublishStatus(const hrt_abstime &timestamp)
 void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 {
 	// publish at ~ 1 Hz (or immediately if filter control status or fault status changes)
-	bool update = (hrt_elapsed_time(&_last_status_flag_update) >= 1_s);
+	bool update = (timestamp >= _last_status_flags_publish + 1_s);
 
 	// filter control status
 	if (_ekf.control_status().value != _filter_control_status) {
@@ -1257,6 +1305,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_rng_fault             = _ekf.control_status_flags().rng_fault;
 		status_flags.cs_inertial_dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning;
 		status_flags.cs_wind_dead_reckoning     = _ekf.control_status_flags().wind_dead_reckoning;
+		status_flags.cs_rng_kin_consistent      = _ekf.control_status_flags().rng_kin_consistent;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -1296,7 +1345,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.timestamp = _replay_mode ? timestamp : hrt_absolute_time();
 		_estimator_status_flags_pub.publish(status_flags);
 
-		_last_status_flag_update = status_flags.timestamp;
+		_last_status_flags_publish = status_flags.timestamp;
 	}
 }
 
@@ -1487,6 +1536,28 @@ void EKF2::UpdateBaroSample(ekf2_timestamps_s &ekf2_timestamps)
 
 		} else if (_airdata_sub.get_last_generation() != last_generation + 1) {
 			perf_count(_msg_missed_air_data_perf);
+		}
+
+		bool reset = false;
+
+		// check if barometer has changed
+		if (airdata.baro_device_id != _device_id_baro) {
+			if (_device_id_baro != 0) {
+				PX4_WARN("%d - baro sensor ID changed %" PRIu32 " -> %" PRIu32, _instance, _device_id_baro, airdata.baro_device_id);
+			}
+
+			reset = true;
+
+		} else if (airdata.calibration_count > _baro_calibration_count) {
+			// existing calibration has changed, reset saved baro bias
+			PX4_DEBUG("%d - baro %" PRIu32 " calibration updated, resetting bias", _instance, _device_id_baro);
+			reset = true;
+		}
+
+		if (reset) {
+			// TODO: reset baro ref and bias estimate?
+			_device_id_baro = airdata.baro_device_id;
+			_baro_calibration_count = airdata.calibration_count;
 		}
 
 		_ekf.set_air_density(airdata.rho);
@@ -2027,9 +2098,7 @@ int EKF2::task_spawn(int argc, char *argv[])
 					vehicle_mag_sub.update();
 
 					// Mag & IMU data must be valid, first mag can be ignored initially
-					if ((vehicle_mag_sub.get().device_id != 0 || mag == 0)
-					    && (vehicle_imu_sub.get().accel_device_id != 0)
-					    && (vehicle_imu_sub.get().gyro_device_id != 0)) {
+					if ((vehicle_mag_sub.advertised() || mag == 0) && (vehicle_imu_sub.advertised())) {
 
 						if (!ekf2_instance_created[imu][mag]) {
 							EKF2 *ekf2_inst = new EKF2(true, px4::ins_instance_to_wq(imu), false);
@@ -2043,17 +2112,11 @@ int EKF2::task_spawn(int argc, char *argv[])
 									multi_instances_allocated++;
 									ekf2_instance_created[imu][mag] = true;
 
-									if (actual_instance == 0) {
-										// force selector to run immediately if first instance started
-										_ekf2_selector.load()->ScheduleNow();
-									}
-
 									PX4_DEBUG("starting instance %d, IMU:%" PRIu8 " (%" PRIu32 "), MAG:%" PRIu8 " (%" PRIu32 ")", actual_instance,
 										  imu, vehicle_imu_sub.get().accel_device_id,
 										  mag, vehicle_mag_sub.get().device_id);
 
-									// sleep briefly before starting more instances
-									px4_usleep(10000);
+									_ekf2_selector.load()->ScheduleNow();
 
 								} else {
 									PX4_ERR("instance numbering problem instance: %d", actual_instance);
@@ -2063,20 +2126,20 @@ int EKF2::task_spawn(int argc, char *argv[])
 
 							} else {
 								PX4_ERR("alloc and init failed imu: %" PRIu8 " mag:%" PRIu8, imu, mag);
-								px4_usleep(1000000);
+								px4_usleep(100000);
 								break;
 							}
 						}
 
 					} else {
-						px4_usleep(50000); // give the sensors extra time to start
-						continue;
+						px4_usleep(1000); // give the sensors extra time to start
+						break;
 					}
 				}
 			}
 
 			if (multi_instances_allocated < multi_instances) {
-				px4_usleep(100000);
+				px4_usleep(10000);
 			}
 		}
 

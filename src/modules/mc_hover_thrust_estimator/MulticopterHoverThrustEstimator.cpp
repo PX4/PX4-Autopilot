@@ -60,7 +60,7 @@ MulticopterHoverThrustEstimator::~MulticopterHoverThrustEstimator()
 bool MulticopterHoverThrustEstimator::init()
 {
 	if (!_vehicle_local_position_sub.registerCallback()) {
-		PX4_ERR("vehicle_local_position_setpoint callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

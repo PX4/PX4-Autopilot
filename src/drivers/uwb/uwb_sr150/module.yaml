@@ -1,0 +1,53 @@
+module_name: Ultrawideband position sensor driver
+serial_config:
+  - command: uwb_sr150 start -d ${SERIAL_DEV} -b p:${BAUD_PARAM}
+    port_config_param:
+      name: UWB_PORT_CFG
+      group: UWB
+      default: ""
+
+parameters:
+    - group: UWB
+      definitions:
+
+        UWB_INIT_OFF_X:
+          description:
+            short: UWB sensor X offset in body frame
+            long: UWB sensor positioning in relation to Drone in NED. X offset. A Positiv offset results in a Position o
+          type: float
+          unit: m
+          decimal: 2
+          increment: 0.01
+          default: 0.00
+
+        UWB_INIT_OFF_Y:
+          description:
+            short: UWB sensor Y offset in body frame
+            long: UWB sensor positioning in relation to Drone in NED. Y offset.
+          type: float
+          unit: m
+          decimal: 2
+          increment: 0.01
+          default: 0.00
+
+        UWB_INIT_OFF_Z:
+          description:
+            short: UWB sensor Y offset in body frame
+            long: UWB sensor positioning in relation to Drone in NED. Z offset.
+          type: float
+          unit: m
+          decimal: 2
+          increment: 0.01
+          default: 0.00
+
+        UWB_INIT_OFF_YAW:
+          description:
+            short: UWB sensor YAW offset in body frame
+            long: UWB sensor positioning in relation to Drone in NED. Yaw rotation in relation to direction of FMU.
+          type: float
+          unit: deg
+          decimal: 1
+          increment: 0.1
+          default: 0.00
+
+

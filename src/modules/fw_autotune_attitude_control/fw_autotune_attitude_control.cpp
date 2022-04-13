@@ -59,7 +59,7 @@ FwAutotuneAttitudeControl::~FwAutotuneAttitudeControl()
 bool FwAutotuneAttitudeControl::init()
 {
 	if (!_parameter_update_sub.registerCallback()) {
-		PX4_ERR("parameter_update callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
@@ -434,7 +434,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 bool FwAutotuneAttitudeControl::registerActuatorControlsCallback()
 {
 	if (!_actuator_controls_sub.registerCallback()) {
-		PX4_ERR("actuator_controls callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

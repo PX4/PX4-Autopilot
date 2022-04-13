@@ -157,15 +157,13 @@ struct accel_worker_data_s {
 	orb_advert_t	*mavlink_log_pub{nullptr};
 	unsigned	done_count{0};
 	float		accel_ref[MAX_ACCEL_SENS][detect_orientation_side_count][3] {};
-	float		accel_temperature_ref[MAX_ACCEL_SENS] {NAN, NAN, NAN, NAN};
 };
 
 // Read specified number of accelerometer samples, calculate average and dispersion.
 static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS][detect_orientation_side_count][3],
-		float (&accel_temperature_avg)[MAX_ACCEL_SENS],	unsigned orient, unsigned samples_num)
+		unsigned orient, unsigned samples_num)
 {
 	Vector3f accel_sum[MAX_ACCEL_SENS] {};
-	float temperature_sum[MAX_ACCEL_SENS] {NAN, NAN, NAN, NAN};
 	unsigned counts[MAX_ACCEL_SENS] {};
 
 	unsigned errcount = 0;
@@ -217,14 +215,6 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 					accel_sum[accel_index] += Vector3f{arp.x, arp.y, arp.z} - offset;
 
 					counts[accel_index]++;
-
-					if (!PX4_ISFINITE(temperature_sum[accel_index])) {
-						// set first valid value
-						temperature_sum[accel_index] = (arp.temperature * counts[accel_index]);
-
-					} else {
-						temperature_sum[accel_index] += arp.temperature;
-					}
 				}
 			}
 
@@ -248,8 +238,6 @@ static calibrate_return read_accelerometer_avg(float (&accel_avg)[MAX_ACCEL_SENS
 	for (unsigned s = 0; s < MAX_ACCEL_SENS; s++) {
 		const Vector3f avg{accel_sum[s] / counts[s]};
 		avg.copyTo(accel_avg[s][orient]);
-
-		accel_temperature_avg[s] = temperature_sum[s] /  counts[s];
 	}
 
 	return calibrate_return_ok;
@@ -263,7 +251,7 @@ static calibrate_return accel_calibration_worker(detect_orientation_return orien
 	calibration_log_info(worker_data->mavlink_log_pub, "[cal] Hold still, measuring %s side",
 			     detect_orientation_str(orientation));
 
-	read_accelerometer_avg(worker_data->accel_ref, worker_data->accel_temperature_ref, orientation, samples_num);
+	read_accelerometer_avg(worker_data->accel_ref, orientation, samples_num);
 
 	// check accel
 	for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
@@ -414,8 +402,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 				const Matrix3f accel_T_rotated{board_rotation_t *accel_T * board_rotation};
 				calibrations[i].set_scale(accel_T_rotated.diag());
 
-				calibrations[i].set_temperature(worker_data.accel_temperature_ref[i]);
-
 #if defined(DEBUD_BUILD)
 				PX4_INFO("accel %d: offset", i);
 				offset.print();
@@ -490,7 +476,6 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 	for (unsigned accel_index = 0; accel_index < MAX_ACCEL_SENS; accel_index++) {
 		sensor_accel_s arp{};
 		Vector3f accel_sum{};
-		float temperature_sum{NAN};
 		unsigned count = 0;
 
 		while (accel_subs[accel_index].update(&arp)) {
@@ -526,21 +511,11 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 					if (diff.norm() < 1.f) {
 						accel_sum += Vector3f{arp.x, arp.y, arp.z} - offset;
-
 						count++;
-
-						if (!PX4_ISFINITE(temperature_sum)) {
-							// set first valid value
-							temperature_sum = (arp.temperature * count);
-
-						} else {
-							temperature_sum += arp.temperature;
-						}
 					}
 
 				} else {
 					accel_sum = accel;
-					temperature_sum = arp.temperature;
 					count = 1;
 				}
 			}
@@ -550,7 +525,6 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 			bool calibrated = false;
 			const Vector3f accel_avg = accel_sum / count;
-			const float temperature_avg = temperature_sum / count;
 
 			Vector3f offset{0.f, 0.f, 0.f};
 
@@ -561,7 +535,7 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 				// use vehicle_attitude if available
 				const vehicle_attitude_s &att = attitude_sub.get();
 				const matrix::Quatf q{att.q};
-				const Vector3f accel_ref = q.conjugate_inversed(Vector3f{0.f, 0.f, -CONSTANTS_ONE_G});
+				const Vector3f accel_ref = q.rotateVectorInverse(Vector3f{0.f, 0.f, -CONSTANTS_ONE_G});
 
 				// sanity check angle between acceleration vectors
 				const float angle = AxisAnglef(Quatf(accel_avg, accel_ref)).angle();
@@ -593,7 +567,6 @@ int do_accel_calibration_quick(orb_advert_t *mavlink_log_pub)
 
 			} else {
 				calibration.set_offset(offset);
-				calibration.set_temperature(temperature_avg);
 
 				if (calibration.ParametersSave(accel_index)) {
 					calibration.PrintStatus();

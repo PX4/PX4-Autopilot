@@ -102,14 +102,19 @@ int INA226::read(uint8_t address, int16_t &data)
 {
 	// read desired little-endian value via I2C
 	uint16_t received_bytes;
-	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
+	int ret = PX4_ERROR;
 
-	if (ret == PX4_OK) {
-		data = swap16(received_bytes);
+	for (size_t i = 0; i < 3; i++) {
+		ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
 
-	} else {
-		perf_count(_comms_errors);
-		PX4_DEBUG("i2c::transfer returned %d", ret);
+		if (ret == PX4_OK) {
+			data = swap16(received_bytes);
+			break;
+
+		} else {
+			perf_count(_comms_errors);
+			PX4_DEBUG("i2c::transfer returned %d", ret);
+		}
 	}
 
 	return ret;

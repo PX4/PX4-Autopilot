@@ -95,6 +95,12 @@ then
 	paw3902 -S start
 fi
 
+# Check for px4flow sensor
+if param compare -s SENS_EN_PX4FLOW 1
+then
+	px4flow start -X
+fi
+
 # vl53l1x i2c distance sensor
 if param compare -s SENS_EN_VL53L1X 1
 then
@@ -153,6 +159,13 @@ fi
 if param compare -s SENS_EN_IRLOCK 1
 then
 	irlock start -X
+fi
+
+# SPL06 sensor external I2C
+if param compare -s SENS_EN_SPL06 1
+then
+	spl06 -X start
+	spl06 -X -a 0x77 start
 fi
 
 # PCF8583 counter (RPM sensor)

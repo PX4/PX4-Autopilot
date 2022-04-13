@@ -64,7 +64,7 @@ bool
 MulticopterRateControl::init()
 {
 	if (!_vehicle_angular_velocity_sub.registerCallback()) {
-		PX4_ERR("vehicle_angular_velocity callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

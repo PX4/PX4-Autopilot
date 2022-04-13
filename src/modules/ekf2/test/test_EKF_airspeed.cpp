@@ -60,7 +60,12 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
+		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+
 		_sensor_simulator.simulateOrientation(_quat_sim);
 		_sensor_simulator.runSeconds(7);
 	}
@@ -81,6 +86,7 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	_sensor_simulator.startExternalVision();
 
 	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
 	_ekf->set_is_fixed_wing(true);
 	_sensor_simulator.startAirspeedSensor();
 	_sensor_simulator._airspeed.setData(airspeed_body(0), airspeed_body(0));
@@ -98,7 +104,10 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	EXPECT_TRUE(matrix::isEqual(vel, simulated_velocity_earth));
 	const Vector3f vel_wind_expected = simulated_velocity_earth - R_to_earth_sim * (Vector3f(airspeed_body(0),
 					   airspeed_body(1), 0.0f));
-	EXPECT_TRUE(matrix::isEqual(vel_wind_earth, Vector2f(vel_wind_expected.slice<2, 1>(0, 0))));
+
+	EXPECT_NEAR(vel_wind_earth(0), vel_wind_expected(0), 1e-3f);
+	EXPECT_NEAR(vel_wind_earth(1), vel_wind_expected(1), 1e-3f);
+
 	EXPECT_NEAR(height_before_pressure_correction, 0.0f, 1e-5f);
 
 	// Apply height correction
@@ -110,6 +119,7 @@ TEST_F(EkfAirspeedTest, testWindVelocityEstimation)
 	float expected_height_difference = 0.5f * static_pressure_coef_xp * airspeed_body(0) * airspeed_body(
 			0) / CONSTANTS_ONE_G;
 
+	_ekf->set_vehicle_at_rest(false);
 	_sensor_simulator.runSeconds(20);
 
 	const float height_after_pressure_correction = _ekf->getPosition()(2);

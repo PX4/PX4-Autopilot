@@ -49,7 +49,7 @@ bool WorkItemExample::init()
 {
 	// execute Run() on every sensor_accel publication
 	if (!_sensor_accel_sub.registerCallback()) {
-		PX4_ERR("sensor_accel callback registration failed");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

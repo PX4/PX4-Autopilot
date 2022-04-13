@@ -151,7 +151,7 @@ int32_t GetCalibrationParamInt32(const char *sensor_type, const char *cal_type, 
 
 float GetCalibrationParamFloat(const char *sensor_type, const char *cal_type, uint8_t instance)
 {
-	// eg CAL_MAGn_TEMP
+	// eg CAL_BAROn_OFF
 	char str[20] {};
 	sprintf(str, "CAL_%s%" PRIu8 "_%s", sensor_type, instance, cal_type);
 

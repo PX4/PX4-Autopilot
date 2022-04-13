@@ -41,7 +41,6 @@
 MS5837::MS5837(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
-	_px4_barometer(get_device_id()),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": measure")),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
@@ -96,7 +95,7 @@ int MS5837::init()
 			break;
 		}
 
-		_px4_barometer.set_device_type(DRV_BARO_DEVTYPE_MS5837);
+		set_device_type(DRV_BARO_DEVTYPE_MS5837);
 
 		ret = OK;
 
@@ -259,8 +258,6 @@ int MS5837::_measure()
 		perf_count(_comms_errors);
 	}
 
-	_px4_barometer.set_error_count(perf_event_count(_comms_errors));
-
 	perf_end(_measure_perf);
 
 	return ret;
@@ -331,17 +328,22 @@ int MS5837::_collect()
 		_OFF  -= OFF2;
 		_SENS -= SENS2;
 
-
-		float temperature = TEMP / 100.0f;
-		_px4_barometer.set_temperature(temperature);
+		_last_temperature = TEMP / 100.0f;
 
 	} else {
 		/* pressure calculation, result in Pa */
 		int32_t P = (((raw * _SENS) >> 21) - _OFF) >> 13;
 
-		float pressure = P / 10.0f;		/* convert to millibar */
 
-		_px4_barometer.update(timestamp_sample, pressure);
+		// publish
+		sensor_baro_s sensor_baro{};
+		sensor_baro.timestamp_sample = timestamp_sample;
+		sensor_baro.device_id = get_device_id();
+		sensor_baro.pressure = P;
+		sensor_baro.temperature = T;
+		sensor_baro.error_count = perf_event_count(_comms_errors);
+		sensor_baro.timestamp = hrt_absolute_time();
+		_sensor_baro_pub.publish(sensor_baro);
 	}
 
 	/* update the measurement state machine */
@@ -357,9 +359,6 @@ void MS5837::print_status()
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-
-	printf("pressure:         %f\n", (double)_px4_barometer.get().pressure);
-	printf("temperature:      %f\n", (double)_px4_barometer.get().temperature);
 }
 
 int MS5837::_read_prom()

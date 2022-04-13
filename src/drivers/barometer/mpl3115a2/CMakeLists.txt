@@ -40,6 +40,5 @@ px4_add_module(
 		MPL3115A2.cpp
 		mpl3115a2_main.cpp
 	DEPENDS
-		drivers_barometer
 		px4_work_queue
 	)
