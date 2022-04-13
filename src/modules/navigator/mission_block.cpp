@@ -430,22 +430,14 @@ MissionBlock::is_mission_item_reached()
 
 				float yaw_err = 0.0f;
 
-				if (dist_current_next >  1.2f * _navigator->get_loiter_radius()) {
-					// set required yaw from bearing to the next mission item
-					_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
-							    _navigator->get_global_position()->lon,
-							    next_sp.lat, next_sp.lon);
-					const float cog = atan2f(_navigator->get_local_position()->vy, _navigator->get_local_position()->vx);
-					yaw_err = wrap_pi(_mission_item.yaw - cog);
+				// set required yaw from bearing to the next mission item
+				_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
+						    _navigator->get_global_position()->lon,
+						    next_sp.lat, next_sp.lon);
+				const float cog = atan2f(_navigator->get_local_position()->vy, _navigator->get_local_position()->vx);
+				yaw_err = wrap_pi(_mission_item.yaw - cog);
 
-
-
-				}
-
-
-				if (fabsf(yaw_err) < _navigator->get_yaw_threshold()) {
-					exit_heading_reached = true;
-				}
+				exit_heading_reached = fabsf(yaw_err) < _navigator->get_yaw_threshold();
 
 			} else {
 				exit_heading_reached = true;
