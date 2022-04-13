@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,8 +81,7 @@ enum class BANK_0 : uint8_t {
 	FIFO_DATA          = 0x30,
 
 	SIGNAL_PATH_RESET  = 0x4B,
-	INTF_CONFIG0       = 0x4C,
-	INTF_CONFIG1       = 0x4D,
+
 	PWR_MGMT0          = 0x4E,
 	GYRO_CONFIG0       = 0x4F,
 	ACCEL_CONFIG0      = 0x50,
@@ -95,7 +94,7 @@ enum class BANK_0 : uint8_t {
 	FIFO_CONFIG3       = 0x61,
 
 	INT_CONFIG0        = 0x63,
-
+	INT_CONFIG1        = 0x64,
 	INT_SOURCE0        = 0x65,
 
 	SELF_TEST_CONFIG   = 0x70,
@@ -120,7 +119,7 @@ enum class BANK_2 : uint8_t {
 
 // DEVICE_CONFIG
 enum DEVICE_CONFIG_BIT : uint8_t {
-	SOFT_RESET_CONFIG = Bit0, //
+	SOFT_RESET_CONFIG = Bit0,
 };
 
 // INT_CONFIG
@@ -139,15 +138,14 @@ enum FIFO_CONFIG_BIT : uint8_t {
 // INT_STATUS
 enum INT_STATUS_BIT : uint8_t {
 	RESET_DONE_INT = Bit4,
-	DATA_RDY_INT   = Bit3,
+
 	FIFO_THS_INT   = Bit2,
 	FIFO_FULL_INT  = Bit1,
 };
 
 // SIGNAL_PATH_RESET
 enum SIGNAL_PATH_RESET_BIT : uint8_t {
-	ABORT_AND_RESET = Bit3,
-	FIFO_FLUSH      = Bit1,
+	FIFO_FLUSH = Bit1,
 };
 
 // PWR_MGMT0
@@ -159,55 +157,42 @@ enum PWR_MGMT0_BIT : uint8_t {
 // GYRO_CONFIG0
 enum GYRO_CONFIG0_BIT : uint8_t {
 	// 7:5 GYRO_FS_SEL
-	GYRO_FS_SEL_2000_DPS = 0, // 0b000 = ±2000dps (default)
-	GYRO_FS_SEL_1000_DPS = Bit5,
-	GYRO_FS_SEL_500_DPS  = Bit6,
-	GYRO_FS_SEL_250_DPS  = Bit6 | Bit5,
-	GYRO_FS_SEL_125_DPS  = Bit7,
-
+	//  0b000: ±2000dps (default)
+	GYRO_FS_SEL_2000_DPS_CLEAR = Bit7 | Bit6 | Bit5,
 
 	// 3:0 GYRO_ODR
-	//  0001: 32kHz
-	GYRO_ODR_32KHZ_SET   = Bit0,
-	GYRO_ODR_32KHZ_CLEAR = Bit3 | Bit2 | Bit0,
-	//  0010: 16kHz
-	GYRO_ODR_16KHZ_SET   = Bit1,
-	GYRO_ODR_16KHZ_CLEAR = Bit3 | Bit2 | Bit0,
-	//  0011: 8kHz
-	GYRO_ODR_8KHZ_SET    = Bit1 | Bit0,
-	GYRO_ODR_8KHZ_CLEAR  = Bit3 | Bit2,
-	//  0110: 1kHz (default)
-	GYRO_ODR_1KHZ_SET    = Bit2 | Bit1,
-	GYRO_ODR_1KHZ_CLEAR  = Bit3 | Bit0,
+	//  0b0001: 32kHz (maximum)
+	GYRO_ODR_32KHZ_SET         = Bit0,
+	GYRO_ODR_32KHZ_CLEAR       = Bit3 | Bit2 | Bit0,
+	//  0b0011: 8kHz
+	GYRO_ODR_8KHZ_SET          = Bit1 | Bit0,
+	GYRO_ODR_8KHZ_CLEAR        = Bit3 | Bit2,
+	//  0b0110: 1kHz (default)
+	GYRO_ODR_1KHZ_SET          = Bit2 | Bit1,
+	GYRO_ODR_1KHZ_CLEAR        = Bit3 | Bit0,
 };
 
 // ACCEL_CONFIG0
 enum ACCEL_CONFIG0_BIT : uint8_t {
 	// 7:5 ACCEL_FS_SEL
-	ACCEL_FS_SEL_16G = 0, // 000: ±16g (default)
-	ACCEL_FS_SEL_8G  = Bit5,
-	ACCEL_FS_SEL_4G  = Bit6,
-	ACCEL_FS_SEL_2G  = Bit6 | Bit5,
-
+	//  0b000: ±16g (default)
+	ACCEL_FS_SEL_16G_CLEAR     = Bit7 | Bit6 | Bit5,
 
 	// 3:0 ACCEL_ODR
-	//  0001: 32kHz
-	ACCEL_ODR_32KHZ_SET   = Bit0,
-	ACCEL_ODR_32KHZ_CLEAR = Bit3 | Bit2 | Bit0,
-	//  0010: 16kHz
-	ACCEL_ODR_16KHZ_SET   = Bit1,
-	ACCEL_ODR_16KHZ_CLEAR = Bit3 | Bit2 | Bit0,
-	//  0011: 8kHz
-	ACCEL_ODR_8KHZ_SET    = Bit1 | Bit0,
-	ACCEL_ODR_8KHZ_CLEAR  = Bit3 | Bit2,
-	//  0110: 1kHz (default)
-	ACCEL_ODR_1KHZ_SET    = Bit2 | Bit1,
-	ACCEL_ODR_1KHZ_CLEAR  = Bit3 | Bit0,
+	//  0b0001: 32kHz (maximum)
+	ACCEL_ODR_32KHZ_SET        = Bit0,
+	ACCEL_ODR_32KHZ_CLEAR      = Bit3 | Bit2 | Bit0,
+	//  0b0011: 8kHz
+	ACCEL_ODR_8KHZ_SET         = Bit1 | Bit0,
+	ACCEL_ODR_8KHZ_CLEAR       = Bit3 | Bit2,
+	//  0b0110: 1kHz (default)
+	ACCEL_ODR_1KHZ_SET         = Bit2 | Bit1,
+	ACCEL_ODR_1KHZ_CLEAR       = Bit3 | Bit0,
 };
 
 // GYRO_CONFIG1
 enum GYRO_CONFIG1_BIT : uint8_t {
-	GYRO_UI_FILT_ORD = Bit3 | Bit2, // 00: 1st Order
+	GYRO_UI_FILT_ORD_1ST_CLEAR = Bit3 | Bit2, // 00: 1st Order UI filter
 };
 
 // GYRO_ACCEL_CONFIG0
@@ -221,13 +206,12 @@ enum GYRO_ACCEL_CONFIG0_BIT : uint8_t {
 
 // ACCEL_CONFIG1
 enum ACCEL_CONFIG1_BIT : uint8_t {
-	ACCEL_UI_FILT_ORD = Bit4 | Bit3, // 00: 1st Order
+	ACCEL_UI_FILT_ORD_1ST_CLEAR = Bit4 | Bit3, // 00: 1st Order UI filter
 };
 
 // FIFO_CONFIG1
 enum FIFO_CONFIG1_BIT : uint8_t {
 	FIFO_RESUME_PARTIAL_RD = Bit6,
-	FIFO_WM_GT_TH          = Bit5,
 	FIFO_HIRES_EN          = Bit4,
 	FIFO_TEMP_EN           = Bit2,
 	FIFO_GYRO_EN           = Bit1,
@@ -237,18 +221,21 @@ enum FIFO_CONFIG1_BIT : uint8_t {
 // INT_CONFIG0
 enum INT_CONFIG0_BIT : uint8_t {
 	// 3:2 FIFO_THS_INT_CLEAR
-	CLEAR_ON_FIFO_READ = Bit3,
+	FIFO_THS_INT_CLEAR = Bit3, // 10: Clear on FIFO data 1Byte Read
+};
+
+// INT_CONFIG1
+enum INT_CONFIG1_BIT : uint8_t {
+	INT_TPULSE_DURATION   = Bit6, // 1: Interrupt pulse duration is 8 µs. Required if ODR ≥ 4kHz, optional for ODR < 4kHz.
+	INT_TDEASSERT_DISABLE = Bit5, // 1: Disables de-assert duration. Required if ODR ≥ 4kHz, optional for ODR < 4kHz.
+	INT_ASYNC_RESET       = Bit4, // User should change setting to 0 from default setting of 1, for proper INT1 and INT2 pin operation
 };
 
 // INT_SOURCE0
 enum INT_SOURCE0_BIT : uint8_t {
-	UI_FSYNC_INT1_EN   = Bit6,
-	PLL_RDY_INT1_EN    = Bit5,
-	RESET_DONE_INT1_EN = Bit4,
-	UI_DRDY_INT1_EN    = Bit3,
+	RESET_DONE_INT1_EN = Bit4, // 1: Reset done interrupt routed to INT1 (enabled by default)
+
 	FIFO_THS_INT1_EN   = Bit2, // FIFO threshold interrupt routed to INT1
-	FIFO_FULL_INT1_EN  = Bit1,
-	UI_AGC_RDY_INT1_EN = Bit0,
 };
 
 // REG_BANK_SEL
@@ -275,6 +262,7 @@ enum GYRO_CONFIG_STATIC2_BIT : uint8_t {
 enum ACCEL_CONFIG_STATIC2_BIT : uint8_t {
 	ACCEL_AAF_DIS = Bit0,
 };
+
 
 namespace FIFO
 {

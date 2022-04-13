@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -275,19 +275,21 @@ void ICM42688P::RunImpl()
 			}
 
 			// check configuration registers periodically or immediately following any failure
-			if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
-			    && RegisterCheck(_register_bank1_cfg[_checked_register_bank1])
-			    && RegisterCheck(_register_bank2_cfg[_checked_register_bank2])
-			   ) {
-				_last_config_check_timestamp = now;
-				_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
-				_checked_register_bank1 = (_checked_register_bank1 + 1) % size_register_bank1_cfg;
-				_checked_register_bank2 = (_checked_register_bank2 + 1) % size_register_bank2_cfg;
+			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
+				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
+				    && RegisterCheck(_register_bank1_cfg[_checked_register_bank1])
+				    && RegisterCheck(_register_bank2_cfg[_checked_register_bank2])
+				   ) {
+					_last_config_check_timestamp = now;
+					_checked_register_bank0 = (_checked_register_bank0 + 1) % size_register_bank0_cfg;
+					_checked_register_bank1 = (_checked_register_bank1 + 1) % size_register_bank1_cfg;
+					_checked_register_bank2 = (_checked_register_bank2 + 1) % size_register_bank2_cfg;
 
-			} else {
-				// register check failed, force reset
-				perf_count(_bad_register_perf);
-				Reset();
+				} else {
+					// register check failed, force reset
+					perf_count(_bad_register_perf);
+					Reset();
+				}
 			}
 		}
 
@@ -378,7 +380,10 @@ bool ICM42688P::Configure()
 	// 20-bits data format used
 	//  the only FSR settings that are operational are ±2000dps for gyroscope and ±16g for accelerometer
 	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+	_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
+
 	_px4_gyro.set_range(math::radians(2000.f));
+	_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
 
 	return success;
 }
@@ -668,8 +673,8 @@ void ICM42688P::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DA
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
 		accel.x[i] = accel.x[i];
-		accel.y[i] = (accel.y[i] == INT16_MIN) ? INT16_MAX : -accel.y[i];
-		accel.z[i] = (accel.z[i] == INT16_MIN) ? INT16_MAX : -accel.z[i];
+		accel.y[i] = math::negate(accel.y[i]);
+		accel.z[i] = math::negate(accel.z[i]);
 	}
 
 	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
@@ -740,8 +745,8 @@ void ICM42688P::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DAT
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
 		gyro.x[i] = gyro.x[i];
-		gyro.y[i] = (gyro.y[i] == INT16_MIN) ? INT16_MAX : -gyro.y[i];
-		gyro.z[i] = (gyro.z[i] == INT16_MIN) ? INT16_MAX : -gyro.z[i];
+		gyro.y[i] = math::negate(gyro.y[i]);
+		gyro.z[i] = math::negate(gyro.z[i]);
 	}
 
 	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
