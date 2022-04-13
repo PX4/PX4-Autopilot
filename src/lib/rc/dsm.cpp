@@ -179,7 +179,7 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 
 		} else {
 			// This will be the case for an unused channel (raw 16bit content will be 0xffff)
-			printf("invalid: %d %d\n", chan, phase);
+			PX4_DEBUG("invalid: %d %d\n", chan, phase);
 			return false;
 
 		}
