@@ -70,8 +70,8 @@ const uint16_t osd_gps_lat_pos = 2048;
 const uint16_t osd_gps_lon_pos = 2080;
 uint16_t osd_gps_sats_pos = 2112;
 const uint16_t osd_rssi_value_pos = 2176;
-const uint16_t osd_flymode_pos = 2208;
-const uint16_t osd_esc_tmp_pos = 2240;
+const uint16_t osd_flymode_pos = 234;
+const uint16_t osd_esc_tmp_pos = 234;
 
 // Center
 const uint16_t osd_home_dir_pos = 2093;
@@ -253,7 +253,6 @@ void MspOsd::Run()
 
 		if (_msp_fd < 0)
 		{
-			PX4_ERR("failed to open err: %d", errno);
 			return;
 		}
 
@@ -410,12 +409,13 @@ void MspOsd::Run()
 		&& _airspeed_validated_struct.indicated_airspeed_m_s != NAN
 		&& _airspeed_validated_struct.indicated_airspeed_m_s > 0)
 	{
-		raw_gps.groundSpeed = _airspeed_validated_struct.indicated_airspeed_m_s;
+		raw_gps.groundSpeed = _airspeed_validated_struct.indicated_airspeed_m_s * 100;
 	}
 	else
 	{
-		raw_gps.groundSpeed = 5;
+		raw_gps.groundSpeed = 0;
 	}
+	//PX4_WARN("%f\r\n",  (double)_battery_status_struct.current_a);
 	_msp.Send(MSP_RAW_GPS, &raw_gps);
 
 	// Calculate distance and direction to home
