@@ -49,12 +49,12 @@ hagl_test_mean, The mean in-flight value of the height above ground sensor innov
 ofx_fail_percentage, The percentage of in-flight recorded failure events for the optical flow sensor X-axis innovation consistency test.
 ofy_fail_percentage, The percentage of in-flight recorded failure events for the optical flow sensor Y-axis innovation consistency test.
 filter_faults_max, Largest recorded value of the filter internal fault bitmask. Should always be zero.
-imu_coning_peak, Peak in-flight value of the IMU delta angle coning vibration metric (rad)
-imu_coning_mean, Mean in-flight value of the IMU delta angle coning vibration metric (rad)
-imu_hfdang_peak, Peak in-flight value of the IMU delta angle high frequency vibration metric (rad)
-imu_hfdang_mean, Mean in-flight value of the IMU delta angle high frequency vibration metric (rad)
-imu_hfdvel_peak, Peak in-flight value of the IMU delta velocity high frequency vibration metric (m/s)
-imu_hfdvel_mean, Mean in-flight value of the IMU delta velocity high frequency vibration metric (m/s)
+imu_coning_peak, Peak in-flight value of the IMU delta angle coning vibration metric (rad^2)
+imu_coning_mean, Mean in-flight value of the IMU delta angle coning vibration metric (rad^2)
+imu_hfgyro_peak, Peak in-flight value of the IMU accel high frequency vibration metric (rad/s)
+imu_hfgyro_mean, Mean in-flight value of the IMU accel high frequency vibration metric (rad/s)
+imu_hfaccel_peak, Peak in-flight value of the IMU accel high frequency vibration metric (m/s/s)
+imu_hfaccel_mean, Mean in-flight value of the IMU accel high frequency vibration metric (m/s/s)
 output_obs_ang_err_median, Median in-flight value of the output observer angular error (rad)
 output_obs_vel_err_median, Median in-flight value of the output observer velocity error (m/s)
 output_obs_pos_err_median, Median in-flight value of the output observer position error (m)

@@ -84,7 +84,7 @@ private:
 
 					if (x.copy(&status)) {
 						if (status.accel_device_id == sensor_selection.accel_device_id) {
-							msg.vibration_x = status.gyro_coning_vibration;
+							msg.vibration_x = status.delta_angle_coning_metric;
 							msg.vibration_y = status.gyro_vibration_metric;
 							msg.vibration_z = status.accel_vibration_metric;
 							break;

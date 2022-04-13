@@ -488,19 +488,6 @@ void Navigator::run()
 					}
 				}
 
-				if (get_vstatus()->nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
-
-					// publish new reposition setpoint with updated speed/throtte when DO_CHANGE_SPEED
-					// was received in AUTO_LOITER mode
-
-					position_setpoint_triplet_s *rep = get_reposition_triplet();
-
-					// set repo setpoint to current, and only change speed and throttle fields
-					*rep = *(get_position_setpoint_triplet());
-					rep->current.cruising_speed = get_cruising_speed();
-					rep->current.cruising_throttle = get_cruising_throttle();
-				}
-
 				// TODO: handle responses for supported DO_CHANGE_SPEED options?
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 

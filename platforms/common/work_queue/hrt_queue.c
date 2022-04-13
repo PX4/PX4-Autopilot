@@ -123,7 +123,7 @@ int hrt_work_queue(struct work_s *work, worker_t worker, void *arg, uint32_t del
 	work->qtime  = hrt_absolute_time(); /* Time work queued */
 	//PX4_INFO("hrt work_queue adding work delay=%u time=%lu", delay, work->qtime);
 
-	dq_addlast((dq_entry_t *)work, &wqueue->q);
+	dq_addlast(&work->dq, &wqueue->q);
 
 	if (px4_getpid() != wqueue->pid) { /* only need to wake up if called from a different thread */
 #ifdef __PX4_QURT

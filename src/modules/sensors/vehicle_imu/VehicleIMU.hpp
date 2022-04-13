@@ -84,8 +84,9 @@ private:
 	bool UpdateGyro();
 
 	void UpdateIntegratorConfiguration();
-	void UpdateAccelVibrationMetrics(const matrix::Vector3f &acceleration);
-	void UpdateGyroVibrationMetrics(const matrix::Vector3f &angular_velocity);
+
+	inline void UpdateAccelVibrationMetrics(const matrix::Vector3f &acceleration);
+	inline void UpdateGyroVibrationMetrics(const matrix::Vector3f &angular_velocity);
 
 	void SensorCalibrationUpdate();
 	void SensorCalibrationSaveAccel();
@@ -143,6 +144,9 @@ private:
 	matrix::Vector3f _angular_velocity_prev{}; // angular velocity from the previous IMU measurement for vibration metrics
 
 	vehicle_imu_status_s _status{};
+
+	float _coning_norm_accum{0};
+	float _coning_norm_accum_total_time_s{0};
 
 	uint8_t _delta_velocity_clipping{0};
 
