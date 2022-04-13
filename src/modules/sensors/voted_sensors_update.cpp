@@ -172,7 +172,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 			_last_sensor_data[uorb_index].gyro_rad[1] = gyro_rate(1);
 			_last_sensor_data[uorb_index].gyro_rad[2] = gyro_rate(2);
 			_last_sensor_data[uorb_index].gyro_integral_dt = imu_report.delta_angle_dt;
-
+			_last_sensor_data[uorb_index].accel_calibration_count = imu_report.accel_calibration_count;
+			_last_sensor_data[uorb_index].gyro_calibration_count = imu_report.gyro_calibration_count;
 
 			_last_accel_timestamp[uorb_index] = imu_report.timestamp_sample;
 
@@ -231,6 +232,8 @@ void VotedSensorsUpdate::imuPoll(struct sensor_combined_s &raw)
 		raw.accelerometer_integral_dt = _last_sensor_data[accel_best_index].accelerometer_integral_dt;
 		raw.gyro_integral_dt = _last_sensor_data[gyro_best_index].gyro_integral_dt;
 		raw.accelerometer_clipping = _last_sensor_data[accel_best_index].accelerometer_clipping;
+		raw.accel_calibration_count = _last_sensor_data[accel_best_index].accel_calibration_count;
+		raw.gyro_calibration_count = _last_sensor_data[gyro_best_index].gyro_calibration_count;
 
 		if ((accel_best_index != _accel.last_best_vote) || (_selection.accel_device_id != _accel_device_id[accel_best_index])) {
 			_accel.last_best_vote = (uint8_t)accel_best_index;

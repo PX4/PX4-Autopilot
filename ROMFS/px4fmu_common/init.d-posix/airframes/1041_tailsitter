@@ -70,7 +70,6 @@ param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_D_ACC 0.1
 
 param set-default NAV_ACC_RAD 5
-param set-default NAV_LOITER_RAD 80
 
 param set-default VT_FW_DIFTHR_EN 1
 param set-default VT_FW_DIFTHR_SC 0.5

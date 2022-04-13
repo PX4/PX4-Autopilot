@@ -369,6 +369,8 @@ controls_tick()
 		} else {
 			r_raw_rc_flags &= ~(PX4IO_P_RAW_RC_FLAGS_MAPPING_OK);
 		}
+
+		r_page_raw_rc_input[PX4IO_P_RAW_FRAME_COUNT]++;
 	}
 
 	/*

@@ -144,17 +144,27 @@ def calculate_imu_metrics(ulog: ULog, multi_instance, in_air_no_ground_effects: 
         imu_metrics[result] = calculate_stat_from_signal(
             estimator_status_data, 'estimator_status', signal, in_air_no_ground_effects, np.median)
 
+
     # calculates peak and mean for IMU vibration checks
-    for signal, result in [('vibe[0]', 'imu_coning'),
-                           ('vibe[1]', 'imu_hfdang'),
-                           ('vibe[2]', 'imu_hfdvel')]:
-        peak = calculate_stat_from_signal(
-            estimator_status_data, 'estimator_status', signal, in_air_no_ground_effects, np.amax)
-        if peak > 0.0:
-            imu_metrics['{:s}_peak'.format(result)] = peak
-            imu_metrics['{:s}_mean'.format(result)] = calculate_stat_from_signal(
-                estimator_status_data, 'estimator_status', signal,
-                in_air_no_ground_effects, np.mean)
+    for imu_status_instance in range(4):
+        try:
+            vehicle_imu_status_data = ulog.get_dataset('vehicle_imu_status', imu_status_instance).data
+
+            if vehicle_imu_status_data['accel_device_id'][0] == estimator_status_data['accel_device_id'][0]:
+
+                for signal, result in [('delta_angle_coning_metric', 'imu_coning'),
+                                       ('gyro_vibration_metric', 'imu_hfgyro'),
+                                       ('accel_vibration_metric', 'imu_hfaccel')]:
+
+                    peak = calculate_stat_from_signal(vehicle_imu_status_data, 'vehicle_imu_status', signal, in_air_no_ground_effects, np.amax)
+
+                    if peak > 0.0:
+                        imu_metrics['{:s}_peak'.format(result)] = peak
+                        imu_metrics['{:s}_mean'.format(result)] = calculate_stat_from_signal(vehicle_imu_status_data, 'vehicle_imu_status', signal, in_air_no_ground_effects, np.mean)
+
+        except:
+            pass
+
 
     # IMU bias checks
     estimator_states_data = ulog.get_dataset('estimator_states', multi_instance).data
