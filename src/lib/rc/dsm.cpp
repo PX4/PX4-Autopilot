@@ -58,7 +58,7 @@
 
 #if defined(__PX4_NUTTX)
 #include <nuttx/arch.h>
-#define dsm_udelay(arg)		up_udelay(arg)
+#define dsm_udelay(arg)    up_udelay(arg)
 #else
 #define dsm_udelay(arg) px4_usleep(arg)
 #endif
@@ -71,14 +71,14 @@ static enum DSM_DECODE_STATE {
 } dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 
 typedef struct {
-	uint16_t value;
 	hrt_abstime last_seen;
+	uint16_t value;
 } dsm_channel_t;
 
 static dsm_channel_t channel_buffer[DSM_MAX_CHANNEL_COUNT];
 
 static int dsm_fd = -1;						/**< File handle to the DSM UART */
-static hrt_abstime dsm_last_rx_time;						/**< Timestamp when we last received data */
+static hrt_abstime dsm_last_rx_time;            /**< Timestamp when we last received data */
 static hrt_abstime dsm_last_frame_time;		/**< Timestamp for start of last valid dsm frame */
 static dsm_frame_t &dsm_frame = rc_decode_buf.dsm.frame;	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
 static dsm_buf_t &dsm_buf = rc_decode_buf.dsm.buf;	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
@@ -86,9 +86,9 @@ static dsm_buf_t &dsm_buf = rc_decode_buf.dsm.buf;	/**< DSM_BUFFER_SIZE DSM dsm 
 static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
 static unsigned dsm_channel_shift = 0;			/**< Channel resolution, 0=unknown, 10=10 bit (1024), 11=11 bit (2048) */
 static unsigned dsm_frame_drops = 0;			/**< Count of incomplete DSM frames */
-static uint16_t dsm_chan_count = 0;				 /**< DSM channel count */
+static uint16_t dsm_chan_count = 0;         /**< DSM channel count */
 
-#define CHANNEL_UNUSED 0xff
+static constexpr uint8_t CHANNEL_UNUSED = 0xFF;
 
 /**
  * Attempt to decode a single channel raw channel datum
@@ -119,8 +119,8 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 {
 	if (shift == 10) {
 		// 1024 Mode: This format is used only by DSM2/22ms mode. All other modes use 2048 data.
-		//	Bits 15-10 Channel ID
-		//	Bits 9-0	 Servo Position
+		//  Bits 15-10 Channel ID
+		//  Bits 9-0   Servo Position
 		static constexpr uint16_t MASK_1024_CHANID = 0xFC00;
 		static constexpr uint16_t MASK_1024_SXPOS = 0x03FF;
 
@@ -141,9 +141,9 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 
 	} else if (shift == 11) {
 		// 2048 Mode
-		//	Bits 15		Servo Phase
-		//	Bits 14-11 Channel ID
-		//	Bits 10-0	Servo Position
+		//  Bits 15    Servo Phase
+		//  Bits 14-11 Channel ID
+		//  Bits 10-0  Servo Position
 
 		uint16_t servo_position = 0;
 
@@ -172,7 +172,7 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 
 			channel = chan;
 
-		} else if (chan == 0x0f && phase) {
+		} else if (chan == 0x0F && phase) {
 			// When the channel content is all bits set, and the phase is also set, this is the blank channel
 			channel = CHANNEL_UNUSED;
 			return true;
@@ -181,7 +181,6 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 			// This will be the case for an unused channel (raw 16bit content will be 0xffff)
 			PX4_DEBUG("invalid: %d %d\n", chan, phase);
 			return false;
-
 		}
 
 		channel = chan;
@@ -205,13 +204,13 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
  */
 static bool dsm_guess_format(bool reset)
 {
-	static uint32_t	cs10 = 0;
-	static uint32_t	cs11 = 0;
-	static uint32_t good_cs10_frame_count = 0;
-	static uint32_t good_cs11_frame_count = 0;
-	static unsigned samples = 0;
-	static uint32_t seen_channels_count_cs11[DSM_MAX_CHANNEL_COUNT] = {0};
-	static uint32_t seen_channels_count_cs10[DSM_MAX_CHANNEL_COUNT] = {0};
+	static uint32_t cs10 = 0;
+	static uint32_t cs11 = 0;
+	static uint16_t good_cs10_frame_count = 0;
+	static uint16_t good_cs11_frame_count = 0;
+	static uint16_t samples = 0;
+	static uint16_t seen_channels_count_cs11[DSM_MAX_CHANNEL_COUNT] {};
+	static uint16_t seen_channels_count_cs10[DSM_MAX_CHANNEL_COUNT] {};
 
 	/* reset the 10/11 bit sniffed channel masks */
 	if (reset) {
@@ -310,12 +309,12 @@ static bool dsm_guess_format(bool reset)
 	}
 
 	/*
-		10 or 11 bit decoding guess requirements
-			For CS10 or CS11...
-			* At least `samples - bad_samples_allowance` must decode correctly (no duplicates, valid channel ranges for CS10)
-			* Even distribution of all found channels
-			* Channels must begin at 0 and no channel gaps after that (ie, the last channel is the one before the first unseen channel starting from zero)
-	*/
+	* 10 or 11 bit decoding guess requirements
+	*  For CS10 or CS11...
+	*  At least `samples - bad_samples_allowance` must decode correctly (no duplicates, valid channel ranges for CS10)
+	*  Even distribution of all found channels
+	*  Channels must begin at 0 and no channel gaps after that (ie, the last channel is the one before the first unseen channel starting from zero)
+	 */
 
 	bool cs10_channel_gap_found = false;
 	bool cs11_channel_gap_found = false;
@@ -377,7 +376,7 @@ static bool dsm_guess_format(bool reset)
 		valid_channel_counts_cs10 = true;
 
 		for (unsigned i = 0; i < ((cs10_channel_count > 12) ? 12 : cs10_channel_count); i++) {
-			if (seen_channels_count_cs10[i] <  minimum_channel_seen_count) {
+			if (seen_channels_count_cs10[i] < minimum_channel_seen_count) {
 				valid_channel_counts_cs10 = false;
 				break;
 			}
@@ -390,7 +389,7 @@ static bool dsm_guess_format(bool reset)
 		valid_channel_counts_cs11 = true;
 
 		for (unsigned i = 0; i < ((cs11_channel_count > 12) ? 12 : cs11_channel_count); i++) {
-			if (seen_channels_count_cs11[i] <  minimum_channel_seen_count) {
+			if (seen_channels_count_cs11[i] < minimum_channel_seen_count) {
 				valid_channel_counts_cs11 = false;
 				break;
 			}
