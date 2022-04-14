@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 #include "TAP_ESC.hpp"
+
+#include <px4_platform_common/sem.hpp>
 
 TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
 	CDev(TAP_ESC_DEVICE_PATH),
@@ -325,6 +327,8 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 
 void TAP_ESC::Run()
 {
+	SmartLock lock_guard(_lock);
+
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -409,19 +413,19 @@ void TAP_ESC::Run()
 
 int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
-	int ret = OK;
+	SmartLock lock_guard(_lock);
 
-	lock();
+	int ret = OK;
 
 	switch (cmd) {
 	case MIXERIOCRESET:
-		_mixing_output.resetMixerThreadSafe();
+		_mixing_output.resetMixer();
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_output.loadMixer(buf, buflen);
 			break;
 		}
 
@@ -430,8 +434,6 @@ int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		ret = -ENOTTY;
 		break;
 	}
-
-	unlock();
 
 	return ret;
 }
