@@ -63,9 +63,9 @@
 #include "crsf_telemetry.h"
 #include "ghst_telemetry.hpp"
 
-#ifdef HRT_PPM_CHANNEL
-# include <systemlib/ppm_decode.h>
-#endif
+#if defined(HRT_PPM_CHANNEL)
+# include <lib/systemlib/ppm_decode.h>
+#endif // HRT_PPM_CHANNEL
 
 class RCInput : public ModuleBase<RCInput>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -97,7 +97,9 @@ private:
 		RC_PROTO_SELECT_DSM = 1,
 		RC_PROTO_SELECT_ST24 = 2,
 		RC_PROTO_SELECT_SUMD = 3,
+#if defined(HRT_PPM_CHANNEL)
 		RC_PROTO_SELECT_PPM = 4,
+#endif // HRT_PPM_CHANNEL
 		RC_PROTO_SELECT_CRSF = 5,
 		RC_PROTO_SELECT_GHST = 6
 	};
@@ -108,18 +110,22 @@ private:
 		RC_PARSER_DSM,
 		RC_PARSER_ST24,
 		RC_PARSER_SUMD,
+#if defined(HRT_PPM_CHANNEL)
 		RC_PARSER_PPM,
+#endif // HRT_PPM_CHANNEL
 		RC_PARSER_CRSF,
 		RC_PARSER_GHST
 	};
 
-	static constexpr char const *RC_PARSER_STRING[8] {
+	static constexpr char const *RC_PARSER_STRING[] {
 		"NONE",
 		"SBUS",
 		"DSM",
 		"ST24",
 		"SUMD",
+#if defined(HRT_PPM_CHANNEL)
 		"PPM",
+#endif // HRT_PPM_CHANNEL
 		"CRSF",
 		"GHST"
 	};
@@ -149,7 +155,10 @@ private:
 	bool try_parse_st24(hrt_abstime cycle_timestamp, int new_bytes);
 	bool try_parse_sumd(hrt_abstime cycle_timestamp, int new_bytes);
 	bool try_parse_ghst(hrt_abstime cycle_timestamp, int new_bytes);
+
+#if defined(HRT_PPM_CHANNEL)
 	bool try_parse_ppm(hrt_abstime cycle_timestamp);
+#endif // HRT_PPM_CHANNEL
 
 	RC_PARSER scanner_check(hrt_abstime cycle_timestamp);
 

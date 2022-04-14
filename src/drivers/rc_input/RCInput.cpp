@@ -48,9 +48,6 @@ RCInput::RCInput(const char *device) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
 	_publish_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval"))
 {
-	// rc input, published to ORB
-	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
-
 	// initialize it as RC lost
 	_rc_in.rc_lost = true;
 
@@ -409,10 +406,12 @@ void RCInput::Run()
 		case RC_PROTO_SELECT_SUMD:
 			request_rc_parser = RC_PARSER_SUMD;
 			break;
+#if defined(HRT_PPM_CHANNEL)
 
 		case RC_PROTO_SELECT_PPM:
 			request_rc_parser = RC_PARSER_PPM;
 			break;
+#endif // HRT_PPM_CHANNEL
 
 		case RC_PROTO_SELECT_CRSF:
 			request_rc_parser = RC_PARSER_CRSF;
@@ -460,9 +459,12 @@ void RCInput::Run()
 			rc_updated = try_parse_sumd(cycle_timestamp, new_bytes);
 			break;
 
+#if defined(HRT_PPM_CHANNEL)
+
 		case RC_PARSER_PPM:
 			rc_updated = try_parse_ppm(cycle_timestamp);
 			break;
+#endif // HRT_PPM_CHANNEL
 
 		case RC_PARSER_CRSF:
 			rc_updated = try_parse_crsf(cycle_timestamp, new_bytes);
@@ -510,12 +512,13 @@ void RCInput::switch_parser(enum RC_PARSER new_parser)
 	case RC_PARSER_SUMD:
 		break;
 
+#if defined(HRT_PPM_CHANNEL)
+
 	case RC_PARSER_PPM:
-#ifdef HRT_PPM_CHANNEL
 		// disable CPPM input by mapping it away from the timer capture input
 		px4_arch_unconfiggpio(GPIO_PPM_IN);
-#endif
 		break;
+#endif // HRT_PPM_CHANNEL
 
 	case RC_PARSER_CRSF:
 		break;
@@ -569,12 +572,13 @@ void RCInput::switch_parser(enum RC_PARSER new_parser)
 		memset(_rcs_buf, 0, sizeof(_rcs_buf));
 		break;
 
+#if defined(HRT_PPM_CHANNEL)
+
 	case RC_PARSER_PPM:
-#ifdef HRT_PPM_CHANNEL
 		// Configure timer input pin for CPPM
 		px4_arch_configgpio(GPIO_PPM_IN);
-#endif
 		break;
+#endif // HRT_PPM_CHANNEL
 
 	case RC_PARSER_CRSF:
 		// Configure serial port for CRSF
@@ -788,6 +792,7 @@ bool RCInput::try_parse_ghst(hrt_abstime cycle_timestamp, int new_bytes)
 	return rc_updated;
 }
 
+#if defined(HRT_PPM_CHANNEL)
 bool RCInput::try_parse_ppm(hrt_abstime cycle_timestamp)
 {
 	// see if we have new PPM input data
@@ -803,6 +808,7 @@ bool RCInput::try_parse_ppm(hrt_abstime cycle_timestamp)
 
 	return false;
 }
+#endif // HRT_PPM_CHANNEL
 
 RCInput::RC_PARSER RCInput::scanner_check(hrt_abstime cycle_timestamp)
 {
