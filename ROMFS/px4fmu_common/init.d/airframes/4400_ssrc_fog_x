@@ -33,10 +33,8 @@ param set-default BAT1_V_EMPTY 3.6
 param set-default BAT1_V_DIV 18.1
 param set-default BAT1_V_LOAD_DROP 0.1
 
-# RTPS/MAV on TELEMETRY 2
-param set-default MAV_0_CONFIG 0
-param set-default RTPS_MAV_CONFIG 102
-param set-default SER_TEL2_BAUD 2000000
+# Enable ethernet for PX4<->MC
+param set-default RTPS_MAV_CONFIG 0
 
 # Enable LL40LS in i2c
 param set-default SENS_EN_LL40LS 2
