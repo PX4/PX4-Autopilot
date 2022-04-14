@@ -30,36 +30,39 @@ class JsonOutput():
         last_param_name = ""
         board_specific_param_set = False
         for group in groups:
-            group_name=group.GetName()
+            group_name=group.name
 
             def get_typed_value(value: str, type_name: str):
                 if type_name == 'Float': return float(value)
                 if type_name == 'Int32': return int(value)
                 return value
 
-            for param in group.GetParams():
-                if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
+            for param in sorted(group.parameters):
+                if (last_param_name == param.name and not board_specific_param_set) or last_param_name != param.name:
                     curr_param=dict()
-                    curr_param['name'] = param.GetName()
-                    type_name = param.GetType().capitalize()
+                    curr_param['name'] = param.name
+                    type_name = param.type.capitalize()
                     curr_param['type'] = type_name
                     if not type_name in allowed_types:
                         print("Error: %s type not supported: curr_param['type']" % (curr_param['name'],curr_param['type']) )
                         sys.Exit(1)
-                    curr_param['default'] = get_typed_value(param.GetDefault(), type_name)
+                    curr_param['default'] = get_typed_value(param.default, type_name)
 
                     curr_param['group'] = group_name
-                    if param.GetCategory():
-                        curr_param['category'] = param.GetCategory()
+                    if param.category != "":
+                        curr_param['category'] = param.category
                     else:
                         curr_param['category'] = 'Standard'
 
-                    if param.GetVolatile():
+                    if param.volatile:
                         curr_param['volatile'] = True
 
-                    last_param_name = param.GetName()
-                    for code in param.GetFieldCodes():
-                        value = param.GetFieldValue(code)
+                    last_param_name = param.name
+                    for code in param.field_keys:
+                        value = param.fields.get(code, "")
+                        # XML parsing returns empty fields as None
+                        if value is None:
+                            value = ""
                         if code == "board":
                             if value == board:
                                 board_specific_param_set = True
@@ -80,32 +83,32 @@ class JsonOutput():
                                 sys.exit(1)
 
 
-                if last_param_name != param.GetName():
+                if last_param_name != param.name:
                     board_specific_param_set = False
 
-                enum_codes=param.GetEnumCodes() or '' # Gets numerical values for parameter.
+                enum_codes=sorted(param.enum.keys(), key=float)
                 if enum_codes:
                     enum_codes=sorted(enum_codes,key=float)
                     codes_list=list()
                     for item in enum_codes:
                         code_dict=dict()
                         code_dict['value']=get_typed_value(item, type_name)
-                        code_dict['description']=param.GetEnumValue(item)
+                        code_dict['description']=param.enum.get(item, "")
                         codes_list.append(code_dict)
                     curr_param['values'] = codes_list
-                elif param.GetBoolean():
+                elif param.boolean:
                     curr_param['values'] = [
                         { 'value': 0, 'description': 'Disabled' },
                         { 'value': 1, 'description': 'Enabled' }
                     ]
 
 
-                if len(param.GetBitmaskList()) > 0:
+                if len(param.bitmask.keys()) > 0:
                     bitmasks_list=list()
-                    for index in param.GetBitmaskList():
+                    for index in sorted(param.bitmask.keys(), key=float):
                         bitmask_dict=dict()
                         bitmask_dict['index']=int(index)
-                        bitmask_dict['description']=param.GetBitmaskBit(index)
+                        bitmask_dict['description']=param.bitmask.get(index, "")
                         bitmasks_list.append(bitmask_dict)
                     curr_param['bitmask'] = bitmasks_list
 

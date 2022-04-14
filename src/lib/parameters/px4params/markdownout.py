@@ -32,7 +32,7 @@ table {
                   )
 
         for group in groups:
-            result += '## %s\n\n' % group.GetName()
+            result += '## %s\n\n' % group.name
             result += (
 """<table>
  <colgroup><col style="width: 23%"><col style="width: 46%"><col style="width: 11%"><col style="width: 11%"><col style="width: 9%"></colgroup>
@@ -42,18 +42,18 @@ table {
 <tbody>
 """
             )
-            for param in group.GetParams():
-                code = param.GetName()
-                name = param.GetFieldValue("short_desc") or ''
-                long_desc = param.GetFieldValue("long_desc") or ''
-                min_val = param.GetFieldValue("min") or ''
-                max_val = param.GetFieldValue("max") or ''
-                increment = param.GetFieldValue("increment") or ''
-                def_val = param.GetDefault() or ''
-                unit = param.GetFieldValue("unit") or ''
-                type = param.GetType()
-                is_boolean = param.GetBoolean()
-                reboot_required = param.GetFieldValue("reboot_required") or ''
+            for param in group.parameters:
+                code = param.name
+                name = param.fields.get("short_desc", "")
+                long_desc = param.fields.get("long_desc", "")
+                min_val = param.fields.get("min", "")
+                max_val = param.fields.get("max", "")
+                increment = param.fields.get("increment", "")
+                def_val = param.default
+                unit = param.fields.get("unit", "")
+                type = param.type
+                is_boolean = param.boolean
+                reboot_required = param.fields.get("reboot_required", "")
                 #board = param.GetFieldValue("board") or '' ## Disabled as no board values are defined in any parameters!
                 #decimal = param.GetFieldValue("decimal") or '' #Disabled as is intended for GCS not people
                 #field_codes = param.GetFieldCodes() ## Disabled as not needed for display.
@@ -82,24 +82,24 @@ table {
                 if reboot_required:
                     reboot_required='<p><b>Reboot required:</b> %s</p>\n' % reboot_required
 
-                enum_codes=param.GetEnumCodes() or '' # Gets numerical values for parameter.
+                enum_codes=param.enum.keys() or '' # Gets numerical values for parameter.
                 enum_output=''
                 # Format codes and their descriptions for display.
                 if enum_codes:
                     enum_output+='<strong>Values:</strong><ul>'
                     enum_codes=sorted(enum_codes,key=float)
                     for item in enum_codes:
-                        enum_output+='\n<li><strong>%s:</strong> %s</li> \n' % (item, param.GetEnumValue(item))
+                        enum_output+='\n<li><strong>%s:</strong> %s</li> \n' % (item, param.enum[item])
                     enum_output+='</ul>\n'
 
 
-                bitmask_list=param.GetBitmaskList() #Gets bitmask values for parameter
+                bitmask_list=param.bitmask.keys() #Gets bitmask values for parameter
                 bitmask_output=''
                 #Format bitmask values
                 if bitmask_list:
                     bitmask_output+='<strong>Bitmask:</strong><ul>'
                     for bit in bitmask_list:
-                        bit_text = param.GetBitmaskBit(bit)
+                        bit_text = param.bitmask[bit]
                         bitmask_output+='  <li><strong>%s:</strong> %s</li> \n' % (bit, bit_text)
                     bitmask_output+='</ul>\n'
 
