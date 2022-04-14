@@ -1,0 +1,125 @@
+module_name: land_detector
+parameters:
+  - group: Land Detector
+    definitions:
+      LND_FLIGHT_T_HI:
+        category: System
+        default: 0
+        description:
+          long: Total flight time of this autopilot. Higher 32 bits of the value. Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+          short: Total flight time in microseconds
+        min: 0
+        type: int32
+        volatile: true
+      LND_FLIGHT_T_LO:
+        category: System
+        default: 0
+        description:
+          long: Total flight time of this autopilot. Lower 32 bits of the value. Flight time in microseconds = (LND_FLIGHT_T_HI << 32) | LND_FLIGHT_T_LO.
+          short: Total flight time in microseconds
+        min: 0
+        type: int32
+        volatile: true
+      LNDFW_AIRSPD_MAX:
+        decimal: 1
+        default: 6.0
+        description:
+          long: Maximum airspeed allowed in the landed state
+          short: 'Fixed-wing land detector: Max airspeed'
+        max: 20
+        min: 2
+        type: float
+        unit: m/s
+        volatile: false
+      LNDFW_VEL_XY_MAX:
+        decimal: 1
+        default: 5.0
+        description:
+          long: Maximum horizontal velocity allowed in the landed state. A factor of 0.7 is applied in case of airspeed-less flying (either because no sensor is present or sensor data got invalid in flight).
+          short: 'Fixed-wing land detector: Max horizontal velocity threshold'
+        max: 10
+        min: 0.5
+        type: float
+        unit: m/s
+        volatile: false
+      LNDFW_VEL_Z_MAX:
+        decimal: 1
+        default: 2.0
+        description:
+          long: Maximum vertical velocity allowed in the landed state. A factor of 0.7 is applied in case of airspeed-less flying (either because no sensor is present or sensor data got invalid in flight).
+          short: 'Fixed-wing land detector: Max vertiacal velocity threshold'
+        max: 20
+        min: 0.1
+        type: float
+        unit: m/s
+        volatile: false
+      LNDFW_XYACC_MAX:
+        decimal: 1
+        default: 8.0
+        description:
+          long: Maximum horizontal (x,y body axes) acceleration allowed in the landed state
+          short: 'Fixed-wing land detector: Max horizontal acceleration'
+        max: 15
+        min: 2
+        type: float
+        unit: m/s^2
+        volatile: false
+      LNDMC_ALT_GND:
+        decimal: 2
+        default: 2.0
+        description:
+          long: The height above ground below which ground effect creates barometric altitude errors. A negative value indicates no ground effect.
+          short: Ground effect altitude for multicopters
+        min: -1
+        type: float
+        unit: m
+        volatile: false
+      LNDMC_ALT_MAX:
+        decimal: 2
+        default: -1.0
+        description:
+          long: The system will obey this limit as a hard altitude limit. This setting will be consolidated with the GF_MAX_VER_DIST parameter. A negative value indicates no altitude limitation.
+          short: Maximum altitude for multicopters
+        max: 10000
+        min: -1
+        type: float
+        unit: m
+        volatile: false
+      LNDMC_ROT_MAX:
+        decimal: 1
+        default: 20.0
+        description:
+          long: Maximum allowed angular velocity around each axis allowed in the landed state.
+          short: Multicopter max rotation
+        type: float
+        unit: deg/s
+        volatile: false
+      LNDMC_TRIG_TIME:
+        decimal: 1
+        default: 1.0
+        description:
+          long: 'Total time it takes to go through all three land detection stages: ground contact, maybe landed, landed when all necessary conditions are constantly met.'
+          short: Multicopter land detection trigger time
+        max: 10.0
+        min: 0.1
+        type: float
+        unit: s
+        volatile: false
+      LNDMC_XY_VEL_MAX:
+        decimal: 1
+        default: 1.5
+        description:
+          long: Maximum horizontal velocity allowed in the landed state
+          short: Multicopter max horizontal velocity
+        type: float
+        unit: m/s
+        volatile: false
+      LNDMC_Z_VEL_MAX:
+        decimal: 1
+        default: 0.5
+        description:
+          long: Maximum vertical velocity allowed in the landed state
+          short: Multicopter max climb rate
+        type: float
+        unit: m/s
+        volatile: false

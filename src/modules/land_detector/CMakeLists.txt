@@ -42,6 +42,8 @@ px4_add_module(
 		VtolLandDetector.cpp
 		RoverLandDetector.cpp
 		AirshipLandDetector.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
 		hysteresis
 	)
