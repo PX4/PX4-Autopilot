@@ -36,6 +36,7 @@
 #include <px4_platform_common/events.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/module_params.h>
+#include <uORB/topics/health_report.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
@@ -206,6 +207,8 @@ public:
 		return _results[_current_result].arming_checks.valid &&
 		       (uint32_t)(_results[_current_result].arming_checks.can_run & getModeGroup(nav_state)) != 0;
 	}
+
+	void getHealthReport(health_report_s &report) const;
 
 	/**
 	 * Report a health failure. A health issue generally refers to a hardware issue, independent from environment
