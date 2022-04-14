@@ -70,18 +70,25 @@ static enum DSM_DECODE_STATE {
 	DSM_DECODE_STATE_SYNC
 } dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 
+typedef struct {
+	hrt_abstime last_seen;
+	uint16_t value;
+} dsm_channel_t;
+
+static dsm_channel_t channel_buffer[DSM_MAX_CHANNEL_COUNT];
+
 static int dsm_fd = -1;						/**< File handle to the DSM UART */
 static hrt_abstime dsm_last_rx_time;            /**< Timestamp when we last received data */
 static hrt_abstime dsm_last_frame_time;		/**< Timestamp for start of last valid dsm frame */
 static dsm_frame_t &dsm_frame = rc_decode_buf.dsm.frame;	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
 static dsm_buf_t &dsm_buf = rc_decode_buf.dsm.buf;	/**< DSM_BUFFER_SIZE DSM dsm frame receive buffer */
 
-static uint16_t dsm_chan_buf[DSM_MAX_CHANNEL_COUNT];
 static unsigned dsm_partial_frame_count;	/**< Count of bytes received for current dsm frame */
 static unsigned dsm_channel_shift = 0;			/**< Channel resolution, 0=unknown, 10=10 bit (1024), 11=11 bit (2048) */
 static unsigned dsm_frame_drops = 0;			/**< Count of incomplete DSM frames */
 static uint16_t dsm_chan_count = 0;         /**< DSM channel count */
-static uint16_t dsm_chan_count_prev = 0;    /**< last valid DSM channel count */
+
+static constexpr uint8_t CHANNEL_UNUSED = 0xFF;
 
 /**
  * Attempt to decode a single channel raw channel datum
@@ -110,10 +117,6 @@ static uint16_t dsm_chan_count_prev = 0;    /**< last valid DSM channel count */
  */
 static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, uint16_t &value)
 {
-	if (raw == 0 || raw == 0xffff) {
-		return false;
-	}
-
 	if (shift == 10) {
 		// 1024 Mode: This format is used only by DSM2/22ms mode. All other modes use 2048 data.
 		//  Bits 15-10 Channel ID
@@ -125,7 +128,7 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 
 		const uint16_t servo_position = (raw & MASK_1024_SXPOS); // 10 bits
 
-		if (channel > DSM_MAX_CHANNEL_COUNT) {
+		if (channel >= DSM_MAX_CHANNEL_COUNT) {
 			PX4_DEBUG("invalid channel: %d\n", channel);
 			return false;
 		}
@@ -133,14 +136,6 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 		// PWM_OUT = (ServoPosition x 1.166μs) + Offset
 		static constexpr uint16_t offset = 903; // microseconds
 		value = roundf(servo_position * 1.166f) + offset;
-
-		// Spektrum range is 903μs to 2097μs (Specification for Spektrum Remote Receiver Interfacing Rev G 9.1)
-		//  ±100% travel is 1102µs to 1898 µs
-		if (value < 903 || value > 2097) {
-			// if the value is unrealistic, fail the parsing entirely
-			PX4_DEBUG("channel %d invalid range %d", channel, value);
-			return false;
-		}
 
 		return true;
 
@@ -153,7 +148,7 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 		uint16_t servo_position = 0;
 
 		// from Spektrum Remote Receiver Interfacing Rev G Page 6
-		const bool phase = raw & (2 >> 15); // the phase is part of the X-Plus address (bit 15)
+		const bool phase = (raw >> 15) & 0x01; // the phase is part of the X-Plus address (bit 15)
 		uint8_t chan = (raw >> 11) & 0x0F;
 
 		if (chan < 12) {
@@ -169,8 +164,7 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 				chan += 4;
 			}
 
-			if (chan > DSM_MAX_CHANNEL_COUNT) {
-				PX4_DEBUG("invalid channel: %d\n", chan);
+			if (chan >= DSM_MAX_CHANNEL_COUNT) {
 				return false;
 			}
 
@@ -178,8 +172,14 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 
 			channel = chan;
 
+		} else if (chan == 0x0F && phase) {
+			// When the channel content is all bits set, and the phase is also set, this is the blank channel
+			channel = CHANNEL_UNUSED;
+			return true;
+
 		} else {
-			PX4_DEBUG("invalid channel: %d\n", chan);
+			// This will be the case for an unused channel (raw 16bit content will be 0xffff)
+			PX4_DEBUG("invalid: %d %d\n", chan, phase);
 			return false;
 		}
 
@@ -188,14 +188,6 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 		// PWM_OUT = (ServoPosition x 0.583μs) + Offset
 		static constexpr uint16_t offset = 903; // microseconds
 		value = roundf(servo_position * 0.583f) + offset;
-
-		// Spektrum range is 903μs to 2097μs (Specification for Spektrum Remote Receiver Interfacing Rev G 9.1)
-		//  ±100% travel is 1102µs to 1898 µs
-		if (value < 903 || value > 2097) {
-			// if the value is unrealistic, fail the parsing entirely
-			PX4_DEBUG("channel %d invalid range %d", channel, value);
-			return false;
-		}
 
 		PX4_DEBUG(stderr, "CH%d=%d(0x%02x), ", channel, value, raw);
 
@@ -212,9 +204,13 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
  */
 static bool dsm_guess_format(bool reset)
 {
-	static uint32_t	cs10 = 0;
-	static uint32_t	cs11 = 0;
-	static unsigned samples = 0;
+	static uint32_t cs10 = 0;
+	static uint32_t cs11 = 0;
+	static uint16_t good_cs10_frame_count = 0;
+	static uint16_t good_cs11_frame_count = 0;
+	static uint16_t samples = 0;
+	static uint16_t seen_channels_count_cs11[DSM_MAX_CHANNEL_COUNT] {};
+	static uint16_t seen_channels_count_cs10[DSM_MAX_CHANNEL_COUNT] {};
 
 	/* reset the 10/11 bit sniffed channel masks */
 	if (reset) {
@@ -222,7 +218,16 @@ static bool dsm_guess_format(bool reset)
 		cs10 = 0;
 		cs11 = 0;
 		samples = 0;
+
 		dsm_channel_shift = 0;
+		good_cs10_frame_count = 0;
+		good_cs11_frame_count = 0;
+
+		for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
+			seen_channels_count_cs10[i] = 0;
+			seen_channels_count_cs11[i] = 0;
+		}
+
 		return false;
 	}
 
@@ -243,21 +248,32 @@ static bool dsm_guess_format(bool reset)
 
 		/* if the channel decodes, remember the assigned number */
 		if (dsm_decode_channel(raw, 10, channel, value)) {
+			if (channel == CHANNEL_UNUSED) {
+				continue;
+			}
+
 			// invalidate entire frame (for 1024) if channel already found, no duplicate channels per DSM frame
 			if (channels_found_10[channel]) {
 				cs10_frame_valid = false;
 
 			} else {
+				seen_channels_count_cs10[channel]++;
 				channels_found_10.set(channel);
 			}
 		}
 
 		if (dsm_decode_channel(raw, 11, channel, value)) {
+			if (channel == CHANNEL_UNUSED) {
+				continue;
+			}
+
 			// invalidate entire frame (for 2048) if channel already found, no duplicate channels per DSM frame
 			if (channels_found_11[channel]) {
 				cs11_frame_valid = false;
 
 			} else {
+				seen_channels_count_cs11[channel]++;
+
 				channels_found_11.set(channel);
 			}
 		}
@@ -265,7 +281,9 @@ static bool dsm_guess_format(bool reset)
 
 	// add valid cs10 channels
 	if (cs10_frame_valid) {
-		for (unsigned channel = 0; channel < DSM_FRAME_CHANNELS; channel++) {
+		good_cs10_frame_count++;
+
+		for (unsigned channel = 0; channel < DSM_MAX_CHANNEL_COUNT; channel++) {
 			if (channels_found_10[channel]) {
 				cs10 |= 1 << channel;
 			}
@@ -274,7 +292,9 @@ static bool dsm_guess_format(bool reset)
 
 	// add valid cs11 channels
 	if (cs11_frame_valid) {
-		for (unsigned channel = 0; channel < DSM_FRAME_CHANNELS; channel++) {
+		good_cs11_frame_count++;
+
+		for (unsigned channel = 0; channel < DSM_MAX_CHANNEL_COUNT; channel++) {
 			if (channels_found_11[channel]) {
 				cs11 |= 1 << channel;
 			}
@@ -283,68 +303,130 @@ static bool dsm_guess_format(bool reset)
 
 	samples++;
 
-#ifdef DSM_DEBUG
-	printf("dsm guess format: samples: %d %s\n", samples, (reset) ? "RESET" : "");
-#endif
-
 	/* wait until we have seen plenty of frames */
-	if (samples < 10) {
+	if (samples < 15) {
 		return false;
 	}
 
 	/*
-	 * Iterate the set of sensible sniffed channel sets and see whether
-	 * decoding in 10 or 11-bit mode has yielded anything we recognize.
-	 *
-	 * XXX Note that due to what seem to be bugs in the DSM2 high-resolution
-	 *     stream, we may want to sniff for longer in some cases when we think we
-	 *     are talking to a DSM2 receiver in high-resolution mode (so that we can
-	 *     reject it, ideally).
+	* 10 or 11 bit decoding guess requirements
+	*  For CS10 or CS11...
+	*  At least `samples - bad_samples_allowance` must decode correctly (no duplicates, valid channel ranges for CS10)
+	*  Even distribution of all found channels
+	*  Channels must begin at 0 and no channel gaps after that (ie, the last channel is the one before the first unseen channel starting from zero)
 	 */
-	static uint32_t masks[] = {
-		0x3f,	/* 6 channels (DX6) */
-		0x7f,	/* 7 channels (DX7) */
-		0xff,	/* 8 channels (DX8) */
-		0x1ff,	/* 9 channels (DX9, etc.) */
-		0x3ff,	/* 10 channels (DX10) */
-		0x1fff,	/* 13 channels (DX10t) */
-		0xffff,	/* 16 channels */
-		0x3ffff,/* 18 channels (DX10) */
-	};
 
-	unsigned votes10 = 0;
-	unsigned votes11 = 0;
+	bool cs10_channel_gap_found = false;
+	bool cs11_channel_gap_found = false;
+	bool valid_channel_counts_cs10 = false;
+	bool valid_channel_counts_cs11 = false;
+	uint32_t cs10_channel_count = 0;
+	uint32_t cs11_channel_count = 0;
+	bool found_channels_end = false;
 
-	for (unsigned i = 0; i < (sizeof(masks) / sizeof(masks[0])); i++) {
+	// Count of allowed bad frames
+	static constexpr uint16_t bad_samples_allowance = 5;
+	static constexpr uint16_t minimum_channel_count = 5;
+	static constexpr uint16_t minimum_channel_seen_count = 4;
 
-		if (cs10 == masks[i]) {
-			votes10++;
-		}
+	// Check for continous channels in 10bit decoding
+	found_channels_end = false;
 
-		if (cs11 == masks[i]) {
-			votes11++;
+	for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
+		// This bit is set
+		if (cs10 & (1 << i)) {
+			if (found_channels_end) {
+				// Channel gap found
+				cs10_channel_gap_found = true;
+				break;
+			}
+
+		} else {
+			if (!found_channels_end) {
+				cs10_channel_count = i;
+			}
+
+			found_channels_end = true;
 		}
 	}
 
-	if ((votes11 == 1) && (votes10 == 0)) {
-		dsm_channel_shift = 11;
+	// Check for continous channels in 11bit decoding
+	found_channels_end = false;
+
+	for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
+		// This bit is set
+		if (cs11 & (1 << i)) {
+			if (found_channels_end) {
+				// Channel gap found
+				cs11_channel_gap_found = true;
+				break;
+			}
+
+		} else {
+			if (!found_channels_end) {
+				cs11_channel_count = i;
+			}
+
+			found_channels_end = true;
+		}
+	}
+
+	// Check channel seen counts C10
+	if (cs10_channel_count && !cs10_channel_gap_found) {
+		valid_channel_counts_cs10 = true;
+
+		for (unsigned i = 0; i < ((cs10_channel_count > 12) ? 12 : cs10_channel_count); i++) {
+			if (seen_channels_count_cs10[i] < minimum_channel_seen_count) {
+				valid_channel_counts_cs10 = false;
+				break;
+			}
+
+		}
+	}
+
+	// Check channel seen counts C11
+	if (cs11_channel_count && !cs11_channel_gap_found) {
+		valid_channel_counts_cs11 = true;
+
+		for (unsigned i = 0; i < ((cs11_channel_count > 12) ? 12 : cs11_channel_count); i++) {
+			if (seen_channels_count_cs11[i] < minimum_channel_seen_count) {
+				valid_channel_counts_cs11 = false;
+				break;
+			}
+
+		}
+	}
+
 #ifdef DSM_DEBUG
-		printf("DSM: 11-bit format\n");
+	printf("DSM guess: CS10 (%li good frames, %i gap found, %li channel count, %i dist)\r\n", good_cs10_frame_count,
+	       cs10_channel_gap_found, cs10_channel_count, valid_channel_counts_cs10);
+	printf("DSM guess: CS11 (%li good frames, %i gap found, %li channel count, %i dist)\r\n", good_cs11_frame_count,
+	       cs11_channel_gap_found, cs11_channel_count, valid_channel_counts_cs11);
 #endif
+
+	if (good_cs11_frame_count > samples - bad_samples_allowance && !cs11_channel_gap_found
+	    && cs11_channel_count >= minimum_channel_count && valid_channel_counts_cs11) {
+#ifdef DSM_DEBUG
+		printf("DSM guess: CS11 guessed!\n");
+#endif
+		dsm_chan_count = cs11_channel_count;
+		dsm_channel_shift = 11;
 		return true;
 	}
 
-	if ((votes10 == 1) && (votes11 == 0)) {
-		dsm_channel_shift = 10;
+	if (good_cs10_frame_count > samples - bad_samples_allowance && !cs10_channel_gap_found
+	    && cs10_channel_count >= minimum_channel_count && valid_channel_counts_cs10) {
 #ifdef DSM_DEBUG
-		printf("DSM: 10-bit format\n");
+		printf("DSM guess: CS10 guessed!\n");
 #endif
+		dsm_chan_count = cs10_channel_count;
+		dsm_channel_shift = 10;
 		return true;
 	}
 
 	/* call ourselves to reset our state ... we have to try again */
 #ifdef DSM_DEBUG
-	printf("DSM: format detect fail, 10: 0x%08x %d 11: 0x%08x %d\n", cs10, votes10, cs11, votes11);
+	printf("DSM: format detect fail\n");
 #endif
 	dsm_guess_format(true);
 	return false;
@@ -391,10 +473,12 @@ void dsm_proto_init()
 	dsm_channel_shift = 0;
 	dsm_frame_drops = 0;
 	dsm_chan_count = 0;
+
 	dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 
 	for (unsigned i = 0; i < DSM_MAX_CHANNEL_COUNT; i++) {
-		dsm_chan_buf[i] = 0;
+		channel_buffer[i].last_seen = 0;
+		channel_buffer[i].value = 0;
 	}
 }
 
@@ -507,22 +591,13 @@ void dsm_bind(uint16_t cmd, int pulses)
  * Decode the entire dsm frame (all contained channels)
  *
  * @param[in] frame_time timestamp when this dsm frame was received. Used to detect RX loss in order to reset 10/11 bit guess.
- * @param[out] values pointer to per channel array of decoded values
  * @param[out] num_values pointer to number of raw channel values returned
  * @return true=DSM frame successfully decoded, false=no update
  */
-bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, unsigned max_values,
+bool dsm_decode(hrt_abstime frame_time, bool *dsm_11_bit, unsigned channel_count,
 		int8_t *rssi_percent)
 {
-	/*
-	debug("DSM dsm_frame %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x",
-		dsm_frame[0], dsm_frame[1], dsm_frame[2], dsm_frame[3], dsm_frame[4], dsm_frame[5], dsm_frame[6], dsm_frame[7],
-		dsm_frame[8], dsm_frame[9], dsm_frame[10], dsm_frame[11], dsm_frame[12], dsm_frame[13], dsm_frame[14], dsm_frame[15]);
-	*/
-	/*
-	 * If we have lost signal for at least a second, reset the
-	 * format guessing heuristic.
-	 */
+	// If we haven't seen a new frame recently or haven't guessed the DSM encoding, try to guess
 	if (((frame_time - dsm_last_frame_time) > 1000000) && (dsm_channel_shift != 0)) {
 		dsm_guess_format(true);
 	}
@@ -532,6 +607,9 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
 		if (!dsm_guess_format(false)) {
 			return false;
 		}
+
+		// We have our first packet so we're in sync
+		dsm_last_rx_time = hrt_absolute_time();
 	}
 
 	/*
@@ -573,35 +651,28 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
 
 	px4::Bitset<DSM_MAX_CHANNEL_COUNT> channels_found;
 
-	unsigned channel_decode_failures = 0;
-
 	for (unsigned i = 0; i < DSM_FRAME_CHANNELS; i++) {
 
 		uint8_t *dp = &dsm_frame[2 + (2 * i)];
 		uint16_t raw = (dp[0] << 8) | dp[1];
 
-		// ignore
-		if (raw == 0 || raw == 0xffff) {
-			continue;
-		}
-
 		uint8_t channel = 0;
 		uint16_t value = 0;
 
 		if (!dsm_decode_channel(raw, dsm_channel_shift, channel, value)) {
-			channel_decode_failures++;
-			continue;
+			dsm_frame_drops++;
+			return false;
 		}
 
-		// discard entire frame if at least half of it (4 channels) failed to decode
-		if (channel_decode_failures >= 4) {
-			return false;
+		if (channel == CHANNEL_UNUSED) {
+			continue;
 		}
 
 		// abort if channel already found, no duplicate channels per DSM frame
 		if (channels_found[channel]) {
 			PX4_DEBUG("duplicate channel %d\n\n", channel);
 			dsm_guess_format(true);
+			dsm_frame_drops++;
 			return false;
 
 		} else {
@@ -609,20 +680,11 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
 		}
 
 		/* reset bit guessing state machine if the channel index is out of bounds */
-		if (channel > DSM_MAX_CHANNEL_COUNT) {
+		if (channel >= DSM_MAX_CHANNEL_COUNT || channel >= channel_count) {
 			PX4_DEBUG("channel %d > %d (DSM_MAX_CHANNEL_COUNT)", channel, DSM_MAX_CHANNEL_COUNT);
 			dsm_guess_format(true);
+			dsm_frame_drops++;
 			return false;
-		}
-
-		/* ignore channels out of range */
-		if (channel >= max_values) {
-			continue;
-		}
-
-		/* update the decoded channel count */
-		if (channel >= *num_values) {
-			*num_values = channel + 1;
 		}
 
 		/*
@@ -648,7 +710,8 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
 			break;
 		}
 
-		values[channel] = value;
+		channel_buffer[channel].value = value;
+		channel_buffer[channel].last_seen = frame_time;
 	}
 
 	/* Set the 11-bit data indicator */
@@ -657,26 +720,9 @@ bool dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, 
 	/* we have received something we think is a dsm_frame */
 	dsm_last_frame_time = frame_time;
 
-	/*
-	 * XXX Note that we may be in failsafe here; we need to work out how to detect that.
-	 */
-
 #ifdef DSM_DEBUG
 	printf("PARSED PACKET\n");
 #endif
-
-	/* check all values */
-	for (unsigned i = 0; i < *num_values; i++) {
-		// Spektrum range is 903μs to 2097μs (Specification for Spektrum Remote Receiver Interfacing Rev G 9.1)
-		if (values[i] < 903 || values[i] > 2097) {
-			// if the value is unrealistic, fail the parsing entirely
-#ifdef DSM_DEBUG
-			printf("DSM: VALUE RANGE FAIL: %d: %d\n", (int)i, (int)values[i]);
-#endif
-			*num_values = 0;
-			return false;
-		}
-	}
 
 	return true;
 }
@@ -709,11 +755,8 @@ bool dsm_input(int fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit,
 	       int8_t *rssi, unsigned *frame_drops, unsigned max_values)
 {
 	/*
-	 * The S.BUS protocol doesn't provide reliable framing,
+	 * The DSMX/2 protocol doesn't provide reliable framing,
 	 * so we detect frame boundaries by the inter-frame delay.
-	 *
-	 * The minimum frame spacing is 7ms; with 25 bytes at 100000bps
-	 * frame transmission time is ~2ms.
 	 *
 	 * We expect to only be called when bytes arrive for processing,
 	 * and if an interval of more than 3ms passes between calls,
@@ -753,12 +796,8 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 	/* this is set by the decoding state machine and will default to false
 	 * once everything that was decodable has been decoded.
 	 */
-	bool decode_ret = false;
-
-	/* ensure there can be no overflows */
-	if (max_channels > sizeof(dsm_chan_buf) / sizeof(dsm_chan_buf[0])) {
-		max_channels = sizeof(dsm_chan_buf) / sizeof(dsm_chan_buf[0]);
-	}
+	bool channel_data_available = false;
+	unsigned channel_output_count;
 
 	/* keep decoding until we have consumed the buffer */
 	for (unsigned d = 0; d < len; d++) {
@@ -781,7 +820,7 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 		}
 
 #ifdef DSM_DEBUG
-#if 1
+#if 0
 		printf("dsm state: %s%s, count: %d, val: %02x\n",
 		       (dsm_decode_state == DSM_DECODE_STATE_DESYNC) ? "DSM_DECODE_STATE_DESYNC" : "",
 		       (dsm_decode_state == DSM_DECODE_STATE_SYNC) ? "DSM_DECODE_STATE_SYNC" : "",
@@ -797,7 +836,6 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 			if ((now - dsm_last_rx_time) > 5000) {
 				dsm_decode_state = DSM_DECODE_STATE_SYNC;
 				dsm_partial_frame_count = 0;
-				dsm_chan_count = 0;
 				dsm_frame[dsm_partial_frame_count++] = frame[d];
 			}
 
@@ -811,19 +849,15 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 					break;
 				}
 
-				/*
-				 * Great, it looks like we might have a frame.  Go ahead and
-				 * decode it.
-				 */
-				decode_ret = dsm_decode(now, &dsm_chan_buf[0], &dsm_chan_count, dsm_11_bit, max_channels, rssi_percent);
+				// We've collected a full frame, parse it
+				channel_data_available = dsm_decode(now, dsm_11_bit, dsm_chan_count, rssi_percent);
 
-				/* we consumed the partial frame, reset */
+				// Frame consumed, reset the buffer count
 				dsm_partial_frame_count = 0;
 
 				/* if decoding failed, set proto to desync */
-				if (!decode_ret) {
+				if (!channel_data_available) {
 					dsm_decode_state = DSM_DECODE_STATE_DESYNC;
-					dsm_frame_drops++;
 				}
 			}
 			break;
@@ -832,7 +866,7 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 #ifdef DSM_DEBUG
 			printf("UNKNOWN PROTO STATE");
 #endif
-			decode_ret = false;
+			channel_data_available = false;
 		}
 	}
 
@@ -840,31 +874,57 @@ bool dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uin
 		*frame_drops = dsm_frame_drops;
 	}
 
-	if (decode_ret) {
-		// require stable channel count (dsm_chan_count == dsm_chan_count_prev) before considering the decode valid
-		if ((dsm_chan_count > 0) && (dsm_chan_count <= DSM_MAX_CHANNEL_COUNT) && (dsm_chan_count == dsm_chan_count_prev)) {
-			*num_values = dsm_chan_count;
-			memcpy(&values[0], &dsm_chan_buf[0], dsm_chan_count * sizeof(dsm_chan_buf[0]));
-
-		} else {
-			decode_ret = false;
+	if (channel_data_available) {
+		// Check if any channels have been absent for too long
+		for (unsigned i = 0; i < dsm_chan_count; i++) {
+			if (now - channel_buffer[i].last_seen > 50 * 1000) {
+				return false;
+			}
 		}
 
-		dsm_chan_count_prev = dsm_chan_count;
+		// Overflow protect
+		if (max_channels >= DSM_MAX_CHANNEL_COUNT) {
+			max_channels = DSM_MAX_CHANNEL_COUNT;
+		}
+
+		// Cap returned channels to max_channels if we've seen more
+		if (dsm_chan_count > max_channels) {
+			channel_output_count = max_channels;
+
+		} else {
+			channel_output_count = dsm_chan_count;
+		}
+
+		*num_values = channel_output_count;
+
+		// Copy the full list of collected channels
+		for (unsigned i = 0; i < channel_output_count; i++) {
+			// Channels which do not have a value yet (because their frame has not been seen yet)
+			// will have a zero. If we come across a blank channel, keep storing values, but we
+			// won't return that we have a valid frame just yet.
+			if (channel_buffer[i].value) {
+				values[i] = channel_buffer[i].value;
+
+			} else {
+				channel_data_available = false;
+			}
+		}
+	}
 
 #ifdef DSM_DEBUG
-		printf("PACKET ---------\n");
+
+	if (channel_data_available) {
 		printf("frame drops: %u, chan #: %u\n", dsm_frame_drops, dsm_chan_count);
 
 		for (unsigned i = 0; i < dsm_chan_count; i++) {
 			printf("dsm_decode: #CH %02u: %u\n", i + 1, values[i]);
 		}
+	}
 
 #endif
-	}
 
 	dsm_last_rx_time = now;
 
 	/* return false as default */
-	return decode_ret;
+	return channel_data_available;
 }

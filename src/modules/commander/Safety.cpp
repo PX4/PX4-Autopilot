@@ -56,10 +56,13 @@ void Safety::safetyButtonHandler()
 
 	} else {
 
+		if (!_safety.safety_switch_available && _safety_button_sub.advertised()) {
+			_safety.safety_switch_available = true;
+		}
+
 		button_event_s button_event;
 
 		while (_safety_button_sub.update(&button_event)) {
-			_safety.safety_switch_available = true;
 			_safety.safety_off |= button_event.triggered; // triggered safety button activates safety off
 		}
 	}
