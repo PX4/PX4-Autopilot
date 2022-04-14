@@ -12,7 +12,7 @@ class SourceScanner(object):
     def ScanDir(self, srcdirs, parser):
         """
         Scans provided path and passes all found contents to the parser using
-        parser.Parse method.
+        parser.parse method.
         """
         extensions1 = tuple([".h"])
         extensions2 = tuple([".c"])
@@ -32,7 +32,7 @@ class SourceScanner(object):
     def ScanFile(self, path, parser):
         """
         Scans provided file and passes its contents to the parser using
-        parser.Parse method.
+        parser.parse method.
         """
 
         with codecs.open(path, 'r', 'utf-8') as f:
@@ -42,4 +42,4 @@ class SourceScanner(object):
                 contents = ''
                 print('Failed reading file: %s, skipping content.' % path)
                 pass
-        return parser.Parse(contents)
+        return parser.parse(contents)

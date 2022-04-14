@@ -47,17 +47,17 @@ class XMLInject():
                 #get param info stored as child tags
                 for child in iparam:
                     if child.tag in valid_field_tags:
-                        new_param.SetField(child.tag, child.text)
+                        new_param.fields[child.tag] = child.text
                     elif child.tag == 'values':
                         for value in child:
-                            new_param.SetEnumValue(value.get('code'), value.text)
+                            new_param.enum[value.get('code')] = value.text
                     elif child.tag == 'bitmask':
                         for bit in child:
                             new_param.SetBitmaskBit(bit.get('index'), bit.text)
                     else:
                         not_handled_parameter_tags.add(child.tag)                      
             
-                imported_group.AddParameter(new_param)
+                imported_group.parameters.append(new_param)
             self.groups.append(imported_group)
 
                     

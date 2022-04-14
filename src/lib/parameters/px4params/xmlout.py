@@ -30,24 +30,24 @@ class XMLOutput():
         board_specific_param_set = False
         for group in groups:
             xml_group = ET.SubElement(xml_parameters, "group")
-            xml_group.attrib["name"] = group.GetName()
+            xml_group.attrib["name"] = group.name
             if group.no_code_generation:
                 xml_group.attrib["no_code_generation"] = group.no_code_generation
-            for param in group.GetParams():
-                if (last_param_name == param.GetName() and not board_specific_param_set) or last_param_name != param.GetName():
+            for param in sorted(group.parameters):
+                if (last_param_name == param.name and not board_specific_param_set) or last_param_name != param.name:
                     xml_param = ET.SubElement(xml_group, "parameter")
-                    xml_param.attrib["name"] = param.GetName()
-                    xml_param.attrib["default"] = param.GetDefault()
-                    xml_param.attrib["type"] = param.GetType()
-                    if param.GetVolatile():
+                    xml_param.attrib["name"] = param.name
+                    xml_param.attrib["default"] = param.default
+                    xml_param.attrib["type"] = param.type
+                    if param.volatile:
                         xml_param.attrib["volatile"] = "true"
-                    if param.GetBoolean():
+                    if param.boolean:
                         xml_param.attrib["boolean"] = "true"
-                    if (param.GetCategory()):
-                        xml_param.attrib["category"] = param.GetCategory()
-                    last_param_name = param.GetName()
-                    for code in param.GetFieldCodes():
-                        value = param.GetFieldValue(code)
+                    if param.category != "":
+                        xml_param.attrib["category"] = param.category.title()
+                    last_param_name = param.name
+                    for code in param.field_keys:
+                        value = param.fields.get(code, "")
                         if code == "board":
                             if value == board:
                                 board_specific_param_set = True
@@ -58,22 +58,22 @@ class XMLOutput():
                         else:
                             xml_field = ET.SubElement(xml_param, code)
                             xml_field.text = value
-                if last_param_name != param.GetName():
+                if last_param_name != param.name:
                     board_specific_param_set = False
                 
-                if len(param.GetEnumCodes()) > 0:
+                if len(param.enum.keys()) > 0:
                     xml_values = ET.SubElement(xml_param, "values")
-                    for code in param.GetEnumCodes():
+                    for code in sorted(param.enum.keys(), key=float):
                         xml_value = ET.SubElement(xml_values, "value")
                         xml_value.attrib["code"] = code;
-                        xml_value.text = param.GetEnumValue(code)
+                        xml_value.text = param.enum[code]
 
-                if len(param.GetBitmaskList()) > 0:
+                if len(param.bitmask.keys()) > 0:
                     xml_values = ET.SubElement(xml_param, "bitmask")
-                    for index in param.GetBitmaskList():
+                    for index in sorted(param.bitmask.keys(), key=float):
                         xml_value = ET.SubElement(xml_values, "bit")
                         xml_value.attrib["index"] = index;
-                        xml_value.text = param.GetBitmaskBit(index)
+                        xml_value.text = param.bitmask.get(index, "")
 
         indent(xml_parameters)
         self.xml_document = ET.ElementTree(xml_parameters)
