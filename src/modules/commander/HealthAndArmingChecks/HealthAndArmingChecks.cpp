@@ -57,6 +57,10 @@ bool HealthAndArmingChecks::update(bool force_reporting)
 
 	if (_reporter.report(_context.isArmed(), force_reporting)) {
 
+		health_report_s health_report;
+		_reporter.getHealthReport(health_report);
+		health_report.timestamp = hrt_absolute_time();
+		_health_report_pub.publish(health_report);
 		return true;
 	}
 

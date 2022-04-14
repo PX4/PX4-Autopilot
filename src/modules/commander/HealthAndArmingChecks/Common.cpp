@@ -33,6 +33,31 @@
 
 #include "Common.hpp"
 
+void Report::getHealthReport(health_report_s &report) const
+{
+	const Results &current_results = _results[_current_result];
+	report.can_arm_mode_flags = 0;
+	report.can_run_mode_flags = 0;
+
+	for (int i = 0; i < vehicle_status_s::NAVIGATION_STATE_MAX; ++i) {
+		NavModes group = getModeGroup(i);
+
+		if ((uint32_t)(current_results.arming_checks.can_arm & group)) {
+			report.can_arm_mode_flags |= 1ull << i;
+		}
+
+		if ((uint32_t)(current_results.arming_checks.can_run & group)) {
+			report.can_run_mode_flags |= 1ull << i;
+		}
+	}
+
+	report.arming_check_error_flags = (uint64_t)current_results.arming_checks.error;
+	report.arming_check_warning_flags = (uint64_t)current_results.arming_checks.warning;
+	report.health_is_present_flags = (uint64_t)current_results.health.is_present;
+	report.health_error_flags = (uint64_t)current_results.health.error;
+	report.health_warning_flags = (uint64_t)current_results.health.warning;
+}
+
 void Report::healthFailure(NavModes required_modes, HealthComponentIndex component, uint32_t event_id,
 			   const events::LogLevels &log_levels, const char *message)
 {
