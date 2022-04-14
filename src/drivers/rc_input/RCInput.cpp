@@ -829,7 +829,7 @@ RCInput::RC_PARSER RCInput::scanner_check(hrt_abstime cycle_timestamp)
 		_rc_scan_begin = hrt_absolute_time();
 		RCInput::RC_PARSER new_parser = static_cast<RC_PARSER>((_current_rc_parser + 1) % PARSER_COUNT);
 
-		PX4_INFO("RC protocol scan switched to %s, %llu", RC_PARSER_STRING[new_parser + 1], cycle_timestamp);
+		PX4_INFO("RC protocol scan switched to %s, %" PRIu64, RC_PARSER_STRING[new_parser + 1], cycle_timestamp);
 		return new_parser;
 	}
 
