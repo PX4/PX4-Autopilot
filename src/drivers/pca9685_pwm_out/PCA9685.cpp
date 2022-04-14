@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,8 @@
 #include <px4_log.h>
 #include <cmath>
 #include "PCA9685.h"
+
+#include <px4_platform_common/sem.hpp>
 
 using namespace drv_pca9685_pwm;
 

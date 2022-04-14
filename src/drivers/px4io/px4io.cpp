@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -379,8 +379,6 @@ PX4IO::~PX4IO()
 bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	SmartLock lock_guard(_lock);
-
 	if (!_test_fmu_fail) {
 		/* output to the servos */
 		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, num_outputs);
@@ -391,6 +389,8 @@ bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 int PX4IO::init()
 {
+	SmartLock lock_guard(_lock);
+
 	/* do regular cdev init */
 	int ret = CDev::init();
 
@@ -525,6 +525,8 @@ void PX4IO::updateFailsafe()
 
 void PX4IO::Run()
 {
+	SmartLock lock_guard(_lock);
+
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -545,8 +547,6 @@ void PX4IO::Run()
 	if (_param_sys_hitl.get() <= 0) {
 		_mixing_output.update();
 	}
-
-	SmartLock lock_guard(_lock);
 
 	if (hrt_elapsed_time(&_poll_last) >= 20_ms) {
 		/* run at 50 */
@@ -1698,7 +1698,7 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case MIXERIOCRESET:
 		PX4_DEBUG("MIXERIOCRESET");
-		_mixing_output.resetMixerThreadSafe();
+		_mixing_output.resetMixer();
 		break;
 
 	case MIXERIOCLOADBUF: {
@@ -1706,7 +1706,7 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_output.loadMixer(buf, buflen);
 
 			break;
 		}

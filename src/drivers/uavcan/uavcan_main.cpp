@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2017, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -946,7 +946,7 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
-	lock();
+	pthread_mutex_lock(&_node_mutex);
 
 	switch (cmd) {
 	case PWM_SERVO_SET_ARM_OK:
@@ -956,14 +956,14 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case MIXERIOCRESET:
-		_mixing_interface_esc.mixingOutput().resetMixerThreadSafe();
+		_mixing_interface_esc.mixingOutput().resetMixer();
 
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-			ret = _mixing_interface_esc.mixingOutput().loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_interface_esc.mixingOutput().loadMixer(buf, buflen);
 		}
 		break;
 
@@ -972,7 +972,7 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 	}
 
-	unlock();
+	pthread_mutex_unlock(&_node_mutex);
 
 	if (ret == -ENOTTY) {
 		ret = CDev::ioctl(filp, cmd, arg);
