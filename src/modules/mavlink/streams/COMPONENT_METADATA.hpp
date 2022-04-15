@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,73 +31,55 @@
  *
  ****************************************************************************/
 
-#pragma once
+#ifndef COMPONENT_METADATA_HPP
+#define COMPONENT_METADATA_HPP
 
+#include "../mavlink_stream.h"
 
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/posix.h>
-#include <systemlib/mavlink_log.h>
-#include <uORB/uORB.h>
+#include <component_information/checksums.h>
 
-/**
- * @class WorkerThread
- * low priority background thread, started on demand, used for:
- * - calibration
- * - param saving
- */
-class WorkerThread
+#include <px4_platform_common/defines.h>
+
+#include <sys/stat.h>
+
+class MavlinkStreamComponentMetadata : public MavlinkStream
 {
 public:
-	enum class Request {
-		GyroCalibration,
-		MagCalibration,
-		RCTrimCalibration,
-		AccelCalibration,
-		LevelCalibration,
-		AccelCalibrationQuick,
-		AirspeedCalibration,
-		ESCCalibration,
-		MagCalibrationQuick,
-		BaroCalibration,
+	static MavlinkStream *new_instance(Mavlink *mavlink) { return new MavlinkStreamComponentMetadata(mavlink); }
 
-		ParamLoadDefault,
-		ParamSaveDefault,
-		ParamResetAll,
-		ParamResetSensorFactory,
-		ParamResetAllConfig
-	};
+	static constexpr const char *get_name_static() { return "COMPONENT_METADATA"; }
+	static constexpr uint16_t get_id_static() { return MAVLINK_MSG_ID_COMPONENT_METADATA; }
 
-	WorkerThread() = default;
-	~WorkerThread();
+	const char *get_name() const override { return get_name_static(); }
+	uint16_t get_id() override { return get_id_static(); }
 
-	void setMagQuickData(float heading_rad, float lat, float lon);
+	unsigned get_size() override
+	{
+		return 0; // never streamed
+	}
 
-	void startTask(Request request);
+	bool request_message(float param2, float param3, float param4,
+			     float param5, float param6, float param7) override
+	{
+		mavlink_component_metadata_t component_metadata{};
+		PX4_DEBUG("COMPONENT_METADATA request");
 
-	bool isBusy() const { return _state.load() != (int)State::Idle; }
-	bool hasResult() const { return _state.load() == (int)State::Finished; }
-	int getResultAndReset() { _state.store((int)State::Idle); return _ret_value; }
+		strncpy(component_metadata.uri, "mftp://etc/extras/component_general.json.xz",
+			sizeof(component_metadata.uri) - 1);
+		component_metadata.file_crc = component_information::component_general_crc;
 
+		component_metadata.time_boot_ms = hrt_absolute_time() / 1000;
+		mavlink_msg_component_metadata_send_struct(_mavlink->get_channel(), &component_metadata);
+
+		return true;
+	}
 private:
-	enum class State {
-		Idle,
-		Running,
-		Finished
-	};
+	explicit MavlinkStreamComponentMetadata(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	static void *threadEntryTrampoline(void *arg);
-	void threadEntry();
-
-	px4::atomic_int _state{(int)State::Idle};
-	pthread_t _thread_handle{};
-	int _ret_value{};
-	Request _request;
-	orb_advert_t _mavlink_log_pub{nullptr};
-
-	// extra arguments
-	float _heading_radians;
-	float _latitude;
-	float _longitude;
-
+	bool send() override
+	{
+		return false;
+	}
 };
 
+#endif // COMPONENT_METADATA_HPP

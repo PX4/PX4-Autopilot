@@ -83,16 +83,22 @@ then
 	teraranger start -X
 fi
 
-# Possible external pmw3901 optical flow sensor
-if param greater -s SENS_EN_PMW3901 0
+# paa3905 optical flow sensor (external SPI)
+if param greater -s SENS_EN_PAA3905 0
 then
-	pmw3901 -S start
+	paa3905 -S start
 fi
 
-# Possible external paw3902 optical flow sensor
+# paw3902 optical flow sensor (external SPI)
 if param greater -s SENS_EN_PAW3902 0
 then
 	paw3902 -S start
+fi
+
+# pmw3901 optical flow sensor (external SPI)
+if param greater -s SENS_EN_PMW3901 0
+then
+	pmw3901 -S start
 fi
 
 # Check for px4flow sensor

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,73 +31,54 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "PAA3905.hpp"
+#include <px4_platform_common/module.h>
 
-
-#include <px4_platform_common/atomic.h>
-#include <px4_platform_common/posix.h>
-#include <systemlib/mavlink_log.h>
-#include <uORB/uORB.h>
-
-/**
- * @class WorkerThread
- * low priority background thread, started on demand, used for:
- * - calibration
- * - param saving
- */
-class WorkerThread
+void PAA3905::print_usage()
 {
-public:
-	enum class Request {
-		GyroCalibration,
-		MagCalibration,
-		RCTrimCalibration,
-		AccelCalibration,
-		LevelCalibration,
-		AccelCalibrationQuick,
-		AirspeedCalibration,
-		ESCCalibration,
-		MagCalibrationQuick,
-		BaroCalibration,
+	PRINT_MODULE_USAGE_NAME("paa3905", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('Y', 0, 0, 359, "custom yaw rotation (degrees)", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
 
-		ParamLoadDefault,
-		ParamSaveDefault,
-		ParamResetAll,
-		ParamResetSensorFactory,
-		ParamResetAllConfig
-	};
+extern "C" __EXPORT int paa3905_main(int argc, char *argv[])
+{
+	int ch = 0;
+	using ThisDriver = PAA3905;
+	BusCLIArguments cli{false, true};
+	cli.custom1 = -1;
+	cli.spi_mode = SPIDEV_MODE0;
+	cli.default_spi_frequency = SPI_SPEED;
 
-	WorkerThread() = default;
-	~WorkerThread();
+	while ((ch = cli.getOpt(argc, argv, "Y:")) != EOF) {
+		switch (ch) {
+		case 'Y':
+			cli.custom1 = atoi(cli.optArg());
+			break;
+		}
+	}
 
-	void setMagQuickData(float heading_rad, float lat, float lon);
+	const char *verb = cli.optArg();
 
-	void startTask(Request request);
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
 
-	bool isBusy() const { return _state.load() != (int)State::Idle; }
-	bool hasResult() const { return _state.load() == (int)State::Finished; }
-	int getResultAndReset() { _state.store((int)State::Idle); return _ret_value; }
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_FLOW_DEVTYPE_PAA3905);
 
-private:
-	enum class State {
-		Idle,
-		Running,
-		Finished
-	};
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
 
-	static void *threadEntryTrampoline(void *arg);
-	void threadEntry();
+	} else if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
 
-	px4::atomic_int _state{(int)State::Idle};
-	pthread_t _thread_handle{};
-	int _ret_value{};
-	Request _request;
-	orb_advert_t _mavlink_log_pub{nullptr};
+	} else if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
 
-	// extra arguments
-	float _heading_radians;
-	float _latitude;
-	float _longitude;
-
-};
-
+	ThisDriver::print_usage();
+	return -1;
+}
