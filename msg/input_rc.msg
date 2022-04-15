@@ -35,3 +35,6 @@ uint16 rc_ppm_frame_length		# Length of a single PPM frame. Zero for non-PPM sys
 
 uint8 input_source			# Input source
 uint16[18] values			# measured pulse widths for each of the supported channels
+
+int8 link_quality			# link quality. Percentage 0-100%. -1 = invalid
+float32 rssi_dbm			# Actual rssi in units of dBm. NaN = invalid

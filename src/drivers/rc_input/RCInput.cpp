@@ -610,35 +610,57 @@ void RCInput::switch_parser(enum RC_PARSER new_parser)
 
 bool RCInput::try_parse_crsf(hrt_abstime cycle_timestamp, int new_bytes)
 {
-	bool rc_updated = false;
+	uint32_t frames = 0;
+	uint8_t lq;
+	uint8_t rssi;
+	static bool link_statistics_valid = false;
 
-	// parse new data
-	if (new_bytes > 0) {
-		rc_updated = crsf_parse(cycle_timestamp, &_rcs_buf[0], new_bytes, &_raw_rc_values[0], &_raw_rc_count,
-					input_rc_s::RC_INPUT_MAX_CHANNELS);
+	if (new_bytes == 0) {
+		return false;
+	}
 
-		if (rc_updated) {
-			// we have a new CRSF frame. Publish it.
-			_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
-			fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0);
+	frames = crsf_parse(cycle_timestamp, &_rcs_buf[0], new_bytes, &_raw_rc_values[0], &_raw_rc_count,
+			    input_rc_s::RC_INPUT_MAX_CHANNELS, &lq, &rssi);
 
-			// on Pixhawk (-related) boards we cannot write to the RC UART
-			// another option is to use a different UART port
+	if (!frames) {
+		return false;
+	}
+
+	if (frames & CRSF_FRAME_RC_CHANNELS) {
+
+		// we have a new CRSF frame. Publish it.
+		_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_CRSF;
+		fill_rc_in(_raw_rc_count, _raw_rc_values, cycle_timestamp, false, false, 0);
+
+		// on Pixhawk (-related) boards we cannot write to the RC UART
+		// another option is to use a different UART port
 #ifdef BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
-			if (!_crsf_telemetry) {
-				_crsf_telemetry = new CRSFTelemetry(_rcs_fd);
-			}
+		if (!_crsf_telemetry) {
+			_crsf_telemetry = new CRSFTelemetry(_rcs_fd);
+		}
 
 #endif /* BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT */
 
-			if (_crsf_telemetry) {
-				_crsf_telemetry->update(cycle_timestamp);
-			}
+		if (_crsf_telemetry) {
+			_crsf_telemetry->update(cycle_timestamp);
 		}
 	}
 
-	return rc_updated;
+	if (frames & CRSF_FRAME_LINK_STATISTICS) {
+		// CRSF supplies rssi as uint8 of dBm
+		// Eg, -46dBm of rssi would be encoded as just 46
+		link_statistics_valid = true;
+		_rc_in.rssi_dbm = -(float)rssi;
+		_rc_in.link_quality = lq;
+	}
+
+	if (!link_statistics_valid) {
+		_rc_in.rssi_dbm = NAN;
+		_rc_in.link_quality = -1;
+	}
+
+	return true;
 }
 
 bool RCInput::try_parse_sbus(hrt_abstime cycle_timestamp, int new_bytes)
@@ -661,6 +683,9 @@ bool RCInput::try_parse_sbus(hrt_abstime cycle_timestamp, int new_bytes)
 				   sbus_frame_drop, sbus_failsafe, frame_drops);
 		}
 	}
+
+	_rc_in.rssi_dbm = NAN;
+	_rc_in.link_quality = -1;
 
 	return rc_updated;
 }
@@ -685,6 +710,9 @@ bool RCInput::try_parse_dsm(hrt_abstime cycle_timestamp, int new_bytes)
 				   false, false, frame_drops, dsm_rssi);
 		}
 	}
+
+	_rc_in.rssi_dbm = NAN;
+	_rc_in.link_quality = -1;
 
 	return rc_updated;
 }
@@ -724,6 +752,9 @@ bool RCInput::try_parse_st24(hrt_abstime cycle_timestamp, int new_bytes)
 		}
 	}
 
+	_rc_in.rssi_dbm = NAN;
+	_rc_in.link_quality = -1;
+
 	return rc_updated;
 }
 
@@ -753,6 +784,9 @@ bool RCInput::try_parse_sumd(hrt_abstime cycle_timestamp, int new_bytes)
 				   false, sumd_failsafe, frame_drops, sumd_rssi);
 		}
 	}
+
+	_rc_in.rssi_dbm = NAN;
+	_rc_in.link_quality = -1;
 
 	return rc_updated;
 }
@@ -789,6 +823,9 @@ bool RCInput::try_parse_ghst(hrt_abstime cycle_timestamp, int new_bytes)
 		}
 	}
 
+	_rc_in.rssi_dbm = NAN;
+	_rc_in.link_quality = -1;
+
 	return rc_updated;
 }
 
@@ -805,6 +842,9 @@ bool RCInput::try_parse_ppm(hrt_abstime cycle_timestamp)
 
 		return true;
 	}
+
+	_rc_in.rssi_dbm = NAN;
+	_rc_in.link_quality = -1;
 
 	return false;
 }
