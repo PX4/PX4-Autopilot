@@ -615,7 +615,7 @@ bool RCInput::try_parse_crsf(hrt_abstime cycle_timestamp, int new_bytes)
 	uint8_t rssi;
 	static bool link_statistics_valid = false;
 
-	if (new_bytes == 0) {
+	if (new_bytes <= 0) {
 		return false;
 	}
 

@@ -305,66 +305,64 @@ static uint32_t crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16
 
 	const uint8_t crc = crsf_frame.payload[crsf_frame.header.length - 2];
 
-	if (crc != crsf_frame_CRC(crsf_frame)) {
-		return 0;
-	}
+	if (crc == crsf_frame_CRC(crsf_frame)) {
+		switch (crsf_frame.type) {
+		case (uint8_t)crsf_frame_type_t::rc_channels_packed: {
+				const crsf_payload_RC_channels_packed_t *const rc_channels =
+					(crsf_payload_RC_channels_packed_t *)&crsf_frame.payload;
+				*num_values = MIN(max_channels, 16);
 
-	switch (crsf_frame.type) {
-	case (uint8_t)crsf_frame_type_t::rc_channels_packed: {
-			const crsf_payload_RC_channels_packed_t *const rc_channels =
-				(crsf_payload_RC_channels_packed_t *)&crsf_frame.payload;
-			*num_values = MIN(max_channels, 16);
+				if (max_channels > 0) { values[0] = convert_channel_value(rc_channels->chan0); }
 
-			if (max_channels > 0) { values[0] = convert_channel_value(rc_channels->chan0); }
+				if (max_channels > 1) { values[1] = convert_channel_value(rc_channels->chan1); }
 
-			if (max_channels > 1) { values[1] = convert_channel_value(rc_channels->chan1); }
+				if (max_channels > 2) { values[2] = convert_channel_value(rc_channels->chan2); }
 
-			if (max_channels > 2) { values[2] = convert_channel_value(rc_channels->chan2); }
+				if (max_channels > 3) { values[3] = convert_channel_value(rc_channels->chan3); }
 
-			if (max_channels > 3) { values[3] = convert_channel_value(rc_channels->chan3); }
+				if (max_channels > 4) { values[4] = convert_channel_value(rc_channels->chan4); }
 
-			if (max_channels > 4) { values[4] = convert_channel_value(rc_channels->chan4); }
+				if (max_channels > 5) { values[5] = convert_channel_value(rc_channels->chan5); }
 
-			if (max_channels > 5) { values[5] = convert_channel_value(rc_channels->chan5); }
+				if (max_channels > 6) { values[6] = convert_channel_value(rc_channels->chan6); }
 
-			if (max_channels > 6) { values[6] = convert_channel_value(rc_channels->chan6); }
+				if (max_channels > 7) { values[7] = convert_channel_value(rc_channels->chan7); }
 
-			if (max_channels > 7) { values[7] = convert_channel_value(rc_channels->chan7); }
+				if (max_channels > 8) { values[8] = convert_channel_value(rc_channels->chan8); }
 
-			if (max_channels > 8) { values[8] = convert_channel_value(rc_channels->chan8); }
+				if (max_channels > 9) { values[9] = convert_channel_value(rc_channels->chan9); }
 
-			if (max_channels > 9) { values[9] = convert_channel_value(rc_channels->chan9); }
+				if (max_channels > 10) { values[10] = convert_channel_value(rc_channels->chan10); }
 
-			if (max_channels > 10) { values[10] = convert_channel_value(rc_channels->chan10); }
+				if (max_channels > 11) { values[11] = convert_channel_value(rc_channels->chan11); }
 
-			if (max_channels > 11) { values[11] = convert_channel_value(rc_channels->chan11); }
+				if (max_channels > 12) { values[12] = convert_channel_value(rc_channels->chan12); }
 
-			if (max_channels > 12) { values[12] = convert_channel_value(rc_channels->chan12); }
+				if (max_channels > 13) { values[13] = convert_channel_value(rc_channels->chan13); }
 
-			if (max_channels > 13) { values[13] = convert_channel_value(rc_channels->chan13); }
+				if (max_channels > 14) { values[14] = convert_channel_value(rc_channels->chan14); }
 
-			if (max_channels > 14) { values[14] = convert_channel_value(rc_channels->chan14); }
+				if (max_channels > 15) { values[15] = convert_channel_value(rc_channels->chan15); }
 
-			if (max_channels > 15) { values[15] = convert_channel_value(rc_channels->chan15); }
+				CRSF_VERBOSE("Got Channels");
 
-			CRSF_VERBOSE("Got Channels");
+				frames |= CRSF_FRAME_RC_CHANNELS;
+				break;
+			}
 
-			frames |= CRSF_FRAME_RC_CHANNELS;
-			break;
-		}
+		case (uint8_t)crsf_frame_type_t::link_statistics: {
+				const crsf_payload_link_statistics_packed_t *const link_statistics =
+					(crsf_payload_link_statistics_packed_t *)&crsf_frame.payload;
+				*lq = link_statistics->uplink_link_quality;
+				*rssi_dbm = link_statistics->uplink_rssi_1;
+				frames |= CRSF_FRAME_LINK_STATISTICS;
+				break;
+			}
 
-	case (uint8_t)crsf_frame_type_t::link_statistics: {
-			const crsf_payload_link_statistics_packed_t *const link_statistics =
-				(crsf_payload_link_statistics_packed_t *)&crsf_frame.payload;
-			*lq = link_statistics->uplink_link_quality;
-			*rssi_dbm = link_statistics->uplink_rssi_1;
-			frames |= CRSF_FRAME_LINK_STATISTICS;
-			break;
-		}
-
-	default: {
-			CRSF_DEBUG("Got Non-RC frame (len=%i, type=%i)", current_frame_length, crsf_frame.type);
-			break;
+		default: {
+				CRSF_DEBUG("Got Non-RC frame (len=%i, type=%i)", current_frame_length, crsf_frame.type);
+				break;
+			}
 		}
 	}
 
