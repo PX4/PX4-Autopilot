@@ -40,7 +40,7 @@ add_library(px4iofirmware
 	px4io.c
 	registers.c
 	safety.c
-	serial.c
+	serial.cpp
 )
 
 set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES px4iofirmware)
