@@ -50,6 +50,8 @@
 
 #include "protocol.h"
 
+__BEGIN_DECLS
+
 /*
  * Constants and limits.
  */
@@ -185,3 +187,4 @@ extern void	isr_debug(uint8_t level, const char *fmt, ...);
 /** schedule a reboot */
 extern void schedule_reboot(uint32_t time_delta_usec);
 
+__END_DECLS
