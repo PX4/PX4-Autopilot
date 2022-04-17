@@ -34,7 +34,7 @@
 option(PX4IO_PERF "Enable px4io perf counters" OFF)
 
 add_library(px4iofirmware
-	adc.c
+	adc.cpp
 	controls.cpp
 	mixer.cpp
 	px4io.c
