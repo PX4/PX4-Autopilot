@@ -122,8 +122,6 @@ struct sys_state_s {
 };
 
 extern struct sys_state_s system_state;
-extern bool update_mc_thrust_param;
-extern bool update_trims;
 
 # define ENABLE_SBUS_OUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
 
