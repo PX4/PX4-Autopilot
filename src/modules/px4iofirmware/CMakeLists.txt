@@ -37,7 +37,7 @@ add_library(px4iofirmware
 	adc.cpp
 	controls.cpp
 	mixer.cpp
-	px4io.c
+	px4io.cpp
 	registers.c
 	safety.cpp
 	serial.cpp
