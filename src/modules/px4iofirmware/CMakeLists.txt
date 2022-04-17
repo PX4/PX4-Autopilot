@@ -39,7 +39,7 @@ add_library(px4iofirmware
 	mixer.cpp
 	px4io.c
 	registers.c
-	safety.c
+	safety.cpp
 	serial.cpp
 )
 
