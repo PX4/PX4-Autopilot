@@ -1,0 +1,22 @@
+module_name: CRSF RC Input Driver
+serial_config:
+    - command: "crsf_rc start -d ${SERIAL_DEV}"
+      port_config_param:
+        name: RC_CRSF_PRT_CFG
+        group: Serial
+        #default: RC
+        #depends_on_port: RC
+        description_extended: |
+            Crossfire RC (CRSF) driver.
+
+parameters:
+    - group: RC
+      definitions:
+        RC_CRSF_TEL_EN:
+            description:
+                short: Crossfire RC telemetry enable
+                long: |
+                    Crossfire telemetry enable
+
+            type: boolean
+            default: [0]

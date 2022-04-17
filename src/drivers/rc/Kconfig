@@ -1,0 +1,9 @@
+menu "RC"
+    menuconfig COMMON_RC
+        bool "Common RC"
+        default n
+        select DRIVERS_RC_CRSF_RC
+        ---help---
+            Enable default set of magnetometer drivers
+    rsource "*/Kconfig"
+endmenu
