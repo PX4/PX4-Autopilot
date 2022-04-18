@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4io.c
+ * @file px4io.cpp
  * Top-level logic for the PX4IO module.
  *
  * @author Lorenz Meier <lorenz@px4.io>
@@ -64,9 +64,7 @@
 #define DEBUG
 #include "px4io.h"
 
-__EXPORT int user_start(int argc, char *argv[]);
-
-struct sys_state_s 	system_state;
+struct sys_state_s system_state;
 
 static struct hrt_call serial_dma_call;
 
@@ -76,7 +74,8 @@ static struct hrt_call serial_dma_call;
 
 static volatile uint32_t msg_counter;
 static volatile uint32_t last_msg_counter;
-static volatile uint8_t msg_next_out, msg_next_in;
+static volatile uint8_t msg_next_out;
+static volatile uint8_t msg_next_in;
 
 /*
  * WARNING: too large buffers here consume the memory required
@@ -275,8 +274,7 @@ calculate_fw_crc(void)
 	r_page_setup[PX4IO_P_SETUP_CRC + 1] = sum >> 16;
 }
 
-int
-user_start(int argc, char *argv[])
+extern "C" __EXPORT int user_start(int argc, char *argv[])
 {
 	/* configure the first 8 PWM outputs (i.e. all of them) */
 	up_pwm_servo_init(0xff);
@@ -434,4 +432,3 @@ user_start(int argc, char *argv[])
 		}
 	}
 }
-

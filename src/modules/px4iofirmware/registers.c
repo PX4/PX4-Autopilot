@@ -57,9 +57,6 @@
 static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
 static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate);
 
-bool update_mc_thrust_param;
-bool update_trims;
-
 /**
  * PAGE 0
  *
