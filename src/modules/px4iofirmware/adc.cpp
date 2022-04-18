@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file adc.c
+ * @file adc.cpp
  *
  * Simple ADC support for PX4IO on STM32.
  */
