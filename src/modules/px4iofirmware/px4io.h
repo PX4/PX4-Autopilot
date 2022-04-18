@@ -50,6 +50,8 @@
 
 #include "protocol.h"
 
+__BEGIN_DECLS
+
 /*
  * Constants and limits.
  */
@@ -120,8 +122,6 @@ struct sys_state_s {
 };
 
 extern struct sys_state_s system_state;
-extern bool update_mc_thrust_param;
-extern bool update_trims;
 
 # define ENABLE_SBUS_OUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
 
@@ -185,3 +185,4 @@ extern void	isr_debug(uint8_t level, const char *fmt, ...);
 /** schedule a reboot */
 extern void schedule_reboot(uint32_t time_delta_usec);
 
+__END_DECLS
