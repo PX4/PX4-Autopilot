@@ -68,8 +68,8 @@ public:
 private:
 	void _read_control_data_from_position_setpoint_sub(ControlData &control_data);
 
-	int _vehicle_roi_sub = -1;
-	int _position_setpoint_triplet_sub = -1;
+	orb_sub_t _vehicle_roi_sub = ORB_SUB_INVALID;
+	orb_sub_t _position_setpoint_triplet_sub = ORB_SUB_INVALID;
 	uint8_t _cur_roi_mode {vehicle_roi_s::ROI_NONE};
 };
 
@@ -89,7 +89,7 @@ private:
 	UpdateResult _process_command(ControlData &control_data, const vehicle_command_s &vehicle_command);
 	void _ack_vehicle_command(const vehicle_command_s &cmd);
 
-	int _vehicle_command_sub = -1;
+	orb_sub_t _vehicle_command_sub = ORB_SUB_INVALID;
 };
 
 class InputMavlinkGimbalV2 : public InputBase
@@ -118,11 +118,11 @@ private:
 	void _stream_gimbal_manager_status(const ControlData &control_data);
 	void _read_control_data_from_position_setpoint_sub(ControlData &control_data);
 
-	int _vehicle_roi_sub = -1;
-	int _gimbal_manager_set_attitude_sub = -1;
-	int _gimbal_manager_set_manual_control_sub = -1;
-	int _position_setpoint_triplet_sub = -1;
-	int _vehicle_command_sub = -1;
+	orb_sub_t _vehicle_roi_sub = ORB_SUB_INVALID;
+	orb_sub_t _gimbal_manager_set_attitude_sub = ORB_SUB_INVALID;
+	orb_sub_t _gimbal_manager_set_manual_control_sub = ORB_SUB_INVALID;
+	orb_sub_t _position_setpoint_triplet_sub = ORB_SUB_INVALID;
+	orb_sub_t _vehicle_command_sub = ORB_SUB_INVALID;
 
 	uORB::Subscription _gimbal_device_attitude_status_sub{ORB_ID(gimbal_device_attitude_status)};
 	uORB::Publication<gimbal_manager_information_s> _gimbal_manager_info_pub{ORB_ID(gimbal_manager_information)};

@@ -188,8 +188,8 @@ protected:
 	 * update a single sensor instance
 	 * @return 0 when done, 1 not finished yet, <0 for an error
 	 */
-	virtual int update_sensor_instance(PerSensorData &data, int sensor_sub) = 0;
+	virtual int update_sensor_instance(PerSensorData &data, orb_sub_t sensor_sub) = 0;
 
 	unsigned _num_sensor_instances{0};
-	int _sensor_subs[SENSOR_COUNT_MAX];
+	orb_sub_t _sensor_subs[SENSOR_COUNT_MAX];
 };

@@ -39,6 +39,7 @@
 #include <uORB/topics/dataman_response.h>
 #include <dataman/dataman.h>
 #include <lib/perf/perf_counter.h>
+#include <px4_platform_common/posix.h>
 
 using namespace time_literals;
 
@@ -178,7 +179,7 @@ private:
 	Request _active_request{};
 	uint8_t _response_status{};
 
-	int32_t _dataman_response_sub{};
+	orb_sub_t _dataman_response_sub{};
 	uORB::Publication<dataman_request_s> _dataman_request_pub{ORB_ID(dataman_request)};
 
 	px4_pollfd_struct_t _fds;
