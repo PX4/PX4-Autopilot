@@ -272,8 +272,8 @@ void *send_actuator(void *)
 void send_actuator_data()
 {
 
-	int _actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs_sim), 0);
-	int _vehicle_control_mode_sub_ = orb_subscribe(ORB_ID(vehicle_control_mode));
+	orb_sub_t _actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs_sim), 0);
+	orb_sub_t _vehicle_control_mode_sub_ = orb_subscribe(ORB_ID(vehicle_control_mode));
 	uint64_t last_heartbeat_timestamp = hrt_absolute_time();
 	int previous_timestamp = 0;
 	int previous_uorb_timestamp = 0;
@@ -424,7 +424,7 @@ void task_main(int argc, char *argv[])
 	pthread_create(&sender_thread, &sender_thread_attr, send_actuator, nullptr);
 	pthread_attr_destroy(&sender_thread_attr);
 
-	int _vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	orb_sub_t _vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	_is_running = true;
 
