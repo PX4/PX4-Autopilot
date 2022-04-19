@@ -29,12 +29,12 @@
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-File: drag_replay.py
+File: mc_wind_estimator_tuning.py
 Author: Mathieu Bresciani <mathieu@auterion.com>
 License: BSD 3-Clause
 Description:
     Find the best ballistic and momentum drag coefficients for wind estimation
-    using EKF2 replay data.
+    using flight test data from a `.ulg` file.
     NOTE: this script currently assumes no wind.
 """
 
@@ -191,7 +191,7 @@ if __name__ == '__main__':
 
     # Parse arguments
     parser = argparse.ArgumentParser(
-        description='Estimate mag biases from ULog file')
+        description='Estimate the ballistic and momentum drag coefficients of a multirotor using a ULog file')
 
     # Provide parameter file path and name
     parser.add_argument('logfile', help='Full ulog file path, name and extension', type=str)
