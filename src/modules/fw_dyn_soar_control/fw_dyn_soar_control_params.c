@@ -11,6 +11,50 @@
  */
 
 /**
+ * inertia around body x-axis
+ * 
+ * This is the inertia of the aircraft, used for the INDI
+ * 
+ * @unit kg
+ * @min 0.01
+ * @max 10
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(FW_INERTIA_ROLL, 1.0f);
+
+/**
+ * inertia around body y-axis
+ * 
+ * This is the inertia of the aircraft, used for the INDI
+ * 
+ * @unit kg
+ * @min 0.01
+ * @max 10
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(FW_INERTIA_PITCH, 1.0f);
+
+/**
+ * inertia around body z-axis
+ * 
+ * This is the inertia of the aircraft, used for the INDI
+ * 
+ * @unit kg
+ * @min 0.01
+ * @max 10
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(FW_INERTIA_YAW, 1.0f);
+
+
+
+/**
  * total takeoff mass
  * 
  * This is the mass of the aircraft, used for the INDI
@@ -368,3 +412,39 @@ PARAM_DEFINE_FLOAT(K_W_PITCH, 5.0f);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(K_W_YAW, 5.0f);
+
+/**
+ * roll gain of K_ACT (actuator deflection gain)
+ * 
+ * @unit 
+ * @min 0
+ * @max 100
+ * @decimal 1
+ * @increment 0.1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(K_ACT_ROLL, 3.0f);
+
+/**
+ * pitch gain of K_ACT (actuator deflection gain)
+ * 
+ * @unit 
+ * @min 0
+ * @max 100
+ * @decimal 1
+ * @increment 0.1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(K_ACT_PITCH, 3.0f);
+
+/**
+ * yaw gain of K_ACT (actuator deflection gain)
+ * 
+ * @unit 
+ * @min 0
+ * @max 100
+ * @decimal 1
+ * @increment 0.1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(K_ACT_YAW, 3.0f);

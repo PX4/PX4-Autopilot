@@ -30,6 +30,7 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/vehicle_command.h>
@@ -41,16 +42,24 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_acceleration_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/rate_ctrl_status.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/soaring_controller_heartbeat.h>
+#include <uORB/topics/soaring_controller_status.h>
 #include <uORB/topics/wind.h>
 #include <uORB/uORB.h>
 #include <iostream>
@@ -90,7 +99,8 @@ private:
 
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
-	uORB::SubscriptionCallbackWorkItem _vehicle_local_position_sub{this, ORB_ID(vehicle_local_position)};
+	// make the main task run, whenever a new body rate becomes available
+	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
@@ -98,31 +108,42 @@ private:
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};             // airspeed 
     uORB::Subscription _airflow_aoa_sub{ORB_ID(airflow_aoa)};                           // angle of attack
     uORB::Subscription _airflow_slip_sub{ORB_ID(airflow_slip)};                         // angle of sideslip
-    //uORB::Subscription _vehicle_global_position_sub{ORB_ID(vehicle_global_position)};   // global position
-    //uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};     // local NED position
-    uORB::Subscription _vehicle_odometry_sub{ORB_ID(vehicle_odometry)};                 // vehicle velocity
-    uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};         // vehicle acceleration
+    uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};     // local NED position
+    uORB::Subscription _home_position_sub{ORB_ID(home_position)};						// home position
     uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};                 // vehicle attitude
-	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)}; // vehicle body rates
     uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)}; // vehicle body accel
+	uORB::Subscription _soaring_controller_status_sub{ORB_ID(soaring_controller_status)};			// vehicle status flags
 	
-
     // Publishers
-	uORB::Publication<vehicle_angular_acceleration_setpoint_s>		_angular_accel_sp_pub;
-	
+	uORB::Publication<actuator_controls_s>							_actuators_0_pub;
+	uORB::Publication<vehicle_attitude_setpoint_s>					_attitude_sp_pub;
+	uORB::Publication<vehicle_rates_setpoint_s>						_angular_vel_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::Publication<vehicle_angular_acceleration_setpoint_s>		_angular_accel_sp_pub{ORB_ID(vehicle_angular_acceleration_setpoint)};
+	uORB::PublicationMulti<rate_ctrl_status_s>						_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
+	uORB::Publication<soaring_controller_heartbeat_s>					_soaring_controller_heartbeat_pub{ORB_ID(soaring_controller_status)};
+
     // Message structs
 	vehicle_angular_acceleration_setpoint_s _angular_accel_sp {};
+	actuator_controls_s			_actuators {};			// actuator commands
 	manual_control_setpoint_s	_manual_control_setpoint {};			///< r/c channel data
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position
 	vehicle_attitude_s			_attitude {};			///< vehicle attitude
+	vehicle_attitude_setpoint_s	_attitude_sp {};		///< vehicle attitude setpoint
 	vehicle_angular_velocity_s 	_angular_vel {};		///< vehicle angular velocity
+	vehicle_rates_setpoint_s 	_angular_vel_sp {};		///< vehicle angular velocity setpoint
 	vehicle_angular_acceleration_s	_angular_accel {};	///< vehicle angular acceleration
+	home_position_s				_home_pos {};			///< home position
 	vehicle_control_mode_s		_control_mode {};		///< control mode
 	vehicle_status_s		    _vehicle_status {};		///< vehicle status
+	soaring_controller_status_s	_soaring_controller_status {};	///< soaring controller status
+	soaring_controller_heartbeat_s	_soaring_controller_heartbeat{};	///< soaring controller hrt
 
 	// parameter struct
 	DEFINE_PARAMETERS(
 		// aircraft params
+		(ParamFloat<px4::params::FW_INERTIA_ROLL>) _param_fw_inertia_roll,
+		(ParamFloat<px4::params::FW_INERTIA_PITCH>) _param_fw_inertia_pitch,
+		(ParamFloat<px4::params::FW_INERTIA_YAW>) _param_fw_inertia_yaw,
 		(ParamFloat<px4::params::FW_MASS>) _param_fw_mass,
 		(ParamFloat<px4::params::FW_WING_AREA>) _param_fw_wing_area,
 		(ParamFloat<px4::params::RHO>) _param_rho,
@@ -153,7 +174,10 @@ private:
 		(ParamFloat<px4::params::K_Q_YAW>) _param_k_q_yaw,
 		(ParamFloat<px4::params::K_W_ROLL>) _param_k_w_roll,
 		(ParamFloat<px4::params::K_W_PITCH>) _param_k_w_pitch,
-		(ParamFloat<px4::params::K_W_YAW>) _param_k_w_yaw
+		(ParamFloat<px4::params::K_W_YAW>) _param_k_w_yaw,
+		(ParamFloat<px4::params::K_ACT_ROLL>) _param_k_act_roll,
+		(ParamFloat<px4::params::K_ACT_PITCH>) _param_k_act_pitch,
+		(ParamFloat<px4::params::K_ACT_YAW>) _param_k_act_yaw
 
 	)
 
@@ -184,6 +208,7 @@ private:
 	void		vehicle_command_poll();
 	void		vehicle_control_mode_poll();
 	void		vehicle_status_poll();
+	void		soaring_controller_status_poll();
 
 	//
 	void		status_publish();
@@ -206,8 +231,9 @@ private:
 	Vector3f _get_angular_velocity_ref(float t=0, float T=1);	// get the reference angular velocity on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Vector3f _get_angular_acceleration_ref(float t=0, float T=1);	// get the reference angular acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Quatf _get_attitude(Vector3f vel, Vector3f f);	// get the attitude to produce force f while flying with velocity vel
-	Vector3f _compute_NDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
-	Vector3f _compute_INDI_control_input(Vector3f pos, Vector3f vel, Vector3f acc, Quatf att, Vector3f omega, Vector3f alpha);
+	Vector3f _compute_NDI_stage_1(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref, Vector3f omega_ref, Vector3f alpha_ref);
+	Vector3f _compute_NDI_stage_2(Vector3f ctrl);
+	Vector3f _compute_actuator_deflections(Vector3f ctrl);
 
 	// control variables
 	Vector<float, _num_basis_funs> _basis_coeffs_x = {};				// coefficients of the current path
@@ -220,12 +246,13 @@ private:
 	Matrix3f _K_a;
 	Matrix3f _K_q;
 	Matrix3f _K_w;
-	Vector3f _pos;
-	Vector3f _vel;
-	Vector3f _acc;
+	Vector3f _pos;		// current position
+	Vector3f _vel;		// current velocity
+	Vector3f _acc;		// current acceleration
 	Quatf _att;			// attitude quaternion
 	Vector3f _omega;	// angular rate vector
 	Vector3f _alpha;	// angular acceleration vector
+	Matrix3f _K_actuators;	// diagonal actuator control gain matrix
 	hrt_abstime _last_run{0};
 
 	// filter variables
@@ -235,6 +262,7 @@ private:
 	std::array<Vector3f, 3> _a_lpf_list;
 
 	// parameter variables
+	Matrix3f _inertia {};
 	float _mass;
 	float _area;
 	float _rho;
@@ -249,7 +277,6 @@ private:
 	float _b2;
 	float _b3;
 
-	// misc. variables
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.
 	float _airspeed{0.0f};
@@ -262,6 +289,10 @@ private:
 	hrt_abstime _slip_last_valid{0};			///< last time Aoa was received. Used to detect timeouts.
 	float _slip{0.0f};
 
+	// helper variables
+	Dcmf _R_ned_to_enu;	// rotation matrix from NED to ENU frame
+	Dcmf _R_enu_to_ned;	// rotation matrix from ENU to NED frame
+	Vector3f _zero_crossing_local_pos;	// vector denoting the zero crossing of the trajectories in NED frame
 
 };
 
