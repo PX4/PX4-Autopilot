@@ -35,6 +35,7 @@ px4_add_module(
 	MODULE drivers__magnetometer__isentek__ist8310
 	MAIN ist8310
 	COMPILE_FLAGS
+		-DDEBUG_BUILD
 	SRCS
 		IST8310.cpp
 		IST8310.hpp

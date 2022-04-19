@@ -45,6 +45,7 @@ IST8310::IST8310(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_mag(get_device_id(), config.rotation)
 {
+	_debug_enabled = true;
 }
 
 IST8310::~IST8310()
@@ -85,14 +86,18 @@ void IST8310::print_status()
 
 int IST8310::probe()
 {
-	const uint8_t WAI = RegisterRead(Register::WAI);
+	for (int i = 0; i < 10; i++) {
+		const uint8_t WAI = RegisterRead(Register::WAI);
 
-	if (WAI != Device_ID) {
-		DEVICE_DEBUG("unexpected WAI 0x%02x", WAI);
-		return PX4_ERROR;
+		if (WAI == Device_ID) {
+			return PX4_OK;
+
+		} else {
+			PX4_DEBUG("unexpected WAI 0x%02x", WAI);
+		}
 	}
 
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void IST8310::RunImpl()
