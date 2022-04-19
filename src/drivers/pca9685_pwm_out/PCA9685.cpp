@@ -35,8 +35,6 @@
 #include <cmath>
 #include "PCA9685.h"
 
-#include <px4_platform_common/sem.hpp>
-
 using namespace drv_pca9685_pwm;
 
 PCA9685::PCA9685(int bus, int addr):
@@ -63,7 +61,7 @@ int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
 	memcpy(out, outputs, sizeof(uint16_t) * num_outputs);
 
 	for (unsigned i = 0; i < num_outputs; ++i) {
-		out[i] = (uint16_t)roundl((out[i] * _Freq * PCA9685_PWM_RES / (float)1e6)); // convert us to 12 bit resolution
+		out[i] = (uint16_t)roundl((out[i] * _current_freq * PCA9685_PWM_RES / (float)1e6)); // convert us to 12 bit resolution
 	}
 
 	setPWM(num_outputs, out);
@@ -73,17 +71,17 @@ int PCA9685::updatePWM(const uint16_t *outputs, unsigned num_outputs)
 
 int PCA9685::setFreq(float freq)
 {
-	uint16_t realResolution = floorl((float)PCA9685_CLOCK_FREQ / freq);
+	uint16_t realResolution = (uint16_t)floorl((float)PCA9685_CLOCK_FREQ / freq);
 
 	if (realResolution < PCA9685_PWM_RES) { // unable to provide enough resolution
-		PX4_DEBUG("frequency too high");
+		PX4_ERR("frequency too high");
 		return -EINVAL;
 	}
 
-	uint16_t divider = (uint16_t)round((float)PCA9685_CLOCK_FREQ / freq / PCA9685_PWM_RES) - 1;
+	uint16_t divider = (uint16_t)roundl((float)PCA9685_CLOCK_FREQ / freq / PCA9685_PWM_RES) - 1;
 
 	if (divider > 0x00FF) { // out of divider
-		PX4_DEBUG("frequency too low");
+		PX4_ERR("frequency too low");
 		return -EINVAL;
 	}
 
@@ -96,7 +94,8 @@ int PCA9685::setFreq(float freq)
 		// should we return an error?
 	}
 
-	_Freq = (float)PCA9685_CLOCK_FREQ / (float)(divider + (uint16_t)1) / PCA9685_PWM_RES; // use actual pwm freq instead.
+	_current_freq = (float)PCA9685_CLOCK_FREQ / (float)(divider + (uint16_t)1) /
+			PCA9685_PWM_RES; // use actual pwm freq instead.
 
 	setDivider(divider);
 

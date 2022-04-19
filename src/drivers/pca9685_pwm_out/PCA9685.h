@@ -94,7 +94,6 @@ namespace drv_pca9685_pwm
 #define PCA9685_CLOCK_FREQ PCA9685_CLOCK_EXT   // use ext clk
 #endif
 
-#define PCA9685_DEVICE_BASE_PATH	"/dev/pca9685"
 #define PWM_DEFAULT_FREQUENCY 50    // default pwm frequency
 
 //! Main class that exports features for PCA9685 chip
@@ -116,7 +115,7 @@ public:
 
 	int initReg();
 
-	inline float getFrequency() {return _Freq;}
+	inline float getFrequency() const {return _current_freq;}
 
 	/*
 	 * disable all of the output
@@ -141,14 +140,16 @@ public:
 protected:
 	int probe() override;
 
-#ifdef PCA9685_CLOCL_EXT
+private:
+
+#ifdef PCA9685_CLOCK_EXT
 	static const uint8_t DEFAULT_MODE1_CFG = 0x70;  // Auto-Increment, Sleep, EXTCLK
 #else
 	static const uint8_t DEFAULT_MODE1_CFG = 0x30;  // Auto-Increment, Sleep
 #endif
 	static const uint8_t DEFAULT_MODE2_CFG = 0x04;  // totem pole
 
-	float _Freq = PWM_DEFAULT_FREQUENCY;
+	float _current_freq = PWM_DEFAULT_FREQUENCY;
 
 	/**
 	 * set PWM value for a channel[0,15].
