@@ -79,7 +79,7 @@ RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
 	_uart(0),
 	_uart_set(),
 	_uart_timeout{.tv_sec = 0, .tv_usec = TIMEOUT_US},
-	_actuatorsSub(-1),
+	_actuatorsSub(ORB_SUB_INVALID),
 	_lastEncoderCount{0, 0},
 	_encoderCounts{0, 0},
 	_motorSpeeds{0, 0}
@@ -564,7 +564,7 @@ void RoboClaw::_parameters_update()
 	param_get(_param_handles.actuator_write_period_ms, &_parameters.actuator_write_period_ms);
 	param_get(_param_handles.address, &_parameters.address);
 
-	if (_actuatorsSub > 0) {
+	if (orb_sub_valid(_actuatorsSub)) {
 		orb_set_interval(_actuatorsSub, _parameters.actuator_write_period_ms);
 	}
 

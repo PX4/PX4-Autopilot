@@ -330,9 +330,9 @@ private:
 		hrt_abstime timestamp;
 	};
 
-	int _local_pos_sub{-1};
-	int _mission_sub{-1};
-	int _vehicle_status_sub{-1};
+	orb_sub_t _local_pos_sub{ORB_SUB_INVALID};
+	orb_sub_t _mission_sub{ORB_SUB_INVALID};
+	orb_sub_t _vehicle_status_sub{ORB_SUB_INVALID};
 
 	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 

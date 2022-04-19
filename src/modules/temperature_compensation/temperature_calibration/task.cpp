@@ -100,7 +100,7 @@ private:
 void TemperatureCalibration::task_main()
 {
 	// subscribe to all gyro instances
-	int gyro_sub[SENSOR_COUNT_MAX] {-1, -1, -1};
+	orb_sub_t gyro_sub[SENSOR_COUNT_MAX] {ORB_SUB_INVALID, ORB_SUB_INVALID, ORB_SUB_INVALID};
 	px4_pollfd_struct_t fds[SENSOR_COUNT_MAX] {};
 	unsigned num_gyro = orb_group_count(ORB_ID(sensor_gyro));
 

@@ -58,12 +58,12 @@
 /* The board is very roughly 5 deg warmer than the surrounding air */
 #define BOARD_TEMP_OFFSET_DEG 5
 
-static int _battery_sub = -1;
-static int _gps_sub = -1;
-static int _home_sub = -1;
-static int _airdata_sub = -1;
-static int _airspeed_sub = -1;
-static int _esc_sub = -1;
+static orb_sub_t _battery_sub = ORB_SUB_INVALID;
+static orb_sub_t _gps_sub = ORB_SUB_INVALID;
+static orb_sub_t _home_sub = ORB_SUB_INVALID;
+static orb_sub_t _airdata_sub = ORB_SUB_INVALID;
+static orb_sub_t _airspeed_sub = ORB_SUB_INVALID;
+static orb_sub_t _esc_sub = ORB_SUB_INVALID;
 
 static orb_advert_t _esc_pub = nullptr;
 

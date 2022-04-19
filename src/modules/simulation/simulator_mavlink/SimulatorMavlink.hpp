@@ -267,7 +267,7 @@ private:
 	std::default_random_engine _gen{};
 
 	// uORB subscription handlers
-	int _actuator_outputs_sub{-1};
+	orb_sub_t _actuator_outputs_sub{ORB_SUB_INVALID};
 	actuator_outputs_s _actuator_outputs{};
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};

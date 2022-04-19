@@ -651,12 +651,12 @@ void Logger::run()
 	/* timer_semaphore use case is a signal */
 	px4_sem_setprotocol(&timer_callback_data.semaphore, SEM_PRIO_NONE);
 
-	int polling_topic_sub = -1;
+	orb_sub_t polling_topic_sub = ORB_SUB_INVALID;
 
 	if (_polling_topic_meta) {
 		polling_topic_sub = orb_subscribe(_polling_topic_meta);
 
-		if (polling_topic_sub < 0) {
+		if (orb_sub_invalid(polling_topic_sub)) {
 			PX4_ERR("Failed to subscribe (%i)", errno);
 		}
 
@@ -679,7 +679,7 @@ void Logger::run()
 	hrt_abstime next_subscribe_check = 0;
 	int next_subscribe_topic_index = -1; // this is used to distribute the checks over time
 
-	if (polling_topic_sub >= 0) {
+	if (orb_sub_valid(polling_topic_sub)) {
 		_lockstep_component = px4_lockstep_register_component();
 	}
 
@@ -886,7 +886,7 @@ void Logger::run()
 		update_params();
 
 		// wait for next loop iteration...
-		if (polling_topic_sub >= 0) {
+		if (orb_sub_valid(polling_topic_sub)) {
 			px4_lockstep_progress(_lockstep_component);
 
 			px4_pollfd_struct_t fds[1];
@@ -927,7 +927,7 @@ void Logger::run()
 	// stop the writer thread
 	_writer.thread_stop();
 
-	if (polling_topic_sub >= 0) {
+	if (orb_sub_valid(polling_topic_sub)) {
 		orb_unsubscribe(polling_topic_sub);
 	}
 

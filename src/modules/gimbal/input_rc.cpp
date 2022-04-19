@@ -51,7 +51,7 @@ InputRC::InputRC(Parameters &parameters) :
 
 InputRC::~InputRC()
 {
-	if (_manual_control_setpoint_sub >= 0) {
+	if (orb_sub_valid(_manual_control_setpoint_sub)) {
 		orb_unsubscribe(_manual_control_setpoint_sub);
 	}
 }
@@ -60,7 +60,7 @@ int InputRC::initialize()
 {
 	_manual_control_setpoint_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 
-	if (_manual_control_setpoint_sub < 0) {
+	if (!orb_sub_valid(_manual_control_setpoint_sub)) {
 		return -errno;
 	}
 

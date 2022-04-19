@@ -138,7 +138,7 @@ private:
 
 	uint8_t			_msg[6];
 
-	int			_actuator_controls_sub;
+	orb_sub_t	       	_actuator_controls_sub;
 	struct actuator_controls_s  _actuator_controls;
 	uint16_t	    	_current_values[actuator_controls_s::NUM_ACTUATOR_CONTROLS]; /**< stores the current pwm output
 										  values as sent to the setPin() */
@@ -181,7 +181,7 @@ PCA9685::PCA9685(const I2CSPIDriverConfig &config) :
 	_mode(IOX_MODE_ON),
 	_i2cpwm_interval(1_s / 60.0f),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err")),
-	_actuator_controls_sub(-1),
+	_actuator_controls_sub(ORB_SUB_INVALID),
 	_actuator_controls(),
 	_mode_on_initialized(false)
 {

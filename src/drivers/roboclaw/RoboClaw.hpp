@@ -196,13 +196,13 @@ private:
 	struct timeval _uart_timeout;
 
 	/** actuator controls subscription */
-	int _actuatorsSub{-1};
+	orb_sub_t _actuatorsSub{ORB_SUB_INVALID};
 	actuator_controls_s _actuatorControls;
 
-	int _armedSub{-1};
+	orb_sub_t _armedSub{ORB_SUB_INVALID};
 	actuator_armed_s _actuatorArmed;
 
-	int _paramSub{-1};
+	orb_sub_t _paramSub{ORB_SUB_INVALID};
 	parameter_update_s _paramUpdate;
 
 	uORB::PublicationMulti<wheel_encoders_s> _wheelEncodersAdv[2] { ORB_ID(wheel_encoders), ORB_ID(wheel_encoders)};
