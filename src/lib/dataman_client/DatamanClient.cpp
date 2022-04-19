@@ -44,7 +44,7 @@ DatamanClient::DatamanClient()
 	_dataman_request_pub.advertise();
 	_dataman_response_sub = orb_subscribe(ORB_ID(dataman_response));
 
-	if (_dataman_response_sub < 0) {
+	if (!orb_sub_valid(_dataman_response_sub)) {
 		PX4_ERR("Failed to subscribe (%i)", errno);
 
 	} else {
@@ -78,7 +78,7 @@ DatamanClient::~DatamanClient()
 {
 	perf_free(_sync_perf);
 
-	if (_dataman_response_sub >= 0) {
+	if (orb_sub_valid(_dataman_response_sub)) {
 		orb_unsubscribe(_dataman_response_sub);
 	}
 }
