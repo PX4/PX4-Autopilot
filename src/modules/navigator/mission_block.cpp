@@ -466,7 +466,8 @@ MissionBlock::is_mission_item_reached()
 			     _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
 
 				float bearing = get_bearing_to_next_waypoint(curr_sp.lat, curr_sp.lon, next_sp.lat, next_sp.lon);
-				// We should not use asinf outside of [-1..1].
+
+				// calculate (positive) angle between current bearing vector (orbit center to next waypoint) and vector pointing to tangent exit location
 				const float ratio = math::min(fabsf(_mission_item.loiter_radius / range), 1.0f);
 				float inner_angle = acosf(ratio);
 
