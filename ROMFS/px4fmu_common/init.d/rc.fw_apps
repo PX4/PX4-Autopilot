@@ -13,7 +13,7 @@ ekf2 start &
 #
 # Start attitude controller.
 #
-#fw_att_control start
+fw_att_control start
 fw_pos_control_l1 start
 fw_dyn_soar_control start
 airspeed_selector start

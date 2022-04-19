@@ -60,6 +60,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/soaring_controller_heartbeat.h>
 #include <uORB/topics/soaring_controller_status.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/wind.h>
 #include <uORB/uORB.h>
 #include <iostream>
@@ -105,6 +106,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
     // Subscriptions
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};						// vehicle status
 	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};             // airspeed 
     uORB::Subscription _airflow_aoa_sub{ORB_ID(airflow_aoa)};                           // angle of attack
     uORB::Subscription _airflow_slip_sub{ORB_ID(airflow_slip)};                         // angle of sideslip
@@ -120,7 +122,8 @@ private:
 	uORB::Publication<vehicle_rates_setpoint_s>						_angular_vel_sp_pub{ORB_ID(vehicle_rates_setpoint)};
 	uORB::Publication<vehicle_angular_acceleration_setpoint_s>		_angular_accel_sp_pub{ORB_ID(vehicle_angular_acceleration_setpoint)};
 	uORB::PublicationMulti<rate_ctrl_status_s>						_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
-	uORB::Publication<soaring_controller_heartbeat_s>					_soaring_controller_heartbeat_pub{ORB_ID(soaring_controller_status)};
+	uORB::Publication<soaring_controller_heartbeat_s>				_soaring_controller_heartbeat_pub{ORB_ID(soaring_controller_status)};
+	uORB::Publication<offboard_control_mode_s>						_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 
     // Message structs
 	vehicle_angular_acceleration_setpoint_s _angular_accel_sp {};
@@ -134,6 +137,7 @@ private:
 	vehicle_angular_acceleration_s	_angular_accel {};	///< vehicle angular acceleration
 	home_position_s				_home_pos {};			///< home position
 	vehicle_control_mode_s		_control_mode {};		///< control mode
+	offboard_control_mode_s		_offboard_control_mode {};	///< offboard control mode
 	vehicle_status_s		    _vehicle_status {};		///< vehicle status
 	soaring_controller_status_s	_soaring_controller_status {};	///< soaring controller status
 	soaring_controller_heartbeat_s	_soaring_controller_heartbeat{};	///< soaring controller hrt

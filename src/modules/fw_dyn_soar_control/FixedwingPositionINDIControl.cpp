@@ -208,6 +208,14 @@ FixedwingPositionINDIControl::airflow_slip_poll()
 }
 
 void
+FixedwingPositionINDIControl::vehicle_status_poll()
+{
+    if(_vehicle_status_sub.update(&_vehicle_status)){
+        print_message(_vehicle_status);
+    }
+}
+
+void
 FixedwingPositionINDIControl::vehicle_attitude_poll()
 {
 	if (_vehicle_attitude_sub.update(&_attitude)) {
@@ -264,10 +272,10 @@ FixedwingPositionINDIControl::soaring_controller_status_poll()
 {
     if (_soaring_controller_status_sub.update(&_soaring_controller_status)){
         if (!_soaring_controller_status.soaring_controller_running){
-            PX4_INFO("Soaring controller turned off");
+            //PX4_INFO("Soaring controller turned off");
         }
         if (_soaring_controller_status.timeout_detected){
-            PX4_INFO("Controller timeout detected");
+            //PX4_INFO("Controller timeout detected");
         }
     }
 }
@@ -371,6 +379,7 @@ FixedwingPositionINDIControl::Run()
 
         // run polls
         _set_wind_estimate(Vector3f(0.f,0.f,0.f));
+        vehicle_status_poll();
         airspeed_poll();
         airflow_aoa_poll();
         airflow_slip_poll();
@@ -403,7 +412,7 @@ FixedwingPositionINDIControl::Run()
         Vector3f pos_ref = _pos + Vector3f{1.f,0.f,1.f};                   // in inertial ENU
         Vector3f vel_ref = Vector3f{15.f,0.f,0.f};                // in inertial ENU
         Vector3f acc_ref = Vector3f{0.f,0.f,0.f};              // gravity-corrected acceleration (ENU)
-        Quatf q = _get_attitude_ref(0.f,10.f);
+        //Quatf q = _get_attitude_ref(0.f,10.f);
         Vector3f omega_ref = Vector3f{0.f,0.f,0.f};        // body angular velocity
         Vector3f alpha_ref = Vector3f{0.f,0.f,0.f};    // body angular acceleration
         
@@ -414,6 +423,15 @@ FixedwingPositionINDIControl::Run()
         // =====================
         Vector3f ctrl = _compute_NDI_stage_1(pos_ref, vel_ref, acc_ref, omega_ref, alpha_ref);
 
+        // =================================
+        // publish offboard control commands
+        // =================================
+        offboard_control_mode_s ocm{};
+        ocm.actuator = true;
+        ocm.timestamp = hrt_absolute_time();
+        _offboard_control_mode_pub.publish(ocm);
+
+        /*
         // =====================
         // publish control input
         // =====================
@@ -449,6 +467,7 @@ FixedwingPositionINDIControl::Run()
         _angular_vel_sp.pitch = omega_ref(1);
         _angular_vel_sp.yaw = omega_ref(2);
         _angular_vel_sp_pub.publish(_angular_vel_sp);
+        */
 
         // ============================
         // compute actuator deflections
@@ -459,15 +478,18 @@ FixedwingPositionINDIControl::Run()
         // =========================
         // publish acutator controls
         // =========================
-        _actuators = {};
-        _actuators.timestamp = hrt_absolute_time();
-        _actuators.timestamp_sample = hrt_absolute_time();
-        _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
-        _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
-        _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
-        _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 1.0f;
-        _actuators_0_pub.publish(_actuators);
-        //print_message(_actuators);
+        // Publish actuator controls only once in OFFBOARD
+		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+            _actuators = {};
+            _actuators.timestamp = hrt_absolute_time();
+            _actuators.timestamp_sample = hrt_absolute_time();
+            _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
+            _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
+            _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
+            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 1.0f;
+            _actuators_0_pub.publish(_actuators);
+            print_message(_actuators);
+        }
 
         // ===========================
         // publish rate control status
@@ -479,13 +501,6 @@ FixedwingPositionINDIControl::Run()
         rate_ctrl_status.yawspeed_integ = 0.0f;
         _rate_ctrl_status_pub.publish(rate_ctrl_status);
 
-        /*        
-        PX4_INFO("control setpoints:\t%.4f\t%.4f\t%.4f",
-            (double)vec(0),
-            (double)vec(1),
-            (double)vec(2));
-            */
-
         // ==============================
         // publish soaring control status
         // ==============================
@@ -493,7 +508,8 @@ FixedwingPositionINDIControl::Run()
         _soaring_controller_heartbeat.timestamp = hrt_absolute_time();
         _soaring_controller_heartbeat.heartbeat = hrt_absolute_time();
         _soaring_controller_heartbeat_pub.publish(_soaring_controller_heartbeat);
-        //print_message(_soaring_controller_heartbeat);
+
+
             
     }
     perf_end(_loop_perf);
