@@ -93,13 +93,15 @@ int BMM150::probe()
 		PX4_DEBUG("POWER_CONTROL: 0x%02hhX, CHIP_ID: 0x%02hhX", POWER_CONTROL, CHIP_ID);
 
 		if (CHIP_ID == chip_identification_number) {
-			_retries = 1;
 			return PX4_OK;
 
 		} else if ((CHIP_ID == 0) && !(POWER_CONTROL & POWER_CONTROL_BIT::PowerControl)) {
 			// in suspend Chip ID read (register 0x40) returns “0x00” (I²C) or high-Z (SPI).
-			_retries = 1;
 			return PX4_OK;
+		}
+
+		if (retry > 0) {
+			_retries = 1;
 		}
 	}
 

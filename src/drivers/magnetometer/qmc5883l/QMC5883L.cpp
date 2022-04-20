@@ -85,8 +85,6 @@ void QMC5883L::print_status()
 
 int QMC5883L::probe()
 {
-	_retries = 1;
-
 	for (int retry = 0; retry < 3; retry++) {
 		// first read 0x0 once
 		const uint8_t cmd = 0;
@@ -98,6 +96,10 @@ int QMC5883L::probe()
 			if (CHIP_ID == Chip_ID) {
 				return PX4_OK;
 			}
+		}
+
+		if (retry > 0) {
+			_retries = 1;
 		}
 	}
 

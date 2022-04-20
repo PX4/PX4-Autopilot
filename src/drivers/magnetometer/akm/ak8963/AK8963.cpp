@@ -91,11 +91,14 @@ int AK8963::probe()
 		const uint8_t WIA = RegisterRead(Register::WIA);
 
 		if (WIA == Device_ID) {
-			_retries = 1;
 			return PX4_OK;
 
 		} else {
 			DEVICE_DEBUG("unexpected WIA 0x%02x", WIA);
+		}
+
+		if (retry > 0) {
+			_retries = 1;
 		}
 	}
 

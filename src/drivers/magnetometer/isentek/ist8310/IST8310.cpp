@@ -89,11 +89,14 @@ int IST8310::probe()
 		const uint8_t WAI = RegisterRead(Register::WAI);
 
 		if (WAI == Device_ID) {
-			_retries = 1;
 			return PX4_OK;
 
 		} else {
 			DEVICE_DEBUG("unexpected WAI 0x%02x", WAI);
+		}
+
+		if (retry > 0) {
+			_retries = 1;
 		}
 	}
 

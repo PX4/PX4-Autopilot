@@ -92,7 +92,6 @@ int AK09916::probe()
 		const uint8_t WIA2 = RegisterRead(Register::WIA2);
 
 		if ((WIA1 == Company_ID) && (WIA2 == Device_ID)) {
-			_retries = 1;
 			return PX4_OK;
 
 		} else if (WIA1 != Company_ID) {
@@ -100,6 +99,10 @@ int AK09916::probe()
 
 		} else if (WIA2 != Device_ID) {
 			DEVICE_DEBUG("unexpected WIA2 0x%02x", WIA2);
+		}
+
+		if (retry > 0) {
+			_retries = 1;
 		}
 	}
 
