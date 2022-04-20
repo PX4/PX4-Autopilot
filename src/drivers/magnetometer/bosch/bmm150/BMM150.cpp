@@ -86,17 +86,19 @@ void BMM150::print_status()
 int BMM150::probe()
 {
 	// 3 retries
-	for (int i = 0; i < 3; i++) {
+	for (int retry = 0; retry < 3; retry++) {
 		const uint8_t POWER_CONTROL = RegisterRead(Register::POWER_CONTROL);
 		const uint8_t CHIP_ID = RegisterRead(Register::CHIP_ID);
 
 		PX4_DEBUG("POWER_CONTROL: 0x%02hhX, CHIP_ID: 0x%02hhX", POWER_CONTROL, CHIP_ID);
 
 		if (CHIP_ID == chip_identification_number) {
+			_retries = 1;
 			return PX4_OK;
 
 		} else if ((CHIP_ID == 0) && !(POWER_CONTROL & POWER_CONTROL_BIT::PowerControl)) {
 			// in suspend Chip ID read (register 0x40) returns “0x00” (I²C) or high-Z (SPI).
+			_retries = 1;
 			return PX4_OK;
 		}
 	}

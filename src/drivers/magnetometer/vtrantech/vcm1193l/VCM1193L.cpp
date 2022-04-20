@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,7 +87,7 @@ int VCM1193L::probe()
 {
 	_retries = 1;
 
-	for (int i = 0; i < 3; i++) {
+	for (int retry = 0; retry < 3; retry++) {
 		// first read 0x0 once
 		const uint8_t cmd = 0;
 		uint8_t buffer{};

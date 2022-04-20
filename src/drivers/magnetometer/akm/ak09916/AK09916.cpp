@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -87,21 +87,23 @@ void AK09916::print_status()
 
 int AK09916::probe()
 {
-	const uint8_t WIA1 = RegisterRead(Register::WIA1);
+	for (int retry = 0; retry < 3; retry++) {
+		const uint8_t WIA1 = RegisterRead(Register::WIA1);
+		const uint8_t WIA2 = RegisterRead(Register::WIA2);
 
-	if (WIA1 != Company_ID) {
-		DEVICE_DEBUG("unexpected WIA1 0x%02x", WIA1);
-		return PX4_ERROR;
+		if ((WIA1 == Company_ID) && (WIA2 == Device_ID)) {
+			_retries = 1;
+			return PX4_OK;
+
+		} else if (WIA1 != Company_ID) {
+			DEVICE_DEBUG("unexpected WIA1 0x%02x", WIA1);
+
+		} else if (WIA2 != Device_ID) {
+			DEVICE_DEBUG("unexpected WIA2 0x%02x", WIA2);
+		}
 	}
 
-	const uint8_t WIA2 = RegisterRead(Register::WIA2);
-
-	if (WIA2 != Device_ID) {
-		DEVICE_DEBUG("unexpected WIA2 0x%02x", WIA2);
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void AK09916::RunImpl()
