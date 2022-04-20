@@ -225,9 +225,11 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 			break;
 		}
 
-		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries)) {
+		// if we have already retried once, and we aren't going to give up, then reset the bus
+		if ((_retries > 0) && (retry_count < _retries)) {
 #if defined(CONFIG_I2C_RESET)
+			DEVICE_DEBUG("I2C bus: %d, Addr: %X, I2C_RESET %d/%d",
+				     get_device_bus(), get_device_address(), retry_count + 1, _retries);
 			I2C_RESET(_dev);
 #endif // CONFIG_I2C_RESET
 		}
