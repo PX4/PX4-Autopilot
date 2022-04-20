@@ -211,7 +211,7 @@ void
 FixedwingPositionINDIControl::vehicle_status_poll()
 {
     if(_vehicle_status_sub.update(&_vehicle_status)){
-        print_message(_vehicle_status);
+        //print_message(_vehicle_status);
     }
 }
 
@@ -220,23 +220,23 @@ FixedwingPositionINDIControl::vehicle_attitude_poll()
 {
 	if (_vehicle_attitude_sub.update(&_attitude)) {
         // transform the reference frame from NED to ENU
-        Dcmf R_in_ned(_attitude.q);
+        Dcmf R_in_ned(Quatf(_attitude.q));
 		_att = Quatf(_R_ned_to_enu*R_in_ned);
         //PX4_INFO("attitude quaternion:\t%.4f\t%.4f\t%.4f\t%.4f", (double)_att(0),(double)_att(1),(double)_att(2),(double)_att(3));
     }
-    if(hrt_absolute_time()-_attitude.timestamp > 50_ms){
+    if(hrt_absolute_time()-_attitude.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("attitude sample is too old");
-        //PX4_INFO("time differences:\t%.4f\t%.4f", (double)(hrt_absolute_time()-_attitude.timestamp) , (double)(hrt_absolute_time()-_attitude.timestamp_sample));
     }
 }
 
 void
 FixedwingPositionINDIControl::vehicle_angular_velocity_poll()
-{
-	if (_vehicle_angular_velocity_sub.update(&_angular_vel)) {
-		_omega = Vector3f(_angular_vel.xyz);
-    }
-    if(hrt_absolute_time()-_angular_vel.timestamp > 50_ms){
+{   //
+    // no need to check if it was updated as the main loop is fired based on an update...
+    //
+    //PX4_INFO("angular velocity:\t%.4f\t%.4f\t%.4f", (double)_omega(0),(double)_omega(1),(double)_omega(2));
+    _omega = Vector3f(_angular_vel.xyz);
+    if(hrt_absolute_time()-_angular_vel.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("angular velocity sample is too old");
     }
 }
@@ -246,8 +246,9 @@ FixedwingPositionINDIControl::vehicle_angular_acceleration_poll()
 {
 	if (_vehicle_angular_acceleration_sub.update(&_angular_accel)) {
 		_alpha = Vector3f(_angular_accel.xyz);
+        //PX4_INFO("angular accel:\t%.4f\t%.4f\t%.4f", (double)_alpha(0),(double)_alpha(1),(double)_alpha(2));
     }
-    if(hrt_absolute_time()-_angular_accel.timestamp > 50_ms){
+    if(hrt_absolute_time()-_angular_accel.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("angular acceleration sample is too old");
     }
 }
@@ -257,11 +258,12 @@ FixedwingPositionINDIControl::vehicle_local_position_poll()
 {
     //vehicle_local_position_s pos;
     if (_vehicle_local_position_sub.update(&_local_pos)){
-		_pos = _R_ned_to_enu*Vector3f(_local_pos.x,_local_pos.y,_local_pos.z);
-        _vel = _R_ned_to_enu*Vector3f(_local_pos.vx,_local_pos.vy,_local_pos.vz);
-        _acc = _R_ned_to_enu*Vector3f(_local_pos.ax,_local_pos.ay,_local_pos.az);
+		_pos = _R_ned_to_enu*Vector3f{_local_pos.x,_local_pos.y,_local_pos.z};
+        _vel = _R_ned_to_enu*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
+        _acc = _R_ned_to_enu*Vector3f{_local_pos.ax,_local_pos.ay,_local_pos.az};
+        //PX4_INFO("local position:\t%.4f\t%.4f\t%.4f", (double)_pos(0),(double)_pos(1),(double)_pos(2));
     }
-    if(hrt_absolute_time()-_local_pos.timestamp > 50_ms){
+    if(hrt_absolute_time()-_local_pos.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("local position sample is too old");
         //PX4_INFO("time differences:\t%.4f\t%.4f", (double)(hrt_absolute_time()-_local_pos.timestamp) , (double)(hrt_absolute_time()-_local_pos.timestamp_sample));
     }
@@ -335,7 +337,7 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv()
     _basis_coeffs_y(14) = -4286.372935f;
     _basis_coeffs_y(15) = 679.830536f;
 
-    _basis_coeffs_z(0) = 10.f; //4.971065f;
+    _basis_coeffs_z(0) = 100.f; //4.971065f;
     _basis_coeffs_z(1) = -354.548028f;
     _basis_coeffs_z(2) = 1506.974164f;
     _basis_coeffs_z(3) = -3506.606108f;
@@ -393,7 +395,6 @@ FixedwingPositionINDIControl::Run()
         // ============================
         // compute reference kinematics
         // ============================
-        /*
         // get reference values
         float t_ref = _get_closest_t(_pos);
         // downscale velocity to match current one, 
@@ -406,16 +407,16 @@ FixedwingPositionINDIControl::Run()
         Quatf q = _get_attitude_ref(t_ref,T);
         Vector3f omega_ref = _get_angular_velocity_ref(t_ref,T);        // body angular velocity
         Vector3f alpha_ref = _get_angular_acceleration_ref(t_ref,T);    // body angular acceleration
-        */
-        
+
+        /*
         //TODO: remove when done with testing
         Vector3f pos_ref = _pos + Vector3f{1.f,0.f,1.f};                   // in inertial ENU
         Vector3f vel_ref = Vector3f{15.f,0.f,0.f};                // in inertial ENU
         Vector3f acc_ref = Vector3f{0.f,0.f,0.f};              // gravity-corrected acceleration (ENU)
-        //Quatf q = _get_attitude_ref(0.f,10.f);
+        Quatf q = _get_attitude_ref(0.f,10.f);
         Vector3f omega_ref = Vector3f{0.f,0.f,0.f};        // body angular velocity
         Vector3f alpha_ref = Vector3f{0.f,0.f,0.f};    // body angular acceleration
-        
+        */
 
 
         // =====================
@@ -431,55 +432,53 @@ FixedwingPositionINDIControl::Run()
         ocm.timestamp = hrt_absolute_time();
         _offboard_control_mode_pub.publish(ocm);
 
-        /*
-        // =====================
-        // publish control input
-        // =====================
-        //_angular_accel_sp = {}; 
-        _angular_accel_sp.timestamp = hrt_absolute_time();
-        _angular_accel_sp.timestamp_sample = hrt_absolute_time();
-        _angular_accel_sp.xyz[0] = ctrl(0);
-        _angular_accel_sp.xyz[1] = ctrl(1);
-        _angular_accel_sp.xyz[2] = ctrl(2);
-        _angular_accel_sp_pub.publish(_angular_accel_sp);
-        //print_message(_angular_accel_sp);
-
-        // =========================
-        // publish attitude setpoint
-        // =========================
-        _attitude_sp = {};
-        _attitude_sp.timestamp = hrt_absolute_time();
-        // transform quaternion back to NED frame
-        Dcmf R(q);
-        Quatf q_transformed(_R_enu_to_ned*R);
-        _attitude_sp.q_d[0] = q_transformed(0);
-        _attitude_sp.q_d[1] = q_transformed(1);
-        _attitude_sp.q_d[2] = q_transformed(2);
-        _attitude_sp.q_d[3] = q_transformed(3);
-        _attitude_sp_pub.publish(_attitude_sp);
-
-        // ======================
-        // publish rates setpoint
-        // ======================
-        _angular_vel_sp = {};
-        _angular_vel_sp.timestamp = hrt_absolute_time();
-        _angular_vel_sp.roll = omega_ref(0);
-        _angular_vel_sp.pitch = omega_ref(1);
-        _angular_vel_sp.yaw = omega_ref(2);
-        _angular_vel_sp_pub.publish(_angular_vel_sp);
-        */
-
-        // ============================
-        // compute actuator deflections
-        // ============================
-        Vector3f ctrl1 = _compute_NDI_stage_2(ctrl);
-        Vector3f ctrl2 = _compute_actuator_deflections(ctrl1);
-
-        // =========================
-        // publish acutator controls
-        // =========================
         // Publish actuator controls only once in OFFBOARD
 		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+
+            // =====================
+            // publish control input
+            // =====================
+            //_angular_accel_sp = {}; 
+            _angular_accel_sp.timestamp = hrt_absolute_time();
+            _angular_accel_sp.timestamp_sample = hrt_absolute_time();
+            _angular_accel_sp.xyz[0] = ctrl(0);
+            _angular_accel_sp.xyz[1] = ctrl(1);
+            _angular_accel_sp.xyz[2] = ctrl(2);
+            _angular_accel_sp_pub.publish(_angular_accel_sp);
+            //print_message(_angular_accel_sp);
+
+            // =========================
+            // publish attitude setpoint
+            // =========================
+            _attitude_sp = {};
+            _attitude_sp.timestamp = hrt_absolute_time();
+            // transform quaternion back to NED frame
+            Dcmf R(q);
+            Quatf q_transformed(_R_enu_to_ned*R);
+            _attitude_sp.q_d[0] = q_transformed(0);
+            _attitude_sp.q_d[1] = q_transformed(1);
+            _attitude_sp.q_d[2] = q_transformed(2);
+            _attitude_sp.q_d[3] = q_transformed(3);
+            _attitude_sp_pub.publish(_attitude_sp);
+
+            // ======================
+            // publish rates setpoint
+            // ======================
+            _angular_vel_sp = {};
+            _angular_vel_sp.timestamp = hrt_absolute_time();
+            _angular_vel_sp.roll = omega_ref(0);
+            _angular_vel_sp.pitch = omega_ref(1);
+            _angular_vel_sp.yaw = omega_ref(2);
+            _angular_vel_sp_pub.publish(_angular_vel_sp);
+            // ============================
+            // compute actuator deflections
+            // ============================
+            Vector3f ctrl1 = _compute_NDI_stage_2(ctrl);
+            Vector3f ctrl2 = _compute_actuator_deflections(ctrl1);
+            
+            // =========================
+            // publish acutator controls
+            // =========================
             _actuators = {};
             _actuators.timestamp = hrt_absolute_time();
             _actuators.timestamp_sample = hrt_absolute_time();
@@ -488,7 +487,7 @@ FixedwingPositionINDIControl::Run()
             _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
             _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 1.0f;
             _actuators_0_pub.publish(_actuators);
-            print_message(_actuators);
+            //print_message(_actuators);
         }
 
         // ===========================
@@ -676,14 +675,15 @@ FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
         distances(i) = (pos_ref - pos)*(pos_ref - pos);
     }
     // get index of smallest distance
-    float t = 0;
+    float t = 0.f;
     float min_dist = distances(0);
     for(uint i=1; i<n; i++){
         if(distances(i)<min_dist){
             min_dist = distances(i);
-            t = float(i)/n;
+            t = float(i)/float(n);
         }
     }
+    PX4_INFO("closest t: %.2f", (double)t);
     //PX4_INFO("closest distance:%.2f", (double)min_dist);
     return t;
 }
