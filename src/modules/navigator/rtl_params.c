@@ -135,6 +135,8 @@ PARAM_DEFINE_INT32(RTL_TYPE, 0);
  */
 PARAM_DEFINE_INT32(RTL_CONE_ANG, 45);
 
+
+// TODO: Rename to NAV_PLD_MD if it also applies to landing rather than only RTL
 /**
  * RTL precision land mode
  *
