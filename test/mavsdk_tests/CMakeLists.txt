@@ -25,15 +25,6 @@ if(MAVSDK_FOUND)
 
     target_link_libraries(mavsdk_tests
         MAVSDK::mavsdk
-        MAVSDK::mavsdk_action
-        MAVSDK::mavsdk_failure
-        MAVSDK::mavsdk_info
-        MAVSDK::mavsdk_manual_control
-        MAVSDK::mavsdk_mission
-        MAVSDK::mavsdk_mission_raw
-        MAVSDK::mavsdk_offboard
-        MAVSDK::mavsdk_param
-        MAVSDK::mavsdk_telemetry
         ${CMAKE_THREAD_LIBS_INIT}
     )
 
