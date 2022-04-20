@@ -119,6 +119,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
 	_param_ekf2_rng_qlty_t(_params->range_valid_quality_s),
+	_param_ekf2_rng_k_gate(_params->range_kin_consistency_gate),
 	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
 	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
 	_param_ekf2_of_n_min(_params->flow_noise),
@@ -424,7 +425,7 @@ void EKF2::Run()
 		}
 
 	} else {
-		const unsigned last_generation = _vehicle_imu_sub.get_last_generation();
+		const unsigned last_generation = _sensor_combined_sub.get_last_generation();
 		sensor_combined_s sensor_combined;
 		imu_updated = _sensor_combined_sub.update(&sensor_combined);
 
@@ -446,6 +447,28 @@ void EKF2::Run()
 			}
 
 			imu_dt = sensor_combined.gyro_integral_dt;
+
+			if (sensor_combined.accel_calibration_count != _accel_calibration_count) {
+
+				PX4_DEBUG("%d - resetting accelerometer bias", _instance);
+
+				_ekf.resetAccelBias();
+				_accel_calibration_count = sensor_combined.accel_calibration_count;
+
+				// reset bias learning
+				_accel_cal = {};
+			}
+
+			if (sensor_combined.gyro_calibration_count != _gyro_calibration_count) {
+
+				PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+
+				_ekf.resetGyroBias();
+				_gyro_calibration_count = sensor_combined.gyro_calibration_count;
+
+				// reset bias learning
+				_gyro_cal = {};
+			}
 		}
 
 		if (_sensor_selection_sub.updated() || (_device_id_accel == 0 || _device_id_gyro == 0)) {
@@ -816,6 +839,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_ekf.getAirspeedInnov(innovations.airspeed);
 	_ekf.getBetaInnov(innovations.beta);
 	_ekf.getHaglInnov(innovations.hagl);
+	_ekf.getHaglRateInnov(innovations.hagl_rate);
 	// Not yet supported
 	innovations.aux_vvel = NAN;
 
@@ -856,6 +880,7 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
 	_ekf.getBetaInnovRatio(test_ratios.beta);
 	_ekf.getHaglInnovRatio(test_ratios.hagl);
+	_ekf.getHaglRateInnovRatio(test_ratios.hagl_rate);
 	// Not yet supported
 	test_ratios.aux_vvel = NAN;
 
@@ -880,6 +905,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_ekf.getAirspeedInnovVar(variances.airspeed);
 	_ekf.getBetaInnovVar(variances.beta);
 	_ekf.getHaglInnovVar(variances.hagl);
+	_ekf.getHaglRateInnovVar(variances.hagl_rate);
 	// Not yet supported
 	variances.aux_vvel = NAN;
 
@@ -1279,6 +1305,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_rng_fault             = _ekf.control_status_flags().rng_fault;
 		status_flags.cs_inertial_dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning;
 		status_flags.cs_wind_dead_reckoning     = _ekf.control_status_flags().wind_dead_reckoning;
+		status_flags.cs_rng_kin_consistent      = _ekf.control_status_flags().rng_kin_consistent;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;

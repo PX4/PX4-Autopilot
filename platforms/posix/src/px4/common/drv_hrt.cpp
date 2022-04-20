@@ -95,7 +95,8 @@ hrt_abstime hrt_absolute_time_offset()
 
 static void hrt_lock()
 {
-	px4_sem_wait(&_hrt_lock);
+	// loop as the wait may be interrupted by a signal
+	do {} while (px4_sem_wait(&_hrt_lock) != 0);
 }
 
 static void hrt_unlock()
@@ -333,7 +334,7 @@ hrt_call_reschedule()
 	// Remove the existing expiry and update with the new expiry
 	hrt_work_cancel(&_hrt_work);
 
-	hrt_work_queue(&_hrt_work, (worker_t)&hrt_tim_isr, nullptr, delay);
+	hrt_work_queue(&_hrt_work, &hrt_tim_isr, nullptr, delay);
 }
 
 static void

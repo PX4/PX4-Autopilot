@@ -227,32 +227,28 @@ void MspOsd::SendConfig()
 
 void MspOsd::Run()
 {
-	if (should_exit())
-	{
+	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
 		return;
 	}
 
 	// Check if parameters have changed
-	if (_parameter_update_sub.updated())
-	{
+	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 		updateParams(); // update module parameters (in DEFINE_PARAMETERS)
 	}
 
-	if (!_is_initialized)
-	{
+	if (!_is_initialized) {
 		_is_initialized = true;
 
 		struct termios t;
 
 		_msp_fd = open("/dev/ttyS3", O_RDWR | O_NONBLOCK);
 
-		if (_msp_fd < 0)
-		{
+		if (_msp_fd < 0) {
 			return;
 		}
 
@@ -295,7 +291,7 @@ void MspOsd::Run()
 	_input_rc_sub.update(&_input_rc_struct);
 
 	matrix::Eulerf euler_attitude(matrix::Quatf(_vehicle_attitude_struct.q));
-	
+
 	memcpy(variant.flightControlIdentifier, "BTFL", sizeof(variant.flightControlIdentifier));
 	_msp.Send(MSP_FC_VARIANT, &variant);
 
@@ -305,35 +301,33 @@ void MspOsd::Run()
 	_msp.Send(MSP_NAME, &name);
 
 	// MSP_STATUS
-	if (_vehicle_status_struct.arming_state == _vehicle_status_struct.ARMING_STATE_ARMED)
-	{
+	if (_vehicle_status_struct.arming_state == _vehicle_status_struct.ARMING_STATE_ARMED) {
 		status_BF.flight_mode_flags |= ARM_ACRO_BF;
-		
-		switch (_vehicle_status_struct.nav_state)
-		{
-			case _vehicle_status_struct.NAVIGATION_STATE_MANUAL:
-				status_BF.flight_mode_flags |= 0;
-				break;
 
-			case _vehicle_status_struct.NAVIGATION_STATE_ACRO:
-				status_BF.flight_mode_flags |= 0;
-				break;
+		switch (_vehicle_status_struct.nav_state) {
+		case _vehicle_status_struct.NAVIGATION_STATE_MANUAL:
+			status_BF.flight_mode_flags |= 0;
+			break;
 
-			case _vehicle_status_struct.NAVIGATION_STATE_STAB:
-				status_BF.flight_mode_flags |= STAB_BF;
-				break;
+		case _vehicle_status_struct.NAVIGATION_STATE_ACRO:
+			status_BF.flight_mode_flags |= 0;
+			break;
 
-			case _vehicle_status_struct.NAVIGATION_STATE_AUTO_RTL:
-				status_BF.flight_mode_flags |= RESC_BF;
-				break;
-				
-			case _vehicle_status_struct.NAVIGATION_STATE_TERMINATION:
-				status_BF.flight_mode_flags |= FS_BF;
-				break;
+		case _vehicle_status_struct.NAVIGATION_STATE_STAB:
+			status_BF.flight_mode_flags |= STAB_BF;
+			break;
 
-			default:
-				status_BF.flight_mode_flags = 0;
-				break;
+		case _vehicle_status_struct.NAVIGATION_STATE_AUTO_RTL:
+			status_BF.flight_mode_flags |= RESC_BF;
+			break;
+
+		case _vehicle_status_struct.NAVIGATION_STATE_TERMINATION:
+			status_BF.flight_mode_flags |= FS_BF;
+			break;
+
+		default:
+			status_BF.flight_mode_flags = 0;
+			break;
 		}
 	}
 
@@ -350,34 +344,31 @@ void MspOsd::Run()
 
 	// MSP_BATTERY_STATE
 	battery_state.amperage = _battery_status_struct.current_a; // not used?
-	battery_state.batteryVoltage =  (uint16_t)(_battery_status_struct.voltage_v * 400.0f); // OK
+	battery_state.batteryVoltage = (uint16_t)(_battery_status_struct.voltage_v * 400.0f);  // OK
 	battery_state.mAhDrawn = _battery_status_struct.discharged_mah ; // OK
 	battery_state.batteryCellCount = _battery_status_struct.cell_count;
 	battery_state.batteryCapacity = _battery_status_struct.capacity; // not used?
 
 	// Voltage color 0==white, 1==red
-	if (_battery_status_struct.voltage_v < 14.4f)
-	{
+	if (_battery_status_struct.voltage_v < 14.4f) {
 		battery_state.batteryState = 1;
-	}
-	else
-	{
+
+	} else {
 		battery_state.batteryState = 0;
 	}
+
 	battery_state.legacyBatteryVoltage = _battery_status_struct.voltage_v * 10;
 	_msp.Send(MSP_BATTERY_STATE, &battery_state);
 
 	// MSP_RAW_GPS
-	if (_vehicle_gps_position_struct.fix_type >= 2)
-	{
+	if (_vehicle_gps_position_struct.fix_type >= 2) {
 		raw_gps.lat = _vehicle_gps_position_struct.lat;
 		raw_gps.lon = _vehicle_gps_position_struct.lon;
 		raw_gps.alt =  _vehicle_gps_position_struct.alt / 10;
 		//raw_gps.groundCourse = vehicle_gps_position_struct
 		altitude.estimatedActualPosition = _vehicle_gps_position_struct.alt / 10;
-	}
-	else
-	{
+
+	} else {
 		raw_gps.lat = 0;
 		raw_gps.lon = 0;
 		raw_gps.alt = 0;
@@ -385,20 +376,16 @@ void MspOsd::Run()
 	}
 
 	if (_vehicle_gps_position_struct.fix_type == 0
-		|| _vehicle_gps_position_struct.fix_type == 1)
-	{
+	    || _vehicle_gps_position_struct.fix_type == 1) {
 		raw_gps.fixType = MSP_GPS_NO_FIX;
-	}
-	else if (_vehicle_gps_position_struct.fix_type == 2)
-	{
+
+	} else if (_vehicle_gps_position_struct.fix_type == 2) {
 		raw_gps.fixType = MSP_GPS_FIX_2D;
-	}
-	else if (_vehicle_gps_position_struct.fix_type >= 3 && _vehicle_gps_position_struct.fix_type <= 5)
-	{
+
+	} else if (_vehicle_gps_position_struct.fix_type >= 3 && _vehicle_gps_position_struct.fix_type <= 5) {
 		raw_gps.fixType = MSP_GPS_FIX_3D;
-	}
-	else
-	{
+
+	} else {
 		raw_gps.fixType = MSP_GPS_NO_FIX;
 	}
 
@@ -406,34 +393,33 @@ void MspOsd::Run()
 	raw_gps.numSat = _vehicle_gps_position_struct.satellites_used;
 
 	if (_airspeed_validated_struct.airspeed_sensor_measurement_valid
-		&& _airspeed_validated_struct.indicated_airspeed_m_s != NAN
-		&& _airspeed_validated_struct.indicated_airspeed_m_s > 0)
-	{
+	    && _airspeed_validated_struct.indicated_airspeed_m_s != NAN
+	    && _airspeed_validated_struct.indicated_airspeed_m_s > 0) {
 		raw_gps.groundSpeed = _airspeed_validated_struct.indicated_airspeed_m_s * 100;
-	}
-	else
-	{
+
+	} else {
 		raw_gps.groundSpeed = 0;
 	}
+
 	//PX4_WARN("%f\r\n",  (double)_battery_status_struct.current_a);
 	_msp.Send(MSP_RAW_GPS, &raw_gps);
 
 	// Calculate distance and direction to home
 	if (_home_position_struct.valid_hpos
-		&& _home_position_struct.valid_lpos
-		&& _estimator_status_struct.solution_status_flags & (1 << 4))
-	{
-		float bearing_to_home = get_bearing_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
-			_home_position_struct.lat, _home_position_struct.lon);
+	    && _home_position_struct.valid_lpos
+	    && _estimator_status_struct.solution_status_flags & (1 << 4)) {
+		float bearing_to_home = get_bearing_to_next_waypoint(_vehicle_global_position_struct.lat,
+					_vehicle_global_position_struct.lon,
+					_home_position_struct.lat, _home_position_struct.lon);
 
-		float distance_to_home = get_distance_to_next_waypoint(_vehicle_global_position_struct.lat, _vehicle_global_position_struct.lon,
-			_home_position_struct.lat, _home_position_struct.lon);
+		float distance_to_home = get_distance_to_next_waypoint(_vehicle_global_position_struct.lat,
+					 _vehicle_global_position_struct.lon,
+					 _home_position_struct.lat, _home_position_struct.lon);
 
 		comp_gps.distanceToHome = (int16_t)distance_to_home; // meters
 		comp_gps.directionToHome = bearing_to_home; // degrees
-	}
-	else
-	{
+
+	} else {
 		comp_gps.distanceToHome = 0; // meters
 		comp_gps.directionToHome = 0; // degrees
 	}
@@ -450,14 +436,13 @@ void MspOsd::Run()
 	_msp.Send(MSP_ATTITUDE, &attitude);
 
 	// MSP_ALTITUDE
-	if (_estimator_status_struct.solution_status_flags & (1 << 5))
-	{
+	if (_estimator_status_struct.solution_status_flags & (1 << 5)) {
 		altitude.estimatedActualVelocity = -_vehicle_local_position_struct.vz * 10; //m/s to cm/s
-	}
-	else
-	{
+
+	} else {
 		altitude.estimatedActualVelocity = 0;
 	}
+
 	_msp.Send(MSP_ALTITUDE, &altitude);
 
 	// MSP_MOTOR_TELEMETRY
@@ -472,19 +457,15 @@ int MspOsd::task_spawn(int argc, char *argv[])
 {
 	MspOsd *instance = new MspOsd();
 
-	if (instance)
-	{
+	if (instance) {
 		_object.store(instance);
 		_task_id = task_id_is_work_queue;
 
-		if (instance->init())
-		{
+		if (instance->init()) {
 			return PX4_OK;
 		}
 
-	}
-	else
-	{
+	} else {
 		PX4_ERR("alloc failed");
 	}
 

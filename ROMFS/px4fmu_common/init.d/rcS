@@ -492,12 +492,6 @@ else
 		gimbal start
 	fi
 
-	# Check for flow sensor
-	if param compare -s SENS_EN_PX4FLOW 1
-	then
-		px4flow start -X
-	fi
-
 	# Blacksheep telemetry
 	if param compare -s TEL_BST_EN 1
 	then

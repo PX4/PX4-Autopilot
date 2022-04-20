@@ -307,6 +307,7 @@ struct parameters {
 	float range_aid_innov_gate{1.0f}; 	///< gate size used for innovation consistency checks for range aid fusion
 	float range_valid_quality_s{1.0f};	///< minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
 	float range_cos_max_tilt{0.7071f};	///< cosine of the maximum tilt angle from the vertical that permits use of range finder and flow data
+	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
 
 	// vision position fusion
 	float ev_vel_innov_gate{3.0f};		///< vision velocity fusion innovation consistency gate size (STD)
@@ -493,6 +494,7 @@ union filter_control_status_u {
 		uint32_t rng_fault : 1; ///< 28 - true when the range finder has been declared faulty and is no longer being used
 		uint32_t inertial_dead_reckoning : 1; ///< 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
 		uint32_t wind_dead_reckoning     : 1; ///< 30 - true if we are navigationg reliant on wind relative measurements
+		uint32_t rng_kin_consistent      : 1; ///< 31 - true when the range finder kinematic consistency check is passing
 	} flags;
 	uint32_t value;
 };

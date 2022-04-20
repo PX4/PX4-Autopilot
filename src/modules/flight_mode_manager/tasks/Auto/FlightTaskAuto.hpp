@@ -96,6 +96,7 @@ public:
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
 	 */
 	void setYawHandler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
+	void overrideCruiseSpeed(const float cruise_speed_m_s) override;
 
 protected:
 	matrix::Vector2f _getTargetVelocityXY(); /**< only used for follow-me and only here because of legacy reason.*/
@@ -128,7 +129,7 @@ protected:
 	matrix::Vector3f _target{}; /**< Target waypoint  (local frame).*/
 	matrix::Vector3f _next_wp{}; /**< The next waypoint after target (local frame). If no next setpoint is available, next is set to target. */
 	bool _next_was_valid{false};
-	float _mc_cruise_speed{0.0f}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
+	float _mc_cruise_speed{NAN}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 
 	uORB::SubscriptionData<home_position_s>			_sub_home_position{ORB_ID(home_position)};
@@ -200,6 +201,8 @@ private:
 	matrix::Vector3f
 	_triplet_next_wp; /**< next triplet from navigator which may differ from the intenal one (_next_wp) depending on the vehicle state.*/
 	matrix::Vector3f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
+
+	hrt_abstime _time_last_cruise_speed_override{0}; ///< timestamp the cruise speed was last time overriden using DO_CHANGE_SPEED
 
 	MapProjection _reference_position{}; /**< Class used to project lat/lon setpoint into local frame. */
 	float _reference_altitude{NAN}; /**< Altitude relative to ground. */

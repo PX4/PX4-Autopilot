@@ -64,6 +64,7 @@ public:
 		ParamSaveDefault,
 		ParamResetAll,
 		ParamResetSensorFactory,
+		ParamResetAllConfig
 	};
 
 	WorkerThread() = default;

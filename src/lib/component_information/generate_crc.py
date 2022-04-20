@@ -31,6 +31,7 @@ def crc_update(buf, crc_table, crc):
 crc_table = create_table()
 
 with open(filename, 'w') as outfile:
+    outfile.write("#pragma once\n")
     outfile.write("#include <stdint.h>\n")
     outfile.write("namespace component_information {\n")
     for filename in files:

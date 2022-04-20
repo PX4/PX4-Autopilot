@@ -14,7 +14,7 @@
 #include "MspV1.hpp"
 
 MspV1::MspV1(int fd)
-:
+	:
 	_fd(fd)
 {
 }
@@ -24,16 +24,14 @@ int MspV1::GetMessageSize(int message_type)
 	return 0;
 }
 
-struct msp_message_descriptor_t
-{
+struct msp_message_descriptor_t {
 	uint8_t message_id;
 	bool fixed_size;
 	uint8_t message_size;
 };
 
 #define MSP_DESCRIPTOR_COUNT 12
-const msp_message_descriptor_t msp_message_descriptors[MSP_DESCRIPTOR_COUNT] =
-{
+const msp_message_descriptor_t msp_message_descriptors[MSP_DESCRIPTOR_COUNT] = {
 	{MSP_OSD_CONFIG, true, sizeof(msp_osd_config_t)},
 	{MSP_NAME, true, sizeof(msp_name_t)},
 	{MSP_ANALOG, true, sizeof(msp_analog_t)},
@@ -50,51 +48,46 @@ const msp_message_descriptor_t msp_message_descriptors[MSP_DESCRIPTOR_COUNT] =
 
 #define MSP_FRAME_START_SIZE 5
 #define MSP_CRC_SIZE 1
-bool MspV1::Send(const uint8_t message_id, const void* payload)
+bool MspV1::Send(const uint8_t message_id, const void *payload)
 {
 	uint32_t payload_size = 0;
 
-	msp_message_descriptor_t* desc = NULL;
-	
-	for (int i = 0; i < MSP_DESCRIPTOR_COUNT; i++)
-	{
-		if (message_id == msp_message_descriptors[i].message_id)
-		{
-			desc = (msp_message_descriptor_t*)&msp_message_descriptors[i];
+	msp_message_descriptor_t *desc = NULL;
+
+	for (int i = 0; i < MSP_DESCRIPTOR_COUNT; i++) {
+		if (message_id == msp_message_descriptors[i].message_id) {
+			desc = (msp_message_descriptor_t *)&msp_message_descriptors[i];
 			break;
 		}
 	}
-	
-	if (!desc)
-	{
+
+	if (!desc) {
 		return false;
 	}
-	
-	if (!desc->fixed_size)
-	{
+
+	if (!desc->fixed_size) {
 		return false;
 	}
-	
+
 	payload_size = desc->message_size;
-	
+
 	uint8_t packet[MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE];
 	uint8_t crc;
-	
+
 	packet[0] = '$';
 	packet[1] = 'M';
 	packet[2] = '<';
 	packet[3] = payload_size;
 	packet[4] = message_id;
-	
+
 	crc = payload_size ^ message_id;
-	
+
 	memcpy(packet + MSP_FRAME_START_SIZE, payload, payload_size);
-	
-	for (uint32_t i = 0; i < payload_size; i ++)
-	{
+
+	for (uint32_t i = 0; i < payload_size; i ++) {
 		crc ^= packet[MSP_FRAME_START_SIZE + i];
 	}
-	
+
 	packet[MSP_FRAME_START_SIZE + payload_size] = crc;
 
 	int packet_size =  MSP_FRAME_START_SIZE + payload_size + MSP_CRC_SIZE;

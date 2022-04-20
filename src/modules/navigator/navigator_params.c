@@ -52,7 +52,7 @@
  * @increment 0.5
  * @group Mission
  */
-PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 50.0f);
+PARAM_DEFINE_FLOAT(NAV_LOITER_RAD, 80.0f);
 
 /**
  * Acceptance Radius

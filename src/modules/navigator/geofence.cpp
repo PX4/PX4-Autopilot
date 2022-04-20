@@ -213,8 +213,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 	}
 }
 
-bool Geofence::check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position,
-		     const home_position_s home_pos, bool home_position_set)
+bool Geofence::check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position)
 {
 	if (_param_gf_altmode.get() == Geofence::GF_ALT_MODE_WGS84) {
 		if (getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
@@ -247,7 +246,7 @@ bool Geofence::isCloserThanMaxDistToHome(double lat, double lon, float altitude)
 {
 	bool inside_fence = true;
 
-	if (isHomeRequired() && _navigator->home_position_valid()) {
+	if (isHomeRequired() && _navigator->home_global_position_valid()) {
 
 		const float max_horizontal_distance = _param_gf_max_hor_dist.get();
 
@@ -281,7 +280,7 @@ bool Geofence::isBelowMaxAltitude(float altitude)
 {
 	bool inside_fence = true;
 
-	if (isHomeRequired() && _navigator->home_position_valid()) {
+	if (isHomeRequired() && _navigator->home_alt_valid()) {
 
 		const float max_vertical_distance = _param_gf_max_ver_dist.get();
 		const float home_alt = _navigator->get_home_position()->alt;

@@ -128,6 +128,10 @@ public:
 	void getHaglInnovVar(float &hagl_innov_var) const { hagl_innov_var = _hagl_innov_var; }
 	void getHaglInnovRatio(float &hagl_innov_ratio) const { hagl_innov_ratio = _hagl_test_ratio; }
 
+	void getHaglRateInnov(float &hagl_rate_innov) const { hagl_rate_innov = _rng_consistency_check.getInnov(); }
+	void getHaglRateInnovVar(float &hagl_rate_innov_var) const { hagl_rate_innov_var = _rng_consistency_check.getInnovVar(); }
+	void getHaglRateInnovRatio(float &hagl_rate_innov_ratio) const { hagl_rate_innov_ratio = _rng_consistency_check.getSignedTestRatioLpf(); }
+
 	// get the state vector at the delayed time horizon
 	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const;
 
@@ -899,7 +903,6 @@ private:
 
 	// determine if flight condition is suitable to use range finder instead of the primary height sensor
 	void checkRangeAidSuitability();
-	bool isRangeAidSuitable() const { return _is_range_aid_suitable; }
 
 	// set control flags to use baro height
 	void setControlBaroHeight();
@@ -930,8 +933,9 @@ private:
 
 	void updateGroundEffect();
 
-	// return an estimation of the GPS altitude variance
+	// return an estimation of the sensor altitude variance
 	float getGpsHeightVariance();
+	float getRngHeightVariance() const;
 
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar();

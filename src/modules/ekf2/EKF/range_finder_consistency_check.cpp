@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,48 +32,49 @@
  ****************************************************************************/
 
 /**
- * @author CUAVcaijie <caijie@cuav.net>
+ * @file range_finder_consistency_check.cpp
  */
 
-#pragma once
+#include "range_finder_consistency_check.hpp"
 
-#include <uORB/Subscription.hpp>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/safety.h>
-
-#include <uavcan/uavcan.hpp>
-#include <ardupilot/indication/Button.hpp>
-#include "sensor_bridge.hpp"
-
-class UavcanSafetyBridge : public IUavcanSensorBridge
+void RangeFinderConsistencyCheck::update(float dist_bottom, float dist_bottom_var, float vz, float vz_var, uint64_t time_us)
 {
-public:
-	static const char *const NAME;
+	const float dt = static_cast<float>(time_us - _time_last_update_us) * 1e-6f;
 
-	UavcanSafetyBridge(uavcan::INode &node);
-	~UavcanSafetyBridge() = default;
+	if ((_time_last_update_us == 0)
+	    || (dt < 0.001f) || (dt > 0.5f)) {
+		_time_last_update_us = time_us;
+		_dist_bottom_prev = dist_bottom;
+		return;
+	}
 
-	const char *get_name() const override { return NAME; }
+	const float vel_bottom = (dist_bottom - _dist_bottom_prev) / dt;
+	_innov = -vel_bottom - vz; // vel_bottom is +up while vz is +down
 
-	int init() override;
+	const float var = 2.f * dist_bottom_var / (dt * dt); // Variance of the time derivative of a random variable: var(dz/dt) = 2*var(z) / dt^2
+	_innov_var = var + vz_var;
 
-	unsigned get_num_redundant_channels() const override;
+	const float normalized_innov_sq = (_innov * _innov) / _innov_var;
+	_test_ratio = normalized_innov_sq / (_gate * _gate);
+	_signed_test_ratio_lpf.setParameters(dt, _signed_test_ratio_tau);
+	const float signed_test_ratio = matrix::sign(_innov) * _test_ratio;
+	_signed_test_ratio_lpf.update(signed_test_ratio);
 
-	void print_status() const override;
-private:
-	safety_s _safety{};  //
-	bool _safety_disabled{false};
+	updateConsistency(vz, time_us);
 
-	bool _safety_btn_off{false};		///< State of the safety button read from the HW button
-	void safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg);
+	_time_last_update_us = time_us;
+	_dist_bottom_prev = dist_bottom;
+}
 
-	typedef uavcan::MethodBinder < UavcanSafetyBridge *,
-		void (UavcanSafetyBridge::*)(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &) >
-		SafetyCommandCbBinder;
+void RangeFinderConsistencyCheck::updateConsistency(float vz, uint64_t time_us)
+{
+	if (fabsf(_signed_test_ratio_lpf.getState()) >= 1.f) {
+		_is_kinematically_consistent = false;
+		_time_last_inconsistent_us = time_us;
 
-	uavcan::INode &_node;
-	uavcan::Subscriber<ardupilot::indication::Button, SafetyCommandCbBinder> _sub_safety;
-	uavcan::Publisher<ardupilot::indication::Button> _pub_safety;
-
-	uORB::PublicationMulti<safety_s> _safety_pub{ORB_ID(safety)};
-};
+	} else {
+		if (fabsf(vz) > _min_vz_for_valid_consistency && _test_ratio < 1.f && ((time_us - _time_last_inconsistent_us) > _consistency_hyst_time_us)) {
+			_is_kinematically_consistent = true;
+		}
+	}
+}

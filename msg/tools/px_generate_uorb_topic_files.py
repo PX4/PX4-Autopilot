@@ -98,9 +98,11 @@ class MsgScope:
     RECEIVE = 2
 
 
-def get_multi_topics(filename):
+def get_topics(filename, msg_name):
     """
-    Get TOPICS names from a "# TOPICS" line
+    Get TOPICS names from a "# TOPICS" line. If there are no multi topics defined,
+    set topic name same as the message name, since the user doesn't expect any new
+    custom topic names.
     """
     ofile = open(filename, 'r')
     text = ofile.read()
@@ -111,6 +113,10 @@ def get_multi_topics(filename):
             topic_names_str = topic_names_str.replace(TOPICS_TOKEN, "")
             result.extend(topic_names_str.split(" "))
     ofile.close()
+
+    if len(result) == 0:
+        result.append(msg_name)
+
     return result
 
 
@@ -147,15 +153,16 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
         print("[ERROR] uORB topic files generator:\n\tgenerate_output_from_file:\t'timestamp' field in " + spec.short_name +
               " msg definition is not of type uint64 but rather of type " + field_name_and_type.get('timestamp') + "!")
         exit(1)
-    topics = get_multi_topics(filename)
+
+    # Get topics used for the message
+    topics = get_topics(filename, spec.short_name)
+
     if includepath:
         search_path = genmsg.command_line.includepath_to_dict(includepath)
     else:
         search_path = {}
     genmsg.msg_loader.load_depends(msg_context, spec, search_path)
     md5sum = genmsg.gentools.compute_md5(msg_context, spec)
-    if len(topics) == 0:
-        topics.append(spec.short_name)
     em_globals = {
         "file_name_in": filename,
         "md5sum": md5sum,
@@ -288,15 +295,16 @@ def get_em_globals(filename_msg, alias, package, includepath, msgs, fastrtps_ver
         package, os.path.basename(filename_msg))
     spec = genmsg.msg_loader.load_msg_from_file(
         msg_context, filename_msg, full_type_name)
-    topics = get_multi_topics(filename_msg)
+
+    # Get topics used for the message
+    topics = get_topics(filename_msg, spec.short_name)
+
     if includepath:
         search_path = genmsg.command_line.includepath_to_dict(includepath)
     else:
         search_path = {}
     genmsg.msg_loader.load_depends(msg_context, spec, search_path)
     md5sum = genmsg.gentools.compute_md5(msg_context, spec)
-    if len(topics) == 0:
-        topics.append(spec.short_name)
     em_globals = {
         "file_name_in": filename_msg,
         "md5sum": md5sum,
@@ -452,24 +460,31 @@ def convert_dir_save(format_idx, inputdir, outputdir, package, templatedir, temp
 def generate_topics_list_file(msgdir, outputdir, template_filename, templatedir):
     # generate cpp file with topics list
     msgs = get_msgs_list(msgdir)
-    multi_topics = []
+    topics = []
     for msg in msgs:
         msg_filename = os.path.join(msgdir, msg)
-        multi_topics.extend(get_multi_topics(msg_filename))
-    tl_globals = {"msgs": msgs, "multi_topics": multi_topics}
+        topics.extend(get_topics(msg_filename, msg))
+    tl_globals = {"msgs": msgs, "topics": topics}
     tl_template_file = os.path.join(templatedir, template_filename)
     tl_out_file = os.path.join(outputdir, template_filename.replace(".em", ""))
     generate_by_template(tl_out_file, tl_template_file, tl_globals)
 
 
 def generate_topics_list_file_from_files(files, outputdir, template_filename, templatedir):
-    # generate cpp file with topics list
-    filenames = [os.path.basename(
-        p) for p in files if os.path.basename(p).endswith(".msg")]
-    multi_topics = []
-    for msg_filename in files:
-        multi_topics.extend(get_multi_topics(msg_filename))
-    tl_globals = {"msgs": filenames, "multi_topics": multi_topics}
+    # Get message file names ending with .msg only
+    msg_filenames = [p for p in files if os.path.basename(p).endswith(".msg")]
+
+    # Get topics used in messages
+    topics = []
+    for msg_filename in msg_filenames:
+        msg_name = os.path.basename(msg_filename).replace('.msg', '')
+        topics.extend(get_topics(msg_filename, msg_name))
+
+    # Get only the message file name for "msgs" component
+    msg_basenames = [os.path.basename(p) for p in msg_filenames]
+
+    # Set the Template dictionary settings
+    tl_globals = {"msgs": msg_basenames, "topics": topics}
     tl_template_file = os.path.join(templatedir, template_filename)
     tl_out_file = os.path.join(outputdir, template_filename.replace(".em", ""))
     generate_by_template(tl_out_file, tl_template_file, tl_globals)
@@ -529,8 +544,10 @@ if __name__ == "__main__":
             generate_output_from_file(
                 generate_idx, f, args.temporarydir, args.package, args.templatedir, INCL_DEFAULT)
 
+        # Generate topics list header and source file
         if os.path.isfile(os.path.join(args.templatedir, TOPICS_LIST_TEMPLATE_FILE[generate_idx])):
             generate_topics_list_file_from_files(args.file, args.outputdir, TOPICS_LIST_TEMPLATE_FILE[generate_idx], args.templatedir)
+
         copy_changed(args.temporarydir, args.outputdir, args.prefix, args.quiet)
     elif args.dir is not None:
         convert_dir_save(

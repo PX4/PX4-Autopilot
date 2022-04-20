@@ -77,7 +77,7 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-	
+
 	bool init();
 
 	/** @see ModuleBase::print_status() */
@@ -88,9 +88,9 @@ private:
 
 	MspV1 _msp;
 	int _msp_fd{-1};
-	
+
 	bool _is_initialized{false};
-	
+
 	//uORB::Subscription power_monitor_sub(ORB_ID(power_monitor));
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
@@ -103,7 +103,7 @@ private:
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _input_rc_sub{ORB_ID(input_rc)};
-	
+
 	struct battery_status_s _battery_status_struct = {0};
 	struct vehicle_status_s _vehicle_status_struct;
 	struct vehicle_gps_position_s _vehicle_gps_position_struct = {0};
@@ -119,7 +119,7 @@ private:
 
 	void SendConfig();
 	void SendTelemetry();
-	
+
 	uint8_t _x{0};
 	bool _heartbeat{false};
 

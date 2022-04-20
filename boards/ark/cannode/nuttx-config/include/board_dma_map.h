@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,67 +31,14 @@
  *
  ****************************************************************************/
 
-/**
- * @author CUAVcaijie <caijie@cuav.net>
- */
+#pragma once
 
-#include "safetybutton.hpp"
-#include <cstdint>
-#include <drivers/drv_hrt.h>
-#include <systemlib/err.h>
-#include <mathlib/mathlib.h>
+// DMA1 Channel/Stream Selections
+//--------------------------------------------//---------------------------//----------------
+#define DMACHAN_SPI2_RX    DMAMAP_SPI2_RX   // DMA1, Stream 3, Channel 0
+#define DMACHAN_SPI2_TX    DMAMAP_SPI2_TX   // DMA1, Stream 4, Channel 0
 
-using namespace time_literals;
-const char *const UavcanSafetyBridge::NAME = "safety";
-
-UavcanSafetyBridge::UavcanSafetyBridge(uavcan::INode &node) :
-	_node(node),
-	_sub_safety(node),
-	_pub_safety(node)
-{
-}
-
-int UavcanSafetyBridge::init()
-{
-	int res = _pub_safety.init(uavcan::TransferPriority::MiddleLower);
-
-	if (res < 0) {
-		printf("safety pub failed %i", res);
-		return res;
-	}
-
-	res = _sub_safety.start(SafetyCommandCbBinder(this, &UavcanSafetyBridge::safety_sub_cb));
-
-	if (res < 0) {
-		printf("safety pub failed %i", res);
-		return res;
-	}
-
-	return 0;
-}
-
-unsigned UavcanSafetyBridge::get_num_redundant_channels() const
-{
-	return 0;
-}
-
-void UavcanSafetyBridge::print_status() const
-{
-}
-
-void UavcanSafetyBridge::safety_sub_cb(const uavcan::ReceivedDataStructure<ardupilot::indication::Button> &msg)
-{
-	if (msg.press_time > 10 && msg.button == 1) {
-		if (_safety_disabled) { return; }
-
-		_safety_disabled = true;
-
-	} else {
-
-		_safety_disabled = false;
-	}
-
-
-
-
-}
+//  DMA2 Channel/Stream Selections
+//--------------------------------------------//---------------------------//----------------
+#define DMACHAN_SPI1_RX    DMAMAP_SPI1_RX_2   // DMA2, Stream 2, Channel 3
+#define DMACHAN_SPI1_TX    DMAMAP_SPI1_TX_2   // DMA2, Stream 5, Channel 3

@@ -250,18 +250,32 @@ def create_pdf_report(ulog: ULog, multi_instance: int, output_plot_filename: str
         data_plot.save()
         data_plot.close()
 
+
         # Plot the EKF IMU vibration metrics
-        scaled_estimator_status = {'vibe[0]': 1000. * estimator_status['vibe[0]'],
-                                   'vibe[1]': 1000. * estimator_status['vibe[1]'],
-                                   'vibe[2]': estimator_status['vibe[2]']
-                                   }
-        data_plot = CheckFlagsPlot(
-            status_time, scaled_estimator_status, [['vibe[0]'], ['vibe[1]'], ['vibe[2]']],
-            x_label='time (sec)', y_labels=['Del Ang Coning (mrad)', 'HF Del Ang (mrad)',
-                                            'HF Del Vel (m/s)'], plot_title='IMU Vibration Metrics',
-            pdf_handle=pdf_pages, annotate=True)
-        data_plot.save()
-        data_plot.close()
+        for imu_status_instance in range(4):
+            try:
+                vehicle_imu_status_data = ulog.get_dataset('vehicle_imu_status', imu_status_instance).data
+
+                imu_status_time = 1e-6 * vehicle_imu_status_data['timestamp']
+
+                if vehicle_imu_status_data['accel_device_id'][0] == estimator_status['accel_device_id'][0]:
+
+                    scaled_estimator_status = {'delta_angle_coning_metric': 1000. * vehicle_imu_status_data['delta_angle_coning_metric'],
+                                               'gyro_vibration_metric': vehicle_imu_status_data['gyro_vibration_metric'],
+                                               'accel_vibration_metric': vehicle_imu_status_data['accel_vibration_metric']
+                                              }
+                    data_plot = CheckFlagsPlot(
+                        imu_status_time, scaled_estimator_status, [['delta_angle_coning_metric'], ['gyro_vibration_metric'], ['accel_vibration_metric']],
+                        x_label='time (sec)',
+                        y_labels=['Del Ang Coning (mrad^2)', 'HF Gyro (rad/s)', 'HF accel (m/s/s)'],
+                        plot_title='IMU Vibration Metrics',
+                        pdf_handle=pdf_pages, annotate=True)
+                    data_plot.save()
+                    data_plot.close()
+
+            except:
+                pass
+
 
         # Plot the EKF output observer tracking errors
         scaled_innovations = {

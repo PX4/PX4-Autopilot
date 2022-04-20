@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4io.c
+ * @file px4io.cpp
  * Top-level logic for the PX4IO module.
  *
  * @author Lorenz Meier <lorenz@px4.io>
@@ -64,9 +64,7 @@
 #define DEBUG
 #include "px4io.h"
 
-__EXPORT int user_start(int argc, char *argv[]);
-
-struct sys_state_s 	system_state;
+struct sys_state_s system_state;
 
 static struct hrt_call serial_dma_call;
 
@@ -76,7 +74,8 @@ static struct hrt_call serial_dma_call;
 
 static volatile uint32_t msg_counter;
 static volatile uint32_t last_msg_counter;
-static volatile uint8_t msg_next_out, msg_next_in;
+static volatile uint8_t msg_next_out;
+static volatile uint8_t msg_next_in;
 
 /*
  * WARNING: too large buffers here consume the memory required
@@ -173,18 +172,20 @@ update_mem_usage(void)
 static void
 heartbeat_blink(void)
 {
+#if defined(LED_BLUE)
 	static bool heartbeat = false;
 	LED_BLUE(heartbeat = !heartbeat);
+#endif /* LED_BLUE */
 }
 
 static void
 ring_blink(void)
 {
-#ifdef GPIO_LED4
+#if defined(LED_GREEN)
 
 	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
 			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
-		LED_RING(1);
+		LED_GREEN(true);
 		return;
 	}
 
@@ -205,7 +206,7 @@ ring_blink(void)
 		// remove the ! in the line below
 		// to return to the proper breathe
 		// animation / pattern (currently inverted)
-		LED_RING(!on);
+		LED_GREEN(!on);
 		brightness_counter++;
 
 		if (on) {
@@ -273,8 +274,7 @@ calculate_fw_crc(void)
 	r_page_setup[PX4IO_P_SETUP_CRC + 1] = sum >> 16;
 }
 
-int
-user_start(int argc, char *argv[])
+extern "C" __EXPORT int user_start(int argc, char *argv[])
 {
 	/* configure the first 8 PWM outputs (i.e. all of them) */
 	up_pwm_servo_init(0xff);
@@ -301,11 +301,13 @@ user_start(int argc, char *argv[])
 
 	/* default all the LEDs to off while we start */
 	LED_AMBER(false);
+#if defined(LED_BLUE)
 	LED_BLUE(false);
+#endif /* LED_BLUE */
 	LED_SAFETY(false);
-#ifdef GPIO_LED4
-	LED_RING(false);
-#endif
+#if defined(LED_GREEN)
+	LED_GREEN(false);
+#endif /* LED_GREEN */
 
 	/* turn off S.Bus out (if supported) */
 #ifdef ENABLE_SBUS_OUT
@@ -377,33 +379,34 @@ user_start(int argc, char *argv[])
 		perf_end(controls_perf);
 #endif
 
-		/* some boards such as Pixhawk 2.1 made
-		   the unfortunate choice to combine the blue led channel with
-		   the IMU heater. We need a software hack to fix the hardware hack
-		   by allowing to disable the LED / heater.
-		 */
-		if (r_page_setup[PX4IO_P_SETUP_THERMAL] == PX4IO_THERMAL_IGNORE) {
-			/*
-			  blink blue LED at 4Hz in normal operation. When in
-			  override blink 4x faster so the user can clearly see
-			  that override is happening. This helps when
-			  pre-flight testing the override system
-			 */
-			uint32_t heartbeat_period_us = 250 * 1000UL;
 
-			if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
-				last_heartbeat_time = hrt_absolute_time();
-				heartbeat_blink();
-			}
+		/*
+		blink blue LED at 4Hz in normal operation. When in
+		override blink 4x faster so the user can clearly see
+		that override is happening. This helps when
+		pre-flight testing the override system
+		*/
+		uint32_t heartbeat_period_us = 250 * 1000UL;
 
-		} else if (r_page_setup[PX4IO_P_SETUP_THERMAL] < PX4IO_THERMAL_FULL) {
-			/* switch resistive heater off */
-			LED_BLUE(false);
-
-		} else {
-			/* switch resistive heater hard on */
-			LED_BLUE(true);
+		if ((hrt_absolute_time() - last_heartbeat_time) > heartbeat_period_us) {
+			last_heartbeat_time = hrt_absolute_time();
+			heartbeat_blink();
 		}
+
+#if defined(HEATER_OUTPUT_EN)
+
+		if (r_page_setup[PX4IO_P_SETUP_THERMAL] != PX4IO_THERMAL_IGNORE) {
+			if (r_page_setup[PX4IO_P_SETUP_THERMAL] < PX4IO_THERMAL_FULL) {
+				/* switch resistive heater off */
+				HEATER_OUTPUT_EN(false);
+
+			} else {
+				/* switch resistive heater hard on */
+				HEATER_OUTPUT_EN(true);
+			}
+		}
+
+#endif /* HEATER_OUTPUT_EN */
 
 		update_mem_usage();
 
@@ -429,4 +432,3 @@ user_start(int argc, char *argv[])
 		}
 	}
 }
-

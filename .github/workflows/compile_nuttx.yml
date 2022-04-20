@@ -20,6 +20,7 @@ jobs:
           ark_can-flow,
           ark_can-gps,
           ark_can-rtk-gps,
+          ark_cannode,
           atl_mantis-edu,
           av_x-v1,
           bitcraze_crazyflie,
