@@ -29,10 +29,12 @@
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-File: pcoef_tuning.py
+File: baro_static_pressure_compensation_tuning.py
 Author: Mathieu Bresciani <mathieu@auterion.com>
 License: BSD 3-Clause
 Description:
+    Tune the coefficients used to compensate for
+    dynamic pressure disturbances on the barometer
     NOTE: this script currently assumes no wind.
 """
 
@@ -188,7 +190,7 @@ def run(logfile):
 
     # Plot data
     plt.figure(1)
-    plt.suptitle(f"Report of pcoef_tuning.py {logfile.split('/')[-1]}")
+    plt.suptitle(f"Report of baro_static_pressure_compensation.py {logfile.split('/')[-1]}")
     ax1 = plt.subplot(3, 1, 1)
     ax1.set_title(f"PCoef_xn = {pcoef_xn:.3f}, PCoef_xp = {pcoef_xp:.3f}\nPCoef_yn = {pcoef_yn:.3f}, PCoef_yp = {pcoef_yp:.3f}, PCoef_z = {pcoef_z:.3f}")
     ax1.plot(t, baro-baro[0])
