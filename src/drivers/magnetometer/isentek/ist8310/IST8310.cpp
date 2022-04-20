@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -85,14 +85,19 @@ void IST8310::print_status()
 
 int IST8310::probe()
 {
-	const uint8_t WAI = RegisterRead(Register::WAI);
+	for (int retry = 0; retry < 3; retry++) {
 
-	if (WAI != Device_ID) {
-		DEVICE_DEBUG("unexpected WAI 0x%02x", WAI);
-		return PX4_ERROR;
+		const uint8_t WAI = RegisterRead(Register::WAI);
+
+		if (WAI == Device_ID) {
+			return PX4_OK;
+
+		} else {
+			DEVICE_DEBUG("unexpected WAI 0x%02x", WAI);
+		}
 	}
 
-	return PX4_OK;
+	return PX4_ERROR;
 }
 
 void IST8310::RunImpl()
