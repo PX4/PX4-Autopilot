@@ -216,6 +216,29 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 		int ret_transfer = I2C_TRANSFER(_dev, &msgv[0], msgs);
 
 		if (ret_transfer != 0) {
+
+			switch (ret_transfer) {
+			case -EAGAIN:
+				PX4_WARN("I2C bus: %d, Addr: %X, Arbitration Lost", get_device_bus(), get_device_address());
+				break;
+
+			case -EIO:
+				PX4_WARN("I2C bus: %d, Addr: %X, Overrun/Underrun", get_device_bus(), get_device_address());
+				break;
+
+			case -EADDRNOTAVAIL:
+				//PX4_WARN("I2C bus: %d, Addr: %X, Address NACK", get_device_bus(), get_device_address());
+				break;
+
+			case -ECOMM:
+				PX4_WARN("I2C bus: %d, Addr: %X, Data NACK", get_device_bus(), get_device_address());
+				break;
+
+			case -EBUSY:
+				PX4_WARN("I2C bus: %d, Addr: %X, Bus busy", get_device_bus(), get_device_address());
+				break;
+			}
+
 			DEVICE_DEBUG("I2C transfer failed, result %d", ret_transfer);
 			ret = PX4_ERROR;
 
@@ -225,9 +248,10 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 			break;
 		}
 
-		/* if we have already retried once, or we are going to give up, then reset the bus */
-		if ((retry_count >= 1) || (retry_count >= _retries)) {
+		// if we have already retried once, and we aren't going to give up, then reset the bus
+		if ((retry_count >= 1) && (retry_count < _retries)) {
 #if defined(CONFIG_I2C_RESET)
+			PX4_WARN("I2C bus: %d, Addr: %X, I2C_RESET %d/%d", get_device_bus(), get_device_address(), retry_count, _retries);
 			I2C_RESET(_dev);
 #endif // CONFIG_I2C_RESET
 		}
