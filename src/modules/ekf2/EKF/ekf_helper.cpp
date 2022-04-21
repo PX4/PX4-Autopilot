@@ -1779,8 +1779,8 @@ bool Ekf::resetYawToEKFGSF()
 	// The minimum time interval between resets to the EKF-GSF estimate is limited to allow the EKF-GSF time
 	// to improve its estimate if the previous reset was not successful.
 	if (!isYawEmergencyEstimateAvailable()
-	&& isTimedOut(_ekfgsf_yaw_reset_time, 5000000)
-	&& _ekfgsf_yaw_reset_count < _params.EKFGSF_reset_count_limit) {
+	|| !isTimedOut(_ekfgsf_yaw_reset_time, 5'000'000)
+	|| _ekfgsf_yaw_reset_count > _params.EKFGSF_reset_count_limit) {
 
 		return false;
 	}

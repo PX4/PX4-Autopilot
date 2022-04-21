@@ -56,13 +56,24 @@ void Ekf::controlGpsFusion()
 		if (gps_checks_passing && !gps_checks_failing && isYawEmergencyEstimateAvailable()) {
 
 			bool perform_yaw_align = !_control_status.flags.yaw_align && _control_status.flags.tilt_align;
-			bool no_yaw_aid_src = !yawAidingAvailable();
-			bool yaw_error = isYawError(math::radians(10.f)); // 10 degrees yaw error
 
-			if (perform_yaw_align || (no_yaw_aid_src && yaw_error)) {
+			if (perform_yaw_align) {
 				if (resetYawToEKFGSF()) {
 					ECL_INFO("Yaw aligned using IMU and GPS");
+					resetVelocityToGps(_gps_sample_delayed);
+					resetHorizontalPositionToGps(_gps_sample_delayed);
 				}
+			}
+
+			// periodically fuse yaw estimate if necessary
+			if (isYawEmergencyEstimateAvailable()
+			    && _control_status.flags.yaw_align
+			    && isTimedOut(_ekfgsf_yaw_reset_time, 1'000'000)
+			    && isTimedOut(_time_last_heading_fuse, (uint64_t)1'000'000)) {
+
+				float innovation = wrap_pi(getEulerYaw(_R_to_earth) - _yawEstimator.getYaw());
+				float obs_var = _yawEstimator.getYawVar();
+				fuseYaw(innovation, obs_var);
 			}
 		}
 
@@ -89,10 +100,19 @@ void Ekf::controlGpsFusion()
 						 * because the timeout could have been caused by bad GPS.
 						 * The total number of resets allowed per boot cycle is limited.
 						 */
-						if (isYawFailure()
+						if (isYawEmergencyEstimateAvailable()
+						    && !yawAidingAvailable()
+						    && isYawError(math::radians(10.f))
 						    && _control_status.flags.in_air
 						    && !was_gps_signal_lost
 						    && resetYawToEKFGSF()) {
+
+							ECL_WARN("GPS emergency yaw reset");
+
+						} else if (isYawFailure()
+							   && _control_status.flags.in_air
+							   && !was_gps_signal_lost
+							   && resetYawToEKFGSF()) {
 
 							ECL_WARN("GPS emergency yaw reset");
 
@@ -113,7 +133,6 @@ void Ekf::controlGpsFusion()
 							}
 
 						} else {
-							_warning_events.flags.gps_fusion_timout = true;
 							ECL_WARN("GPS fusion timeout - resetting");
 
 							// use GPS velocity data to check and correct yaw angle if a FW vehicle
@@ -123,6 +142,7 @@ void Ekf::controlGpsFusion()
 							}
 						}
 
+						_warning_events.flags.gps_fusion_timout = true;
 						resetVelocityToGps(_gps_sample_delayed);
 						resetHorizontalPositionToGps(_gps_sample_delayed);
 					}
@@ -173,7 +193,7 @@ bool Ekf::shouldResetGpsFusion() const
 				       || isTimedOut(_time_last_hor_pos_fuse, 2 * _params.reset_timeout_max);
 
 	/* Logic controlling the reset of navigation filter yaw to the EKF-GSF estimate to recover from loss of
-	 * navigation casued by a bad yaw estimate.
+	 * navigation caused by a bad yaw estimate.
 
 	 * A rapid reset to the EKF-GSF estimate is performed after a recent takeoff if horizontal velocity
 	 * innovation checks fail. This enables recovery from a bad yaw estimate. After 30 seconds from takeoff,
