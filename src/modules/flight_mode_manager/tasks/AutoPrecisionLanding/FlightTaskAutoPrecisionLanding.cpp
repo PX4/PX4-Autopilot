@@ -49,16 +49,8 @@ bool FlightTaskAutoPrecisionLanding::activate(const trajectory_setpoint_s &last_
 {
 	bool ret = FlightTask::activate(last_setpoint);
 
-	// This looks wrong at first, but is a mean little trick to avoid discontinuous setpoints.
-	// When this flight task is activated, _target might be outdated until the next navigator triplet
-	// comes in. Until then pretend that the current position setpoint is the navigator's setpoint:
-	_target = _position_setpoint;
-
 	_search_cnt = 0;
 	_last_slewrate_time = 0;
-
-	_sp_pev = matrix::Vector2f(last_setpoint.x, last_setpoint.y);
-	_sp_pev_prev = matrix::Vector2f(last_setpoint.x, last_setpoint.y);
 
 	switch_to_state_start();
 
@@ -274,11 +266,11 @@ FlightTaskAutoPrecisionLanding::run_state_search()
 void
 FlightTaskAutoPrecisionLanding::run_state_fallback()
 {
-	// nothing to do, just listen to navigator
+	// Try switching to horizontal approach. This works if the
+	// target meanwhile became visible
+	switch_to_state_horizontal_approach();
+	// Otherwise there is nothing to do, except for listening to navigator
 	_position_setpoint = _target;
-	_velocity_setpoint(0) = 0;
-	_velocity_setpoint(1) = 0;
-	_velocity_setpoint(2) = _param_mpc_land_speed.get();
 }
 
 bool
@@ -436,15 +428,12 @@ void FlightTaskAutoPrecisionLanding::slewrate(float &sp_x, float &sp_y)
 
 	dt /= SEC2USEC;
 
-	if (!_last_slewrate_time) {
+	if (_last_slewrate_time == 0) {
 		// running the first time since switching to precland
-
-		// assume dt will be about 50000us
-		dt = 50000 / SEC2USEC;
-
-		// set a best guess for previous setpoints for smooth transition
-		_sp_pev_prev(0) = _sp_pev(0) - _velocity(0) * dt;
-		_sp_pev_prev(1) = _sp_pev(1) - _velocity(1) * dt;
+		_sp_pev_prev(0) = sp_x;
+		_sp_pev_prev(1) = sp_y;
+		_sp_pev(0) = sp_x;
+		_sp_pev(1) = sp_y;
 	}
 
 	_last_slewrate_time = now;
