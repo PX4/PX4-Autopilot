@@ -1,0 +1,7 @@
+#!/bin/sh
+#
+# PX4 FMUv5x specific board extras init
+#------------------------------------------------------------------------------
+
+# Target estimator for precision landing
+landing_target_estimator start
