@@ -160,7 +160,7 @@ public:
 	matrix::SquareMatrix<float, 3> position_covariances() const { return P.slice<3, 3>(7, 7); }
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
-	bool collect_gps(const gps_message &gps) override;
+	bool collect_gps(const gpsMessage &gps) override;
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
@@ -814,7 +814,7 @@ private:
 	Vector3f calcEarthRateNED(float lat_rad) const;
 
 	// return true id the GPS quality is good enough to set an origin and start aiding
-	bool gps_is_good(const gps_message &gps);
+	bool gps_is_good(const gpsMessage &gps);
 
 	// Control the filter fusion modes
 	void controlFusionModes();

@@ -142,7 +142,7 @@ void Ekf::predictCovariance()
 	const bool is_manoeuvre_level_high = _ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
 					     || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim;
 
-	const bool do_inhibit_all_axes = (_params.fusion_mode & MASK_INHIBIT_ACC_BIAS)
+	const bool do_inhibit_all_axes = (_params.fusion_mode & SensorFusionMask::INHIBIT_ACC_BIAS)
 					 || is_manoeuvre_level_high
 					 || _fault_status.flags.bad_acc_vertical;
 

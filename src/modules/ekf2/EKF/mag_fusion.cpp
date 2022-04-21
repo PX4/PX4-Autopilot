@@ -852,7 +852,7 @@ void Ekf::limitDeclination()
 	float decl_reference;
 	float h_field_min = 0.001f;
 
-	if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
+	if (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL) {
 		// use parameter value until GPS is available, then use value returned by geo library
 		if (_NED_origin_initialised || PX4_ISFINITE(_mag_declination_gps)) {
 			decl_reference = _mag_declination_gps;
