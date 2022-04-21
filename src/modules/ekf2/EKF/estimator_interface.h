@@ -78,13 +78,13 @@ class EstimatorInterface
 {
 public:
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
-	virtual bool collect_gps(const gps_message &gps) = 0;
+	virtual bool collect_gps(const gpsMessage &gps) = 0;
 
 	void setIMUData(const imuSample &imu_sample);
 
 	void setMagData(const magSample &mag_sample);
 
-	void setGpsData(const gps_message &gps);
+	void setGpsData(const gpsMessage &gps);
 
 	void setBaroData(const baroSample &baro_sample);
 
@@ -206,7 +206,7 @@ public:
 	// At the next startup, set param.mag_declination_deg to the value saved
 	bool get_mag_decl_deg(float *val) const
 	{
-		if (_NED_origin_initialised && (_params.mag_declination_source & MASK_SAVE_GEO_DECL)) {
+		if (_NED_origin_initialised && (_params.mag_declination_source & GeoDeclinationMask::SAVE_GEO_DECL)) {
 			*val = math::degrees(_mag_declination_gps);
 			return true;
 

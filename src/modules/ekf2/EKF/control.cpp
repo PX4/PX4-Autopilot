@@ -215,8 +215,8 @@ void Ekf::controlExternalVisionFusion()
 
 		// if the ev data is not in a NED reference frame, then the transformation between EV and EKF navigation frames
 		// needs to be calculated and the observations rotated into the EKF frame of reference
-		if ((_params.fusion_mode & MASK_ROTATE_EV) && ((_params.fusion_mode & MASK_USE_EVPOS)
-				|| (_params.fusion_mode & MASK_USE_EVVEL)) && !_control_status.flags.ev_yaw) {
+		if ((_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) && ((_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_POS)
+				|| (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_VEL)) && !_control_status.flags.ev_yaw) {
 
 			// rotate EV measurements into the EKF Navigation frame
 			calcExtVisRotMat();
@@ -228,19 +228,19 @@ void Ekf::controlExternalVisionFusion()
 			// check for a external vision measurement that has fallen behind the fusion time horizon
 			if (isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
 				// turn on use of external vision measurements for position
-				if (_params.fusion_mode & MASK_USE_EVPOS && !_control_status.flags.ev_pos) {
+				if (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_POS && !_control_status.flags.ev_pos) {
 					startEvPosFusion();
 				}
 
 				// turn on use of external vision measurements for velocity
-				if (_params.fusion_mode & MASK_USE_EVVEL && !_control_status.flags.ev_vel) {
+				if (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_VEL && !_control_status.flags.ev_vel) {
 					startEvVelFusion();
 				}
 			}
 		}
 
 		// external vision yaw aiding selection logic
-		if (!_inhibit_ev_yaw_use && (_params.fusion_mode & MASK_USE_EVYAW) && !_control_status.flags.ev_yaw
+		if (!_inhibit_ev_yaw_use && (_params.fusion_mode & SensorFusionMask::USE_EXT_VIS_YAW) && !_control_status.flags.ev_yaw
 		    && _control_status.flags.tilt_align) {
 
 			// don't start using EV data unless data is arriving frequently
@@ -268,7 +268,7 @@ void Ekf::controlExternalVisionFusion()
 			_ev_sample_delayed.pos -= pos_offset_earth;
 
 			// Use an incremental position fusion method for EV position data if GPS is also used
-			if (_params.fusion_mode & MASK_USE_GPS) {
+			if (_params.fusion_mode & SensorFusionMask::USE_GPS) {
 				_fuse_hpos_as_odom = true;
 
 			} else {
@@ -300,7 +300,7 @@ void Ekf::controlExternalVisionFusion()
 				Vector3f ev_pos_meas = _ev_sample_delayed.pos;
 				Matrix3f ev_pos_var = matrix::diag(_ev_sample_delayed.posVar);
 
-				if (_params.fusion_mode & MASK_ROTATE_EV) {
+				if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
 					ev_pos_meas = _R_ev_to_ekf * ev_pos_meas;
 					ev_pos_var = _R_ev_to_ekf * ev_pos_var * _R_ev_to_ekf.transpose();
 				}
@@ -471,7 +471,7 @@ void Ekf::controlOpticalFlowFusion()
 
 		// Handle cases where we are using optical flow but we should not use it anymore
 		if (_control_status.flags.opt_flow) {
-			if (!(_params.fusion_mode & MASK_USE_OF)
+			if (!(_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW)
 			    || _inhibit_flow_use) {
 
 				stopFlowFusion();
@@ -480,11 +480,11 @@ void Ekf::controlOpticalFlowFusion()
 		}
 
 		// optical flow fusion mode selection logic
-		if ((_params.fusion_mode & MASK_USE_OF) // optical flow has been selected by the user
+		if ((_params.fusion_mode & SensorFusionMask::USE_OPT_FLOW) // optical flow has been selected by the user
 		    && !_control_status.flags.opt_flow // we are not yet using flow data
 		    && !_inhibit_flow_use) {
 			// If the heading is valid and use is not inhibited , start using optical flow aiding
-			if (_control_status.flags.yaw_align || _params.mag_fusion_type == MAG_FUSE_TYPE_NONE) {
+			if (_control_status.flags.yaw_align || _params.mag_fusion_type == MagFuseType::NONE) {
 				// set the flag and reset the fusion timeout
 				ECL_INFO("starting optical flow fusion");
 				_control_status.flags.opt_flow = true;
@@ -555,7 +555,7 @@ void Ekf::resetOnGroundMotionForOpticalFlowChecks()
 
 void Ekf::controlGpsYawFusion(bool gps_checks_passing, bool gps_checks_failing)
 {
-	if (!(_params.fusion_mode & MASK_USE_GPSYAW)
+	if (!(_params.fusion_mode & SensorFusionMask::USE_GPS_YAW)
 	    || _control_status.flags.gps_yaw_fault) {
 
 		stopGpsYawFusion();
@@ -842,7 +842,7 @@ void Ekf::controlHeightFusion()
 		ECL_ERR("Invalid hgt mode: %" PRIi32, _params.vdist_sensor_type);
 
 	// FALLTHROUGH
-	case VDIST_SENSOR_BARO:
+	case VerticalHeightSensor::BARO:
 		if (do_range_aid) {
 			if (!_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
 				startRngAidHgtFusion();
@@ -862,7 +862,7 @@ void Ekf::controlHeightFusion()
 
 		break;
 
-	case VDIST_SENSOR_RANGE:
+	case VerticalHeightSensor::RANGE:
 
 		// If we are supposed to be using range finder data as the primary height sensor, have bad range measurements
 		// and are on the ground, then synthesise a measurement at the expected on ground value
@@ -883,7 +883,7 @@ void Ekf::controlHeightFusion()
 
 		break;
 
-	case VDIST_SENSOR_GPS:
+	case VerticalHeightSensor::GPS:
 
 		// NOTE: emergency fallback due to extended loss of currently selected sensor data or failure
 		// to pass innovation cinsistency checks is handled elsewhere in Ekf::controlHeightSensorTimeouts.
@@ -909,7 +909,7 @@ void Ekf::controlHeightFusion()
 
 		break;
 
-	case VDIST_SENSOR_EV:
+	case VerticalHeightSensor::EV:
 
 		// don't start using EV data unless data is arriving frequently
 		if (!_control_status.flags.ev_hgt && isRecent(_time_last_ext_vision, 2 * EV_MAX_INTERVAL)) {
@@ -986,7 +986,7 @@ void Ekf::controlAirDataFusion()
 	const bool airspeed_timed_out = isTimedOut(_time_last_arsp_fuse, (uint64_t)10e6);
 	const bool sideslip_timed_out = isTimedOut(_time_last_beta_fuse, (uint64_t)10e6);
 
-	if (_using_synthetic_position || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & MASK_USE_DRAG))) {
+	if (_using_synthetic_position || (airspeed_timed_out && sideslip_timed_out && !(_params.fusion_mode & SensorFusionMask::USE_DRAG))) {
 		_control_status.flags.wind = false;
 	}
 
@@ -1053,7 +1053,7 @@ void Ekf::controlBetaFusion()
 
 void Ekf::controlDragFusion()
 {
-	if ((_params.fusion_mode & MASK_USE_DRAG) && _drag_buffer &&
+	if ((_params.fusion_mode & SensorFusionMask::USE_DRAG) && _drag_buffer &&
 	    !_using_synthetic_position && _control_status.flags.in_air && !_mag_inhibit_yaw_reset_req) {
 
 		if (!_control_status.flags.wind) {

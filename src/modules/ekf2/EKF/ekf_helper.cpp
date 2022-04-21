@@ -158,7 +158,7 @@ void Ekf::resetHorizontalPositionToVision()
 	ECL_INFO("reset position to ev position");
 	Vector3f _ev_pos = _ev_sample_delayed.pos;
 
-	if (_params.fusion_mode & MASK_ROTATE_EV) {
+	if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
 		_ev_pos = _R_ev_to_ekf * _ev_sample_delayed.pos;
 	}
 
@@ -467,7 +467,7 @@ bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
 
 	const bool heading_required_for_navigation = _control_status.flags.gps || _control_status.flags.ev_pos;
 
-	if ((_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) || ((_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR) && heading_required_for_navigation)) {
+	if ((_params.mag_fusion_type <= MagFuseType::MAG_3D) || ((_params.mag_fusion_type == MagFuseType::INDOOR) && heading_required_for_navigation)) {
 
 		// rotate the magnetometer measurements into earth frame using a zero yaw angle
 		const Dcmf R_to_earth = updateYawInRotMat(0.f, _R_to_earth);
@@ -480,7 +480,7 @@ bool Ekf::resetMagHeading(bool increase_yaw_var, bool update_buffer)
 			yaw_new_variance = sq(fmaxf(_params.mag_heading_noise, 1.0e-2f));
 		}
 
-	} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR) {
+	} else if (_params.mag_fusion_type == MagFuseType::INDOOR) {
 		// we are operating temporarily without knowing the earth frame yaw angle
 		return true;
 
@@ -522,7 +522,7 @@ float Ekf::getMagDeclination()
 		// Use value consistent with earth field state
 		return atan2f(_state.mag_I(1), _state.mag_I(0));
 
-	} else if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
+	} else if (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL) {
 		// use parameter value until GPS is available, then use value returned by geo library
 		if (_NED_origin_initialised || PX4_ISFINITE(_mag_declination_gps)) {
 			return _mag_declination_gps;
@@ -953,7 +953,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 // return a bitmask integer that describes which state estimates are valid
 void Ekf::get_ekf_soln_status(uint16_t *status) const
 {
-	ekf_solution_status soln_status;
+	ekf_solution_status_u soln_status;
 	// TODO: Is this accurate enough?
 	soln_status.flags.attitude = _control_status.flags.tilt_align && _control_status.flags.yaw_align && (_fault_status.value == 0);
 	soln_status.flags.velocity_horiz = (isHorizontalAidingActive() || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
@@ -1398,14 +1398,14 @@ Vector3f Ekf::getVisionVelocityInEkfFrame() const
 
 	// rotate measurement into correct earth frame if required
 	switch (_ev_sample_delayed.vel_frame) {
-	case velocity_frame_t::BODY_FRAME_FRD:
+	case VelocityFrame::BODY_FRAME_FRD:
 		vel = _R_to_earth * (_ev_sample_delayed.vel - vel_offset_body);
 		break;
 
-	case velocity_frame_t::LOCAL_FRAME_FRD:
+	case VelocityFrame::LOCAL_FRAME_FRD:
 		const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 
-		if (_params.fusion_mode & MASK_ROTATE_EV) {
+		if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
 			vel = _R_ev_to_ekf * _ev_sample_delayed.vel - vel_offset_earth;
 
 		} else {
@@ -1424,12 +1424,12 @@ Vector3f Ekf::getVisionVelocityVarianceInEkfFrame() const
 
 	// rotate measurement into correct earth frame if required
 	switch (_ev_sample_delayed.vel_frame) {
-	case velocity_frame_t::BODY_FRAME_FRD:
+	case VelocityFrame::BODY_FRAME_FRD:
 		ev_vel_cov = _R_to_earth * ev_vel_cov * _R_to_earth.transpose();
 		break;
 
-	case velocity_frame_t::LOCAL_FRAME_FRD:
-		if (_params.fusion_mode & MASK_ROTATE_EV) {
+	case VelocityFrame::LOCAL_FRAME_FRD:
+		if (_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS) {
 			ev_vel_cov = _R_ev_to_ekf * ev_vel_cov * _R_ev_to_ekf.transpose();
 		}
 
