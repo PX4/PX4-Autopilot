@@ -1,0 +1,164 @@
+#!/bin/sh
+#
+# @name ZMO Tiltrotor VTOL
+#
+# @type VTOL Tiltrotor
+# @class VTOL
+#
+# @maintainer Silvan
+#
+# @output MAIN1 Tilt left
+# @output MAIN2 Tilt right
+# @output MAIN3 Aileron left
+# @output MAIN4 Aileron right
+# @output MAIN5 V-tail left
+# @output MAIN6 V-tail right
+# @output MAIN7 empty
+# @output MAIN8 empty
+# @output AUX1 Motor right
+# @output AUX1 Motor left
+# @output AUX1 Motor rear
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.vtol_defaults
+
+# Airspeed module
+
+
+# Battery parameters
+
+# Circuit breakers
+param set-default CBRK_IO_SAFETY 22027
+
+# Commander Parameters
+param set-default COM_ARM_ARSP_EN 0
+param set-default COM_PREARM_MODE 2
+
+# Control Allocation
+param set-default SYS_CTRL_ALLOC 1
+param set-default CA_AIRFRAME 3
+
+param set-default CA_ROTOR_COUNT 3
+param set-default CA_ROTOR0_PX 1
+param set-default CA_ROTOR0_PY 1
+param set-default CA_ROTOR0_KM 0
+param set-default CA_ROTOR1_PX 1
+param set-default CA_ROTOR1_PY -1
+param set-default CA_ROTOR1_KM 0
+param set-default CA_ROTOR2_PX -2
+param set-default CA_ROTOR2_PY 0
+param set-default CA_ROTOR2_KM 0
+
+param set-default CA_ROTOR0_TILT 2
+param set-default CA_ROTOR1_TILT 1
+param set-default CA_SV_CS0_TRIM 0.1
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS1_TRIM 0.15
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRIM 0.15
+param set-default CA_SV_CS2_TRQ_P 0.5
+param set-default CA_SV_CS2_TRQ_Y 0.5
+param set-default CA_SV_CS2_TYPE 7
+param set-default CA_SV_CS2_TRQ_P 0.5
+param set-default CA_SV_CS2_TRIM 0.15
+param set-default CA_SV_CS3_TRQ_Y -0.5
+param set-default CA_SV_CS3_TYPE 8
+param set-default CA_SV_CS_COUNT 4
+
+param set-default CA_SV_TL0_CT 1
+param set-default CA_SV_TL1_CT 1
+param set-default CA_SV_TL_COUNT 2
+
+param set-default PWM_MAIN_FUNC1 205
+param set-default PWM_MAIN_FUNC2 206
+param set-default PWM_MAIN_FUNC3 201
+param set-default PWM_MAIN_FUNC4 202
+param set-default PWM_MAIN_FUNC5 203
+param set-default PWM_MAIN_FUNC6 204
+param set-default PWM_AUX_FUNC1 101
+param set-default PWM_AUX_FUNC2 102
+param set-default PWM_AUX_FUNC3 103
+
+# EKF
+param set-default EKF2_BARO_NOISE 5
+
+# FW General
+
+
+# FW TECS
+
+# MC attitude controller parameters
+# param set-default MC_AIRMODE 1
+param set-default MC_PITCHRATE_MAX 120
+param set-default MC_ROLLRATE_MAX 120
+param set-default MC_YAWRATE_MAX 120
+
+param set-default MC_PITCHRATE_P 0.24
+param set-default MC_PITCHRATE_I 0.25
+param set-default MC_PITCH_P 3.5
+param set-default MC_ROLLRATE_P 0.22
+param set-default MC_ROLLRATE_I 0.3
+param set-default MC_ROLL_P 3
+param set-default MC_YAWRATE_P 0.25
+param set-default MC_YAWRATE_I 0.2
+param set-default MC_YAW_P 1.6
+
+
+# Mission settings
+param set-default MIS_DIST_1WP 10000
+param set-default MIS_DIST_WPS 10000
+param set-default MIS_FLIGHT_TIME 0
+param set-default MIS_YAW_ERR 15
+
+# - FMU PWM
+
+# - IO PWM
+param set-default PWM_MAIN_DIS1 2090
+param set-default PWM_MAIN_DIS2 1850
+param set-default PWM_MAIN_DIS3 1500
+param set-default PWM_MAIN_DIS4 1500
+param set-default PWM_MAIN_DIS5 1500
+param set-default PWM_MAIN_DIS6 1500
+
+param set-default PWM_MAIN_FAIL1 1000
+param set-default PWM_MAIN_FAIL2 1000
+param set-default PWM_MAIN_FAIL3 1500
+param set-default PWM_MAIN_FAIL4 1500
+param set-default PWM_MAIN_FAIL5 1500
+param set-default PWM_MAIN_FAIL6 1500
+
+param set-default PWM_MAIN_MAX1 2090
+param set-default PWM_MAIN_MAX2 1850
+
+param set-default PWM_MAIN_MIN1 1110
+param set-default PWM_MAIN_MIN2 900
+
+param set-default PWM_MAIN_RATE 50
+
+# Sensors parameters
+param set-default SENS_DPRES_OFF -0.017
+param set-default SENS_EN_SDP3X 1
+
+# VTOL
+param set-default VT_ARSP_BLEND 8
+param set-default VT_ARSP_TRANS 11
+param set-default VT_B_DEC_FF 0
+param set-default VT_B_DEC_MSS 1.5
+param set-default VT_B_TRANS_DUR 10
+param set-default VT_F_TR_OL_TM 7
+param set-default VT_LND_PTCH_MIN 0
+param set-default VT_PTCH_MIN 3
+param set-default VT_FWD_THRUST_EN 4
+param set-default VT_FWD_THRUST_SC 0.5
+param set-default VT_F_TRANS_DUR 4.5
+param set-default VT_TILT_TRANS 0.4
+param set-default VT_TRANS_MIN_TM 3
+param set-default VT_TRANS_P2_DUR 1.5
+param set-default VT_TRANS_TIMEOUT 10
+param set-default VT_TYPE 1
+
+set MAV_TYPE 21
