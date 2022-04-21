@@ -262,10 +262,11 @@ FixedwingPositionINDIControl::vehicle_local_position_poll()
         _vel = _R_ned_to_enu*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
         _acc = _R_ned_to_enu*Vector3f{_local_pos.ax,_local_pos.ay,_local_pos.az};
         //PX4_INFO("local position:\t%.4f\t%.4f\t%.4f", (double)_pos(0),(double)_pos(1),(double)_pos(2));
+        //PX4_INFO("local velocity:\t%.4f\t%.4f\t%.4f", (double)_vel(0),(double)_vel(1),(double)_vel(2));
+        //PX4_INFO("local acceleration:\t%.4f\t%.4f\t%.4f", (double)_acc(0),(double)_acc(1),(double)_acc(2));
     }
     if(hrt_absolute_time()-_local_pos.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
         PX4_ERR("local position sample is too old");
-        //PX4_INFO("time differences:\t%.4f\t%.4f", (double)(hrt_absolute_time()-_local_pos.timestamp) , (double)(hrt_absolute_time()-_local_pos.timestamp_sample));
     }
 }
 
@@ -304,7 +305,7 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv()
         file_reader.close();
         */
     _basis_coeffs_x(0) = -0.026399f;
-    _basis_coeffs_x(0) = 826.714294f;
+    _basis_coeffs_x(1) = 826.714294f;
     _basis_coeffs_x(2) = -3432.814434f;
     _basis_coeffs_x(3) = 7863.143292f;
     _basis_coeffs_x(4) = -13322.886901f;
@@ -337,7 +338,7 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv()
     _basis_coeffs_y(14) = -4286.372935f;
     _basis_coeffs_y(15) = 679.830536f;
 
-    _basis_coeffs_z(0) = 100.f; //4.971065f;
+    _basis_coeffs_z(0) = 20.f; //4.971065f;
     _basis_coeffs_z(1) = -354.548028f;
     _basis_coeffs_z(2) = 1506.974164f;
     _basis_coeffs_z(3) = -3506.606108f;
@@ -518,8 +519,8 @@ Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
 FixedwingPositionINDIControl::_get_basis_funs(float t)
 {
     Vector<float, _num_basis_funs> vec;
-    vec(0) = 1;
-    float sigma = 0.5/_num_basis_funs;
+    vec(0) = 1.f;
+    float sigma = 0.5f/_num_basis_funs;
     for(uint i=1; i<_num_basis_funs; i++){
         float fun1 = sinf(M_PI_F*t);
         float fun2 = exp(-powf((t-i/_num_basis_funs),2)/sigma);
@@ -532,8 +533,8 @@ Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
 FixedwingPositionINDIControl::_get_d_dt_basis_funs(float t)
 {
     Vector<float, _num_basis_funs> vec;
-    vec(0) = 1;
-    float sigma = 0.5/_num_basis_funs;
+    vec(0) = 1.f;
+    float sigma = 0.5f/_num_basis_funs;
     for(uint i=1; i<_num_basis_funs; i++){
         float fun1 = sinf(M_PI_F*t);
         float fun2 = exp(-powf((t-i/_num_basis_funs),2)/sigma);
@@ -546,8 +547,8 @@ Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
 FixedwingPositionINDIControl::_get_d2_dt2_basis_funs(float t)
 {
     Vector<float, _num_basis_funs> vec;
-    vec(0) = 1;
-    float sigma = 0.5/_num_basis_funs;
+    vec(0) = 1.f;
+    float sigma = 0.5f/_num_basis_funs;
     for(uint i=1; i<_num_basis_funs; i++){
         float fun1 = sinf(M_PI_F*t);
         float fun2 = exp(-powf((t-i/_num_basis_funs),2)/sigma);
@@ -668,21 +669,26 @@ FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
 {
     const uint n = 100;
     Vector<float, n> distances;
+    float t_ref;
     // compute all distances
     for(uint i=0; i<n; i++){
-        float t_ref = float(i)/n;
+        t_ref = float(i)/float(n);
         Vector3f pos_ref = _get_position_ref(t_ref);
+        //PX4_INFO("trajectory point: \t%.2f\t%.2f\t%.2f", (double)pos_ref(0), (double)pos_ref(1), (double)pos_ref(2));
         distances(i) = (pos_ref - pos)*(pos_ref - pos);
     }
+
     // get index of smallest distance
     float t = 0.f;
     float min_dist = distances(0);
     for(uint i=1; i<n; i++){
         if(distances(i)<min_dist){
             min_dist = distances(i);
-            t = float(i)/float(n);
+            t = float(i);
         }
     }
+    t = t/float(n);
+    //PX4_INFO("closest point: \t%.2f\t%.2f\t%.2f", (double)_get_position_ref(t)(0), (double)_get_position_ref(t)(1), (double)_get_position_ref(t)(2));
     PX4_INFO("closest t: %.2f", (double)t);
     //PX4_INFO("closest distance:%.2f", (double)min_dist);
     return t;
