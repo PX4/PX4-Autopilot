@@ -166,6 +166,17 @@ struct auxVelSample {
 	Vector3f    velVar{};      ///< estimated error variance of the NE velocity (m/sec)**2
 };
 
+struct stateSample {
+	Quatf    quat_nominal{};        ///< quaternion defining the rotation from body to earth frame
+	Vector3f vel{};                 ///< NED velocity in earth frame in m/s
+	Vector3f pos{};                 ///< NED position in earth frame in m
+	Vector3f delta_ang_bias{};      ///< delta angle bias estimate in rad
+	Vector3f delta_vel_bias{};      ///< delta velocity bias estimate in m/s
+	Vector3f mag_I{};               ///< NED earth magnetic field in gauss
+	Vector3f mag_B{};               ///< magnetometer bias estimate in body frame in gauss
+	Vector2f wind_vel{};            ///< horizontal wind velocity in earth frame in m/s
+};
+
 // Integer definitions for vdist_sensor_type
 #define VDIST_SENSOR_BARO  0    ///< Use baro height
 #define VDIST_SENSOR_GPS   1    ///< Use GPS height
@@ -387,17 +398,6 @@ struct parameters {
 	const unsigned EKFGSF_reset_delay{1000000};     ///< Number of uSec of bad innovations on main filter in immediate post-takeoff phase before yaw is reset to EKF-GSF value
 	const float EKFGSF_yaw_err_max{0.262f};         ///< Composite yaw 1-sigma uncertainty threshold used to check for convergence (rad)
 	const unsigned EKFGSF_reset_count_limit{3};     ///< Maximum number of times the yaw can be reset to the EKF-GSF yaw estimator value
-};
-
-struct stateSample {
-	Quatf    quat_nominal{};        ///< quaternion defining the rotation from body to earth frame
-	Vector3f vel{};                 ///< NED velocity in earth frame in m/s
-	Vector3f pos{};                 ///< NED position in earth frame in m
-	Vector3f delta_ang_bias{};      ///< delta angle bias estimate in rad
-	Vector3f delta_vel_bias{};      ///< delta velocity bias estimate in m/s
-	Vector3f mag_I{};               ///< NED earth magnetic field in gauss
-	Vector3f mag_B{};               ///< magnetometer bias estimate in body frame in gauss
-	Vector2f wind_vel{};            ///< horizontal wind velocity in earth frame in m/s
 };
 
 union fault_status_u {
