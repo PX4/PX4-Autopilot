@@ -54,7 +54,7 @@ void Ekf::controlMagFusion()
 
 			// if enabled, use knowledge of theoretical magnetic field vector to calculate a synthetic magnetomter Z component value.
 			// this is useful if there is a lot of interference on the sensor measurement.
-			if (_params.synthesize_mag_z && (_params.mag_declination_source & MASK_USE_GEO_DECL)
+			if (_params.synthesize_mag_z && (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL)
 			    && (_NED_origin_initialised || PX4_ISFINITE(_mag_declination_gps))
 			   ) {
 				const Vector3f mag_earth_pred = Dcmf(Eulerf(0, -_mag_inclination_gps, _mag_declination_gps)) * Vector3f(_mag_strength_gps, 0, 0);
@@ -82,7 +82,7 @@ void Ekf::controlMagFusion()
 	// yaw fusion is run selectively to enable yaw gyro bias learning when stationary on
 	// ground and to prevent uncontrolled yaw variance growth
 	// Also fuse zero heading innovation during the leveling fine alignment step to keep the yaw variance low
-	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE
+	if (_params.mag_fusion_type >= MagFuseType::NONE
 	    || _control_status.flags.mag_fault
 	    || !_control_status.flags.tilt_align) {
 
@@ -111,18 +111,18 @@ void Ekf::controlMagFusion()
 		default:
 
 		/* fallthrough */
-		case MAG_FUSE_TYPE_AUTO:
+		case MagFuseType::AUTO:
 			selectMagAuto();
 			break;
 
-		case MAG_FUSE_TYPE_INDOOR:
+		case MagFuseType::INDOOR:
 
 		/* fallthrough */
-		case MAG_FUSE_TYPE_HEADING:
+		case MagFuseType::HEADING:
 			startMagHdgFusion();
 			break;
 
-		case MAG_FUSE_TYPE_3D:
+		case MagFuseType::MAG_3D:
 			startMag3DFusion();
 			break;
 		}
@@ -188,7 +188,7 @@ void Ekf::runOnGroundYawReset()
 
 bool Ekf::canResetMagHeading() const
 {
-	return !isStrongMagneticDisturbance() && (_params.mag_fusion_type != MAG_FUSE_TYPE_NONE);
+	return !isStrongMagneticDisturbance() && (_params.mag_fusion_type != MagFuseType::NONE);
 }
 
 void Ekf::runInAirYawReset(const Vector3f &mag_sample)
@@ -280,7 +280,7 @@ void Ekf::checkMagDeclRequired()
 	// then the declination must be fused as an observation to prevent long term heading drift
 	// fusing declination when gps aiding is available is optional, but recommended to prevent
 	// problem if the vehicle is static for extended periods of time
-	const bool user_selected = (_params.mag_declination_source & MASK_FUSE_DECL);
+	const bool user_selected = (_params.mag_declination_source & GeoDeclinationMask::FUSE_DECL);
 	const bool not_using_ne_aiding = !_control_status.flags.gps;
 	_control_status.flags.mag_dec = (_control_status.flags.mag_3D && (not_using_ne_aiding || user_selected));
 }
@@ -306,7 +306,7 @@ bool Ekf::shouldInhibitMag() const
 	// is available, assume that we are operating indoors and the magnetometer should not be used.
 	// Also inhibit mag fusion when a strong magnetic field interference is detected or the user
 	// has explicitly stopped magnetometer use.
-	const bool user_selected = (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR);
+	const bool user_selected = (_params.mag_fusion_type == MagFuseType::INDOOR);
 
 	const bool heading_not_required_for_navigation = !_control_status.flags.gps
 			&& !_control_status.flags.ev_pos
@@ -319,7 +319,7 @@ bool Ekf::shouldInhibitMag() const
 void Ekf::checkMagFieldStrength(const Vector3f &mag_sample)
 {
 	if (_params.check_mag_strength
-	    && ((_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) || (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _control_status.flags.gps))) {
+	    && ((_params.mag_fusion_type <= MagFuseType::MAG_3D) || (_params.mag_fusion_type == MagFuseType::INDOOR && _control_status.flags.gps))) {
 
 		if (PX4_ISFINITE(_mag_strength_gps)) {
 			constexpr float wmm_gate_size = 0.2f; // +/- Gauss

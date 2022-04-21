@@ -308,7 +308,7 @@ void EKF2::Run()
 		}
 
 		// if using mag ensure sensor interval minimum is sufficient to accommodate system averaged mag output
-		if (_params->mag_fusion_type != MAG_FUSE_TYPE_NONE) {
+		if (_params->mag_fusion_type != MagFuseType::NONE) {
 			float sens_mag_rate = 0.f;
 
 			if (param_get(param_find("SENS_MAG_RATE"), &sens_mag_rate) == PX4_OK) {
@@ -1153,7 +1153,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			_last_gyro_bias_published = gyro_bias;
 		}
 
-		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
+		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS)) {
 			bias.accel_device_id = _device_id_accel;
 			accel_bias.copyTo(bias.accel_bias);
 			bias.accel_bias_limit = _params->acc_bias_lim;
@@ -1596,10 +1596,10 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 			ev_data.vel(2) = ev_odom.vz;
 
 			if (ev_odom.velocity_frame == vehicle_odometry_s::BODY_FRAME_FRD) {
-				ev_data.vel_frame = velocity_frame_t::BODY_FRAME_FRD;
+				ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
 
 			} else {
-				ev_data.vel_frame = velocity_frame_t::LOCAL_FRAME_FRD;
+				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
 			}
 
 			// velocity measurement error from ev_data or parameters
@@ -1735,7 +1735,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			perf_count(_msg_missed_gps_perf);
 		}
 
-		gps_message gps_msg{
+		gpsMessage gps_msg{
 			.time_usec = vehicle_gps_position.timestamp,
 			.lat = vehicle_gps_position.lat,
 			.lon = vehicle_gps_position.lon,
@@ -1878,7 +1878,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 {
-	if (_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS) {
+	if (_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS) {
 		_accel_cal.cal_available = false;
 		return;
 	}
