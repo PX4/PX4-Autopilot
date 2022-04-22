@@ -4,6 +4,7 @@ uint32 accel_device_id          # unique device ID for the sensor that does not 
 uint32 gyro_device_id           # unique device ID for the sensor that does not change between power cycles
 
 uint32[3] accel_clipping        # total clipping per axis
+uint32[3] gyro_clipping         # total clipping per axis
 
 uint32 accel_error_count
 uint32 gyro_error_count
