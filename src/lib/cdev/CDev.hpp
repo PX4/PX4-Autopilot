@@ -149,19 +149,6 @@ public:
 	virtual int	ioctl(file_t *filep, int cmd, unsigned long arg) { return -ENOTTY; };
 
 	/**
-	 * Perform a poll setup/teardown operation.
-	 *
-	 * This is handled internally and should not normally be overridden.
-	 *
-	 * @param filep		Pointer to the internal file structure.
-	 * @param fds		Poll descriptor being waited on.
-	 * @param setup		True if this is establishing a request, false if
-	 *			it is being torn down.
-	 * @return		OK on success, or -errno otherwise.
-	 */
-	int	poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup);
-
-	/**
 	 * Get the device name.
 	 *
 	 * @return the file system string of the device handle
@@ -175,38 +162,6 @@ protected:
 	 * cdev_platform.cpp.
 	 */
 	static const px4_file_operations_t	&fops_ref();
-
-	/**
-	 * Check the current state of the device for poll events from the
-	 * perspective of the file.
-	 *
-	 * This function is called by the default poll() implementation when
-	 * a poll is set up to determine whether the poll should return immediately.
-	 *
-	 * The default implementation returns no events.
-	 *
-	 * @param filep		The file that's interested.
-	 * @return		The current set of poll events.
-	 */
-	virtual px4_pollevent_t poll_state(file_t *filep) { return 0; }
-
-	/**
-	 * Report new poll events.
-	 *
-	 * This function should be called anytime the state of the device changes
-	 * in a fashion that might be interesting to a poll waiter.
-	 *
-	 * @param events	The new event(s) being announced.
-	 */
-	void	poll_notify(px4_pollevent_t events);
-
-	/**
-	 * Internal implementation of poll_notify.
-	 *
-	 * @param fds		A poll waiter to notify.
-	 * @param events	The event(s) to send to the waiter.
-	 */
-	virtual void	poll_notify_one(px4_pollfd_struct_t *fds, px4_pollevent_t events);
 
 	/**
 	 * Notification of the first open.
@@ -269,41 +224,14 @@ protected:
 	 */
 	void		unlock() { px4_sem_post(&_lock); }
 
-	/**
-	 * True once any poll waiter has been registered. Read it under
-	 * ATOMIC_ENTER: poll() setup stores the waiter and then checks
-	 * poll_state() under the same section, so a waiter that registers
-	 * after a false reading sees the state change itself.
-	 */
-	bool		has_poll_waiters() const { return _max_pollwaiters > 0; }
-
 	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
 
 private:
 	const char	*_devname{nullptr};		/**< device node name */
 
-	px4_pollfd_struct_t	**_pollset{nullptr};
-
 	bool		_registered{false};		/**< true if device name was registered */
 
-	uint8_t		_max_pollwaiters{0};		/**< size of the _pollset array */
 	uint16_t	_open_count{0};			/**< number of successful opens */
-
-	/**
-	 * Store a pollwaiter in a slot where we can find it later.
-	 *
-	 * Expands the pollset as required.  Must be called with the driver locked.
-	 *
-	 * @return		OK, or -errno on error.
-	 */
-	inline int	store_poll_waiter(px4_pollfd_struct_t *fds);
-
-	/**
-	 * Remove a poll waiter.
-	 *
-	 * @return		OK, or -errno on error.
-	 */
-	inline int	remove_poll_waiter(px4_pollfd_struct_t *fds);
 
 };
 
