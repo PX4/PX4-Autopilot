@@ -105,39 +105,51 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 		orb_set_interval(sub, topic_interval);
 
 		unsigned msgs_received = 0;
+		int time = 0;
 
-		px4_pollfd_struct_t fds[2] {};
-		// Poll for user input (for q or escape)
-		fds[0].fd = 0; /* stdin */
-		fds[0].events = POLLIN;
+		px4_pollfd_struct_t fds[1] {};
 		// Poll the UOrb subscription
-		fds[1].fd = sub;
-		fds[1].events = POLLIN;
+		fds[0].fd = sub;
+		fds[0].events = POLLIN;
+
+		bool should_exit = false;
+
+		const int stdin_flags = fcntl(0, F_GETFL, 0);
+		const bool stdin_flags_valid = (stdin_flags >= 0);
+
+		// Make stdin non-blocking
+		if (stdin_flags_valid) {
+			fcntl(0, F_SETFL, stdin_flags | O_NONBLOCK);
+		}
 
 		while (msgs_received < num_msgs) {
 
-			if (px4_poll(&fds[0], 2, int(MESSAGE_TIMEOUT_S * 1000)) > 0) {
+			char c = 0;
+			int ret = read(0, &c, 1);
 
-				// Received character from stdin
-				if (fds[0].revents & POLLIN) {
-					char c = 0;
-					int ret = read(0, &c, 1);
+			if (ret > 0) {
 
-					if (ret) {
-						return;
-					}
-
-					switch (c) {
-					case 0x03: // ctrl-c
-					case 0x1b: // esc
-					case 'q':
-						return;
-						/* not reached */
-					}
+				switch (c) {
+				case 0x03: // ctrl-c
+				case 0x1b: // esc
+				case 'q':
+					should_exit = true;
+					break;
+					/* not reached */
 				}
+			}
 
+			if (should_exit) {
+				break;
+			}
+
+			ret = px4_poll(&fds[0], 1, 50);
+
+			if (ret > 0) {
 				// Received message from subscription
-				if (fds[1].revents & POLLIN) {
+				time = 0;
+
+				if (fds[0].revents & POLLIN) {
 					msgs_received++;
 
 					if (num_msgs > 1) {
@@ -149,20 +161,32 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 
 					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, msgs_received);
 
-					int ret = listener_print_topic(id, sub);
+					ret = listener_print_topic(id, sub);
 
 					if (ret != PX4_OK) {
 						PX4_ERR("listener callback failed (%i)", ret);
 					}
 				}
 
+			} else if (ret == 0) {
+				time += 50;
+
 			} else {
+				PX4_ERR("Topic poll failed\n");
+				break;
+			}
+
+			if (time > MESSAGE_TIMEOUT_S * 1000) {
 				PX4_INFO_RAW("Waited for %.1f seconds without a message. Giving up.\n", (double) MESSAGE_TIMEOUT_S);
 				break;
 			}
 		}
 
 		orb_unsubscribe(sub);
+
+		if (stdin_flags_valid) {
+			fcntl(0, F_SETFL, stdin_flags);
+		}
 	}
 
 
