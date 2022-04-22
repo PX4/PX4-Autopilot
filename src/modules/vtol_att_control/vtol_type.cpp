@@ -633,12 +633,12 @@ float VtolType::pusher_assist()
 	// normalized pusher support throttle (standard VTOL) or tilt (tiltrotor), initialize to 0
 	float forward_thrust = 0.0f;
 
-	float pitch_setpoint_min = math::radians(_param_vt_ptch_min.get());
+	float pitch_setpoint_min = math::radians(_param_vt_pitch_min.get());
 
 	if (_attc->get_pos_sp_triplet()->current.valid
 	    && _attc->get_pos_sp_triplet()->current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 		pitch_setpoint_min = math::radians(
-					     _param_vt_lnd_ptch_min.get()); // set min pitch during LAND (usually lower to generate less lift)
+					     _param_vt_lnd_pitch_min.get()); // set min pitch during LAND (usually lower to generate less lift)
 	}
 
 	// only allow pitching down up to threshold, the rest of the desired
