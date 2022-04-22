@@ -162,11 +162,29 @@ PARAM_DEFINE_INT32(GPS_UBX_CFG_INTF, 0);
  * @max 360
  * @unit deg
  * @reboot_required true
- * @decimal 0
+ * @decimal 3
  *
  * @group GPS
  */
 PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
+
+/**
+ * Pitch offset for dual antenna GPS
+ *
+ * Vertical offsets can be compensated for by adjusting the Pitch offset (Septentrio).
+ *
+ * Note that this can be interpreted as the "roll" angle in case the antennas are aligned along the perpendicular axis. This occurs in situations where the two antenna ARPs may not be exactly at the same height in the vehicle reference frame. Since pitch is defined as the right-handed rotation about the vehicle Y axis, a situation where the main antenna is mounted lower than the aux antenna (assuming the default antenna setup) will result in a positive pitch.
+ *
+ *
+ * @min -90
+ * @max 90
+ * @unit deg
+ * @reboot_required true
+ * @decimal 3
+ *
+ * @group GPS
+ */
+PARAM_DEFINE_FLOAT(GPS_PITCH_OFFSET, 0.f);
 
 /**
  * Protocol for Main GPS
@@ -176,7 +194,7 @@ PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
  * Auto-detection will probe all protocols, and thus is a bit slower.
  *
  * @min 0
- * @max 6
+ * @max 7
  * @value 0 Auto detect
  * @value 1 u-blox
  * @value 2 MTK
@@ -184,6 +202,7 @@ PARAM_DEFINE_FLOAT(GPS_YAW_OFFSET, 0.f);
  * @value 4 Emlid Reach
  * @value 5 Femtomes
  * @value 6 NMEA (generic)
+ * @value 7 Septentrio (SBF)
  *
  * @reboot_required true
  * @group GPS
