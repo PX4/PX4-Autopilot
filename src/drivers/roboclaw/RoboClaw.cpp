@@ -160,7 +160,7 @@ void RoboClaw::taskMain()
 	_armedSub = orb_subscribe(ORB_ID(actuator_armed));
 	_paramSub = orb_subscribe(ORB_ID(parameter_update));
 
-	pollfd fds[3];
+	px4_pollfd_struct_t fds[3];
 	fds[0].fd = _paramSub;
 	fds[0].events = POLLIN;
 	fds[1].fd = _actuatorsSub;
@@ -174,7 +174,7 @@ void RoboClaw::taskMain()
 
 	while (!taskShouldExit) {
 
-		int pret = poll(fds, sizeof(fds) / sizeof(pollfd), waitTime / 1000);
+		int pret = px4_poll(fds, sizeof(fds) / sizeof(px4_pollfd_struct_t), waitTime / 1000);
 
 		bool actuators_timeout = int(hrt_absolute_time() - actuatorsLastWritten) > 2000 * _parameters.actuator_write_period_ms;
 
