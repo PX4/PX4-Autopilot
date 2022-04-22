@@ -76,8 +76,7 @@ public:
 
 	ssize_t write(cdev::file_t *handlep, const char *buffer, size_t buflen) override
 	{
-		// ignore what was written, but let pollers know something was written
-		poll_notify(POLLIN);
+		// ignore what was written
 		return buflen;
 	}
 };
@@ -327,119 +326,6 @@ extern "C" {
 		}
 
 		return ret;
-	}
-
-	int px4_poll(px4_pollfd_struct_t *fds, unsigned int nfds, int timeout)
-	{
-		if (nfds == 0) {
-			PX4_WARN("px4_poll with no fds");
-			return -1;
-		}
-
-		px4_sem_t sem;
-		int count = 0;
-		int ret = -1;
-
-		const unsigned NAMELEN = 32;
-		char thread_name[NAMELEN] {};
-
-#ifndef __PX4_QURT
-		int nret = pthread_getname_np(pthread_self(), thread_name, NAMELEN);
-
-		if (nret || thread_name[0] == 0) {
-			PX4_WARN("failed getting thread name");
-		}
-
-#endif
-
-		PX4_DEBUG("Called px4_poll timeout = %d", timeout);
-
-		px4_sem_init(&sem, 0, 0);
-
-		// sem use case is a signal
-		px4_sem_setprotocol(&sem, SEM_PRIO_NONE);
-
-		// Go through all fds and check them for a pollable state
-		bool fd_pollable = false;
-
-		for (unsigned int i = 0; i < nfds; ++i) {
-			fds[i].sem     = &sem;
-			fds[i].revents = 0;
-			fds[i].priv    = nullptr;
-
-			cdev::CDev *dev = getFile(fds[i].fd);
-
-			// If fd is valid
-			if (dev) {
-				PX4_DEBUG("%s: px4_poll: CDev->poll(setup) %d", thread_name, fds[i].fd);
-				ret = dev->poll(&filemap[fds[i].fd], &fds[i], true);
-
-				if (ret < 0) {
-					PX4_WARN("%s: px4_poll() error: %s", thread_name, strerror(errno));
-					break;
-				}
-
-				if (ret >= 0) {
-					fd_pollable = true;
-				}
-			}
-		}
-
-		// If any FD can be polled, lock the semaphore and
-		// check for new data
-		if (fd_pollable) {
-			if (timeout > 0) {
-				// Get the current time
-				struct timespec ts;
-				// Note, we can't actually use CLOCK_MONOTONIC on macOS
-				// but that's hidden and implemented in px4_clock_gettime.
-				px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-
-				// Calculate an absolute time in the future
-				const unsigned billion = (1000 * 1000 * 1000);
-				uint64_t nsecs = ts.tv_nsec + ((uint64_t)timeout * 1000 * 1000);
-				ts.tv_sec += nsecs / billion;
-				nsecs -= (nsecs / billion) * billion;
-				ts.tv_nsec = nsecs;
-
-				ret = px4_sem_timedwait(&sem, &ts);
-
-				if (ret && errno != ETIMEDOUT) {
-					PX4_WARN("%s: px4_poll() sem error: %s", thread_name, strerror(errno));
-				}
-
-			} else if (timeout < 0) {
-				px4_sem_wait(&sem);
-			}
-
-			// We have waited now (or not, depending on timeout),
-			// go through all fds and count how many have data
-			for (unsigned int i = 0; i < nfds; ++i) {
-
-				cdev::CDev *dev = getFile(fds[i].fd);
-
-				// If fd is valid
-				if (dev) {
-					PX4_DEBUG("%s: px4_poll: CDev->poll(teardown) %d", thread_name, fds[i].fd);
-					ret = dev->poll(&filemap[fds[i].fd], &fds[i], false);
-
-					if (ret < 0) {
-						PX4_WARN("%s: px4_poll() 2nd poll fail", thread_name);
-						break;
-					}
-
-					if (fds[i].revents) {
-						count += 1;
-					}
-				}
-			}
-		}
-
-		px4_sem_destroy(&sem);
-
-		// Return the positive count if present,
-		// return the negative error number if failed
-		return (count) ? count : ret;
 	}
 
 	int px4_access(const char *pathname, int mode)
