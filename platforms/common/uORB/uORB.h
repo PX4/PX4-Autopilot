@@ -128,6 +128,12 @@ int uorb_top(char **topic_filter, int num_filters);
  * publisher.
  */
 typedef void 	*orb_advert_t;
+typedef int 	orb_sub_t;
+
+static inline bool orb_advert_valid(orb_advert_t handle) {return handle != NULL;}
+static const orb_advert_t ORB_ADVERT_INVALID = NULL;
+static inline bool orb_sub_valid(orb_sub_t handle) {return handle >= 0;}
+static const orb_sub_t ORB_SUB_INVALID = -1;
 
 /**
  * @see uORB::Manager::orb_advertise()
@@ -189,27 +195,27 @@ static inline int orb_publish_auto(const struct orb_metadata *meta, orb_advert_t
 /**
  * @see uORB::Manager::orb_subscribe()
  */
-extern int	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
+extern orb_sub_t	orb_subscribe(const struct orb_metadata *meta) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_subscribe_multi()
  */
-extern int	orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) __EXPORT;
+extern orb_sub_t	orb_subscribe_multi(const struct orb_metadata *meta, unsigned instance) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_unsubscribe()
  */
-extern int	orb_unsubscribe(int handle) __EXPORT;
+extern int	orb_unsubscribe(orb_sub_t handle) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_copy()
  */
-extern int	orb_copy(const struct orb_metadata *meta, int handle, void *buffer) __EXPORT;
+extern int	orb_copy(const struct orb_metadata *meta, orb_sub_t handle, void *buffer) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_check()
  */
-extern int	orb_check(int handle, bool *updated) __EXPORT;
+extern int	orb_check(orb_sub_t handle, bool *updated) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_exists()
@@ -227,12 +233,12 @@ extern int	orb_group_count(const struct orb_metadata *meta) __EXPORT;
 /**
  * @see uORB::Manager::orb_set_interval()
  */
-extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
+extern int	orb_set_interval(orb_sub_t handle, unsigned interval) __EXPORT;
 
 /**
  * @see uORB::Manager::orb_get_interval()
  */
-extern int	orb_get_interval(int handle, unsigned *interval) __EXPORT;
+extern int	orb_get_interval(orb_sub_t handle, unsigned *interval) __EXPORT;
 
 /**
  * Returns the C type string from a short type in o_fields metadata, or nullptr
