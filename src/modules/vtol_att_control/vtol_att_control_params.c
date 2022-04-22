@@ -359,12 +359,12 @@ PARAM_DEFINE_INT32(VT_MC_ON_FMU, 0);
  * @max 45.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_PTCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
 
 /**
  * Minimum pitch angle during hover landing.
  *
- * Overrides  VT_PTCH_MIN when the vehicle is in LAND mode (hovering).
+ * Overrides  VT_PITCH_MIN when the vehicle is in LAND mode (hovering).
  * During landing it can be beneficial to allow lower minimum pitch angles as it can avoid the wings
  * generating too much lift and preventing the vehicle from sinking at the desired rate.
  *
@@ -372,7 +372,7 @@ PARAM_DEFINE_FLOAT(VT_PTCH_MIN, -5.0f);
  * @max 45.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_LND_PTCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, -5.0f);
 
 /**
  * Spoiler setting while landing (hover)

@@ -297,12 +297,12 @@ protected:
 					(ParamFloat<px4::params::VT_B_DEC_I>) _param_vt_b_dec_i,
 					(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_vt_b_dec_mss,
 
-					(ParamFloat<px4::params::VT_PTCH_MIN>) _param_vt_ptch_min,
+					(ParamFloat<px4::params::VT_PITCH_MIN>) _param_vt_pitch_min,
 					(ParamFloat<px4::params::VT_FWD_THRUST_SC>) _param_vt_fwd_thrust_sc,
 					(ParamInt<px4::params::VT_FWD_THRUST_EN>) _param_vt_fwd_thrust_en,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
-					(ParamFloat<px4::params::VT_LND_PTCH_MIN>) _param_vt_lnd_ptch_min,
+					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
 
 					(ParamBool<px4::params::SYS_CTRL_ALLOC>) _param_sys_ctrl_alloc,
 					(ParamInt<px4::params::VT_IDLE_PWM_MC>) _param_vt_idle_pwm_mc,
