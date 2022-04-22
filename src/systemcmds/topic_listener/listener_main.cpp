@@ -39,6 +39,7 @@
 
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 
 #include <poll.h>
 
@@ -68,7 +69,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 
 		if (instances == 1) {
 			PX4_INFO_RAW("\nTOPIC: %s\n", id->o_name);
-			int sub = orb_subscribe(id);
+			orb_sub_t sub = orb_subscribe(id);
 			listener_print_topic(id, sub);
 			orb_unsubscribe(sub);
 
@@ -78,7 +79,7 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 				if (orb_exists(id, i) == PX4_OK) {
 					PX4_INFO_RAW("\nInstance %d:\n", i);
-					int sub = orb_subscribe_multi(id, i);
+					orb_sub_t sub = orb_subscribe_multi(id, i);
 					listener_print_topic(id, sub);
 					orb_unsubscribe(sub);
 				}
@@ -100,55 +101,51 @@ void listener(const orb_id_t &id, unsigned num_msgs, int topic_instance,
 			return;
 		}
 
-		int sub = orb_subscribe_multi(id, topic_instance);
+		orb_sub_t sub = orb_subscribe_multi(id, topic_instance);
 		orb_set_interval(sub, topic_interval);
 
 		unsigned msgs_received = 0;
 
-		struct pollfd fds[2] {};
-		// Poll for user input (for q or escape)
-		fds[0].fd = 0; /* stdin */
-		fds[0].events = POLLIN;
+		px4_pollfd_struct_t fds[1] {};
 		// Poll the UOrb subscription
-		fds[1].fd = sub;
-		fds[1].events = POLLIN;
+		fds[0].fd = sub;
+		fds[0].events = POLLIN;
+
+		int time = 0;
 
 		while (msgs_received < num_msgs) {
 
-			if (poll(&fds[0], 2, int(MESSAGE_TIMEOUT_S * 1000)) > 0) {
+			char c = 0;
+			int ret = read(0, &c, 1);
 
-				// Received character from stdin
-				if (fds[0].revents & POLLIN) {
-					char c = 0;
-					int ret = read(0, &c, 1);
+			if (ret) {
 
-					if (ret) {
-						return;
-					}
-
-					switch (c) {
-					case 0x03: // ctrl-c
-					case 0x1b: // esc
-					case 'q':
-						return;
-						/* not reached */
-					}
+				switch (c) {
+				case 0x03: // ctrl-c
+				case 0x1b: // esc
+				case 'q':
+					return;
+					/* not reached */
 				}
+			}
 
+			if (px4_poll(&fds[0], 1, 50) > 0) {
 				// Received message from subscription
-				if (fds[1].revents & POLLIN) {
+
+				if (fds[0].revents & POLLIN) {
 					msgs_received++;
 
 					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, msgs_received);
 
-					int ret = listener_print_topic(id, sub);
+					ret = listener_print_topic(id, sub);
 
 					if (ret != PX4_OK) {
 						PX4_ERR("listener callback failed (%i)", ret);
 					}
 				}
+			}
 
-			} else {
+			if (time += 50 > MESSAGE_TIMEOUT_S * 1000) {
 				PX4_INFO_RAW("Waited for %.1f seconds without a message. Giving up.\n", (double) MESSAGE_TIMEOUT_S);
 				break;
 			}
