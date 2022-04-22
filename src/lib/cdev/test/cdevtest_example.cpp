@@ -162,9 +162,6 @@ ssize_t CDevNode::write(cdev::file_t *handlep, const char *buffer, size_t buflen
 		_write_offset++;
 	}
 
-	// ignore what was written, but let pollers know something was written
-	poll_notify(POLLIN);
-
 	return buflen;
 }
 
@@ -191,59 +188,6 @@ CDevExample::~CDevExample()
 	}
 }
 
-int CDevExample::do_poll(int fd, int timeout, int iterations, int delayms_after_poll)
-{
-	int pollret, readret;
-	int loop_count = 0;
-	char readbuf[10];
-	px4_pollfd_struct_t fds[1];
-
-	fds[0].fd = fd;
-	fds[0].events = POLLIN;
-	fds[0].revents = 0;
-
-	bool mustblock = (timeout < 0);
-
-	// Test indefinte blocking poll
-	while ((!appState.exitRequested()) && (loop_count < iterations)) {
-		pollret = px4_poll(fds, 1, timeout);
-
-		if (pollret < 0) {
-			PX4_ERR("Reader: px4_poll failed %d FAIL", pollret);
-			goto fail;
-		}
-
-		PX4_INFO("Reader: px4_poll returned %d", pollret);
-
-		if (pollret) {
-			readret = px4_read(fd, readbuf, 10);
-
-			if (readret != 1) {
-				if (mustblock) {
-					PX4_ERR("Reader:     read failed %d FAIL", readret);
-					goto fail;
-
-				} else {
-					PX4_INFO("Reader:     read failed %d FAIL", readret);
-				}
-
-			} else {
-				readbuf[readret] = '\0';
-				PX4_INFO("Reader: px4_poll     returned %d, read '%s' PASS", pollret, readbuf);
-			}
-		}
-
-		if (delayms_after_poll) {
-			px4_usleep(delayms_after_poll * 1000);
-		}
-
-		loop_count++;
-	}
-
-	return 0;
-fail:
-	return 1;
-}
 int CDevExample::main()
 {
 	appState.setRunning(true);
@@ -277,52 +221,7 @@ int CDevExample::main()
 
 	int ret = 0;
 
-	PX4_INFO("TEST: BLOCKING POLL ---------------");
-
-	if (do_poll(fd, -1, 3, 0)) {
-		ret = 1;
-		goto fail2;
-	}
-
-	PX4_INFO("TEST: ZERO TIMEOUT POLL -----------");
-
-	if (do_poll(fd, 0, 3, 0)) {
-		ret = 1;
-		goto fail2;
-		goto fail2;
-	}
-
-	PX4_INFO("TEST: ZERO TIMEOUT POLL -----------");
-
-	if (do_poll(fd, 0, 3, 0)) {
-		ret = 1;
-		goto fail2;
-		goto fail2;
-	}
-
-	PX4_INFO("TEST: ZERO TIMEOUT POLL -----------");
-
-	if (do_poll(fd, 0, 3, 0)) {
-		ret = 1;
-		goto fail2;
-	}
-
-	PX4_INFO("TEST: 100ms TIMEOUT POLL -----------");
-
-	if (do_poll(fd, 0, 30, 100)) {
-		ret = 1;
-		goto fail2;
-	}
-
-	PX4_INFO("TEST: 1 SEC TIMOUT POLL ------------");
-
-	if (do_poll(fd, 1000, 3, 0)) {
-		ret = 1;
-		goto fail2;
-	}
-
 	PX4_INFO("TEST: waiting for writer to stop");
-fail2:
 	g_exit = true;
 	px4_close(fd);
 	PX4_INFO("TEST: waiting for writer to stop");
