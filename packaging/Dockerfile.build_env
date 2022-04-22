@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-packaging python3-jinja2 python3-yaml openjdk-11-jre \
     gazebo11 libgazebo11-dev \
     genromfs xxd curl \
-    python3-nacl python3-pip \
+    python3-nacl python3-pip python3-future \
     ros-galactic-gazebo-ros \
     ros-galactic-fastrtps \
     ros-galactic-rmw-fastrtps-cpp \
