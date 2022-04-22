@@ -101,12 +101,6 @@ then
 	pmw3901 -S start
 fi
 
-# Check for px4flow sensor
-if param compare -s SENS_EN_PX4FLOW 1
-then
-	px4flow start -X
-fi
-
 # vl53l1x i2c distance sensor
 if param compare -s SENS_EN_VL53L1X 1
 then
@@ -198,9 +192,3 @@ then
 	# start last (wait for possible icm20948 passthrough mode)
 	ak09916 -X -q start
 fi
-
-###############################################################################
-#                            End Optional drivers                             #
-###############################################################################
-
-sensors start
