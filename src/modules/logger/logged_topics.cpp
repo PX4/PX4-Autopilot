@@ -217,7 +217,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_angular_acceleration", 10);
 	add_topic("vehicle_angular_velocity", 10);
 	add_topic("vehicle_attitude_groundtruth", 10);
-	add_topic("vehicle_global_position_groundtruth", 20);
+	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 20);
 
 	// EKF replay
