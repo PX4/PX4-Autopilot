@@ -423,7 +423,7 @@ PARAM_DEFINE_FLOAT(K_W_YAW, 5.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_ROLL, 3.0f);
+PARAM_DEFINE_FLOAT(K_ACT_ROLL, 0.1f);
 
 /**
  * pitch gain of K_ACT (actuator deflection gain)
@@ -435,7 +435,7 @@ PARAM_DEFINE_FLOAT(K_ACT_ROLL, 3.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_PITCH, 3.0f);
+PARAM_DEFINE_FLOAT(K_ACT_PITCH, 0.1f);
 
 /**
  * yaw gain of K_ACT (actuator deflection gain)
@@ -447,4 +447,4 @@ PARAM_DEFINE_FLOAT(K_ACT_PITCH, 3.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_YAW, 3.0f);
+PARAM_DEFINE_FLOAT(K_ACT_YAW, 0.1f);

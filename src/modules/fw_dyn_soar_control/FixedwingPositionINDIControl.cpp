@@ -304,56 +304,111 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv()
         }
         file_reader.close();
         */
-    _basis_coeffs_x(0) = -0.026399f;
-    _basis_coeffs_x(1) = 826.714294f;
-    _basis_coeffs_x(2) = -3432.814434f;
-    _basis_coeffs_x(3) = 7863.143292f;
-    _basis_coeffs_x(4) = -13322.886901f;
-    _basis_coeffs_x(5) = 18316.582356f;
-    _basis_coeffs_x(6) = -21634.179996f;
-    _basis_coeffs_x(7) = 22466.018036f;
-    _basis_coeffs_x(8) = -20949.604526f;
-    _basis_coeffs_x(9) = 17621.148149f;
-    _basis_coeffs_x(10) = -13520.515123f;
-    _basis_coeffs_x(11) = 9422.542947f;
-    _basis_coeffs_x(12) = -6018.861971f;
-    _basis_coeffs_x(13) = 3385.119029f;
-    _basis_coeffs_x(14) = -1600.362985f;
-    _basis_coeffs_x(15) = 439.235977f;
+    /*   
+    // 30 m/s trajectory
+    _basis_coeffs_x(0) = -0.001788f;
+    _basis_coeffs_x(1) = -4309.983870f;
+    _basis_coeffs_x(2) = 27561.833442f;
+    _basis_coeffs_x(3) = -79243.452679f;
+    _basis_coeffs_x(4) = 132885.860293f;
+    _basis_coeffs_x(5) = -132032.442095f;
+    _basis_coeffs_x(6) = 48834.507728f;
+    _basis_coeffs_x(7) = 67523.410338f;
+    _basis_coeffs_x(8) = -123589.704954f;
+    _basis_coeffs_x(9) = 71024.161695f;
+    _basis_coeffs_x(10) = 44098.153846f;
+    _basis_coeffs_x(11) = -128538.025554f;
+    _basis_coeffs_x(12) = 131172.181978f;
+    _basis_coeffs_x(13) = -78230.807474f;
+    _basis_coeffs_x(14) = 26663.839579f;
+    _basis_coeffs_x(15) = -3913.262861f;
 
-    _basis_coeffs_y(0) = -0.139214f;
-    _basis_coeffs_y(1) = 1528.730954f;
-    _basis_coeffs_y(2) = -6325.861755f;
-    _basis_coeffs_y(3) = 15443.549565f;
-    _basis_coeffs_y(4) = -28040.238622f;
-    _basis_coeffs_y(5) = 41980.028597f;
-    _basis_coeffs_y(6) = -54384.100803f;
-    _basis_coeffs_y(7) = 62686.013646f;
-    _basis_coeffs_y(8) = -65075.809430f;
-    _basis_coeffs_y(9) = 61050.185712f;
-    _basis_coeffs_y(10) = -51403.496086f;
-    _basis_coeffs_y(11) = 38173.744062f;
-    _basis_coeffs_y(12) = -24154.989309f;
-    _basis_coeffs_y(13) = 12186.703620f;
-    _basis_coeffs_y(14) = -4286.372935f;
-    _basis_coeffs_y(15) = 679.830536f;
+    _basis_coeffs_y(0) = 0.004280f;
+    _basis_coeffs_y(1) = 4570.380553f;
+    _basis_coeffs_y(2) = -25639.293350f;
+    _basis_coeffs_y(3) = 72621.110788f;
+    _basis_coeffs_y(4) = -127949.875874f;
+    _basis_coeffs_y(5) = 141930.443715f;
+    _basis_coeffs_y(6) = -74162.126946f;
+    _basis_coeffs_y(7) = -49777.387350f;
+    _basis_coeffs_y(8) = 138193.241851f;
+    _basis_coeffs_y(9) = -110424.181996f;
+    _basis_coeffs_y(10) = -20559.874806f;
+    _basis_coeffs_y(11) = 153605.364533f;
+    _basis_coeffs_y(12) = -194515.736549f;
+    _basis_coeffs_y(13) = 139509.473902f;
+    _basis_coeffs_y(14) = -58671.117200f;
+    _basis_coeffs_y(15) = 11343.451391f;
 
-    _basis_coeffs_z(0) = 20.f; //4.971065f;
-    _basis_coeffs_z(1) = -354.548028f;
-    _basis_coeffs_z(2) = 1506.974164f;
-    _basis_coeffs_z(3) = -3506.606108f;
-    _basis_coeffs_z(4) = 5944.806897f;
-    _basis_coeffs_z(5) = -8122.670014f;
-    _basis_coeffs_z(6) = 9471.905195f;
-    _basis_coeffs_z(7) = -9711.318513f;
-    _basis_coeffs_z(8) =  8958.890412f;
-    _basis_coeffs_z(9) =  -7501.461083f;
-    _basis_coeffs_z(10) =   5797.319144f;
-    _basis_coeffs_z(11) =   -4126.927355f;
-    _basis_coeffs_z(12) =   2727.759847f;
-    _basis_coeffs_z(13) = -1570.235132f;
-    _basis_coeffs_z(14) =  727.014138f;
-    _basis_coeffs_z(15) = -189.177675;
+    _basis_coeffs_z(0) = 100.f; //3.499054f;
+    _basis_coeffs_z(1) = -9110.823700f;
+    _basis_coeffs_z(2) = 49921.539080f;
+    _basis_coeffs_z(3) = -131589.929685f;
+    _basis_coeffs_z(4) = 211653.192338f;
+    _basis_coeffs_z(5) = -208769.604426f;
+    _basis_coeffs_z(6) = 82855.943814f;
+    _basis_coeffs_z(7) = 97934.653205f;
+    _basis_coeffs_z(8) =  -195851.952006f;
+    _basis_coeffs_z(9) =  127689.165562f;
+    _basis_coeffs_z(10) =   53559.445863f;
+    _basis_coeffs_z(11) =   -208279.480139f;
+    _basis_coeffs_z(12) =  238865.680043f;
+    _basis_coeffs_z(13) = -162710.396962f;
+    _basis_coeffs_z(14) =  66968.079887f;
+    _basis_coeffs_z(15) = -13187.455563;
+    */
+
+   // 100m radius circle trajec
+    _basis_coeffs_x(0) = 0.000064f;
+    _basis_coeffs_x(1) = 3020.233571f;
+    _basis_coeffs_x(2) = -10609.960177f;
+    _basis_coeffs_x(3) = 17956.458964f;
+    _basis_coeffs_x(4) = -15735.479961f;
+    _basis_coeffs_x(5) = 2399.573434f;
+    _basis_coeffs_x(6) = 11421.854705f;
+    _basis_coeffs_x(7) = -12388.936542f;
+    _basis_coeffs_x(8) = -120.944433f;
+    _basis_coeffs_x(9) = 12530.869640f;
+    _basis_coeffs_x(10) = -11346.431128f;
+    _basis_coeffs_x(11) = -2643.369342f;
+    _basis_coeffs_x(12) = 15999.009519f;
+    _basis_coeffs_x(13) = -18127.094775f;
+    _basis_coeffs_x(14) = 10676.696033f;
+    _basis_coeffs_x(15) = -3032.667571f;
+
+    _basis_coeffs_y(0) = 100.005984f;
+    _basis_coeffs_y(1) = 4686.100637f;
+    _basis_coeffs_y(2) = -21963.998713f;
+    _basis_coeffs_y(3) = 50566.542718f;
+    _basis_coeffs_y(4) = -71908.811359f;
+    _basis_coeffs_y(5) = 61683.065460f;
+    _basis_coeffs_y(6) = -15730.546677f;
+    _basis_coeffs_y(7) = -39386.062413f;
+    _basis_coeffs_y(8) = 63952.599923f;
+    _basis_coeffs_y(9) = -39525.510553f;
+    _basis_coeffs_y(10) = -15526.730604f;
+    _basis_coeffs_y(11) = 61505.752706f;
+    _basis_coeffs_y(12) = -71804.582542f;
+    _basis_coeffs_y(13) = 50525.803330f;
+    _basis_coeffs_y(14) = -21954.858741f;
+    _basis_coeffs_y(15) = 4685.311429f;
+
+    _basis_coeffs_z(0) = 100.0f;
+    _basis_coeffs_z(1) = 0.0f;
+    _basis_coeffs_z(2) = 0.0f;
+    _basis_coeffs_z(3) = 0.0f;
+    _basis_coeffs_z(4) = 0.0f;
+    _basis_coeffs_z(5) = 0.0f;
+    _basis_coeffs_z(6) = 0.0f;
+    _basis_coeffs_z(7) = 0.0f;
+    _basis_coeffs_z(8) = 0.0f;
+    _basis_coeffs_z(9) = 0.0f;
+    _basis_coeffs_z(10) = 0.0f;
+    _basis_coeffs_z(11) = 0.0f;
+    _basis_coeffs_z(12) = 0.0f;
+    _basis_coeffs_z(13) = 0.0f;
+    _basis_coeffs_z(14) = 0.0f;
+    _basis_coeffs_z(15) = 0.0f;
 }
 
 void
@@ -401,13 +456,16 @@ FixedwingPositionINDIControl::Run()
         // downscale velocity to match current one, 
         // terminal time is determined such that current velocity is met
         Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.f);
-        float T = sqrt((v_ref_*v_ref_)/(_vel*_vel+0.001f));
+        float T = sqrtf((v_ref_*v_ref_)/(_vel*_vel+0.001f));
+        //PX4_INFO("local velocity:\t%.4f\t%.4f\t%.4f", (double)v_ref_(0),(double)v_ref_(1),(double)v_ref_(2));
+        //PX4_INFO("T= \t%.1f", (double)T);
         Vector3f pos_ref = _get_position_ref(t_ref);                    // in inertial ENU
         Vector3f vel_ref = _get_velocity_ref(t_ref,T);                  // in inertial ENU
         Vector3f acc_ref = _get_acceleration_ref(t_ref,T);              // gravity-corrected acceleration (ENU)
         Quatf q = _get_attitude_ref(t_ref,T);
         Vector3f omega_ref = _get_angular_velocity_ref(t_ref,T);        // body angular velocity
         Vector3f alpha_ref = _get_angular_acceleration_ref(t_ref,T);    // body angular acceleration
+        //PX4_INFO("local position ref:\t%.4f\t%.4f\t%.4f", (double)pos_ref(0),(double)pos_ref(1),(double)pos_ref(2));
 
         /*
         //TODO: remove when done with testing
@@ -508,8 +566,6 @@ FixedwingPositionINDIControl::Run()
         _soaring_controller_heartbeat.timestamp = hrt_absolute_time();
         _soaring_controller_heartbeat.heartbeat = hrt_absolute_time();
         _soaring_controller_heartbeat_pub.publish(_soaring_controller_heartbeat);
-
-
             
     }
     perf_end(_loop_perf);
@@ -519,11 +575,11 @@ Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
 FixedwingPositionINDIControl::_get_basis_funs(float t)
 {
     Vector<float, _num_basis_funs> vec;
-    vec(0) = 1.f;
-    float sigma = 0.5f/_num_basis_funs;
+    vec(0) = 1.0f;
+    float sigma = 1.0f/float(_num_basis_funs);
     for(uint i=1; i<_num_basis_funs; i++){
         float fun1 = sinf(M_PI_F*t);
-        float fun2 = exp(-powf((t-i/_num_basis_funs),2)/sigma);
+        float fun2 = exp(-powf((t-float(i)/float(_num_basis_funs)),2)/sigma);
         vec(i) = fun1*fun2;
     }
     return vec;
@@ -534,10 +590,10 @@ FixedwingPositionINDIControl::_get_d_dt_basis_funs(float t)
 {
     Vector<float, _num_basis_funs> vec;
     vec(0) = 1.f;
-    float sigma = 0.5f/_num_basis_funs;
+    float sigma = 1.0f/_num_basis_funs;
     for(uint i=1; i<_num_basis_funs; i++){
         float fun1 = sinf(M_PI_F*t);
-        float fun2 = exp(-powf((t-i/_num_basis_funs),2)/sigma);
+        float fun2 = exp(-powf((t-float(i)/_num_basis_funs),2)/sigma);
         vec(i) = fun2*(M_PI_F*sigma*cosf(M_PI_F*t)-2*(t-i/_num_basis_funs)*fun1)/sigma;
     }
     return vec;
@@ -548,10 +604,10 @@ FixedwingPositionINDIControl::_get_d2_dt2_basis_funs(float t)
 {
     Vector<float, _num_basis_funs> vec;
     vec(0) = 1.f;
-    float sigma = 0.5f/_num_basis_funs;
+    float sigma = 1.0f/_num_basis_funs;
     for(uint i=1; i<_num_basis_funs; i++){
         float fun1 = sinf(M_PI_F*t);
-        float fun2 = exp(-powf((t-i/_num_basis_funs),2)/sigma);
+        float fun2 = exp(-powf((t-float(i)/_num_basis_funs),2)/sigma);
         vec(i) = fun2 * (fun1 * (4*powf((i/_num_basis_funs-t),2) - \
                         sigma*(powf(M_PI_F,2)*sigma + 2)) + 4*M_PI_F*sigma*(i/_num_basis_funs-t)*cosf(M_PI_F*t))/(powf(sigma,2));
  
@@ -674,7 +730,7 @@ FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
     for(uint i=0; i<n; i++){
         t_ref = float(i)/float(n);
         Vector3f pos_ref = _get_position_ref(t_ref);
-        //PX4_INFO("trajectory point: \t%.2f\t%.2f\t%.2f", (double)pos_ref(0), (double)pos_ref(1), (double)pos_ref(2));
+        //PX4_INFO("trajectory time + point: \t%.2f\t%.2f\t%.2f\t%.2f", (double)t_ref, (double)pos_ref(0), (double)pos_ref(1), (double)pos_ref(2));
         distances(i) = (pos_ref - pos)*(pos_ref - pos);
     }
 
@@ -689,8 +745,8 @@ FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
     }
     t = t/float(n);
     //PX4_INFO("closest point: \t%.2f\t%.2f\t%.2f", (double)_get_position_ref(t)(0), (double)_get_position_ref(t)(1), (double)_get_position_ref(t)(2));
-    PX4_INFO("closest t: %.2f", (double)t);
-    //PX4_INFO("closest distance:%.2f", (double)min_dist);
+    //PX4_INFO("closest t: %.2f", (double)t);
+    //PX4_INFO("closest distance:%.2f", (double)sqrtf(min_dist));
     return t;
 }
 
@@ -752,6 +808,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     Vector3f w_err = -q_err.angle()*q_err.axis();
     // compute angular acceleration command (in body frame)
     Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
+    rot_acc_command = _K_w*(omega_ref-_omega) + alpha_ref;
     
     return rot_acc_command;
 }
@@ -770,6 +827,7 @@ FixedwingPositionINDIControl::_compute_actuator_deflections(Vector3f ctrl)
     // compute airspeed scaling
     const float airspeed_constrained = constrain(_airspeed, 5.f, 50.f);
     float airspeed_scaling = 1.f/(powf(airspeed_constrained,2)+1.f);
+    airspeed_scaling = 1.f;
 
     // compute the normalized actuator deflection, including airspeed scaling
     Vector3f deflection = airspeed_scaling*_K_actuators*ctrl;
