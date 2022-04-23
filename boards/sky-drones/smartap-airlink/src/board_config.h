@@ -154,8 +154,8 @@
 	 (1 << ADC_SCALED_VDD_3V3_SENSORS3_CHANNEL) | \
 	 (1 << ADC_SCALED_V5_CHANNEL)               | \
 	 (1 << ADC_BATTERY_CURRENT_CHANNEL))		| \
-	 (1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL) | \
-	 (1 << ADC_BATTERY_VOLTAGE_CHANNEL)
+	(1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL) | \
+	(1 << ADC_BATTERY_VOLTAGE_CHANNEL)
 
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
