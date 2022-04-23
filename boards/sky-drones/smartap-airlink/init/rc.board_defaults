@@ -27,3 +27,5 @@ param set-default CBRK_IO_SAFETY 22027
 
 
 safety_button start
+
+set LOGGER_BUF 32
