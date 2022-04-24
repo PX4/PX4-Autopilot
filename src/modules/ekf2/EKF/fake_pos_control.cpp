@@ -42,7 +42,8 @@ void Ekf::controlFakePosFusion()
 {
 	// If we aren't doing any aiding, fake position measurements at the last known position to constrain drift
 	// During intial tilt aligment, fake position is used to perform a "quasi-stationary" leveling of the EKF
-	const bool fake_pos_data_ready = isTimedOut(_time_last_fake_pos_fuse, (uint64_t)2e5); // Fuse fake position at a limited rate
+	const bool fake_pos_data_ready = isTimedOut(_time_last_fake_pos_fuse,
+					 (uint64_t)2e5); // Fuse fake position at a limited rate
 
 	if (fake_pos_data_ready) {
 		const bool continuing_conditions_passing = !isHorizontalAidingActive();
@@ -87,7 +88,7 @@ void Ekf::startFakePosFusion()
 
 void Ekf::resetFakePosFusion()
 {
-	_last_known_posNE = _state.pos.xy();
+	_last_known_posNED = _state.pos;
 	resetHorizontalPositionToLastKnown();
 	resetHorizontalVelocityToZero();
 	_time_last_fake_pos_fuse = _time_last_imu;
@@ -100,26 +101,40 @@ void Ekf::stopFakePosFusion()
 
 void Ekf::fuseFakePosition()
 {
-	Vector3f fake_pos_obs_var;
+	float obs_var = sq(0.5f);
+	Vector3f obs_var_3d;
 
 	if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-		fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise));
+		obs_var = sq(fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise));
 
 	} else if (!_control_status.flags.in_air && _control_status.flags.vehicle_at_rest) {
 		// Accelerate tilt fine alignment by fusing more
 		// aggressively when the vehicle is at rest
-		fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(0.01f);
-
-	} else {
-		fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(0.5f);
+		obs_var = sq(0.01f);
 	}
 
-	_gps_pos_innov.xy() = Vector2f(_state.pos) - _last_known_posNE;
+	obs_var_3d.setAll(obs_var);
 
-	const float fake_pos_innov_gate = 3.f;
+	_gps_pos_innov.xy() = Vector2f(_state.pos.xy()) - _last_known_posNED.xy();
 
-	if (fuseHorizontalPosition(_gps_pos_innov, fake_pos_innov_gate, fake_pos_obs_var,
-	                           _gps_pos_innov_var, _gps_pos_test_ratio, true)) {
+	const float innov_gate = 3.f;
+
+	if (fuseHorizontalPosition(_gps_pos_innov, innov_gate, obs_var_3d,
+				   _gps_pos_innov_var, _gps_pos_test_ratio, true)) {
 		_time_last_fake_pos_fuse = _time_last_imu;
 	}
+
+
+	if (!_control_status.flags.baro_hgt
+	    && !_control_status.flags.gps_hgt
+	    && !_control_status.flags.rng_hgt
+	    && !_control_status.flags.ev_hgt) {
+
+		if (isTimedOut(_time_last_hgt_fuse, (uint64_t)200e3)) {
+			fuseVerticalPosition(_gps_pos_innov(2), innov_gate, obs_var,
+					     _gps_pos_innov_var(2), _gps_pos_test_ratio(1));
+
+		}
+	}
+
 }

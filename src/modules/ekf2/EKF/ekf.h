@@ -401,7 +401,7 @@ private:
 	uint64_t _time_last_healthy_rng_data{0};
 	uint8_t _nb_gps_yaw_reset_available{0}; ///< remaining number of resets allowed before switching to another aiding source
 
-	Vector2f _last_known_posNE{};		///< last known local NE position vector (m)
+	Vector3f _last_known_posNED{};		///< last known local NED position vector (m)
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
 	uint64_t _delta_time_baro_us{0};	///< delta time between two consecutive delayed baro samples from the buffer (uSec)
