@@ -54,7 +54,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The smartap-airlink board provides the following clock sources:
+/* The board provides the following clock sources:
  *
  *   X301: 16 MHz crystal for HSE
  *
@@ -258,7 +258,7 @@
 #define BOARD_FLASH_WAITSTATES 7
 
 /* LED definitions ******************************************************************/
-/* The smartap-airlink board has numerous LEDs but only three, LED_GREEN a Green LED, LED_BLUE
+/* The board has numerous LEDs but only three, LED_GREEN a Green LED, LED_BLUE
  * a Blue LED and LED_RED a Red LED, that can be controlled by software.
  *
  * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in any way.
