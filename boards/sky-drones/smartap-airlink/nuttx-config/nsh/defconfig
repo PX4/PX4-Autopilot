@@ -24,7 +24,7 @@
 # CONFIG_NSH_DISABLE_TIME is not set
 CONFIG_ARCH="arm"
 CONFIG_ARCH_BOARD_CUSTOM=y
-CONFIG_ARCH_BOARD_CUSTOM_DIR="../../../../boards/px4/fmu-v5x/nuttx-config"
+CONFIG_ARCH_BOARD_CUSTOM_DIR="../../../../boards/sky-drones/smartap-airlink/nuttx-config"
 CONFIG_ARCH_BOARD_CUSTOM_DIR_RELPATH=y
 CONFIG_ARCH_BOARD_CUSTOM_NAME="px4"
 CONFIG_ARCH_CHIP="stm32f7"
