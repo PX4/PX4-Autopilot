@@ -104,6 +104,7 @@ pipeline {
                      "px4_fmu-v6u_default",
                      "px4_fmu-v6x_default",
                      "px4_io-v2_default",
+                     "sky-drones_smartap-airlink_default",
                      "spracing_h7extreme_default",
                      "uvify_core_default"
             ],
