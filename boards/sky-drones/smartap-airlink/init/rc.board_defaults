@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# board specific defaults
+#------------------------------------------------------------------------------
+
+# Telemetry for onboard computer
+param set-default MAV_1_CONFIG 102 	# TELEM2
+param set-default MAV_1_MODE 0 			# Normal
+param set-default SER_TEL2_BAUD 921600  	# 921600
+
+# Temperature stabilization
+param set-default SENS_EN_THERMAL 1 		# Enable heater
+param set-default SENS_TEMP_ID 2359314 		# Heated IMU ID
+
+# Battery scaling
+param set-default BAT_N_CELLS 4
+param set-default BAT1_N_CELLS 4
+
+param set-default BAT1_V_DIV 15.51
+
+param set-default BAT1_A_PER_V 36.00
+
+param set-default BAT_V_OFFS_CURR 0.413
+
+# Disable safety switch
+param set-default CBRK_IO_SAFETY 22027
+
+
+safety_button start
+
+set LOGGER_BUF 32

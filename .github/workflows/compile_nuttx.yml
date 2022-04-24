@@ -61,6 +61,7 @@ jobs:
           px4_fmu-v5x,
           px4_fmu-v6u,
           px4_fmu-v6x,
+          sky-drones_smartap-airlink,
           spracing_h7extreme,
           uvify_core
           ]
