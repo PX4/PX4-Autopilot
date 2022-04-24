@@ -195,7 +195,11 @@ private:
 	position_setpoint_s _hdg_hold_prev_wp {};		///< position where heading hold started
 	position_setpoint_s _hdg_hold_curr_wp {};		///< position to which heading hold flies
 
-	hrt_abstime _control_position_last_called{0};		///< last call of control_position
+	/**
+	 * @brief Last absolute time position control has been called [us]
+	 *
+	 */
+	hrt_abstime _last_time_position_control_called{0};
 
 	bool _landed{true};
 
@@ -360,6 +364,16 @@ private:
 	void		control_auto_velocity(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
 					      const Vector2f &ground_speed,
 					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+
+	/**
+	 * @brief Vehicle control while in takeoff
+	 *
+	 * @param now Current system time [us]
+	 * @param curr_pos Current Local position of vehicle [m]
+	 * @param ground_speed Local ground speed of vehicle [m/s]
+	 * @param pos_sp_prev previous position setpoint
+	 * @param pos_sp_curr current position setpoint
+	 */
 	void		control_auto_takeoff(const hrt_abstime &now, const Vector2d &curr_pos,
 					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
