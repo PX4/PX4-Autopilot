@@ -831,7 +831,8 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 				       const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
 				       const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next)
 {
-	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, 0.01f, 0.05f);
+	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, MIN_AUTO_TIMESTEP,
+					 MAX_AUTO_TIMESTEP);
 	_last_time_position_control_called = now;
 
 	if (_param_fw_use_npfg.get()) {
@@ -1414,7 +1415,8 @@ void
 FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
-	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, 0.01f, 0.05f);
+	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, MIN_AUTO_TIMESTEP,
+					 MAX_AUTO_TIMESTEP);
 	_last_time_position_control_called = now;
 
 	if (_param_fw_use_npfg.get()) {
@@ -1654,7 +1656,8 @@ void
 FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
-	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, 0.01f, 0.05f);
+	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, MIN_AUTO_TIMESTEP,
+					 MAX_AUTO_TIMESTEP);
 	_last_time_position_control_called = now;
 
 	if (_param_fw_use_npfg.get()) {
@@ -2071,7 +2074,8 @@ void
 FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed)
 {
-	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, 0.01f, 0.05f);
+	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, MIN_AUTO_TIMESTEP,
+					 MAX_AUTO_TIMESTEP);
 	_last_time_position_control_called = now;
 
 	// if we assume that user is taking off then help by demanding altitude setpoint well above ground
@@ -2549,7 +2553,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		bool climbout_mode, float climbout_pitch_min_rad,
 		bool disable_underspeed_detection, float hgt_rate_sp)
 {
-	const float dt = math::constrain((now - _last_tecs_update) * 1e-6f, 0.01f, 0.05f);
+	const float dt = math::constrain((now - _last_tecs_update) * 1e-6f, MIN_AUTO_TIMESTEP, MAX_AUTO_TIMESTEP);
 	_last_tecs_update = now;
 
 	// do not run TECS if we are not in air
