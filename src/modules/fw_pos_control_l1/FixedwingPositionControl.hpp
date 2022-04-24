@@ -120,8 +120,8 @@ static constexpr float ASPD_SP_SLEW_RATE = 1.f; // slew rate limit for airspeed 
 static constexpr hrt_abstime T_WIND_EST_TIMEOUT =
 	10_s; // time after which the wind estimate is disabled if no longer updating
 
-static constexpr float MIN_AUTO_TIMESTEP = 0.01;
-static constexpr float MAX_AUTO_TIMESTEP = 0.05;
+static constexpr float MIN_AUTO_TIMESTEP = 0.01;  // minimum time step between auto control updates [s]
+static constexpr float MAX_AUTO_TIMESTEP = 0.05;  // maximum time step between auto control updates [s]
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
