@@ -121,7 +121,7 @@ static constexpr hrt_abstime T_WIND_EST_TIMEOUT =
 	10_s; // time after which the wind estimate is disabled if no longer updating
 
 static constexpr float MIN_AUTO_TIMESTEP = 0.01f;  // minimum time step between auto control updates [s]
-static constexpr float MAX_AUTO_TIMESTEP = 0.05;  // maximum time step between auto control updates [s]
+static constexpr float MAX_AUTO_TIMESTEP = 0.05f;  // maximum time step between auto control updates [s]
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
