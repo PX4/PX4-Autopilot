@@ -199,50 +199,50 @@ Mavlink::mavlink_update_parameters()
 	}
 }
 
-void
-Mavlink::set_channel()
+bool Mavlink::set_channel()
 {
 	/* set channel according to instance id */
 	switch (_instance_id) {
 	case 0:
 		_channel = MAVLINK_COMM_0;
-		break;
+		return true;
 
 	case 1:
 		_channel = MAVLINK_COMM_1;
-		break;
+		return true;
 
 	case 2:
 		_channel = MAVLINK_COMM_2;
-		break;
+		return true;
 
 	case 3:
 		_channel = MAVLINK_COMM_3;
-		break;
+		return true;
 #ifdef MAVLINK_COMM_4
 
 	case 4:
 		_channel = MAVLINK_COMM_4;
-		break;
+		return true;
 #endif
 #ifdef MAVLINK_COMM_5
 
 	case 5:
 		_channel = MAVLINK_COMM_5;
-		break;
+		return true;
 #endif
 #ifdef MAVLINK_COMM_6
 
 	case 6:
 		_channel = MAVLINK_COMM_6;
-		break;
+		return true;
 #endif
 
 	default:
-		PX4_WARN("instance ID %d is out of range", _instance_id);
-		px4_task_exit(1);
+		PX4_ERR("instance ID %d is out of range", _instance_id);
 		break;
 	}
+
+	return false;
 }
 
 bool
@@ -2135,18 +2135,21 @@ Mavlink::task_main(int argc, char *argv[])
 
 #endif // MAVLINK_UDP
 
-	if (!set_instance_id()) {
-		PX4_ERR("no instances available");
-		return PX4_ERROR;
+	if (set_instance_id()) {
+		if (!set_channel()) {
+			PX4_ERR("set channel failed");
+			return PX4_ERROR;
+		}
 
-	} else {
 		// set thread name
 		char thread_name[13];
 		snprintf(thread_name, sizeof(thread_name), "mavlink_if%d", get_instance_id());
 		px4_prctl(PR_SET_NAME, thread_name, px4_getpid());
-	}
 
-	set_channel();
+	} else {
+		PX4_ERR("no instances available");
+		return PX4_ERROR;
+	}
 
 	/* initialize send mutex */
 	pthread_mutex_init(&_send_mutex, nullptr);
@@ -2160,7 +2163,7 @@ Mavlink::task_main(int argc, char *argv[])
 		 */
 		if (OK != message_buffer_init(2 * sizeof(mavlink_message_t) + 1)) {
 			PX4_ERR("msg buf alloc fail");
-			return 1;
+			return PX4_ERROR;
 		}
 
 		/* initialize message buffer mutex */
@@ -2237,6 +2240,8 @@ Mavlink::task_main(int argc, char *argv[])
 	uint16_t event_sequence_offset = 0; // offset to account for skipped events, not sent via MAVLink
 
 	_mavlink_start_time = hrt_absolute_time();
+
+	_task_running.store(true);
 
 	while (!should_exit()) {
 		/* main loop */
@@ -2606,6 +2611,8 @@ Mavlink::task_main(int argc, char *argv[])
 
 	PX4_INFO("exiting channel %i", (int)_channel);
 
+	_task_running.store(false);
+
 	return OK;
 }
 
@@ -2765,10 +2772,12 @@ int Mavlink::start_helper(int argc, char *argv[])
 		PX4_ERR("OUT OF MEM");
 
 	} else {
-		/* this will actually only return once MAVLink exits */
-		instance->_task_running.store(true);
+		/* this will actually only return once MAVLink exits, unless there's a startup error */
 		res = instance->task_main(argc, argv);
-		instance->_task_running.store(false);
+
+		if (res != PX4_OK) {
+			delete instance;
+		}
 	}
 
 	return res;
