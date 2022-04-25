@@ -372,7 +372,7 @@ private:
 	 * @brief Vehicle control while in takeoff
 	 *
 	 * @param now Current system time [us]
-	 * @param curr_pos Current Local position of vehicle [m]
+	 * @param curr_pos Current 2D local position vector of vehicle [m]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
