@@ -368,7 +368,8 @@ struct parameters {
 	float mcoef{0.1f};			///< rotor momentum drag coefficient for the X and Y axes (1/s)
 
 	// control of accel error detection and mitigation (IMU clipping)
-	const float vert_innov_test_lim{3.0f};	///< Number of standard deviations allowed before the combined vertical velocity and position test is declared as failed
+	const float vert_innov_test_lim{3.0f};	///< Number of standard deviations of vertical vel/pos innovations allowed before triggering a vertical acceleration failure
+	const float vert_innov_test_min{1.0f};	///< Minimum number of standard deviations of vertical vel/pos innovations required to trigger a vertical acceleration failure
 	const int bad_acc_reset_delay_us{500000};	///< Continuous time that the vertical position and velocity innovation test must fail before the states are reset (uSec)
 
 	// auxiliary velocity fusion
