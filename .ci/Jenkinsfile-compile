@@ -105,6 +105,7 @@ pipeline {
                      "px4_fmu-v5_stackcheck",
                      "px4_fmu-v5_uavcanv0periph",
                      "px4_fmu-v5x_default",
+                     "px4_fmu-v6c_default",
                      "px4_fmu-v6u_default",
                      "px4_fmu-v6x_default",
                      "px4_io-v2_default",
