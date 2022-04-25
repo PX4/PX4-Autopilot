@@ -96,16 +96,6 @@ class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::
 {
 public:
 
-	enum class QuadchuteReason {
-		TransitionTimeout = 0,
-		ExternalCommand,
-		MinimumAltBreached,
-		LossOfAlt,
-		LargeAltError,
-		MaximumPitchExceeded,
-		MaximumRollExceeded,
-	};
-
 	VtolAttitudeControl();
 	~VtolAttitudeControl() override;
 
@@ -121,10 +111,8 @@ public:
 	bool init();
 
 	bool is_fixed_wing_requested() { return _transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW; };
-	void quadchute(QuadchuteReason reason);
 	int get_transition_command() {return _transition_command;}
 	bool get_immediate_transition() {return _immediate_transition;}
-	void reset_immediate_transition() {_immediate_transition = false;}
 
 	float getAirDensity() const { return _air_density; }
 
@@ -144,6 +132,7 @@ public:
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
 	struct vehicle_local_position_setpoint_s	*get_local_pos_sp() {return &_local_pos_sp;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
+	struct vehicle_status_s				*get_vehicle_status() {return &_vehicle_status;}
 
 	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_0() {return &_torque_setpoint_0;}
 	struct vehicle_torque_setpoint_s 		*get_torque_setpoint_1() {return &_torque_setpoint_1;}
@@ -209,6 +198,7 @@ private:
 	vehicle_local_position_s		_local_pos{};
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
+	vehicle_status_s			_vehicle_status{};
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};	// [kg/m^3]
 
@@ -220,10 +210,6 @@ private:
 		param_t vtol_fw_permanent_stab;
 		param_t vtol_type;
 		param_t elevons_mc_lock;
-		param_t fw_min_alt;
-		param_t fw_alt_err;
-		param_t fw_qc_max_pitch;
-		param_t fw_qc_max_roll;
 		param_t front_trans_time_openloop;
 		param_t front_trans_time_min;
 		param_t front_trans_duration;

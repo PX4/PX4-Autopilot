@@ -1,7 +1,7 @@
 
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,11 +52,15 @@
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_selection.h>
+#include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu_status.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/pwm_input.h>
 
@@ -70,6 +74,11 @@ union failure_detector_status_u {
 		uint16_t high_wind : 1;
 		uint16_t battery : 1;
 		uint16_t imbalanced_prop : 1;
+		uint16_t qc_roll : 1;
+		uint16_t qc_pitch : 1;
+		uint16_t qc_min_alt : 1;
+		uint16_t qc_alt_err : 1;
+		uint16_t qc_trans_tmt : 1;
 	} flags;
 	uint16_t value {0};
 };
@@ -87,10 +96,13 @@ public:
 	float getImbalancedPropMetric() const { return _imbalanced_prop_lpf.getState(); }
 
 private:
-	void updateAttitudeStatus();
+	void updateAttitudeStatus(const vehicle_status_s &vehicle_status);
 	void updateExternalAtsStatus();
 	void updateEscsStatus(const vehicle_status_s &vehicle_status);
 	void updateImbalancedPropStatus();
+	void updateMinHeightStatus(const vehicle_status_s &vehicle_status);
+	void updateAdaptiveQC(const vehicle_status_s &vehicle_status, const vehicle_control_mode_s &vehicle_control_mode);
+	void updateTransitionTimeout();
 
 	failure_detector_status_u _status{};
 
@@ -110,6 +122,17 @@ private:
 	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
 	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status)};
 
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint});
+	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
+	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+
+	float _ra_hrate{0.f};
+	float _ra_hrate_sp{0.f};
+
+	hrt_abstime _transition_start_timestamp{0};
+	bool _was_in_transition_FW_prev{false};
+
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
 		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r,
@@ -118,6 +141,12 @@ private:
 		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig,
 		(ParamInt<px4::params::FD_ESCS_EN>) _param_escs_en,
-		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr
+		(ParamInt<px4::params::FD_IMB_PROP_THR>) _param_fd_imb_prop_thr,
+
+		(ParamInt<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
+		(ParamInt<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
+		(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
+		(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
+		(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout
 	)
 };

@@ -78,6 +78,7 @@ bool is_vtol_tailsitter                 # True if the system performs a 90° pit
 bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
+bool vtol_fw_actuation_failure          # True if an issue with fixed-wing actuation was detected
 
 bool rc_signal_lost				# true if RC reception lost
 

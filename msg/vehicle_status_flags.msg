@@ -38,7 +38,6 @@ bool offboard_control_signal_lost
 bool rc_signal_found_once
 bool rc_calibration_in_progress
 bool rc_calibration_valid                            # set if RC calibration is valid
-bool vtol_transition_failure                        # Set to true if vtol transition failed
 bool usb_connected                                # status of the USB power supply
 bool sd_card_detected_once                        # set to true if the SD card was detected
 

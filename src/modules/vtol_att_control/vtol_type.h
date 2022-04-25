@@ -53,10 +53,6 @@ struct Params {
 	int32_t vtol_motor_id;
 	int32_t vtol_type;
 	bool elevons_mc_lock;		// lock elevons in multicopter mode
-	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
-	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
-	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)
-	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
 	float front_trans_time_openloop;
 	float front_trans_time_min;
 	float front_trans_duration;
@@ -175,11 +171,6 @@ public:
 	virtual void waiting_on_tecs() {}
 
 	/**
-	 * Checks for fixed-wing failsafe condition and issues abort request if needed.
-	 */
-	void check_quadchute_condition();
-
-	/**
 	 * Returns true if we're allowed to do a mode transition on the ground.
 	 */
 	bool can_transition_on_ground();
@@ -227,6 +218,7 @@ public:
 	struct airspeed_validated_s 				*_airspeed_validated;					// airspeed
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
+	struct vehicle_status_s				*_vehicle_status;
 
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_0;
 	struct vehicle_torque_setpoint_s 		*_torque_setpoint_1;
@@ -247,9 +239,6 @@ public:
 	float _thrust_transition = 0.0f;	// thrust value applied during a front transition (tailsitter & tiltrotor only)
 	float _last_thr_in_fw_mode = 0.0f;
 
-	float _ra_hrate = 0.0f;			// rolling average on height rate for quadchute condition
-	float _ra_hrate_sp = 0.0f;		// rolling average on height rate setpoint for quadchute condition
-
 	bool _flag_was_in_trans_mode = false;	// true if mode has just switched to transition
 
 	hrt_abstime _trans_finished_ts = 0;
@@ -264,9 +253,6 @@ public:
 	float _transition_dt = 0;
 
 	float _accel_to_pitch_integ = 0;
-
-	bool _quadchute_command_treated{false};
-
 
 	/**
 	 * @brief      Sets mc motor minimum pwm to VT_IDLE_PWM_MC which ensures

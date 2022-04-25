@@ -219,50 +219,6 @@ PARAM_DEFINE_FLOAT(VT_TRANS_TIMEOUT, 15.0f);
 PARAM_DEFINE_FLOAT(VT_TRANS_MIN_TM, 2.0f);
 
 /**
- * QuadChute Altitude
- *
- * Minimum altitude for fixed wing flight, when in fixed wing the altitude drops below this altitude
- * the vehicle will transition back to MC mode and enter failsafe RTL
- * @min 0.0
- * @max 200.0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_MIN_ALT, 0.0f);
-
-/**
- * Adaptive QuadChute
- *
- * Maximum negative altitude error for fixed wing flight. If the altitude drops below this value below the altitude setpoint
- * the vehicle will transition back to MC mode and enter failsafe RTL.
- * @min 0.0
- * @max 200.0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_FLOAT(VT_FW_ALT_ERR, 0.0f);
-
-/**
- * QuadChute Max Pitch
- *
- * Maximum pitch angle before QuadChute engages
- * Above this the vehicle will transition back to MC mode and enter failsafe RTL
- * @min 0
- * @max 180
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_QC_P, 0);
-
-/**
- * QuadChute Max Roll
- *
- * Maximum roll angle before QuadChute engages
- * Above this the vehicle will transition back to MC mode and enter failsafe RTL
- * @min 0
- * @max 180
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
-
-/**
  * Airspeed less front transition time (open loop)
  *
  * The duration of the front transition when there is no airspeed feedback available.
