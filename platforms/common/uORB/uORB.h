@@ -134,16 +134,18 @@ void uorb_shutdown(void);
  * publisher.
  */
 typedef void 	*orb_advert_t;
-typedef int 	orb_sub_t;
+typedef void 	*orb_sub_t;
 
 #if defined(__cplusplus)
 # define ORB_ADVERT_INVALID nullptr
+# define ORB_SUB_INVALID nullptr
 #else
 # define ORB_ADVERT_INVALID ((orb_advert_t)NULL)
+# define ORB_SUB_INVALID ((orb_sub_t)NULL)
 #endif
+
 static inline bool orb_advert_valid(orb_advert_t handle) {return handle != ORB_ADVERT_INVALID;}
-static inline bool orb_sub_valid(orb_sub_t handle) {return handle >= 0;}
-#define ORB_SUB_INVALID ((orb_sub_t)-1)
+static inline bool orb_sub_valid(orb_sub_t handle) {return handle != ORB_SUB_INVALID;}
 
 /**
  * @see uORB::Manager::orb_advertise()
