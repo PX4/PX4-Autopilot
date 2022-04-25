@@ -219,9 +219,13 @@ void
 FixedwingPositionINDIControl::vehicle_attitude_poll()
 {
 	if (_vehicle_attitude_sub.update(&_attitude)) {
-        // transform the reference frame from NED to ENU
-        Dcmf R_in_ned(Quatf(_attitude.q));
-		_att = Quatf(_R_ned_to_enu*R_in_ned);
+        // get rotation between NED frames
+        Dcmf R_ned_frd(Quatf(_attitude.q));
+        // get rotation from FRD to ENU frame (change of basis)
+        Dcmf R_enu_frd(_R_ned_to_enu*R_ned_frd);
+		_att = Quatf(R_enu_frd);
+        //Eulerf e(R_ned_frd);
+        //PX4_INFO("attitude euler angles:\t%.4f\t%.4f\t%.4f", (double)e(0),(double)e(1),(double)e(2));
         //PX4_INFO("attitude quaternion:\t%.4f\t%.4f\t%.4f\t%.4f", (double)_att(0),(double)_att(1),(double)_att(2),(double)_att(3));
     }
     if(hrt_absolute_time()-_attitude.timestamp > 50_ms && _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD){
@@ -466,16 +470,8 @@ FixedwingPositionINDIControl::Run()
         Vector3f omega_ref = _get_angular_velocity_ref(t_ref,T);        // body angular velocity
         Vector3f alpha_ref = _get_angular_acceleration_ref(t_ref,T);    // body angular acceleration
         //PX4_INFO("local position ref:\t%.4f\t%.4f\t%.4f", (double)pos_ref(0),(double)pos_ref(1),(double)pos_ref(2));
+        //PX4_INFO("alpha ref:\t%.4f\t%.4f\t%.4f", (double)alpha_ref(0),(double)alpha_ref(1),(double)alpha_ref(2));
 
-        /*
-        //TODO: remove when done with testing
-        Vector3f pos_ref = _pos + Vector3f{1.f,0.f,1.f};                   // in inertial ENU
-        Vector3f vel_ref = Vector3f{15.f,0.f,0.f};                // in inertial ENU
-        Vector3f acc_ref = Vector3f{0.f,0.f,0.f};              // gravity-corrected acceleration (ENU)
-        Quatf q = _get_attitude_ref(0.f,10.f);
-        Vector3f omega_ref = Vector3f{0.f,0.f,0.f};        // body angular velocity
-        Vector3f alpha_ref = Vector3f{0.f,0.f,0.f};    // body angular acceleration
-        */
 
 
         // =====================
@@ -509,26 +505,24 @@ FixedwingPositionINDIControl::Run()
             // =========================
             // publish attitude setpoint
             // =========================
-            _attitude_sp = {};
+            //_attitude_sp = {};
             _attitude_sp.timestamp = hrt_absolute_time();
-            // transform quaternion back to NED frame
-            Dcmf R(q);
-            Quatf q_transformed(_R_enu_to_ned*R);
-            _attitude_sp.q_d[0] = q_transformed(0);
-            _attitude_sp.q_d[1] = q_transformed(1);
-            _attitude_sp.q_d[2] = q_transformed(2);
-            _attitude_sp.q_d[3] = q_transformed(3);
+            _attitude_sp.q_d[0] = q(0);
+            _attitude_sp.q_d[1] = q(1);
+            _attitude_sp.q_d[2] = q(2);
+            _attitude_sp.q_d[3] = q(3);
             _attitude_sp_pub.publish(_attitude_sp);
 
             // ======================
             // publish rates setpoint
             // ======================
-            _angular_vel_sp = {};
+            //_angular_vel_sp = {};
             _angular_vel_sp.timestamp = hrt_absolute_time();
             _angular_vel_sp.roll = omega_ref(0);
             _angular_vel_sp.pitch = omega_ref(1);
             _angular_vel_sp.yaw = omega_ref(2);
             _angular_vel_sp_pub.publish(_angular_vel_sp);
+
             // ============================
             // compute actuator deflections
             // ============================
@@ -538,13 +532,13 @@ FixedwingPositionINDIControl::Run()
             // =========================
             // publish acutator controls
             // =========================
-            _actuators = {};
+            //_actuators = {};
             _actuators.timestamp = hrt_absolute_time();
             _actuators.timestamp_sample = hrt_absolute_time();
             _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
             _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
             _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
-            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.5f;
+            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.4f;
             _actuators_0_pub.publish(_actuators);
             //print_message(_actuators);
         }
@@ -589,12 +583,12 @@ Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
 FixedwingPositionINDIControl::_get_d_dt_basis_funs(float t)
 {
     Vector<float, _num_basis_funs> vec;
-    vec(0) = 1.f;
+    vec(0) = 1.0f;
     float sigma = 1.0f/_num_basis_funs;
     for(uint i=1; i<_num_basis_funs; i++){
         float fun1 = sinf(M_PI_F*t);
         float fun2 = exp(-powf((t-float(i)/_num_basis_funs),2)/sigma);
-        vec(i) = fun2*(M_PI_F*sigma*cosf(M_PI_F*t)-2*(t-i/_num_basis_funs)*fun1)/sigma;
+        vec(i) = fun2*(M_PI_F*sigma*cosf(M_PI_F*t)-2*(t-float(i)/_num_basis_funs)*fun1)/sigma;
     }
     return vec;
 }
@@ -603,13 +597,13 @@ Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
 FixedwingPositionINDIControl::_get_d2_dt2_basis_funs(float t)
 {
     Vector<float, _num_basis_funs> vec;
-    vec(0) = 1.f;
+    vec(0) = 1.0f;
     float sigma = 1.0f/_num_basis_funs;
     for(uint i=1; i<_num_basis_funs; i++){
         float fun1 = sinf(M_PI_F*t);
         float fun2 = exp(-powf((t-float(i)/_num_basis_funs),2)/sigma);
-        vec(i) = fun2 * (fun1 * (4*powf((i/_num_basis_funs-t),2) - \
-                        sigma*(powf(M_PI_F,2)*sigma + 2)) + 4*M_PI_F*sigma*(i/_num_basis_funs-t)*cosf(M_PI_F*t))/(powf(sigma,2));
+        vec(i) = fun2 * (fun1 * (4*powf((float(i)/_num_basis_funs-t),2) - \
+                        sigma*(powf(M_PI_F,2)*sigma + 2)) + 4*M_PI_F*sigma*(float(i)/_num_basis_funs-t)*cosf(M_PI_F*t))/(powf(sigma,2));
  
     }
     return vec;
@@ -657,7 +651,7 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     Vector3f f = _mass*acc;
     // compute force component projected onto lift axis
     Vector3f vel_normalized = vel_air.normalized();
-    Vector3f f_lift = f - f*vel_normalized;
+    Vector3f f_lift = f - (f*vel_normalized)*vel_normalized;
     Vector3f lift_normalized = f_lift.normalized();
     Vector3f wing_normalized = -vel_normalized.cross(lift_normalized);
     // compute rotation matrix
@@ -671,6 +665,7 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     R_bi(2,0) = lift_normalized(0);
     R_bi(2,1) = lift_normalized(1);
     R_bi(2,2) = lift_normalized(2);
+    R_bi.renormalize();
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
     float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1;
@@ -679,12 +674,21 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     Dcmf R_pitch(e);
     Dcmf Rotation(R_pitch*R_bi);
     // switch from FRD to ENU frame
+    /*
+    float determinant = Rotation(0,0)*(Rotation(1,1)*Rotation(2,2)-Rotation(2,1)*Rotation(1,2)) - 
+                        Rotation(1,0)*(Rotation(0,1)*Rotation(2,2)-Rotation(2,1)*Rotation(0,2)) + 
+                        Rotation(2,0)*(Rotation(0,1)*Rotation(1,2)-Rotation(1,1)*Rotation(0,2));
+    PX4_INFO("determinant: %.2f", (double)determinant);
+    PX4_INFO("length: %.2f", (double)(wing_normalized*wing_normalized));
+    */
+
     Rotation(1,0) *= -1;
     Rotation(1,1) *= -1;
     Rotation(1,2) *= -1;
     Rotation(2,0) *= -1;
     Rotation(2,1) *= -1;
     Rotation(2,2) *= -1;
+
     Quatf q(Rotation.transpose());
     return q;
 }
@@ -808,7 +812,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     Vector3f w_err = -q_err.angle()*q_err.axis();
     // compute angular acceleration command (in body frame)
     Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
-    rot_acc_command = _K_w*(omega_ref-_omega) + alpha_ref;
+    rot_acc_command =  0.0f*_K_w*(omega_ref-_omega) + alpha_ref;;
 
     // apply LP filtered values for incremental part
 
@@ -820,14 +824,28 @@ Vector3f
 FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
 {
 
-    // compute the required body moment to produce the desired body angular acceleration
+    // compute the expected current body moment
     Vector3f moment = _inertia*_alpha + _omega.cross(_inertia*_omega);
-    moment = 1.f*Vector3f{0.1f*_actuators.control[actuator_controls_s::INDEX_ROLL], 1.f*_actuators.control[actuator_controls_s::INDEX_PITCH], 0.1f*_actuators.control[actuator_controls_s::INDEX_YAW]};
+    moment = 1.f*Vector3f{1.0f*_actuators.control[actuator_controls_s::INDEX_ROLL], 1.f*_actuators.control[actuator_controls_s::INDEX_PITCH], 0.1f*_actuators.control[actuator_controls_s::INDEX_YAW]};
+    float c_ail = 1.f/400.f;
+    float c_ele = 1.f/400.f;
+    float c_rud = 0.1f/400.f;
+    // compute velocity in body frame
+    Dcmf R_ib(_att);
+    Vector3f vel_body = R_ib.transpose()*_vel;
+    //Vector3f vel_body_2 = Dcmf(Quatf(_attitude.q)).transpose()*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
+    //PX4_INFO("ENU body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body_2(0), (double)vel_body_2(1), (double)vel_body_2(2));
+    //PX4_INFO("FRD body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body(0), (double)vel_body(1), (double)vel_body(2));
+    // compute moments
+    moment(0) = 0.5f*c_ail*sqrtf(vel_body*vel_body)*vel_body(0)*_actuators.control[actuator_controls_s::INDEX_ROLL];
+    moment(1) = 0.5f*c_ele*sqrtf(vel_body*vel_body)*vel_body(0)*_actuators.control[actuator_controls_s::INDEX_PITCH];
+    moment(0) = 0.5f*c_rud*sqrtf(vel_body*vel_body)*vel_body(0)*_actuators.control[actuator_controls_s::INDEX_YAW];
     Vector3f moment_filtered = _apply_LP_filter(moment, _m_list, _m_lpf_list);
     Vector3f alpha_filtered = _apply_LP_filter(_alpha, _l_list, _l_lpf_list);
     Vector3f command = _inertia*(ctrl-alpha_filtered) + moment_filtered;
+    //PX4_INFO("filtered alpha: %.2f", (double)(_l_list(0))(0));
     //command = _inertia*ctrl + _omega.cross(_inertia*_omega);
-    return command;
+    return 0.1f*command + 0.f*ctrl;
 
 
 }
@@ -905,11 +923,12 @@ FixedwingPositionINDIControl::init()
 		return false;
 	}
     _read_trajectory_coeffs_csv();
+
     // initialize transformations
     _R_ned_to_enu *= 0.f;
-	_R_ned_to_enu(0,1) = 1;
-	_R_ned_to_enu(1,0) = 1;
-	_R_ned_to_enu(2,2) = -1;
+	_R_ned_to_enu(0,1) = 1.f;
+	_R_ned_to_enu(1,0) = 1.f;
+	_R_ned_to_enu(2,2) = -1.f;
 	_R_ned_to_enu.renormalize();
     _R_enu_to_ned = _R_ned_to_enu;
 	return true;

@@ -179,7 +179,7 @@ PARAM_DEFINE_FLOAT(C_D2, 1.984f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_A1, 1.82292669f);
+PARAM_DEFINE_FLOAT(FILTER_A1, 1.16826067f);
 
 /**
  * coefficients of the butterworth filter used for smoothing the IMU
@@ -191,7 +191,7 @@ PARAM_DEFINE_FLOAT(FILTER_A1, 1.82292669f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_A2, -0.83737699f);
+PARAM_DEFINE_FLOAT(FILTER_A2, -0.42411821f);
 
 /**
  * coefficients of the butterworth filter used for smoothing the IMU
@@ -203,7 +203,7 @@ PARAM_DEFINE_FLOAT(FILTER_A2, -0.83737699f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_B1, 0.00361257f);
+PARAM_DEFINE_FLOAT(FILTER_B1, 0.06396438f);
 
 /**
  * coefficients of the butterworth filter used for smoothing the IMU
@@ -215,7 +215,7 @@ PARAM_DEFINE_FLOAT(FILTER_B1, 0.00361257f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_B2, 0.00722515f);
+PARAM_DEFINE_FLOAT(FILTER_B2, 0.12792877f);
 
 /**
  * coefficients of the butterworth filter used for smoothing the IMU
@@ -227,7 +227,7 @@ PARAM_DEFINE_FLOAT(FILTER_B2, 0.00722515f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_B3, 0.00361257f);
+PARAM_DEFINE_FLOAT(FILTER_B3, 0.06396438f);
 
 // ========================================================
 // =================== CONTROL GAINS ======================
@@ -422,7 +422,7 @@ PARAM_DEFINE_FLOAT(K_W_YAW, 5.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_ROLL, 1.0f);
+PARAM_DEFINE_FLOAT(K_ACT_ROLL, 0.1f);
 
 /**
  * pitch gain of K_ACT (actuator deflection gain)
@@ -434,7 +434,7 @@ PARAM_DEFINE_FLOAT(K_ACT_ROLL, 1.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_PITCH, 1.0f);
+PARAM_DEFINE_FLOAT(K_ACT_PITCH, 0.1f);
 
 /**
  * yaw gain of K_ACT (actuator deflection gain)
@@ -446,4 +446,4 @@ PARAM_DEFINE_FLOAT(K_ACT_PITCH, 1.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_YAW, 1.0f);
+PARAM_DEFINE_FLOAT(K_ACT_YAW, 0.1f);
