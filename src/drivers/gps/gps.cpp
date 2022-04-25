@@ -755,12 +755,12 @@ GPS::run()
 		heading_offset = matrix::wrap_pi(math::radians(heading_offset));
 	}
 
-    handle = param_find("GPS_PITCH_OFFSET");
-    float pitch_offset = 0.f;
+	handle = param_find("GPS_PITCH_OFFSET");
+	float pitch_offset = 0.f;
 
-    if (handle != PARAM_INVALID) {
-        param_get(handle, &pitch_offset);
-    }
+	if (handle != PARAM_INVALID) {
+		param_get(handle, &pitch_offset);
+	}
 
 	int32_t gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
 	handle = param_find("GPS_UBX_DYNMODEL");
