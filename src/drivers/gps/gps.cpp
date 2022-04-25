@@ -755,6 +755,13 @@ GPS::run()
 		heading_offset = matrix::wrap_pi(math::radians(heading_offset));
 	}
 
+    handle = param_find("GPS_PITCH_OFFSET");
+    float pitch_offset = 0.f;
+
+    if (handle != PARAM_INVALID) {
+        param_get(handle, &pitch_offset);
+    }
+
 	int32_t gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
 	handle = param_find("GPS_UBX_DYNMODEL");
 
@@ -896,7 +903,7 @@ GPS::run()
 			break;
 
 		case gps_driver_mode_t::SBF:
-			_helper = new GPSDriverSBF(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset);
+			_helper = new GPSDriverSBF(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info, heading_offset, pitch_offset);
 			set_device_type(DRV_GPS_DEVTYPE_SBF);
 			break;
 #endif // CONSTRAINED_FLASH
