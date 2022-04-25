@@ -68,8 +68,8 @@ void Ekf::controlGpsFusion()
 			// periodically fuse yaw estimate if necessary
 			if (isYawEmergencyEstimateAvailable()
 			    && _control_status.flags.yaw_align
-			    && isTimedOut(_ekfgsf_yaw_reset_time, 1'000'000)
-			    && isTimedOut(_time_last_heading_fuse, (uint64_t)500'000)) {
+			    && isTimedOut(_ekfgsf_yaw_reset_time, 500'000)
+			    && isTimedOut(_time_last_heading_fuse, (uint64_t)300'000)) {
 
 				float innovation = wrap_pi(getEulerYaw(_R_to_earth) - _yawEstimator.getYaw());
 				float obs_var = _yawEstimator.getYawVar();
