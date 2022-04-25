@@ -1334,18 +1334,20 @@ MavlinkShell *
 Mavlink::get_shell()
 {
 	if (!_mavlink_shell) {
-		_mavlink_shell = new MavlinkShell();
+		MavlinkShell *shell = new MavlinkShell();
 
-		if (!_mavlink_shell) {
+		if (!shell) {
 			PX4_ERR("Failed to allocate a shell");
 
 		} else {
-			int ret = _mavlink_shell->start();
+			int ret = shell->start();
 
-			if (ret != 0) {
+			if (ret == 0) {
+				_mavlink_shell = shell;
+
+			} else {
 				PX4_ERR("Failed to start shell (%i)", ret);
-				delete _mavlink_shell;
-				_mavlink_shell = nullptr;
+				delete shell;
 			}
 		}
 	}
