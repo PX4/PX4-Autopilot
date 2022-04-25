@@ -845,24 +845,6 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
 	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;		// by default we don't use flaps
 
-	/* save time when airplane is in air */
-	if (!_was_in_air && !_landed) {
-		_was_in_air = true;
-		_time_went_in_air = now;
-		_takeoff_ground_alt = _current_altitude;
-	}
-
-	/* reset flag when airplane landed */
-	if (_landed) {
-		_was_in_air = false;
-	}
-
-	/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-	if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
-		/* reset integrators */
-		_tecs.reset_state();
-	}
-
 	/* reset hold yaw */
 	_hdg_hold_yaw = _yaw;
 
@@ -2389,6 +2371,18 @@ FixedwingPositionControl::Run()
 		Vector2d curr_pos(_current_latitude, _current_longitude);
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
 
+		/* save time when airplane is in air */
+		if (!_was_in_air && !_landed) {
+			_was_in_air = true;
+			_time_went_in_air = now;
+			_takeoff_ground_alt = _current_altitude;
+		}
+
+		/* reset flag when airplane landed */
+		if (_landed) {
+			_was_in_air = false;
+		}
+
 		set_control_mode_current(_local_pos.timestamp, _pos_sp_triplet.current.valid);
 
 		switch (_control_mode_current) {
@@ -2429,6 +2423,9 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_OTHER: {
+				/* reset integrators */
+				_tecs.reset_state();
+
 				/* reset landing and takeoff state */
 				if (!_last_manual) {
 					reset_landing_state();
