@@ -16,10 +16,12 @@
 #include <vector>
 #include <array>
 #include <drivers/drv_hrt.h>
+#include "fw_att_control/ecl_pitch_controller.h"
+#include "fw_att_control/ecl_roll_controller.h"
+#include "fw_att_control/ecl_wheel_controller.h"
+#include "fw_att_control/ecl_yaw_controller.h"
 #include <lib/ecl/geo/geo.h>
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
-#include <lib/npfg/npfg.hpp>
-#include <lib/tecs/TECS.hpp>
 #include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
@@ -237,6 +239,7 @@ private:
 	Quatf _get_attitude(Vector3f vel, Vector3f f);	// get the attitude to produce force f while flying with velocity vel
 	Vector3f _compute_NDI_stage_1(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref, Vector3f omega_ref, Vector3f alpha_ref);
 	Vector3f _compute_NDI_stage_2(Vector3f ctrl);
+	Vector3f _apply_LP_filter(Vector3f new_input, Vector<Vector3f, 3>  &old_input, Vector<Vector3f, 2>  &old_output);
 	Vector3f _compute_actuator_deflections(Vector3f ctrl);
 
 	// control variables
@@ -260,10 +263,14 @@ private:
 	hrt_abstime _last_run{0};
 
 	// filter variables
-	std::array<Vector3f, 3> _f_list;
-	std::array<Vector3f, 3> _a_list;
-	std::array<Vector3f, 3> _f_lpf_list;
-	std::array<Vector3f, 3> _a_lpf_list;
+	Vector<Vector3f, 3> _f_list;	// force
+	Vector<Vector3f, 3> _m_list;	// moment
+	Vector<Vector3f, 3> _a_list;	// linear accel
+	Vector<Vector3f, 3> _l_list;	// angular accel
+	Vector<Vector3f, 2> _f_lpf_list;
+	Vector<Vector3f, 2> _m_lpf_list;	
+	Vector<Vector3f, 2> _a_lpf_list;
+	Vector<Vector3f, 2> _l_lpf_list;
 
 	// parameter variables
 	Matrix3f _inertia {};
@@ -280,6 +287,11 @@ private:
 	float _b1;
 	float _b2;
 	float _b3;
+
+	// body rate controllers
+	ECL_RollController		_roll_ctrl;
+	ECL_PitchController		_pitch_ctrl;
+	ECL_YawController		_yaw_ctrl;
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.

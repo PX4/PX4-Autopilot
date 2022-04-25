@@ -359,22 +359,22 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv()
     */
 
    // 100m radius circle trajec
-    _basis_coeffs_x(0) = 0.000064f;
-    _basis_coeffs_x(1) = 3020.233571f;
-    _basis_coeffs_x(2) = -10609.960177f;
-    _basis_coeffs_x(3) = 17956.458964f;
-    _basis_coeffs_x(4) = -15735.479961f;
-    _basis_coeffs_x(5) = 2399.573434f;
-    _basis_coeffs_x(6) = 11421.854705f;
-    _basis_coeffs_x(7) = -12388.936542f;
-    _basis_coeffs_x(8) = -120.944433f;
-    _basis_coeffs_x(9) = 12530.869640f;
-    _basis_coeffs_x(10) = -11346.431128f;
-    _basis_coeffs_x(11) = -2643.369342f;
-    _basis_coeffs_x(12) = 15999.009519f;
-    _basis_coeffs_x(13) = -18127.094775f;
-    _basis_coeffs_x(14) = 10676.696033f;
-    _basis_coeffs_x(15) = -3032.667571f;
+    _basis_coeffs_x(0) = -0.000064f;
+    _basis_coeffs_x(1) = -3020.233571f;
+    _basis_coeffs_x(2) = 10609.960177f;
+    _basis_coeffs_x(3) = -17956.458964f;
+    _basis_coeffs_x(4) = 15735.479961f;
+    _basis_coeffs_x(5) = -2399.573434f;
+    _basis_coeffs_x(6) = -11421.854705f;
+    _basis_coeffs_x(7) = 12388.936542f;
+    _basis_coeffs_x(8) = 120.944433f;
+    _basis_coeffs_x(9) = -12530.869640f;
+    _basis_coeffs_x(10) = 11346.431128f;
+    _basis_coeffs_x(11) = 2643.369342f;
+    _basis_coeffs_x(12) = -15999.009519f;
+    _basis_coeffs_x(13) = 18127.094775f;
+    _basis_coeffs_x(14) = -10676.696033f;
+    _basis_coeffs_x(15) = 3032.667571f;
 
     _basis_coeffs_y(0) = 100.005984f;
     _basis_coeffs_y(1) = 4686.100637f;
@@ -544,7 +544,7 @@ FixedwingPositionINDIControl::Run()
             _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
             _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
             _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
-            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 1.0f;
+            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.5f;
             _actuators_0_pub.publish(_actuators);
             //print_message(_actuators);
         }
@@ -809,6 +809,9 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     // compute angular acceleration command (in body frame)
     Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
     rot_acc_command = _K_w*(omega_ref-_omega) + alpha_ref;
+
+    // apply LP filtered values for incremental part
+
     
     return rot_acc_command;
 }
@@ -816,9 +819,39 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
 Vector3f 
 FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
 {
+
     // compute the required body moment to produce the desired body angular acceleration
-    Vector3f moment = _inertia*ctrl + _omega.cross(_inertia*_omega);
-    return moment;
+    Vector3f moment = _inertia*_alpha + _omega.cross(_inertia*_omega);
+    moment = 1.f*Vector3f{0.1f*_actuators.control[actuator_controls_s::INDEX_ROLL], 1.f*_actuators.control[actuator_controls_s::INDEX_PITCH], 0.1f*_actuators.control[actuator_controls_s::INDEX_YAW]};
+    Vector3f moment_filtered = _apply_LP_filter(moment, _m_list, _m_lpf_list);
+    Vector3f alpha_filtered = _apply_LP_filter(_alpha, _l_list, _l_lpf_list);
+    Vector3f command = _inertia*(ctrl-alpha_filtered) + moment_filtered;
+    //command = _inertia*ctrl + _omega.cross(_inertia*_omega);
+    return command;
+
+
+}
+
+Vector3f
+FixedwingPositionINDIControl::_apply_LP_filter(Vector3f new_input, Vector<Vector3f, 3>  &old_input, Vector<Vector3f, 2>  &old_output)
+{
+    old_input(0) = old_input(1);
+    old_input(1) = old_input(2);
+    old_input(2) = new_input;
+    //
+    Vector3f output = Vector3f{0.f,0.f,0.f};
+    //
+    output += _a1*old_output(1);
+    output += _a2*old_output(0);
+    //
+    output += _b1*old_input(2);
+    output += _b2*old_input(1);
+    output += _b3*old_input(0);
+    //
+    old_output(0) = old_output(1);
+    old_output(1) = output;
+    //
+    return output;
 }
 
 Vector3f
@@ -826,8 +859,8 @@ FixedwingPositionINDIControl::_compute_actuator_deflections(Vector3f ctrl)
 {   
     // compute airspeed scaling
     const float airspeed_constrained = constrain(_airspeed, 5.f, 50.f);
-    float airspeed_scaling = 1.f/(powf(airspeed_constrained,2)+1.f);
-    airspeed_scaling = 1.f;
+    float airspeed_scaling = 20.f/(powf(airspeed_constrained,2)+1.f);
+    airspeed_scaling = 1.0f;
 
     // compute the normalized actuator deflection, including airspeed scaling
     Vector3f deflection = airspeed_scaling*_K_actuators*ctrl;
