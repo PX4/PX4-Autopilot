@@ -102,6 +102,8 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{V6X01, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2
 	{V6X03, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 3
 	{V6X13, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 3
+	{V6X04, hw_mft_list_v0600, arraySize(hw_mft_list_v0600)}, // BMP388 moved to I2C2, Sensor Set 4
+	{V6X14, hw_mft_list_v0610, arraySize(hw_mft_list_v0610)}, // No PX4IO BMP388 moved to I2C2, Sensor Set 4
 };
 
 /************************************************************************************
