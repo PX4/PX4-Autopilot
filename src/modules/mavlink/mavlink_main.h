@@ -747,7 +747,7 @@ private:
 #endif // MAVLINK_UDP
 
 
-	void set_channel();
+	bool set_channel();
 
 	bool set_instance_id();
 

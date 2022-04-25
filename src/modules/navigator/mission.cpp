@@ -307,8 +307,10 @@ Mission::on_active()
 bool
 Mission::set_current_mission_index(uint16_t index)
 {
-	if (_navigator->get_mission_result()->valid &&
-	    (index != _current_mission_index) && (index < _mission.count)) {
+	if (index == _current_mission_index) {
+		return true; // nothing to do, so return true
+
+	} else if (_navigator->get_mission_result()->valid && (index < _mission.count)) {
 
 		_current_mission_index = index;
 

@@ -785,8 +785,8 @@ void Ekf::checkVerticalAccelerationHealth()
 			const bool using_gps_for_both = _control_status.flags.gps_hgt && _control_status.flags.gps;
 			const bool using_ev_for_both = _control_status.flags.ev_hgt && _control_status.flags.ev_vel;
 			are_vertical_pos_and_vel_independant = !(using_gps_for_both || using_ev_for_both);
-			is_inertial_nav_falling |= _vert_vel_innov_ratio > _params.vert_innov_test_lim && _vert_pos_innov_ratio > 0.0f;
-			is_inertial_nav_falling |= _vert_pos_innov_ratio > _params.vert_innov_test_lim && _vert_vel_innov_ratio > 0.0f;
+			is_inertial_nav_falling |= _vert_vel_innov_ratio > _params.vert_innov_test_lim && _vert_pos_innov_ratio > _params.vert_innov_test_min;
+			is_inertial_nav_falling |= _vert_pos_innov_ratio > _params.vert_innov_test_lim && _vert_vel_innov_ratio > _params.vert_innov_test_min;
 
 		} else {
 			// only height sensing available

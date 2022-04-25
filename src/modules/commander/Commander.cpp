@@ -96,7 +96,7 @@ static orb_advert_t tune_control_pub = nullptr;
 static void play_power_button_down_tune()
 {
 	tune_control_s tune_control{};
-	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT - 20;
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 	tune_control.tune_id = tune_control_s::TUNE_ID_POWER_OFF;
 	tune_control.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -2910,6 +2910,8 @@ Commander::run()
 		if (_param_com_wind_warn.get() > FLT_EPSILON && !_vehicle_land_detected.landed) {
 			checkWindAndWarn();
 		}
+
+		_status_flags.flight_terminated = _armed.force_failsafe || _armed.lockdown || _armed.manual_lockdown;
 
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();

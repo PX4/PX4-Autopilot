@@ -405,6 +405,7 @@ else
 			battery_status start
 		fi
 
+		sensors start
 		commander start
 	fi
 
@@ -506,6 +507,12 @@ else
 	if param compare -s IMU_GYRO_CAL_EN 1
 	then
 		gyro_calibration start
+	fi
+
+	# Check for px4flow sensor
+	if param compare -s SENS_EN_PX4FLOW 1
+	then
+		px4flow start -X &
 	fi
 
 	#
