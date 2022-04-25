@@ -128,12 +128,12 @@ int uorb_top(char **topic_filter, int num_filters);
  * publisher.
  */
 typedef void 	*orb_advert_t;
-typedef int 	orb_sub_t;
+typedef void 	*orb_sub_t;
 
 static inline bool orb_advert_valid(orb_advert_t handle) {return handle != NULL;}
 static const orb_advert_t ORB_ADVERT_INVALID = NULL;
-static inline bool orb_sub_valid(orb_sub_t handle) {return handle >= 0;}
-static const orb_sub_t ORB_SUB_INVALID = -1;
+static inline bool orb_sub_valid(orb_sub_t handle) {return handle != NULL;}
+static const orb_sub_t ORB_SUB_INVALID = NULL;
 
 /**
  * @see uORB::Manager::orb_advertise()
