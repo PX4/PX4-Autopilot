@@ -35,6 +35,7 @@
 
 #if defined(CONFIG_SYSTEM_CDCACM)
 __BEGIN_DECLS
+#include <board_config.h>
 #include <arch/board/board.h>
 #include <syslog.h>
 #include <nuttx/wqueue.h>
@@ -42,6 +43,7 @@ __BEGIN_DECLS
 
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <fcntl.h>
 
 extern int sercon_main(int c, char **argv);
 extern int serdis_main(int c, char **argv);
