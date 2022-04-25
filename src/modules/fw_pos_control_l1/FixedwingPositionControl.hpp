@@ -373,7 +373,7 @@ private:
 	 *
 	 * @param now Current system time [us]
 	 * @param curr_pos Current Local position of vehicle [m]
-	 * @param ground_speed Local ground speed of vehicle [m/s]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
