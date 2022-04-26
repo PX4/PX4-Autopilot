@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(failure_detector)
+add_subdirectory(failsafe)
 add_subdirectory(Arming)
 
 px4_add_module(

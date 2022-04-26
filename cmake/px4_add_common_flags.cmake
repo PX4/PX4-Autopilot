@@ -78,7 +78,7 @@ function(px4_add_common_flags)
 		-Wfloat-equal
 		-Wformat-security
 		-Winit-self
-		-Wlogical-op
+		#-Wlogical-op
 		-Wpointer-arith
 		-Wshadow
 		-Wuninitialized
@@ -115,17 +115,17 @@ function(px4_add_common_flags)
 		endif()
 
 		if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.3)
-			add_compile_options(-Wno-stringop-truncation)
+			#add_compile_options(-Wno-stringop-truncation)
 		endif()
 
 		add_compile_options(
 			-fno-builtin-printf
-			-fno-strength-reduce
+			#-fno-strength-reduce
 
-			-Wformat=1
+			#-Wformat=1
 			-Wunused-but-set-variable
 
-			-Wno-format-truncation # TODO: fix
+			#-Wno-format-truncation # TODO: fix
 		)
 
 		# -fcheck-new is a no-op for Clang in general
@@ -167,7 +167,7 @@ function(px4_add_common_flags)
 
 	if(NOT CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
 		list(APPEND cxx_flags
-			-fno-rtti
+			#-fno-rtti
 		)
 	endif()
 
