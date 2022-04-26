@@ -1,3 +1,11 @@
 menu "Smart battery"
-rsource "*/Kconfig"
-endmenu #Smart battery
+    menuconfig COMMON_SMART_BATTERIES
+        bool "Common Smart battery drivers"
+        default n
+        select DRIVERS_SMART_BATTERY_BATMON
+        select DRIVERS_SMART_BATTERY_BQ40Z80
+        select DRIVERS_SMART_BATTERY_SBS_GENERIC
+        ---help---
+            Enable smart battery drivers
+    rsource "*/Kconfig"
+endmenu

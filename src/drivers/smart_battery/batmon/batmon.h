@@ -46,22 +46,22 @@
 #include <lib/drivers/smbus_sbs/SBS.hpp>
 #include <px4_platform_common/module.h>
 
-#define MAX_CELL_COUNT 16
 
-#define BATMON_DEFAULT_SMBUS_ADDR                       0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
-
-class Batmon : public SMBUS_SBS_BaseClass<Batmon>
+class Batmon : public SBSBattery<Batmon>
 {
-
 public:
+	static constexpr const char *MOD_NAME = 		"batmon";
+	static constexpr uint8_t BATT_ADDR = 			0x0B;		///< Default 7 bit address I2C address. 8 bit = 0x16
+
 	Batmon(const I2CSPIDriverConfig &config, SMBus *interface);
 	~Batmon() = default;
 
-	static I2CSPIDriverBase *instantiate(const I2CSPIDriverConfig &config, int runtime_instance);
-
 	static void print_usage();
 
-	void RunImpl();
+private:
+	using BaseClass = SBSBattery<Batmon>;
+
+	static constexpr uint8_t MAX_CELL_COUNT = 16;
 
 	enum BATMON_REGISTERS {
 		BATT_SMBUS_TEMP_EXTERNAL_1		=	0x48,
@@ -85,30 +85,10 @@ public:
 		BATT_SMBUS_CELL_COUNT                   =       0x40
 	};
 
-private:
+	int populate_cell_voltages(battery_status_s &data);
 
-	float _cell_voltages[MAX_CELL_COUNT] = {};
+	int populate_startup_data() override;
+	int populate_runtime_data(battery_status_s &data) override;
 
-	float _max_cell_voltage_delta{0};
-
-	float _min_cell_voltage{0};
-
-	/** @param _last_report Last published report, used finding v deltas */
-	battery_status_s _last_report{};
-
-	void custom_method(const BusCLIArguments &cli) override;
-
-	int get_cell_voltages();
-
-	int get_batmon_startup_info();
-
-	/** @param _crit_thr Critical battery threshold param. */
-	float _crit_thr{0.f};
-
-	/** @param _emergency_thr Emergency battery threshold param. */
-	float _emergency_thr{0.f};
-
-	/** @param _low_thr Low battery threshold param. */
-	float _low_thr{0.f};
-
+	float _last_max_cell_voltage_delta{0.f};
 };

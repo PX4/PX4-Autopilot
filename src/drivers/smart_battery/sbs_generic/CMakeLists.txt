@@ -30,6 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+px4_add_module(
+	MODULE drivers__sbs_generic
+	MAIN sbs_generic
+	COMPILE_FLAGS
+	SRCS
+		sbs_generic.cpp
 
-px4_add_library(drivers__smbus_sbs SBS.hpp SBS.cpp)
-set_target_properties(drivers__smbus_sbs PROPERTIES LINKER_LANGUAGE CXX)
+	DEPENDS
+		drivers__smbus_sbs
+	)

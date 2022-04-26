@@ -10,7 +10,7 @@
 
 if param compare -s SENS_EN_BATT 1
 then
-	batt_smbus start -X
+	sbs_generic start -X
 fi
 
 # Start batmon driver if enabled using BATMON_DRIVER_EN

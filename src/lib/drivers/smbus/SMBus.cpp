@@ -74,7 +74,7 @@ int SMBus::read_word(const uint8_t cmd_code, uint16_t &data)
 		uint8_t pec = get_pec(buf, sizeof(buf) - 1);
 
 		if (pec != buf[sizeof(buf) - 1]) {
-			result = -EINVAL;
+			result = -EPROTO;
 			perf_count(_interface_errors);
 		}
 
@@ -107,37 +107,40 @@ int SMBus::write_word(const uint8_t cmd_code, uint16_t data)
 
 int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, const bool use_pec)
 {
-	uint8_t byte_count = 0;
-	// addr(wr), cmd_code, addr(r), byte_count, data (MAX_BLOCK_LEN bytes max), pec
-	uint8_t rx_data[MAX_BLOCK_LEN + 5];
-
 	if (length > MAX_BLOCK_LEN) {
 		return -EINVAL;
 	}
 
+	// addr(wr), cmd_code, addr(r), byte_count, data (MAX_BLOCK_LEN bytes max), pec
+	uint8_t rx_data[MAX_BLOCK_LEN + 5];
+
 	int result = transfer(&cmd_code, 1, (uint8_t *)&rx_data[3], length + 2);
 
-	if (result != PX4_OK) {
-		perf_count(_interface_errors);
-		return result;
+	uint8_t rx_bytes = rx_data[3];
+
+	// Check that we transferred enough data
+	if (result == PX4_OK && rx_bytes > length) {
+		result = -EPROTO;
 	}
 
-	uint8_t device_address = get_device_address();
-	rx_data[0] = (device_address << 1) | 0x00;
-	rx_data[1] = cmd_code;
-	rx_data[2] = (device_address << 1) | 0x01;
-	byte_count = math::min(rx_data[3], MAX_BLOCK_LEN);
+	if (result == PX4_OK && use_pec) {
+		uint8_t device_address = get_device_address();
+		rx_data[0] = (device_address << 1) | 0x00;
+		rx_data[1] = cmd_code;
+		rx_data[2] = (device_address << 1) | 0x01;
 
-	// ensure data is not longer than given buffer
-	memcpy(data, &rx_data[4], math::min(byte_count, length));
+		uint8_t pec = get_pec(rx_data, rx_bytes + 4);
 
-	if (use_pec) {
-		uint8_t pec = get_pec(rx_data, byte_count + 4);
-
-		if (pec != rx_data[byte_count + 4]) {
-			result = -EIO;
-			perf_count(_interface_errors);
+		if (pec != rx_data[rx_bytes + 4]) {
+			result = -EPROTO;
 		}
+	}
+
+	if (result == PX4_OK) {
+		memcpy(data, &rx_data[4], length);
+
+	} else {
+		perf_count(_interface_errors);
 	}
 
 	return result;
@@ -145,12 +148,12 @@ int SMBus::block_read(const uint8_t cmd_code, void *data, const uint8_t length, 
 
 int SMBus::block_write(const uint8_t cmd_code, const void *data, uint8_t byte_count, const bool use_pec)
 {
-	// cmd code[1], byte count[1], data[byte_count] (MAX_BLOCK_LEN max), pec[1] (optional)
-	uint8_t buf[MAX_BLOCK_LEN + 2];
-
 	if (byte_count > MAX_BLOCK_LEN) {
 		return -EINVAL;
 	}
+
+	// cmd code[1], byte count[1], data[byte_count] (MAX_BLOCK_LEN max), pec[1] (optional)
+	uint8_t buf[MAX_BLOCK_LEN + 3];
 
 	buf[0] = cmd_code;
 	buf[1] = (uint8_t)byte_count;
@@ -166,19 +169,22 @@ int SMBus::block_write(const uint8_t cmd_code, const void *data, uint8_t byte_co
 	int result = 0;
 
 	// If block_write fails, try up to 10 times.
-	while (i < 10 && ((result = transfer((uint8_t *)buf, byte_count + 2, nullptr, 0)) != PX4_OK)) {
-		perf_count(_interface_errors);
-		i++;
-	}
+	while (i < 10) {
+		result = transfer((uint8_t *)buf, byte_count + 2, nullptr, 0);
 
-	if (i == 10 || result) {
-		result = -EINVAL;
+		if (result == PX4_OK) {
+			break;
+
+		} else {
+			perf_count(_interface_errors);
+			i++;
+		}
 	}
 
 	return result;
 }
 
-uint8_t SMBus::get_pec(uint8_t *buff, const uint8_t len)
+uint8_t SMBus::get_pec(const uint8_t *buff, const uint8_t len)
 {
 	// TODO: use "return crc8ccitt(buff, len);"
 
