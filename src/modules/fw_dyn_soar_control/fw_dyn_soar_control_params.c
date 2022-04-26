@@ -22,7 +22,7 @@
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FW_INERTIA_ROLL, 1.0f);
+PARAM_DEFINE_FLOAT(FW_INERTIA_ROLL, 0.197563f);
 
 /**
  * inertia around body y-axis
@@ -36,7 +36,7 @@ PARAM_DEFINE_FLOAT(FW_INERTIA_ROLL, 1.0f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FW_INERTIA_PITCH, 1.0f);
+PARAM_DEFINE_FLOAT(FW_INERTIA_PITCH, 0.1458929f);
 
 /**
  * inertia around body z-axis
@@ -50,7 +50,7 @@ PARAM_DEFINE_FLOAT(FW_INERTIA_PITCH, 1.0f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FW_INERTIA_YAW, 1.0f);
+PARAM_DEFINE_FLOAT(FW_INERTIA_YAW, 0.1477f);
 
 
 
@@ -242,7 +242,7 @@ PARAM_DEFINE_FLOAT(FILTER_B3, 0.01323107f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_X_ROLL, 2.0f);
+PARAM_DEFINE_FLOAT(K_X_ROLL, 1.0f);
 
 /**
  * pitch gain of K_x (position error gain)
@@ -254,7 +254,7 @@ PARAM_DEFINE_FLOAT(K_X_ROLL, 2.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_X_PITCH, 2.0f);
+PARAM_DEFINE_FLOAT(K_X_PITCH, 1.0f);
 
 /**
  * yaw gain of K_x (position error gain)
@@ -266,7 +266,7 @@ PARAM_DEFINE_FLOAT(K_X_PITCH, 2.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_X_YAW, 2.0f);
+PARAM_DEFINE_FLOAT(K_X_YAW, 1.0f);
 
 /**
  * roll gain of K_v (velocity error gain)
@@ -278,7 +278,7 @@ PARAM_DEFINE_FLOAT(K_X_YAW, 2.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_V_ROLL, 2.0f);
+PARAM_DEFINE_FLOAT(K_V_ROLL, 1.0f);
 
 /**
  * pitch gain of K_v (velocity error gain)
@@ -290,7 +290,7 @@ PARAM_DEFINE_FLOAT(K_V_ROLL, 2.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_V_PITCH, 2.0f);
+PARAM_DEFINE_FLOAT(K_V_PITCH, 1.0f);
 
 /**
  * yaw gain of K_v (velocity error gain)
@@ -302,7 +302,7 @@ PARAM_DEFINE_FLOAT(K_V_PITCH, 2.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_V_YAW, 2.0f);
+PARAM_DEFINE_FLOAT(K_V_YAW, 1.0f);
 
 /**
  * roll gain of K_A (acceleration error gain)
@@ -314,7 +314,7 @@ PARAM_DEFINE_FLOAT(K_V_YAW, 2.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_A_ROLL, 1.0f);
+PARAM_DEFINE_FLOAT(K_A_ROLL, 0.5f);
 
 /**
  * pitch gain of K_A (acceleration error gain)
@@ -326,7 +326,7 @@ PARAM_DEFINE_FLOAT(K_A_ROLL, 1.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_A_PITCH, 1.0f);
+PARAM_DEFINE_FLOAT(K_A_PITCH, 0.5f);
 
 /**
  * yaw gain of K_A (acceleration error gain)
@@ -338,7 +338,7 @@ PARAM_DEFINE_FLOAT(K_A_PITCH, 1.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_A_YAW, 1.0f);
+PARAM_DEFINE_FLOAT(K_A_YAW, 0.5f);
 
 /**
  * roll gain of K_Q (attitude error gain)
