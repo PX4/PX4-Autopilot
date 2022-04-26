@@ -146,6 +146,7 @@ add_custom_command(OUTPUT px4_parameters.hpp
 		px_generate_params.py
 		templates/px4_parameters.hpp.jinja
 	)
+add_custom_target(parameters_header DEPENDS px4_parameters.hpp)
 
 set(SRCS)
 
