@@ -33,6 +33,7 @@
 
 add_subdirectory(failure_detector)
 add_subdirectory(HealthAndArmingChecks)
+add_subdirectory(failsafe)
 add_subdirectory(Arming)
 add_subdirectory(ModeUtil)
 
@@ -69,6 +70,7 @@ px4_add_module(
 		sensor_calibration
 		world_magnetic_model
 		mode_util
+		failsafe
 	)
 
 px4_add_unit_gtest(SRC mag_calibration_test.cpp LINKLIBS modules__commander)
