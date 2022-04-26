@@ -37,7 +37,9 @@
 
 #include "FlightTaskOrbit.hpp"
 
+#include <lib/systemlib/mavlink_log.h>
 #include <mathlib/mathlib.h>
+#include <px4_platform_common/events.h>
 #include <lib/geo/geo.h>
 
 using namespace matrix;
@@ -69,10 +71,18 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 	}
 
 	float new_velocity = signFromBool(new_is_clockwise) * new_absolute_velocity;
-	_started_clockwise = new_is_clockwise;
-	_sanitizeParams(new_radius, new_velocity);
-	_orbit_radius = new_radius;
-	_orbit_velocity = new_velocity;
+
+	if (math::isInRange(new_radius, _radius_min, _radius_max)) {
+		_started_clockwise = new_is_clockwise;
+		_sanitizeParams(new_radius, new_velocity);
+		_orbit_radius = new_radius;
+		_orbit_velocity = new_velocity;
+
+	} else {
+		mavlink_log_critical(&_mavlink_log_pub, "Orbit radius limit exceeded\t");
+		events::send(events::ID("orbit_radius_exceeded"), events::Log::Alert, "Orbit radius limit exceeded");
+		ret = false;
+	}
 
 	// commanded heading behaviour
 	if (PX4_ISFINITE(command.param3)) {

@@ -11,7 +11,7 @@ lps22hb -s start
 
 lsm303agr -s -R 4 start
 
-ms4525_airspeed -T 4515 -I -b 3 start
+ms4515 -I -b 3 start
 
 if ! param greater SENS_EN_PMW3901 0
 then

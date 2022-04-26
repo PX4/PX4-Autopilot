@@ -604,8 +604,20 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 									       worker_data.calibration_counter_total[cur_mag], sphere_data, true);
 
 						if (ellipsoid_ret == PX4_OK) {
-							ellipsoid_fit_success  = true;
+							ellipsoid_fit_success = true;
 						}
+					}
+				}
+
+				if (!sphere_fit_success && !ellipsoid_fit_success) {
+					if (worker_data.calibration[cur_mag].enabled()) {
+						calibration_log_emergency(mavlink_log_pub, "Retry calibration (unable to fit mag %" PRIu8 ")", cur_mag);
+						result = calibrate_return_error;
+						break;
+
+					} else {
+						calibration_log_info(mavlink_log_pub, "Retry calibration (unable to fit mag %" PRIu8 ")", cur_mag);
+						continue;
 					}
 				}
 
@@ -617,12 +629,6 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 					offdiag[cur_mag](i) = sphere_data.offdiag(i);
 				}
 
-				if (!sphere_fit_success && !ellipsoid_fit_success) {
-					calibration_log_emergency(mavlink_log_pub, "Retry calibration (unable to fit mag %" PRIu8 ")", cur_mag);
-					result = calibrate_return_error;
-					break;
-				}
-
 				result = check_calibration_result(sphere[cur_mag](0), sphere[cur_mag](1), sphere[cur_mag](2),
 								  sphere_radius[cur_mag],
 								  diag[cur_mag](0), diag[cur_mag](1), diag[cur_mag](2),
@@ -630,7 +636,16 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 								  mavlink_log_pub, cur_mag);
 
 				if (result == calibrate_return_error) {
-					break;
+					// tolerate mag cal failures if this sensor is disabled
+					if (worker_data.calibration[cur_mag].enabled()) {
+						break;
+
+					} else {
+						// reset
+						sphere[cur_mag].zero();
+						diag[cur_mag] = Vector3f{1.f, 1.f, 1.f};
+						offdiag[cur_mag].zero();
+					}
 				}
 			}
 		}

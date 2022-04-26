@@ -20,6 +20,7 @@ jobs:
           ark_can-flow,
           ark_can-gps,
           ark_can-rtk-gps,
+          ark_cannode,
           atl_mantis-edu,
           av_x-v1,
           bitcraze_crazyflie,
@@ -29,6 +30,7 @@ jobs:
           cuav_x7pro,
           cubepilot_cubeorange,
           cubepilot_cubeyellow,
+          diatone_mamba-f405-mk2,
           freefly_can-rtk-gps,
           holybro_can-gps-v1,
           holybro_durandal-v1,
@@ -60,6 +62,7 @@ jobs:
           px4_fmu-v5x,
           px4_fmu-v6u,
           px4_fmu-v6x,
+          sky-drones_smartap-airlink,
           spracing_h7extreme,
           uvify_core
           ]

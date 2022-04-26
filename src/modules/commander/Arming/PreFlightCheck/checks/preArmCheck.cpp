@@ -79,6 +79,12 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 		prearm_ok = false;
 	}
 
+	if (status_flags.flight_terminated) {
+		if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! Flight termination active"); }
+
+		prearm_ok = false;
+	}
+
 	// USB not connected
 	if (!status_flags.circuit_breaker_engaged_usb_check && status_flags.usb_connected) {
 		if (report_fail) { mavlink_log_critical(mavlink_log_pub, "Arming denied! Flying with USB is not safe"); }

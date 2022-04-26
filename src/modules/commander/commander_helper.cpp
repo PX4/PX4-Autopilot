@@ -74,10 +74,11 @@
 #define VEHICLE_TYPE_HEXAROTOR 13
 #define VEHICLE_TYPE_OCTOROTOR 14
 #define VEHICLE_TYPE_TRICOPTER 15
-#define VEHICLE_TYPE_VTOL_DUOROTOR 19
-#define VEHICLE_TYPE_VTOL_QUADROTOR 20
+#define VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR 19
+#define VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR 20
 #define VEHICLE_TYPE_VTOL_TILTROTOR 21
-#define VEHICLE_TYPE_VTOL_RESERVED2 22 // VTOL standard
+#define VEHICLE_TYPE_VTOL_FIXEDROTOR 22 // VTOL standard
+#define VEHICLE_TYPE_VTOL_TAILSITTER 23
 
 #define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
 
@@ -91,22 +92,25 @@ bool is_multirotor(const vehicle_status_s &current_status)
 
 bool is_rotary_wing(const vehicle_status_s &current_status)
 {
-	return is_multirotor(current_status) || (current_status.system_type == VEHICLE_TYPE_HELICOPTER)
+	return is_multirotor(current_status)
+	       || (current_status.system_type == VEHICLE_TYPE_HELICOPTER)
 	       || (current_status.system_type == VEHICLE_TYPE_COAXIAL);
 }
 
 bool is_vtol(const vehicle_status_s &current_status)
 {
-	return (current_status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
+	return (current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR ||
+		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR ||
 		current_status.system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_RESERVED2);
+		current_status.system_type == VEHICLE_TYPE_VTOL_FIXEDROTOR ||
+		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER);
 }
 
 bool is_vtol_tailsitter(const vehicle_status_s &current_status)
 {
-	return (current_status.system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
-		current_status.system_type == VEHICLE_TYPE_VTOL_QUADROTOR);
+	return (current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_DUOROTOR ||
+		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER_QUADROTOR ||
+		current_status.system_type == VEHICLE_TYPE_VTOL_TAILSITTER);
 }
 
 bool is_fixed_wing(const vehicle_status_s &current_status)

@@ -13,7 +13,7 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-param set-defualt MAV_TYPE 21
+param set-default MAV_TYPE 21
 
 param set-default PWM_AUX_DISARM 1000
 param set-default PWM_AUX_MAX 2000

@@ -90,10 +90,11 @@ PARAM_DEFINE_INT32(MAV_SIK_RADIO_ID, 0);
  * @value 13 Hexarotor
  * @value 14 Octorotor
  * @value 15 Tricopter
- * @value 19 VTOL Tailsitter Duo
- * @value 20 VTOL Tailsitter Quad
+ * @value 19 VTOL Two-rotor Tailsitter
+ * @value 20 VTOL Quad-rotor Tailsitter
  * @value 21 VTOL Tiltrotor
- * @value 22 VTOL Standard (quadplane)
+ * @value 22 VTOL Standard (separate fixed rotors for hover and cruise flight)
+ * @value 23 VTOL Tailsitter
  * @group MAVLink
  */
 PARAM_DEFINE_INT32(MAV_TYPE, 0);

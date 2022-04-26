@@ -52,6 +52,7 @@ set(msg_files
 	airspeed_wind.msg
 	autotune_attitude_control_status.msg
 	battery_status.msg
+	button_event.msg
 	camera_capture.msg
 	camera_status.msg
 	camera_trigger.msg
@@ -144,6 +145,7 @@ set(msg_files
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gps.msg
+	sensor_gnss_relative.msg
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
@@ -169,6 +171,8 @@ set(msg_files
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
+	uwb_grid.msg
+	uwb_distance.msg
 	vehicle_acceleration.msg
 	vehicle_air_data.msg
 	vehicle_angular_acceleration.msg

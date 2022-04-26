@@ -172,9 +172,9 @@ public:
 
 	void reset_vroi() { _vroi = {}; }
 
-	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
+	bool home_alt_valid() { return (_home_pos.valid_alt); }
 
-	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos && _home_pos.valid_lpos); }
+	bool home_global_position_valid() { return (_home_pos.valid_alt && _home_pos.valid_hpos); }
 
 	Geofence &get_geofence() { return _geofence; }
 

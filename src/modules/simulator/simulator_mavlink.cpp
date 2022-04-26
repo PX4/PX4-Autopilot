@@ -114,7 +114,7 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 
 		switch (_system_type) {
 		case MAV_TYPE_AIRSHIP:
-		case MAV_TYPE_VTOL_DUOROTOR:
+		case MAV_TYPE_VTOL_TAILSITTER_DUOROTOR:
 		case MAV_TYPE_COAXIAL:
 			pos_thrust_motors_count = 2;
 			is_fixed_wing = false;
@@ -126,13 +126,13 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 			break;
 
 		case MAV_TYPE_QUADROTOR:
-		case MAV_TYPE_VTOL_QUADROTOR:
+		case MAV_TYPE_VTOL_TAILSITTER_QUADROTOR:
 		case MAV_TYPE_VTOL_TILTROTOR:
 			pos_thrust_motors_count = 4;
 			is_fixed_wing = false;
 			break;
 
-		case MAV_TYPE_VTOL_RESERVED2:
+		case MAV_TYPE_VTOL_FIXEDROTOR:
 			pos_thrust_motors_count = 5;
 			is_fixed_wing = false;
 			break;
@@ -142,7 +142,7 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 			is_fixed_wing = false;
 			break;
 
-		case MAV_TYPE_VTOL_RESERVED3:
+		case MAV_TYPE_VTOL_TAILSITTER:
 			// this is the tricopter VTOL / quad plane with 3 motors and 2 servos
 			pos_thrust_motors_count = 3;
 			is_fixed_wing = false;
@@ -328,7 +328,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
 
 		if (!_baro_stuck) {
-			_last_baro_pressure = sensors.abs_pressure;
+			_last_baro_pressure = sensors.abs_pressure * 100.f; // hPa to Pa
 			_last_baro_temperature = sensors.temperature;
 		}
 
@@ -352,11 +352,11 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	// differential pressure
 	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_blocked) {
 		differential_pressure_s report{};
-		report.timestamp = time;
+		report.timestamp_sample = time;
+		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+		report.differential_pressure_pa = sensors.diff_pressure * 100.f; // hPa to Pa;
 		report.temperature = _sensors_temperature;
-		report.differential_pressure_filtered_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
-		report.differential_pressure_raw_pa = sensors.diff_pressure * 100.0f; // convert from millibar to bar;
-
+		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
 	}
 }

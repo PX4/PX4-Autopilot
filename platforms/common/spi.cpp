@@ -47,7 +47,7 @@ void px4_set_spi_buses_from_hw_version()
 #if defined(BOARD_HAS_SIMPLE_HW_VERSIONING)
 	int hw_version_revision = board_get_hw_version();
 #else
-	int hw_version_revision = board_get_hw_revision();
+	int hw_version_revision = (board_get_hw_version() << 8) | board_get_hw_revision();
 #endif
 
 

@@ -34,8 +34,10 @@
 #pragma once
 
 /*   Helper classes  */
+#include "Arming/ArmStateMachine/ArmStateMachine.hpp"
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
+#include "Safety.hpp"
 #include "state_machine_helper.h"
 #include "worker_thread.hpp"
 
@@ -161,10 +163,10 @@ private:
 
 	void print_reject_mode(uint8_t main_state);
 
+	bool hasMovedFromCurrentHomeLocation();
 	bool set_home_position();
 	bool set_home_position_alt_only();
-	bool set_in_air_home_position();
-	bool isGPosGoodForInitializingHomePos(const vehicle_global_position_s &gpos) const;
+	void set_in_air_home_position();
 	void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos) const;
 	void fillLocalHomePos(home_position_s &home, float x, float y, float z, float heading) const;
 	void fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos) const;
@@ -197,8 +199,6 @@ private:
 		(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en,
-		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
-		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>) _param_com_home_in_air,
 
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
@@ -234,6 +234,7 @@ private:
 		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 
 		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
+		(ParamBool<px4::params::COM_FORCE_SAFETY>) _param_com_force_safety,
 		(ParamBool<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
 
 		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
@@ -292,6 +293,7 @@ private:
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
+	ArmStateMachine _arm_state_machine{};
 	PreFlightCheck::arm_requirements_t	_arm_requirements{};
 
 	hrt_abstime	_valid_distance_sensor_time_us{0}; /**< Last time that distance sensor data arrived (usec) */
@@ -382,7 +384,6 @@ private:
 	bool		_was_armed{false};
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
-	bool		_should_set_home_on_takeoff{true};
 	bool		_system_power_usb_connected{false};
 
 	geofence_result_s	_geofence_result{};
@@ -398,6 +399,8 @@ private:
 	vehicle_control_mode_s  _vehicle_control_mode{};
 	vehicle_status_s        _status{};
 	vehicle_status_flags_s  _status_flags{};
+
+	Safety _safety_handler{};
 
 	WorkerThread _worker_thread;
 

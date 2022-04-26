@@ -160,6 +160,11 @@ enum PWR_MGMT0_BIT : uint8_t {
 enum GYRO_CONFIG0_BIT : uint8_t {
 	// 7:5 GYRO_FS_SEL
 	GYRO_FS_SEL_2000_DPS = 0, // 0b000 = ±2000dps (default)
+	GYRO_FS_SEL_1000_DPS = Bit5,
+	GYRO_FS_SEL_500_DPS  = Bit6,
+	GYRO_FS_SEL_250_DPS  = Bit6 | Bit5,
+	GYRO_FS_SEL_125_DPS  = Bit7,
+
 
 	// 3:0 GYRO_ODR
 	//  0001: 32kHz
@@ -180,6 +185,10 @@ enum GYRO_CONFIG0_BIT : uint8_t {
 enum ACCEL_CONFIG0_BIT : uint8_t {
 	// 7:5 ACCEL_FS_SEL
 	ACCEL_FS_SEL_16G = 0, // 000: ±16g (default)
+	ACCEL_FS_SEL_8G  = Bit5,
+	ACCEL_FS_SEL_4G  = Bit6,
+	ACCEL_FS_SEL_2G  = Bit6 | Bit5,
+
 
 	// 3:0 ACCEL_ODR
 	//  0001: 32kHz

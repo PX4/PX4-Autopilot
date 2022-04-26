@@ -93,9 +93,9 @@ private:
 				if (system_type == MAV_TYPE_QUADROTOR ||
 				    system_type == MAV_TYPE_HEXAROTOR ||
 				    system_type == MAV_TYPE_OCTOROTOR ||
-				    system_type == MAV_TYPE_VTOL_DUOROTOR ||
-				    system_type == MAV_TYPE_VTOL_QUADROTOR ||
-				    system_type == MAV_TYPE_VTOL_RESERVED2) {
+				    system_type == MAV_TYPE_VTOL_TAILSITTER_DUOROTOR ||
+				    system_type == MAV_TYPE_VTOL_TAILSITTER_QUADROTOR ||
+				    system_type == MAV_TYPE_VTOL_FIXEDROTOR) {
 
 					/* multirotors: set number of rotor outputs depending on type */
 
@@ -110,15 +110,15 @@ private:
 						n = 6;
 						break;
 
-					case MAV_TYPE_VTOL_DUOROTOR:
+					case MAV_TYPE_VTOL_TAILSITTER_DUOROTOR:
 						n = 2;
 						break;
 
-					case MAV_TYPE_VTOL_QUADROTOR:
+					case MAV_TYPE_VTOL_TAILSITTER_QUADROTOR:
 						n = 4;
 						break;
 
-					case MAV_TYPE_VTOL_RESERVED2:
+					case MAV_TYPE_VTOL_FIXEDROTOR:
 						n = 8;
 						break;
 
