@@ -474,7 +474,8 @@ void MulticopterPositionControl::Run()
 
 			} else {
 				// Failsafe
-				const bool warn_failsafe = (time_stamp_now - _last_warn) > 2_s;
+				//  do not warn while we are disarmed, as we might not have valid setpoints yet
+				const bool warn_failsafe = ((time_stamp_now - _last_warn) > 2_s) && _vehicle_control_mode.flag_armed;
 
 				if (warn_failsafe) {
 					PX4_WARN("invalid setpoints");
@@ -538,11 +539,6 @@ void MulticopterPositionControl::Run()
 void MulticopterPositionControl::failsafe(const hrt_abstime &now, vehicle_local_position_setpoint_s &setpoint,
 		const PositionControlStates &states, bool warn)
 {
-	// do not warn while we are disarmed, as we might not have valid setpoints yet
-	if (!_vehicle_control_mode.flag_armed) {
-		warn = false;
-	}
-
 	// Only react after a short delay
 	_failsafe_land_hysteresis.set_state_and_update(true, now);
 
