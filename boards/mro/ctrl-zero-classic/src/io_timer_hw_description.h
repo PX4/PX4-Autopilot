@@ -68,7 +68,7 @@ static inline constexpr timer_io_channels_t initIOTimerGPIOInOut(Timer::TimerCha
 
 	case Timer::Timer15:
 		gpio_af = GPIO_AF4;
-		break;	
+		break;
 
 	case Timer::Timer13:
 	case Timer::Timer14:
@@ -273,7 +273,7 @@ static inline constexpr io_timers_t initIOTimer(Timer::Timer timer, DMA dshot_dm
 #ifdef CONFIG_STM32_TIM15
 		nuttx_config_timer_enabled = true;
 #endif
-		break;		
+		break;
 	}
 
 	// This is not strictly required, but for consistency let's make sure NuttX timers are disabled
