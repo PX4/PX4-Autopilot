@@ -114,21 +114,7 @@ private:
 
 	float computeInnovVar(float H) const;
 	matrix::Dual<float, 1> computePredictedAccZ(const matrix::Dual<float, 1> &hover_thrust, float thrust) const;
-	float computeKalmanGain(float H, float innov_var) const;
 
-	/*
-	 * Compute the ratio between the Normalized Innovation Squared (NIS)
-	 * and its maximum gate size. Use isTestRatioPassing to know if the
-	 * measurement should be fused or not.
-	 */
-	float computeInnovTestRatio(float innov, float innov_var) const;
-	bool isTestRatioPassing(float innov_test_ratio) const;
-
-	void updateState(float K, float innov);
-	void updateStateCovariance(float K, float H);
-	bool isLargeOffsetDetected() const;
-
-	void bumpStateVariance();
 	void updateLpf(float residual, float signed_innov_test_ratio);
 	void updateMeasurementNoise(float residual, float H);
 

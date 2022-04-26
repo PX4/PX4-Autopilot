@@ -56,24 +56,25 @@ void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust)
 	float &H = predicted_meas.derivative(0);
 	const float innov_var = computeInnovVar(H);
 	const float innov = acc_z - predicted_meas.value;
-	const float K = computeKalmanGain(H, innov_var);
-	const float innov_test_ratio = computeInnovTestRatio(innov, innov_var);
+	const float K = _state_var * H / innov_var;
+	const float innov_test_ratio = innov * innov / (_gate_size * _gate_size *
+				       innov_var); // ratio between the Normalized Innovation Squared (NIS) and its gate size.
 
 	float residual = innov;
 
-	if (isTestRatioPassing(innov_test_ratio)) {
-		updateState(K, innov);
-		updateStateCovariance(K, H);
+	if (innov_test_ratio < 1.f) {
+		_hover_thr = math::constrain(_hover_thr + K * innov, _hover_thr_min, _hover_thr_max);
+		_state_var = math::constrain((1.f - K * H) * _state_var, 1e-10f, 1.f);
 
 		// Update residual and observation jacobian since the hover thrust changed
 		predicted_meas = computePredictedAccZ(D(_hover_thr, 0), thrust);
 		residual = acc_z - predicted_meas.value;
 
-	} else if (isLargeOffsetDetected()) {
+	} else if (fabsf(_signed_innov_test_ratio_lpf) > 0.2f) {
 		// Rejecting all the measurements for some time,
 		// it means that the hover thrust suddenly changed or that the EKF
 		// is diverging. To recover, we bump the state variance
-		bumpStateVariance();
+		_state_var += 1e3f * _process_var * _dt * _dt;
 	}
 
 	const float signed_innov_test_ratio = sign(innov) * innov_test_ratio;
@@ -96,41 +97,6 @@ inline float ZeroOrderHoverThrustEkf::computeInnovVar(const float H) const
 D ZeroOrderHoverThrustEkf::computePredictedAccZ(const D &hover_thrust, float thrust) const
 {
 	return CONSTANTS_ONE_G * thrust / hover_thrust - CONSTANTS_ONE_G;
-}
-
-inline float ZeroOrderHoverThrustEkf::computeKalmanGain(const float H, const float innov_var) const
-{
-	return _state_var * H / innov_var;
-}
-
-inline float ZeroOrderHoverThrustEkf::computeInnovTestRatio(const float innov, const float innov_var) const
-{
-	return innov * innov / (_gate_size * _gate_size * innov_var);
-}
-
-inline bool ZeroOrderHoverThrustEkf::isTestRatioPassing(const float innov_test_ratio) const
-{
-	return innov_test_ratio < 1.f;
-}
-
-inline void ZeroOrderHoverThrustEkf::updateState(const float K, const float innov)
-{
-	_hover_thr = math::constrain(_hover_thr + K * innov, _hover_thr_min, _hover_thr_max);
-}
-
-inline void ZeroOrderHoverThrustEkf::updateStateCovariance(const float K, const float H)
-{
-	_state_var = math::constrain((1.f - K * H) * _state_var, 1e-10f, 1.f);
-}
-
-inline bool ZeroOrderHoverThrustEkf::isLargeOffsetDetected() const
-{
-	return fabsf(_signed_innov_test_ratio_lpf) > 0.2f;
-}
-
-inline void ZeroOrderHoverThrustEkf::bumpStateVariance()
-{
-	_state_var += 1e3f * _process_var * _dt * _dt;
 }
 
 inline void ZeroOrderHoverThrustEkf::updateLpf(const float residual, const float signed_innov_test_ratio)
