@@ -371,7 +371,7 @@ void MulticopterPositionControl::Run()
 			}
 
 			if (vehicle_local_position.heading_reset_counter != _heading_reset_counter) {
-				_setpoint.yaw += vehicle_local_position.delta_heading;
+				_setpoint.yaw = wrap_pi(_setpoint.yaw + vehicle_local_position.delta_heading);
 			}
 		}
 
