@@ -40,6 +40,7 @@
 #include "zero_order_hover_thrust_ekf.hpp"
 
 using matrix::sign;
+using D = matrix::Dual<float, 1>;
 
 void ZeroOrderHoverThrustEkf::predict(const float dt)
 {
@@ -51,9 +52,10 @@ void ZeroOrderHoverThrustEkf::predict(const float dt)
 
 void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust)
 {
-	const float H = computeH(thrust);
+	D predicted_meas = computePredictedAccZ(D(_hover_thr, 0), thrust);
+	float &H = predicted_meas.derivative(0);
 	const float innov_var = computeInnovVar(H);
-	const float innov = computeInnov(acc_z, thrust);
+	const float innov = acc_z - predicted_meas.value;
 	const float K = computeKalmanGain(H, innov_var);
 	const float innov_test_ratio = computeInnovTestRatio(innov, innov_var);
 
@@ -62,7 +64,10 @@ void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust)
 	if (isTestRatioPassing(innov_test_ratio)) {
 		updateState(K, innov);
 		updateStateCovariance(K, H);
-		residual = computeInnov(acc_z, thrust); // residual != innovation since the hover thrust changed
+
+		// Update residual and observation jacobian since the hover thrust changed
+		predicted_meas = computePredictedAccZ(D(_hover_thr, 0), thrust);
+		residual = acc_z - predicted_meas.value;
 
 	} else if (isLargeOffsetDetected()) {
 		// Rejecting all the measurements for some time,
@@ -81,11 +86,6 @@ void ZeroOrderHoverThrustEkf::fuseAccZ(const float acc_z, const float thrust)
 	_innov_test_ratio = innov_test_ratio;
 }
 
-inline float ZeroOrderHoverThrustEkf::computeH(const float thrust) const
-{
-	return -CONSTANTS_ONE_G * thrust / (_hover_thr * _hover_thr);
-}
-
 inline float ZeroOrderHoverThrustEkf::computeInnovVar(const float H) const
 {
 	const float R = _acc_var * _acc_var_scale;
@@ -93,15 +93,9 @@ inline float ZeroOrderHoverThrustEkf::computeInnovVar(const float H) const
 	return math::max(H * P * H + R, R);
 }
 
-float ZeroOrderHoverThrustEkf::computeInnov(const float acc_z, const float thrust) const
+D ZeroOrderHoverThrustEkf::computePredictedAccZ(const D &hover_thrust, float thrust) const
 {
-	const float predicted_acc_z = computePredictedAccZ(thrust);
-	return acc_z - predicted_acc_z;
-}
-
-float ZeroOrderHoverThrustEkf::computePredictedAccZ(const float thrust) const
-{
-	return CONSTANTS_ONE_G * thrust / _hover_thr - CONSTANTS_ONE_G;
+	return CONSTANTS_ONE_G * thrust / hover_thrust - CONSTANTS_ONE_G;
 }
 
 inline float ZeroOrderHoverThrustEkf::computeKalmanGain(const float H, const float innov_var) const

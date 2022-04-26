@@ -112,10 +112,8 @@ private:
 	float _residual_lpf{}; ///< used to remove the constant bias of the residual
 	float _signed_innov_test_ratio_lpf{}; ///< used as a delay to trigger the recovery logic
 
-	float computeH(float thrust) const;
 	float computeInnovVar(float H) const;
-	float computePredictedAccZ(float thrust) const;
-	float computeInnov(float acc_z, float thrust) const;
+	matrix::Dual<float, 1> computePredictedAccZ(const matrix::Dual<float, 1> &hover_thrust, float thrust) const;
 	float computeKalmanGain(float H, float innov_var) const;
 
 	/*
