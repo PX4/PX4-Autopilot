@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Failsafe State Machine</title>
+    <style>
+      html * {
+          font-family: Helvetica, sans-serif;
+      }
+      .title {
+          margin-left: 10px;
+          margin-bottom: 0px;
+      }
+      h3 {
+          margin-bottom: 5px;
+      }
+      h5 {
+          margin-top: 5px;
+          margin-bottom: 0px;
+      }
+      input[type=text] {
+          text-align: right;
+      }
+      p {
+          margin-top: 8px;
+          margin-bottom: 8px;
+      }
+      button {
+          margin-top: 6px;
+      }
+      .box {
+          background-color: rgb(231, 233, 235);
+          border-bottom-left-radius: 5px;
+          border-bottom-right-radius: 5px;
+          border-top-left-radius: 5px;
+          border-top-right-radius: 5px;
+          box-shadow: none;
+          box-sizing: border-box;
+          line-height: 22.5px;
+          margin-bottom: 10px;
+          margin-left: 10px;
+          margin-right: 10px;
+          margin-top: 20px;
+          padding-bottom: 16px;
+          padding-left: 20px;
+          padding-right: 20px;
+          padding-top: 8px
+      }
+      table td {
+          vertical-align: top;
+      }
+
+      .tooltip {
+          position: relative;
+          background: rgba(0,0,0,0.2);
+          padding: 0px 5px;
+          border-radius: 100%;
+          font-size: 90%;
+          width: 11px;
+          display: inline-block;
+          margin-left: 8px;
+          text-align: center;
+          color: white;
+      }
+
+      .tooltip .tooltiptext {
+          visibility: hidden;
+          width: 200px;
+          background-color: #555;
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 5px 0;
+          position: absolute;
+          z-index: 1;
+          top: 125%;
+          left: 50%;
+          margin-left: -100px;
+          opacity: 0;
+          transition: opacity 0.3s;
+      }
+
+      .tooltip:hover .tooltiptext {
+          visibility: visible;
+          opacity: 1;
+      }
+
+      .emscripten { padding-right: 0; display: block; }
+      textarea.emscripten { font-family: monospace; width: 80%; }
+      div.emscripten { text-align: center; }
+      div.emscripten_border { border: 1px solid black; }
+      /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
+      canvas.emscripten { border: 0px none; background-color: black; }
+
+      .spinner {
+        height: 50px;
+        width: 50px;
+        margin: 0px auto;
+        -webkit-animation: rotation .8s linear infinite;
+        -moz-animation: rotation .8s linear infinite;
+        -o-animation: rotation .8s linear infinite;
+        animation: rotation 0.8s linear infinite;
+        border-left: 10px solid rgb(0,150,240);
+        border-right: 10px solid rgb(0,150,240);
+        border-bottom: 10px solid rgb(0,150,240);
+        border-top: 10px solid rgb(100,0,200);
+        border-radius: 100%;
+        background-color: rgb(200,100,250);
+      }
+      @-webkit-keyframes rotation {
+        from {-webkit-transform: rotate(0deg);}
+        to {-webkit-transform: rotate(360deg);}
+      }
+      @-moz-keyframes rotation {
+        from {-moz-transform: rotate(0deg);}
+        to {-moz-transform: rotate(360deg);}
+      }
+      @-o-keyframes rotation {
+        from {-o-transform: rotate(0deg);}
+        to {-o-transform: rotate(360deg);}
+      }
+      @keyframes rotation {
+        from {transform: rotate(0deg);}
+        to {transform: rotate(360deg);}
+      }
+
+    </style>
+  </head>
+  <body>
+    <figure style="overflow:visible;" id="spinner"><div class="spinner"></div><center style="margin-top:0.5em"><strong>emscripten</strong></center></figure>
+    <div class="emscripten" id="status">Downloading...</div>
+    <div class="emscripten">
+      <progress value="0" max="100" id="progress" hidden=1></progress>
+    </div>
+    <h1 class="title">Failsafe State Machine Simulation</h1>
+    <table>
+        <tr>
+            <td><div class="box"><h3>State</h3>
+                    <table>
+                        <tr>
+                            <td><label for="vehicle_type">Vehicle Type:&nbsp;</label> </td>
+                            <td><select id="vehicle_type">
+                                <option value="0">Unknown/other</option>
+                                <option value="1" selected>Multirotor</option>
+                                <option value="2">Fixed wing</option>
+                                <option value="3">Rover</option>
+                                <option value="4">Airship</option>
+                            </select>
+                            </td>
+                            <td><div class='tooltip'>?<span class='tooltiptext'>For VTOLs the type switches between Multirotor and Fixed Wing</span></div></td>
+                        </tr>
+                        <tr>
+                            <td><label for="armed">Armed:</label></td>
+                            <td><input type="checkbox" id="armed" name="armed" checked></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><label for="vtol_in_transition_mode">VTOL in Transition Mode:</label></td>
+                            <td><input type="checkbox" id="vtol_in_transition_mode" name="vtol_in_transition_mode"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><label for="mission_finished">Mission Finished:</label></td>
+                            <td><input type="checkbox" id="mission_finished" name="mission_finished"></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><label for="intended_nav_state">Intended Mode:&nbsp;</label></td>
+                            <td><select id="intended_nav_state">
+                                <option value="0">MANUAL</option>
+                                <option value="10">ACRO</option>
+                                <option value="15">STAB</option>
+                                <option value="1">ALTCTL</option>
+                                <option value="2" selected>POSCTL</option>
+                                <option value="3">AUTO_MISSION</option>
+                                <option value="4">AUTO_LOITER</option>
+                                <option value="5">AUTO_RTL</option>
+                                <option value="17">AUTO_TAKEOFF</option>
+                                <option value="18">AUTO_LAND</option>
+                                <option value="19">AUTO_FOLLOW_TARGET</option>
+                                <option value="20">AUTO_PRECLAND</option>
+                                <option value="22">AUTO_VTOL_TAKEOFF</option>
+                                <option value="14">OFFBOARD</option>
+                                <option value="21">ORBIT</option>
+                            </select>
+                            </td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">
+                                <button onclick="moveRCSticks()">Move RC Sticks (user takeover request)</button>
+                            </td>
+                        </tr>
+                    </table>
+                </div></td>
+            <td><div class="box"><h3>Parameters</h3>
+                    <div id="parameters"></div>
+                </div></td>
+            <td><div class="box"><h3>Conditions</h3>
+                    {{{ HTML_CONDITIONS }}}
+                </div></td>
+        </tr>
+        <tr>
+            <td colspan=3><div class="box"><h3>Output</h3>
+                <p>Failsafe action:&nbsp;<b id="action"></b></p>
+                <p>User takeover active:&nbsp;<span id="user_takeover_active"></span></p>
+                <p><div>Console output</div>
+                <textarea class="emscripten" id="output" rows="8"></textarea>
+                </p>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <script type='text/javascript'>
+
+      function onParamChangedInt(name, value) {
+          console.log("param change int: ", name, "value: ", value);
+          Module.set_param_value_int32(name, parseInt(value));
+      }
+      function onParamChangedFloat(name, value) {
+          console.log("param change float: ", name, "value: ", value);
+          Module.set_param_value_float(name, parseFloat(value));
+      }
+
+      var user_override_requested = false;
+      function moveRCSticks() {
+          user_override_requested = true;
+      }
+
+      var state = null;
+      function runFailsafeUpdate() {
+          if (state == null) {
+              state = new Module.state();
+
+              // get the used params & download json metadata
+              fetch("parameters.json")
+                  .then(response => response.json())
+                  .then(json => {
+                  var used_params = Module.get_used_params();
+                  var parameters_html = "<table>";
+                  var parameter_meta = json["parameters"];
+                  for (var i = 0; i < used_params.size(); i++) {
+                      var param_name = used_params.get(i);
+
+                      var meta = parameter_meta.filter(item => item.name === param_name);
+                      if (meta.length > 0) {
+                          meta = meta[0];
+                          var param_type_is_int32 = true;
+                          if (meta["type"] == "Int32") {
+                              var param_value = Module.get_param_value_int32(param_name);
+                          } else if (meta["type"] == "Float") {
+                              param_type_is_int32 = false;
+                              var param_value = Module.get_param_value_float(param_name);
+                          } else {
+                              console.log("Error: unknown param type: ", param_name, meta["type"]);
+                              continue;
+                          }
+                          console.log("param: ", param_name, param_value);
+                          parameters_html += "<tr>";
+                          parameters_html += "<td><label for=\""+param_name+"\">"+param_name+":&nbsp;</label></td>";
+                          onChange = "onChange=\"onParamChangedInt('"+param_name+"', this.options[this.selectedIndex].value)\"";
+                          if (meta.hasOwnProperty("values")) {
+                              parameters_html += "<td><select "+onChange+" id=\""+param_name+"\">";
+                              var enum_values = meta["values"];
+                              for (var k = 0; k < enum_values.length; ++k) {
+                                  var selected = enum_values[k]["value"] == param_value;
+                                  var selected_str = selected ? "selected" : "";
+                                  parameters_html += "<option value=\""+enum_values[k]["value"].toString()+"\" "+selected_str+">"+enum_values[k]["description"]+"</option>";
+                              }
+                              parameters_html += "</select>";
+                          } else {
+                              var unit = "";
+                              if (meta.hasOwnProperty("units")) {
+                                  unit = "&nbsp;"+meta["units"];
+                              }
+                              if (param_type_is_int32) {
+                                  onChange = "onChange=\"onParamChangedInt('"+param_name+"', this.value)\"";
+                              } else {
+                                  onChange = "onChange=\"onParamChangedFloat('"+param_name+"', this.value)\"";
+                              }
+                              parameters_html += "<td><input "+onChange+" size='8' type='text' id=\""+param_name+"\" name=\""+param_name+"\" value=\""+param_value+"\">"+unit;
+                          }
+                          parameters_html += "</td>";
+
+                          var param_description = meta["shortDesc"];
+                          parameters_html += "<td><div class='tooltip'>?<span class='tooltiptext'>"+param_description+"</span></div></td>";
+
+                          parameters_html += "</tr>";
+                      } else {
+                          console.log("no metadata for ", param_name);
+                      }
+                  }
+                  parameters_html += "</table>";
+                  document.getElementById("parameters").innerHTML = parameters_html;
+              });
+          }
+
+          {{{ JS_STATE_CODE }}}
+
+          var armed = document.querySelector('input[id="armed"]').checked;
+          var vtol_in_transition_mode = document.querySelector('input[id="vtol_in_transition_mode"]').checked;
+          var mission_finished = document.querySelector('input[id="mission_finished"]').checked;
+          var intended_nav_state = document.querySelector('select[id="intended_nav_state"]').value;
+          var vehicle_type = document.querySelector('select[id="vehicle_type"]').value;
+          var updated_user_intended_mode = Module.failsafe_update(armed, vtol_in_transition_mode, mission_finished, user_override_requested, parseInt(intended_nav_state),
+              parseInt(vehicle_type), state);
+          user_override_requested = false;
+          var action = Module.selected_action();
+          action_str = Module.action_str(action);
+          if (action_str == "Disarm") {
+              document.querySelector('input[id="armed"]').checked = false;
+          }
+          if (action != 0) {
+              action_str = "<font color='crimson'>"+action_str+"</font>";
+          }
+          document.getElementById("action").innerHTML = action_str;
+          var user_takeover_active = Module.user_takeover_active();
+          document.getElementById("user_takeover_active").innerHTML = user_takeover_active ? "Yes" : "No";
+          if (intended_nav_state != updated_user_intended_mode) {
+              document.querySelector('select[id="intended_nav_state"]').value = updated_user_intended_mode;
+          }
+      }
+
+
+
+      // emscripten template code (from shell_minimal.html)
+
+      var statusElement = document.getElementById('status');
+      var progressElement = document.getElementById('progress');
+      var spinnerElement = document.getElementById('spinner');
+
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: (function() {
+          var element = document.getElementById('output');
+          if (element) element.value = ''; // clear browser cache
+          return function(text) {
+            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+            // These replacements are necessary if you render to raw HTML
+            //text = text.replace(/&/g, "&amp;");
+            //text = text.replace(/</g, "&lt;");
+            //text = text.replace(/>/g, "&gt;");
+            //text = text.replace('\n', '<br>', 'g');
+            console.log(text);
+            if (element) {
+              element.value += text + "\n";
+              element.scrollTop = element.scrollHeight; // focus on bottom
+            }
+          };
+        })(),
+        setStatus: function(text) {
+          if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+          if (text === Module.setStatus.last.text) return;
+          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+          var now = Date.now();
+          if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
+          Module.setStatus.last.time = now;
+          Module.setStatus.last.text = text;
+          if (m) {
+            text = m[1];
+            progressElement.value = parseInt(m[2])*100;
+            progressElement.max = parseInt(m[4])*100;
+            progressElement.hidden = false;
+            spinnerElement.hidden = false;
+          } else {
+            progressElement.value = null;
+            progressElement.max = null;
+            progressElement.hidden = true;
+            if (!text) spinnerElement.hidden = true;
+          }
+          statusElement.innerHTML = text;
+        },
+        totalDependencies: 0,
+        monitorRunDependencies: function(left) {
+          this.totalDependencies = Math.max(this.totalDependencies, left);
+          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        },
+        onRuntimeInitialized: function() {
+            setInterval(runFailsafeUpdate, 100);
+        }
+      };
+      Module.setStatus('Downloading...');
+      window.onerror = function() {
+        Module.setStatus('Exception thrown, see JavaScript console');
+        spinnerElement.style.display = 'none';
+        Module.setStatus = function(text) {
+          if (text) console.error('[post-exception status] ' + text);
+        };
+      };
+    </script>
+    {{{ SCRIPT }}}
+  </body>
+</html>

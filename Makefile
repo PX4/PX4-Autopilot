@@ -573,3 +573,13 @@ update_px4_ros_com:
 
 update_px4_msgs:
 	@Tools/update_px4_ros2_bridge.sh --ws_dir ${ROS2_WS_DIR} --px4_msgs
+
+.PHONY: failsafe_web run_failsafe_web_server
+failsafe_web:
+	@if ! command -v emcc; then echo -e "Install emscripten first: https://emscripten.org/docs/getting_started/downloads.html\nAnd source the env: source <path>/emsdk_env.sh"; exit 1; fi
+	@$(MAKE) --no-print-directory px4_sitl_default failsafe_test parameters_xml  \
+		PX4_CMAKE_BUILD_TYPE=Release BUILD_DIR_SUFFIX=_failsafe_web \
+		CMAKE_ARGS="-DCMAKE_CXX_COMPILER=em++ -DCMAKE_C_COMPILER=emcc"
+run_failsafe_web_server: failsafe_web
+	@cd build/px4_sitl_default_failsafe_web && \
+		python3 -m http.server
