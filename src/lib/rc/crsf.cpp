@@ -122,6 +122,19 @@ struct crsf_payload_RC_channels_packed_t {
 	unsigned chan15 : 11;
 };
 
+struct crsf_payload_link_statistics_packed_t {
+	uint8_t uplink_rssi_1;
+	uint8_t uplink_rssi_2;
+	uint8_t uplink_link_quality;
+	int8_t uplink_snr;
+	uint8_t active_antenna;
+	uint8_t rf_mode;
+	uint8_t uplink_tx_power;
+	uint8_t downlink_rssi;
+	uint8_t downlink_link_quality;
+	int8_t downlink_snr;
+};
+
 #pragma pack(pop)
 
 enum class crsf_parser_state_t : uint8_t {
@@ -136,7 +149,8 @@ static crsf_parser_state_t parser_state = crsf_parser_state_t::unsynced;
 /**
  * parse the current crsf_frame buffer
  */
-static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t max_channels);
+static uint32_t crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t max_channels, uint8_t *lq,
+				  uint8_t *rssi_dbm);
 
 uint8_t crsf_frame_CRC(const crsf_frame_t &frame);
 
@@ -161,11 +175,11 @@ crsf_config(int uart_fd)
 static uint16_t convert_channel_value(unsigned chan_value);
 
 
-bool crsf_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t *values,
-		uint16_t *num_values, uint16_t max_channels)
+uint32_t crsf_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t *values,
+		    uint16_t *num_values, uint16_t max_channels, uint8_t *lq, uint8_t *rssi_dbm)
 {
-	bool ret = false;
 	uint8_t *crsf_frame_ptr = (uint8_t *)&crsf_frame;
+	uint32_t frames = 0;
 
 	while (len > 0) {
 
@@ -191,13 +205,10 @@ bool crsf_parse(const uint64_t now, const uint8_t *frame, unsigned len, uint16_t
 		len -= current_len;
 		frame += current_len;
 
-		if (crsf_parse_buffer(values, num_values, max_channels)) {
-			ret = true;
-		}
+		frames |= crsf_parse_buffer(values, num_values, max_channels, lq, rssi_dbm);
 	}
 
-
-	return ret;
+	return frames;
 }
 
 uint8_t crsf_frame_CRC(const crsf_frame_t &frame)
@@ -225,9 +236,11 @@ static uint16_t convert_channel_value(unsigned chan_value)
 	return (scale * chan_value) + offset;
 }
 
-static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t max_channels)
+static uint32_t crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t max_channels, uint8_t *lq,
+				  uint8_t *rssi_dbm)
 {
 	uint8_t *crsf_frame_ptr = (uint8_t *)&crsf_frame;
+	uint32_t frames = 0;
 
 	if (parser_state == crsf_parser_state_t::unsynced) {
 		// there is no sync byte, try to find an RC packet by searching for a matching frame length and type
@@ -261,13 +274,13 @@ static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t m
 			CRSF_VERBOSE("Discarding buffer");
 		}
 
-		return false;
+		return 0;
 	}
 
 
 	if (current_frame_position < 3) {
 		// wait until we have the header & type
-		return false;
+		return 0;
 	}
 
 	// Now we have at least the header and the type
@@ -279,72 +292,78 @@ static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t m
 		current_frame_position = 0;
 		parser_state = crsf_parser_state_t::unsynced;
 		CRSF_DEBUG("Frame too long/bogus (%i, type=%i) -> unsync", current_frame_length, crsf_frame.type);
-		return false;
+		return 0;
 	}
 
 	if (current_frame_position < current_frame_length) {
 		// we don't have the full frame yet -> wait for more data
 		CRSF_VERBOSE("waiting for more data (%i < %i)", current_frame_position, current_frame_length);
-		return false;
+		return 0;
 	}
-
-	bool ret = false;
 
 	// Now we have the full frame
 
-	if (crsf_frame.type == (uint8_t)crsf_frame_type_t::rc_channels_packed &&
-	    crsf_frame.header.length == (uint8_t)crsf_payload_size_t::rc_channels + 2) {
-		const uint8_t crc = crsf_frame.payload[crsf_frame.header.length - 2];
+	const uint8_t crc = crsf_frame.payload[crsf_frame.header.length - 2];
 
-		if (crc == crsf_frame_CRC(crsf_frame)) {
-			const crsf_payload_RC_channels_packed_t *const rc_channels =
-				(crsf_payload_RC_channels_packed_t *)&crsf_frame.payload;
-			*num_values = MIN(max_channels, 16);
+	if (crc == crsf_frame_CRC(crsf_frame)) {
+		switch (crsf_frame.type) {
+		case (uint8_t)crsf_frame_type_t::rc_channels_packed: {
+				const crsf_payload_RC_channels_packed_t *const rc_channels =
+					(crsf_payload_RC_channels_packed_t *)&crsf_frame.payload;
+				*num_values = MIN(max_channels, 16);
 
-			if (max_channels > 0) { values[0] = convert_channel_value(rc_channels->chan0); }
+				if (max_channels > 0) { values[0] = convert_channel_value(rc_channels->chan0); }
 
-			if (max_channels > 1) { values[1] = convert_channel_value(rc_channels->chan1); }
+				if (max_channels > 1) { values[1] = convert_channel_value(rc_channels->chan1); }
 
-			if (max_channels > 2) { values[2] = convert_channel_value(rc_channels->chan2); }
+				if (max_channels > 2) { values[2] = convert_channel_value(rc_channels->chan2); }
 
-			if (max_channels > 3) { values[3] = convert_channel_value(rc_channels->chan3); }
+				if (max_channels > 3) { values[3] = convert_channel_value(rc_channels->chan3); }
 
-			if (max_channels > 4) { values[4] = convert_channel_value(rc_channels->chan4); }
+				if (max_channels > 4) { values[4] = convert_channel_value(rc_channels->chan4); }
 
-			if (max_channels > 5) { values[5] = convert_channel_value(rc_channels->chan5); }
+				if (max_channels > 5) { values[5] = convert_channel_value(rc_channels->chan5); }
 
-			if (max_channels > 6) { values[6] = convert_channel_value(rc_channels->chan6); }
+				if (max_channels > 6) { values[6] = convert_channel_value(rc_channels->chan6); }
 
-			if (max_channels > 7) { values[7] = convert_channel_value(rc_channels->chan7); }
+				if (max_channels > 7) { values[7] = convert_channel_value(rc_channels->chan7); }
 
-			if (max_channels > 8) { values[8] = convert_channel_value(rc_channels->chan8); }
+				if (max_channels > 8) { values[8] = convert_channel_value(rc_channels->chan8); }
 
-			if (max_channels > 9) { values[9] = convert_channel_value(rc_channels->chan9); }
+				if (max_channels > 9) { values[9] = convert_channel_value(rc_channels->chan9); }
 
-			if (max_channels > 10) { values[10] = convert_channel_value(rc_channels->chan10); }
+				if (max_channels > 10) { values[10] = convert_channel_value(rc_channels->chan10); }
 
-			if (max_channels > 11) { values[11] = convert_channel_value(rc_channels->chan11); }
+				if (max_channels > 11) { values[11] = convert_channel_value(rc_channels->chan11); }
 
-			if (max_channels > 12) { values[12] = convert_channel_value(rc_channels->chan12); }
+				if (max_channels > 12) { values[12] = convert_channel_value(rc_channels->chan12); }
 
-			if (max_channels > 13) { values[13] = convert_channel_value(rc_channels->chan13); }
+				if (max_channels > 13) { values[13] = convert_channel_value(rc_channels->chan13); }
 
-			if (max_channels > 14) { values[14] = convert_channel_value(rc_channels->chan14); }
+				if (max_channels > 14) { values[14] = convert_channel_value(rc_channels->chan14); }
 
-			if (max_channels > 15) { values[15] = convert_channel_value(rc_channels->chan15); }
+				if (max_channels > 15) { values[15] = convert_channel_value(rc_channels->chan15); }
 
-			CRSF_VERBOSE("Got Channels");
+				CRSF_VERBOSE("Got Channels");
 
-			ret = true;
+				frames |= CRSF_FRAME_RC_CHANNELS;
+				break;
+			}
 
-		} else {
-			CRSF_DEBUG("CRC check failed");
+		case (uint8_t)crsf_frame_type_t::link_statistics: {
+				const crsf_payload_link_statistics_packed_t *const link_statistics =
+					(crsf_payload_link_statistics_packed_t *)&crsf_frame.payload;
+				*lq = link_statistics->uplink_link_quality;
+				*rssi_dbm = link_statistics->uplink_rssi_1;
+				frames |= CRSF_FRAME_LINK_STATISTICS;
+				break;
+			}
+
+		default: {
+				CRSF_DEBUG("Got Non-RC frame (len=%i, type=%i)", current_frame_length, crsf_frame.type);
+				break;
+			}
 		}
-
-	} else {
-		CRSF_DEBUG("Got Non-RC frame (len=%i, type=%i)", current_frame_length, crsf_frame.type);
-		// We could check the CRC here and reset the parser into unsynced state if it fails.
-		// But in practise it's robust even without that.
 	}
 
 	// Either reset or move the rest of the buffer
@@ -357,7 +376,7 @@ static bool crsf_parse_buffer(uint16_t *values, uint16_t *num_values, uint16_t m
 		current_frame_position = 0;
 	}
 
-	return ret;
+	return frames;
 }
 
 /**

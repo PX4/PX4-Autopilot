@@ -63,9 +63,9 @@
 #include "crsf_telemetry.h"
 #include "ghst_telemetry.hpp"
 
-#ifdef HRT_PPM_CHANNEL
-# include <systemlib/ppm_decode.h>
-#endif
+#if defined(HRT_PPM_CHANNEL)
+# include <lib/systemlib/ppm_decode.h>
+#endif // HRT_PPM_CHANNEL
 
 class RCInput : public ModuleBase<RCInput>, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -89,26 +89,52 @@ public:
 	int	init();
 
 private:
+	static constexpr int PARSER_COUNT{7};
 
-	enum RC_SCAN {
-		RC_SCAN_PPM = 0,
-		RC_SCAN_SBUS,
-		RC_SCAN_DSM,
-		RC_SCAN_SUMD,
-		RC_SCAN_ST24,
-		RC_SCAN_CRSF,
-		RC_SCAN_GHST
-	} _rc_scan_state{RC_SCAN_SBUS};
+	enum RC_PROTO_SELECT {
+		RC_PROTO_SELECT_AUTO = -1,
+		RC_PROTO_SELECT_SBUS = 0,
+		RC_PROTO_SELECT_DSM = 1,
+		RC_PROTO_SELECT_ST24 = 2,
+		RC_PROTO_SELECT_SUMD = 3,
+#if defined(HRT_PPM_CHANNEL)
+		RC_PROTO_SELECT_PPM = 4,
+#endif // HRT_PPM_CHANNEL
+		RC_PROTO_SELECT_CRSF = 5,
+		RC_PROTO_SELECT_GHST = 6
+	};
 
-	static constexpr char const *RC_SCAN_STRING[7] {
-		"PPM",
+	enum RC_PARSER {
+		RC_PARSER_NONE = -1,
+		RC_PARSER_SBUS,
+		RC_PARSER_DSM,
+		RC_PARSER_ST24,
+		RC_PARSER_SUMD,
+#if defined(HRT_PPM_CHANNEL)
+		RC_PARSER_PPM,
+#endif // HRT_PPM_CHANNEL
+		RC_PARSER_CRSF,
+		RC_PARSER_GHST
+	};
+
+	static constexpr char const *RC_PARSER_STRING[] {
+		"NONE",
 		"SBUS",
 		"DSM",
-		"SUMD",
 		"ST24",
+		"SUMD",
+#if defined(HRT_PPM_CHANNEL)
+		"PPM",
+#endif // HRT_PPM_CHANNEL
 		"CRSF",
 		"GHST"
 	};
+
+	enum RC_PARSER _current_rc_parser {RC_PARSER_NONE};
+
+
+
+	void switch_parser(enum RC_PARSER new_parser);
 
 	void Run() override;
 
@@ -121,9 +147,20 @@ private:
 			hrt_abstime now, bool frame_drop, bool failsafe,
 			unsigned frame_drops, int rssi);
 
-	void set_rc_scan_state(RC_SCAN _rc_scan_state);
-
 	void rc_io_invert(bool invert);
+
+	bool try_parse_crsf(hrt_abstime cycle_timestamp, int new_bytes);
+	bool try_parse_sbus(hrt_abstime cycle_timestamp, int new_bytes);
+	bool try_parse_dsm(hrt_abstime cycle_timestamp, int new_bytes);
+	bool try_parse_st24(hrt_abstime cycle_timestamp, int new_bytes);
+	bool try_parse_sumd(hrt_abstime cycle_timestamp, int new_bytes);
+	bool try_parse_ghst(hrt_abstime cycle_timestamp, int new_bytes);
+
+#if defined(HRT_PPM_CHANNEL)
+	bool try_parse_ppm(hrt_abstime cycle_timestamp);
+#endif // HRT_PPM_CHANNEL
+
+	RC_PARSER scanner_check(hrt_abstime cycle_timestamp);
 
 	hrt_abstime _rc_scan_begin{0};
 
@@ -168,6 +205,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
-		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max
+		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
+		(ParamInt<px4::params::RC_INPUT_PROTO>) _param_rc_input_proto
 	)
 };
