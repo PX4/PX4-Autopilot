@@ -179,7 +179,7 @@ PARAM_DEFINE_FLOAT(C_D2, 1.984f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_A1, 1.16826067f);
+PARAM_DEFINE_FLOAT(FILTER_A1, 1.64927209f);
 
 /**
  * coefficients of the butterworth filter used for smoothing the IMU
@@ -191,7 +191,7 @@ PARAM_DEFINE_FLOAT(FILTER_A1, 1.16826067f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_A2, -0.42411821f);
+PARAM_DEFINE_FLOAT(FILTER_A2, -0.70219636f);
 
 /**
  * coefficients of the butterworth filter used for smoothing the IMU
@@ -203,7 +203,7 @@ PARAM_DEFINE_FLOAT(FILTER_A2, -0.42411821f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_B1, 0.06396438f);
+PARAM_DEFINE_FLOAT(FILTER_B1, 0.01323107f);
 
 /**
  * coefficients of the butterworth filter used for smoothing the IMU
@@ -215,7 +215,7 @@ PARAM_DEFINE_FLOAT(FILTER_B1, 0.06396438f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_B2, 0.12792877f);
+PARAM_DEFINE_FLOAT(FILTER_B2, 0.02646213f);
 
 /**
  * coefficients of the butterworth filter used for smoothing the IMU
@@ -227,7 +227,7 @@ PARAM_DEFINE_FLOAT(FILTER_B2, 0.12792877f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(FILTER_B3, 0.06396438f);
+PARAM_DEFINE_FLOAT(FILTER_B3, 0.01323107f);
 
 // ========================================================
 // =================== CONTROL GAINS ======================

@@ -506,11 +506,12 @@ FixedwingPositionINDIControl::Run()
             // publish attitude setpoint
             // =========================
             //_attitude_sp = {};
+            Quatf q_sp(_R_enu_to_ned*Dcmf(q));
             _attitude_sp.timestamp = hrt_absolute_time();
-            _attitude_sp.q_d[0] = q(0);
-            _attitude_sp.q_d[1] = q(1);
-            _attitude_sp.q_d[2] = q(2);
-            _attitude_sp.q_d[3] = q(3);
+            _attitude_sp.q_d[0] = q_sp(0);
+            _attitude_sp.q_d[1] = q_sp(1);
+            _attitude_sp.q_d[2] = q_sp(2);
+            _attitude_sp.q_d[3] = q_sp(3);
             _attitude_sp_pub.publish(_attitude_sp);
 
             // ======================
@@ -538,7 +539,7 @@ FixedwingPositionINDIControl::Run()
             _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
             _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
             _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
-            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.4f;
+            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.5f;
             _actuators_0_pub.publish(_actuators);
             //print_message(_actuators);
         }
@@ -651,10 +652,10 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     Vector3f f = _mass*acc;
     // compute force component projected onto lift axis
     Vector3f vel_normalized = vel_air.normalized();
-    Vector3f f_lift = f - (f*vel_normalized)*vel_normalized;
+    Vector3f f_lift = -(f - (f*vel_normalized)*vel_normalized);
     Vector3f lift_normalized = f_lift.normalized();
     Vector3f wing_normalized = -vel_normalized.cross(lift_normalized);
-    // compute rotation matrix
+    // compute rotation matrix between ENU and FRD frame
     Dcmf R_bi;
     R_bi(0,0) = vel_normalized(0);
     R_bi(0,1) = vel_normalized(1);
@@ -673,7 +674,6 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
     Dcmf Rotation(R_pitch*R_bi);
-    // switch from FRD to ENU frame
     /*
     float determinant = Rotation(0,0)*(Rotation(1,1)*Rotation(2,2)-Rotation(2,1)*Rotation(1,2)) - 
                         Rotation(1,0)*(Rotation(0,1)*Rotation(2,2)-Rotation(2,1)*Rotation(0,2)) + 
@@ -682,12 +682,7 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     PX4_INFO("length: %.2f", (double)(wing_normalized*wing_normalized));
     */
 
-    Rotation(1,0) *= -1;
-    Rotation(1,1) *= -1;
-    Rotation(1,2) *= -1;
-    Rotation(2,0) *= -1;
-    Rotation(2,1) *= -1;
-    Rotation(2,2) *= -1;
+
 
     Quatf q(Rotation.transpose());
     return q;
@@ -760,7 +755,7 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
     Vector3f vel_air = vel - _wind_estimate;
     // compute force component projected onto lift axis
     Vector3f vel_normalized = vel_air.normalized();
-    Vector3f f_lift = f - (f*vel_normalized)*vel_normalized;
+    Vector3f f_lift = -(f - (f*vel_normalized)*vel_normalized);
     Vector3f lift_normalized = f_lift.normalized();
     Vector3f wing_normalized = -vel_normalized.cross(lift_normalized);
     // compute rotation matrix
@@ -781,13 +776,8 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
     Dcmf Rotation(R_pitch*R_bi);
-    // switch from FRD to ENU frame
-    Rotation(1,0) *= -1;
-    Rotation(1,1) *= -1;
-    Rotation(1,2) *= -1;
-    Rotation(2,0) *= -1;
-    Rotation(2,1) *= -1;
-    Rotation(2,2) *= -1;
+
+
     Quatf q(Rotation.transpose());
     return q;
 }
@@ -812,7 +802,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     Vector3f w_err = -q_err.angle()*q_err.axis();
     // compute angular acceleration command (in body frame)
     Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
-    rot_acc_command =  0.0f*_K_w*(omega_ref-_omega) + alpha_ref;;
+    rot_acc_command =  1.f*_K_q*w_err + 0.3f*_K_w*(omega_ref-_omega) + alpha_ref;;
 
     // apply LP filtered values for incremental part
 
@@ -843,9 +833,9 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     Vector3f moment_filtered = _apply_LP_filter(moment, _m_list, _m_lpf_list);
     Vector3f alpha_filtered = _apply_LP_filter(_alpha, _l_list, _l_lpf_list);
     Vector3f command = _inertia*(ctrl-alpha_filtered) + moment_filtered;
-    //PX4_INFO("filtered alpha: %.2f", (double)(_l_list(0))(0));
+    //PX4_INFO("filtered alpha: \t%.2f\t%.2f", (double)(_l_list(0))(2), (double)(_l_lpf_list(0))(1));
     //command = _inertia*ctrl + _omega.cross(_inertia*_omega);
-    return 0.1f*command + 0.f*ctrl;
+    return 0.f*command + 1.f*(_inertia*ctrl);
 
 
 }
