@@ -3,6 +3,12 @@
 # PX4 FMUv5X specific board sensors init
 #------------------------------------------------------------------------------
 
+set HAVE_PM2 yes
+
+if ver hwtypecmp V5X50 V5X51 V5X52
+then
+	set HAVE_PM2 no
+fi
 if param compare -s ADC_ADS1115_EN 1
 then
 	ads1115 start -X
@@ -15,21 +21,31 @@ if param compare SENS_EN_INA226 1
 then
 	# Start Digital power monitors
 	ina226 -X -b 1 -t 1 -k start
-	ina226 -X -b 2 -t 2 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
 fi
 
 if param compare SENS_EN_INA228 1
 then
 	# Start Digital power monitors
 	ina228 -X -b 1 -t 1 -k start
-	ina228 -X -b 2 -t 2 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
 fi
 
 if param compare SENS_EN_INA238 1
 then
 	# Start Digital power monitors
 	ina238 -X -b 1 -t 1 -k start
-	ina238 -X -b 2 -t 2 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
 fi
 
 if ver hwtypecmp V5X90 V5X91 V5X92 V5Xa0 V5Xa1 V5Xa2
@@ -96,3 +112,4 @@ then
 	fi
 
 fi
+unset HAVE_PM2
