@@ -185,6 +185,8 @@ private:
 	RequestedSubscriptionArray _subscriptions;
 	int _num_mission_subs{0};
 	float _rate_factor{1.0f};
+
+	bool _dynamic_control_allocation{false};
 };
 
 } //namespace logger
