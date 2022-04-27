@@ -109,7 +109,7 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 		actuator_controls_s actuator_controls_1;
 
 		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
-			float control_tilt = actuator_controls_1.control[4] * 2.f - 1.f;
+			float control_tilt = actuator_controls_1.control[actuator_controls_s::INDEX_COLLECTIVE_TILT] * 2.f - 1.f;
 
 			// set control_tilt to exactly -1 or 1 if close to these end points
 			control_tilt = control_tilt < -0.99f ? -1.f : control_tilt;
