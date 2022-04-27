@@ -46,6 +46,10 @@
 #include <lib/mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
+#include <lib/slew_rate/SlewRate.hpp>
+
+static constexpr float kFlapSlewRateVtol = 1.f; // minimum time from none to full flap deflection [s]
+static constexpr float kSpoilerSlewRateVtol = 1.f; // minimum time from none to full spoiler deflection [s]
 
 struct Params {
 	int32_t ctrl_alloc;
@@ -81,6 +85,7 @@ struct Params {
 	int32_t vt_forward_thrust_enable_mode;
 	float mpc_land_alt1;
 	float mpc_land_alt2;
+	float vt_spoiler_mc_ld;
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
@@ -207,6 +212,14 @@ public:
 
 	virtual void parameters_update() = 0;
 
+	/**
+	 * @brief Set current time delta
+	 *
+	 * @param dt Current time delta [s]
+	 */
+	void setDt(float dt) {_dt = dt; }
+
+protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;
 
@@ -291,6 +304,11 @@ public:
 	void set_alternate_motor_state(motor_state target_state, int value = 0);
 
 	float update_and_get_backtransition_pitch_sp();
+
+	SlewRate<float> _spoiler_setpoint_with_slewrate;
+	SlewRate<float> _flaps_setpoint_with_slewrate;
+
+	float _dt{0.0025f}; // time step [s]
 
 private:
 
