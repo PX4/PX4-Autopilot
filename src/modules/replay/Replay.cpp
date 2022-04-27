@@ -933,9 +933,9 @@ Replay::run()
 			subscription->compat = nullptr;
 		}
 
-		if (subscription->orb_advert) {
+		if (orb_advert_valid(subscription->orb_advert)) {
 			orb_unadvertise(subscription->orb_advert);
-			subscription->orb_advert = nullptr;
+			subscription->orb_advert = ORB_ADVERT_INVALID;
 		}
 	}
 
@@ -1015,8 +1015,8 @@ Replay::publishTopic(Subscription &sub, void *data)
 		data = sub.compat->apply(data);
 	}
 
-	if (sub.orb_advert) {
-		orb_publish(sub.orb_meta, sub.orb_advert, data);
+	if (orb_advert_valid(sub.orb_advert)) {
+		orb_publish(sub.orb_meta, &sub.orb_advert, data);
 		published = true;
 
 	} else {
@@ -1035,7 +1035,7 @@ Replay::publishTopic(Subscription &sub, void *data)
 
 				if (subscription->orb_meta) {
 					if (strcmp(sub.orb_meta->o_name, subscription->orb_meta->o_name) == 0 &&
-					    subscription->orb_advert && subscription->multi_id == sub.multi_id - 1) {
+					    orb_advert_valid(subscription->orb_advert) && subscription->multi_id == sub.multi_id - 1) {
 						advertised = true;
 					}
 				}

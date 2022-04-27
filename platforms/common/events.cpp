@@ -38,7 +38,7 @@
 #include <px4_platform_common/events.h>
 #include <uORB/uORB.h>
 
-static orb_advert_t orb_event_pub = nullptr;
+static orb_advert_t orb_event_pub = ORB_ADVERT_INVALID;
 static pthread_mutex_t publish_event_mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint16_t event_sequence{events::initial_event_sequence};
 
@@ -57,8 +57,8 @@ void send(EventType &event)
 	pthread_mutex_lock(&publish_event_mutex);
 	event.event_sequence = ++event_sequence; // Set the sequence here so we're able to detect uORB queue overflows
 
-	if (orb_event_pub != nullptr) {
-		orb_publish(ORB_ID(event), orb_event_pub, &event);
+	if (orb_advert_valid(orb_event_pub)) {
+		orb_publish(ORB_ID(event), &orb_event_pub, &event);
 
 	} else {
 		orb_event_pub = orb_advertise_queue(ORB_ID(event), &event, event_s::ORB_QUEUE_LENGTH);

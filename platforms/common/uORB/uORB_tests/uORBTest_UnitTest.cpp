@@ -289,7 +289,7 @@ int uORBTest::UnitTest::test_single()
 
 	t.val = 2;
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_test), ptopic, &t)) {
+	if (PX4_OK != orb_publish(ORB_ID(orb_test), &ptopic, &t)) {
 		return test_fail("publish failed");
 	}
 
@@ -344,13 +344,13 @@ int uORBTest::UnitTest::test_multi()
 
 	t.val = 103;
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[0], &t)) {
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), &_pfd[0], &t)) {
 		return test_fail("mult. pub0 fail");
 	}
 
 	t.val = 203;
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[1], &t)) {
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), &_pfd[1], &t)) {
 		return test_fail("mult. pub1 fail");
 	}
 
@@ -422,7 +422,7 @@ int uORBTest::UnitTest::pub_test_multi2_main()
 		data_topic.timestamp = hrt_absolute_time();
 		data_topic.val = data_next_idx;
 
-		orb_publish(ORB_ID(orb_test_medium_multi), orb_pub[data_next_idx], &data_topic);
+		orb_publish(ORB_ID(orb_test_medium_multi), &orb_pub[data_next_idx], &data_topic);
 //		PX4_WARN("publishing msg (idx=%i, t=%" PRIu64 ")", data_next_idx, data_topic.time);
 
 		data_next_idx = (data_next_idx + 1) % num_instances;
@@ -533,13 +533,13 @@ int uORBTest::UnitTest::test_multi_reversed()
 
 	t.val = 204;
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[2], &t)) {
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), &_pfd[2], &t)) {
 		return test_fail("mult. pub0 fail");
 	}
 
 	t.val = 304;
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), _pfd[3], &t)) {
+	if (PX4_OK != orb_publish(ORB_ID(orb_multitest), &_pfd[3], &t)) {
 		return test_fail("mult. pub1 fail");
 	}
 
@@ -598,7 +598,7 @@ int uORBTest::UnitTest::test_wrap_around()
 	}
 
 	t.val = 0;
-	orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+	orb_publish(ORB_ID(orb_test_medium_wrap_around), &ptopic, &t);
 
 	int sfd = orb_subscribe(ORB_ID(orb_test_medium_wrap_around));
 
@@ -648,7 +648,7 @@ int uORBTest::UnitTest::test_wrap_around()
 
 	for (int i = 0; i < queue_size - 2; ++i) {
 		t.val = i;
-		orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+		orb_publish(ORB_ID(orb_test_medium_wrap_around), &ptopic, &t);
 	}
 
 	for (int i = 0; i < queue_size - 2; ++i) {
@@ -676,7 +676,7 @@ int uORBTest::UnitTest::test_wrap_around()
 
 	for (int i = 0; i < queue_size + overflow_by; ++i) {
 		t.val = i;
-		orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+		orb_publish(ORB_ID(orb_test_medium_wrap_around), &ptopic, &t);
 	}
 
 	for (int i = 0; i < queue_size; ++i) {
@@ -691,7 +691,7 @@ int uORBTest::UnitTest::test_wrap_around()
 	SET_GENERTATION();
 
 	t.val = queue_size;
-	orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+	orb_publish(ORB_ID(orb_test_medium_wrap_around), &ptopic, &t);
 
 	CHECK_UPDATED(-1);
 	CHECK_COPY(u.val, t.val);
@@ -704,7 +704,7 @@ int uORBTest::UnitTest::test_wrap_around()
 #undef SET_GENERTATION
 
 	t.val = 943;
-	orb_publish(ORB_ID(orb_test_medium_wrap_around), ptopic, &t);
+	orb_publish(ORB_ID(orb_test_medium_wrap_around), &ptopic, &t);
 	CHECK_UPDATED(-1);
 	CHECK_COPY(u.val, t.val);
 
@@ -878,7 +878,7 @@ int uORBTest::UnitTest::test_queue()
 
 	for (int i = 0; i < queue_size - 2; ++i) {
 		t.val = i;
-		orb_publish(ORB_ID(orb_test_medium_queue), ptopic, &t);
+		orb_publish(ORB_ID(orb_test_medium_queue), &ptopic, &t);
 	}
 
 	for (int i = 0; i < queue_size - 2; ++i) {
@@ -893,7 +893,7 @@ int uORBTest::UnitTest::test_queue()
 
 	for (int i = 0; i < queue_size + overflow_by; ++i) {
 		t.val = i;
-		orb_publish(ORB_ID(orb_test_medium_queue), ptopic, &t);
+		orb_publish(ORB_ID(orb_test_medium_queue), &ptopic, &t);
 	}
 
 	for (int i = 0; i < queue_size; ++i) {
@@ -911,7 +911,7 @@ int uORBTest::UnitTest::test_queue()
 	}
 
 	t.val = 943;
-	orb_publish(ORB_ID(orb_test_medium_queue), ptopic, &t);
+	orb_publish(ORB_ID(orb_test_medium_queue), &ptopic, &t);
 	CHECK_UPDATED(-1);
 	CHECK_COPY(u.val, t.val);
 
@@ -953,7 +953,7 @@ int uORBTest::UnitTest::pub_test_queue_main()
 		int burst_counter = 0;
 
 		while (burst_counter++ < queue_size / 2 + 7) { //make interval non-boundary aligned
-			orb_publish(ORB_ID(orb_test_medium_queue_poll), ptopic, &t);
+			orb_publish(ORB_ID(orb_test_medium_queue_poll), &ptopic, &t);
 			++t.val;
 		}
 
@@ -1068,7 +1068,7 @@ int uORBTest::UnitTest::latency_test(bool print)
 		++t.val;
 		t.timestamp = hrt_absolute_time();
 
-		if (PX4_OK != orb_publish(ORB_ID(orb_test_medium), pfd0, &t)) {
+		if (PX4_OK != orb_publish(ORB_ID(orb_test_medium), &pfd0, &t)) {
 			return test_fail("mult. pub0 timing fail");
 		}
 

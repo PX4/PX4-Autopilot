@@ -417,11 +417,11 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 					}
 				}
 
-				if (worker_data->mag_worker_data_pub == nullptr) {
+				if (!orb_advert_valid(worker_data->mag_worker_data_pub)) {
 					worker_data->mag_worker_data_pub = orb_advertise(ORB_ID(mag_worker_data), &status);
 
 				} else {
-					orb_publish(ORB_ID(mag_worker_data), worker_data->mag_worker_data_pub, &status);
+					orb_publish(ORB_ID(mag_worker_data), &worker_data->mag_worker_data_pub, &status);
 				}
 
 				calibration_counter_side++;
@@ -484,7 +484,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub, int32_t cal_ma
 
 	mag_worker_data_t worker_data{};
 
-	worker_data.mag_worker_data_pub = nullptr;
+	worker_data.mag_worker_data_pub = ORB_ADVERT_INVALID;
 
 	// keep and update the existing calibration when we are not doing a full 6-axis calibration
 	worker_data.append_to_existing_calibration = cal_mask < ((1 << 6) - 1);

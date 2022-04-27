@@ -383,7 +383,7 @@ void AdsbConflict::fake_traffic(const char *callsign, float distance, float dire
 
 #endif /* BOARD_HAS_NO_UUID */
 
-	orb_publish(ORB_ID(transponder_report), fake_traffic_report_publisher, &tr);
+	orb_publish(ORB_ID(transponder_report), &fake_traffic_report_publisher, &tr);
 
 }
 

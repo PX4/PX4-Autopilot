@@ -695,7 +695,7 @@ void PGA460::run()
 	struct distance_sensor_s report = {};
 	_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &report);
 
-	if (_distance_sensor_topic == nullptr) {
+	if (!orb_advert_valid(_distance_sensor_topic)) {
 		PX4_WARN("Advertise failed.");
 		return;
 	}
@@ -819,7 +819,7 @@ void PGA460::uORB_publish_results(const float object_distance)
 	if (data_is_valid) {
 		report.signal_quality = 1;
 		_previous_valid_report_distance = report.current_distance;
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+		orb_publish(ORB_ID(distance_sensor), &_distance_sensor_topic, &report);
 	}
 }
 

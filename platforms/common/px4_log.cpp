@@ -55,7 +55,7 @@
 static LogHistory g_log_history;
 #endif
 
-static orb_advert_t orb_log_message_pub = nullptr;
+static orb_advert_t orb_log_message_pub = ORB_ADVERT_INVALID;
 
 __EXPORT const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1] = { "DEBUG", "INFO", "WARN", "ERROR", "PANIC" };
 
@@ -178,7 +178,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 	}
 
 	/* publish an orb log message */
-	if (level >= _PX4_LOG_LEVEL_INFO && orb_log_message_pub) { //publish all messages
+	if (level >= _PX4_LOG_LEVEL_INFO && orb_advert_valid(orb_log_message_pub)) { //publish all messages
 
 		log_message_s log_message;
 
@@ -199,7 +199,7 @@ __EXPORT void px4_log_modulename(int level, const char *module_name, const char 
 		va_end(argptr);
 		log_message.text[max_length - 1] = 0; //ensure 0-termination
 		log_message.timestamp = hrt_absolute_time();
-		orb_publish(ORB_ID(log_message), orb_log_message_pub, &log_message);
+		orb_publish(ORB_ID(log_message), &orb_log_message_pub, &log_message);
 	}
 }
 

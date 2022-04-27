@@ -92,7 +92,7 @@ TEST_F(ParameterTest, testUorbSendReceive)
 
 	// WHEN we send the message
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
-	ASSERT_TRUE(obstacle_distance_pub != nullptr);
+	ASSERT_TRUE(orb_advert_valid(obstacle_distance_pub));
 
 	// THEN: the subscriber should receive the message
 	sub_obstacle_distance.update();

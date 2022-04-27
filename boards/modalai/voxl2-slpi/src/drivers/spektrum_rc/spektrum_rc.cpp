@@ -187,7 +187,7 @@ void task_main(int argc, char *argv[])
 				} else {
 					if (print_msg) { PX4_INFO("Spektrum RC: Publishing input_rc"); }
 
-					orb_publish(ORB_ID(input_rc), rc_pub, &input_rc);
+					orb_publish(ORB_ID(input_rc), &rc_pub, &input_rc);
 				}
 			}
 

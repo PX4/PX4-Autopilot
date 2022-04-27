@@ -115,7 +115,7 @@ int px4_simple_app_main(int argc, char *argv[])
 				att.q[1] = accel.xyz[1];
 				att.q[2] = accel.xyz[2];
 
-				orb_publish(ORB_ID(vehicle_attitude), att_pub, &att);
+				orb_publish(ORB_ID(vehicle_attitude), &att_pub, &att);
 			}
 
 			/* there could be more file descriptors here, in the form like:
