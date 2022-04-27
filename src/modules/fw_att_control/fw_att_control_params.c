@@ -458,21 +458,10 @@ PARAM_DEFINE_FLOAT(FW_MAN_R_MAX, 45.0f);
 PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
 
 /**
- * Scale factor for flaps
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
-
-/**
  * Flaps setting during take-off
  *
- * Sets a fraction of full flaps (FW_FLAPS_SCL) during take-off
+ * Sets a fraction of full flaps during take-off.
+ * Also applies to flaperons if enabled in the mixer/allocation.
  *
  * @unit norm
  * @min 0.0
@@ -486,7 +475,8 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
 /**
  * Flaps setting during landing
  *
- * Sets a fraction of full flaps (FW_FLAPS_SCL) during landing
+ * Sets a fraction of full flaps during landing.
+ * Also applies to flaperons if enabled in the mixer/allocation.
  *
  * @unit norm
  * @min 0.0
@@ -496,18 +486,6 @@ PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
  * @group FW Attitude Control
  */
 PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
-
-/**
- * Scale factor for flaperons
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW Attitude Control
- */
-PARAM_DEFINE_FLOAT(FW_FLAPERON_SCL, 0.0f);
 
 /**
  * Airspeed mode
@@ -735,3 +713,52 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_R_FLPS, 0.0f);
  * @increment 0.01
  */
 PARAM_DEFINE_FLOAT(FW_DTRIM_P_FLPS, 0.0f);
+
+/**
+ * Pitch trim increment for spoiler configuration
+ *
+ * This increment is added to the pitch trim whenever spoilers are fully deployed.
+ *
+ * @group FW Attitude Control
+ * @min -0.25
+ * @max 0.25
+ * @decimal 2
+ * @increment 0.01
+ */
+PARAM_DEFINE_FLOAT(FW_DTRIM_P_SPOIL, 0.f);
+
+/**
+ * Spoiler landing setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_LND, 0.f);
+
+/**
+ * Spoiler descend setting
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_SPOILERS_DESC, 0.f);
+
+/**
+ * Spoiler input in manual flight
+ *
+ * Chose source for manual setting of spoilers in manual flight modes.
+ *
+ * @value 0 Disabled
+ * @value 1 Flaps channel
+ * @value 2 Aux1
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_INT32(FW_SPOILERS_MAN, 0);

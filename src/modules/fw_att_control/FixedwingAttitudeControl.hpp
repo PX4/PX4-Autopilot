@@ -40,6 +40,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
+#include <lib/slew_rate/SlewRate.hpp>
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -77,6 +78,9 @@ using matrix::Quatf;
 using uORB::SubscriptionData;
 
 using namespace time_literals;
+
+static constexpr float kFlapSlewRate = 1.f; //minimum time from none to full flap deflection [s]
+static constexpr float kSpoilerSlewRate = 1.f; //minimum time from none to full spoiler deflection [s]
 
 class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public ModuleParams,
 	public px4::WorkItem
@@ -139,9 +143,6 @@ private:
 
 	hrt_abstime _last_run{0};
 
-	float _flaps_applied{0.0f};
-	float _flaperons_applied{0.0f};
-
 	float _airspeed_scaling{1.0f};
 
 	bool _landed{true};
@@ -155,6 +156,9 @@ private:
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
 	float _control_prev[3] {};
+
+	SlewRate<float> _spoiler_setpoint_with_slewrate;
+	SlewRate<float> _flaps_setpoint_with_slewrate;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_ACRO_X_MAX>) _param_fw_acro_x_max,
@@ -171,6 +175,7 @@ private:
 		(ParamBool<px4::params::FW_BAT_SCALE_EN>) _param_fw_bat_scale_en,
 
 		(ParamFloat<px4::params::FW_DTRIM_P_FLPS>) _param_fw_dtrim_p_flps,
+		(ParamFloat<px4::params::FW_DTRIM_P_SPOIL>) _param_fw_dtrim_p_spoil,
 		(ParamFloat<px4::params::FW_DTRIM_P_VMAX>) _param_fw_dtrim_p_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_P_VMIN>) _param_fw_dtrim_p_vmin,
 		(ParamFloat<px4::params::FW_DTRIM_R_FLPS>) _param_fw_dtrim_r_flps,
@@ -179,10 +184,11 @@ private:
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMAX>) _param_fw_dtrim_y_vmax,
 		(ParamFloat<px4::params::FW_DTRIM_Y_VMIN>) _param_fw_dtrim_y_vmin,
 
-		(ParamFloat<px4::params::FW_FLAPERON_SCL>) _param_fw_flaperon_scl,
 		(ParamFloat<px4::params::FW_FLAPS_LND_SCL>) _param_fw_flaps_lnd_scl,
-		(ParamFloat<px4::params::FW_FLAPS_SCL>) _param_fw_flaps_scl,
 		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
+		(ParamFloat<px4::params::FW_SPOILERS_LND>) _param_fw_spoilers_lnd,
+		(ParamFloat<px4::params::FW_SPOILERS_DESC>) _param_fw_spoilers_desc,
+		(ParamInt<px4::params::FW_SPOILERS_MAN>) _param_fw_spoilers_man,
 
 		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
 		(ParamFloat<px4::params::FW_MAN_P_SC>) _param_fw_man_p_sc,
@@ -230,7 +236,19 @@ private:
 	ECL_YawController		_yaw_ctrl;
 	ECL_WheelController		_wheel_ctrl;
 
-	void control_flaps(const float dt);
+	/**
+	 * @brief Update flap control setting
+	 *
+	 * @param dt Current time delta [s]
+	 */
+	void controlFlaps(const float dt);
+
+	/**
+	 * @brief Update spoiler control setting
+	 *
+	 * @param dt Current time delta [s]
+	 */
+	void controlSpoilers(const float dt);
 
 	void updateActuatorControlsStatus(float dt);
 
