@@ -47,10 +47,12 @@
 #include <parameters/param.h>
 #include <mathlib/mathlib.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/follow_target_status.h>
 #include <uORB/topics/follow_target_estimator.h>
 #include <uORB/topics/gimbal_manager_set_attitude.h>
+#include <uORB/topics/vehicle_command.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 
 // Speed above which the target heading can change.
@@ -159,7 +161,7 @@ protected:
 			const matrix::Vector3f &vel_ned_est,
 			const matrix::Vector3f &acc_ned_est) const;
 
-
+	void release_gimbal_control();
 	void point_gimbal_at(float xy_distance, float z_distance);
 	matrix::Vector2f calculate_offset_vector_filtered(matrix::Vector3f vel_ned_est);
 	matrix::Vector3f calculate_target_position_filtered(matrix::Vector3f pos_ned_est, matrix::Vector3f vel_ned_est,
@@ -192,6 +194,8 @@ protected:
 	bool _emergency_ascent = false;
 
 	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamFloat<px4::params::NAV_MIN_FT_HT>) _param_nav_min_ft_ht,
 		(ParamFloat<px4::params::NAV_FT_DST>) _param_nav_ft_dst,
 		(ParamInt<px4::params::NAV_FT_FS>) _param_nav_ft_fs,
@@ -204,6 +208,7 @@ protected:
 
 	uORB::PublicationMulti<follow_target_status_s> _follow_target_status_pub{ORB_ID(follow_target_status)};
 	uORB::PublicationMulti<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
+	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 
 	// Debugging
 	float _gimbal_pitch{0};

@@ -56,6 +56,7 @@ FlightTaskAutoFollowTarget::FlightTaskAutoFollowTarget()
 
 FlightTaskAutoFollowTarget::~FlightTaskAutoFollowTarget()
 {
+	release_gimbal_control();
 	_target_estimator.Stop();
 }
 
@@ -365,6 +366,29 @@ Vector3f FlightTaskAutoFollowTarget::predict_future_pos_ned_est(float deltatime,
 	return pos_ned_est + vel_ned_est * deltatime + 0.5f * acc_ned_est * deltatime * deltatime;
 }
 
+void FlightTaskAutoFollowTarget::release_gimbal_control()
+{
+	// NOTE: If other flight tasks start using gimbal control as well
+	// it might be worth moving this release mechanism to a common base
+	// class for gimbal-control flight tasks
+
+	vehicle_command_s vehicle_command = {};
+	vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_GIMBAL_MANAGER_CONFIGURE;
+	vehicle_command.param1 = -3.0f; // Remove control if it had it.
+	vehicle_command.param2 = -3.0f; // Remove control if it had it.
+	vehicle_command.param3 = -1.0f; // Leave unchanged.
+	vehicle_command.param4 = -1.0f; // Leave unchanged.
+
+	vehicle_command.timestamp = hrt_absolute_time();
+	vehicle_command.source_system = _param_mav_sys_id.get();
+	vehicle_command.source_component = _param_mav_comp_id.get();
+	vehicle_command.target_system = _param_mav_sys_id.get();
+	vehicle_command.target_component = _param_mav_comp_id.get();
+	vehicle_command.confirmation = false;
+	vehicle_command.from_external = false;
+
+	_vehicle_command_pub.publish(vehicle_command);
+}
 
 void FlightTaskAutoFollowTarget::point_gimbal_at(float xy_distance, float z_distance)
 {
