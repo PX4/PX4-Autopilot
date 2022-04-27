@@ -842,9 +842,6 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		_l1_control.set_dt(dt);
 	}
 
-	_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
-	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;		// by default we don't use flaps
-
 	/* save time when airplane is in air */
 	if (!_was_in_air && !_landed) {
 		_was_in_air = true;
@@ -1356,7 +1353,8 @@ FixedwingPositionControl::control_auto_loiter(const hrt_abstime &now, const floa
 		// have to do this switch (which can cause significant altitude errors) close to the ground.
 		_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 		airspeed_sp = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
-		_att_sp.apply_flaps = true;
+		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
+		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
 	}
 
 	float target_airspeed = get_auto_airspeed_setpoint(now, airspeed_sp, ground_speed, dt);
@@ -1684,9 +1682,9 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const Vec
 		prev_wp(1) = pos_sp_curr.lon;
 	}
 
-	// apply full flaps for landings. this flag will also trigger the use of flaperons
-	// if they have been enabled using the corresponding parameter
+	// Apply flaps and spoilers for landing. Amount of deflection is handled in the FW attitdue controller
 	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
+	_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_LAND;
 
 	// Enable tighter altitude control for landings
 	_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
@@ -2390,6 +2388,10 @@ FixedwingPositionControl::Run()
 		Vector2f ground_speed(_local_pos.vx, _local_pos.vy);
 
 		set_control_mode_current(_local_pos.timestamp, _pos_sp_triplet.current.valid);
+
+		_att_sp.fw_control_yaw = false;		// by default we don't want yaw to be contoller directly with rudder
+		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;		// by default we don't use flaps
+		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
 		switch (_control_mode_current) {
 		case FW_POSCTRL_MODE_AUTO: {
