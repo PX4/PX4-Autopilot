@@ -531,7 +531,7 @@ void Tiltrotor::fill_actuator_outputs()
 	}
 
 	// Fixed wing output
-	fw_out[4] = _tilt_control;
+	fw_out[actuator_controls_s::INDEX_COLLECTIVE_TILT] = _tilt_control;
 
 	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
 		fw_out[actuator_controls_s::INDEX_ROLL]  = 0;
