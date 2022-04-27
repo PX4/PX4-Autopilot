@@ -104,7 +104,7 @@ void ManualControl::Run()
 					_param_man_arm_gesture.set(0); // disable arm gesture
 					_param_man_arm_gesture.commit();
 
-					orb_advert_t mavlink_log_pub = nullptr;
+					orb_advert_t mavlink_log_pub = ORB_ADVERT_INVALID;
 					mavlink_log_critical(&mavlink_log_pub, "Arm stick gesture disabled if arm switch in use\t")
 					/* EVENT
 					* @description <param>MAN_ARM_GESTURE</param> is now set to disable arm/disarm stick gesture.
@@ -126,7 +126,7 @@ void ManualControl::Run()
 						airmode = 1; // change to roll/pitch airmode
 						param_set(param_mc_airmode, &airmode);
 
-						orb_advert_t mavlink_log_pub = nullptr;
+						orb_advert_t mavlink_log_pub = ORB_ADVERT_INVALID;
 						mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires disabling the stick arm gesture\t")
 						/* EVENT
 						* @description <param>MC_AIRMODE</param> is now set to roll/pitch airmode.

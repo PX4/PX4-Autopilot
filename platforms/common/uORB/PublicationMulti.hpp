@@ -89,7 +89,7 @@ public:
 			advertise();
 		}
 
-		return (orb_publish(get_topic(), _handle, &data) == PX4_OK);
+		return (orb_publish(get_topic(), &_handle, &data) == PX4_OK);
 	}
 
 	int get_instance()

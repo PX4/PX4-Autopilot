@@ -852,7 +852,7 @@ CameraTrigger::engage(void *arg)
 	trigger.feedback = false;
 	trigger.timestamp = hrt_absolute_time();
 
-	orb_publish(ORB_ID(camera_trigger), trig->_trigger_pub, &trigger);
+	orb_publish(ORB_ID(camera_trigger), &trig->_trigger_pub, &trigger);
 
 	// increment frame count
 	trig->_trigger_seq++;

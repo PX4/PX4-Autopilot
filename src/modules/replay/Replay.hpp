@@ -128,7 +128,7 @@ protected:
 	struct Subscription {
 
 		const orb_metadata *orb_meta = nullptr; ///< if nullptr, this subscription is invalid
-		orb_advert_t orb_advert = nullptr;
+		orb_advert_t orb_advert = ORB_ADVERT_INVALID;
 		uint8_t multi_id;
 		int timestamp_offset; ///< marks the field of the timestamp
 

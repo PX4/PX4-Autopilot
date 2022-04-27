@@ -211,7 +211,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 		channel->node_id = node_id;
 		DEVICE_LOG("node %d instance %d ok", channel->node_id, channel->instance);
 
-		if (channel->orb_advert == nullptr) {
+		if (!orb_advert_valid(channel->orb_advert)) {
 			DEVICE_LOG("uORB advertise failed. Out of instances?");
 			*channel = uavcan_bridge::Channel();
 			_out_of_channels = true;
@@ -223,7 +223,7 @@ UavcanSensorBridgeBase::publish(const int node_id, const void *report)
 
 	assert(channel != nullptr);
 
-	(void)orb_publish(_orb_topic, channel->orb_advert, report);
+	(void)orb_publish(_orb_topic, &channel->orb_advert, report);
 }
 
 uavcan_bridge::Channel *UavcanSensorBridgeBase::get_channel_for_node(int node_id)

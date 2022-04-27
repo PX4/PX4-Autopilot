@@ -170,8 +170,8 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
 	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
-	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &message);
+	orb_publish(ORB_ID(vehicle_attitude), &vehicle_attitude_pub, &attitude);
 	matrix::Vector2f modified_setpoint1 = original_setpoint1;
 	matrix::Vector2f modified_setpoint2 = original_setpoint2;
 	cp.modifySetpoint(modified_setpoint1, max_speed, curr_pos, curr_vel);
@@ -228,8 +228,8 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &message);
 	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
-	orb_publish(ORB_ID(distance_sensor), distance_sensor_pub, &message);
-	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+	orb_publish(ORB_ID(distance_sensor), &distance_sensor_pub, &message);
+	orb_publish(ORB_ID(vehicle_attitude), &vehicle_attitude_pub, &attitude);
 
 	//WHEN:  We run the setpoint modification
 	matrix::Vector2f modified_setpoint1 = original_setpoint1;
@@ -302,8 +302,8 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
 	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
-	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &message);
+	orb_publish(ORB_ID(vehicle_attitude), &vehicle_attitude_pub, &attitude);
 
 	for (int i = 0; i < 10; i++) {
 
@@ -312,7 +312,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 
 		mocked_time = mocked_time + 100000; //advance time by 0.1 seconds
 		message_lost_data.timestamp = mocked_time;
-		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message_lost_data);
+		orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &message_lost_data);
 
 		//at iteration 8 change the CP_GO_NO_DATA to True
 		if (i == 8) {
@@ -380,8 +380,8 @@ TEST_F(CollisionPreventionTest, testNoRangeData)
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
 	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
-	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &message);
+	orb_publish(ORB_ID(vehicle_attitude), &vehicle_attitude_pub, &attitude);
 
 	for (int i = 0; i < 10; i++) {
 
@@ -437,7 +437,7 @@ TEST_F(CollisionPreventionTest, noBias)
 
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &message);
 	matrix::Vector2f modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
@@ -492,7 +492,7 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 		matrix::Vector2f original_setpoint = {10.f * cosf(angle_rad), 10.f * sinf(angle_rad)};
 		matrix::Vector2f modified_setpoint = original_setpoint;
 		message.timestamp = hrt_absolute_time();
-		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
+		orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &message);
 		cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 
 		//THEN: if the resulting setpoint demands velocities bigger zero, it must lie inside the FOV
@@ -567,7 +567,7 @@ TEST_F(CollisionPreventionTest, goNoData)
 	//THEN: As soon as the range data contains any valid number, flying outside the FOV is allowed
 	message.timestamp = hrt_absolute_time();
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &message);
 
 	modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
@@ -606,7 +606,7 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 
 	// AND: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &message);
 	matrix::Vector2f modified_setpoint_default_jerk = original_setpoint;
 	cp.modifySetpoint(modified_setpoint_default_jerk, max_speed, curr_pos, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
@@ -1112,8 +1112,8 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 	//WHEN: we publish the long range sensor message
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &long_range_msg);
 	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
-	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &long_range_msg);
+	orb_publish(ORB_ID(vehicle_attitude), &vehicle_attitude_pub, &attitude);
 	matrix::Vector2f modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 
@@ -1123,10 +1123,10 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 	// CASE 2
 	// WHEN: we publish the short range message followed by a long range message
 	short_range_msg.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &short_range_msg);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &short_range_msg);
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 	long_range_msg.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &long_range_msg);
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 
 	// THEN: the internal map data should contain the short range measurement
@@ -1135,10 +1135,10 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 	// CASE 3
 	// WHEN: we publish the short range message with values out of range followed by a long range message
 	short_range_msg_no_obstacle.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &short_range_msg_no_obstacle);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &short_range_msg_no_obstacle);
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 	long_range_msg.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
+	orb_publish(ORB_ID(obstacle_distance), &obstacle_distance_pub, &long_range_msg);
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 
 	// THEN: the internal map data should contain the short range measurement

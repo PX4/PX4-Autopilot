@@ -69,7 +69,7 @@ int ex_hwtest_main(int argc, char *argv[])
 	arm.ready_to_arm = true;
 	arm.armed = true;
 	orb_advert_t arm_pub_ptr = orb_advertise(ORB_ID(actuator_armed), &arm);
-	orb_publish(ORB_ID(actuator_armed), arm_pub_ptr, &arm);
+	orb_publish(ORB_ID(actuator_armed), &arm_pub_ptr, &arm);
 
 	/* read back values to validate */
 	int arm_sub_fd = orb_subscribe(ORB_ID(actuator_armed));
@@ -115,7 +115,7 @@ int ex_hwtest_main(int argc, char *argv[])
 			}
 
 			actuators.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(actuator_controls_0), actuator_pub_ptr, &actuators);
+			orb_publish(ORB_ID(actuator_controls_0), &actuator_pub_ptr, &actuators);
 			usleep(10000);
 		}
 

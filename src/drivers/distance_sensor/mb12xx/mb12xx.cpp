@@ -151,7 +151,7 @@ private:
 
 	int _sensor_count{0};
 
-	orb_advert_t _distance_sensor_topic{nullptr};
+	orb_advert_t _distance_sensor_topic{ORB_ADVERT_INVALID};
 
 	perf_counter_t _comms_error{perf_alloc(PC_ELAPSED, "mb12xx_comms_error")};
 	perf_counter_t _sample_perf{perf_alloc(PC_COUNT, "mb12xx_sample_perf")};
@@ -184,7 +184,7 @@ MB12XX::MB12XX(const I2CSPIDriverConfig &config) :
 MB12XX::~MB12XX()
 {
 	// Unadvertise the distance sensor topic.
-	if (_distance_sensor_topic != nullptr) {
+	if (orb_advert_valid(_distance_sensor_topic)) {
 		orb_unadvertise(_distance_sensor_topic);
 	}
 

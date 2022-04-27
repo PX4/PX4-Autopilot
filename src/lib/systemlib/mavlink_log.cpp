@@ -56,7 +56,7 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 		return;
 	}
 
-	if (mavlink_log_pub == nullptr) {
+	if (mavlink_log_pub == nullptr || !orb_advert_valid(*mavlink_log_pub)) {
 		return;
 	}
 
@@ -69,8 +69,8 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 	vsnprintf((char *)log_msg.text, sizeof(log_msg.text), fmt, ap);
 	va_end(ap);
 
-	if (*mavlink_log_pub != nullptr) {
-		orb_publish(ORB_ID(mavlink_log), *mavlink_log_pub, &log_msg);
+	if (orb_advert_valid(*mavlink_log_pub)) {
+		orb_publish(ORB_ID(mavlink_log), mavlink_log_pub, &log_msg);
 
 	} else {
 		*mavlink_log_pub = orb_advertise_queue(ORB_ID(mavlink_log), &log_msg, mavlink_log_s::ORB_QUEUE_LENGTH);

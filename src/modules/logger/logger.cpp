@@ -656,7 +656,7 @@ void Logger::run()
 	if (_polling_topic_meta) {
 		polling_topic_sub = orb_subscribe(_polling_topic_meta);
 
-		if (orb_sub_invalid(polling_topic_sub)) {
+		if (!orb_sub_valid(polling_topic_sub)) {
 			PX4_ERR("Failed to subscribe (%i)", errno);
 		}
 
@@ -931,9 +931,9 @@ void Logger::run()
 		orb_unsubscribe(polling_topic_sub);
 	}
 
-	if (_mavlink_log_pub) {
+	if (orb_advert_valid(_mavlink_log_pub)) {
 		orb_unadvertise(_mavlink_log_pub);
-		_mavlink_log_pub = nullptr;
+		_mavlink_log_pub = ORB_ADVERT_INVALID;
 	}
 
 	px4_unregister_shutdown_hook(&Logger::request_stop_static);

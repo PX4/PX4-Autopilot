@@ -146,7 +146,7 @@ void task_main(int argc, char *argv[])
 				rc_pub = orb_advertise(ORB_ID(input_rc), &input_rc);
 
 			} else {
-				orb_publish(ORB_ID(input_rc), rc_pub, &input_rc);
+				orb_publish(ORB_ID(input_rc), &rc_pub, &input_rc);
 			}
 		}
 

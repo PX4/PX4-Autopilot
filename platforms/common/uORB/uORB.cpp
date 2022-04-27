@@ -138,9 +138,9 @@ int orb_unadvertise(orb_advert_t handle)
 	return uORB::Manager::get_instance()->orb_unadvertise(handle);
 }
 
-int orb_publish(const struct orb_metadata *meta, orb_advert_t handle, const void *data)
+int orb_publish(const struct orb_metadata *meta, orb_advert_t *handle, const void *data)
 {
-	return uORB::Manager::get_instance()->orb_publish(meta, handle, data);
+	return uORB::Manager::get_instance()->orb_publish(meta, *handle, data);
 }
 
 orb_sub_t orb_subscribe(const struct orb_metadata *meta)

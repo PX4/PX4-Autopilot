@@ -321,6 +321,6 @@ void SMBUS_SBS_BaseClass<T>::RunImpl()
 
 	// Only publish if no errors.
 	if (!ret) {
-		orb_publish(ORB_ID(battery_status), _batt_topic, &new_report);
+		orb_publish(ORB_ID(battery_status), &_batt_topic, &new_report);
 	}
 }
