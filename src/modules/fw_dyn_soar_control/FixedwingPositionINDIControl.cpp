@@ -475,7 +475,6 @@ FixedwingPositionINDIControl::Run()
         //PX4_INFO("vel:\t%.4f\t%.4f\t%.4f", (double)_vel(0),(double)_vel(1),(double)_vel(2));
 
 
-
         // =====================
         // compute control input
         // =====================
@@ -497,7 +496,7 @@ FixedwingPositionINDIControl::Run()
             // =====================
             //_angular_accel_sp = {}; 
             _angular_accel_sp.timestamp = hrt_absolute_time();
-            _angular_accel_sp.timestamp_sample = hrt_absolute_time();
+            //_angular_accel_sp.timestamp_sample = hrt_absolute_time();
             _angular_accel_sp.xyz[0] = ctrl(0);
             _angular_accel_sp.xyz[1] = ctrl(1);
             _angular_accel_sp.xyz[2] = ctrl(2);
@@ -541,7 +540,7 @@ FixedwingPositionINDIControl::Run()
             _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
             _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
             _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
-            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.3f;
+            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.4f;
             _actuators_0_pub.publish(_actuators);
             //print_message(_actuators);
         }
@@ -563,9 +562,10 @@ FixedwingPositionINDIControl::Run()
         _soaring_controller_heartbeat.timestamp = hrt_absolute_time();
         _soaring_controller_heartbeat.heartbeat = hrt_absolute_time();
         _soaring_controller_heartbeat_pub.publish(_soaring_controller_heartbeat);
-            
+
+        perf_end(_loop_perf);  
     }
-    perf_end(_loop_perf);
+    
 }
 
 Vector<float, FixedwingPositionINDIControl::_num_basis_funs>
@@ -813,9 +813,12 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     Dcmf R_ib(_att);
     Dcmf R_bi(R_ib.transpose());
     // get acceleration command in world frame (without gravity)
-    Vector3f acc_command = R_ib*(_K_x*R_bi*(pos_ref-_pos) + _K_v*R_bi*(vel_ref-_vel) + _K_a*R_bi*(acc_ref-_acc)) + acc_ref;
+    Vector3f acc_filtered = _apply_LP_filter(_acc, _a_list, _a_lpf_list);
+    Vector3f acc_command = R_ib*(_K_x*R_bi*(pos_ref-_pos) + _K_v*R_bi*(vel_ref-_vel) + _K_a*R_bi*(acc_ref-acc_filtered)) + acc_ref;
     // add gravity
     acc_command(2) += 9.81f;
+    // compute expected aerodynamic force
+    //Vector3f f_expected;
     // get force comand in world frame
     Vector3f f_command = _mass*acc_command;
     // get required attitude (assuming we can fly the target velocity)
@@ -825,11 +828,13 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     // get required rotation vector (in body frame)
     AxisAnglef q_err(R_ref_true);
     Vector3f w_err = -q_err.angle()*q_err.axis();
-    PX4_INFO("force command: \t%.2f\t%.2f\t%.2f", (double)f_command(0), (double)f_command(1), (double)f_command(2));
+    //PX4_INFO("force command: \t%.2f\t%.2f\t%.2f", (double)f_command(0), (double)f_command(1), (double)f_command(2));
     //PX4_INFO("FRD body frame rotation vec: \t%.2f\t%.2f\t%.2f", (double)w_err(0), (double)w_err(1), (double)w_err(2));
     // compute angular acceleration command (in body frame)
+    Vector3f omega_filtered = _apply_LP_filter(_omega, _w_list, _w_lpf_list);
     Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
-    rot_acc_command =  1.0f*_K_q*w_err + 1.0f*_K_w*(omega_ref-_omega) + alpha_ref;;
+    rot_acc_command =  1.0f*_K_q*w_err + 1.0f*_K_w*(omega_ref-omega_filtered) + alpha_ref;
+    //rot_acc_command = Vector3f{0.f,0.0f,0.0f};
 
     // apply LP filtered values for incremental part
 
@@ -840,13 +845,10 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
 Vector3f 
 FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
 {
-
-    // compute the expected current body moment
-    Vector3f moment = _inertia*_alpha + _omega.cross(_inertia*_omega);
-    moment = 1.f*Vector3f{1.0f*_actuators.control[actuator_controls_s::INDEX_ROLL], 1.f*_actuators.control[actuator_controls_s::INDEX_PITCH], 0.1f*_actuators.control[actuator_controls_s::INDEX_YAW]};
-    float c_ail = 1.f/400.f;
-    float c_ele = 1.f/400.f;
-    float c_rud = 0.1f/400.f;
+    // compute the expected actuator efficiencies
+    float c_ail = _param_k_act_roll.get();
+    float c_ele = _param_k_act_pitch.get();
+    float c_rud = _param_k_act_yaw.get();
     // compute velocity in body frame
     Dcmf R_ib(_att);
     Vector3f vel_body = R_ib.transpose()*_vel;
@@ -854,17 +856,21 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     //PX4_INFO("ENU body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body_2(0), (double)vel_body_2(1), (double)vel_body_2(2));
     //PX4_INFO("FRD body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body(0), (double)vel_body(1), (double)vel_body(2));
     // compute moments
+    Vector3f moment;
     moment(0) = 0.5f*c_ail*sqrtf(vel_body*vel_body)*vel_body(0)*_actuators.control[actuator_controls_s::INDEX_ROLL];
     moment(1) = 0.5f*c_ele*sqrtf(vel_body*vel_body)*vel_body(0)*_actuators.control[actuator_controls_s::INDEX_PITCH];
-    moment(0) = 0.5f*c_rud*sqrtf(vel_body*vel_body)*vel_body(0)*_actuators.control[actuator_controls_s::INDEX_YAW];
+    moment(2) = 0.5f*c_rud*sqrtf(vel_body*vel_body)*vel_body(0)*_actuators.control[actuator_controls_s::INDEX_YAW];
     Vector3f moment_filtered = _apply_LP_filter(moment, _m_list, _m_lpf_list);
     Vector3f alpha_filtered = _apply_LP_filter(_alpha, _l_list, _l_lpf_list);
-    Vector3f command = _inertia*(ctrl-alpha_filtered) + moment_filtered;
-    //PX4_INFO("filtered alpha: \t%.2f\t%.2f", (double)(_l_list(0))(2), (double)(_l_lpf_list(0))(1));
-    //command = _inertia*ctrl + _omega.cross(_inertia*_omega);
-    return 0.f*command + 1.f*(ctrl);
+    Vector3f moment_command = _inertia * (ctrl - alpha_filtered) + moment_filtered;
+    // perform dynamic inversion
+    Vector3f deflection;
+    deflection(0) = moment_command(0)/(0.5f*c_ail*sqrtf(vel_body*vel_body)*vel_body(0));
+    deflection(1) = moment_command(1)/(0.5f*c_ele*sqrtf(vel_body*vel_body)*vel_body(0));
+    deflection(2) = moment_command(2)/(0.5f*c_rud*sqrtf(vel_body*vel_body)*vel_body(0));
+    PX4_INFO("filtered alpha: \t%.2f\t%.2f", (double)(_l_list(0))(1), (double)(_l_lpf_list(0))(1));
 
-
+    return 1.f*deflection+ 0.f*(ctrl);
 }
 
 Vector3f
@@ -892,18 +898,26 @@ FixedwingPositionINDIControl::_apply_LP_filter(Vector3f new_input, Vector<Vector
 Vector3f
 FixedwingPositionINDIControl::_compute_actuator_deflections(Vector3f ctrl)
 {   
-    // compute airspeed scaling
-    const float airspeed_constrained = constrain(_airspeed, 5.f, 50.f);
-    float airspeed_scaling = 20.f/(powf(airspeed_constrained,2)+1.f);
-    airspeed_scaling = 1.0f;
-
     // compute the normalized actuator deflection, including airspeed scaling
-    Vector3f deflection = airspeed_scaling*_K_actuators*ctrl;
+    Vector3f deflection = ctrl;
 
     // limit actuator deflection
     for(int i=0; i<3; i++){
         deflection(i) = constrain(deflection(i),-1.f,1.f);
     }
+    /*
+    // add servo slew
+    float current_ail = _actuators.control[actuator_controls_s::INDEX_ROLL];
+    float current_ele = _actuators.control[actuator_controls_s::INDEX_PITCH];
+    float current_rud = _actuators.control[actuator_controls_s::INDEX_YAW];
+    //
+    float max_rate = M_PI_F/2.f;
+    float dt = 1.f/50.f;
+    //
+    deflection(0) = constrain(deflection(0),current_ail-dt*max_rate,current_ail+dt*max_rate);
+    deflection(1) = constrain(deflection(1),current_ele-dt*max_rate,current_ele+dt*max_rate);
+    deflection(2) = constrain(deflection(2),current_rud-dt*max_rate,current_rud+dt*max_rate);
+    */
     return deflection;
 }
 

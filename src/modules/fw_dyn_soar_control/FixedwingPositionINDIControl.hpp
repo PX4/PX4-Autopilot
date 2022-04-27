@@ -265,10 +265,12 @@ private:
 	// filter variables
 	Vector<Vector3f, 3> _f_list;	// force
 	Vector<Vector3f, 3> _m_list;	// moment
+	Vector<Vector3f, 3> _w_list;	// body rates
 	Vector<Vector3f, 3> _a_list;	// linear accel
 	Vector<Vector3f, 3> _l_list;	// angular accel
 	Vector<Vector3f, 2> _f_lpf_list;
-	Vector<Vector3f, 2> _m_lpf_list;	
+	Vector<Vector3f, 2> _m_lpf_list;
+	Vector<Vector3f, 2> _w_lpf_list;	// body rates	
 	Vector<Vector3f, 2> _a_lpf_list;
 	Vector<Vector3f, 2> _l_lpf_list;
 
