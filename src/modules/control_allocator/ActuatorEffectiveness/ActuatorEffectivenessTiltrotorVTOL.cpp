@@ -98,9 +98,9 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 		actuator_controls_s actuator_controls_1;
 
 		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
-			float control_flaps = -1.f; // For tilt-rotors INDEX_FLAPS is set as combined tilt. TODO: fix this
-			float airbrakes_control = actuator_controls_1.control[actuator_controls_s::INDEX_AIRBRAKES];
-			_control_surfaces.applyFlapsAndAirbrakes(control_flaps, airbrakes_control, _first_control_surface_idx, actuator_sp);
+			const float flaps_control = actuator_controls_1.control[actuator_controls_s::INDEX_FLAPS];
+			const float airbrakes_control = actuator_controls_1.control[actuator_controls_s::INDEX_AIRBRAKES];
+			_control_surfaces.applyFlapsAndAirbrakes(flaps_control, airbrakes_control, _first_control_surface_idx, actuator_sp);
 		}
 	}
 

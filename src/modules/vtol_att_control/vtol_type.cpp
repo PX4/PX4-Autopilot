@@ -168,7 +168,7 @@ void VtolType::update_mc_state()
 		spoiler_setpoint_hover = _params->vt_spoiler_mc_ld;
 	}
 
-	_spoiler_setpoint_with_slewrate.update(spoiler_setpoint_hover, _dt);
+	_spoiler_setpoint_with_slewrate.update(math::constrain(spoiler_setpoint_hover, 0.f, 1.f), _dt);
 	_flaps_setpoint_with_slewrate.update(0.f, _dt);
 }
 

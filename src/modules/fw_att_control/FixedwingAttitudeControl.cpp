@@ -732,7 +732,7 @@ void FixedwingAttitudeControl::controlFlaps(const float dt)
 	}
 
 	// move the actual control value continuous with time, full flap travel in 1sec
-	_flaps_setpoint_with_slewrate.update(flap_control, dt);
+	_flaps_setpoint_with_slewrate.update(math::constrain(flap_control, 0.f, 1.f), dt);
 }
 
 void FixedwingAttitudeControl::controlSpoilers(const float dt)
@@ -769,7 +769,7 @@ void FixedwingAttitudeControl::controlSpoilers(const float dt)
 		}
 	}
 
-	_spoiler_setpoint_with_slewrate.update(spoiler_control, dt);
+	_spoiler_setpoint_with_slewrate.update(math::constrain(spoiler_control, 0.f, 1.f), dt);
 }
 
 void FixedwingAttitudeControl::updateActuatorControlsStatus(float dt)
