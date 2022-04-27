@@ -5,7 +5,7 @@
 #include <matrix/math.hpp>
 #include <cstdlib>
 
-orb_advert_t mavlink_log_pub = nullptr;
+orb_advert_t mavlink_log_pub = ORB_ADVERT_INVALID;
 
 // required standard deviation of estimate for estimator to publish data
 static const uint32_t		EST_STDDEV_XY_VALID = 2.0;	// 2.0 m

@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <board_config.h>
+
 /*   Helper classes  */
 #include "Arming/ArmStateMachine/ArmStateMachine.hpp"
 #include "failure_detector/FailureDetector.hpp"

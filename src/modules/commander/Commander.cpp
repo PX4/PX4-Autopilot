@@ -98,7 +98,7 @@ static constexpr bool operator ==(const actuator_armed_s &a, const actuator_arme
 static_assert(sizeof(actuator_armed_s) == 16, "actuator_armed equality operator review");
 
 #if defined(BOARD_HAS_POWER_CONTROL)
-static orb_advert_t tune_control_pub = nullptr;
+static orb_advert_t tune_control_pub = ORB_ADVERT_INVALID;
 
 static void play_power_button_down_tune()
 {
@@ -111,10 +111,10 @@ static void stop_tune()
 	tune_control_s tune_control{};
 	tune_control.tune_override = true;
 	tune_control.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
+	orb_publish(ORB_ID(tune_control), &tune_control_pub, &tune_control);
 }
 
-static orb_advert_t power_button_state_pub = nullptr;
+static orb_advert_t power_button_state_pub = ORB_ADVERT_INVALID;
 static int power_button_state_notification_cb(board_power_button_state_notification_e request)
 {
 	// Note: this can be called from IRQ handlers, so we publish a message that will be handled
@@ -147,8 +147,8 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 		return ret;
 	}
 
-	if (power_button_state_pub != nullptr) {
-		orb_publish(ORB_ID(power_button_state), power_button_state_pub, &button_state);
+	if (!orb_advert_valid(power_button_state_pub)) {
+		orb_publish(ORB_ID(power_button_state), &power_button_state_pub, &button_state);
 
 	} else {
 		PX4_ERR("power_button_state_pub not properly initialized");

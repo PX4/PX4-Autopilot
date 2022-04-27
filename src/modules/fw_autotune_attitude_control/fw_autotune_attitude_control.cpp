@@ -466,7 +466,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 				break;
 			}
 
-			orb_advert_t mavlink_log_pub = nullptr;
+			orb_advert_t mavlink_log_pub = ORB_ADVERT_INVALID;
 			mavlink_log_info(&mavlink_log_pub, "Autotune returned to idle");
 			_state = state::idle;
 			_param_fw_at_start.set(false);
@@ -482,7 +482,7 @@ void FwAutotuneAttitudeControl::updateStateMachine(hrt_abstime now)
 		if (now - _state_start_time > 20_s
 		    || (_param_fw_at_man_aux.get() && !_aux_switch_en)
 		    || _start_flight_mode != _nav_state) {
-			orb_advert_t mavlink_log_pub = nullptr;
+			orb_advert_t mavlink_log_pub = ORB_ADVERT_INVALID;
 			mavlink_log_critical(&mavlink_log_pub, "Autotune aborted before finishing");
 			_state = state::fail;
 			_state_start_time = now;
