@@ -86,6 +86,8 @@ struct Params {
 	float mpc_land_alt1;
 	float mpc_land_alt2;
 	float vt_spoiler_mc_ld;
+	float vt_flaps_bt;
+	float vt_spoilers_bt;
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg

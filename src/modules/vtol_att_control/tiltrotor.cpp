@@ -446,6 +446,10 @@ void Tiltrotor::update_transition_state()
 			progress = math::constrain(progress, 0.0f, 1.0f);
 			_mc_throttle_weight = moveLinear(0.0f, 1.0f, progress);
 		}
+
+		// set spoiler and flaps to the backtransition value
+		_flaps_setpoint_with_slewrate.update(_params->vt_flaps_bt, _dt);
+		_spoiler_setpoint_with_slewrate.update(_params->vt_spoilers_bt, _dt);
 	}
 
 

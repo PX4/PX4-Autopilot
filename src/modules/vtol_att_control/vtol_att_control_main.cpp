@@ -110,6 +110,9 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.land_pitch_min_rad = param_find("VT_LND_PTCH_MIN");
 
 	_params_handles.vt_spoiler_mc_ld = param_find("VT_SPOILER_MC_LD");
+	_params_handles.vt_flaps_bt = param_find("VT_FLPAS_BT");
+	_params_handles.vt_spoilers_bt = param_find("VT_SPOILERS_BT");
+
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -374,6 +377,9 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.mpc_land_alt2, &_params.mpc_land_alt2);
 
 	param_get(_params_handles.vt_spoiler_mc_ld, &_params.vt_spoiler_mc_ld);
+	param_get(_params_handles.vt_flaps_bt, &_params.vt_flaps_bt);
+	param_get(_params_handles.vt_spoilers_bt, &_params.vt_spoilers_bt);
+
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
 		_vtol_type->parameters_update();

@@ -396,3 +396,27 @@ PARAM_DEFINE_FLOAT(VT_LND_PTCH_MIN, -5.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_SPOILER_MC_LD, 0.f);
+
+/**
+ * Flaps setting during backtransition
+ *
+ * @unit norm
+ * @min -1
+ * @max 1
+ * @decimal 1
+ * @increment 0.05
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FLAPS_BT, 0.f);
+
+/**
+ * Spoiler setting during backtransition
+ *
+ * @unit norm
+ * @min -1
+ * @max 1
+ * @decimal 1
+ * @increment 0.05
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_SPOILERS_BT, 0.f);
