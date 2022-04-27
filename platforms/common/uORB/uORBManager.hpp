@@ -38,6 +38,7 @@
 #include "uORBCommon.hpp"
 #include "uORBDeviceMaster.hpp"
 
+#include <uORB/topics/uORBTopics.hpp> // For ORB_ID enum
 #include <stdint.h>
 
 #ifdef __PX4_NUTTX
@@ -57,6 +58,107 @@ namespace uORB
 class Manager;
 class SubscriptionCallback;
 }
+
+
+/*
+ * IOCTLs for manager to access device nodes using
+ * a handle
+ */
+
+#define _ORBIOCDEV(_n) (_PX4_IOC(_ORBIOCDEVBASE, _n))
+#define ORBIOCDEVEXISTS	_ORBIOCDEV(30)
+typedef struct orbiocdevexists {
+	const ORB_ID orb_id;
+	const uint8_t instance;
+	const bool check_advertised;
+	int ret;
+} orbiocdevexists_t;
+
+#define ORBIOCDEVADVERTISE	_ORBIOCDEV(31)
+typedef struct orbiocadvertise {
+	const struct orb_metadata *meta;
+	bool is_advertiser;
+	int *instance;
+	int ret;
+} orbiocdevadvertise_t;
+
+#define ORBIOCDEVUNADVERTISE	_ORBIOCDEV(32)
+typedef struct orbiocunadvertise {
+	void *handle;
+	int ret;
+} orbiocdevunadvertise_t;
+
+#define ORBIOCDEVPUBLISH	_ORBIOCDEV(33)
+typedef struct orbiocpublish {
+	const struct orb_metadata *meta;
+	orb_advert_t handle;
+	const void *data;
+	int ret;
+} orbiocdevpublish_t;
+
+#define ORBIOCDEVADDSUBSCRIBER	_ORBIOCDEV(34)
+typedef struct {
+	const ORB_ID orb_id;
+	const uint8_t instance;
+	unsigned *initial_generation;
+	void *handle;
+} orbiocdevaddsubscriber_t;
+
+#define ORBIOCDEVREMSUBSCRIBER	_ORBIOCDEV(35)
+
+#define ORBIOCDEVQUEUESIZE	_ORBIOCDEV(36)
+typedef struct {
+	const void *handle;
+	uint8_t size;
+} orbiocdevqueuesize_t;
+
+#define ORBIOCDEVDATACOPY	_ORBIOCDEV(37)
+typedef struct {
+	void *handle;
+	void *dst;
+	unsigned generation;
+	bool only_if_updated;
+	bool ret;
+} orbiocdevdatacopy_t;
+
+#define ORBIOCDEVREGCALLBACK	_ORBIOCDEV(38)
+typedef struct {
+	void *handle;
+	class uORB::SubscriptionCallback *callback_sub;
+	bool registered;
+} orbiocdevregcallback_t;
+
+#define ORBIOCDEVUNREGCALLBACK	_ORBIOCDEV(39)
+typedef struct {
+	void *handle;
+	class uORB::SubscriptionCallback *callback_sub;
+} orbiocdevunregcallback_t;
+
+#define ORBIOCDEVGETINSTANCE	_ORBIOCDEV(40)
+typedef struct {
+	const void *handle;
+	uint8_t instance;
+} orbiocdevgetinstance_t;
+
+#define ORBIOCDEVUPDATESAVAIL	_ORBIOCDEV(41)
+typedef struct {
+	const void *handle;
+	unsigned last_generation;
+	unsigned ret;
+} orbiocdevupdatesavail_t;
+
+#define ORBIOCDEVISADVERTISED	_ORBIOCDEV(42)
+typedef struct {
+	const void *handle;
+	bool ret;
+} orbiocdevisadvertised_t;
+
+typedef enum {
+	ORB_DEVMASTER_STATUS = 0,
+	ORB_DEVMASTER_TOP = 1
+} orbiocdevmastercmd_t;
+#define ORBIOCDEVMASTERCMD	_ORBIOCDEV(45)
+
 
 /**
  * This is implemented as a singleton.  This class manages creating the
@@ -97,6 +199,10 @@ public:
 	 * @return nullptr if initialization failed (and errno will be set)
 	 */
 	uORB::DeviceMaster *get_device_master();
+
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
+	static int orb_ioctl(unsigned int cmd, unsigned long arg);
+#endif
 
 	// ==== uORB interface methods ====
 	/**
@@ -152,11 +258,11 @@ public:
 	 *      created instance, ie. 0 for the first advertiser, 1 for the next and so on.
 	 * @param queue_size  Maximum number of buffered elements. If this is 1, no queuing is
 	 *      used.
-	 * @return    PX4_ERROR on error, otherwise returns a handle
+	 * @return    nullptr on error, otherwise returns a handle
 	 *      that can be used to publish to the topic.
 	 *      If the topic in question is not known (due to an
 	 *      ORB_DEFINE with no corresponding ORB_DECLARE)
-	 *      this function will return -1 and set errno to ENOENT.
+	 *      this function will return nullptr and set errno to ENOENT.
 	 */
 	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
 					 unsigned int queue_size = 1);
@@ -345,7 +451,7 @@ public:
 
 	static uint8_t orb_get_queue_size(const void *node_handle);
 
-	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation);
+	static bool orb_data_copy(void *node_handle, void *dst, unsigned &generation, bool only_if_updated);
 
 	static bool register_callback(void *node_handle, SubscriptionCallback *callback_sub);
 
@@ -353,9 +459,17 @@ public:
 
 	static uint8_t orb_get_instance(const void *node_handle);
 
-	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation); }
+#if defined(CONFIG_BUILD_FLAT)
+	/* These are optimized by inlining in NuttX Flat build */
+	static unsigned updates_available(const void *node_handle, unsigned last_generation) { return is_advertised(node_handle) ? static_cast<const DeviceNode *>(node_handle)->updates_available(last_generation) : 0; }
 
 	static bool is_advertised(const void *node_handle) { return static_cast<const DeviceNode *>(node_handle)->is_advertised(); }
+
+#else
+	static unsigned updates_available(const void *node_handle, unsigned last_generation);
+
+	static bool is_advertised(const void *node_handle);
+#endif
 
 #ifdef ORB_COMMUNICATOR
 	/**

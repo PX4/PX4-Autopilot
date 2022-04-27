@@ -51,7 +51,7 @@ public:
 	Integrator() = default;
 	~Integrator() = default;
 
-	static constexpr float DT_MIN{FLT_MIN};
+	static constexpr float DT_MIN{1e-6f}; // 1 microsecond
 	static constexpr float DT_MAX{static_cast<float>(UINT16_MAX) * 1e-6f};
 
 	/**
@@ -187,6 +187,8 @@ public:
 		_beta.zero();
 		_last_alpha.zero();
 	}
+
+	const matrix::Vector3f &accumulated_coning_corrections() const { return _beta; }
 
 	/* Reset integrator and return current integral & integration time
 	 *

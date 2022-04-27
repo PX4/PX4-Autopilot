@@ -43,17 +43,6 @@ void Ekf::fuseGpsVelPos()
 {
 	Vector3f gps_pos_obs_var;
 
-	// correct velocity for offset relative to IMU
-	const Vector3f pos_offset_body = _params.gps_pos_body - _params.imu_pos_body;
-	const Vector3f vel_offset_body = _ang_rate_delayed_raw % pos_offset_body;
-	const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
-	_gps_sample_delayed.vel -= vel_offset_earth;
-
-	// correct position and height for offset relative to IMU
-	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-	_gps_sample_delayed.pos -= pos_offset_earth.xy();
-	_gps_sample_delayed.hgt += pos_offset_earth(2);
-
 	const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 
 	if (isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
@@ -68,7 +57,7 @@ void Ekf::fuseGpsVelPos()
 		gps_pos_obs_var(0) = gps_pos_obs_var(1) = sq(math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit));
 	}
 
-	_gps_sample_delayed.sacc = fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise);
+
 
 	const float vel_var = sq(_gps_sample_delayed.sacc);
 	const Vector3f gps_vel_obs_var{vel_var, vel_var, vel_var * sq(1.5f)};

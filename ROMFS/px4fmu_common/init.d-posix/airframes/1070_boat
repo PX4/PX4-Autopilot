@@ -47,6 +47,4 @@ param set-default CA_R_REV 3
 param set-default PWM_MAIN_FUNC1 101
 param set-default PWM_MAIN_FUNC2 102
 
-set MAV_TYPE 11
-
 set MIXER skip

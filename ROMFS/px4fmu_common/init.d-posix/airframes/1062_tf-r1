@@ -10,6 +10,8 @@
 
 . ${R}etc/init.d/rc.rover_defaults
 
+param set-default MAV_TYPE 10
+
 param set-default GND_L1_DIST 5
 param set-default GND_SP_CTRL_MODE 1
 param set-default GND_SPEED_D 3
@@ -32,7 +34,5 @@ param set-default CBRK_AIRSPD_CHK 162128
 
 param set-default GND_MAX_ANG 0.6
 param set-default GND_WHEEL_BASE 3.0
-
-set MAV_TYPE 10
 
 set MIXER_FILE etc/mixers-sitl/rover_ackermann_sitl.main.mix

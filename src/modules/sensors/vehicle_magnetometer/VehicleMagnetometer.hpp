@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,6 +57,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_preflight_mag.h>
+#include <uORB/topics/sensors_status.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_magnetometer.h>
 
@@ -79,7 +80,9 @@ public:
 private:
 	void Run() override;
 
-	void ParametersUpdate(bool force = false);
+	void CheckFailover(const hrt_abstime &time_now_us);
+	bool ParametersUpdate(bool force = false);
+	void UpdateStatus();
 
 	void Publish(uint8_t instance, bool multi = false);
 
@@ -93,6 +96,8 @@ private:
 	void UpdatePowerCompensation();
 
 	static constexpr int MAX_SENSOR_COUNT = 4;
+
+	uORB::Publication<sensors_status_s> _sensors_status_mag_pub{ORB_ID(sensors_status_mag)};
 
 	uORB::Publication<sensor_preflight_mag_s> _sensor_preflight_mag_pub{ORB_ID(sensor_preflight_mag)};
 
@@ -119,7 +124,6 @@ private:
 		uint32_t device_id{0};
 		matrix::Vector3f offset{};
 		matrix::Vector3f variance{};
-		float temperature{NAN};
 	} _mag_cal[ORB_MULTI_MAX_INSTANCES] {};
 
 	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
@@ -153,13 +157,14 @@ private:
 	unsigned _last_failover_count{0};
 
 	uint64_t _timestamp_sample_sum[MAX_SENSOR_COUNT] {};
-	matrix::Vector3f _mag_sum[MAX_SENSOR_COUNT] {};
-	int _mag_sum_count[MAX_SENSOR_COUNT] {};
+	matrix::Vector3f _data_sum[MAX_SENSOR_COUNT] {};
+	int _data_sum_count[MAX_SENSOR_COUNT] {};
 	hrt_abstime _last_publication_timestamp[MAX_SENSOR_COUNT] {};
 
-	sensor_mag_s _last_data[MAX_SENSOR_COUNT] {};
+	matrix::Vector3f _last_data[MAX_SENSOR_COUNT] {};
 	bool _advertised[MAX_SENSOR_COUNT] {};
 
+	matrix::Vector3f _sensor_diff[MAX_SENSOR_COUNT] {}; // filtered differences between sensor instances
 	float _mag_angle_diff[2] {};			/**< filtered mag angle differences between sensor instances (Ga) */
 
 	uint8_t _priority[MAX_SENSOR_COUNT] {};

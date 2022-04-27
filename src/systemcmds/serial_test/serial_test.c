@@ -574,6 +574,7 @@ static void process_read_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 static void process_write_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 {
 	ssize_t count = 0;
+	int loops = 10;
 	int repeat = (g_cl->_tx_bytes == 0);
 
 	do {
@@ -592,11 +593,14 @@ static void process_write_data(struct g_mod_t *g_mod, struct cli_args_t *g_cl)
 			}
 
 			c = 0;
+
+		} else {
+			loops--;
 		}
 
 		count += c;
 
-		if (c < g_mod->_write_size) {
+		if (loops == 0 || c < g_mod->_write_size) {
 			g_mod->_write_count_value = g_mod->_write_data[c];
 			repeat = 0;
 		}

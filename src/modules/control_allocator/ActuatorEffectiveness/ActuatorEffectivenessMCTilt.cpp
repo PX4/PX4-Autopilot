@@ -43,20 +43,21 @@ ActuatorEffectivenessMCTilt::ActuatorEffectivenessMCTilt(ModuleParams *parent)
 }
 
 bool
-ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration, bool force)
+ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration,
+		EffectivenessUpdateReason external_update)
 {
-	if (!force) {
+	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 
 	// MC motors
-	_mc_rotors.enableYawControl(!_tilts.hasYawControl());
-	_mc_rotors.getEffectivenessMatrix(configuration, true);
+	_mc_rotors.enablePropellerTorque(!_tilts.hasYawControl());
+	const bool rotors_added_successfully = _mc_rotors.addActuators(configuration);
 
 	// Tilts
 	int first_tilt_idx = configuration.num_actuators_matrix[0];
 	_tilts.updateTorqueSign(_mc_rotors.geometry());
-	_tilts.getEffectivenessMatrix(configuration, true);
+	const bool tilts_added_successfully = _tilts.addActuators(configuration);
 
 	// Set offset such that tilts point upwards when control input == 0 (trim is 0 if min_angle == -max_angle).
 	// Note that we don't set configuration.trim here, because in the case of trim == +-1, yaw is always saturated
@@ -72,7 +73,7 @@ ActuatorEffectivenessMCTilt::getEffectivenessMatrix(Configuration &configuration
 		}
 	}
 
-	return true;
+	return (rotors_added_successfully && tilts_added_successfully);
 }
 
 void ActuatorEffectivenessMCTilt::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,

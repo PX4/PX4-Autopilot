@@ -37,35 +37,30 @@
 using namespace matrix;
 
 ActuatorEffectivenessStandardVTOL::ActuatorEffectivenessStandardVTOL(ModuleParams *parent)
-	: ModuleParams(parent), _mc_rotors(this), _control_surfaces(this)
+	: ModuleParams(parent), _rotors(this), _control_surfaces(this)
 {
 }
 
 bool
-ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(Configuration &configuration, bool force)
+ActuatorEffectivenessStandardVTOL::getEffectivenessMatrix(Configuration &configuration,
+		EffectivenessUpdateReason external_update)
 {
-	if (!force) {
+	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 
-	// MC motors
+	// Motors
 	configuration.selected_matrix = 0;
-	_mc_rotors.getEffectivenessMatrix(configuration, true);
-	_mc_motors_mask = (1u << _mc_rotors.geometry().num_rotors) - 1;
-
-	// Pusher/Puller
-	configuration.selected_matrix = 1;
-
-	for (int i = 0; i < _param_ca_stdvtol_n_p.get(); ++i) {
-		configuration.addActuator(ActuatorType::MOTORS, Vector3f{}, Vector3f{1.f, 0.f, 0.f});
-	}
+	_rotors.enablePropellerTorqueNonUpwards(false);
+	const bool mc_rotors_added_successfully = _rotors.addActuators(configuration);
+	_mc_motors_mask = _rotors.getUpwardsMotors();
 
 	// Control Surfaces
 	configuration.selected_matrix = 1;
 	_first_control_surface_idx = configuration.num_actuators_matrix[configuration.selected_matrix];
-	_control_surfaces.getEffectivenessMatrix(configuration, true);
+	const bool surfaces_added_successfully = _control_surfaces.addActuators(configuration);
 
-	return true;
+	return (mc_rotors_added_successfully && surfaces_added_successfully);
 }
 
 void ActuatorEffectivenessStandardVTOL::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,

@@ -281,7 +281,7 @@ public:
 
 	bool			get_forwarding_on() { return _forwarding_on; }
 
-	bool			is_connected() { return _tstatus.heartbeat_type_gcs; }
+	bool			is_gcs_connected() { return _tstatus.heartbeat_type_gcs; }
 
 #if defined(MAVLINK_UDP)
 	static Mavlink 		*get_instance_for_network_port(unsigned long port);
@@ -747,7 +747,7 @@ private:
 #endif // MAVLINK_UDP
 
 
-	void set_channel();
+	bool set_channel();
 
 	bool set_instance_id();
 

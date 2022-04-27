@@ -161,7 +161,7 @@ PARAM_DEFINE_INT32(RTL_PLD_MD, 0);
  * @increment 0.5
  * @group Return Mode
  */
-PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 50.0f);
+PARAM_DEFINE_FLOAT(RTL_LOITER_RAD, 80.0f);
 
 /**
  * RTL heading mode

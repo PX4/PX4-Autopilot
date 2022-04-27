@@ -182,6 +182,14 @@ void OutputBase::_handle_position_update(const ControlData &control_data, bool f
 
 void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 {
+	if (_vehicle_land_detected_sub.updated()) {
+		vehicle_land_detected_s vehicle_land_detected;
+
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
+			_landed = vehicle_land_detected.landed || vehicle_land_detected.maybe_landed;
+		}
+	}
+
 	// We only need to apply additional compensation if the required angle is
 	// absolute (world frame) as well as the gimbal is not capable of doing that
 	// calculation. (Most gimbals stabilize at least roll and pitch
@@ -196,7 +204,7 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 	matrix::Eulerf euler_vehicle{};
 
 	if (compensate[0] || compensate[1] || compensate[2]) {
-		vehicle_attitude_s vehicle_attitude{};
+		vehicle_attitude_s vehicle_attitude;
 
 		if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
 			euler_vehicle = matrix::Quatf(vehicle_attitude.q);
@@ -230,6 +238,16 @@ void OutputBase::_calculate_angle_output(const hrt_abstime &t)
 		if (PX4_ISFINITE(_angle_outputs[i])) {
 			// bring angles into proper range [-pi, pi]
 			_angle_outputs[i] = matrix::wrap_pi(_angle_outputs[i]);
+		}
+	}
+
+
+	// constrain pitch to [MNT_LND_P_MIN, MNT_LND_P_MAX] if landed
+	if (_landed) {
+		if (PX4_ISFINITE(_angle_outputs[1])) {
+			_angle_outputs[1] = math::constrain(_angle_outputs[1],
+							    math::radians(_parameters.mnt_lnd_p_min),
+							    math::radians(_parameters.mnt_lnd_p_max));
 		}
 	}
 }

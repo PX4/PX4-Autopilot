@@ -51,9 +51,14 @@ using namespace time_literals;
 
 ControlAllocator::ControlAllocator() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	_control_allocator_status_pub.advertise();
+	_actuator_motors_pub.advertise();
+	_actuator_servos_pub.advertise();
+	_actuator_servos_trim_pub.advertise();
+
 	for (int i = 0; i < MAX_NUM_MOTORS; ++i) {
 		char buffer[17];
 		snprintf(buffer, sizeof(buffer), "CA_R%u_SLEW", i);
@@ -84,14 +89,16 @@ bool
 ControlAllocator::init()
 {
 	if (!_vehicle_torque_setpoint_sub.registerCallback()) {
-		PX4_ERR("vehicle_torque_setpoint callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
 	if (!_vehicle_thrust_setpoint_sub.registerCallback()) {
-		PX4_ERR("vehicle_thrust_setpoint callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
+
+	ScheduleDelayed(50_ms);
 
 	return true;
 }
@@ -124,7 +131,7 @@ ControlAllocator::parameters_updated()
 		_control_allocation[i]->updateParameters();
 	}
 
-	update_effectiveness_matrix_if_needed(true);
+	update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::CONFIGURATION_UPDATE);
 }
 
 void
@@ -208,7 +215,7 @@ ControlAllocator::update_effectiveness_source()
 		switch (source) {
 		case EffectivenessSource::NONE:
 		case EffectivenessSource::MULTIROTOR:
-			tmp = new ActuatorEffectivenessRotors(this);
+			tmp = new ActuatorEffectivenessMultirotor(this);
 			break;
 
 		case EffectivenessSource::STANDARD_VTOL:
@@ -284,6 +291,9 @@ ControlAllocator::Run()
 	}
 
 	perf_begin(_loop_perf);
+
+	// Push backup schedule
+	ScheduleDelayed(50_ms);
 
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated() && !_armed) {
@@ -362,7 +372,7 @@ ControlAllocator::Run()
 	if (do_update) {
 		_last_run = now;
 
-		update_effectiveness_matrix_if_needed();
+		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
 
 		// Set control setpoint vector(s)
 		matrix::Vector<float, NUM_AXES> c[ActuatorEffectiveness::MAX_NUM_MATRICES];
@@ -398,31 +408,32 @@ ControlAllocator::Run()
 
 			_control_allocation[i]->clipActuatorSetpoint();
 		}
+	}
 
-		// Publish actuator setpoint and allocator status
-		publish_actuator_controls();
+	// Publish actuator setpoint and allocator status
+	publish_actuator_controls();
 
-		// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
-		// (i.e. anti-integrator windup)
-		if (now - _last_status_pub >= 5_ms) {
-			publish_control_allocator_status();
-			_last_status_pub = now;
-		}
+	// Publish status at limited rate, as it's somewhat expensive and we use it for slower dynamics
+	// (i.e. anti-integrator windup)
+	if (now - _last_status_pub >= 5_ms) {
+		publish_control_allocator_status();
+		_last_status_pub = now;
 	}
 
 	perf_end(_loop_perf);
 }
 
 void
-ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
+ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReason reason)
 {
 	ActuatorEffectiveness::Configuration config{};
 
-	if (!force && hrt_elapsed_time(&_last_effectiveness_update) < 100_ms) { // rate-limit updates
+	if (reason == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE
+	    && hrt_elapsed_time(&_last_effectiveness_update) < 100_ms) { // rate-limit updates
 		return;
 	}
 
-	if (_actuator_effectiveness->getEffectivenessMatrix(config, force)) {
+	if (_actuator_effectiveness->getEffectivenessMatrix(config, reason)) {
 		_last_effectiveness_update = hrt_absolute_time();
 
 		memcpy(_control_allocation_selection_indexes, config.matrix_selection_indexes,
@@ -493,10 +504,30 @@ ControlAllocator::update_effectiveness_matrix_if_needed(bool force)
 			_control_allocation[i]->setActuatorMax(maximum[i]);
 			_control_allocation[i]->setSlewRateLimit(slew_rate[i]);
 
+			// Set all the elements of a row to 0 if that row has weak authority.
+			// That ensures that the algorithm doesn't try to control axes with only marginal control authority,
+			// which in turn would degrade the control of the main axes that actually should and can be controlled.
+
+			ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[i];
+
+			for (int n = 0; n < NUM_AXES; n++) {
+				bool all_entries_small = true;
+
+				for (int m = 0; m < config.num_actuators_matrix[i]; m++) {
+					if (fabsf(matrix(n, m)) > 0.05f) {
+						all_entries_small = false;
+					}
+				}
+
+				if (all_entries_small) {
+					matrix.row(n) = 0.f;
+				}
+			}
+
 			// Assign control effectiveness matrix
 			int total_num_actuators = config.num_actuators_matrix[i];
 			_control_allocation[i]->setEffectivenessMatrix(config.effectiveness_matrices[i], config.trim[i],
-					config.linearization_point[i], total_num_actuators, force);
+					config.linearization_point[i], total_num_actuators, reason == EffectivenessUpdateReason::CONFIGURATION_UPDATE);
 		}
 
 		trims.timestamp = hrt_absolute_time();

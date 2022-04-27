@@ -73,6 +73,10 @@ Sih::Sih() :
 	_dist_snsr_time = task_start;
 	_vehicle = (VehicleType)constrain(_sih_vtype.get(), static_cast<typeof _sih_vtype.get()>(0),
 					  static_cast<typeof _sih_vtype.get()>(2));
+
+	if (_sys_ctrl_alloc.get()) {
+		_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
+	}
 }
 
 Sih::~Sih()
@@ -99,6 +103,11 @@ bool Sih::init()
 
 void Sih::Run()
 {
+	if (should_exit()) {
+		exit_and_cleanup();
+		return;
+	}
+
 	perf_count(_loop_interval_perf);
 
 	// check for parameter updates
@@ -143,8 +152,16 @@ void Sih::Run()
 	if (_now - _baro_time >= 50_ms
 	    && fabs(_baro_offset_m) < 10000) {
 		_baro_time = _now;
-		_px4_baro.set_temperature(_baro_temp_c);
-		_px4_baro.update(_now, _baro_p_mBar);
+
+		// publish
+		sensor_baro_s sensor_baro{};
+		sensor_baro.timestamp_sample = _now;
+		sensor_baro.device_id = 6620172; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
+		sensor_baro.pressure = _baro_p_mBar * 100.f;
+		sensor_baro.temperature = _baro_temp_c;
+		sensor_baro.error_count = 0;
+		sensor_baro.timestamp = hrt_absolute_time();
+		_sensor_baro_pub.publish(sensor_baro);
 	}
 
 	// gps published at 20Hz
@@ -267,14 +284,28 @@ void Sih::read_motors()
 	float pwm_middle = 0.5f * (PWM_DEFAULT_MIN + PWM_DEFAULT_MAX);
 
 	if (_actuator_out_sub.update(&actuators_out)) {
-		for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
-			if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS
-					&& i > 3)) { // control surfaces in range [-1,1]
-				_u[i] = constrain(2.0f * (actuators_out.output[i] - pwm_middle) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), -1.0f, 1.0f);
 
-			} else { // throttle signals in range [0,1]
-				float u_sp = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
-				_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+		if (_sys_ctrl_alloc.get()) {
+			for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
+				if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS && i > 3)) {
+					_u[i] = actuators_out.output[i];
+
+				} else {
+					float u_sp = actuators_out.output[i];
+					_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				}
+			}
+
+		} else {
+			for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
+				if ((_vehicle == VehicleType::FW && i < 3) || (_vehicle == VehicleType::TS
+						&& i > 3)) { // control surfaces in range [-1,1]
+					_u[i] = constrain(2.0f * (actuators_out.output[i] - pwm_middle) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), -1.0f, 1.0f);
+
+				} else { // throttle signals in range [0,1]
+					float u_sp = constrain((actuators_out.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN), 0.0f, 1.0f);
+					_u[i] = _u[i] + _dt / _T_TAU * (u_sp - _u[i]); // first order transfer function with time constant tau
+				}
 			}
 		}
 	}
@@ -491,12 +522,13 @@ void Sih::send_gps()
 
 void Sih::send_airspeed()
 {
-	airspeed_s  airspeed{};
-	airspeed.timestamp = _now;
+	airspeed_s airspeed{};
+	airspeed.timestamp_sample = _now;
 	airspeed.true_airspeed_m_s	= fmaxf(0.1f, _v_B(0) + generate_wgn() * 0.2f);
 	airspeed.indicated_airspeed_m_s = airspeed.true_airspeed_m_s * sqrtf(_wing_l.get_rho() / RHO);
 	airspeed.air_temperature_celsius = _baro_temp_c;
 	airspeed.confidence = 0.7f;
+	airspeed.timestamp = hrt_absolute_time();
 	_airspeed_pub.publish(airspeed);
 }
 

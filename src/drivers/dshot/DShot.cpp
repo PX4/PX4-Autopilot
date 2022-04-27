@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,8 @@
 #include "DShot.h"
 
 #include <px4_arch/io_timer.h>
+
+#include <px4_platform_common/sem.hpp>
 
 char DShot::_telemetry_device[] {};
 px4::atomic_bool DShot::_request_telemetry_init{false};
@@ -478,7 +480,7 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 		_current_command.clear();
 	}
 
-	if (stop_motors || num_control_groups_updated > 0) {
+	if (stop_motors || num_control_groups_updated > 0 || _mixing_output.useDynamicMixing()) {
 		up_dshot_trigger();
 	}
 
@@ -487,6 +489,8 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 void DShot::Run()
 {
+	SmartLock lock_guard(_lock);
+
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -640,21 +644,21 @@ void DShot::update_params()
 
 int DShot::ioctl(file *filp, int cmd, unsigned long arg)
 {
+	SmartLock lock_guard(_lock);
+
 	int ret = OK;
 
 	PX4_DEBUG("dshot ioctl cmd: %d, arg: %ld", cmd, arg);
 
-	lock();
-
 	switch (cmd) {
 	case MIXERIOCRESET:
-		_mixing_output.resetMixerThreadSafe();
+		_mixing_output.resetMixer();
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_output.loadMixer(buf, buflen);
 
 			break;
 		}
@@ -663,8 +667,6 @@ int DShot::ioctl(file *filp, int cmd, unsigned long arg)
 		ret = -ENOTTY;
 		break;
 	}
-
-	unlock();
 
 	// if nobody wants it, let CDev have it
 	if (ret == -ENOTTY) {

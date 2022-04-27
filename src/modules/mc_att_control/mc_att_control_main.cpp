@@ -78,7 +78,7 @@ bool
 MulticopterAttitudeControl::init()
 {
 	if (!_vehicle_attitude_sub.registerCallback()) {
-		PX4_ERR("vehicle_attitude callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
@@ -211,11 +211,15 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
 	q_sp.copyTo(attitude_setpoint.q_d);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve(math::constrain(_manual_control_setpoint.z, 0.0f,
-					   1.0f));
+	attitude_setpoint.thrust_body[2] = -throttle_curve(math::constrain(_manual_control_setpoint.z, 0.f, 1.f));
 	attitude_setpoint.timestamp = hrt_absolute_time();
 
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
+
+	// update attitude controller setpoint immediately
+	_attitude_control.setAttitudeSetpoint(q_sp, attitude_setpoint.yaw_sp_move_rate);
+	_thrust_setpoint_body = Vector3f(attitude_setpoint.thrust_body);
+	_last_attitude_setpoint = attitude_setpoint.timestamp;
 }
 
 void
@@ -244,27 +248,39 @@ MulticopterAttitudeControl::Run()
 
 	if (_vehicle_attitude_sub.update(&v_att)) {
 
+		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
+		const float dt = math::constrain(((v_att.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
+		_last_run = v_att.timestamp_sample;
+
+		const Quatf q{v_att.q};
+
 		// Check for new attitude setpoint
 		if (_vehicle_attitude_setpoint_sub.updated()) {
 			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
-			_vehicle_attitude_setpoint_sub.update(&vehicle_attitude_setpoint);
-			_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
-			_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+
+			if (_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint)
+			    && (vehicle_attitude_setpoint.timestamp > _last_attitude_setpoint)) {
+
+				_attitude_control.setAttitudeSetpoint(Quatf(vehicle_attitude_setpoint.q_d), vehicle_attitude_setpoint.yaw_sp_move_rate);
+				_thrust_setpoint_body = Vector3f(vehicle_attitude_setpoint.thrust_body);
+				_last_attitude_setpoint = vehicle_attitude_setpoint.timestamp;
+			}
 		}
 
 		// Check for a heading reset
 		if (_quat_reset_counter != v_att.quat_reset_counter) {
 			const Quatf delta_q_reset(v_att.delta_q_reset);
+
 			// for stabilized attitude generation only extract the heading change from the delta quaternion
-			_man_yaw_sp += Eulerf(delta_q_reset).psi();
-			_attitude_control.adaptAttitudeSetpoint(delta_q_reset);
+			_man_yaw_sp = wrap_pi(_man_yaw_sp + Eulerf(delta_q_reset).psi());
+
+			if (v_att.timestamp > _last_attitude_setpoint) {
+				// adapt existing attitude setpoint unless it was generated after the current attitude estimate
+				_attitude_control.adaptAttitudeSetpoint(delta_q_reset);
+			}
 
 			_quat_reset_counter = v_att.quat_reset_counter;
 		}
-
-		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
-		const float dt = math::constrain(((v_att.timestamp_sample - _last_run) * 1e-6f), 0.0002f, 0.02f);
-		_last_run = v_att.timestamp_sample;
 
 		/* check for updates in other topics */
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
@@ -298,8 +314,6 @@ MulticopterAttitudeControl::Run()
 		bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
 
 		if (run_att_ctrl) {
-
-			const Quatf q{v_att.q};
 
 			// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
 			if (_v_control_mode.flag_control_manual_enabled &&
@@ -336,7 +350,7 @@ MulticopterAttitudeControl::Run()
 			v_rates_sp.pitch = rates_sp(1);
 			v_rates_sp.yaw = rates_sp(2);
 			_thrust_setpoint_body.copyTo(v_rates_sp.thrust_body);
-			v_rates_sp.timestamp = now;
+			v_rates_sp.timestamp = hrt_absolute_time();
 
 			_v_rates_sp_pub.publish(v_rates_sp);
 		}

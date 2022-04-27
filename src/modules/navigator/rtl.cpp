@@ -83,7 +83,7 @@ void RTL::on_inactive()
 	if ((hrt_absolute_time() - _destination_check_time) > 1_s) {
 		_destination_check_time = hrt_absolute_time();
 
-		if (_navigator->home_position_valid()) {
+		if (_navigator->home_global_position_valid()) {
 			find_RTL_destination();
 		}
 
@@ -242,6 +242,13 @@ void RTL::find_RTL_destination()
 
 void RTL::on_activation()
 {
+	setClimbAndReturnDone(false);
+
+	// if a mission landing is desired we should only execute mission navigation mode if we currently are in fw mode
+	// In multirotor mode no landing pattern is required so we can just navigate to the land point directly and don't need to run mission
+	_should_engange_mission_for_landing = (_destination.type == RTL_DESTINATION_MISSION_LANDING)
+					      && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
 	// output the correct message, depending on where the RTL destination is
 	switch (_destination.type) {
 	case RTL_DESTINATION_HOME:
@@ -287,6 +294,10 @@ void RTL::on_activation()
 
 	setClimbAndReturnDone(_rtl_state > RTL_STATE_RETURN);
 
+	// reset cruising speed and throttle to default for RTL
+	_navigator->set_cruising_speed();
+	_navigator->set_cruising_throttle();
+
 	set_rtl_item();
 
 }
@@ -314,25 +325,6 @@ void RTL::on_active()
 
 void RTL::set_rtl_item()
 {
-	// RTL_TYPE: mission landing.
-	// Landing using planned mission landing, fly to DO_LAND_START instead of returning _destination.
-	// After reaching DO_LAND_START, do nothing, let navigator takeover with mission landing.
-	if (_destination.type == RTL_DESTINATION_MISSION_LANDING) {
-		if (_rtl_state > RTL_STATE_RETURN) {
-			if (_navigator->start_mission_landing()) {
-				mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing\t");
-				events::send(events::ID("rtl_using_mission_landing"), events::Log::Info, "RTL: using mission landing");
-				return;
-
-			} else {
-				// Otherwise use regular RTL.
-				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unable to use mission landing\t");
-				events::send(events::ID("rtl_not_using_mission_landing"), events::Log::Error,
-					     "RTL: unable to use mission landing, doing regular RTL");
-			}
-		}
-	}
-
 	_navigator->set_can_loiter_at_sp(false);
 
 	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
@@ -373,6 +365,7 @@ void RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.loiter_radius = _navigator->get_loiter_radius();
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: climb to %d m (%d m above destination)\t",
 					 (int)ceilf(_rtl_alt), (int)ceilf(_rtl_alt - _destination.alt));
@@ -730,7 +723,7 @@ void RTL::calc_and_pub_rtl_time_estimate()
 
 	// Calculate RTL time estimate only when there is a valid home position
 	// TODO: Also check if vehicle position is valid
-	if (!_navigator->home_position_valid()) {
+	if (!_navigator->home_global_position_valid()) {
 		rtl_time_estimate.valid = false;
 
 	} else {

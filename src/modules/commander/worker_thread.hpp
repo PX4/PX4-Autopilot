@@ -58,11 +58,13 @@ public:
 		AirspeedCalibration,
 		ESCCalibration,
 		MagCalibrationQuick,
+		BaroCalibration,
 
 		ParamLoadDefault,
 		ParamSaveDefault,
 		ParamResetAll,
 		ParamResetSensorFactory,
+		ParamResetAllConfig
 	};
 
 	WorkerThread() = default;

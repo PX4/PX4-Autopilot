@@ -42,7 +42,7 @@
 #pragma once
 
 #include <ActuatorEffectiveness.hpp>
-#include <ActuatorEffectivenessRotors.hpp>
+#include <ActuatorEffectivenessMultirotor.hpp>
 #include <ActuatorEffectivenessStandardVTOL.hpp>
 #include <ActuatorEffectivenessTiltrotorVTOL.hpp>
 #include <ActuatorEffectivenessTailsitterVTOL.hpp>
@@ -74,7 +74,7 @@
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 
-class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::WorkItem
+class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	static constexpr int NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
@@ -125,7 +125,7 @@ private:
 	void update_allocation_method(bool force);
 	bool update_effectiveness_source();
 
-	void update_effectiveness_matrix_if_needed(bool force = false);
+	void update_effectiveness_matrix_if_needed(EffectivenessUpdateReason reason);
 
 	void publish_control_allocator_status();
 

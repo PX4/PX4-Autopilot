@@ -58,7 +58,12 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
+		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+
 		_sensor_simulator.runSeconds(2);
 		_ekf_wrapper.enableGpsFusion();
 		_sensor_simulator.startGps();
@@ -104,11 +109,16 @@ TEST_F(EkfGpsTest, resetToGpsVelocity)
 	const uint64_t dt_us = 1e5;
 	_sensor_simulator._gps.stepHorizontalPositionByMeters(Vector2f(simulated_velocity) * dt_us * 1e-6);
 	_sensor_simulator._gps.stepHeightByMeters(simulated_velocity(2) * dt_us * 1e-6f);
+
+	_ekf->set_in_air_status(true);
+	_ekf->set_vehicle_at_rest(false);
 	_sensor_simulator.runMicroseconds(dt_us);
 
 	// THEN: a reset to GPS velocity should be done
 	const Vector3f estimated_velocity = _ekf->getVelocity();
-	EXPECT_TRUE(isEqual(estimated_velocity, simulated_velocity, 1e-2f));
+	EXPECT_NEAR(estimated_velocity(0), simulated_velocity(0), 1e-3f);
+	EXPECT_NEAR(estimated_velocity(1), simulated_velocity(1), 1e-3f);
+	EXPECT_NEAR(estimated_velocity(2), simulated_velocity(2), 1e-3f);
 
 	// AND: the reset in velocity should be saved correctly
 	reset_logging_checker.capturePostResetState();

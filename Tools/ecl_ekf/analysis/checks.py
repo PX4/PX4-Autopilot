@@ -55,7 +55,7 @@ def perform_imu_checks(
 
     # perform the vibration check
     imu_status['imu_vibration_check'] = 'Pass'
-    for imu_vibr_metric in ['imu_coning', 'imu_hfdang', 'imu_hfdvel']:
+    for imu_vibr_metric in ['imu_coning', 'imu_hfgyro', 'imu_hfaccel']:
         mean_metric = '{:s}_mean'.format(imu_vibr_metric)
         peak_metric = '{:s}_peak'.format(imu_vibr_metric)
         if imu_metrics[mean_metric] > check_levels['{:s}_warn'.format(mean_metric)] \

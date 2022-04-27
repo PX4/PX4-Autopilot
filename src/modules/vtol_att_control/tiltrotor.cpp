@@ -42,6 +42,8 @@
 #include "tiltrotor.h"
 #include "vtol_att_control_main.h"
 
+#include <uORB/topics/landing_gear.h>
+
 using namespace matrix;
 using namespace time_literals;
 
@@ -180,13 +182,13 @@ void Tiltrotor::update_vtol_state()
 
 				bool transition_to_p2 = false;
 
-				if (time_since_trans_start > _params->front_trans_time_min) {
+				if (time_since_trans_start > getMinimumFrontTransitionTime()) {
 					if (airspeed_triggers_transition) {
 						transition_to_p2 = _airspeed_validated->calibrated_airspeed_m_s >= _params->transition_airspeed;
 
 					} else {
 						transition_to_p2 = _tilt_control >= _params_tiltrotor.tilt_transition &&
-								   time_since_trans_start > _params->front_trans_time_openloop;;
+								   time_since_trans_start > getOpenLoopFrontTransitionTime();
 					}
 				}
 
@@ -359,9 +361,9 @@ void Tiltrotor::update_transition_state()
 
 		// without airspeed do timed weight changes
 		if ((_params->airspeed_disabled || !PX4_ISFINITE(_airspeed_validated->calibrated_airspeed_m_s)) &&
-		    time_since_trans_start > _params->front_trans_time_min) {
-			_mc_roll_weight = 1.0f - (time_since_trans_start - _params->front_trans_time_min) /
-					  (_params->front_trans_time_openloop - _params->front_trans_time_min);
+		    time_since_trans_start > getMinimumFrontTransitionTime()) {
+			_mc_roll_weight = 1.0f - (time_since_trans_start - getMinimumFrontTransitionTime()) /
+					  (getOpenLoopFrontTransitionTime() - getMinimumFrontTransitionTime());
 			_mc_yaw_weight = _mc_roll_weight;
 		}
 
@@ -370,9 +372,9 @@ void Tiltrotor::update_transition_state()
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P2) {
 		// the plane is ready to go into fixed wing mode, tilt the rotors forward completely
-		_tilt_control = _params_tiltrotor.tilt_transition +
-				fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition) * time_since_trans_start /
-				_params_tiltrotor.front_trans_dur_p2;
+		_tilt_control = math::constrain(_params_tiltrotor.tilt_transition +
+						fabsf(_params_tiltrotor.tilt_fw - _params_tiltrotor.tilt_transition) * time_since_trans_start /
+						_params_tiltrotor.front_trans_dur_p2, _params_tiltrotor.tilt_transition, _params_tiltrotor.tilt_fw);
 
 		_mc_roll_weight = 0.0f;
 		_mc_yaw_weight = 0.0f;
@@ -518,6 +520,14 @@ void Tiltrotor::fill_actuator_outputs()
 		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 		_thrust_setpoint_0->xyz[0] = -_thrust_setpoint_0->xyz[2] * sinf(_tilt_control * M_PI_2_F);
+	}
+
+	// Landing gear
+	if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
+		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_DOWN;
+
+	} else {
+		mc_out[actuator_controls_s::INDEX_LANDING_GEAR] = landing_gear_s::GEAR_UP;
 	}
 
 	// Fixed wing output

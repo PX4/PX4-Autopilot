@@ -323,7 +323,7 @@ bool MathlibTest::testQuaternionRotate()
 				R = matrix::Eulerf(roll, pitch, yaw);
 				q = matrix::Eulerf(roll, pitch, yaw);
 				vector_r = R * vector;
-				vector_q = q.conjugate(vector);
+				vector_q = q.rotateVector(vector);
 
 				for (int i = 0; i < 3; i++) {
 					ut_assert("matrix::Quatf method 'rotate' outside tolerance", fabsf(vector_r(i) - vector_q(i)) < tol);
@@ -336,7 +336,7 @@ bool MathlibTest::testQuaternionRotate()
 	// test some values calculated with matlab
 	tol = 0.0001f;
 	q = matrix::Eulerf(M_PI_2_F, 0.0f, 0.0f);
-	vector_q = q.conjugate(vector);
+	vector_q = q.rotateVector(vector);
 	matrix::Vector3f vector_true = {1.00f, -1.00f, 1.00f};
 
 	for (unsigned i = 0; i < 3; i++) {
@@ -344,7 +344,7 @@ bool MathlibTest::testQuaternionRotate()
 	}
 
 	q = matrix::Eulerf(0.3f, 0.2f, 0.1f);
-	vector_q = q.conjugate(vector);
+	vector_q = q.rotateVector(vector);
 	vector_true = {1.1566, 0.7792, 1.0273};
 
 	for (unsigned i = 0; i < 3; i++) {
@@ -352,7 +352,7 @@ bool MathlibTest::testQuaternionRotate()
 	}
 
 	q = matrix::Eulerf(-1.5f, -0.2f, 0.5f);
-	vector_q = q.conjugate(vector);
+	vector_q = q.rotateVector(vector);
 	vector_true = {0.5095, 1.4956, -0.7096};
 
 	for (unsigned i = 0; i < 3; i++) {
@@ -360,7 +360,7 @@ bool MathlibTest::testQuaternionRotate()
 	}
 
 	q = matrix::Eulerf(M_PI_2_F, -M_PI_2_F, -M_PI_F / 3.0f);
-	vector_q = q.conjugate(vector);
+	vector_q = q.rotateVector(vector);
 	vector_true = { -1.3660, 0.3660, 1.0000};
 
 	for (unsigned i = 0; i < 3; i++) {

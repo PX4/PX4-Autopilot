@@ -13,6 +13,8 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+param set-default MAV_TYPE 21
+
 param set-default PWM_AUX_DISARM 1000
 param set-default PWM_AUX_MAX 2000
 param set-default PWM_AUX_MIN 1000
@@ -28,7 +30,6 @@ param set-default VT_TILT_MC 0.08
 param set-default VT_TILT_TRANS 0.5
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_TYPE 1
-set MAV_TYPE 21
 
 set MIXER claire
 set MIXER_AUX claire

@@ -163,5 +163,35 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-03-15: translate notch filter IMU_GYRO_NF_FREQ to IMU_GYRO_NF0_FRQ and IMU_GYRO_NF_BW -> IMU_GYRO_NF0_BW
+	{
+		if (strcmp("IMU_GYRO_NF_FREQ", node->name) == 0) {
+			strcpy(node->name, "IMU_GYRO_NF0_FRQ");
+			PX4_INFO("copying %s -> %s", "IMU_GYRO_NF_FREQ", "IMU_GYRO_NF0_FRQ");
+			return true;
+		}
+
+		if (strcmp("IMU_GYRO_NF_BW", node->name) == 0) {
+			strcpy(node->name, "IMU_GYRO_NF0_BW");
+			PX4_INFO("copying %s -> %s", "IMU_GYRO_NF_BW", "IMU_GYRO_NF0_BW");
+			return true;
+		}
+	}
+
+	// 2022-04-25 (v1.13 alpha): translate MS4525->MS4525DO and MS5525->MS5525DSO
+	{
+		if (strcmp("SENS_EN_MS4525", node->name) == 0) {
+			strcpy(node->name, "SENS_EN_MS4525DO");
+			PX4_INFO("copying %s -> %s", "SENS_EN_MS4525", "SENS_EN_MS4525DO");
+			return true;
+		}
+
+		if (strcmp("SENS_EN_MS5525", node->name) == 0) {
+			strcpy(node->name, "SENS_EN_MS5525DS");
+			PX4_INFO("copying %s -> %s", "SENS_EN_MS5525", "SENS_EN_MS5525DS");
+			return true;
+		}
+	}
+
 	return false;
 }

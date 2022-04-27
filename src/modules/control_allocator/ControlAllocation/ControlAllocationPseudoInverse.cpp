@@ -113,29 +113,29 @@ ControlAllocationPseudoInverse::updateControlAllocationMatrixScale()
 		_control_allocation_scale(2) = 1.f;
 	}
 
-	// Scale thrust by the sum of the norm of the thrust vectors (which is invariant to rotation)
-	int num_non_zero_thrust = 0;
-	float norm_sum = 0.f;
+	// Scale thrust by the sum of the individual thrust axes, and use the scaling for the Z axis if there's no actuators
+	// (for tilted actuators)
+	_control_allocation_scale(THRUST_Z) = 1.f;
 
-	for (int i = 0; i < _num_actuators; i++) {
-		float norm = _mix.slice<1, 3>(i, 3).norm();
-		norm_sum += norm;
+	for (int axis_idx = 2; axis_idx >= 0; --axis_idx) {
+		int num_non_zero_thrust = 0;
+		float norm_sum = 0.f;
 
-		if (norm > FLT_EPSILON) {
-			++num_non_zero_thrust;
+		for (int i = 0; i < _num_actuators; i++) {
+			float norm = fabsf(_mix(i, 3 + axis_idx));
+			norm_sum += norm;
+
+			if (norm > FLT_EPSILON) {
+				++num_non_zero_thrust;
+			}
 		}
-	}
 
-	if (num_non_zero_thrust > 0) {
-		norm_sum /= num_non_zero_thrust;
-		_control_allocation_scale(3) = norm_sum;
-		_control_allocation_scale(4) = norm_sum;
-		_control_allocation_scale(5) = norm_sum;
+		if (num_non_zero_thrust > 0) {
+			_control_allocation_scale(3 + axis_idx) = norm_sum / num_non_zero_thrust;
 
-	} else {
-		_control_allocation_scale(3) = 1.f;
-		_control_allocation_scale(4) = 1.f;
-		_control_allocation_scale(5) = 1.f;
+		} else {
+			_control_allocation_scale(3 + axis_idx) = _control_allocation_scale(THRUST_Z);
+		}
 	}
 }
 

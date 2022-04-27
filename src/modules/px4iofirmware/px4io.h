@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,6 +49,8 @@
 #include <board_config.h>
 
 #include "protocol.h"
+
+__BEGIN_DECLS
 
 /*
  * Constants and limits.
@@ -120,22 +122,6 @@ struct sys_state_s {
 };
 
 extern struct sys_state_s system_state;
-extern bool update_mc_thrust_param;
-extern bool update_trims;
-
-/*
- * GPIO handling.
- */
-/* HEX Cube Orange and Cube Yellow uses an inverted signal to control the IMU heater */
-#ifdef CONFIG_ARCH_BOARD_CUBEPILOT_IO_V2
-#define LED_BLUE(_s)			px4_arch_gpiowrite(GPIO_LED1, (_s))
-#else
-#define LED_BLUE(_s)			px4_arch_gpiowrite(GPIO_LED1, !(_s))
-#endif
-#define LED_AMBER(_s)			px4_arch_gpiowrite(GPIO_LED2, !(_s))
-#define LED_SAFETY(_s)			px4_arch_gpiowrite(GPIO_LED3, !(_s))
-#define LED_RING(_s)			px4_arch_gpiowrite(GPIO_LED4, (_s))
-
 
 # define ENABLE_SBUS_OUT(_s)		px4_arch_gpiowrite(GPIO_SBUS_OENABLE, !(_s))
 
@@ -199,3 +185,4 @@ extern void	isr_debug(uint8_t level, const char *fmt, ...);
 /** schedule a reboot */
 extern void schedule_reboot(uint32_t time_delta_usec);
 
+__END_DECLS

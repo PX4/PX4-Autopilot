@@ -44,7 +44,8 @@
 #include <perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_baro.h>
 
 #include "board_config.h"
 
@@ -325,7 +326,7 @@ private:
 	static constexpr uint8_t			odr{BMP3_ODR_50_HZ};			// output data rate (not used)
 	static constexpr uint8_t			iir_coef{BMP3_IIR_FILTER_DISABLE};	// IIR coefficient
 
-	PX4Barometer		_px4_baro;
+	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
 	IBMP388			*_interface{nullptr};
 
 	unsigned		_measure_interval{0};			// interval in microseconds needed to measure

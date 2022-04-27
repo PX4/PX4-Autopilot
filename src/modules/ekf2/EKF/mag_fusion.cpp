@@ -401,14 +401,18 @@ void Ekf::fuseMag(const Vector3f &mag)
 
 		const bool is_fused = measurementUpdate(Kfusion, Hfusion, _mag_innov(index));
 
-		if (index == 0) {
+		switch (index) {
+		case 0:
 			_fault_status.flags.bad_mag_x = !is_fused;
+			break;
 
-		} else if (index == 1) {
+		case 1:
 			_fault_status.flags.bad_mag_y = !is_fused;
+			break;
 
-		} else if (index == 2) {
+		case 2:
 			_fault_status.flags.bad_mag_z = !is_fused;
+			break;
 		}
 
 		if (is_fused) {
@@ -417,7 +421,7 @@ void Ekf::fuseMag(const Vector3f &mag)
 	}
 }
 
-void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
+bool Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 {
 	// assign intermediate state variables
 	const float &q0 = _state.quat_nominal(0);
@@ -481,7 +485,7 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 		H_YAW(2) = -SB5*(-SB1*SB7 - SB9*q2);
 		H_YAW(3) = -SB5*(-SB0*SB7 - SB9*q3);
 	} else {
-		return;
+		return false;
 	}
 
 	// calculate the yaw innovation and wrap to the interval between +-pi
@@ -498,10 +502,10 @@ void Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 	float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
 
 	// Update the quaternion states and covariance matrix
-	updateQuaternion(innovation, R_YAW, innov_gate, H_YAW);
+	return updateQuaternion(innovation, R_YAW, innov_gate, H_YAW);
 }
 
-void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
+bool Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 {
 	// assign intermediate state variables
 	const float q0 = _state.quat_nominal(0);
@@ -565,7 +569,7 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 		H_YAW(2) = -SB5*(-SB1*SB7 - SB9*q2);
 		H_YAW(3) = -SB5*(SB0*SB7 + SB9*q3);
 	} else {
-		return;
+		return false;
 	}
 
 	float innovation;
@@ -582,11 +586,11 @@ void Ekf::fuseYaw312(float yaw, float yaw_variance, bool zero_innovation)
 	float innov_gate = math::max(_params.heading_innov_gate, 1.0f);
 
 	// Update the quaternion states and covariance matrix
-	updateQuaternion(innovation, R_YAW, innov_gate, H_YAW);
+	return updateQuaternion(innovation, R_YAW, innov_gate, H_YAW);
 }
 
 // update quaternion states and covariances using the yaw innovation, yaw observation variance and yaw Jacobian
-void Ekf::updateQuaternion(const float innovation, const float variance, const float gate_sigma,
+bool Ekf::updateQuaternion(const float innovation, const float variance, const float gate_sigma,
 			   const Vector4f &yaw_jacobian)
 {
 	// Calculate innovation variance and Kalman gains, taking advantage of the fact that only the first 4 elements in H are non zero
@@ -618,7 +622,7 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 		// we reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
 		ECL_ERR("mag yaw fusion numerical error - covariance reset");
-		return;
+		return false;
 	}
 
 	// calculate the Kalman gains
@@ -668,7 +672,7 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 			resetZDeltaAngBiasCov();
 
 		} else {
-			return;
+			return false;
 		}
 
 	} else {
@@ -711,7 +715,10 @@ void Ekf::updateQuaternion(const float innovation, const float variance, const f
 		// apply the state corrections
 		fuse(Kfusion, _heading_innov);
 
+		return true;
 	}
+
+	return false;
 }
 
 void Ekf::fuseHeading(float measured_hdg, float obs_var)

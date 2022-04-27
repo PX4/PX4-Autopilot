@@ -59,6 +59,8 @@
 
 #define STATE_TIMEOUT 10000000 // [us] Maximum time to spend in any state
 
+static constexpr const char *LOST_TARGET_ERROR_MESSAGE = "Lost landing target while landing";
+
 PrecLand::PrecLand(Navigator *navigator) :
 	MissionBlock(navigator),
 	ModuleParams(navigator)
@@ -89,7 +91,7 @@ PrecLand::on_activation()
 
 	// Check that the current position setpoint is valid, otherwise land at current position
 	if (!pos_sp_triplet->current.valid) {
-		PX4_WARN("Resetting landing position to current position");
+		PX4_WARN("Reset");
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 		pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
 		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
@@ -191,9 +193,7 @@ PrecLand::run_state_start()
 
 	if (_mode == PrecLandMode::Opportunistic) {
 		// could not see the target immediately, so just fall back to normal landing
-		if (!switch_to_state_fallback()) {
-			PX4_ERR("Can't switch to search or fallback landing");
-		}
+		switch_to_state_fallback();
 	}
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
@@ -211,16 +211,12 @@ PrecLand::run_state_start()
 
 			if (hrt_absolute_time() - _point_reached_time > 2000000) {
 				if (!switch_to_state_search()) {
-					if (!switch_to_state_fallback()) {
-						PX4_ERR("Can't switch to search or fallback landing");
-					}
+					switch_to_state_fallback();
 				}
 			}
 
 		} else {
-			if (!switch_to_state_fallback()) {
-				PX4_ERR("Can't switch to search or fallback landing");
-			}
+			switch_to_state_fallback();
 		}
 	}
 }
@@ -232,7 +228,7 @@ PrecLand::run_state_horizontal_approach()
 
 	// check if target visible, if not go to start
 	if (!check_state_conditions(PrecLandState::HorizontalApproach)) {
-		PX4_WARN("Lost landing target while landing (horizontal approach).");
+		PX4_WARN("%s, state: %i", LOST_TARGET_ERROR_MESSAGE, (int) _state);
 
 		// Stay at current position for searching for the landing target
 		pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -240,9 +236,7 @@ PrecLand::run_state_horizontal_approach()
 		pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
 
 		if (!switch_to_state_start()) {
-			if (!switch_to_state_fallback()) {
-				PX4_ERR("Can't switch to fallback landing");
-			}
+			switch_to_state_fallback();
 		}
 
 		return;
@@ -256,20 +250,11 @@ PrecLand::run_state_horizontal_approach()
 		if (hrt_absolute_time() - _point_reached_time > 2000000) {
 			// if close enough for descent above target go to descend above target
 			if (switch_to_state_descend_above_target()) {
+
 				return;
 			}
 		}
 
-	}
-
-	if (hrt_absolute_time() - _state_start_time > STATE_TIMEOUT) {
-		PX4_ERR("Precision landing took too long during horizontal approach phase.");
-
-		if (switch_to_state_fallback()) {
-			return;
-		}
-
-		PX4_ERR("Can't switch to fallback landing");
 	}
 
 	float x = _target_pose.x_abs;
@@ -294,7 +279,7 @@ PrecLand::run_state_descend_above_target()
 	// check if target visible
 	if (!check_state_conditions(PrecLandState::DescendAboveTarget)) {
 		if (!switch_to_state_final_approach()) {
-			PX4_WARN("Lost landing target while landing (descending).");
+			PX4_WARN("%s, state: %i", LOST_TARGET_ERROR_MESSAGE, (int) _state);
 
 			// Stay at current position for searching for the target
 			pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
@@ -302,9 +287,7 @@ PrecLand::run_state_descend_above_target()
 			pos_sp_triplet->current.alt = _navigator->get_global_position()->alt;
 
 			if (!switch_to_state_start()) {
-				if (!switch_to_state_fallback()) {
-					PX4_ERR("Can't switch to fallback landing");
-				}
+				switch_to_state_fallback();
 			}
 		}
 
@@ -353,9 +336,7 @@ PrecLand::run_state_search()
 	if (hrt_absolute_time() - _state_start_time > _param_pld_srch_tout.get()*SEC2USEC) {
 		PX4_WARN("Search timed out");
 
-		if (!switch_to_state_fallback()) {
-			PX4_ERR("Can't switch to fallback landing");
-		}
+		switch_to_state_fallback();
 	}
 }
 
@@ -388,6 +369,7 @@ bool
 PrecLand::switch_to_state_horizontal_approach()
 {
 	if (check_state_conditions(PrecLandState::HorizontalApproach)) {
+		print_state_switch_message("horizontal approach");
 		_approach_alt = _navigator->get_global_position()->alt;
 
 		_point_reached_time = 0;
@@ -404,6 +386,7 @@ bool
 PrecLand::switch_to_state_descend_above_target()
 {
 	if (check_state_conditions(PrecLandState::DescendAboveTarget)) {
+		print_state_switch_message("descend");
 		_state = PrecLandState::DescendAboveTarget;
 		_state_start_time = hrt_absolute_time();
 		return true;
@@ -416,6 +399,7 @@ bool
 PrecLand::switch_to_state_final_approach()
 {
 	if (check_state_conditions(PrecLandState::FinalApproach)) {
+		print_state_switch_message("final approach");
 		_state = PrecLandState::FinalApproach;
 		_state_start_time = hrt_absolute_time();
 		return true;
@@ -445,7 +429,7 @@ PrecLand::switch_to_state_search()
 bool
 PrecLand::switch_to_state_fallback()
 {
-	PX4_WARN("Falling back to normal land.");
+	print_state_switch_message("fallback");
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 	pos_sp_triplet->current.lat = _navigator->get_global_position()->lat;
 	pos_sp_triplet->current.lon = _navigator->get_global_position()->lon;
@@ -464,6 +448,11 @@ PrecLand::switch_to_state_done()
 	_state = PrecLandState::Done;
 	_state_start_time = hrt_absolute_time();
 	return true;
+}
+
+void PrecLand::print_state_switch_message(const char *state_name)
+{
+	PX4_INFO("Precland: switching to %s", state_name);
 }
 
 bool PrecLand::check_state_conditions(PrecLandState state)

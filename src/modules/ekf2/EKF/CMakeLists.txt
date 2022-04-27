@@ -51,11 +51,13 @@ add_library(ecl_EKF
 	mag_control.cpp
 	mag_fusion.cpp
 	optflow_fusion.cpp
+	range_finder_consistency_check.cpp
 	sensor_range_finder.cpp
 	sideslip_fusion.cpp
 	terrain_estimator.cpp
 	utils.cpp
 	vel_pos_fusion.cpp
+	zero_velocity_update.cpp
 )
 
 add_dependencies(ecl_EKF prebuild_targets)

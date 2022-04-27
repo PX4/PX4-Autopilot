@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 /**
- * @file SDP3X.hpp
  *
  * Driver for Sensirion SDP3X Differential Pressure Sensor
  *
@@ -41,16 +40,18 @@
 
 #pragma once
 
-#include <drivers/airspeed/airspeed.h>
-#include <math.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/module.h>
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/device/i2c.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/differential_pressure.h>
 
-#define I2C_ADDRESS_1_SDP3X		0x21
-#define I2C_ADDRESS_2_SDP3X		0x22
-#define I2C_ADDRESS_3_SDP3X		0x23
+#define I2C_ADDRESS_1_SDP3X 0x21
+#define I2C_ADDRESS_2_SDP3X 0x22
+#define I2C_ADDRESS_3_SDP3X 0x23
+
+static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
 
 #define SDP3X_SCALE_TEMPERATURE		200.0f
 #define SDP3X_RESET_ADDR		0x00
@@ -64,41 +65,34 @@
 
 // Measurement rate is 20Hz
 #define SPD3X_MEAS_RATE 100
-#define SDP3X_MEAS_DRIVER_FILTER_FREQ 3.0f
 #define CONVERSION_INTERVAL	(1000000 / SPD3X_MEAS_RATE)	/* microseconds */
 
-class SDP3X : public Airspeed, public I2CSPIDriver<SDP3X>
+class SDP3X : public device::I2C, public I2CSPIDriver<SDP3X>
 {
 public:
-	SDP3X(const I2CSPIDriverConfig &config) :
-		Airspeed(config.bus, config.bus_frequency, config.i2c_address, CONVERSION_INTERVAL),
-		I2CSPIDriver(config),
-		_keep_retrying{config.keep_running}
-	{
-	}
-
-	virtual ~SDP3X() = default;
+	SDP3X(const I2CSPIDriverConfig &config);
+	~SDP3X() override;
 
 	static void print_usage();
 
-	void	RunImpl();
+	void RunImpl();
 
 	int init() override;
+	void print_status() override;
 
 private:
+	int probe() override;
+
 	enum class State {
 		RequireConfig,
 		Configuring,
 		Running
 	};
 
-	int	measure() override { return 0; }
-	int	collect() override;
-	int	probe() override;
-	int	configure();
-	int	read_scale();
+	int collect();
 
-	math::LowPassFilter2p<float> _filter{SPD3X_MEAS_RATE, SDP3X_MEAS_DRIVER_FILTER_FREQ};
+	int configure();
+	int read_scale();
 
 	bool init_sdp3x();
 
@@ -115,4 +109,9 @@ private:
 	uint16_t _scale{0};
 	const bool _keep_retrying;
 	State _state{State::RequireConfig};
+
+	uORB::PublicationMulti<differential_pressure_s> _differential_pressure_pub{ORB_ID(differential_pressure)};
+
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": communication errors")};
 };

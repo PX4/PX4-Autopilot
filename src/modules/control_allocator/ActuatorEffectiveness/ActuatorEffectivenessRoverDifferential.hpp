@@ -41,7 +41,7 @@ public:
 	ActuatorEffectivenessRoverDifferential() = default;
 	virtual ~ActuatorEffectivenessRoverDifferential() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
 	const char *name() const override { return "Rover (Differential)"; }
 private:

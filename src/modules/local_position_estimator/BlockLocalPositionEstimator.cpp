@@ -19,7 +19,7 @@ static const char *msg_label = "[lpe] ";	// rate of land detector correction
 
 BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	WorkItem(MODULE_NAME, px4::wq_configurations::INS0),
 
 	// this block has no parent, and has name LPE
 	SuperBlock(nullptr, "LPE"),
@@ -138,7 +138,7 @@ bool
 BlockLocalPositionEstimator::init()
 {
 	if (!_sensors_sub.registerCallback()) {
-		PX4_ERR("sensor combined callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 

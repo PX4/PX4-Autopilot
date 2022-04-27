@@ -73,7 +73,8 @@ public:
 	struct Geometry {
 		RotorGeometry rotors[NUM_ROTORS_MAX];
 		int num_rotors{0};
-		bool yaw_disabled{false};
+		bool propeller_torque_disabled{false};
+		bool propeller_torque_disabled_non_upwards{false}; ///< keeps propeller torque enabled for upward facing motors
 	};
 
 	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
@@ -93,7 +94,7 @@ public:
 	static int computeEffectivenessMatrix(const Geometry &geometry,
 					      EffectivenessMatrix &effectiveness, int actuator_start_index = 0);
 
-	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+	bool addActuators(Configuration &configuration);
 
 	const char *name() const override { return "Multirotor"; }
 
@@ -113,12 +114,14 @@ public:
 	 */
 	static matrix::Vector3f tiltedAxis(float tilt_angle, float tilt_direction);
 
-	void enableYawControl(bool enable) { _geometry.yaw_disabled = !enable; }
+	void enablePropellerTorque(bool enable) { _geometry.propeller_torque_disabled = !enable; }
+
+	void enablePropellerTorqueNonUpwards(bool enable) { _geometry.propeller_torque_disabled_non_upwards = !enable; }
+
+	uint32_t getUpwardsMotors() const;
 
 private:
 	void updateParams() override;
-
-	bool _updated{true};
 	const AxisConfiguration _axis_config;
 	const bool _tilt_support; ///< if true, tilt servo assignment params are loaded
 

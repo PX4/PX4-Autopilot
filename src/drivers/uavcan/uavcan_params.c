@@ -310,7 +310,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_IMU, 0);
 /**
  * subscription magnetometer
  *
- * Enable UAVCAN GPS subscription.
+ * Enable UAVCAN mag subscription.
  *  uavcan::equipment::ahrs::MagneticFieldStrength
  *  uavcan::equipment::ahrs::MagneticFieldStrength2
  *
@@ -323,7 +323,7 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 1);
 /**
  * subscription range finder
  *
- * Enable UAVCAN GPS subscription.
+ * Enable UAVCAN range finder subscription.
  *  uavcan::equipment::range_sensor::Measurement
  *
  * @boolean
@@ -331,3 +331,15 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_MAG, 1);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_SUB_RNG, 0);
+
+/**
+ * subscription button
+ *
+ * Enable UAVCAN button subscription.
+ *  ardupilot::indication::Button
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_BTN, 0);

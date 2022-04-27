@@ -42,3 +42,4 @@ add_subdirectory(maiertek)
 add_subdirectory(ms5611)
 #add_subdirectory(tcbp001ta) # only for users who really need this
 add_subdirectory(invensense)
+add_subdirectory(goertek)

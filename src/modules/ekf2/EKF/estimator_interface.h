@@ -63,6 +63,7 @@
 #include "common.h"
 #include "RingBuffer.h"
 #include "imu_down_sampler.hpp"
+#include "range_finder_consistency_check.hpp"
 #include "sensor_range_finder.hpp"
 #include "utils.hpp"
 
@@ -136,9 +137,9 @@ public:
 	// set flag if static pressure rise due to ground effect is expected
 	// use _params.gnd_effect_deadzone to adjust for expected rise in static pressure
 	// flag will clear after GNDEFFECT_TIMEOUT uSec
-	void set_gnd_effect_flag(bool gnd_effect)
+	void set_gnd_effect()
 	{
-		_control_status.flags.gnd_effect = gnd_effect;
+		_control_status.flags.gnd_effect = true;
 		_time_last_gnd_effect_on = _time_last_imu;
 	}
 
@@ -179,9 +180,6 @@ public:
 	bool isHorizontalAidingActive() const;
 
 	int getNumberOfActiveHorizontalAidingSources() const;
-
-	// return true if the EKF is dead reckoning the position using inertial data only
-	bool inertial_dead_reckoning() const { return _is_dead_reckoning; }
 
 	const matrix::Quatf &getQuaternion() const { return _output_new.quat_nominal; }
 
@@ -245,16 +243,19 @@ public:
 	// Getter for the average EKF update period in s
 	float get_dt_ekf_avg() const { return _dt_ekf_avg; }
 
-	// Getter for the imu sample on the delayed time horizon
+	// Getters for samples on the delayed time horizon
 	const imuSample &get_imu_sample_delayed() const { return _imu_sample_delayed; }
-
-	// Getter for the baro sample on the delayed time horizon
 	const baroSample &get_baro_sample_delayed() const { return _baro_sample_delayed; }
+	const gpsSample &get_gps_sample_delayed() const { return _gps_sample_delayed; }
 
 	const bool &global_origin_valid() const { return _NED_origin_initialised; }
 	const MapProjection &global_origin() const { return _pos_ref; }
 
 	void print_status();
+
+	float gps_horizontal_position_drift_rate_m_s() const { return _gps_horizontal_position_drift_rate_m_s; }
+	float gps_vertical_position_drift_rate_m_s() const { return _gps_vertical_position_drift_rate_m_s; }
+	float gps_filtered_horizontal_velocity_m_s() const { return _gps_filtered_horizontal_velocity_m_s; }
 
 protected:
 
@@ -296,6 +297,8 @@ protected:
 	extVisionSample _ev_sample_delayed{};
 	extVisionSample _ev_sample_delayed_prev{};
 	dragSample _drag_down_sampled{};	// down sampled drag specific force data (filter prediction rate -> observation rate)
+
+	RangeFinderConsistencyCheck _rng_consistency_check;
 
 	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};		// air density (kg/m**3)
 
@@ -342,18 +345,14 @@ protected:
 	Vector2f _drag_test_ratio{};		// drag innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 
-	bool _is_dead_reckoning{false};		// true if we are no longer fusing measurements that constrain horizontal velocity drift
 	bool _deadreckon_time_exceeded{true};	// true if the horizontal nav solution has been deadreckoning for too long and is invalid
-	bool _is_wind_dead_reckoning{false};	// true if we are navigationg reliant on wind relative measurements
 
-	float _gps_drift_metrics[3] {};	// Array containing GPS drift metrics
-					// [0] Horizontal position drift rate (m/s)
-					// [1] Vertical position drift rate (m/s)
-					// [2] Filtered horizontal velocity (m/s)
+	float _gps_horizontal_position_drift_rate_m_s{NAN}; // Horizontal position drift rate (m/s)
+	float _gps_vertical_position_drift_rate_m_s{NAN};   // Vertical position drift rate (m/s)
+	float _gps_filtered_horizontal_velocity_m_s{NAN};   // Filtered horizontal velocity (m/s)
 
 	uint64_t _time_last_on_ground_us{0};	///< last time we were on the ground (uSec)
 	uint64_t _time_last_in_air{0};		///< last time we were in air (uSec)
-	bool _gps_drift_updated{false};	// true when _gps_drift_metrics has been updated and is ready for retrieval
 
 	// data buffer instances
 	RingBuffer<imuSample> _imu_buffer{12};           // buffer length 12 with default parameters

@@ -32,6 +32,10 @@ bool cs_ev_vel                # 24 - true when local frame velocity data fusion 
 bool cs_synthetic_mag_z       # 25 - true when we are using a synthesized measurement for the magnetometer Z component
 bool cs_vehicle_at_rest       # 26 - true when the vehicle is at rest
 bool cs_gps_yaw_fault         # 27 - true when the GNSS heading has been declared faulty and is no longer being used
+bool cs_rng_fault             # 28 - true when the range finder has been declared faulty and is no longer being used
+bool cs_inertial_dead_reckoning # 29 - true if we are no longer fusing measurements that constrain horizontal velocity drift
+bool cs_wind_dead_reckoning     # 30 - true if we are navigationg reliant on wind relative measurements
+bool cs_rng_kin_consistent      # 31 - true when the range finder kinematic consistency check is passing
 
 # fault status
 uint32 fault_status_changes   # number of filter fault status (fs) changes

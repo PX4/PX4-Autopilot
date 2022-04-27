@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,15 +44,7 @@
 RM3100::RM3100(device::Device *interface, const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_px4_mag(interface->get_device_id(), config.rotation),
-	_interface(interface),
-	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")),
-	_conf_errors(perf_alloc(PC_COUNT, MODULE_NAME": conf_errors")),
-	_range_errors(perf_alloc(PC_COUNT, MODULE_NAME": range_errors")),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_continuous_mode_set(false),
-	_mode(SINGLE),
-	_measure_interval(0),
-	_check_state_cnt(0)
+	_interface(interface)
 {
 	_px4_mag.set_scale(1.f / (RM3100_SENSITIVITY * UTESLA_TO_GAUSS));
 }
@@ -60,25 +52,25 @@ RM3100::RM3100(device::Device *interface, const I2CSPIDriverConfig &config) :
 RM3100::~RM3100()
 {
 	// free perf counters
-	perf_free(_sample_perf);
-	perf_free(_comms_errors);
-	perf_free(_range_errors);
-	perf_free(_conf_errors);
+	perf_free(_reset_perf);
+	perf_free(_range_error_perf);
+	perf_free(_bad_transfer_perf);
 
 	delete _interface;
 }
 
 int RM3100::self_test()
 {
-	/* Chances are that a poll event was triggered, so wait for conversion and read registers in order to clear DRDY bit */
-	usleep(RM3100_CONVERSION_INTERVAL);
-	collect();
+	bool complete = false;
 
-	/* Fail if calibration is not good */
-	int ret = 0;
-	uint8_t cmd = 0;
+	uint8_t cmd = (CMM_DEFAULT | POLLING_MODE);
+	int ret = _interface->write(ADDR_CMM, &cmd, 1);
 
-	/* Configure mag into self test mode */
+	if (ret != PX4_OK) {
+		return ret;
+	}
+
+	// Configure sensor to execute BIST upon receipt of a POLL command
 	cmd = BIST_SELFTEST;
 	ret = _interface->write(ADDR_BIST, &cmd, 1);
 
@@ -86,51 +78,80 @@ int RM3100::self_test()
 		return ret;
 	}
 
-	/* Now we need to write to POLL to launch self test */
-	cmd = POLL_XYZ;
-	ret = _interface->write(ADDR_POLL, &cmd, 1);
+	/* Perform test procedure until a valid result is obtained or test times out */
+	const hrt_abstime t_start = hrt_absolute_time();
 
-	if (ret != PX4_OK) {
-		return ret;
+	while ((hrt_absolute_time() - t_start) < BIST_DUR_USEC) {
+
+		// Re-disable DRDY clear
+		cmd = HSHAKE_NO_DRDY_CLEAR;
+		ret = _interface->write(ADDR_HSHAKE, &cmd, 1);
+
+		if (ret != PX4_OK) {
+			return ret;
+		}
+
+		// Poll for a measurement
+		cmd = POLL_XYZ;
+		ret = _interface->write(ADDR_POLL, &cmd, 1);
+
+		if (ret != PX4_OK) {
+			return ret;
+		}
+
+		uint8_t status = 0;
+		ret = _interface->read(ADDR_STATUS, &status, 1);
+
+		if (ret != PX4_OK) {
+			return ret;
+		}
+
+		// If the DRDY bit in the status register is set, BIST should be complete
+		if (status & STATUS_DRDY) {
+			// Check BIST register to evaluate the test result
+			ret = _interface->read(ADDR_BIST, &cmd, 1);
+
+			if (ret != PX4_OK) {
+				return ret;
+			}
+
+			// The test results are not valid if STE is not set. In this case, we try again
+			if (cmd & BIST_STE) {
+				complete = true;
+
+				// If the test passed, disable self-test mode by clearing the STE bit
+				if (cmd & BIST_XYZ_OK) {
+					cmd = 0;
+					ret = _interface->write(ADDR_BIST, &cmd, 1);
+
+					if (ret != PX4_OK) {
+						PX4_ERR("Failed to disable built-in self test");
+					}
+
+					return PX4_OK;
+
+				} else {
+					PX4_ERR("built-in self test failed");
+				}
+			}
+		}
 	}
 
-	/* Now wait for status register */
-	usleep(RM3100_CONVERSION_INTERVAL);
-
-	if (check_measurement() != PX4_OK) {
-		return -1;;
+	if (!complete) {
+		PX4_ERR("built-in self test incomplete");
 	}
 
-	/* Now check BIST register to see whether self test is ok or not*/
-	ret = _interface->read(ADDR_BIST, &cmd, 1);
-
-	if (ret != PX4_OK) {
-		return ret;
-	}
-
-	ret = !((cmd & BIST_XYZ_OK) == BIST_XYZ_OK);
-
-	return ret;
+	return PX4_ERROR;
 }
 
-int RM3100::check_measurement()
+void RM3100::RunImpl()
 {
-	uint8_t status = 0;
-	int ret = _interface->read(ADDR_STATUS, &status, 1);
-
-	if (ret != 0) {
-		return ret;
-	}
-
-	return !((status & STATUS_DRDY) == STATUS_DRDY) ;
-}
-
-int RM3100::collect()
-{
-	/* Check whether a measurement is available or not, otherwise return immediately */
-	if (check_measurement() != 0) {
-		PX4_DEBUG("No measurement available");
-		return 0;
+	// full reset if things are failing consistently
+	if (_failure_count > 10) {
+		_failure_count = 0;
+		set_default_register_values();
+		ScheduleOnInterval(RM3100_INTERVAL);
+		return;
 	}
 
 	struct {
@@ -139,20 +160,14 @@ int RM3100::collect()
 		uint8_t z[3];
 	} rm_report{};
 
-	_px4_mag.set_error_count(perf_event_count(_comms_errors));
-
-	perf_begin(_sample_perf);
-
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	int ret = _interface->read(ADDR_MX, (uint8_t *)&rm_report, sizeof(rm_report));
 
 	if (ret != OK) {
-		perf_end(_sample_perf);
-		perf_count(_comms_errors);
-		return ret;
+		perf_count(_bad_transfer_perf);
+		_failure_count++;
+		return;
 	}
-
-	perf_end(_sample_perf);
 
 	/* Rearrange mag data */
 	int32_t xraw = ((rm_report.x[0] << 16) | (rm_report.x[1] << 8) | rm_report.x[2]);
@@ -164,12 +179,36 @@ int RM3100::collect()
 	convert_signed(&yraw);
 	convert_signed(&zraw);
 
-	_px4_mag.update(timestamp_sample, xraw, yraw, zraw);
+	// valid range: -8388608 to 8388607
+	if (xraw < -8388608 || xraw > 8388607 ||
+	    yraw < -8388608 || yraw > 8388607 ||
+	    zraw < -8388608 || zraw > 8388607) {
 
-	ret = OK;
+		_failure_count++;
 
+		perf_count(_range_error_perf);
+		return;
+	}
 
-	return ret;
+	// only publish changes
+	if (_raw_data_prev[0] != xraw || _raw_data_prev[1] != yraw || _raw_data_prev[2] != zraw) {
+
+		_px4_mag.set_error_count(perf_event_count(_bad_transfer_perf)
+					 + perf_event_count(_range_error_perf));
+
+		_px4_mag.update(timestamp_sample, xraw, yraw, zraw);
+
+		_raw_data_prev[0] = xraw;
+		_raw_data_prev[1] = yraw;
+		_raw_data_prev[2] = zraw;
+
+		if (_failure_count > 0) {
+			_failure_count--;
+		}
+
+	} else {
+		_failure_count++;
+	}
 }
 
 void RM3100::convert_signed(int32_t *n)
@@ -180,106 +219,34 @@ void RM3100::convert_signed(int32_t *n)
 	}
 }
 
-void RM3100::RunImpl()
-{
-	/* _measure_interval == 0  is used as _task_should_exit */
-	if (_measure_interval == 0) {
-		return;
-	}
-
-	/* Collect last measurement at the start of every cycle */
-	if (collect() != OK) {
-		PX4_DEBUG("collection error");
-		/* restart the measurement state machine */
-		start();
-		return;
-	}
-
-	if (measure() != OK) {
-		PX4_DEBUG("measure error");
-	}
-
-	if (_measure_interval > 0) {
-		/* schedule a fresh cycle call when the measurement is done */
-		ScheduleDelayed(_measure_interval);
-	}
-}
-
 int RM3100::init()
 {
-	/* reset the device configuration */
-	reset();
-
 	int ret = self_test();
 
 	if (ret != PX4_OK) {
 		PX4_ERR("self test failed");
 	}
 
-	_measure_interval = RM3100_CONVERSION_INTERVAL;
-	start();
-
-	return ret;
-}
-
-int RM3100::measure()
-{
-	int ret = 0;
-	uint8_t cmd = 0;
-
-	/* Send the command to begin a measurement. */
-	if ((_mode == CONTINUOUS) && !_continuous_mode_set) {
-		cmd = (CMM_DEFAULT | CONTINUOUS_MODE);
-		ret = _interface->write(ADDR_CMM, &cmd, 1);
-		_continuous_mode_set = true;
-
-	} else if (_mode == SINGLE) {
-		if (_continuous_mode_set) {
-			/* This is needed for polling mode */
-			cmd = (CMM_DEFAULT | POLLING_MODE);
-			ret = _interface->write(ADDR_CMM, &cmd, 1);
-
-			if (ret != OK) {
-				perf_count(_comms_errors);
-				return ret;
-			}
-
-			_continuous_mode_set = false;
-		}
-
-		cmd = POLL_XYZ;
-		ret = _interface->write(ADDR_POLL, &cmd, 1);
+	if (set_default_register_values() == PX4_OK) {
+		ScheduleOnInterval(RM3100_INTERVAL);
+		return PX4_OK;
 	}
 
-
-	if (ret != OK) {
-		perf_count(_comms_errors);
-	}
-
-	return ret;
+	return PX4_ERROR;
 }
 
 void RM3100::print_status()
 {
 	I2CSPIDriverBase::print_status();
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	PX4_INFO("poll interval:  %u", _measure_interval);
-}
-
-int RM3100::reset()
-{
-	int ret = set_default_register_values();
-
-	if (ret != OK) {
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
+	perf_print_counter(_reset_perf);
+	perf_print_counter(_range_error_perf);
+	perf_print_counter(_bad_transfer_perf);
 }
 
 int RM3100::set_default_register_values()
 {
+	perf_count(_reset_perf);
+
 	uint8_t cmd[2] = {0, 0};
 
 	cmd[0] = CCX_DEFAULT_MSB;
@@ -304,12 +271,4 @@ int RM3100::set_default_register_values()
 	_interface->write(ADDR_BIST, cmd, 1);
 
 	return PX4_OK;
-}
-
-void RM3100::start()
-{
-	set_default_register_values();
-
-	/* schedule a cycle to start things */
-	ScheduleNow();
 }

@@ -228,8 +228,8 @@ public:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateWaypoints(const matrix::Vector2d &waypoint_A, const matrix::Vector2d &waypoint_B,
-			       const matrix::Vector2d &vehicle_pos, const matrix::Vector2f &ground_vel,
+	void navigateWaypoints(const matrix::Vector2f &waypoint_A, const matrix::Vector2f &waypoint_B,
+			       const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &ground_vel,
 			       const matrix::Vector2f &wind_vel);
 
 	/*
@@ -244,7 +244,7 @@ public:
 	 * @param[in] ground_vel Vehicle ground velocity vector [m/s]
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 */
-	void navigateLoiter(const matrix::Vector2d &loiter_center, const matrix::Vector2d &vehicle_pos,
+	void navigateLoiter(const matrix::Vector2f &loiter_center, const matrix::Vector2f &vehicle_pos,
 			    float radius, int8_t loiter_direction, const matrix::Vector2f &ground_vel,
 			    const matrix::Vector2f &wind_vel);
 
@@ -259,7 +259,7 @@ public:
 	 * @param[in] wind_vel Wind velocity vector [m/s]
 	 * @param[in] curvature of the path setpoint [1/m]
 	 */
-	void navigatePathTangent(const matrix::Vector2d &vehicle_pos, const matrix::Vector2d &position_setpoint,
+	void navigatePathTangent(const matrix::Vector2f &vehicle_pos, const matrix::Vector2f &position_setpoint,
 				 const matrix::Vector2f &tangent_setpoint,
 				 const matrix::Vector2f &ground_vel, const matrix::Vector2f &wind_vel, const float &curvature);
 
@@ -717,34 +717,9 @@ private:
 	float lateralAccel(const matrix::Vector2f &air_vel, const matrix::Vector2f &air_vel_ref,
 			   const float airspeed) const;
 
-	/*
-	 * Calculates two-dimensional "cross product" of two vectors.
-	 * TODO: move to matrix lib (Vector2 operation)
-	 *
-	 * @param[in] vec_1 Vector 1
-	 * @param[in] vec_2 Vector 2
-	 * @return 2D cross product
-	 */
-	float cross2D(const matrix::Vector2f &vec_1, const matrix::Vector2f &vec_2) const { return vec_1(0) * vec_2(1) - vec_1(1) * vec_2(0); }
-
 	/*******************************************************************************
 	 * PX4 POSITION SETPOINT INTERFACE FUNCTIONS
 	 */
-
-	/**
-	 * [Copied directly from ECL_L1_Pos_Controller]
-	 *
-	 * Convert a 2D vector from WGS84 to planar coordinates.
-	 *
-	 * This converts from latitude and longitude to planar
-	 * coordinates with (0,0) being at the position of ref and
-	 * returns a vector in meters towards wp.
-	 *
-	 * @param ref The reference position in WGS84 coordinates
-	 * @param wp The point to convert to into the local coordinates, in WGS84 coordinates
-	 * @return The vector in meters pointing from the reference position to the coordinates
-	 */
-	matrix::Vector2f getLocalPlanarVector(const matrix::Vector2d &origin, const matrix::Vector2d &target) const;
 
 	/**
 	 * [Copied directly from ECL_L1_Pos_Controller]

@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_REFLECT
 	default n
 	---help---
 		Enable support for reflect
+
+menuconfig USER_REFLECT
+	bool "reflect running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_REFLECT
+	---help---
+		Put reflect in userspace memory

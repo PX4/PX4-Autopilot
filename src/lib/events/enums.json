@@ -110,6 +110,10 @@
                         "6": {
                             "name": "no_rc_and_no_datalink",
                             "description": "No RC and no datalink"
+                        },
+                        "7": {
+                            "name": "no_gps",
+                            "description": "No valid GPS"
                         }
                     }
                 },
@@ -238,6 +242,10 @@
                         "14": {
                             "name": "orbit",
                             "description": "Orbit"
+                        },
+                        "15": {
+                            "name": "auto_vtol_takeoff",
+                            "description": "Vtol Takeoff"
                         },
                         "255": {
                             "name": "unknown",

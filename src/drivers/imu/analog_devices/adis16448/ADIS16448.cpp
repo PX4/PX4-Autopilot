@@ -100,7 +100,6 @@ ADIS16448::ADIS16448(const I2CSPIDriverConfig &config) :
 	I2CSPIDriver(config),
 	_drdy_gpio(config.drdy_gpio), // TODO: DRDY disabled
 	_px4_accel(get_device_id(), config.rotation),
-	_px4_baro(get_device_id()),
 	_px4_gyro(get_device_id(), config.rotation),
 	_px4_mag(get_device_id(), config.rotation)
 {
@@ -445,11 +444,18 @@ void ADIS16448::RunImpl()
 						const int16_t mag_z = (buffer.ZMAGN_OUT == INT16_MIN) ? INT16_MAX : -buffer.ZMAGN_OUT;
 						_px4_mag.update(timestamp_sample, mag_x, mag_y, mag_z);
 
-						_px4_baro.set_error_count(error_count);
-						_px4_baro.set_temperature(temperature);
 
 						float pressure_pa = buffer.BARO_OUT * 0.02f; // 20 μbar per LSB
-						_px4_baro.update(timestamp_sample, pressure_pa);
+
+						// publish baro
+						sensor_baro_s sensor_baro{};
+						sensor_baro.timestamp_sample = timestamp_sample;
+						sensor_baro.device_id = get_device_id();
+						sensor_baro.pressure = pressure_pa;
+						sensor_baro.temperature = temperature;
+						sensor_baro.error_count = error_count;
+						sensor_baro.timestamp = hrt_absolute_time();
+						_sensor_baro_pub.publish(sensor_baro);
 					}
 
 					success = true;
