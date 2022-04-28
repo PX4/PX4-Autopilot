@@ -39,7 +39,7 @@ PX4Rangefinder::PX4Rangefinder(const uint32_t device_id, const uint8_t device_or
 {
 	set_device_id(device_id);
 	set_orientation(device_orientation);
-	set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER); // Default to type LASER
+	set_rangefinder_type(distance_sensor_s::TYPE_LASER); // Default to type LASER
 }
 
 PX4Rangefinder::~PX4Rangefinder()

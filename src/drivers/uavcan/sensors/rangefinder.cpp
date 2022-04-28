@@ -86,17 +86,17 @@ void UavcanRangefinderBridge::range_sub_cb(const
 
 		switch (msg.sensor_type) {
 		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR:
-			rangefinder_type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+			rangefinder_type = distance_sensor_s::TYPE_ULTRASOUND;
 			break;
 
 		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_RADAR:
-			rangefinder_type = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
+			rangefinder_type = distance_sensor_s::TYPE_RADAR;
 			break;
 
 		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR:
 		case uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED:
 		default:
-			rangefinder_type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+			rangefinder_type = distance_sensor_s::TYPE_LASER;
 			break;
 		}
 

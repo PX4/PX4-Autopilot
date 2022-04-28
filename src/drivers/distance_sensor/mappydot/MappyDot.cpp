@@ -272,7 +272,7 @@ MappyDot::collect()
 		report.orientation      = _sensor_rotations[index];
 		report.signal_quality   = -1;
 		report.timestamp        = hrt_absolute_time();
-		report.type             = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+		report.type             = distance_sensor_s::TYPE_LASER;
 		report.variance         = 0;
 
 		int instance_id;
