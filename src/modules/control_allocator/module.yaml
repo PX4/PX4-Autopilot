@@ -27,6 +27,7 @@ parameters:
                 7: Motors (6DOF)
                 8: Multirotor with Tilt
                 9: Custom
+                10: Helicopter
             default: 0
 
         CA_METHOD:
@@ -378,6 +379,62 @@ parameters:
             instance_start: 0
             default: 0
 
+        # helicopter
+        CA_SP0_COUNT:
+            description:
+                short: Number of swash plates servos
+            type: enum
+            values:
+                3: '3'
+                4: '4'
+            default: 3
+        CA_SP0_ANG${i}:
+            description:
+                short: Angle for swash plate servo ${i}
+            type: float
+            decimal: 0
+            increment: 10
+            unit: deg
+            num_instances: 4
+            min: 0
+            max: 360
+            default: [0, 140, 220, 0]
+        CA_SP0_ARM_L${i}:
+            description:
+                short: Arm length for swash plate servo ${i}
+                long: |
+                  This is relative to the other arm lengths.
+            type: float
+            decimal: 3
+            increment: 0.1
+            num_instances: 4
+            min: 0
+            max: 10
+            default: 1.0
+        CA_HELI_THR_C${i}:
+            description:
+                short: Throttle curve at position ${i}
+                long: |
+                  Defines the output throttle at the interval position ${i}.
+            type: float
+            decimal: 3
+            increment: 0.1
+            num_instances: 5
+            min: 0
+            max: 1
+            default: [0, 0.3, 0.6, 0.8, 1]
+        CA_HELI_PITCH_C${i}:
+            description:
+                short: Collective pitch curve at position ${i}
+                long: |
+                  Defines the collective pitch at the interval position ${i} for a given thrust setpoint.
+            type: float
+            decimal: 3
+            increment: 0.1
+            num_instances: 5
+            min: 0
+            max: 1
+            default: [0.05, 0.15, 0.25, 0.35, 0.45]
 
 # Mixer
 mixer:
@@ -767,3 +824,20 @@ mixer:
                           - name: 'CA_SV_CS${i}_TRIM'
                             label: 'Trim'
 
+            10: # Helicopter
+                actuators:
+                  - actuator_type: 'motor'
+                    count: 1
+                    item_label_prefix: ['Rotor']
+                  - actuator_type: 'servo'
+                    item_label_prefix: ['Yaw tail servo']
+                    count: 1
+                  - actuator_type: 'servo'
+                    group_label: 'Swash plate servos'
+                    count: 'CA_SP0_COUNT'
+                    per_item_parameters:
+                        extra:
+                          - name: 'CA_SP0_ANG${i}'
+                            label: 'Angle'
+                          - name: 'CA_SP0_ARM_L${i}'
+                            label: 'Arm Length (relative)'
