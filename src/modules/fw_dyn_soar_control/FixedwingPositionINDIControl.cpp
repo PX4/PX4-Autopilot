@@ -69,6 +69,25 @@ FixedwingPositionINDIControl::~FixedwingPositionINDIControl()
 	perf_free(_loop_perf);
 }
 
+bool
+FixedwingPositionINDIControl::init()
+{
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
+		PX4_ERR("vehicle position callback registration failed!");
+		return false;
+	}
+    _read_trajectory_coeffs_csv();
+
+    // initialize transformations
+    _R_ned_to_enu *= 0.f;
+	_R_ned_to_enu(0,1) = 1.f;
+	_R_ned_to_enu(1,0) = 1.f;
+	_R_ned_to_enu(2,2) = -1.f;
+	_R_ned_to_enu.renormalize();
+    _R_enu_to_ned = _R_ned_to_enu;
+	return true;
+}
+
 int
 FixedwingPositionINDIControl::parameters_update()
 {
@@ -307,60 +326,7 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv()
             _basis_coeffs_x(i) = std::stof(line);
         }
         file_reader.close();
-        */
-    /*   
-    // 30 m/s trajectory
-    _basis_coeffs_x(0) = -0.001788f;
-    _basis_coeffs_x(1) = -4309.983870f;
-    _basis_coeffs_x(2) = 27561.833442f;
-    _basis_coeffs_x(3) = -79243.452679f;
-    _basis_coeffs_x(4) = 132885.860293f;
-    _basis_coeffs_x(5) = -132032.442095f;
-    _basis_coeffs_x(6) = 48834.507728f;
-    _basis_coeffs_x(7) = 67523.410338f;
-    _basis_coeffs_x(8) = -123589.704954f;
-    _basis_coeffs_x(9) = 71024.161695f;
-    _basis_coeffs_x(10) = 44098.153846f;
-    _basis_coeffs_x(11) = -128538.025554f;
-    _basis_coeffs_x(12) = 131172.181978f;
-    _basis_coeffs_x(13) = -78230.807474f;
-    _basis_coeffs_x(14) = 26663.839579f;
-    _basis_coeffs_x(15) = -3913.262861f;
-
-    _basis_coeffs_y(0) = 0.004280f;
-    _basis_coeffs_y(1) = 4570.380553f;
-    _basis_coeffs_y(2) = -25639.293350f;
-    _basis_coeffs_y(3) = 72621.110788f;
-    _basis_coeffs_y(4) = -127949.875874f;
-    _basis_coeffs_y(5) = 141930.443715f;
-    _basis_coeffs_y(6) = -74162.126946f;
-    _basis_coeffs_y(7) = -49777.387350f;
-    _basis_coeffs_y(8) = 138193.241851f;
-    _basis_coeffs_y(9) = -110424.181996f;
-    _basis_coeffs_y(10) = -20559.874806f;
-    _basis_coeffs_y(11) = 153605.364533f;
-    _basis_coeffs_y(12) = -194515.736549f;
-    _basis_coeffs_y(13) = 139509.473902f;
-    _basis_coeffs_y(14) = -58671.117200f;
-    _basis_coeffs_y(15) = 11343.451391f;
-
-    _basis_coeffs_z(0) = 100.f; //3.499054f;
-    _basis_coeffs_z(1) = -9110.823700f;
-    _basis_coeffs_z(2) = 49921.539080f;
-    _basis_coeffs_z(3) = -131589.929685f;
-    _basis_coeffs_z(4) = 211653.192338f;
-    _basis_coeffs_z(5) = -208769.604426f;
-    _basis_coeffs_z(6) = 82855.943814f;
-    _basis_coeffs_z(7) = 97934.653205f;
-    _basis_coeffs_z(8) =  -195851.952006f;
-    _basis_coeffs_z(9) =  127689.165562f;
-    _basis_coeffs_z(10) =   53559.445863f;
-    _basis_coeffs_z(11) =   -208279.480139f;
-    _basis_coeffs_z(12) =  238865.680043f;
-    _basis_coeffs_z(13) = -162710.396962f;
-    _basis_coeffs_z(14) =  66968.079887f;
-    _basis_coeffs_z(15) = -13187.455563;
-    */
+        */ 
 
    // 100m radius circle trajec
     _basis_coeffs_x(0) = -0.000064f;
@@ -812,33 +778,52 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
 {
     Dcmf R_ib(_att);
     Dcmf R_bi(R_ib.transpose());
-    // get acceleration command in world frame (without gravity)
+    // =========================================
+    // apply PD control law on the body position
+    // =========================================
     Vector3f acc_filtered = _apply_LP_filter(_acc, _a_list, _a_lpf_list);
     Vector3f acc_command = R_ib*(_K_x*R_bi*(pos_ref-_pos) + _K_v*R_bi*(vel_ref-_vel) + _K_a*R_bi*(acc_ref-acc_filtered)) + acc_ref;
     // add gravity
     acc_command(2) += 9.81f;
+
+    // ==================================
     // compute expected aerodynamic force
-    //Vector3f f_expected;
+    // ==================================
+    Vector3f f_current;
+    Vector3f vel_body = R_bi*_vel;
+    float AoA = atan2f(vel_body(2), vel_body(0));
+    float C_l = _C_L0 + _C_L1*AoA;
+    float C_d = _C_D0 + _C_D1*AoA + _C_D2*powf(AoA,2);
+    float factor = -0.5f*_rho*_area*sqrtf(vel_body*vel_body);
+    Vector3f w_x = vel_body;
+    Vector3f w_z = w_x.cross(Vector3f{0.f,1.f,0.f});
+    f_current = R_ib*(factor*(C_l*w_z + C_d*w_x)) + Vector3f{0.f,0.f,-_mass*9.81f};
+    Vector3f f_current_filtered = _apply_LP_filter(f_current, _f_list, _f_lpf_list);
+
+    // ===============================
     // get force comand in world frame
-    Vector3f f_command = _mass*acc_command;
-    // get required attitude (assuming we can fly the target velocity)
+    // ===============================
+    Vector3f f_command = _mass*(acc_command - acc_filtered) + f_current_filtered;//_mass*acc_command;
+
+    // ==========================================================================
+    // get required attitude (assuming we can fly the target velocity), and error
+    // ==========================================================================
     Dcmf R_ref(_get_attitude(vel_ref,f_command));
     // get attitude error
     Dcmf R_ref_true(R_ref.transpose()*R_ib);
     // get required rotation vector (in body frame)
     AxisAnglef q_err(R_ref_true);
     Vector3f w_err = -q_err.angle()*q_err.axis();
+
+    // =========================================
+    // apply PD control law on the body attitude
+    // =========================================
+    Vector3f omega_filtered = _apply_LP_filter(_omega, _w_list, _w_lpf_list);
+    Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-omega_filtered) + alpha_ref;
+
     //PX4_INFO("force command: \t%.2f\t%.2f\t%.2f", (double)f_command(0), (double)f_command(1), (double)f_command(2));
     //PX4_INFO("FRD body frame rotation vec: \t%.2f\t%.2f\t%.2f", (double)w_err(0), (double)w_err(1), (double)w_err(2));
-    // compute angular acceleration command (in body frame)
-    Vector3f omega_filtered = _apply_LP_filter(_omega, _w_list, _w_lpf_list);
-    Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-_omega) + alpha_ref;
-    rot_acc_command =  1.0f*_K_q*w_err + 1.0f*_K_w*(omega_ref-omega_filtered) + alpha_ref;
-    //rot_acc_command = Vector3f{0.f,0.0f,0.0f};
 
-    // apply LP filtered values for incremental part
-
-    
     return rot_acc_command;
 }
 
@@ -868,7 +853,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     deflection(0) = moment_command(0)/(0.5f*c_ail*sqrtf(vel_body*vel_body)*vel_body(0));
     deflection(1) = moment_command(1)/(0.5f*c_ele*sqrtf(vel_body*vel_body)*vel_body(0));
     deflection(2) = moment_command(2)/(0.5f*c_rud*sqrtf(vel_body*vel_body)*vel_body(0));
-    PX4_INFO("filtered alpha: \t%.2f\t%.2f", (double)(_l_list(0))(1), (double)(_l_lpf_list(0))(1));
+    //PX4_INFO("filtered alpha: \t%.2f\t%.2f", (double)(_l_list(0))(1), (double)(_l_lpf_list(0))(1));
 
     return 1.f*deflection+ 0.f*(ctrl);
 }
@@ -946,24 +931,6 @@ int FixedwingPositionINDIControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-bool
-FixedwingPositionINDIControl::init()
-{
-	if (!_vehicle_angular_velocity_sub.registerCallback()) {
-		PX4_ERR("vehicle position callback registration failed!");
-		return false;
-	}
-    _read_trajectory_coeffs_csv();
-
-    // initialize transformations
-    _R_ned_to_enu *= 0.f;
-	_R_ned_to_enu(0,1) = 1.f;
-	_R_ned_to_enu(1,0) = 1.f;
-	_R_ned_to_enu(2,2) = -1.f;
-	_R_ned_to_enu.renormalize();
-    _R_enu_to_ned = _R_ned_to_enu;
-	return true;
-}
 
 int FixedwingPositionINDIControl::custom_command(int argc, char *argv[])
 {
