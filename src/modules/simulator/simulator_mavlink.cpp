@@ -328,7 +328,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
 
 		if (!_baro_stuck) {
-			_last_baro_pressure = sensors.abs_pressure * hPa2Pa; // convert hPa to Pa
+			_last_baro_pressure = sensors.abs_pressure * 100.f; // hPa to Pa
 			_last_baro_temperature = sensors.temperature;
 		}
 
@@ -352,11 +352,11 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	// differential pressure
 	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_blocked) {
 		differential_pressure_s report{};
-		report.timestamp = time;
+		report.timestamp_sample = time;
+		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+		report.differential_pressure_pa = sensors.diff_pressure * 100.f; // hPa to Pa;
 		report.temperature = _sensors_temperature;
-		report.differential_pressure_filtered_pa = sensors.diff_pressure * hPa2Pa; // convert hPa to Pa;
-		report.differential_pressure_raw_pa = sensors.diff_pressure * hPa2Pa; // convert hPa to Pa;
-
+		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
 	}
 }

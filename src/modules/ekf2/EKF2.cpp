@@ -1483,7 +1483,7 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 			    && (airspeed.indicated_airspeed_m_s > 0.f)
 			   ) {
 				airspeedSample airspeed_sample {
-					.time_us = airspeed.timestamp,
+					.time_us = airspeed.timestamp_sample,
 					.true_airspeed = true_airspeed_m_s,
 					.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
 				};
