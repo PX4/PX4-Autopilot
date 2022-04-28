@@ -106,11 +106,13 @@ static constexpr float ORBIT_TRAJECTORY_MAX_ACCELERATION = 2.0;
 
 // [m/s] Speed with which the follow distance will be adjusted by when commanded with deflection via RC command
 static constexpr float FOLLOW_DISTANCE_USER_ADJUST_SPEED = 2.0;
+
 // [m] Maximum follow distance that can be set by user's RC adjustment
 static constexpr float FOLLOW_DISTANCE_MAX = 100.f;
 
 // [m/s] Speed with which the follow height will be adjusted by when commanded with deflection via RC command
 static constexpr float FOLLOW_HEIGHT_USER_ADJUST_SPEED = 1.5;
+
 // [m] Maximum follow height that can be set by user's RC adjustment
 static constexpr float FOLLOW_HEIGHT_MAX = 100.f;
 
@@ -295,6 +297,7 @@ protected:
 	 *
 	 * Releases Gimbal Control Authority of Follow-Target Flight Task, to allow other modules / Ground station
 	 * to control the gimbal when the task exits.
+	 * Fore more information on gimbal v2, see https://mavlink.io/en/services/gimbal_v2.html
 	 */
 	void release_gimbal_control();
 

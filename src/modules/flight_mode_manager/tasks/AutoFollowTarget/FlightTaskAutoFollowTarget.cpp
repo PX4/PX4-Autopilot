@@ -50,9 +50,8 @@ using matrix::Vector3f;
 using matrix::Quatf;
 using matrix::Eulerf;
 
-// Call Sticks constructor to set Follow Target class as a parent to Sticks object,
-// which enables chained paramter update sequence, defined in ModuleParams
-// to keep the parameters in Sticks up to date.
+// Call the constructor of _sticks to establish Follow Target class as a parent as ModuleParams class
+// which enables chained paramter update sequence, which keeps the parameters in _sticks up to date.
 FlightTaskAutoFollowTarget::FlightTaskAutoFollowTarget() : _sticks(this)
 {
 	_target_estimator.Start();
@@ -123,13 +122,9 @@ void FlightTaskAutoFollowTarget::update_target_position_velocity_filter(const fo
 	const Vector3f pos_ned_est{follow_target_estimator.pos_est};
 	const Vector3f vel_ned_est{follow_target_estimator.vel_est};
 
-	// Check Follow target estimator's validity & timeout conditions
 	const bool target_estimator_timeout = ((follow_target_estimator.timestamp - _last_valid_target_estimator_timestamp) > TARGET_ESTIMATOR_TIMEOUT_US);
-
-	// Reset last valid estimator data received timestamp
 	_last_valid_target_estimator_timestamp = follow_target_estimator.timestamp;
 
-	// Reset the filter if any pose filter states are not finite or estimator timed out
 	if ((!PX4_ISFINITE(_target_position_velocity_filter.getState()(0)) || !PX4_ISFINITE(_target_position_velocity_filter.getState()(1))
 		|| !PX4_ISFINITE(_target_position_velocity_filter.getState()(2)) || !PX4_ISFINITE(_target_position_velocity_filter.getRate()(0))
 		|| !PX4_ISFINITE(_target_position_velocity_filter.getRate()(1)) || !PX4_ISFINITE(_target_position_velocity_filter.getRate()(2))) || target_estimator_timeout) {
@@ -174,8 +169,8 @@ void FlightTaskAutoFollowTarget::update_rc_adjusted_follow_angle(const Sticks &s
 	// Wrap orbit angle difference, to get the shortest angle between them
 	if(fabsf(matrix::wrap_pi(measured_orbit_angle - tracked_orbit_angle_setpoint)) < FOLLOW_ANGLE_USER_ADJUST_SPEED * USER_ADJUSTMENT_ERROR_TIME_WINDOW) {
 		// RC Roll stick input for changing follow angle. When user commands RC stick input: +Roll (right), angle increases (clockwise)
-		// Constrain adjust speed [rad/s], so that drone can actually catch up. Otherwise, the follow angle
-		// command can be too ahead that it won't end up being responsive to RC stick inputs.
+		// Constrain adjust speed [rad/s] so that drone can actually catch up. Otherwise, the follow angle
+		// command can be too ahead that drone's behavior would be un-responsive to RC stick inputs.
 		const float angle_adjust_speed_max = min(FOLLOW_ANGLE_USER_ADJUST_SPEED, _param_mpc_xy_vel_max.get() / _follow_distance);
 		const float angle_change_speed = angle_adjust_speed_max * sticks.getRoll();
 		const float new_angle = _follow_angle_rad + angle_change_speed * _deltatime;
@@ -232,7 +227,6 @@ Vector3f FlightTaskAutoFollowTarget::calculate_desired_drone_position(const Vect
 	// Offset from the Target
 	const Vector2f offset_vector = Vector2f(cosf(orbit_angle_setpoint), sinf(orbit_angle_setpoint)) * _follow_distance;
 
-	// Calculate desired 2D position
 	drone_desired_position.xy() = Vector2f(target_position.xy()) + offset_vector;
 
 	// Calculate ground's z value in local frame for terrain tracking mode.

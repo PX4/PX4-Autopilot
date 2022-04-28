@@ -3488,9 +3488,9 @@ Commander::update_control_mode()
 
 		break;
 
-	// Follow Target supports RC adjustment, so disable auto control mode, which forces
-	// the exit of the Flight Task when RC adjustment (Stick movement) is detected.
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+	// Follow Target supports RC adjustment, so disable auto control mode to disable
+	// the Flight Task from exiting itself when RC stick movement is detected.
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
 		_vehicle_control_mode.flag_control_manual_enabled = false;
 		_vehicle_control_mode.flag_control_auto_enabled = false;
