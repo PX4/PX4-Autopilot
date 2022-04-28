@@ -51,6 +51,7 @@
 #include <ActuatorEffectivenessFixedWing.hpp>
 #include <ActuatorEffectivenessMCTilt.hpp>
 #include <ActuatorEffectivenessCustom.hpp>
+#include <ActuatorEffectivenessHelicopter.hpp>
 
 #include <ControlAllocation.hpp>
 #include <ControlAllocationPseudoInverse.hpp>
@@ -148,6 +149,7 @@ private:
 		MOTORS_6DOF = 7,
 		MULTIROTOR_WITH_TILT = 8,
 		CUSTOM = 9,
+		HELICOPTER = 10,
 	};
 
 	EffectivenessSource _effectiveness_source_id{EffectivenessSource::NONE};
