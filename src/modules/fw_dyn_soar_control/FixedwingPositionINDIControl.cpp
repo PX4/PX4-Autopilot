@@ -384,9 +384,15 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv()
 void
 FixedwingPositionINDIControl::Run()
 {
-    // only run controller if pos, vel, acc changed
+    if (should_exit()) {
+		_vehicle_angular_velocity_sub.unregisterCallback();
+		exit_and_cleanup();
+		return;
+	}
+
     perf_begin(_loop_perf);
 
+    // only run controller if pos, vel, acc changed
 	if (_vehicle_angular_velocity_sub.update(&_angular_vel))
     {   
         // only update parameters if they changed
@@ -403,7 +409,7 @@ FixedwingPositionINDIControl::Run()
 			parameters_update();
 		}
 		//const float dt = math::constrain((pos.timestamp - _last_run) * 1e-6f, 0.002f, 0.04f);
-		_last_run = _local_pos.timestamp;
+		//_last_run = _local_pos.timestamp;
 
         // run polls
         _set_wind_estimate(Vector3f(0.f,0.f,0.f));
@@ -506,7 +512,7 @@ FixedwingPositionINDIControl::Run()
             _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
             _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
             _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
-            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.4f;
+            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.3f;
             _actuators_0_pub.publish(_actuators);
             //print_message(_actuators);
         }
@@ -697,7 +703,7 @@ FixedwingPositionINDIControl::_get_angular_acceleration_ref(float t, float T)
 float
 FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
 {
-    const uint n = 500;
+    const uint n = 100;
     Vector<float, n> distances;
     float t_ref;
     // compute all distances
