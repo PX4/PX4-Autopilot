@@ -55,6 +55,11 @@ EstimatorInterface::~EstimatorInterface()
 	delete _ext_vision_buffer;
 	delete _drag_buffer;
 	delete _auxvel_buffer;
+
+	perf_free(_predict_covariance_perf);
+	perf_free(_mag_heading_fusion_perf);
+	perf_free(_mag_3d_fusion_perf);
+	perf_free(_optical_flow_fusion_perf);
 }
 
 // Accumulate imu data and store to buffer at desired rate
@@ -578,4 +583,9 @@ void EstimatorInterface::print_status()
 
 	printf("output buffer: %d/%d (%d Bytes)\n", _output_buffer.entries(), _output_buffer.get_length(), _output_buffer.get_total_size());
 	printf("output vert buffer: %d/%d (%d Bytes)\n", _output_vert_buffer.entries(), _output_vert_buffer.get_length(), _output_vert_buffer.get_total_size());
+
+	perf_print_counter(_predict_covariance_perf);
+	perf_print_counter(_mag_heading_fusion_perf);
+	perf_print_counter(_mag_3d_fusion_perf);
+	perf_print_counter(_optical_flow_fusion_perf);
 }

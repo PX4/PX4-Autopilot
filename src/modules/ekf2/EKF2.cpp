@@ -257,9 +257,9 @@ int EKF2::print_status()
 	perf_print_counter(_msg_missed_odometry_perf);
 	perf_print_counter(_msg_missed_optical_flow_perf);
 
-#if defined(DEBUG_BUILD)
+//#if defined(DEBUG_BUILD)
 	_ekf.print_status();
-#endif // DEBUG_BUILD
+//#endif // DEBUG_BUILD
 
 	return 0;
 }

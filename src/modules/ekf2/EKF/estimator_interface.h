@@ -68,6 +68,7 @@
 #include "utils.hpp"
 
 #include <lib/geo/geo.h>
+#include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/AlphaFilter.hpp>
@@ -403,6 +404,11 @@ protected:
 	// state logic becasue they will be cleared externally after being read.
 	warning_event_status_u _warning_events{};
 	information_event_status_u _information_events{};
+
+	perf_counter_t _predict_covariance_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": predict covariance")};
+	perf_counter_t _mag_heading_fusion_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": heading fusion")};
+	perf_counter_t _mag_3d_fusion_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": mag 3D fusion")};
+	perf_counter_t _optical_flow_fusion_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": optical flow fusion")};
 
 private:
 

@@ -362,6 +362,8 @@ void Ekf::runMagAndMagDeclFusions(const Vector3f &mag)
 
 void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 {
+	perf_begin(_mag_3d_fusion_perf);
+
 	if (!_mag_decl_cov_reset) {
 		// After any magnetic field covariance reset event the earth field state
 		// covariances need to be corrected to incorporate knowledge of the declination
@@ -381,6 +383,8 @@ void Ekf::run3DMagAndDeclFusions(const Vector3f &mag)
 			fuseDeclination(0.5f);
 		}
 	}
+
+	perf_end(_mag_3d_fusion_perf);
 }
 
 bool Ekf::otherHeadingSourcesHaveStopped()

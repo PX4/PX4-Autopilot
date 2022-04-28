@@ -723,6 +723,7 @@ bool Ekf::updateQuaternion(const float innovation, const float variance, const f
 
 void Ekf::fuseHeading(float measured_hdg, float obs_var)
 {
+	perf_begin(_mag_heading_fusion_perf);
 	// observation variance
 	float R_YAW = PX4_ISFINITE(obs_var) ? obs_var : 0.01f;
 
@@ -774,6 +775,8 @@ void Ekf::fuseHeading(float measured_hdg, float obs_var)
 	} else {
 		fuseYaw312(measured_hdg, R_YAW, fuse_zero_innov);
 	}
+
+	perf_end(_mag_heading_fusion_perf);
 }
 
 void Ekf::fuseDeclination(float decl_sigma)

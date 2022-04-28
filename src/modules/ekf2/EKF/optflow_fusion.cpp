@@ -49,6 +49,7 @@
 
 void Ekf::fuseOptFlow()
 {
+	perf_begin(_optical_flow_fusion_perf);
 	float gndclearance = fmaxf(_params.rng_gnd_clearance, 0.1f);
 
 	// get latest estimated orientation
@@ -327,6 +328,8 @@ void Ekf::fuseOptFlow()
 			_time_last_of_fuse = _time_last_imu;
 		}
 	}
+
+	perf_end(_optical_flow_fusion_perf);
 }
 
 // calculate optical flow body angular rate compensation

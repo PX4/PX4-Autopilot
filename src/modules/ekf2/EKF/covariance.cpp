@@ -99,6 +99,8 @@ void Ekf::initialiseCovariance()
 
 void Ekf::predictCovariance()
 {
+	perf_begin(_predict_covariance_perf);
+
 	// assign intermediate state variables
 	const float &q0 = _state.quat_nominal(0);
 	const float &q1 = _state.quat_nominal(1);
@@ -889,6 +891,7 @@ void Ekf::predictCovariance()
 	// columns for un-used states are zero
 	fixCovarianceErrors(false);
 
+	perf_end(_predict_covariance_perf);
 }
 
 void Ekf::fixCovarianceErrors(bool force_symmetry)
