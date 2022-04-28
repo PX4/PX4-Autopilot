@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -62,6 +62,10 @@ RCInput::RCInput(const char *device) :
 	if (device) {
 		strncpy(_device, device, sizeof(_device) - 1);
 		_device[sizeof(_device) - 1] = '\0';
+	}
+
+	if ((_param_rc_input_proto.get() >= 0) && (_param_rc_input_proto.get() <= RC_SCAN::RC_SCAN_GHST)) {
+		_rc_scan_state = static_cast<RC_SCAN>(_param_rc_input_proto.get());
 	}
 }
 
@@ -251,9 +255,21 @@ RCInput::fill_rc_in(uint16_t raw_rc_count_local,
 
 void RCInput::set_rc_scan_state(RC_SCAN newState)
 {
-	PX4_DEBUG("RCscan: %s failed, trying %s", RCInput::RC_SCAN_STRING[_rc_scan_state], RCInput::RC_SCAN_STRING[newState]);
+	if ((_param_rc_input_proto.get() > RC_SCAN::RC_SCAN_NONE)
+	    && (_param_rc_input_proto.get() <= RC_SCAN::RC_SCAN_GHST)) {
+
+		_rc_scan_state = static_cast<RC_SCAN>(_param_rc_input_proto.get());
+
+	} else if (_param_rc_input_proto.get() < 0) {
+		// only auto change if RC_INPUT_PROTO set to auto (-1)
+		PX4_DEBUG("RCscan: %s failed, trying %s", RCInput::RC_SCAN_STRING[_rc_scan_state], RCInput::RC_SCAN_STRING[newState]);
+		_rc_scan_state = newState;
+
+	} else {
+		_rc_scan_state = RC_SCAN::RC_SCAN_NONE;
+	}
+
 	_rc_scan_begin = 0;
-	_rc_scan_state = newState;
 	_rc_scan_locked = false;
 
 	_report_lock = true;
@@ -419,6 +435,10 @@ void RCInput::Run()
 		}
 
 		switch (_rc_scan_state) {
+		case RC_SCAN_NONE:
+			// do nothing
+			break;
+
 		case RC_SCAN_SBUS:
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = cycle_timestamp;
@@ -737,6 +757,12 @@ void RCInput::Run()
 		if (_report_lock && _rc_scan_locked) {
 			_report_lock = false;
 			PX4_INFO("RC scan: %s RC input locked", RC_SCAN_STRING[_rc_scan_state]);
+
+			if (!_armed && (_param_rc_input_proto.get() < 0)) {
+				// RC_INPUT_PROTO auto => locked selection
+				_param_rc_input_proto.set(_rc_scan_state);
+				_param_rc_input_proto.commit();
+			}
 		}
 	}
 }
@@ -823,6 +849,9 @@ int RCInput::print_status()
 
 	if (_rc_scan_locked) {
 		switch (_rc_scan_state) {
+		case RC_SCAN_NONE:
+			break;
+
 		case RC_SCAN_CRSF:
 			PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
 			break;
