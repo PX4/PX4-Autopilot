@@ -261,13 +261,13 @@ void EKFGSF_yaw::predictEKF(const uint8_t model_index)
 	// predict covariance - equations generated using EKF/python/gsf_ekf_yaw_estimator/main.py
 
 	// Local short variable name copies required for readability
-	const float &P00 = _ekf_gsf[model_index].P(0,0);
-	const float &P01 = _ekf_gsf[model_index].P(0,1);
-	const float &P02 = _ekf_gsf[model_index].P(0,2);
-	const float &P11 = _ekf_gsf[model_index].P(1,1);
-	const float &P12 = _ekf_gsf[model_index].P(1,2);
-	const float &P22 = _ekf_gsf[model_index].P(2,2);
-	const float &psi = _ekf_gsf[model_index].X(2);
+	const float P00 = _ekf_gsf[model_index].P(0,0);
+	const float P01 = _ekf_gsf[model_index].P(0,1);
+	const float P02 = _ekf_gsf[model_index].P(0,2);
+	const float P11 = _ekf_gsf[model_index].P(1,1);
+	const float P12 = _ekf_gsf[model_index].P(1,2);
+	const float P22 = _ekf_gsf[model_index].P(2,2);
+	const float psi = _ekf_gsf[model_index].X(2);
 
 	// Use fixed values for delta velocity and delta angle process noise variances
 	const float dvxVar = sq(_accel_noise * _delta_vel_dt); // variance of forward delta velocity - (m/s)^2
@@ -317,12 +317,12 @@ bool EKFGSF_yaw::updateEKF(const uint8_t model_index)
 	_ekf_gsf[model_index].innov(1) = _ekf_gsf[model_index].X(1) - _vel_NE(1);
 
 	// Use temporary variables for covariance elements to reduce verbosity of auto-code expressions
-	const float &P00 = _ekf_gsf[model_index].P(0,0);
-	const float &P01 = _ekf_gsf[model_index].P(0,1);
-	const float &P02 = _ekf_gsf[model_index].P(0,2);
-	const float &P11 = _ekf_gsf[model_index].P(1,1);
-	const float &P12 = _ekf_gsf[model_index].P(1,2);
-	const float &P22 = _ekf_gsf[model_index].P(2,2);
+	const float P00 = _ekf_gsf[model_index].P(0,0);
+	const float P01 = _ekf_gsf[model_index].P(0,1);
+	const float P02 = _ekf_gsf[model_index].P(0,2);
+	const float P11 = _ekf_gsf[model_index].P(1,1);
+	const float P12 = _ekf_gsf[model_index].P(1,2);
+	const float P22 = _ekf_gsf[model_index].P(2,2);
 
 	// optimized auto generated code from SymPy script src/lib/ecl/EKF/python/ekf_derivation/main.py
 	const float t0 = ecl::powf(P01, 2);
