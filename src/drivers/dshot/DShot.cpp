@@ -47,6 +47,11 @@ DShot::DShot() :
 	_mixing_output.setAllDisarmedValues(DSHOT_DISARM_VALUE);
 	_mixing_output.setAllMinValues(DSHOT_MIN_THROTTLE);
 	_mixing_output.setAllMaxValues(DSHOT_MAX_THROTTLE);
+
+	if (_mixing_output.useDynamicMixing()) {
+		// Avoid using the PWM failsafe params
+		_mixing_output.setAllFailsafeValues(UINT16_MAX);
+	}
 }
 
 DShot::~DShot()
