@@ -13,6 +13,7 @@
 
 #include <float.h>
 
+#include <sstream>
 #include <vector>
 #include <array>
 #include <drivers/drv_hrt.h>
@@ -223,7 +224,8 @@ private:
 	const static size_t _num_basis_funs = 16;			// number of basis functions used for the trajectory approximation
 
 	// controller methods
-	void _read_trajectory_coeffs_csv();				// read in the correct coefficients of the appropriate trajectory
+	
+	void _read_trajectory_coeffs_csv(std::string filename);				// read in the correct coefficients of the appropriate trajectory
 	void _set_wind_estimate(Vector3f wind);
 	float _get_closest_t(Vector3f pos);				// get the normalized time, at which the reference path is closest to the current position
 	Vector<float, _num_basis_funs> _get_basis_funs(float t=0);			// compute the vector of basis functions at normalized time t in [0,1]
@@ -289,11 +291,6 @@ private:
 	float _b1;
 	float _b2;
 	float _b3;
-
-	// body rate controllers
-	ECL_RollController		_roll_ctrl;
-	ECL_PitchController		_pitch_ctrl;
-	ECL_YawController		_yaw_ctrl;
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.

@@ -76,7 +76,7 @@ FixedwingPositionINDIControl::init()
 		PX4_ERR("vehicle position callback registration failed!");
 		return false;
 	}
-    _read_trajectory_coeffs_csv();
+    _read_trajectory_coeffs_csv("trajectory0.csv");
 
     // initialize transformations
     _R_ned_to_enu *= 0.f;
@@ -314,71 +314,117 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
 }
 
 void
-FixedwingPositionINDIControl::_read_trajectory_coeffs_csv()
+FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(string filename)
 {
-        /*
-        std::ifstream file_reader;
-        std::string line;
-        std::vector<float> vars;
-        file_reader.open(model_input_mean_path_, std::ifstream::in);
-        for (int i = 0; i < _num_basis_funs; i++){
-            file_reader >> line;
-            _basis_coeffs_x(i) = std::stof(line);
+    // File pointer
+    std::ifstream fin;
+  
+    // Open an existing file
+    fin.open("/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/"+filename, ios::in);
+    //fin.open("/fs/microsd/trajectories/"+filename);
+  
+    // Read the Data from the file
+    // as String Vector
+    string line, word;
+
+    bool error = false;
+    
+    // loop over x, y, z
+    for (int l=0; l<3; l++) {
+        getline(fin, line, '\n');
+
+        // used for breaking words
+        stringstream s(line);
+
+        // read every column data of a row and
+        // store it in a string variable, 'word'
+        uint i = 0;
+        while (getline(s, word, ',')) {
+            // catch error
+            if(i>=_num_basis_funs){
+                PX4_ERR("number of coefficients is too large.");
+                error = true;
+            }
+            else{
+                switch(l){
+                    case 0:
+                        _basis_coeffs_x(i) = stof(word);
+                        break;
+                    case 1:
+                        _basis_coeffs_y(i) = stof(word);
+                        break;
+                    case 2:
+                        _basis_coeffs_z(i) = stof(word);
+                        break;
+                }
+            
+            }
+            //PX4_INFO("coefficient value: %.6f", (double)stof(word));
+            i += 1;
         }
-        file_reader.close();
-        */ 
+        // catch error
+        if(_num_basis_funs-i>1){
+            PX4_ERR("number of coefficients is too small: %.f", (double)(i));
+            error = true;
+        }      
+    }
+    fin.close();
 
-   // 100m radius circle trajec
-    _basis_coeffs_x(0) = -0.000064f;
-    _basis_coeffs_x(1) = -3020.233571f;
-    _basis_coeffs_x(2) = 10609.960177f;
-    _basis_coeffs_x(3) = -17956.458964f;
-    _basis_coeffs_x(4) = 15735.479961f;
-    _basis_coeffs_x(5) = -2399.573434f;
-    _basis_coeffs_x(6) = -11421.854705f;
-    _basis_coeffs_x(7) = 12388.936542f;
-    _basis_coeffs_x(8) = 120.944433f;
-    _basis_coeffs_x(9) = -12530.869640f;
-    _basis_coeffs_x(10) = 11346.431128f;
-    _basis_coeffs_x(11) = 2643.369342f;
-    _basis_coeffs_x(12) = -15999.009519f;
-    _basis_coeffs_x(13) = 18127.094775f;
-    _basis_coeffs_x(14) = -10676.696033f;
-    _basis_coeffs_x(15) = 3032.667571f;
+    // go back to safety mode loiter circle
+    if(error){
+        // 100m radius circle trajec
+        _basis_coeffs_x(0) = -0.000064f;
+        _basis_coeffs_x(1) = -3020.233571f;
+        _basis_coeffs_x(2) = 10609.960177f;
+        _basis_coeffs_x(3) = -17956.458964f;
+        _basis_coeffs_x(4) = 15735.479961f;
+        _basis_coeffs_x(5) = -2399.573434f;
+        _basis_coeffs_x(6) = -11421.854705f;
+        _basis_coeffs_x(7) = 12388.936542f;
+        _basis_coeffs_x(8) = 120.944433f;
+        _basis_coeffs_x(9) = -12530.869640f;
+        _basis_coeffs_x(10) = 11346.431128f;
+        _basis_coeffs_x(11) = 2643.369342f;
+        _basis_coeffs_x(12) = -15999.009519f;
+        _basis_coeffs_x(13) = 18127.094775f;
+        _basis_coeffs_x(14) = -10676.696033f;
+        _basis_coeffs_x(15) = 3032.667571f;
 
-    _basis_coeffs_y(0) = -100.005984f;
-    _basis_coeffs_y(1) = -4686.100637f;
-    _basis_coeffs_y(2) = 21963.998713f;
-    _basis_coeffs_y(3) = -50566.542718f;
-    _basis_coeffs_y(4) = 71908.811359f;
-    _basis_coeffs_y(5) = -61683.065460f;
-    _basis_coeffs_y(6) = 15730.546677f;
-    _basis_coeffs_y(7) = 39386.062413f;
-    _basis_coeffs_y(8) = -63952.599923f;
-    _basis_coeffs_y(9) = 39525.510553f;
-    _basis_coeffs_y(10) = 15526.730604f;
-    _basis_coeffs_y(11) = -61505.752706f;
-    _basis_coeffs_y(12) = 71804.582542f;
-    _basis_coeffs_y(13) = -50525.803330f;
-    _basis_coeffs_y(14) = 21954.858741f;
-    _basis_coeffs_y(15) = -4685.311429f;
+        _basis_coeffs_y(0) = -100.005984f;
+        _basis_coeffs_y(1) = -4686.100637f;
+        _basis_coeffs_y(2) = 21963.998713f;
+        _basis_coeffs_y(3) = -50566.542718f;
+        _basis_coeffs_y(4) = 71908.811359f;
+        _basis_coeffs_y(5) = -61683.065460f;
+        _basis_coeffs_y(6) = 15730.546677f;
+        _basis_coeffs_y(7) = 39386.062413f;
+        _basis_coeffs_y(8) = -63952.599923f;
+        _basis_coeffs_y(9) = 39525.510553f;
+        _basis_coeffs_y(10) = 15526.730604f;
+        _basis_coeffs_y(11) = -61505.752706f;
+        _basis_coeffs_y(12) = 71804.582542f;
+        _basis_coeffs_y(13) = -50525.803330f;
+        _basis_coeffs_y(14) = 21954.858741f;
+        _basis_coeffs_y(15) = -4685.311429f;
 
-    _basis_coeffs_z(0) = 100.0f;
-    _basis_coeffs_z(1) = 0.0f;
-    _basis_coeffs_z(2) = 0.0f;
-    _basis_coeffs_z(3) = 0.0f;
-    _basis_coeffs_z(4) = 0.0f;
-    _basis_coeffs_z(5) = 0.0f;
-    _basis_coeffs_z(6) = 0.0f;
-    _basis_coeffs_z(7) = 0.0f;
-    _basis_coeffs_z(8) = 0.0f;
-    _basis_coeffs_z(9) = 0.0f;
-    _basis_coeffs_z(10) = 0.0f;
-    _basis_coeffs_z(11) = 0.0f;
-    _basis_coeffs_z(12) = 0.0f;
-    _basis_coeffs_z(13) = 0.0f;
-    _basis_coeffs_z(14) = 0.0f;
-    _basis_coeffs_z(15) = 0.0f;
+        _basis_coeffs_z(0) = 100.0f;
+        _basis_coeffs_z(1) = 0.0f;
+        _basis_coeffs_z(2) = 0.0f;
+        _basis_coeffs_z(3) = 0.0f;
+        _basis_coeffs_z(4) = 0.0f;
+        _basis_coeffs_z(5) = 0.0f;
+        _basis_coeffs_z(6) = 0.0f;
+        _basis_coeffs_z(7) = 0.0f;
+        _basis_coeffs_z(8) = 0.0f;
+        _basis_coeffs_z(9) = 0.0f;
+        _basis_coeffs_z(10) = 0.0f;
+        _basis_coeffs_z(11) = 0.0f;
+        _basis_coeffs_z(12) = 0.0f;
+        _basis_coeffs_z(13) = 0.0f;
+        _basis_coeffs_z(14) = 0.0f;
+        _basis_coeffs_z(15) = 0.0f;
+     }
+
 }
 
 void
@@ -512,7 +558,7 @@ FixedwingPositionINDIControl::Run()
             _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
             _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
             _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
-            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.3f;
+            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.8f;
             _actuators_0_pub.publish(_actuators);
             //print_message(_actuators);
         }
