@@ -188,12 +188,13 @@ void LoggedTopics::add_default_topics()
 	int32_t sys_ctrl_alloc = 0;
 	param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
 
-	if (sys_ctrl_alloc >= 1) {
+	_dynamic_control_allocation = sys_ctrl_alloc >= 1;
+
+	if (_dynamic_control_allocation) {
 		add_topic("actuator_motors", 100);
 		add_topic("actuator_servos", 100);
 		add_topic("vehicle_angular_acceleration", 20);
-		add_topic("vehicle_angular_acceleration_setpoint", 20);
-		add_topic_multi("vehicle_thrust_setpoint", 20, 2);
+		add_topic_multi("vehicle_thrust_setpoint", 20, 1);
 		add_topic_multi("vehicle_torque_setpoint", 20, 2);
 	}
 
@@ -244,8 +245,6 @@ void LoggedTopics::add_default_topics()
 void LoggedTopics::add_high_rate_topics()
 {
 	// maximum rate to analyze fast maneuvers (e.g. for racing)
-	add_topic("actuator_controls_0");
-	add_topic("actuator_outputs");
 	add_topic("manual_control_setpoint");
 	add_topic("rate_ctrl_status", 20);
 	add_topic("sensor_combined");
@@ -254,6 +253,16 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
+
+	if (_dynamic_control_allocation) {
+		add_topic("actuator_motors");
+		add_topic("vehicle_thrust_setpoint");
+		add_topic("vehicle_torque_setpoint");
+
+	} else {
+		add_topic("actuator_controls_0");
+		add_topic("actuator_outputs");
+	}
 }
 
 void LoggedTopics::add_debug_topics()
@@ -329,7 +338,6 @@ void LoggedTopics::add_system_identification_topics()
 	add_topic("actuator_controls_1");
 	add_topic("sensor_combined");
 	add_topic("vehicle_angular_acceleration");
-	add_topic("vehicle_angular_acceleration_setpoint");
 	add_topic("vehicle_torque_setpoint");
 }
 
