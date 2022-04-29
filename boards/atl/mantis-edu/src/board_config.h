@@ -149,7 +149,6 @@
 
 /* RC Serial port */
 #define RC_SERIAL_PORT                     "/dev/ttyS5"
-#define RC_SERIAL_SINGLEWIRE
 
 /* power on/off */
 #define MS_PWR_BUTTON_DOWN 750

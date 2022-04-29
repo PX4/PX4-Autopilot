@@ -281,9 +281,7 @@
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 /* RC Serial port */
-
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
-#define RC_SERIAL_SINGLEWIRE
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
 #define PWMIN_TIMER                       4
@@ -327,7 +325,6 @@
 
 #define GPIO_PPM_IN_AS_OUT             (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN5)
 #define SPEKTRUM_RX_AS_GPIO_OUTPUT()   px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
-#define SPEKTRUM_RX_AS_UART()          /* Can be left as uart */
 #define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
 #define SDIO_SLOTNO                    0  /* Only one slot */

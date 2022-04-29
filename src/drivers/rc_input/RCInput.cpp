@@ -71,10 +71,6 @@ RCInput::RCInput(const char *device) :
 
 RCInput::~RCInput()
 {
-#if defined(SPEKTRUM_POWER_PASSIVE)
-	// Disable power controls for Spektrum receiver
-	SPEKTRUM_POWER_PASSIVE();
-#endif
 	dsm_deinit();
 
 	delete _crsf_telemetry;
@@ -82,41 +78,6 @@ RCInput::~RCInput()
 
 	perf_free(_cycle_perf);
 	perf_free(_publish_interval_perf);
-}
-
-int
-RCInput::init()
-{
-#ifdef RF_RADIO_POWER_CONTROL
-	// power radio on
-	RF_RADIO_POWER_CONTROL(true);
-#endif // RF_RADIO_POWER_CONTROL
-
-	// dsm_init sets some file static variables and returns a file descriptor
-	// it also powers on the radio if needed
-	_rcs_fd = dsm_init(_device);
-
-	if (_rcs_fd < 0) {
-		return -errno;
-	}
-
-	if (board_rc_swap_rxtx(_device)) {
-#if defined(TIOCSSWAP)
-		ioctl(_rcs_fd, TIOCSSWAP, SER_SWAP_ENABLED);
-#endif // TIOCSSWAP
-	}
-
-	// assume SBUS input and immediately switch it to
-	// so that if Single wire mode on TX there will be only
-	// a short contention
-	sbus_config(_rcs_fd, board_rc_singlewire(_device));
-
-#ifdef GPIO_PPM_IN
-	// disable CPPM input by mapping it away from the timer capture input
-	px4_arch_unconfiggpio(GPIO_PPM_IN);
-#endif // GPIO_PPM_IN
-
-	return 0;
 }
 
 int
@@ -277,20 +238,28 @@ void RCInput::set_rc_scan_state(RC_SCAN newState)
 
 void RCInput::rc_io_invert(bool invert)
 {
-	// First check if the board provides a board-specific inversion method (e.g. via GPIO),
-	// and if not use an IOCTL
-	if (!board_rc_invert_input(_device, invert)) {
+#if defined(RC_SERIAL_PORT) && defined(RC_INVERT_INPUT)
+
+	if (strcmp(_device, RC_SERIAL_PORT) == 0) {
+		RC_INVERT_INPUT(invert);
+	}
+
+#endif // RC_SERIAL_PORT && RC_INVERT_INPUT
+
+
 #if defined(TIOCSINVERT)
 
+	if (_rcs_fd >= 0) {
 		if (invert) {
+			//int ret_invert = ioctl(_rcs_fd, TIOCSINVERT, SER_INVERT_ENABLED_RX | SER_INVERT_ENABLED_TX);
 			ioctl(_rcs_fd, TIOCSINVERT, SER_INVERT_ENABLED_RX | SER_INVERT_ENABLED_TX);
 
 		} else {
 			ioctl(_rcs_fd, TIOCSINVERT, 0);
 		}
+	}
 
 #endif // TIOCSINVERT
-	}
 }
 
 void RCInput::Run()
@@ -300,16 +269,7 @@ void RCInput::Run()
 		return;
 	}
 
-	if (!_initialized) {
-		if (init() == PX4_OK) {
-			_initialized = true;
-
-		} else {
-			PX4_ERR("init failed");
-			exit_and_cleanup();
-		}
-
-	} else {
+	{
 
 		perf_begin(_cycle_perf);
 
@@ -345,6 +305,17 @@ void RCInput::Run()
 
 				if (!_rc_scan_locked && !_armed) {
 					if ((int)vcmd.param1 == 0) {
+
+						rc_io_invert(false);
+
+						if (_rcs_fd >= 0) {
+							close(_rcs_fd);
+							_rcs_fd = -1;
+						}
+
+						// Configure serial port for DSM
+						_rcs_fd = dsm_init(_device);
+
 						// DSM binding command
 						int dsm_bind_mode = (int)vcmd.param2;
 
@@ -363,6 +334,8 @@ void RCInput::Run()
 						bind_spektrum(dsm_bind_pulses);
 
 						cmd_ret = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+
+						dsm_deinit();
 					}
 
 				} else {
@@ -418,7 +391,7 @@ void RCInput::Run()
 
 		// This block scans for a supported serial RC input and locks onto the first one found
 		// Scan for 300 msec, then switch protocol
-		constexpr hrt_abstime rc_scan_max = 300_ms;
+		constexpr hrt_abstime rc_scan_max = 700_ms;
 
 		unsigned frame_drops = 0;
 
@@ -428,7 +401,8 @@ void RCInput::Run()
 		// read all available data from the serial RC input UART
 
 		// read all available data from the serial RC input UART
-		int newBytes = ::read(_rcs_fd, &_rcs_buf[0], RC_MAX_BUFFER_SIZE);
+		uint8_t rcs_buf[RC_MAX_BUFFER_SIZE];
+		int newBytes = ::read(_rcs_fd, &rcs_buf[0], RC_MAX_BUFFER_SIZE);
 
 		if (newBytes > 0) {
 			_bytes_rx += newBytes;
@@ -441,14 +415,24 @@ void RCInput::Run()
 
 		case RC_SCAN_SBUS:
 			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for SBUS
-				sbus_config(_rcs_fd, board_rc_singlewire(_device));
+
+				if (_rcs_fd < 0) {
+					_rcs_fd = open(_device, O_RDWR | O_NONBLOCK);
+				}
+
+				// assume SBUS input and immediately switch it to
+				// so that if Single wire mode on TX there will be only
+				// a short contention
+				sbus_config(_rcs_fd, true);
+
+
+#if defined(TIOCSSINGLEWIRE)
+				ioctl(_rcs_fd, TIOCSSINGLEWIRE, SER_SINGLEWIRE_ENABLED);
+#endif // TIOCSSINGLEWIRE
+
 				rc_io_invert(true);
 
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+				_rc_scan_begin = hrt_absolute_time();
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -458,7 +442,7 @@ void RCInput::Run()
 					bool sbus_failsafe = false;
 					bool sbus_frame_drop = false;
 
-					rc_updated = sbus_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count, &sbus_failsafe,
+					rc_updated = sbus_parse(cycle_timestamp, &rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count, &sbus_failsafe,
 								&sbus_frame_drop, &frame_drops, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 					if (rc_updated) {
@@ -471,8 +455,16 @@ void RCInput::Run()
 				}
 
 			} else {
-				// Scan the next protocol
 				rc_io_invert(false);
+
+#if defined(TIOCSSINGLEWIRE)
+				ioctl(_rcs_fd, TIOCSSINGLEWIRE, 0);
+#endif // TIOCSSINGLEWIRE
+
+				::close(_rcs_fd);
+				_rcs_fd = -1;
+
+				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_DSM);
 			}
 
@@ -480,13 +472,20 @@ void RCInput::Run()
 
 		case RC_SCAN_DSM:
 			if (_rc_scan_begin == 0) {
-				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for DSM
-				dsm_config(_rcs_fd);
+				// dsm_init sets some file static variables and returns a file descriptor
+				// it also powers on the radio if needed
+				if (_rcs_fd < 0) {
+					//_rcs_fd = open(_device, O_RDWR | O_NONBLOCK);
+				}
 
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+				// Configure serial port for DSM
+				_rcs_fd = dsm_init(_device);
+
+				if (_rcs_fd < 0) {
+					PX4_ERR("dsm init failed");
+				}
+
+				_rc_scan_begin = hrt_absolute_time();
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -496,7 +495,7 @@ void RCInput::Run()
 					bool dsm_11_bit = false;
 
 					// parse new data
-					rc_updated = dsm_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
+					rc_updated = dsm_parse(cycle_timestamp, &rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
 							       &dsm_11_bit, &frame_drops, &dsm_rssi, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 					if (rc_updated) {
@@ -509,6 +508,9 @@ void RCInput::Run()
 				}
 
 			} else {
+				dsm_deinit();
+				_rcs_fd = -1;
+
 				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_ST24);
 			}
@@ -519,11 +521,7 @@ void RCInput::Run()
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
-				dsm_config(_rcs_fd);
-
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+				_rcs_fd = dsm_init(_device);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -537,7 +535,7 @@ void RCInput::Run()
 					for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 						/* set updated flag if one complete packet was parsed */
 						st24_rssi = input_rc_s::RSSI_MAX;
-						rc_updated = (OK == st24_decode(_rcs_buf[i], &st24_rssi, &lost_count,
+						rc_updated = (OK == st24_decode(rcs_buf[i], &st24_rssi, &lost_count,
 										&_raw_rc_count, _raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS));
 					}
 
@@ -560,6 +558,8 @@ void RCInput::Run()
 				}
 
 			} else {
+				dsm_deinit();
+				_rcs_fd = -1;
 				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_SUMD);
 			}
@@ -570,11 +570,8 @@ void RCInput::Run()
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
+				_rcs_fd = dsm_init(_device);
 				dsm_config(_rcs_fd);
-
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -589,7 +586,7 @@ void RCInput::Run()
 					for (unsigned i = 0; i < (unsigned)newBytes; i++) {
 						/* set updated flag if one complete packet was parsed */
 						sumd_rssi = input_rc_s::RSSI_MAX;
-						rc_updated = (OK == sumd_decode(_rcs_buf[i], &sumd_rssi, &rx_count,
+						rc_updated = (OK == sumd_decode(rcs_buf[i], &sumd_rssi, &rx_count,
 										&_raw_rc_count, _raw_rc_values, input_rc_s::RC_INPUT_MAX_CHANNELS, &sumd_failsafe));
 					}
 
@@ -603,6 +600,8 @@ void RCInput::Run()
 				}
 
 			} else {
+				::close(_rcs_fd);
+				_rcs_fd = -1;
 				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_PPM);
 			}
@@ -647,19 +646,20 @@ void RCInput::Run()
 		case RC_SCAN_CRSF:
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = cycle_timestamp;
+
+				if (_rcs_fd < 0) {
+					_rcs_fd = open(_device, O_RDWR | O_NONBLOCK);
+				}
+
 				// Configure serial port for CRSF
 				crsf_config(_rcs_fd);
-
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
 				// parse new data
 				if (newBytes > 0) {
-					rc_updated = crsf_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
+					rc_updated = crsf_parse(cycle_timestamp, &rcs_buf[0], newBytes, &_raw_rc_values[0], &_raw_rc_count,
 								input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 					if (rc_updated) {
@@ -686,6 +686,8 @@ void RCInput::Run()
 				}
 
 			} else {
+				::close(_rcs_fd);
+				_rcs_fd = -1;
 				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_GHST);
 			}
@@ -695,12 +697,13 @@ void RCInput::Run()
 		case RC_SCAN_GHST:
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = cycle_timestamp;
-				// Configure serial port for GHST
-				ghst_config(_rcs_fd);
 
-				// flush serial buffer and any existing buffered data
-				tcflush(_rcs_fd, TCIOFLUSH);
-				memset(_rcs_buf, 0, sizeof(_rcs_buf));
+				// Configure serial port for GHST
+				if (_rcs_fd < 0) {
+					_rcs_fd = open(_device, O_RDWR | O_NONBLOCK);
+				}
+
+				ghst_config(_rcs_fd);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -708,7 +711,7 @@ void RCInput::Run()
 				// parse new data
 				if (newBytes > 0) {
 					int8_t ghst_rssi = -1;
-					rc_updated = ghst_parse(cycle_timestamp, &_rcs_buf[0], newBytes, &_raw_rc_values[0], &ghst_rssi,
+					rc_updated = ghst_parse(cycle_timestamp, &rcs_buf[0], newBytes, &_raw_rc_values[0], &ghst_rssi,
 								&_raw_rc_count, input_rc_s::RC_INPUT_MAX_CHANNELS);
 
 					if (rc_updated) {
@@ -736,6 +739,8 @@ void RCInput::Run()
 				}
 
 			} else {
+				::close(_rcs_fd);
+				_rcs_fd = -1;
 				// Scan the next protocol
 				set_rc_scan_state(RC_SCAN_SBUS);
 			}

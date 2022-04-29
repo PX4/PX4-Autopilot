@@ -274,7 +274,6 @@ static inline bool board_get_external_lockout_state(void)
 #define GPIO_nVDD_5V_HIPOWER_EN         /* PF12 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTF|GPIO_PIN12)
 #define GPIO_nVDD_5V_HIPOWER_OC         /* PF13 */ (GPIO_INPUT |GPIO_FLOAT|GPIO_PORTF|GPIO_PIN13)
 #define GPIO_VDD_3V3_SPEKTRUM_POWER_EN  /* PE4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
-#define GPIO_VDD_3V3_SPEKTRUM_PASSIVE   /* PE4  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN4)
 #define GPIO_VDD_5V_RC_EN               /* PG5  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN5)
 #define GPIO_VDD_5V_WIFI_EN             /* PG6  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN5)
 #define GPIO_VDD_3V3_SD_CARD_EN         /* PG7  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN7)
@@ -314,9 +313,7 @@ static inline bool board_get_external_lockout_state(void)
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
 /* RC Serial port */
-
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
-#define RC_SERIAL_SINGLEWIRE
 #define BOARD_SUPPORTS_RC_SERIAL_PORT_OUTPUT
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2 */
@@ -349,7 +346,6 @@ static inline bool board_get_external_lockout_state(void)
 /* Power switch controls ******************************************************/
 
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
-#define SPEKTRUM_POWER_PASSIVE()           px4_arch_configgpio(GPIO_VDD_3V3_SPEKTRUM_PASSIVE)
 #define SPEKTRUM_POWER_CONFIG()           px4_arch_configgpio(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
 
 /*
@@ -363,7 +359,6 @@ static inline bool board_get_external_lockout_state(void)
 
 #define GPIO_PPM_IN_AS_OUT             (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN5)
 #define SPEKTRUM_RX_AS_GPIO_OUTPUT()   px4_arch_configgpio(GPIO_PPM_IN_AS_OUT)
-#define SPEKTRUM_RX_AS_UART()          /* Can be left as uart */
 #define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
 #define SDIO_SLOTNO                    0  /* Only one slot */
