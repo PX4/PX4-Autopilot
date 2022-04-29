@@ -35,6 +35,7 @@ px4_add_romfs_files(
 	10016_iris
 	10017_iris_ctrlalloc
 	10018_iris_foggy_lidar
+	10019_omnicopter
 	10020_if750a
 	10030_px4vision
 	1010_iris_opt_flow
