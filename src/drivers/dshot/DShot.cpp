@@ -47,7 +47,6 @@ DShot::DShot() :
 	_mixing_output.setAllDisarmedValues(DSHOT_DISARM_VALUE);
 	_mixing_output.setAllMinValues(DSHOT_MIN_THROTTLE);
 	_mixing_output.setAllMaxValues(DSHOT_MAX_THROTTLE);
-	_mixing_output.setAllFailsafeValues(UINT16_MAX);
 }
 
 DShot::~DShot()

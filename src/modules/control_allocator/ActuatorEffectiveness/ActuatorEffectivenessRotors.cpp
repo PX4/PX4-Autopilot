@@ -262,3 +262,14 @@ uint32_t ActuatorEffectivenessRotors::getUpwardsMotors() const
 
 	return upwards_motors;
 }
+
+bool
+ActuatorEffectivenessRotors::getEffectivenessMatrix(Configuration &configuration,
+		EffectivenessUpdateReason external_update)
+{
+	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
+		return false;
+	}
+
+	return addActuators(configuration);
+}
