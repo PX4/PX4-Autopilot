@@ -170,6 +170,20 @@ PARAM_DEFINE_FLOAT(C_D1, 0.3783f);
 PARAM_DEFINE_FLOAT(C_D2, 1.984f);
 
 /**
+ * offset angle between body frame (Pixhawk) and the wing chord
+ * 
+ * Used to compute the AoA
+ * 
+ * @unit rad
+ * @min 0
+ * @max 0.1
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(AOA_OFFSET, 0.01f);
+
+/**
  * coefficients of the butterworth filter used for smoothing the IMU
  * 
  * @unit 
@@ -447,3 +461,43 @@ PARAM_DEFINE_FLOAT(K_ACT_PITCH, 0.1f);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(K_ACT_YAW, 0.1f);
+
+// ===================================================
+// ==============  trajectory center =================
+// ===================================================
+
+/**
+ * latitude of trajectory start point (WGS84)
+ * 
+ * @unit 
+ * @min -180
+ * @max 180
+ * @decimal 7
+ * @increment 0.0000001
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(ORIGIN_LAT, 47.39797f);
+
+/**
+ * longitude of trajectory start point (WGS84)
+ * 
+ * @unit 
+ * @min -90
+ * @max 90
+ * @decimal 7
+ * @increment 0.0000001
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(ORIGIN_LON, 8.54554f);
+
+/**
+ * altitude of trajectory start point (WGS84)
+ * 
+ * @unit 
+ * @min 0
+ * @max 2000
+ * @decimal 1
+ * @increment 0.1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(ORIGIN_ALT, 488.0f);

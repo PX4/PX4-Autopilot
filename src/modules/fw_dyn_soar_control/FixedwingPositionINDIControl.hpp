@@ -139,6 +139,7 @@ private:
 	vehicle_rates_setpoint_s 	_angular_vel_sp {};		///< vehicle angular velocity setpoint
 	vehicle_angular_acceleration_s	_angular_accel {};	///< vehicle angular acceleration
 	home_position_s				_home_pos {};			///< home position
+	map_projection_reference_s 	_global_local_proj_ref{};
 	vehicle_control_mode_s		_control_mode {};		///< control mode
 	offboard_control_mode_s		_offboard_control_mode {};	///< offboard control mode
 	vehicle_status_s		    _vehicle_status {};		///< vehicle status
@@ -160,6 +161,7 @@ private:
 		(ParamFloat<px4::params::C_D0>) _param_fw_c_d0,
 		(ParamFloat<px4::params::C_D1>) _param_fw_c_d1,
 		(ParamFloat<px4::params::C_D2>) _param_fw_c_d2,
+		(ParamFloat<px4::params::AOA_OFFSET>) _param_aoa_offset,
 		// filter params
 		(ParamFloat<px4::params::FILTER_A1>) _param_filter_a1,
 		(ParamFloat<px4::params::FILTER_A2>) _param_filter_a2,
@@ -184,7 +186,11 @@ private:
 		(ParamFloat<px4::params::K_W_YAW>) _param_k_w_yaw,
 		(ParamFloat<px4::params::K_ACT_ROLL>) _param_k_act_roll,
 		(ParamFloat<px4::params::K_ACT_PITCH>) _param_k_act_pitch,
-		(ParamFloat<px4::params::K_ACT_YAW>) _param_k_act_yaw
+		(ParamFloat<px4::params::K_ACT_YAW>) _param_k_act_yaw,
+		// location params
+		(ParamFloat<px4::params::ORIGIN_LAT>) _param_origin_lat,
+		(ParamFloat<px4::params::ORIGIN_LON>) _param_origin_lon,
+		(ParamFloat<px4::params::ORIGIN_ALT>) _param_origin_alt
 
 	)
 
@@ -286,11 +292,20 @@ private:
 	float _C_D0;
 	float _C_D1;
 	float _C_D2;
+	float _aoa_offset;
 	float _a1;
 	float _a2;
 	float _b1;
 	float _b2;
 	float _b3;
+	// trajecotry origin in WGS84
+	float _origin_lat;
+	float _origin_lon;
+	float _origin_alt;
+	// trajecotry origin in current NED local frame
+	float _origin_N;
+	float _origin_E;
+	float _origin_D;
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.

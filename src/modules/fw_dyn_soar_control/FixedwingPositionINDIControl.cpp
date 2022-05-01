@@ -127,6 +127,7 @@ FixedwingPositionINDIControl::parameters_update()
     _C_D0 = _param_fw_c_d0.get();
     _C_D1 = _param_fw_c_d1.get();
     _C_D2 = _param_fw_c_d2.get();
+    _aoa_offset = _param_aoa_offset.get();
 
     // filter parameters
     _a1 = _param_filter_a1.get();
@@ -140,6 +141,15 @@ FixedwingPositionINDIControl::parameters_update()
     _K_actuators(0,0) = _param_k_act_roll.get();
     _K_actuators(1,1) = _param_k_act_pitch.get();
     _K_actuators(2,2) = _param_k_act_yaw.get();
+
+    // trajectory origin
+    _origin_lat = _param_origin_lat.get();
+    _origin_lon = _param_origin_lon.get();
+    _origin_alt = _param_origin_alt.get();
+    if (map_projection_project(&_global_local_proj_ref, _origin_lat, _origin_lon, &_origin_E, &_origin_N)) {
+        // TODO: do stuff
+    }
+
 
 	// sanity check parameters
     // TODO: include sanity check
@@ -284,6 +294,9 @@ FixedwingPositionINDIControl::vehicle_local_position_poll()
 		_pos = _R_ned_to_enu*Vector3f{_local_pos.x,_local_pos.y,_local_pos.z};
         _vel = _R_ned_to_enu*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
         _acc = _R_ned_to_enu*Vector3f{_local_pos.ax,_local_pos.ay,_local_pos.az};
+        // transform to soaring frame
+        _pos = _pos - _R_ned_to_enu * Vector3f{_origin_N, _origin_E, _origin_D};
+
         //PX4_INFO("local position:\t%.4f\t%.4f\t%.4f", (double)_pos(0),(double)_pos(1),(double)_pos(2));
         //PX4_INFO("local velocity:\t%.4f\t%.4f\t%.4f", (double)_vel(0),(double)_vel(1),(double)_vel(2));
         //PX4_INFO("local acceleration:\t%.4f\t%.4f\t%.4f", (double)_acc(0),(double)_acc(1),(double)_acc(2));
@@ -454,8 +467,21 @@ FixedwingPositionINDIControl::Run()
 			updateParams();
 			parameters_update();
 		}
+
 		//const float dt = math::constrain((pos.timestamp - _last_run) * 1e-6f, 0.002f, 0.04f);
 		//_last_run = _local_pos.timestamp;
+
+        // check if local NED reference frame origin has changed:
+        if (!map_projection_initialized(&_global_local_proj_ref)
+            || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)) {
+            // initialize projection
+            map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
+                            _local_pos.ref_timestamp);
+            // project the origin of the soaring ENU frame to the current NED frame
+            map_projection_project(&_global_local_proj_ref, _origin_lat, _origin_lon, &_origin_E, &_origin_N);
+            _origin_D =  _local_pos.ref_alt - _origin_alt;
+            PX4_INFO("local reference frame updated");
+        }
 
         // run polls
         _set_wind_estimate(Vector3f(0.f,0.f,0.f));
@@ -469,6 +495,7 @@ FixedwingPositionINDIControl::Run()
         vehicle_angular_velocity_poll();
         vehicle_angular_acceleration_poll();
         soaring_controller_status_poll();
+
 
         // ============================
         // compute reference kinematics
@@ -689,7 +716,7 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     R_bi.renormalize();
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1;
+    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1 - _aoa_offset;
     // compute final rotation matrix
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
@@ -808,7 +835,7 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
     R_bi.renormalize();
     // compute required AoA
     Vector3f f_phi = R_bi*f_lift;
-    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1;
+    float AoA = ((2.f*f_phi(2))/(_rho*_area*(vel_air*vel_air)+0.001f) - _C_L0)/_C_L1 - _aoa_offset;
     // compute final rotation matrix
     Eulerf e(0.f, AoA, 0.f);
     Dcmf R_pitch(e);
@@ -843,7 +870,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     // ==================================
     Vector3f f_current;
     Vector3f vel_body = R_bi*_vel;
-    float AoA = atan2f(vel_body(2), vel_body(0));
+    float AoA = atan2f(vel_body(2), vel_body(0)) + _aoa_offset;
     float C_l = _C_L0 + _C_L1*AoA;
     float C_d = _C_D0 + _C_D1*AoA + _C_D2*powf(AoA,2);
     float factor = -0.5f*_rho*_area*sqrtf(vel_body*vel_body);
