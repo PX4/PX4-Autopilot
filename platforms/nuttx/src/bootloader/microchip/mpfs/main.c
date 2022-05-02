@@ -512,9 +512,9 @@ led_toggle(unsigned led)
 void
 arch_do_jump(const uint32_t *app_base)
 {
-
 	/* seL4 on hart 1 */
-	if (sel4_loaded) {
+	if (sel4_loaded && sbi_loaded) {
+		_alert("Jump to SEL4 0x%lx\n", CONFIG_MPFS_HART1_ENTRYPOINT);
 #if CONFIG_MPFS_HART1_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
 		*(volatile uint32_t *)MPFS_CLINT_MSIP1 = 0x01U;
 #endif
@@ -527,6 +527,7 @@ arch_do_jump(const uint32_t *app_base)
 
 	/* Linux on harts 3,4 */
 	if (sbi_loaded && u_boot_loaded) {
+		_alert("Jump to U-boot 0x%lx\n", CONFIG_MPFS_HART4_ENTRYPOINT);
 #if CONFIG_MPFS_HART3_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
 		*(volatile uint32_t *)MPFS_CLINT_MSIP3 = 0x01U;
 #endif
@@ -534,7 +535,10 @@ arch_do_jump(const uint32_t *app_base)
 #if CONFIG_MPFS_HART4_ENTRYPOINT != 0xFFFFFFFFFFFFFFFF
 		*(volatile uint32_t *)MPFS_CLINT_MSIP4 = 0x01U;
 #endif
+
 	}
+
+
 
 	// TODO. monitor?
 	while (1) {
@@ -576,16 +580,42 @@ void partition_handler(FAR struct partition_s *part, FAR void *arg)
 }
 #endif
 
+
+
+static int load_sdcard_images(const char *name, uint64_t loadaddr)
+{
+	int mmcsd_fd;
+	struct stat file_stat;
+
+	_alert("Loading %s\n", name);
+	mmcsd_fd = open(name, O_RDONLY);
+
+	if (mmcsd_fd > 0) {
+		fstat(mmcsd_fd, &file_stat);
+		size_t got = read(mmcsd_fd, (void *)loadaddr, file_stat.st_size);
+
+		if (got > 0) {
+			close(mmcsd_fd);
+			return 0;
+		}
+	}
+
+	close(mmcsd_fd);
+	return -1;
+}
+
+
 static int loader_main(int argc, char *argv[])
 {
 	ssize_t image_sz = 0;
 
 	loading_status = IN_PROGRESS;
-
+	_alert("%s %d\n", __func__, __LINE__);
 #ifdef CONFIG_MMCSD
 
-	parse_block_partition("/dev/mmcsd0", partition_handler, "/sdcard/");
 
+	parse_block_partition("/dev/mmcsd0", partition_handler, "/sdcard/");
+	_alert("%s %d\n", __func__, __LINE__);
 	/*
 	 * Mount the sdcard and check if the image is present
 	 */
@@ -608,6 +638,9 @@ static int loader_main(int argc, char *argv[])
 		}
 
 		umount("/sdcard");
+
+	} else {
+		_alert("%s No SDCARD %d\n", __func__, ret);
 	}
 
 #endif
@@ -648,9 +681,6 @@ static int loader_main(int argc, char *argv[])
 #endif
 
 #ifdef CONFIG_OPENSBI
-	// Load u-boot and sbi
-
-	int mmcsd_fd;
 
 	/*
 	 * Mount the emmc and check if the image is present
@@ -661,37 +691,32 @@ static int loader_main(int argc, char *argv[])
 		_err("SD card mount failed\n");
 
 	} else {
-		_alert("Loading /boot/u-boot.bin\n");
-		mmcsd_fd = open("/sdcard/boot/u-boot.bin", O_RDONLY);
+		ret = load_sdcard_images("/sdcard/boot/u-boot.bin", CONFIG_MPFS_HART3_ENTRYPOINT);
 
-		if (mmcsd_fd > 0) {
-			size_t got = read(mmcsd_fd, (void *)0x80200000, 0x100000);
-
-			if (got > 0) {
-				u_boot_loaded = true;
-			}
+		if (ret) {
+			_err("failed\n");
 
 		} else {
-			_alert("File not found\n");
+			u_boot_loaded = true;
 		}
 
-		close(mmcsd_fd);
+		ret = load_sdcard_images("/sdcard/boot/ssrc_icicle.sbi", 0x80000000);
 
-		_alert("Loading /boot/ssrc_saluki.sbi\n");
-		mmcsd_fd = open("/sdcard/boot/ssrc_saluki.sbi", O_RDONLY);
-
-		if (mmcsd_fd > 0) {
-			size_t got = read(mmcsd_fd, (void *)0x80000000, 0x100000);
-
-			if (got > 0) {
-				sbi_loaded = true;
-			}
+		if (ret) {
+			_err("failed\n");
 
 		} else {
-			_alert("File not found\n");
+			sbi_loaded = true;
 		}
 
-		close(mmcsd_fd);
+		ret = load_sdcard_images("/sdcard/boot/sel4.bin", CONFIG_MPFS_HART1_ENTRYPOINT);
+
+		if (ret) {
+			_err("failed\n");
+
+		} else {
+			sel4_loaded = true;
+		}
 	}
 
 #endif
