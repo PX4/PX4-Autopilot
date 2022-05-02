@@ -9,6 +9,7 @@
 #pragma once
 
 #include "math.hpp"
+#include <px4_platform_common/defines.h>
 
 namespace matrix
 {
@@ -147,6 +148,18 @@ public:
 		}
 
 		return r;
+	}
+
+	bool isFinite() const
+	{
+		const Vector &a(*this);
+		for (size_t i = 0; i < M; i++) {
+			if(!PX4_ISFINITE(a(i)))
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 };
 

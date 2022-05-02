@@ -73,4 +73,17 @@ TEST(MatrixVectorTest, Vector)
 	v5(1) = 4;
 	EXPECT_TRUE(v5.longerThan(4.99f));
 	EXPECT_FALSE(v5.longerThan(5.f));
+
+	// isFinite
+	Vector<float, 3> v6;
+	v6(0) = 0.5f;
+	v6(1) = NAN;
+	v6(2) = 0.3f;
+	EXPECT_FALSE(v6.isFinite());
+
+	v6(1) = INFINITY;
+	EXPECT_FALSE(v6.isFinite());
+
+	v6(1) = 0.6f;
+	EXPECT_TRUE(v6.isFinite());
 }
