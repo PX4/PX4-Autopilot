@@ -107,7 +107,7 @@ public:
 		return *this;
 	}
 
-	~Subscription()
+	virtual ~Subscription()
 	{
 		unsubscribe();
 	}
