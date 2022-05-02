@@ -115,8 +115,8 @@ bool PositionControl::update(const float dt)
 	}
 
 	// There has to be a valid output accleration and thrust setpoint otherwise something went wrong
-	valid = valid && PX4_ISFINITE(_acc_sp(0)) && PX4_ISFINITE(_acc_sp(1)) && PX4_ISFINITE(_acc_sp(2));
-	valid = valid && PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(_thr_sp(2));
+	valid = valid && _acc_sp.isFinite();
+	valid = valid && _thr_sp.isFinite();
 
 	return valid;
 }
@@ -212,9 +212,7 @@ bool PositionControl::_inputValid()
 	bool valid = true;
 
 	// Every axis x, y, z needs to have some setpoint
-	for (int i = 0; i <= 2; i++) {
-		valid = valid && (PX4_ISFINITE(_pos_sp(i)) || PX4_ISFINITE(_vel_sp(i)) || PX4_ISFINITE(_acc_sp(i)));
-	}
+	valid = valid && _pos_sp.isFinite() && _vel_sp.isFinite() && _acc_sp.isFinite();
 
 	// x and y input setpoints always have to come in pairs
 	valid = valid && (PX4_ISFINITE(_pos_sp(0)) == PX4_ISFINITE(_pos_sp(1)));

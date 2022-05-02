@@ -169,12 +169,7 @@ bool FlightTaskOrbit::activate(const vehicle_local_position_setpoint_s &last_set
 	_slew_rate_yaw.setSlewRate(math::radians(_param_mpc_yawrauto_max.get()));
 
 	// need a valid position and velocity
-	ret = ret && PX4_ISFINITE(_position(0))
-	      && PX4_ISFINITE(_position(1))
-	      && PX4_ISFINITE(_position(2))
-	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1))
-	      && PX4_ISFINITE(_velocity(2));
+	ret = ret && _position.isFinite() && _velocity.isFinite();
 
 	Vector3f vel_prev{last_setpoint.vx, last_setpoint.vy, last_setpoint.vz};
 	Vector3f pos_prev{last_setpoint.x, last_setpoint.y, last_setpoint.z};

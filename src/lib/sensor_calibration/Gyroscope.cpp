@@ -111,7 +111,7 @@ void Gyroscope::SensorCorrectionsUpdate(bool force)
 bool Gyroscope::set_offset(const Vector3f &offset)
 {
 	if (Vector3f(_offset - offset).longerThan(0.01f)) {
-		if (PX4_ISFINITE(offset(0)) && PX4_ISFINITE(offset(1)) && PX4_ISFINITE(offset(2))) {
+		if (offset.isFinite()) {
 			_offset = offset;
 			_calibration_count++;
 			return true;

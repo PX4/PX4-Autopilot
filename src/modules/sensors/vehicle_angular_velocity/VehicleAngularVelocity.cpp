@@ -480,10 +480,7 @@ Vector3f VehicleAngularVelocity::GetResetAngularVelocity() const
 		//  start with last valid vehicle body frame angular velocity and compute equivalent raw data (for current sensor selection)
 		Vector3f angular_velocity_uncalibrated{_calibration.Uncorrect(_angular_velocity + _bias)};
 
-		if (PX4_ISFINITE(angular_velocity_uncalibrated(0))
-		    && PX4_ISFINITE(angular_velocity_uncalibrated(1))
-		    && PX4_ISFINITE(angular_velocity_uncalibrated(2))) {
-
+		if (angular_velocity_uncalibrated.isFinite()) {
 			return angular_velocity_uncalibrated;
 		}
 	}
@@ -497,11 +494,7 @@ Vector3f VehicleAngularVelocity::GetResetAngularAcceleration() const
 		// angular acceleration filtering is performed on unscaled angular velocity data
 		//  start with last valid vehicle body frame angular acceleration and compute equivalent raw data (for current sensor selection)
 		Vector3f angular_acceleration{_calibration.rotation().I() *_angular_acceleration};
-
-		if (PX4_ISFINITE(angular_acceleration(0))
-		    && PX4_ISFINITE(angular_acceleration(1))
-		    && PX4_ISFINITE(angular_acceleration(2))) {
-
+		if (angular_acceleration.isFinite()) {
 			return angular_acceleration;
 		}
 	}

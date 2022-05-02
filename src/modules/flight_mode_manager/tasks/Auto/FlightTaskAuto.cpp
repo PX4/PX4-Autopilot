@@ -105,12 +105,7 @@ bool FlightTaskAuto::updateInitialize()
 	// require valid reference and valid target
 	ret = ret && _evaluateGlobalReference() && _evaluateTriplets();
 	// require valid position
-	ret = ret && PX4_ISFINITE(_position(0))
-	      && PX4_ISFINITE(_position(1))
-	      && PX4_ISFINITE(_position(2))
-	      && PX4_ISFINITE(_velocity(0))
-	      && PX4_ISFINITE(_velocity(1))
-	      && PX4_ISFINITE(_velocity(2));
+	ret = ret && _position.isFinite() && _velocity.isFinite();
 
 	return ret;
 }
@@ -402,9 +397,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 	const bool prev_next_validity_changed = (_prev_was_valid != _sub_triplet_setpoint.get().previous.valid)
 						|| (_next_was_valid != _sub_triplet_setpoint.get().next.valid);
 
-	if (PX4_ISFINITE(_triplet_target(0))
-	    && PX4_ISFINITE(_triplet_target(1))
-	    && PX4_ISFINITE(_triplet_target(2))
+	if (_triplet_target.isFinite()
 	    && fabsf(_triplet_target(0) - tmp_target(0)) < 0.001f
 	    && fabsf(_triplet_target(1) - tmp_target(1)) < 0.001f
 	    && fabsf(_triplet_target(2) - tmp_target(2)) < 0.001f
