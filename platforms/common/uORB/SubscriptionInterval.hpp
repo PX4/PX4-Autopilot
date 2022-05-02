@@ -83,7 +83,7 @@ public:
 
 	SubscriptionInterval() : _subscription{nullptr} {}
 
-	~SubscriptionInterval() = default;
+	virtual ~SubscriptionInterval() = default;
 
 	bool subscribe() { return _subscription.subscribe(); }
 	void unsubscribe() { _subscription.unsubscribe(); }

@@ -85,7 +85,7 @@ public:
 	// move assignment
 	Subscription &operator=(Subscription &&other) noexcept;
 
-	~Subscription();
+	virtual ~Subscription();
 
 	bool subscribe();
 	void unsubscribe();
