@@ -332,4 +332,10 @@ private:
 	Matrix<Type, M, N> *_data;
 };
 
+template <typename Type, size_t M, size_t N, size_t D>
+Vector<Type, D> operator+ (const Slice<Type, D, 1, M, N> &lhs, const Vector<Type, D> &rhs)
+{
+	return rhs + lhs;
 }
+
+} // namespace matrix
