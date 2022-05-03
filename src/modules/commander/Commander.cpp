@@ -3967,8 +3967,8 @@ void Commander::battery_status_check()
 		if (_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
 #if defined(BOARD_HAS_POWER_CONTROL)
 
-			if (shutdown_if_allowed() && (px4_shutdown_request(400_ms) == 0)) {
-				mavlink_log_critical(&_mavlink_log_pub, "Dangerously low battery! Shutting system down\t");
+			if (shutdown_if_allowed() && (px4_shutdown_request(60_s) == 0)) {
+				mavlink_log_critical(&_mavlink_log_pub, "Dangerously low battery! Shutting system down in 60 seconds\t");
 				events::send(events::ID("commander_low_bat_shutdown"), {events::Log::Emergency, events::LogInternal::Warning},
 					     "Dangerously low battery! Shutting system down");
 
