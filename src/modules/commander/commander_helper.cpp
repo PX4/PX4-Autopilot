@@ -177,8 +177,8 @@ void set_tune(const int tune_id)
 {
 	const hrt_abstime current_time = hrt_absolute_time();
 	const unsigned int new_tune_duration = tune_durations[tune_id];
-	const bool current_tune_is_repeating = (tune_end == 0) ? true : false;
-	const bool new_tune_is_repeating = (new_tune_duration == 0) ? true : false;
+	const bool current_tune_is_repeating = (tune_end == 0);
+	const bool new_tune_is_repeating = (new_tune_duration == 0);
 
 	bool set_new_tune = false;
 
