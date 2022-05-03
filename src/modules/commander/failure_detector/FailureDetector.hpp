@@ -43,11 +43,11 @@
 
 #pragma once
 
+#include <lib/hysteresis/hysteresis.h>
+#include <lib/mathlib/mathlib.h>
 #include <lib/mathlib/math/filter/AlphaFilter.hpp>
 #include <matrix/matrix/math.hpp>
-#include <mathlib/mathlib.h>
 #include <px4_platform_common/module_params.h>
-#include <hysteresis/hysteresis.h>
 
 // subscriptions
 #include <uORB/Subscription.hpp>
