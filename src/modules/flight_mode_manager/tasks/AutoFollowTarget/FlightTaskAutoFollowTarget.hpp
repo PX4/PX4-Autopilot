@@ -85,7 +85,7 @@ static constexpr float TARGET_POS_VEL_FILTER_NATURAL_FREQUENCY = 1.0f;
 // [.] Second Order reference model filter damping ratio
 static constexpr float TARGET_POS_VEL_FILTER_DAMPING_RATIO = 0.7071;
 
-// [us] If the target estimator output isn't updated longer than this, reset pose filter.
+// [us] If target estimator isn't updated longer than this, reset the target pos/vel filter.
 static constexpr uint64_t TARGET_ESTIMATOR_TIMEOUT_US = 1500000UL;
 
 // << Target Course Angle Tracking related constants >>
@@ -125,9 +125,6 @@ static constexpr float FOLLOW_ANGLE_USER_ADJUST_SPEED = 1.5;
 // Prevents setpoints diverging from the vehicle's actual position too much
 static constexpr float USER_ADJUSTMENT_ERROR_TIME_WINDOW = 0.5f;
 
-// Deadzone on both +/- direction for normalized stick input (-1, +1) where user adjustment will be ignored
-static constexpr float USER_ADJUSTMENT_DEADZONE = 0.1f;
-
 
 class FlightTaskAutoFollowTarget : public FlightTask
 {
@@ -142,40 +139,38 @@ public:
 	void updateParams() override;
 
 protected:
-	// Follow Perspectives set by the parameter FLW_TGT_FS
-	enum FollowPerspective
+	// Follow Perspectives set by the parameter FLW_TGT_FP
+	enum kFollowPerspective : uint8_t
 	{
-		FOLLOW_PERSPECTIVE_NONE,
-		FOLLOW_PERSPECTIVE_BEHIND,
-		FOLLOW_PERSPECTIVE_FRONT,
-		FOLLOW_PERSPECTIVE_FRONT_RIGHT,
-		FOLLOW_PERSPECTIVE_FRONT_LEFT,
-		FOLLOW_PERSPECTIVE_MID_RIGHT,
-		FOLLOW_PERSPECTIVE_MID_LEFT,
-		FOLLOW_PERSPECTIVE_BEHIND_RIGHT,
-		FOLLOW_PERSPECTIVE_BEHIND_LEFT,
-		FOLLOW_PERSPECTIVE_MIDDLE_FOLLOW,
-		FOLLOW_PERSPECTIVE_INVALID  // Leave this as last!
+		kFollowPerspectiveBehind,
+		kFollowPerspectiveFront,
+		kFollowPerspectiveFrontRight,
+		kFollowPerspectiveFrontLeft,
+		kFollowPerspectiveRight,
+		kFollowPerspectiveLeft,
+		kFollowPerspectiveBehindRight,
+		kFollowPerspectiveBehindLeft,
+		kFollowPerspectiveInvalid // Leave this as last!
 	};
 
-	// Angles [deg] for the different follow-me perspectives
-	enum {
-		FOLLOW_PERSPECTIVE_BEHIND_ANGLE_DEG = 180,
-		FOLLOW_PERSPECTIVE_FRONT_ANGLE_DEG = 0,
-		FOLLOW_PERSPECTIVE_FRONT_RIGHT_ANGLE_DEG = 45,
-		FOLLOW_PERSPECTIVE_FRONT_LEFT_ANGLE_DEG = -45,
-		FOLLOW_PERSPECTIVE_MID_RIGHT_ANGLE_DEG = 90,
-		FOLLOW_PERSPECTIVE_MID_LEFT_ANGLE_DEG = -90,
-		FOLLOW_PERSPECTIVE_BEHIND_RIGHT_ANGLE_DEG = 135,
-		FOLLOW_PERSPECTIVE_BEHIND_LEFT_ANGLE_DEG = -135
+	// Angles [deg] for the different follow perspectives
+	static constexpr float kFollowPerspectiveAnglesDeg[kFollowPerspectiveInvalid] = {
+		180.f, // Behind
+		0.0f, // Front
+		45.0f, // Front right
+		-45.0f, // Front left
+		90.0f, // Right
+		-90.0f, // Left
+		135.0f, // Behind right
+		-135.0f // Behind left
 	};
 
 	// Follow Altitude modes set by the parameter FLW_TGT_ALT_M
-	enum FollowAltitudeMode
+	enum kFollowAltitudeMode
 	{
-		FOLLOW_ALTITUDE_MODE_CONSTANT,
-		FOLLOW_ALTITUDE_MODE_TRACK_TERRAIN,
-		FOLLOW_ALTITUDE_MODE_TRACK_TARGET
+		kFollowAltitudeModeConstant,
+		kFollowAltitudeModeTerrain,
+		kFollowAltitudeModeTrackTarget
 	};
 
 	/**
@@ -186,7 +181,7 @@ protected:
 	 *
 	 * @param sticks Sticks object to get RC commanded values for adjustments
 	 */
-	void update_rc_adjusted_follow_height(const Sticks &sticks);
+	void updateRcAdjustedFollowHeight(const Sticks &sticks);
 
 	/**
 	 * Update the Follow distance based on RC commands
@@ -195,9 +190,9 @@ protected:
 	 * follow_distance will be adjusted with a speed proportional to user RC command
 	 *
 	 * @param sticks Sticks object to get RC commanded values for adjustments
-	 * @param drone_to_target_vector Tracked follow distance variable reference which will be updated to the new value
+	 * @param drone_to_target_vector [m] Tracked follow distance variable reference which will be updated to the new value
 	 */
-	void update_rc_adjusted_follow_distance(const Sticks &sticks, const Vector2f &drone_to_target_vector);
+	void updateRcAdjustedFollowDistance(const Sticks &sticks, const Vector2f &drone_to_target_vector);
 
 	/**
 	 * Update the Follow angle based on RC commands
@@ -206,91 +201,92 @@ protected:
 	 * away from the orbit angle setpoint, follow_angle will be adjusted with a speed proportional to user RC command
 	 *
 	 * @param sticks Sticks object to get RC commanded values for adjustments
-	 * @param measured_angle Measured current drone's orbit angle around the target (depends on tracked target orientation for reference)
-	 * @param tracked_orbit_angle_setpoint Rate constrained orbit angle setpoint value from last command
+	 * @param measured_angle [rad] Measured current drone's orbit angle around the target (depends on tracked target orientation for reference)
+	 * @param tracked_orbit_angle_setpoint [rad] Rate constrained orbit angle setpoint value from last command
 	 */
-	void update_rc_adjusted_follow_angle(const Sticks &sticks, const float measured_orbit_angle, const float tracked_orbit_angle_setpoint);
+	void updateRcAdjustedFollowAngle(const Sticks &sticks, const float measured_orbit_angle, const float tracked_orbit_angle_setpoint);
 
 	/**
 	 * Update the Second Order Target Position + Velocity Filter to track kinematically feasible target position and velocity
 	 *
 	 * @param follow_target_estimator Received value from alpha-beta-gamma target estimator filter output
 	 */
-	void update_target_position_velocity_filter(const follow_target_estimator_s &follow_target_estimator);
+	void updateTargetPositionVelocityFilter(const follow_target_estimator_s &follow_target_estimator);
 
 	/**
-	 * Calculate the tracked target orientation and overwrite the tracked target orientation if necessary
+	 * Calculate the tracked target orientation
 	 *
-	 * Note : Filtered target velocity is generated via 2nd order reference model filter can have overshooting behaviors
+	 * Note : Filtered target velocity is generated via 2nd order filter can have overshooting behaviors
 	 * when target stops it's motion. This can generate a target velocity output that is opposite direction to where target was heading originally.
 	 * To check if the filtered velocity is staying true to target's actual motion, unfiltered velocity needs to be taken into account. Since during
 	 * overshoot, the unfiltered velocity stays close to 0 (indicating target already stopped), therefore not triggering a target orientation setting.
 	 *
-	 * @param current_target_orientation  Tracked target orientation value that will be over-written with new orientation
-	 * @param target_velocity Filtered Target velocity from which we will calculate target orientation
-	 * @param target_velocity_unfiltered Unfiltered Target velocity that aids in verifying if filtered velocity is accurate
+	 * @param current_target_orientation [rad] Tracked target orientation
+	 * @param target_velocity [m/s] Filtered Target velocity from which we will calculate target orientation
+	 * @param target_velocity_unfiltered [m/s] Unfiltered Target velocity that aids in verifying if filtered velocity is accurate
+	 *
+	 * @return [rad] Updated target orientation
 	 */
-	void update_target_orientation(float &current_target_orientation, const Vector2f &target_velocity, const Vector2f &target_velocity_unfiltered);
+	float updateTargetOrientation(const float current_target_orientation, const Vector2f &target_velocity, const Vector2f &target_velocity_unfiltered) const;
 
 	/**
-	 * Updates the orbit angle setpoint, taking into account the maximal orbit tangential speed
+	 * Updates the orbit angle setpoint and a jerk limited trajectory to reach it.
 	 *
-	 * Returns the orbit angle setpoint, taking into account the maximal orbit tangential speed.
-	 * While setting the orbital velocity setpoint vector for the according position setpoint
+	 * @param target_orientation [rad] Tracked target orientation
+	 * @param previous_orbit_angle_setpoint [rad] Previous orbit angle setpoint
 	 *
-	 * @param target_orientation Tracked target orientation
-	 * @param previous_orbit_angle_setpoint Previous orbit angle setpoint
-	 *
-	 * @return Angle [rad] Next feasible orbit angle setpoint
+	 * @return [rad] Next feasible orbit angle setpoint
 	 */
-	float update_orbit_angle_trajectory(const float target_orientation, const float previous_orbit_angle_setpoint);
+	float updateOrbitAngleTrajectory(const float target_orientation, const float previous_orbit_angle_setpoint);
 
 	/**
-	 * Returns the orbit angle setpoint, taking into account the maximal orbit tangential speed.
+	 * Returns the orbit tangential velocity at the orbit angle setpoint, generated by the orbit angle trajectory generator
 	 *
-	 * @param orbit_angle_setpoint Orbit angle setpoint
+	 * @param orbit_angle_setpoint [rad] Orbit angle setpoint
 	 *
-	 * @return 2D Velocity Vector [m/s, m/s] of current orbit position setpoint
+	 * @return [m/s] 2D Velocity Vector of current orbit position setpoint (Local NED frame)
 	*/
-	Vector2f get_orbit_tangential_velocity(const float orbit_angle_setpoint) const;
+	Vector2f getOrbitTangentialVelocity(const float orbit_angle_setpoint) const;
 
 	/**
 	 * Calculates desired drone position taking into account orbit angle and the follow target altitude mode
 	 *
-	 * @param target_position Tracked target position Vector3f reference
-	 * @param orbit_angle_setpoint Current orbit angle setpoint around the target
+	 * @param target_position [m] Target position (Local NED frame)
+	 * @param orbit_angle_setpoint [rad] Current orbit angle setpoint around the target
 	 *
-	 * @return Position [m,m,m] Final position setpoint for the drone
+	 * @return [m] Final position setpoint for the drone (Local NED frame)
 	 */
-	Vector3f calculate_desired_drone_position(const Vector3f &target_position, const float orbit_angle_setpoint) const;
+	Vector3f calculateDesiredDronePosition(const Vector3f &target_position, const float orbit_angle_setpoint) const;
 
 	/**
-	 * Calculate the gimbal height offset to the target to calculate the pitch angle command
+	 * Convert the follow perspective into an angle in [rad]
+	 *
+	 * If the Follow perspective is out of bound, it defaults to the perspective behind
+	 *
+	 * @param follow_perspective value of the parameter FLW_TGT_FP
+	 * @return [rad] Follow angle, with zero degrees being the target's 12 o'clock
+	 */
+	float convertFollowPerspectiveToRadians(const kFollowPerspective follow_perspective) const;
+
+	/**
+	 * Calculate the gimbal height offset to the target
 	 *
 	 * @param altitude_mode Current Follow Target Altitude mode
-	 * @param target_pos_z Target's local position z value to use for 3D tracking
+	 * @param target_pos_z [m] Target's local position z value to use for 3D tracking
 	 *
-	 * @return Height [m] Difference between the target and the drone
+	 * @return [m] Height Difference between the target and the drone
 	 */
-	float calculate_gimbal_height(const FollowAltitudeMode altitude_mode, const float target_pos_z) const;
+	float calculateGimbalHeight(const kFollowAltitudeMode altitude_mode, const float target_pos_z) const;
 
 	/**
 	 * Publishes gimbal control command to track the target, given xy distance and z (height) difference
 	 *
-	 * @param xy_distance Horizontal distance to target
-	 * @param z_distance Vertical distance to target
+	 * @param xy_distance [m] Horizontal distance to target
+	 * @param z_distance [m] Vertical distance to target
 	 *
-	 * @return Angle [rad] Gimbal pitch setpoint, for logging in follow_target_status uORB message
+	 * @return [rad] Gimbal pitch setpoint, for logging in follow_target_status uORB message
 	 */
-	float point_gimbal_at(const float xy_distance, const float z_distance);
-
-	/**
-	 * Get the current follow-me perspective angle setting from PX4 parameters
-	 *
-	 * @param follow_perspective value of the parameter FLW_TGT_FS
-	 * @return Angle [deg] from which the drone should view the target while following it, with zero degrees indicating the target's 12 o'clock
-	 */
-	float get_follow_angle_setting_deg(const FollowPerspective follow_perspective) const;
+	float pointGimbalAt(const float xy_distance, const float z_distance);
 
 	/**
 	 * Release Gimbal Control
@@ -299,7 +295,7 @@ protected:
 	 * to control the gimbal when the task exits.
 	 * Fore more information on gimbal v2, see https://mavlink.io/en/services/gimbal_v2.html
 	 */
-	void release_gimbal_control();
+	void releaseGimbalControl();
 
 	// Sticks object to read in stick commands from the user
 	Sticks _sticks;
@@ -337,15 +333,13 @@ protected:
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
 		(ParamFloat<px4::params::FLW_TGT_HT>) _param_flw_tgt_ht,
 		(ParamFloat<px4::params::FLW_TGT_DST>) _param_flw_tgt_dst,
-		(ParamInt<px4::params::FLW_TGT_FS>) _param_flw_tgt_fs,
+		(ParamInt<px4::params::FLW_TGT_FP>) _param_flw_tgt_fp,
 		(ParamInt<px4::params::FLW_TGT_ALT_M>) _param_flw_tgt_alt_m,
 		(ParamFloat<px4::params::FLW_TGT_MAX_VEL>) _param_flw_tgt_max_vel
 	)
 
-	// uORB topics to subscribe to
 	uORB::Subscription _follow_target_estimator_sub{ORB_ID(follow_target_estimator)};
 
-	// uORB topics to publish
 	uORB::Publication<follow_target_status_s> _follow_target_status_pub{ORB_ID(follow_target_status)};
 	uORB::Publication<gimbal_manager_set_attitude_s> _gimbal_manager_set_attitude_pub{ORB_ID(gimbal_manager_set_attitude)};
 	uORB::Publication<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};

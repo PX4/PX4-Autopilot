@@ -41,10 +41,9 @@
  */
 
 /**
- * Dynamic filtering algorithm responsiveness to target movement in Target Estimator
+ * Responsiveness to target movement in Target Estimator
  *
- * lower values increase the responsiveness to changing long lat
- * but also ignore less noise
+ * lower values increase the responsiveness to changing position, but also ignore less noise
  *
  * @min 0.0
  * @max 1.0
@@ -56,7 +55,7 @@ PARAM_DEFINE_FLOAT(FLW_TGT_RS, 0.1f);
 /**
  * Follow target height
  *
- * The height in meters for following a target
+ * Following height above the target
  *
  * @unit m
  * @min 8.0
@@ -76,7 +75,7 @@ PARAM_DEFINE_FLOAT(FLW_TGT_HT, 8.0f);
 PARAM_DEFINE_FLOAT(FLW_TGT_DST, 8.0f);
 
 /**
- * Side to follow target from
+ * Perspective to follow target from
  *
  * The side to follow the target from
  *
@@ -94,7 +93,7 @@ PARAM_DEFINE_FLOAT(FLW_TGT_DST, 8.0f);
  * @max 8
  * @group Follow target
  */
-PARAM_DEFINE_INT32(FLW_TGT_FS, 1);
+PARAM_DEFINE_INT32(FLW_TGT_FP, 1);
 
 /**
  * Altitude control mode
