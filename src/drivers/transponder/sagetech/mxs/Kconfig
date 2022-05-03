@@ -1,0 +1,5 @@
+menuconfig DRIVERS_TRANSPONDER_SAGETECH_MXS
+	bool "mxs"
+	default n
+	---help---
+		Enable support for mxs
