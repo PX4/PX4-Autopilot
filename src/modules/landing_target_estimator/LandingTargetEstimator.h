@@ -31,22 +31,14 @@
  *
  ****************************************************************************/
 
-/*
- * @file LandingTargetEstimator.h
- * Landing target position estimator. Filter and publish the position of a landing target on the ground as observed by an onboard sensor.
- *
- * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
- * @author Mohammed Kabir <kabir@uasys.io>
- *
- */
 
 #pragma once
 
-#include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/drv_hrt.h>
-#include <parameters/param.h>
 #include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -55,8 +47,6 @@
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/landing_target_innovations.h>
 #include <uORB/topics/uwb_distance.h>
-#include <uORB/topics/uwb_grid.h>
-#include <uORB/topics/estimator_sensor_bias.h>
 #include <uORB/topics/parameter_update.h>
 #include <matrix/math.hpp>
 #include <mathlib/mathlib.h>
@@ -66,35 +56,36 @@
 
 using namespace time_literals;
 
-namespace landing_target_estimator
-{
-
-class LandingTargetEstimator
+class LandingTargetEstimator : public ModuleBase<LandingTargetEstimator>, public ModuleParams,
+	public px4::ScheduledWorkItem
 {
 public:
 
 	LandingTargetEstimator();
 	virtual ~LandingTargetEstimator() = default;
 
-	/*
-	 * Get new measurements and update the state estimate
-	 */
-	void update();
+	static int print_usage(const char *reason = nullptr);
+	static int custom_command(int argc, char *argv[]);
 
-protected:
+	static int task_spawn(int argc, char *argv[]);
 
-	/*
-	 * Update uORB topics.
-	 */
+	int start();
+
+private:
+
+	void Run() override;
+
+	void _check_params(const bool force);
 	void _update_topics();
-
-	/*
-	 * Update parameters.
-	 */
 	void _update_params();
 
-	/* timeout after which filter is reset if target not seen */
-	static constexpr uint32_t landing_target_estimator_TIMEOUT_US = 2000000;
+	enum class TargetMode {
+		Moving = 0,
+		Stationary
+	};
+
+	static constexpr uint32_t TARGET_UPDATE_TIMEOUT_US{2000000};
+	static constexpr uint32_t SAMPLE_RATE{50}; // samples per second
 
 	uORB::Publication<landing_target_pose_s> _targetPosePub{ORB_ID(landing_target_pose)};
 	landing_target_pose_s _target_pose{};
@@ -103,44 +94,6 @@ protected:
 	landing_target_innovations_s _target_innovations{};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-private:
-
-	enum class TargetMode {
-		Moving = 0,
-		Stationary
-	};
-
-	/**
-	* Handles for parameters
-	**/
-	struct {
-		param_t acc_unc;
-		param_t meas_unc;
-		param_t pos_unc_init;
-		param_t vel_unc_init;
-		param_t mode;
-		param_t scale_x;
-		param_t scale_y;
-		param_t offset_x;
-		param_t offset_y;
-		param_t offset_z;
-		param_t sensor_yaw;
-	} _paramHandle;
-
-	struct {
-		float acc_unc;
-		float meas_unc;
-		float pos_unc_init;
-		float vel_unc_init;
-		TargetMode mode;
-		float scale_x;
-		float scale_y;
-		float offset_x;
-		float offset_y;
-		float offset_z;
-		enum Rotation sensor_yaw;
-	} _params;
 
 	struct {
 		hrt_abstime timestamp;
@@ -159,7 +112,6 @@ private:
 	vehicle_attitude_s		_vehicleAttitude{};
 	vehicle_acceleration_s		_vehicle_acceleration{};
 	irlock_report_s			_irlockReport{};
-	uwb_grid_s		_uwbGrid{};
 	uwb_distance_s		_uwbDistance{};
 
 	// keep track of which topics we have received
@@ -181,8 +133,17 @@ private:
 	hrt_abstime _last_update{0}; // timestamp of last filter update (used to check timeout)
 	float _dist_z{1.0f};
 
-	void _check_params(const bool force);
-
-	void _update_state();
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::LTEST_MODE>) _param_mode,
+		(ParamFloat<px4::params::LTEST_ACC_UNC>) _param_acc_unc,
+		(ParamFloat<px4::params::LTEST_MEAS_UNC>) _param_meas_unc,
+		(ParamFloat<px4::params::LTEST_POS_UNC_IN>) _param_pos_unc_in,
+		(ParamFloat<px4::params::LTEST_VEL_UNC_IN>) _param_vel_unc_in,
+		(ParamFloat<px4::params::LTEST_SCALE_X>) _param_scale_x,
+		(ParamFloat<px4::params::LTEST_SCALE_Y>) _param_scale_y,
+		(ParamInt<px4::params::LTEST_SENS_ROT>) _param_sens_rot,
+		(ParamFloat<px4::params::LTEST_SENS_POS_X>) _param_sens_pos_x,
+		(ParamFloat<px4::params::LTEST_SENS_POS_Y>) _param_sens_pos_y,
+		(ParamFloat<px4::params::LTEST_SENS_POS_Z>) _param_sens_pos_z
+	)
 };
-} // namespace landing_target_estimator

@@ -53,8 +53,6 @@
 
 #pragma once
 
-namespace landing_target_estimator
-{
 class KalmanFilter
 {
 public:
@@ -147,4 +145,3 @@ private:
 
 	float _innovCov{0.0f}; // innovation covariance of last measurement update
 };
-} // namespace landing_target_estimator

@@ -31,14 +31,6 @@
  *
  ****************************************************************************/
 
-/*
- * @file LandingTargetEstimator.cpp
- *
- * @author Nicolas de Palezieux (Sunflower Labs) <ndepal@gmail.com>
- * @author Mohammed Kabir <kabir@uasys.io>
- *
- */
-
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
@@ -47,26 +39,14 @@
 
 #define SEC2USEC 1000000.0f
 
-namespace landing_target_estimator
+LandingTargetEstimator::LandingTargetEstimator() :
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
-
-LandingTargetEstimator::LandingTargetEstimator()
-{
-	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
-	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
-	_paramHandle.pos_unc_init = param_find("LTEST_POS_UNC_IN");
-	_paramHandle.vel_unc_init = param_find("LTEST_VEL_UNC_IN");
-	_paramHandle.mode = param_find("LTEST_MODE");
-	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
-	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
-	_paramHandle.sensor_yaw = param_find("LTEST_SENS_ROT");
-	_paramHandle.offset_x = param_find("LTEST_SENS_POS_X");
-	_paramHandle.offset_y = param_find("LTEST_SENS_POS_Y");
-	_paramHandle.offset_z = param_find("LTEST_SENS_POS_Z");
 	_check_params(true);
 }
 
-void LandingTargetEstimator::update()
+void LandingTargetEstimator::Run()
 {
 	_check_params(false);
 
@@ -74,8 +54,8 @@ void LandingTargetEstimator::update()
 
 	/* predict */
 	if (_estimator_initialized) {
-		if (hrt_absolute_time() - _last_update > landing_target_estimator_TIMEOUT_US) {
-			PX4_WARN("Timeout");
+		if (hrt_absolute_time() - _last_update > TARGET_UPDATE_TIMEOUT_US) {
+			PX4_INFO("Target lost");
 			_estimator_initialized = false;
 
 		} else {
@@ -93,8 +73,8 @@ void LandingTargetEstimator::update()
 				a.zero();
 			}
 
-			_kalman_filter_x.predict(dt, -a(0), _params.acc_unc);
-			_kalman_filter_y.predict(dt, -a(1), _params.acc_unc);
+			_kalman_filter_x.predict(dt, -a(0), _param_acc_unc.get());
+			_kalman_filter_y.predict(dt, -a(1), _param_acc_unc.get());
 
 			_last_predict = hrt_absolute_time();
 		}
@@ -108,21 +88,23 @@ void LandingTargetEstimator::update()
 	// mark this sensor measurement as consumed
 	_new_sensorReport = false;
 
+	if (!PX4_ISFINITE(_irlockReport.pos_y) || !PX4_ISFINITE(_irlockReport.pos_x)) {
+		return;
+	}
 
 	if (!_estimator_initialized) {
 		float vx_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vx : 0.f;
 		float vy_init = _vehicleLocalPosition.v_xy_valid ? -_vehicleLocalPosition.vy : 0.f;
-		PX4_INFO("Init %.2f %.2f", (double)vx_init, (double)vy_init);
-		_kalman_filter_x.init(_target_position_report.rel_pos_x, vx_init, _params.pos_unc_init, _params.vel_unc_init);
-		_kalman_filter_y.init(_target_position_report.rel_pos_y, vy_init, _params.pos_unc_init, _params.vel_unc_init);
+		PX4_INFO("Target acquired %.2f %.2f", (double)vx_init, (double)vy_init);
+		_kalman_filter_x.init(_target_position_report.rel_pos_x, vx_init, _param_pos_unc_in.get(), _param_vel_unc_in.get());
+		_kalman_filter_y.init(_target_position_report.rel_pos_y, vy_init, _param_pos_unc_in.get(), _param_vel_unc_in.get());
 
 		_estimator_initialized = true;
 		_last_update = hrt_absolute_time();
 		_last_predict = _last_update;
 
 	} else {
-		// update
-		const float measurement_uncertainty = _params.meas_unc * _dist_z * _dist_z;
+		const float measurement_uncertainty = _param_meas_unc.get() * _dist_z * _dist_z;
 		bool update_x = _kalman_filter_x.update(_target_position_report.rel_pos_x, measurement_uncertainty);
 		bool update_y = _kalman_filter_y.update(_target_position_report.rel_pos_y, measurement_uncertainty);
 
@@ -148,7 +130,7 @@ void LandingTargetEstimator::update()
 			_kalman_filter_y.getState(y, yvel);
 			_kalman_filter_y.getCovariance(covy, covy_v);
 
-			_target_pose.is_static = (_params.mode == TargetMode::Stationary);
+			_target_pose.is_static = ((TargetMode)_param_mode.get() == TargetMode::Stationary);
 
 			_target_pose.rel_pos_valid = true;
 			_target_pose.rel_vel_valid = true;
@@ -200,7 +182,7 @@ void LandingTargetEstimator::_check_params(const bool force)
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
-		_update_params();
+		ModuleParams::updateParams();
 	}
 }
 
@@ -224,12 +206,12 @@ void LandingTargetEstimator::_update_topics()
 		}
 
 		matrix::Vector<float, 3> sensor_ray; // ray pointing towards target in body frame
-		sensor_ray(0) = _irlockReport.pos_x * _params.scale_x; // forward
-		sensor_ray(1) = _irlockReport.pos_y * _params.scale_y; // right
+		sensor_ray(0) = _irlockReport.pos_x * _param_scale_x.get(); // forward
+		sensor_ray(1) = _irlockReport.pos_y * _param_scale_y.get(); // right
 		sensor_ray(2) = 1.0f;
 
 		// rotate unit ray according to sensor orientation
-		_S_att = get_rot_matrix(_params.sensor_yaw);
+		_S_att = get_rot_matrix((Rotation)_param_sens_rot.get());
 		sensor_ray = _S_att * sensor_ray;
 
 		// rotate the unit ray into the navigation frame
@@ -242,7 +224,7 @@ void LandingTargetEstimator::_update_topics()
 			return;
 		}
 
-		_dist_z = _vehicleLocalPosition.dist_bottom - _params.offset_z;
+		_dist_z = _vehicleLocalPosition.dist_bottom - _param_sens_pos_z.get();
 
 		// scale the ray s.t. the z component has length of _uncertainty_scale
 		_target_position_report.timestamp = _irlockReport.timestamp;
@@ -251,8 +233,8 @@ void LandingTargetEstimator::_update_topics()
 		_target_position_report.rel_pos_z = _dist_z;
 
 		// Adjust relative position according to sensor offset
-		_target_position_report.rel_pos_x += _params.offset_x;
-		_target_position_report.rel_pos_y += _params.offset_y;
+		_target_position_report.rel_pos_x += _param_sens_pos_x.get();
+		_target_position_report.rel_pos_y += _param_sens_pos_y.get();
 
 		_new_sensorReport = true;
 
@@ -282,28 +264,61 @@ void LandingTargetEstimator::_update_topics()
 	}
 }
 
-void LandingTargetEstimator::_update_params()
+int LandingTargetEstimator::start()
 {
-	param_get(_paramHandle.acc_unc, &_params.acc_unc);
-	param_get(_paramHandle.meas_unc, &_params.meas_unc);
-	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
-	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
-
-	int32_t mode = 0;
-	param_get(_paramHandle.mode, &mode);
-	_params.mode = (TargetMode)mode;
-
-	param_get(_paramHandle.scale_x, &_params.scale_x);
-	param_get(_paramHandle.scale_y, &_params.scale_y);
-
-	int32_t sensor_yaw = 0;
-	param_get(_paramHandle.sensor_yaw, &sensor_yaw);
-	_params.sensor_yaw = static_cast<enum Rotation>(sensor_yaw);
-
-	param_get(_paramHandle.offset_x, &_params.offset_x);
-	param_get(_paramHandle.offset_y, &_params.offset_y);
-	param_get(_paramHandle.offset_z, &_params.offset_z);
+	ScheduleOnInterval(1000000 / SAMPLE_RATE);
+	return PX4_OK;
 }
 
+int LandingTargetEstimator::task_spawn(int argc, char *argv[])
+{
+	LandingTargetEstimator *instance = new LandingTargetEstimator();
 
-} // namespace landing_target_estimator
+	if (!instance) {
+		PX4_ERR("driver allocation failed");
+		return PX4_ERROR;
+	}
+
+	_object.store(instance);
+	_task_id = task_id_is_work_queue;
+
+	instance->start();
+	return 0;
+}
+
+int LandingTargetEstimator::print_usage(const char *reason)
+{
+	if (reason) {
+		printf("%s\n\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Background process running periodically on the LP work queue which filters and estimates a targets position.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("landing_target_estimator", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+int LandingTargetEstimator::custom_command(int argc, char *argv[])
+{
+	if (!is_running()) {
+		PX4_INFO("not running");
+		return PX4_ERROR;
+	}
+
+	return print_usage("Unrecognized command.");
+}
+
+extern "C" __EXPORT int landing_target_estimator_main(int argc, char *argv[])
+{
+	return LandingTargetEstimator::main(argc, argv);
+}
