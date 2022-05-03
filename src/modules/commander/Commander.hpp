@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,14 +34,17 @@
 #pragma once
 
 /*   Helper classes  */
+#include "Arming/ArmStateMachine/ArmStateMachine.hpp"
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
+#include "Safety.hpp"
 #include "state_machine_helper.h"
 #include "worker_thread.hpp"
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 
@@ -69,6 +72,7 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/estimator_selector_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/estimator_status_flags.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -84,6 +88,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vtol_vehicle_status.h>
@@ -98,6 +103,7 @@ class Commander : public ModuleBase<Commander>, public ModuleParams
 {
 public:
 	Commander();
+	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -130,7 +136,7 @@ private:
 	void battery_status_check();
 
 	bool check_posvel_validity(const bool data_valid, const float data_accuracy, const float required_accuracy,
-				   const hrt_abstime &data_timestamp_us, hrt_abstime *last_fail_time_us, hrt_abstime *probation_time_us,
+				   const hrt_abstime &data_timestamp_us, hrt_abstime &last_fail_time_us,
 				   const bool was_valid);
 
 	void control_status_leds(bool changed, const uint8_t battery_warning);
@@ -157,12 +163,10 @@ private:
 
 	void print_reject_mode(uint8_t main_state);
 
-	void reset_posvel_validity();
-
+	bool hasMovedFromCurrentHomeLocation();
 	bool set_home_position();
 	bool set_home_position_alt_only();
-	bool set_in_air_home_position();
-	bool isGPosGoodForInitializingHomePos(const vehicle_global_position_s &gpos) const;
+	void set_in_air_home_position();
 	void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos) const;
 	void fillLocalHomePos(home_position_s &home, float x, float y, float z, float heading) const;
 	void fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos) const;
@@ -171,8 +175,6 @@ private:
 	void updateHomePositionYaw(float yaw);
 
 	void update_control_mode();
-
-	void UpdateEstimateValidity();
 
 	bool shutdown_if_allowed();
 
@@ -197,8 +199,6 @@ private:
 		(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en,
-		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
-		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>) _param_com_home_in_air,
 
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
@@ -207,8 +207,6 @@ private:
 		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,	/* failsafe response to loss of navigation accuracy */
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _param_com_pos_fs_delay,
-		(ParamInt<px4::params::COM_POS_FS_PROB>) _param_com_pos_fs_prob,
-		(ParamInt<px4::params::COM_POS_FS_GAIN>) _param_com_pos_fs_gain,
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
 		(ParamFloat<px4::params::COM_BAT_ACT_T>) _param_com_bat_act_t,
@@ -227,12 +225,16 @@ private:
 		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
 		(ParamInt<px4::params::RC_MAP_MODE_SW>) _param_rc_map_mode_sw,
 
+		// Quadchute
+		(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
+
 		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
 		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 
 		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
+		(ParamBool<px4::params::COM_FORCE_SAFETY>) _param_com_force_safety,
 		(ParamBool<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
 
 		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
@@ -247,7 +249,6 @@ private:
 		(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_arm_mission_required,
 		(ParamBool<px4::params::COM_ARM_AUTH_REQ>) _param_arm_auth_required,
 		(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_escs_checks_required,
-		(ParamBool<px4::params::COM_REARM_GRACE>) _param_com_rearm_grace,
 
 		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
 		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
@@ -292,9 +293,7 @@ private:
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
-	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
-	const int64_t POSVEL_PROBATION_MAX = 100_s;	/**< maximum probation duration (usec) */
-
+	ArmStateMachine _arm_state_machine{};
 	PreFlightCheck::arm_requirements_t	_arm_requirements{};
 
 	hrt_abstime	_valid_distance_sensor_time_us{0}; /**< Last time that distance sensor data arrived (usec) */
@@ -303,16 +302,15 @@ private:
 	hrt_abstime	_last_lpos_fail_time_us{0};	/**< Last time that the local position validity recovery check failed (usec) */
 	hrt_abstime	_last_lvel_fail_time_us{0};	/**< Last time that the local velocity validity recovery check failed (usec) */
 
-	// Probation times for position and velocity validity checks to pass if failed
-	hrt_abstime	_gpos_probation_time_us = POSVEL_PROBATION_MIN;
-	hrt_abstime	_lpos_probation_time_us = POSVEL_PROBATION_MIN;
-	hrt_abstime	_lvel_probation_time_us = POSVEL_PROBATION_MIN;
-
 	/* class variables used to check for navigation failure after takeoff */
 	hrt_abstime	_time_last_innov_pass{0};	/**< last time velocity and position innovations passed */
 	hrt_abstime	_time_last_innov_fail{0};	/**< last time velocity and position innovations failed */
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
+
+	static constexpr hrt_abstime GPS_VALID_TIME{3_s};
+	Hysteresis _vehicle_gps_position_valid{false};
+	hrt_abstime _vehicle_gps_position_timestamp_last{0};
 
 	bool		_geofence_loiter_on{false};
 	bool		_geofence_rtl_on{false};
@@ -358,13 +356,11 @@ private:
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
-	bool		_last_condition_local_altitude_valid{false};
-	bool		_last_condition_local_position_valid{false};
-	bool		_last_condition_global_position_valid{false};
+	bool		_last_local_altitude_valid{false};
+	bool		_last_local_position_valid{false};
+	bool		_last_global_position_valid{false};
 
 	bool		_last_overload{false};
-
-	unsigned int	_leds_counter{0};
 
 	hrt_abstime	_last_valid_manual_control_setpoint{0};
 
@@ -376,7 +372,11 @@ private:
 	hrt_abstime	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
 	hrt_abstime	_overload_start{0};		///< time when CPU overload started
 
-	uint32_t	_counter{0};
+	hrt_abstime _led_armed_state_toggle{0};
+	hrt_abstime _led_overload_toggle{0};
+
+	hrt_abstime _last_termination_message_sent{0};
+
 	uint8_t		_heading_reset_counter{0};
 
 	bool		_status_changed{true};
@@ -384,12 +384,10 @@ private:
 	bool		_was_armed{false};
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
-	bool		_should_set_home_on_takeoff{true};
 	bool		_system_power_usb_connected{false};
 
-	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
-	vehicle_land_detected_s	_land_detector{};
+	vehicle_land_detected_s	_vehicle_land_detected{};
 	safety_s		_safety{};
 	vtol_vehicle_status_s	_vtol_status{};
 
@@ -402,24 +400,28 @@ private:
 	vehicle_status_s        _status{};
 	vehicle_status_flags_s  _status_flags{};
 
+	Safety _safety_handler{};
+
 	WorkerThread _worker_thread;
 
 	// Subscriptions
 	uORB::Subscription					_action_request_sub {ORB_ID(action_request)};
 	uORB::Subscription					_actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
-	uORB::Subscription					_cmd_sub {ORB_ID(vehicle_command)};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription					_estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription					_estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
-	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription					_vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_rtl_time_estimate_sub{ORB_ID(rtl_time_estimate)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription					_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription					_vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription					_vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
 	uORB::Subscription					_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 	uORB::Subscription					_wind_sub{ORB_ID(wind)};
 
@@ -433,8 +435,7 @@ private:
 	uORB::Subscription					_power_button_state_sub {ORB_ID(power_button_state)};
 #endif // BOARD_HAS_POWER_CONTROL
 
-	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
-	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
+	uORB::SubscriptionData<estimator_status_flags_s>	_estimator_status_flags_sub{ORB_ID(estimator_status_flags)};
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
@@ -455,4 +456,7 @@ private:
 	uORB::Publication<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
+
+	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
 };

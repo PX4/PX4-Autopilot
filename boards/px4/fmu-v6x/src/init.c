@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -173,12 +173,6 @@ stm32_boardinitialize(void)
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
 	px4_gpio_init(gpio, arraySize(gpio));
 
-	/* configure SPI interfaces (we can do this here as long as we only have a single SPI hw config version -
-	 * otherwise we need to move this after board_determine_hw_info()) */
-	_Static_assert(BOARD_NUM_SPI_CFG_HW_VERSIONS == 1, "Need to move the SPI initialization for multi-version support");
-
-	stm32_spiinitialize();
-
 	/* configure USB interfaces */
 
 	stm32_usbinitialize();
@@ -212,14 +206,12 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
-	board_spi_reset(10, 0xffff);
 	VDD_3V3_SENSORS4_EN(true);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
 
@@ -235,6 +227,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	} else {
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
+
+	stm32_spiinitialize();
+
+	board_spi_reset(10, 0xffff);
 
 	/* configure the DMA allocator */
 

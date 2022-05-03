@@ -27,4 +27,5 @@ exec find boards msg src platforms test \
     -path src/lib/crypto/monocypher -prune -o \
     -path src/lib/crypto/libtomcrypt -prune -o \
     -path src/lib/crypto/libtommath -prune -o \
+    -path src/modules/microdds_client/Micro-XRCE-DDS-Client -prune -o \
     -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) | grep $PATTERN

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -113,3 +113,20 @@ PARAM_DEFINE_FLOAT(HTE_VXY_THR, 10.0);
  * @group Hover Thrust Estimator
  */
 PARAM_DEFINE_FLOAT(HTE_VZ_THR, 2.0);
+
+/**
+ * Max deviation from MPC_THR_HOVER
+ *
+ * Defines the range of the hover thrust estimate around MPC_THR_HOVER.
+ * A value of 0.2 with MPC_THR_HOVER at 0.5 results in a range of [0.3, 0.7].
+ *
+ * Set to a large value if the vehicle operates in varying physical conditions that
+ * affect the required hover thrust strongly (e.g. differently sized payloads).
+ *
+ * @decimal 2
+ * @min 0.01
+ * @max 0.4
+ * @unit normalized_thrust
+ * @group Hover Thrust Estimator
+ */
+PARAM_DEFINE_FLOAT(HTE_THR_RANGE, 0.2);

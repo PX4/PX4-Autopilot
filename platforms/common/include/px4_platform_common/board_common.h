@@ -145,7 +145,10 @@
 #  define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
 #  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK_VALID}
 #elif BOARD_NUMBER_BRICKS == 2
-#  if  !defined(BOARD_NUMBER_DIGITAL_BRICKS)
+#  if  defined(BOARD_NUMBER_DIGITAL_BRICKS)
+#    define BOARD_BATT_V_LIST       {-1, -1}
+#    define BOARD_BATT_I_LIST       {-1, -1}
+#  else
 #    define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL}
 #    define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL}
 #  endif
@@ -499,7 +502,14 @@ static inline bool board_rc_invert_input(const char *device, bool invert) { retu
  *
  ************************************************************************************/
 
-#if defined(GPIO_OTGFS_VBUS)
+#if defined(__PX4_NUTTX) && !defined(CONFIG_BUILD_FLAT)
+inline static int board_read_VBUS_state(void)
+{
+	platformiocvbusstate_t state = {false};
+	boardctl(PLATFORMIOCVBUSSTATE, (uintptr_t)&state);
+	return state.ret;
+}
+#elif defined(GPIO_OTGFS_VBUS)
 #  define board_read_VBUS_state() (px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1)
 #else
 int board_read_VBUS_state(void);

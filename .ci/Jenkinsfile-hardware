@@ -73,10 +73,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt || true'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cubepilot_cubeorange_test/cubepilot_cubeorange_test.elf || true'
                 }
               }
@@ -145,10 +143,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt || true'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/cuav_x7pro_test/cuav_x7pro_test.elf || true'
                 }
               }
@@ -217,10 +213,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt || true'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf || true'
                 }
               }
@@ -288,10 +282,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt || true'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4_test/px4_fmu-v4_test.elf || true'
                 }
               }
@@ -360,10 +352,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt || true'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v4pro_test/px4_fmu-v4pro_test.elf || true'
                 }
               }
@@ -452,10 +442,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt || true'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_debug/px4_fmu-v5_debug.elf || true'
                 }
               }
@@ -536,10 +524,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt || true'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf || true'
                 }
               }
@@ -608,10 +594,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt || true'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf || true'
                 }
               }
@@ -680,10 +664,8 @@ pipeline {
                 }
               }
               post {
-                failure {
-                  sh 'cat /tmp/pyserial_spy_file.txt || true'
-                }
                 always {
+                  sh 'cat /tmp/pyserial_spy_file.txt || true'
                   sh './platforms/nuttx/Debug/jlink_gdb_backtrace_simple.sh build/nxp_fmuk66-v3_test/nxp_fmuk66-v3_test.elf || true'
                 }
               }
@@ -723,17 +705,20 @@ void quickCalibrate() {
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "gyro_calibration status || true"'
 
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate accel quick"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate accel quick; sleep 1"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_ACC*"'
 
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate gyro"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate gyro; sleep 2"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_GYRO*"'
 
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate level"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate level; sleep 2"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show SENS*"'
 
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate mag quick"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate mag quick; sleep 1"'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_MAG*"'
+
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "commander calibrate baro; sleep 5"'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_BARO*"'
 
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "param show CAL_*"' // parameters after
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "sensors status"'
@@ -809,7 +794,7 @@ void resetParameters() {
 void runTests() {
 
   // test loading a range of airframes
-  sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 1000 1001 2100 3000 4001 4018 6001 8001 10016'
+  sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 1000 1001 2100 3000 4001 6001 8001 10016'
 
   resetParameters()
 
@@ -879,7 +864,7 @@ void printTopics() {
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener cpuload" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener distance_sensor" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener ekf2_timestamps" || true'
-  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener ekf_gps_drift" || true'
+  sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener estimator_gps_status" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener esc_status" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener estimator_attitude" || true'
   sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "listener estimator_baro_bias" || true'

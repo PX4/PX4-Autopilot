@@ -206,6 +206,8 @@ AirspeedModule::AirspeedModule():
 
 	_perf_elapsed = perf_alloc(PC_ELAPSED, MODULE_NAME": elapsed");
 	_airspeed_validated_pub.advertise();
+	_wind_est_pub[0].advertise();
+	_wind_est_pub[1].advertise();
 }
 
 AirspeedModule::~AirspeedModule()
@@ -593,9 +595,13 @@ void AirspeedModule::select_airspeed_and_publish()
 
 	// print warning or info, depending of whether airspeed got declared invalid or healthy
 	if (_valid_airspeed_index != _prev_airspeed_index &&
-	    (_number_of_airspeed_sensors > 0 || !_vehicle_land_detected.landed) &&
-	    _valid_airspeed_index != _prev_airspeed_index) {
-		if (_prev_airspeed_index > 0) {
+	    _number_of_airspeed_sensors > 0) {
+		if (_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED && _prev_airspeed_index > 0) {
+			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Check connection and reboot.\t");
+			events::send(events::ID("airspeed_selector_sensor_failure_disarmed"), events::Log::Critical,
+				     "Airspeed sensor failure detected. Check connection and reboot");
+
+		} else if (_prev_airspeed_index > 0) {
 			mavlink_log_critical(&_mavlink_log_pub, "Airspeed sensor failure detected. Return to launch (RTL) is advised.\t");
 			events::send(events::ID("airspeed_selector_sensor_failure"), events::Log::Critical,
 				     "Airspeed sensor failure detected. Return to launch (RTL) is advised");

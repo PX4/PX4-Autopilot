@@ -51,6 +51,7 @@
 #include "navigator_mode.h"
 #include "rtl.h"
 #include "takeoff.h"
+#include "vtol_takeoff.h"
 
 #include "navigation.h"
 
@@ -85,7 +86,7 @@ using namespace time_literals;
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 8
+#define NAVIGATOR_MODE_ARRAY_SIZE 9
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
@@ -171,9 +172,9 @@ public:
 
 	void reset_vroi() { _vroi = {}; }
 
-	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
+	bool home_alt_valid() { return (_home_pos.valid_alt); }
 
-	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos && _home_pos.valid_lpos); }
+	bool home_global_position_valid() { return (_home_pos.valid_alt && _home_pos.valid_hpos); }
 
 	Geofence &get_geofence() { return _geofence; }
 
@@ -319,6 +320,8 @@ public:
 	void acquire_gimbal_control();
 	void release_gimbal_control();
 
+	void 		calculate_breaking_stop(double &lat, double &lon, float &yaw);
+
 private:
 
 	struct traffic_buffer_s {
@@ -386,7 +389,8 @@ private:
 	Mission		_mission;			/**< class that handles the missions */
 	Loiter		_loiter;			/**< class that handles loiter */
 	Takeoff		_takeoff;			/**< class for handling takeoff commands */
-	Land		_land;				/**< class for handling land commands */
+	VtolTakeoff	_vtol_takeoff;			/**< class for handling VEHICLE_CMD_NAV_VTOL_TAKEOFF command */
+	Land		_land;			/**< class for handling land commands */
 	PrecLand	_precland;			/**< class for handling precision land commands */
 	RTL 		_rtl;				/**< class that handles RTL */
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */

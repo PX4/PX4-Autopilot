@@ -73,6 +73,6 @@ private:
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticPressure, AirPressureCbBinder> _sub_air_pressure_data;
 	uavcan::Subscriber<uavcan::equipment::air_data::StaticTemperature, AirTemperatureCbBinder> _sub_air_temperature_data;
 
-	float last_temperature_kelvin{0.0f};
+	float _last_temperature_kelvin{NAN};
 
 };

@@ -96,11 +96,6 @@ void Mission::mission_init()
 void
 Mission::on_inactive()
 {
-	/* We need to reset the mission cruising speed, otherwise the
-	 * mission velocity which might have been set using mission items
-	 * is used for missions such as RTL. */
-	_navigator->set_cruising_speed();
-
 	// if we were executing an landing but have been inactive for 2 seconds, then make the landing invalid
 	// this prevents RTL to just continue at the current mission index
 	if (_navigator->getMissionLandingInProgress() && (hrt_absolute_time() - _time_mission_deactivated) > 2_s) {
@@ -108,7 +103,7 @@ Mission::on_inactive()
 	}
 
 	/* Without home a mission can't be valid yet anyway, let's wait. */
-	if (!_navigator->home_position_valid()) {
+	if (!_navigator->home_global_position_valid()) {
 		return;
 	}
 
@@ -312,8 +307,10 @@ Mission::on_active()
 bool
 Mission::set_current_mission_index(uint16_t index)
 {
-	if (_navigator->get_mission_result()->valid &&
-	    (index != _current_mission_index) && (index < _mission.count)) {
+	if (index == _current_mission_index) {
+		return true; // nothing to do, so return true
+
+	} else if (_navigator->get_mission_result()->valid && (index < _mission.count)) {
 
 		_current_mission_index = index;
 
@@ -1741,7 +1738,7 @@ Mission::set_current_mission_item()
 void
 Mission::check_mission_valid(bool force)
 {
-	if ((!_home_inited && _navigator->home_position_valid()) || force) {
+	if ((!_home_inited && _navigator->home_global_position_valid()) || force) {
 
 		MissionFeasibilityChecker _missionFeasibilityChecker(_navigator);
 
@@ -1754,7 +1751,7 @@ Mission::check_mission_valid(bool force)
 		_navigator->get_mission_result()->seq_total = _mission.count;
 		_navigator->increment_mission_instance_count();
 		_navigator->set_mission_result_updated();
-		_home_inited = _navigator->home_position_valid();
+		_home_inited = _navigator->home_global_position_valid();
 
 		// find and store landing start marker (if available)
 		find_mission_land_start();

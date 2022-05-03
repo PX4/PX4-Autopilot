@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,6 +61,7 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/rc/dsm.h>
 #include <lib/systemlib/mavlink_log.h>
+#include <lib/button/ButtonPublisher.hpp>
 
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -71,7 +72,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/input_rc.h>
-#include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/px4io_status.h>
@@ -177,8 +177,6 @@ private:
 	unsigned		_max_rc_input{0};		///< Maximum receiver channels supported by PX4IO
 	unsigned		_max_transfer{16};		///< Maximum number of I2C transfers supported by PX4IO
 
-	uint64_t		_rc_last_valid{0};		///< last valid timestamp
-
 	int			_class_instance{-1};
 
 	hrt_abstime		_poll_last{0};
@@ -204,15 +202,17 @@ private:
 
 	hrt_abstime             _last_status_publish{0};
 
+	uint16_t 		_rc_valid_update_count{0};
+
 	bool			_param_update_force{true};	///< force a parameter update
 	bool			_timer_rates_configured{false};
 
 	/* advertised topics */
 	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
-	uORB::PublicationMulti<safety_s>	_to_safety{ORB_ID(safety)};
 	uORB::Publication<px4io_status_s>	_px4io_status_pub{ORB_ID(px4io_status)};
 
-	safety_s _safety{};
+	ButtonPublisher	_button_publisher;
+	bool _previous_safety_off{false};
 
 	bool			_lockdown_override{false};	///< override the safety lockdown
 
@@ -379,8 +379,6 @@ PX4IO::~PX4IO()
 bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			  unsigned num_outputs, unsigned num_control_groups_updated)
 {
-	SmartLock lock_guard(_lock);
-
 	if (!_test_fmu_fail) {
 		/* output to the servos */
 		io_reg_set(PX4IO_PAGE_DIRECT_PWM, 0, outputs, num_outputs);
@@ -391,6 +389,8 @@ bool PX4IO::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 
 int PX4IO::init()
 {
+	SmartLock lock_guard(_lock);
+
 	/* do regular cdev init */
 	int ret = CDev::init();
 
@@ -479,6 +479,9 @@ int PX4IO::init()
 	/* set safety to off if circuit breaker enabled */
 	if (circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY)) {
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, PX4IO_FORCE_SAFETY_MAGIC);
+
+	} else {
+		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_ON, PX4IO_FORCE_SAFETY_MAGIC);
 	}
 
 	/* try to claim the generic PWM output device node as well - it's OK if we fail at this */
@@ -522,6 +525,8 @@ void PX4IO::updateFailsafe()
 
 void PX4IO::Run()
 {
+	SmartLock lock_guard(_lock);
+
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -542,8 +547,6 @@ void PX4IO::Run()
 	if (_param_sys_hitl.get() <= 0) {
 		_mixing_output.update();
 	}
-
-	SmartLock lock_guard(_lock);
 
 	if (hrt_elapsed_time(&_poll_last) >= 20_ms) {
 		/* run at 50 */
@@ -1000,16 +1003,14 @@ int PX4IO::io_handle_status(uint16_t status)
 	 */
 	const bool safety_off = status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 
-	// publish immediately on change, otherwise at 1 Hz
-	if ((hrt_elapsed_time(&_safety.timestamp) >= 1_s)
-	    || (_safety.safety_off != safety_off)) {
-
-		_safety.safety_switch_available = true;
-		_safety.safety_off = safety_off;
-		_safety.timestamp = hrt_absolute_time();
-
-		_to_safety.publish(_safety);
+	/* px4io board will change safety_off from false to true and stay like that until the vehicle is rebooted
+	 * where safety will change back to false. Here we are triggering the safety button event once.
+	 * TODO: change px4io firmware to act on the event. This will enable the "force safety on disarming" feature. */
+	if (_previous_safety_off != safety_off) {
+		_button_publisher.safetyButtonTriggerEvent();
 	}
+
+	_previous_safety_off = safety_off;
 
 	return ret;
 }
@@ -1199,7 +1200,16 @@ int PX4IO::io_get_status()
 
 int PX4IO::io_publish_raw_rc()
 {
+	const uint16_t rc_valid_update_count = io_reg_get(PX4IO_PAGE_RAW_RC_INPUT, PX4IO_P_RAW_FRAME_COUNT);
+	const bool rc_updated = (rc_valid_update_count != _rc_valid_update_count);
+	_rc_valid_update_count = rc_valid_update_count;
+
+	if (!rc_updated) {
+		return 0;
+	}
+
 	input_rc_s input_rc{};
+	input_rc.timestamp_last_signal = hrt_absolute_time();
 
 	/* set the RC status flag ORDER MATTERS! */
 	input_rc.rc_lost = !(_status & PX4IO_P_STATUS_FLAGS_RC_OK);
@@ -1259,12 +1269,6 @@ int PX4IO::io_publish_raw_rc()
 	input_rc.rc_total_frame_count = regs[PX4IO_P_RAW_FRAME_COUNT];
 	input_rc.channel_count = channel_count;
 
-	/* rc_lost has to be set before the call to this function */
-	if ((channel_count > 0) && !input_rc.rc_lost && !input_rc.rc_failsafe) {
-		_rc_last_valid = input_rc.timestamp;
-	}
-
-	input_rc.timestamp_last_signal = _rc_last_valid;
 
 	/* FIELDS NOT SET HERE */
 	/* input_rc.input_source is set after this call XXX we might want to mirror the flags in the RC struct */
@@ -1310,18 +1314,12 @@ int PX4IO::io_publish_raw_rc()
 
 	} else if (_status & PX4IO_P_STATUS_FLAGS_RC_ST24) {
 		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_ST24;
-
-	} else {
-		input_rc.input_source = input_rc_s::RC_INPUT_SOURCE_UNKNOWN;
-
-		/* only keep publishing RC input if we ever got a valid input */
-		if (_rc_last_valid == 0) {
-			/* we have never seen valid RC signals, abort */
-			return OK;
-		}
 	}
 
-	_to_input_rc.publish(input_rc);
+	if (input_rc.input_source != input_rc_s::RC_INPUT_SOURCE_UNKNOWN) {
+
+		_to_input_rc.publish(input_rc);
+	}
 
 	return ret;
 }
@@ -1700,7 +1698,7 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case MIXERIOCRESET:
 		PX4_DEBUG("MIXERIOCRESET");
-		_mixing_output.resetMixerThreadSafe();
+		_mixing_output.resetMixer();
 		break;
 
 	case MIXERIOCLOADBUF: {
@@ -1708,7 +1706,7 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_output.loadMixer(buf, buflen);
 
 			break;
 		}

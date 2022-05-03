@@ -46,7 +46,7 @@ param set-default COM_RC_LOSS_T 3
 
 
 # ekf2
-param set-default EKF2_AID_MASK 35
+param set-default EKF2_AID_MASK 33
 param set-default EKF2_BARO_DELAY 0
 param set-default EKF2_BARO_NOISE 2.0
 
@@ -164,6 +164,8 @@ param set-default RC_MAP_AUX2       5
 param set-default RC_MAP_AUX3       10
 param set-default RC_MAP_AUX4       8
 param set-default RC_MAP_FLTMODE    6
+param set-default RC_MAP_RETURN_SW  7
+
 param set-default RC1_TRIM          1000
 
 

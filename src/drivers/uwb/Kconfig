@@ -1,0 +1,9 @@
+menu "UWB"
+    menuconfig COMMON_UWB
+        bool "common UWB Drivers"
+        default n
+        select DRIVERS_UWB_UWB_SR150
+        ---help---
+            Enable support for uwb drivers
+    rsource "*/Kconfig"
+endmenu

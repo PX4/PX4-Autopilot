@@ -41,12 +41,14 @@ px4_add_library(PreFlightCheck
 	checks/baroCheck.cpp
 	checks/imuConsistencyCheck.cpp
 	checks/airspeedCheck.cpp
+	checks/distanceSensorChecks.cpp
 	checks/rcCalibrationCheck.cpp
 	checks/powerCheck.cpp
 	checks/airframeCheck.cpp
 	checks/ekf2Check.cpp
 	checks/failureDetectorCheck.cpp
 	checks/manualControlCheck.cpp
+	checks/modeCheck.cpp
 	checks/cpuResourceCheck.cpp
 	checks/sdcardCheck.cpp
 	checks/parachuteCheck.cpp

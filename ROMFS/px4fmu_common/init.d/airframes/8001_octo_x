@@ -25,6 +25,31 @@
 
 . ${R}etc/init.d/rc.mc_defaults
 
+# MAV_TYPE_OCTOROTOR 14
+param set-default MAV_TYPE 14
+
+param set-default CA_ROTOR_COUNT 8
+param set-default CA_ROTOR0_KM -0.05
+param set-default CA_ROTOR0_PX 0.46
+param set-default CA_ROTOR0_PY 0.19
+param set-default CA_ROTOR1_KM -0.05
+param set-default CA_ROTOR1_PX -0.46
+param set-default CA_ROTOR1_PY -0.19
+param set-default CA_ROTOR2_PX 0.19
+param set-default CA_ROTOR2_PY 0.46
+param set-default CA_ROTOR3_PX -0.46
+param set-default CA_ROTOR3_PY 0.19
+param set-default CA_ROTOR4_PX 0.46
+param set-default CA_ROTOR4_PY -0.19
+param set-default CA_ROTOR5_PX -0.19
+param set-default CA_ROTOR5_PY -0.46
+param set-default CA_ROTOR6_KM -0.05
+param set-default CA_ROTOR6_PX 0.19
+param set-default CA_ROTOR6_PY -0.46
+param set-default CA_ROTOR7_KM -0.05
+param set-default CA_ROTOR7_PX -0.19
+param set-default CA_ROTOR7_PY 0.46
+
 set MIXER octo_x
 
 set PWM_OUT 12345678

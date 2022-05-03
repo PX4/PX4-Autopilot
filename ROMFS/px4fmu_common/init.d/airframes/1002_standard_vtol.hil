@@ -49,7 +49,6 @@ param set-default MPC_Z_VEL_MAX_DN 1.5
 
 param set-default NAV_ACC_RAD 5
 param set-default NAV_DLL_ACT 2
-param set-default NAV_LOITER_RAD 80
 
 param set-default RTL_DESCEND_ALT 10
 param set-default RTL_RETURN_ALT 30
@@ -60,6 +59,37 @@ param set-default VT_F_TRANS_THR 0.75
 param set-default VT_MOT_ID 1234
 param set-default VT_FW_MOT_OFFID 1234
 param set-default VT_TYPE 2
+
+param set-default CA_AIRFRAME 2
+param set-default CA_ROTOR_COUNT 5
+param set-default CA_ROTOR0_PX 0.15
+param set-default CA_ROTOR0_PY 0.15
+param set-default CA_ROTOR1_PX -0.15
+param set-default CA_ROTOR1_PY -0.15
+param set-default CA_ROTOR2_PX 0.15
+param set-default CA_ROTOR2_PY -0.15
+param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR3_PX -0.15
+param set-default CA_ROTOR3_PY 0.15
+param set-default CA_ROTOR3_KM -0.05
+param set-default CA_ROTOR4_AX 1.0
+param set-default CA_ROTOR4_AZ 0.0
+param set-default CA_ROTOR4_PX 0.2
+
+param set-default CA_SV_CS_COUNT 3
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default CA_SV_CS2_TYPE 3
+
+param set-default HIL_ACT_FUNC1 101
+param set-default HIL_ACT_FUNC2 102
+param set-default HIL_ACT_FUNC3 103
+param set-default HIL_ACT_FUNC4 104
+param set-default HIL_ACT_FUNC5 105
+param set-default HIL_ACT_FUNC6 201
+param set-default HIL_ACT_FUNC7 202
+param set-default HIL_ACT_FUNC8 203
 
 
 param set SYS_HITL 1
@@ -73,7 +103,7 @@ param set-default CBRK_SUPPLY_CHK 894281
 param set-default COM_PREARM_MODE 0
 param set-default CBRK_IO_SAFETY 22027
 
-set MAV_TYPE 22
+param set-default MAV_TYPE 22
 
 set MIXER standard_vtol_hitl
 

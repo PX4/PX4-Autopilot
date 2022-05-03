@@ -53,7 +53,7 @@ public:
 	ActuatorEffectivenessStandardVTOL(ModuleParams *parent);
 	virtual ~ActuatorEffectivenessStandardVTOL() = default;
 
-	bool getEffectivenessMatrix(Configuration &configuration, bool force) override;
+	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
 
 	const char *name() const override { return "Standard VTOL"; }
 
@@ -80,7 +80,7 @@ public:
 	uint32_t getStoppedMotors() const override { return _stopped_motors; }
 
 private:
-	ActuatorEffectivenessRotors _mc_rotors;
+	ActuatorEffectivenessRotors _rotors;
 	ActuatorEffectivenessControlSurfaces _control_surfaces;
 
 	uint32_t _mc_motors_mask{}; ///< mc motors (stopped during forward flight)
@@ -89,9 +89,5 @@ private:
 	int _first_control_surface_idx{0}; ///< applies to matrix 1
 
 	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_0)};
-
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::CA_STDVTOL_N_P>) _param_ca_stdvtol_n_p ///< number of pushers
-	)
 
 };

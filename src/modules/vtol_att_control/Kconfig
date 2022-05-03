@@ -3,3 +3,10 @@ menuconfig MODULES_VTOL_ATT_CONTROL
 	default n
 	---help---
 		Enable support for vtol_att_control
+
+menuconfig USER_VTOL_ATT_CONTROL
+	bool "vtol_att_control running as userspace module"
+	default n
+	depends on BOARD_PROTECTED && MODULES_VTOL_ATT_CONTROL
+	---help---
+		Put vtol_att_control in userspace memory

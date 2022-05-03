@@ -37,8 +37,7 @@ using namespace time_literals;
 
 ICP10100::ICP10100(const I2CSPIDriverConfig &config) :
 	I2C(config),
-	I2CSPIDriver(config),
-	_px4_baro(get_device_id())
+	I2CSPIDriver(config)
 {
 }
 
@@ -236,12 +235,17 @@ ICP10100::RunImpl()
 
 				const hrt_abstime nowx = hrt_absolute_time();
 				float temperature = _temperature_C;
-				float pressure = _pressure_Pa; // to Pascal
-				pressure = pressure / 100.0f; // to mbar
+				float pressure = _pressure_Pa;
 
-				_px4_baro.set_error_count(perf_event_count(_bad_transfer_perf));
-				_px4_baro.set_temperature(temperature);
-				_px4_baro.update(nowx, pressure);
+				// publish
+				sensor_baro_s sensor_baro{};
+				sensor_baro.timestamp_sample = now;
+				sensor_baro.device_id = get_device_id();
+				sensor_baro.pressure = pressure;
+				sensor_baro.temperature = temperature;
+				sensor_baro.error_count = perf_event_count(_bad_transfer_perf);
+				sensor_baro.timestamp = hrt_absolute_time();
+				_sensor_baro_pub.publish(sensor_baro);
 
 				success = true;
 

@@ -46,10 +46,10 @@ namespace px4
 namespace logger
 {
 
-bool watchdog_update(watchdog_data_t &watchdog_data)
+bool watchdog_update(watchdog_data_t &watchdog_data, bool semaphore_value_saturated)
 {
 
-#ifdef __PX4_NUTTX
+#if defined(__PX4_NUTTX) && defined(CONFIG_BUILD_FLAT)
 
 	if (system_load.initialized && watchdog_data.logger_main_task_index >= 0
 	    && watchdog_data.logger_writer_task_index >= 0) {
@@ -62,7 +62,9 @@ bool watchdog_update(watchdog_data_t &watchdog_data)
 			// When the writer is waiting for an SD transfer, it is not in ready state, thus a long dropout
 			// will not trigger it. The longest period in ready state I measured was around 70ms,
 			// after a param change.
-			// We only check the log writer because it runs at lower priority than the main thread.
+			// Additionally we need to check the main thread as well, because if the main thread gets stalled as well
+			// while the writer is idle (no active write), it would not trigger.
+			// We do that by checking if the scheduling semaphore counter is saturated for a certain duration.
 			// No need to lock the tcb access, since we are in IRQ context
 
 			// update the timestamp if it has been scheduled recently
@@ -100,7 +102,11 @@ bool watchdog_update(watchdog_data_t &watchdog_data)
 
 #endif
 
-			if (now - watchdog_data.ready_to_run_timestamp > 1_s) {
+			if (!semaphore_value_saturated) {
+				watchdog_data.sem_counter_saturated_start = now;
+			}
+
+			if (now - watchdog_data.sem_counter_saturated_start > 3_s || now - watchdog_data.ready_to_run_timestamp > 1_s) {
 				// boost the priority to make sure the logger continues to write to the log.
 				// Note that we never restore the priority, to keep the logic simple and because it is
 				// an event that must not occur under normal circumstances (if it does, there's a bug
@@ -133,7 +139,7 @@ bool watchdog_update(watchdog_data_t &watchdog_data)
 
 void watchdog_initialize(const pid_t pid_logger_main, const pthread_t writer_thread, watchdog_data_t &watchdog_data)
 {
-#ifdef __PX4_NUTTX
+#if defined(__PX4_NUTTX) && defined(CONFIG_BUILD_FLAT)
 
 	// The pthread_t ID is equal to the PID on NuttX
 	const pthread_t pid_logger_writer = writer_thread;

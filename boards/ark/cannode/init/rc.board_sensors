@@ -1,0 +1,118 @@
+#!/bin/sh
+#
+# board sensors init
+#------------------------------------------------------------------------------
+icm42688p -R 0 -s start
+
+if param compare -s SENS_EN_BATT 1
+then
+	batt_smbus start -X
+fi
+
+# Lidar-Lite on I2C
+if param compare -s SENS_EN_LL40LS 2
+then
+	ll40ls start -X
+fi
+
+# mappydot lidar sensor
+if param compare -s SENS_EN_MPDT 1
+then
+	mappydot start -X
+fi
+
+# mb12xx sonar sensor
+if param greater -s SENS_EN_MB12XX 0
+then
+	mb12xx start -X
+fi
+
+# Lightware i2c lidar sensor
+if param greater -s SENS_EN_SF1XX 0
+then
+	lightware_laser_i2c start -X
+fi
+
+# vl53l1x i2c distance sensor
+if param compare -s SENS_EN_VL53L1X 1
+then
+	vl53l1x start -X
+fi
+
+# ADIS16448 spi external IMU
+if param compare -s SENS_EN_ADIS164X 1
+then
+	if param compare -s SENS_OR_ADIS164X 0
+	then
+		adis16448 -S start
+	fi
+	if param compare -s SENS_OR_ADIS164X 4
+	then
+		adis16448 -S start -R 4
+	fi
+fi
+
+# Eagle Tree airspeed sensor external I2C
+if param compare -s SENS_EN_ETSASPD 1
+then
+	ets_airspeed start -X
+fi
+
+# Sensirion SDP3X differential pressure sensor external I2C
+if param compare -s SENS_EN_SDP3X 1
+then
+	if ! sdp3x start -X
+	then
+		# try another common address
+		sdp3x start -X -a 0x22
+	fi
+fi
+
+# SHT3x temperature and hygrometer sensor, external I2C
+if param compare -s SENS_EN_SHT3X 1
+then
+	sht3x start -X
+	sht3x start -X -a 0x45
+fi
+
+# TE MS4525DO differential pressure sensor external I2C
+if param compare -s SENS_EN_MS4525DO 1
+then
+	ms4525do start -X
+fi
+
+# TE MS5525DSO differential pressure sensor external I2C
+if param compare -s SENS_EN_MS5525DS 1
+then
+	ms5525dso start -X
+fi
+
+# IR-LOCK sensor external I2C
+if param compare -s SENS_EN_IRLOCK 1
+then
+	irlock start -X
+fi
+
+# SPL06 sensor external I2C
+if param compare -s SENS_EN_SPL06 1
+then
+	spl06 -X start
+	spl06 -X -a 0x77 start
+fi
+
+gps start -d /dev/ttyS0 -p ubx
+
+# probe for optional external I2C devices
+icm20948_i2c_passthrough -X -q start
+
+# compasses
+hmc5883 -T -X -q start
+ist8308 -X -q start
+ist8310 -X -q start
+lis2mdl -X -q start
+lis3mdl -X -q start
+qmc5883l -X -q start
+rm3100 -X -q start
+
+# start last (wait for possible icm20948 passthrough mode)
+ak09916 -X -q start

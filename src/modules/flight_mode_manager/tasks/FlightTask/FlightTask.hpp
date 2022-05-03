@@ -167,6 +167,7 @@ public:
 	 * This method does nothing, each flighttask which wants to use the yaw handler needs to override this method.
 	 */
 	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {}
+	virtual void overrideCruiseSpeed(const float cruise_speed_m_s) {}
 
 	void updateVelocityControllerFeedback(const matrix::Vector3f &vel_sp,
 					      const matrix::Vector3f &acc_sp)

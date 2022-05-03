@@ -88,7 +88,7 @@ public:
 private:
 	void Run() override;
 
-	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
+	TakeoffHandling _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 
@@ -214,7 +214,7 @@ private:
 	 * Parameter update can be forced when argument is true.
 	 * @param force forces parameter update.
 	 */
-	int parameters_update(bool force);
+	void parameters_update(bool force);
 
 	/**
 	 * Check for validity of positon/velocity states.

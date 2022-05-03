@@ -57,7 +57,12 @@ public:
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
+		// run briefly to init, then manually set in air and at rest (default for a real vehicle)
 		_ekf->init(0);
+		_sensor_simulator.runSeconds(0.1);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+
 		_sensor_simulator.runSeconds(2);
 	}
 
@@ -69,7 +74,11 @@ public:
 	void runFlowAndRngScenario(const float rng_height, const float flow_height)
 	{
 		_sensor_simulator.startGps();
+
 		_ekf->set_min_required_gps_health_time(1e6);
+		_ekf->set_in_air_status(false);
+		_ekf->set_vehicle_at_rest(true);
+
 		_ekf_wrapper.enableGpsFusion();
 		_ekf_wrapper.setBaroHeight();
 		_sensor_simulator.runSeconds(2); // Run to pass the GPS checks
@@ -100,32 +109,29 @@ public:
 		_sensor_simulator.startFlow();
 
 		_ekf->set_in_air_status(true);
-		_sensor_simulator.runSeconds(7);
+		_ekf->set_vehicle_at_rest(false);
+
+		_sensor_simulator.runSeconds(10);
 	}
 };
 
 TEST_F(EkfTerrainTest, setFlowAndRangeTerrainFusion)
 {
 	// WHEN: simulate being 5m above ground
-	// By default, both rng and flow aiding are active
 	const float simulated_distance_to_ground = 1.f;
-	_sensor_simulator._rng.setData(simulated_distance_to_ground, 100);
-	_sensor_simulator._rng.setLimits(0.1f, 9.f);
-	_sensor_simulator.startRangeFinder();
-	_ekf->set_in_air_status(true);
-	_sensor_simulator.runSeconds(1.5f);
+	runFlowAndRngScenario(simulated_distance_to_ground, simulated_distance_to_ground);
 
 	// THEN: By default, both rng and flow aiding are active
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainRngFusion());
-	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainFlowFusion());
+	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainFlowFusion());
 	const float estimated_distance_to_ground = _ekf->getTerrainVertPos();
-	EXPECT_FLOAT_EQ(estimated_distance_to_ground, simulated_distance_to_ground);
+	EXPECT_NEAR(estimated_distance_to_ground, simulated_distance_to_ground, 0.01);
 
 	// WHEN: rng fusion is disabled
 	_ekf_wrapper.disableTerrainRngFusion();
-	_sensor_simulator.runSeconds(0.2);
+	_sensor_simulator.runSeconds(5.1);
 
-	// THEN: only rng fusion should be disabled
+	// THEN: rng fusion should be disabled and flow fusion should take over
 	EXPECT_FALSE(_ekf_wrapper.isIntendingTerrainRngFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingTerrainFlowFusion());
 

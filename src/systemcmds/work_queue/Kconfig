@@ -3,3 +3,10 @@ menuconfig SYSTEMCMDS_WORK_QUEUE
 	default n
 	---help---
 		Enable support for work_queue
+
+menuconfig USER_WORK_QUEUE
+	bool "work_queue running as userspace module"
+	default y
+	depends on BOARD_PROTECTED && SYSTEMCMDS_WORK_QUEUE
+	---help---
+		Put work_queue in userspace memory

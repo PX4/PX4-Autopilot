@@ -88,8 +88,7 @@ public:
 	 *
 	 * @return true: system is obeying fence, false: system is violating fence
 	 */
-	bool check(const vehicle_global_position_s &global_position,
-		   const vehicle_gps_position_s &gps_position, const home_position_s home_pos, bool home_position_set);
+	bool check(const vehicle_global_position_s &global_position, const vehicle_gps_position_s &gps_position);
 
 	/**
 	 * Return whether a mission item obeys the geofence.
@@ -144,6 +143,7 @@ public:
 
 	float getMaxHorDistanceHome() { return _param_gf_max_hor_dist.get(); }
 	float getMaxVerDistanceHome() { return _param_gf_max_ver_dist.get(); }
+	bool getPredict() { return _param_gf_predict.get(); }
 
 	bool isHomeRequired();
 
@@ -222,6 +222,7 @@ private:
 		(ParamInt<px4::params::GF_SOURCE>)         _param_gf_source,
 		(ParamInt<px4::params::GF_COUNT>)          _param_gf_count,
 		(ParamFloat<px4::params::GF_MAX_HOR_DIST>) _param_gf_max_hor_dist,
-		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
+		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist,
+		(ParamBool<px4::params::GF_PREDICT>)       _param_gf_predict
 	)
 };

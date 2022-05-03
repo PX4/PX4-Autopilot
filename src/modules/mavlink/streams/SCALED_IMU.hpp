@@ -39,6 +39,7 @@
 
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_imu.h>
+#include <uORB/topics/vehicle_imu_status.h>
 
 class MavlinkStreamScaledIMU : public MavlinkStream
 {
@@ -64,12 +65,15 @@ private:
 	explicit MavlinkStreamScaledIMU(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
 	uORB::Subscription _vehicle_imu_sub{ORB_ID(vehicle_imu), 0};
+	uORB::Subscription _vehicle_imu_status_sub{ORB_ID(vehicle_imu_status), 0};
 	uORB::Subscription _sensor_mag_sub{ORB_ID(sensor_mag), 0};
 
 	bool send() override
 	{
 		if (_vehicle_imu_sub.updated() || _sensor_mag_sub.updated()) {
 			mavlink_scaled_imu_t msg{};
+
+			float temperature = NAN;
 
 			vehicle_imu_s imu;
 
@@ -89,6 +93,18 @@ private:
 				msg.xgyro = gyro(0);
 				msg.ygyro = gyro(1);
 				msg.zgyro = gyro(2);
+
+				// IMU temperature
+				vehicle_imu_status_s vehicle_imu_status;
+
+				if (_vehicle_imu_status_sub.copy(&vehicle_imu_status)) {
+					if (PX4_ISFINITE(vehicle_imu_status.temperature_accel)) {
+						temperature = vehicle_imu_status.temperature_accel;
+
+					} else if (PX4_ISFINITE(vehicle_imu_status.temperature_gyro)) {
+						temperature = vehicle_imu_status.temperature_gyro;
+					}
+				}
 			}
 
 			sensor_mag_s sensor_mag;
@@ -101,7 +117,20 @@ private:
 				msg.xmag = sensor_mag.x * 1000.0f; // Gauss -> MilliGauss
 				msg.ymag = sensor_mag.y * 1000.0f; // Gauss -> MilliGauss
 				msg.zmag = sensor_mag.z * 1000.0f; // Gauss -> MilliGauss
-				msg.temperature = sensor_mag.temperature;
+
+				if (!PX4_ISFINITE(temperature) && PX4_ISFINITE(sensor_mag.temperature)) {
+					temperature = sensor_mag.temperature;
+				}
+			}
+
+			if (PX4_ISFINITE(temperature)) {
+				// degrees -> centi-degrees constrained to int16
+				msg.temperature = math::constrain(roundf(temperature * 100.f), (float)INT16_MIN, (float)INT16_MAX);
+
+				if (msg.temperature == 0) {
+					// if the IMU is at 0C it must send 1 (0.01C).
+					msg.temperature = 1;
+				}
 			}
 
 			mavlink_msg_scaled_imu_send_struct(_mavlink->get_channel(), &msg);

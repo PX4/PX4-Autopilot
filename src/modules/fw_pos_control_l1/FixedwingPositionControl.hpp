@@ -120,6 +120,9 @@ static constexpr float ASPD_SP_SLEW_RATE = 1.f; // slew rate limit for airspeed 
 static constexpr hrt_abstime T_WIND_EST_TIMEOUT =
 	10_s; // time after which the wind estimate is disabled if no longer updating
 
+static constexpr float MIN_AUTO_TIMESTEP = 0.01f;  // minimum time step between auto control updates [s]
+static constexpr float MAX_AUTO_TIMESTEP = 0.05f;  // maximum time step between auto control updates [s]
+
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -195,7 +198,11 @@ private:
 	position_setpoint_s _hdg_hold_prev_wp {};		///< position where heading hold started
 	position_setpoint_s _hdg_hold_curr_wp {};		///< position to which heading hold flies
 
-	hrt_abstime _control_position_last_called{0};		///< last call of control_position
+	/**
+	 * @brief Last absolute time position control has been called [us]
+	 *
+	 */
+	hrt_abstime _last_time_position_control_called{0};
 
 	bool _landed{true};
 
@@ -266,6 +273,7 @@ private:
 
 	float _manual_control_setpoint_altitude{0.0f};
 	float _manual_control_setpoint_airspeed{0.0f};
+	float _commanded_airspeed_setpoint{NAN};		///< airspeed setpoint for manual modes commanded via MAV_CMD_DO_CHANGE_SPEED
 
 	hrt_abstime _time_in_fixed_bank_loiter{0};
 
@@ -278,6 +286,8 @@ private:
 		FW_POSCTRL_MODE_AUTO,
 		FW_POSCTRL_MODE_AUTO_ALTITUDE,
 		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
+		FW_POSCTRL_MODE_AUTO_TAKEOFF,
+		FW_POSCTRL_MODE_AUTO_LANDING,
 		FW_POSCTRL_MODE_MANUAL_POSITION,
 		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
 		FW_POSCTRL_MODE_OTHER
@@ -357,11 +367,20 @@ private:
 	void		control_auto_velocity(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
 					      const Vector2f &ground_speed,
 					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-	void		control_auto_takeoff(const hrt_abstime &now, const float dt,  const Vector2d &curr_pos,
+
+	/**
+	 * @brief Vehicle control while in takeoff
+	 *
+	 * @param now Current system time [us]
+	 * @param curr_pos Current 2D local position vector of vehicle [m]
+	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
+	 * @param pos_sp_prev previous position setpoint
+	 * @param pos_sp_curr current position setpoint
+	 */
+	void		control_auto_takeoff(const hrt_abstime &now, const Vector2d &curr_pos,
 					     const Vector2f &ground_speed,
-					     const position_setpoint_s &pos_sp_prev,
-					     const position_setpoint_s &pos_sp_curr);
-	void		control_auto_landing(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
+					     const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void		control_auto_landing(const hrt_abstime &now, const Vector2d &curr_pos,
 					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,
 					     const position_setpoint_s &pos_sp_curr);
@@ -372,8 +391,8 @@ private:
 	float		get_tecs_thrust();
 
 	float		get_manual_airspeed_setpoint();
-	float		get_auto_airspeed_setpoint(const hrt_abstime &now, const float pos_sp_cru_airspeed,
-			const Vector2f &ground_speed, float dt);
+	float		get_auto_airspeed_setpoint(const hrt_abstime &now, const float pos_sp_cru_airspeed, const Vector2f &ground_speed,
+			float dt);
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();

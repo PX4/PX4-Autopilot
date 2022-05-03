@@ -84,12 +84,8 @@ void ActuatorEffectivenessTilts::updateParams()
 	}
 }
 
-bool ActuatorEffectivenessTilts::getEffectivenessMatrix(Configuration &configuration, bool force)
+bool ActuatorEffectivenessTilts::addActuators(Configuration &configuration)
 {
-	if (!force) {
-		return false;
-	}
-
 	for (int i = 0; i < _count; i++) {
 		configuration.addActuator(ActuatorType::SERVOS, _torque[i], Vector3f{});
 	}

@@ -128,6 +128,7 @@ private:
 	AlphaFilter<float> _man_y_input_filter;
 
 	hrt_abstime _last_run{0};
+	hrt_abstime _last_attitude_setpoint{0};
 
 	bool _landed{true};
 	bool _reset_yaw_sp{true};

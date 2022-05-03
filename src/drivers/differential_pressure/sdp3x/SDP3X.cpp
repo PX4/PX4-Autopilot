@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,20 +31,50 @@
  *
  ****************************************************************************/
 
-/**
- * @file SDP3X.hpp
- *
- * Driver for Sensirion SDP3X Differential Pressure Sensor
- *
- */
-
 #include "SDP3X.hpp"
 
 using namespace time_literals;
 
-int
-SDP3X::probe()
+SDP3X::SDP3X(const I2CSPIDriverConfig &config) :
+	I2C(config),
+	I2CSPIDriver(config),
+	_keep_retrying(config.keep_running)
 {
+}
+
+SDP3X::~SDP3X()
+{
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+}
+
+int SDP3X::init()
+{
+	int ret = I2C::init();
+
+	if (ret != PX4_OK) {
+		DEVICE_DEBUG("I2C::init failed (%i)", ret);
+		return ret;
+	}
+
+	if (ret == PX4_OK) {
+		ScheduleNow();
+	}
+
+	return ret;
+}
+
+void SDP3X::print_status()
+{
+	I2CSPIDriverBase::print_status();
+
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+}
+
+int SDP3X::probe()
+{
+	_retries = 1;
 	bool require_initialization = !init_sdp3x();
 
 	if (require_initialization && _keep_retrying) {
@@ -63,14 +93,12 @@ int SDP3X::write_command(uint16_t command)
 	return transfer(&cmd[0], 2, nullptr, 0);
 }
 
-bool
-SDP3X::init_sdp3x()
+bool SDP3X::init_sdp3x()
 {
 	return configure() == 0;
 }
 
-int
-SDP3X::configure()
+int SDP3X::configure()
 {
 	int ret = write_command(SDP3X_CONT_MODE_STOP);
 
@@ -91,8 +119,7 @@ SDP3X::configure()
 	return ret;
 }
 
-int
-SDP3X::read_scale()
+int SDP3X::read_scale()
 {
 	// get scale
 	uint8_t val[9];
@@ -114,40 +141,29 @@ SDP3X::read_scale()
 
 	switch (_scale) {
 	case SDP3X_SCALE_PRESSURE_SDP31:
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP31;
+		set_device_type(DRV_DIFF_PRESS_DEVTYPE_SDP31);
 		break;
 
 	case SDP3X_SCALE_PRESSURE_SDP32:
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP32;
+		set_device_type(DRV_DIFF_PRESS_DEVTYPE_SDP32);
 		break;
 
 	case SDP3X_SCALE_PRESSURE_SDP33:
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP33;
+		set_device_type(DRV_DIFF_PRESS_DEVTYPE_SDP33);
 		break;
 	}
 
 	return PX4_OK;
 }
 
-int	SDP3X::init()
-{
-	int ret = Airspeed::init();
-
-	if (ret == PX4_OK) {
-		// make sure to wait 10ms after configuring the measurement mode
-		ScheduleDelayed(10_ms);
-	}
-
-	return ret;
-}
-
-int
-SDP3X::collect()
+int SDP3X::collect()
 {
 	perf_begin(_sample_perf);
 
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+
 	// read 6 bytes from the sensor
-	uint8_t val[6];
+	uint8_t val[6] {};
 	int ret = transfer(nullptr, 0, &val[0], sizeof(val));
 
 	if (ret != PX4_OK) {
@@ -164,29 +180,24 @@ SDP3X::collect()
 	int16_t P = (((int16_t)val[0]) << 8) | val[1];
 	int16_t temp = (((int16_t)val[3]) << 8) | val[4];
 
-	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
+	float diff_press_pa = static_cast<float>(P) / static_cast<float>(_scale);
 	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
 
-	if (PX4_ISFINITE(diff_press_pa_raw)) {
-		differential_pressure_s report{};
-
-		report.error_count = perf_event_count(_comms_errors);
-		report.temperature = temperature_c;
-		report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
-		report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
-		report.device_id = _device_id.devid;
-		report.timestamp = hrt_absolute_time();
-
-		_airspeed_pub.publish(report);
-	}
+	differential_pressure_s differential_pressure{};
+	differential_pressure.timestamp_sample = timestamp_sample;
+	differential_pressure.device_id = get_device_id();
+	differential_pressure.differential_pressure_pa = diff_press_pa;
+	differential_pressure.temperature = temperature_c;
+	differential_pressure.error_count = perf_event_count(_comms_errors);
+	differential_pressure.timestamp = hrt_absolute_time();
+	_differential_pressure_pub.publish(differential_pressure);
 
 	perf_end(_sample_perf);
 
 	return ret;
 }
 
-void
-SDP3X::RunImpl()
+void SDP3X::RunImpl()
 {
 	switch (_state) {
 	case State::RequireConfig:
@@ -215,7 +226,6 @@ SDP3X::RunImpl()
 		int ret = collect();
 
 		if (ret != 0 && ret != -EAGAIN) {
-			_sensor_ok = false;
 			DEVICE_DEBUG("measure error");
 			_state = State::RequireConfig;
 		}

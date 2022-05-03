@@ -43,21 +43,22 @@ ActuatorEffectivenessFixedWing::ActuatorEffectivenessFixedWing(ModuleParams *par
 }
 
 bool
-ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configuration, bool force)
+ActuatorEffectivenessFixedWing::getEffectivenessMatrix(Configuration &configuration,
+		EffectivenessUpdateReason external_update)
 {
-	if (!force) {
+	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 
 	// Motors
-	_rotors.enableYawControl(false);
-	_rotors.getEffectivenessMatrix(configuration, true);
+	_rotors.enablePropellerTorque(false);
+	const bool rotors_added_successfully = _rotors.addActuators(configuration);
 
 	// Control Surfaces
 	_first_control_surface_idx = configuration.num_actuators_matrix[0];
-	_control_surfaces.getEffectivenessMatrix(configuration, true);
+	const bool surfaces_added_successfully = _control_surfaces.addActuators(configuration);
 
-	return true;
+	return (rotors_added_successfully && surfaces_added_successfully);
 }
 
 void ActuatorEffectivenessFixedWing::updateSetpoint(const matrix::Vector<float, NUM_AXES> &control_sp,

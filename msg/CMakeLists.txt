@@ -52,6 +52,7 @@ set(msg_files
 	airspeed_wind.msg
 	autotune_attitude_control_status.msg
 	battery_status.msg
+	button_event.msg
 	camera_capture.msg
 	camera_status.msg
 	camera_trigger.msg
@@ -64,7 +65,7 @@ set(msg_files
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_timestamps.msg
-	ekf_gps_drift.msg
+	estimator_gps_status.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_baro_bias.msg
@@ -144,6 +145,7 @@ set(msg_files
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gps.msg
+	sensor_gnss_relative.msg
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
@@ -152,6 +154,7 @@ set(msg_files
 	sensor_preflight_mag.msg
 	sensor_selection.msg
 	sensors_status_imu.msg
+	sensors_status.msg
 	system_power.msg
 	takeoff_status.msg
 	task_stack_info.msg
@@ -168,6 +171,8 @@ set(msg_files
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
+	uwb_grid.msg
+	uwb_distance.msg
 	vehicle_acceleration.msg
 	vehicle_air_data.msg
 	vehicle_angular_acceleration.msg
@@ -260,14 +265,17 @@ endif()
 
 # headers
 set(msg_out_path ${PX4_BINARY_DIR}/uORB/topics)
+set(ucdr_out_path ${PX4_BINARY_DIR}/uORB/ucdr)
 set(msg_source_out_path	${CMAKE_CURRENT_BINARY_DIR}/topics_sources)
 
 set(uorb_headers ${msg_out_path}/uORBTopics.hpp)
 set(uorb_sources ${msg_source_out_path}/uORBTopics.cpp)
+set(uorb_ucdr_headers)
 foreach(msg_file ${msg_files})
 	get_filename_component(msg ${msg_file} NAME_WE)
 	list(APPEND uorb_headers ${msg_out_path}/${msg}.h)
 	list(APPEND uorb_sources ${msg_source_out_path}/${msg}.cpp)
+	list(APPEND uorb_ucdr_headers ${ucdr_out_path}/${msg}.h)
 endforeach()
 
 if (px4_constrained_flash_build)
@@ -299,6 +307,27 @@ add_custom_command(OUTPUT ${uorb_headers}
 	VERBATIM
 	)
 add_custom_target(uorb_headers DEPENDS ${uorb_headers})
+
+add_custom_command(OUTPUT ${uorb_ucdr_headers}
+	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
+		--headers
+		-f ${msg_files}
+		-i ${CMAKE_CURRENT_SOURCE_DIR}
+		-o ${ucdr_out_path}
+		-e templates/ucdr
+		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/ucdr_headers
+		-q
+		${added_arguments}
+	DEPENDS
+		${msg_files}
+		templates/ucdr/msg.h.em
+		tools/px_generate_uorb_topic_files.py
+		tools/px_generate_uorb_topic_helper.py
+	COMMENT "Generating uORB topic ucdr headers"
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	VERBATIM
+	)
+add_custom_target(uorb_ucdr_headers DEPENDS ${uorb_ucdr_headers})
 
 # Generate uORB sources
 add_custom_command(OUTPUT ${uorb_sources}

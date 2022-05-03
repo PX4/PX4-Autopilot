@@ -5,8 +5,14 @@
 
 board_adc start
 
-# Internal SPI bus ICM-20602
-icm20602 -s -R 2 -q start
+if ver hwtypecmp V552 V562
+then
+	# Internal SPI bus ICM-42688-P
+	icm42688p -s -R 2 -q start
+else
+	# Internal SPI bus ICM-20602
+	icm20602 -s -R 2 -q start
+fi
 
 # Internal SPI bus ICM-20689
 icm20689 -s -R 2 start

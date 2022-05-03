@@ -188,13 +188,15 @@ void FlightTask::_evaluateVehicleLocalPositionSetpoint()
 void FlightTask::_evaluateDistanceToGround()
 {
 	// Altitude above ground is local z-position or altitude above home or distance sensor altitude depending on what's available
-	_dist_to_ground = -_position(2);
-
 	if (PX4_ISFINITE(_dist_to_bottom)) {
 		_dist_to_ground = _dist_to_bottom;
 
 	} else if (_sub_home_position.get().valid_alt) {
 		_dist_to_ground = -(_position(2) - _sub_home_position.get().z);
+
+	} else {
+		_dist_to_ground = -_position(2);
+
 	}
 }
 

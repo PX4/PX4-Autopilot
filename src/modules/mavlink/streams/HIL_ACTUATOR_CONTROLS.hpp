@@ -55,11 +55,21 @@ public:
 	}
 
 private:
-	explicit MavlinkStreamHILActuatorControls(Mavlink *mavlink) : MavlinkStream(mavlink) {}
+	explicit MavlinkStreamHILActuatorControls(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		int32_t sys_ctrl_alloc = 0;
+		param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
+		_use_dynamic_mixing = sys_ctrl_alloc >= 1;
+
+		if (_use_dynamic_mixing) {
+			_act_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
+		}
+	}
 
 	uORB::Subscription _act_sub{ORB_ID(actuator_outputs)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	bool _use_dynamic_mixing{false};
 
 	bool send() override
 	{
@@ -69,81 +79,88 @@ private:
 			mavlink_hil_actuator_controls_t msg{};
 			msg.time_usec = act.timestamp;
 
-			static constexpr float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
-
-			unsigned system_type = _mavlink->get_system_type();
-
-			/* scale outputs depending on system type */
-			if (system_type == MAV_TYPE_QUADROTOR ||
-			    system_type == MAV_TYPE_HEXAROTOR ||
-			    system_type == MAV_TYPE_OCTOROTOR ||
-			    system_type == MAV_TYPE_VTOL_DUOROTOR ||
-			    system_type == MAV_TYPE_VTOL_QUADROTOR ||
-			    system_type == MAV_TYPE_VTOL_RESERVED2) {
-
-				/* multirotors: set number of rotor outputs depending on type */
-
-				unsigned n;
-
-				switch (system_type) {
-				case MAV_TYPE_QUADROTOR:
-					n = 4;
-					break;
-
-				case MAV_TYPE_HEXAROTOR:
-					n = 6;
-					break;
-
-				case MAV_TYPE_VTOL_DUOROTOR:
-					n = 2;
-					break;
-
-				case MAV_TYPE_VTOL_QUADROTOR:
-					n = 4;
-					break;
-
-				case MAV_TYPE_VTOL_RESERVED2:
-					n = 8;
-					break;
-
-				default:
-					n = 8;
-					break;
-				}
-
-				for (unsigned i = 0; i < 16; i++) {
-					if (act.output[i] > PWM_DEFAULT_MIN / 2) {
-						if (i < n) {
-							/* scale PWM out 900..2100 us to 0..1 for rotors */
-							msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
-
-						} else {
-							/* scale PWM out 900..2100 us to -1..1 for other channels */
-							msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
-						}
-
-					} else {
-						/* send 0 when disarmed and for disabled channels */
-						msg.controls[i] = 0.0f;
-					}
+			if (_use_dynamic_mixing) {
+				for (unsigned i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; i++) {
+					msg.controls[i] = act.output[i];
 				}
 
 			} else {
-				/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
-				for (unsigned i = 0; i < 16; i++) {
-					if (act.output[i] > PWM_DEFAULT_MIN / 2) {
-						if (i != 3) {
-							/* scale PWM out 900..2100 us to -1..1 for normal channels */
-							msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+				static constexpr float pwm_center = (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2;
+
+				unsigned system_type = _mavlink->get_system_type();
+
+				/* scale outputs depending on system type */
+				if (system_type == MAV_TYPE_QUADROTOR ||
+				    system_type == MAV_TYPE_HEXAROTOR ||
+				    system_type == MAV_TYPE_OCTOROTOR ||
+				    system_type == MAV_TYPE_VTOL_TAILSITTER_DUOROTOR ||
+				    system_type == MAV_TYPE_VTOL_TAILSITTER_QUADROTOR ||
+				    system_type == MAV_TYPE_VTOL_FIXEDROTOR) {
+
+					/* multirotors: set number of rotor outputs depending on type */
+
+					unsigned n;
+
+					switch (system_type) {
+					case MAV_TYPE_QUADROTOR:
+						n = 4;
+						break;
+
+					case MAV_TYPE_HEXAROTOR:
+						n = 6;
+						break;
+
+					case MAV_TYPE_VTOL_TAILSITTER_DUOROTOR:
+						n = 2;
+						break;
+
+					case MAV_TYPE_VTOL_TAILSITTER_QUADROTOR:
+						n = 4;
+						break;
+
+					case MAV_TYPE_VTOL_FIXEDROTOR:
+						n = 8;
+						break;
+
+					default:
+						n = 8;
+						break;
+					}
+
+					for (unsigned i = 0; i < 16; i++) {
+						if (act.output[i] > PWM_DEFAULT_MIN / 2) {
+							if (i < n) {
+								/* scale PWM out 900..2100 us to 0..1 for rotors */
+								msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+
+							} else {
+								/* scale PWM out 900..2100 us to -1..1 for other channels */
+								msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+							}
 
 						} else {
-							/* scale PWM out 900..2100 us to 0..1 for throttle */
-							msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+							/* send 0 when disarmed and for disabled channels */
+							msg.controls[i] = 0.0f;
 						}
+					}
 
-					} else {
-						/* set 0 for disabled channels */
-						msg.controls[i] = 0.0f;
+				} else {
+					/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
+					for (unsigned i = 0; i < 16; i++) {
+						if (act.output[i] > PWM_DEFAULT_MIN / 2) {
+							if (i != 3) {
+								/* scale PWM out 900..2100 us to -1..1 for normal channels */
+								msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+
+							} else {
+								/* scale PWM out 900..2100 us to 0..1 for throttle */
+								msg.controls[i] = (act.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+							}
+
+						} else {
+							/* set 0 for disabled channels */
+							msg.controls[i] = 0.0f;
+						}
 					}
 				}
 			}

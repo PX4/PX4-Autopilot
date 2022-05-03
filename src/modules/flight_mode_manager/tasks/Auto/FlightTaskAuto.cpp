@@ -81,6 +81,7 @@ bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setp
 	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
+	_time_last_cruise_speed_override = 0;
 
 	return ret;
 }
@@ -222,6 +223,12 @@ bool FlightTaskAuto::update()
 	return ret;
 }
 
+void FlightTaskAuto::overrideCruiseSpeed(const float cruise_speed_m_s)
+{
+	_mc_cruise_speed = cruise_speed_m_s;
+	_time_last_cruise_speed_override = hrt_absolute_time();
+}
+
 void FlightTaskAuto::_prepareLandSetpoints()
 {
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
@@ -245,12 +252,18 @@ void FlightTaskAuto::_prepareLandSetpoints()
 	}
 
 	// User input assisted landing
-	if (_param_mpc_land_rc_help.get() && _sticks.checkAndSetStickInputs()) {
+	if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
 		// Stick full up -1 -> stop, stick full down 1 -> double the speed
 		vertical_speed *= (1 + _sticks.getPositionExpo()(2));
 
-		_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading,
-					       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
+		// Only set a yawrate setpoint if weather vane is not active or the yaw stick is out of its dead-zone
+		const bool weather_vane_active = (_ext_yaw_handler != nullptr) && _ext_yaw_handler->is_active();
+
+		if (!weather_vane_active || fabsf(_sticks.getPositionExpo()(3)) > FLT_EPSILON) {
+			_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading,
+						       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
+		}
+
 		_stick_acceleration_xy.generateSetpoints(_sticks.getPositionExpo().slice<2, 1>(0, 0), _yaw, _land_heading, _position,
 				_velocity_setpoint_feedback.xy(), _deltatime);
 		_stick_acceleration_xy.getSetpoints(_land_position, _velocity_setpoint, _acceleration_setpoint);
@@ -338,8 +351,14 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	_type = (WaypointType)_sub_triplet_setpoint.get().current.type;
 
-	// Always update cruise speed since that can change without waypoint changes.
-	_mc_cruise_speed = _sub_triplet_setpoint.get().current.cruising_speed;
+	// Prioritize cruise speed from the triplet when it's valid and more recent than the previously commanded cruise speed
+	const float cruise_speed_from_triplet = _sub_triplet_setpoint.get().current.cruising_speed;
+
+	if (PX4_ISFINITE(cruise_speed_from_triplet)
+	    && (cruise_speed_from_triplet > 0.f)
+	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_cruise_speed_override)) {
+		_mc_cruise_speed = cruise_speed_from_triplet;
+	}
 
 	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
 		// If no speed is planned use the default cruise speed as limit
@@ -449,7 +468,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 	if (triplet_update || (_current_state != previous_state) || _current_state == State::offtrack) {
 		_updateInternalWaypoints();
 		_mission_gear = _sub_triplet_setpoint.get().current.landing_gear;
-		_yaw_lock = false;
 	}
 
 	if (_param_com_obs_avoid.get()
@@ -465,7 +483,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// set heading
 	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
-		_yaw_setpoint = _yaw;
+		_yaw_setpoint = NAN;
 		// use the yawrate setpoint from WV only if not moving lateral (velocity setpoint below half of _param_mpc_xy_cruise)
 		// otherwise, keep heading constant (as output from WV is not according to wind in this case)
 		bool vehicle_is_moving_lateral = _velocity_setpoint.xy().longerThan(_param_mpc_xy_cruise.get() / 2.0f);
@@ -544,15 +562,15 @@ void FlightTaskAuto::_set_heading_from_mode()
 		// We only adjust yaw if vehicle is outside of acceptance radius. Once we enter acceptance
 		// radius, lock yaw to current yaw.
 		// This prevents excessive yawing.
-		if (!_yaw_lock) {
-			if (v.longerThan(_target_acceptance_radius)) {
-				_compute_heading_from_2D_vector(_yaw_setpoint, v);
-
-			} else {
-				_yaw_setpoint = _yaw;
+		if (v.longerThan(_target_acceptance_radius)) {
+			if (_compute_heading_from_2D_vector(_yaw_setpoint, v)) {
 				_yaw_lock = true;
-
 			}
+		}
+
+		if (!_yaw_lock) {
+			_yaw_setpoint = _yaw;
+			_yaw_lock = true;
 		}
 
 	} else {
@@ -623,24 +641,26 @@ Vector2f FlightTaskAuto::_getTargetVelocityXY()
 State FlightTaskAuto::_getCurrentState()
 {
 	// Calculate the vehicle current state based on the Navigator triplets and the current position.
-	const Vector3f u_prev_to_target = (_triplet_target - _triplet_prev_wp).unit_or_zero();
-	const Vector3f pos_to_target(_triplet_target - _position);
-	const Vector3f prev_to_pos(_position - _triplet_prev_wp);
+	const Vector2f u_prev_to_target_xy = Vector2f(_triplet_target - _triplet_prev_wp).unit_or_zero();
+	const Vector2f pos_to_target_xy = Vector2f(_triplet_target - _position);
+	const Vector2f prev_to_pos_xy = Vector2f(_position - _triplet_prev_wp);
 	// Calculate the closest point to the vehicle position on the line prev_wp - target
-	_closest_pt = _triplet_prev_wp + u_prev_to_target * (prev_to_pos * u_prev_to_target);
+	const Vector2f closest_pt_xy = Vector2f(_triplet_prev_wp) + u_prev_to_target_xy * (prev_to_pos_xy *
+				       u_prev_to_target_xy);
+	_closest_pt = Vector3f(closest_pt_xy(0), closest_pt_xy(1), _triplet_target(2));
 
 	State return_state = State::none;
 
-	if (u_prev_to_target * pos_to_target < 0.0f) {
-		// Target is behind.
+	if (u_prev_to_target_xy * pos_to_target_xy < 0.0f) {
+		// Target is behind
 		return_state = State::target_behind;
 
-	} else if (u_prev_to_target * prev_to_pos < 0.0f && prev_to_pos.longerThan(_target_acceptance_radius)) {
-		// Current position is more than cruise speed in front of previous setpoint.
+	} else if (u_prev_to_target_xy * prev_to_pos_xy < 0.0f && prev_to_pos_xy.longerThan(_target_acceptance_radius)) {
+		// Previous is in front
 		return_state = State::previous_infront;
 
-	} else if ((_position - _closest_pt).longerThan(_target_acceptance_radius)) {
-		// Vehicle is more than cruise speed off track.
+	} else if (Vector2f(_position - _closest_pt).longerThan(_target_acceptance_radius)) {
+		// Vehicle too far from the track
 		return_state = State::offtrack;
 
 	}
@@ -653,8 +673,8 @@ void FlightTaskAuto::_updateInternalWaypoints()
 	// The internal Waypoints might differ from _triplet_prev_wp, _triplet_target and _triplet_next_wp.
 	// The cases where it differs:
 	// 1. The vehicle already passed the target -> go straight to target
-	// 2. The vehicle is more than cruise speed in front of previous waypoint -> go straight to previous waypoint
-	// 3. The vehicle is more than cruise speed from track -> go straight to closest point on track
+	// 2. Previous waypoint is in front of the vehicle -> go straight to previous waypoint
+	// 3. The vehicle is far from track -> go straight to closest point on track
 	switch (_current_state) {
 	case State::target_behind:
 		_target = _triplet_target;

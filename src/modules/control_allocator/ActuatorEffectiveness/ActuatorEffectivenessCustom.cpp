@@ -41,19 +41,20 @@ ActuatorEffectivenessCustom::ActuatorEffectivenessCustom(ModuleParams *parent)
 }
 
 bool
-ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration, bool force)
+ActuatorEffectivenessCustom::getEffectivenessMatrix(Configuration &configuration,
+		EffectivenessUpdateReason external_update)
 {
-	if (!force) {
+	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
 		return false;
 	}
 
 	// motors
-	_motors.enableYawControl(false);
-	_motors.getEffectivenessMatrix(configuration, true);
+	_motors.enablePropellerTorque(false);
+	const bool motors_added_successfully = _motors.addActuators(configuration);
 
 	// Torque
-	_torque.getEffectivenessMatrix(configuration, true);
+	const bool torque_added_successfully = _torque.addActuators(configuration);
 
-	return true;
+	return (motors_added_successfully && torque_added_successfully);
 }
 

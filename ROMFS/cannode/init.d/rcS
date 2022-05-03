@@ -88,7 +88,7 @@ unset BOARD_RC_SENSORS
 # Check for flow sensor
 if param compare SENS_EN_PX4FLOW 1
 then
-	px4flow start -X
+	px4flow start -X &
 fi
 
 uavcannode start

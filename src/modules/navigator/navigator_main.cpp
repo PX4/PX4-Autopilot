@@ -74,6 +74,7 @@ Navigator::Navigator() :
 	_mission(this),
 	_loiter(this),
 	_takeoff(this),
+	_vtol_takeoff(this),
 	_land(this),
 	_precland(this),
 	_rtl(this),
@@ -88,7 +89,8 @@ Navigator::Navigator() :
 	_navigation_mode_array[4] = &_takeoff;
 	_navigation_mode_array[5] = &_land;
 	_navigation_mode_array[6] = &_precland;
-	_navigation_mode_array[7] = &_follow_target;
+	_navigation_mode_array[7] = &_vtol_takeoff;
+	_navigation_mode_array[8] = &_follow_target;
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
@@ -309,22 +311,7 @@ void Navigator::run()
 						if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 						    && (get_position_setpoint_triplet()->current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
 
-							// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
-							double lat, lon;
-							float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
-
-							// predict braking distance
-
-							const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
-
-							float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
-											    _param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
-
-							waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
-											   multirotor_braking_distance, &lat, &lon);
-							rep->current.lat = lat;
-							rep->current.lon = lon;
-							rep->current.yaw = get_local_position()->heading;
+							calculate_breaking_stop(rep->current.lat, rep->current.lon, rep->current.yaw);
 							rep->current.yaw_valid = true;
 
 						} else {
@@ -418,7 +405,10 @@ void Navigator::run()
 				rep->current.loiter_direction = 1;
 				rep->current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 
-				if (home_position_valid()) {
+				if (home_global_position_valid()) {
+					// Only set yaw if we know the true heading
+					// We assume that the heading is valid when the global position is valid because true heading
+					// is required to fuse NE (e.g.: GNSS) data. // TODO: we should be more explicit here
 					rep->current.yaw = cmd.param4;
 
 					rep->previous.valid = true;
@@ -447,6 +437,16 @@ void Navigator::run()
 				rep->next.valid = false;
 
 				// CMD_NAV_TAKEOFF is acknowledged by commander
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_VTOL_TAKEOFF) {
+
+				_vtol_takeoff.setTransitionAltitudeAbsolute(cmd.param7);
+
+				// after the transition the vehicle will establish on a loiter at this position
+				_vtol_takeoff.setLoiterLocation(matrix::Vector2d(cmd.param5, cmd.param6));
+
+				// loiter height is the height above takeoff altitude at which the vehicle will establish on a loiter circle
+				_vtol_takeoff.setLoiterHeight(cmd.param1);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_LAND_START) {
 
@@ -535,6 +535,18 @@ void Navigator::run()
 				_vehicle_roi_pub.publish(_vroi);
 
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION
+				   && get_vstatus()->nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {
+				// reset cruise speed and throttle to default when transitioning (VTOL Takeoff handles it separately)
+				reset_cruising_speed();
+				set_cruising_throttle();
+
+				// need to update current setpooint with reset cruise speed and throttle
+				position_setpoint_triplet_s *rep = get_reposition_triplet();
+				*rep = *(get_position_setpoint_triplet());
+				rep->current.cruising_speed = get_cruising_speed();
+				rep->current.cruising_throttle = get_cruising_throttle();
 			}
 		}
 
@@ -571,7 +583,7 @@ void Navigator::run()
 				case RTL::RTL_TYPE_CLOSEST:
 
 					if (!rtl_activated && _rtl.getClimbAndReturnDone()
-					    && _rtl.getDestinationTypeMissionLanding()) {
+					    && _rtl.getShouldEngageMissionForLanding()) {
 						_mission.set_execution_mode(mission_result_s::MISSION_EXECUTION_MODE_FAST_FORWARD);
 
 						if (!getMissionLandingInProgress() && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED
@@ -669,6 +681,11 @@ void Navigator::run()
 			navigation_mode_new = &_takeoff;
 			break;
 
+		case vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF:
+			_pos_sp_triplet_published_invalid_once = false;
+			navigation_mode_new = &_vtol_takeoff;
+			break;
+
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_land;
@@ -714,16 +731,29 @@ void Navigator::run()
 
 		/* we have a new navigation mode: reset triplet */
 		if (_navigation_mode != navigation_mode_new) {
-			// We don't reset the triplet if we just did an auto-takeoff and are now
+			// We don't reset the triplet in the following two cases:
+			// 1)  if we just did an auto-takeoff and are now
 			// going to loiter. Otherwise, we lose the takeoff altitude and end up lower
 			// than where we wanted to go.
+			// 2) We switch to loiter and the current position setpoint already has a valid loiter point.
+			// In that case we can assume that the vehicle has already established a loiter and we don't need to set a new
+			// loiter position.
 			//
 			// FIXME: a better solution would be to add reset where they are needed and remove
 			//        this general reset here.
-			if (!(_navigation_mode == &_takeoff &&
-			      navigation_mode_new == &_loiter)) {
+
+			const bool current_mode_is_takeoff = _navigation_mode == &_takeoff;
+			const bool new_mode_is_loiter = navigation_mode_new == &_loiter;
+			const bool valid_loiter_setpoint = (_pos_sp_triplet.current.valid
+							    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER);
+
+			const bool did_not_switch_takeoff_to_loiter = !(current_mode_is_takeoff && new_mode_is_loiter);
+			const bool did_not_switch_to_loiter_with_valid_loiter_setpoint = !(new_mode_is_loiter && valid_loiter_setpoint);
+
+			if (did_not_switch_takeoff_to_loiter && did_not_switch_to_loiter_with_valid_loiter_setpoint) {
 				reset_triplets();
 			}
+
 
 			// transition to hover in Descend mode
 			if (_vstatus.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND &&
@@ -780,6 +810,7 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		float test_point_bearing;
 		float test_point_distance;
 		float vertical_test_point_distance;
+		char geofence_violation_warning[50];
 
 		if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			test_point_bearing = atan2f(_local_pos.vy, _local_pos.vx);
@@ -808,11 +839,19 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 		_gf_breach_avoidance.setMaxHorDistHome(_geofence.getMaxHorDistanceHome());
 		_gf_breach_avoidance.setMaxVerDistHome(_geofence.getMaxVerDistanceHome());
 
-		if (home_position_valid()) {
+		if (home_global_position_valid()) {
 			_gf_breach_avoidance.setHomePosition(_home_pos.lat, _home_pos.lon, _home_pos.alt);
 		}
 
-		fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
+		if (_geofence.getPredict()) {
+			fence_violation_test_point = _gf_breach_avoidance.getFenceViolationTestPoint();
+			snprintf(geofence_violation_warning, sizeof(geofence_violation_warning), "Approaching on geofence");
+
+		} else {
+			fence_violation_test_point = matrix::Vector2d(_global_pos.lat, _global_pos.lon);
+			vertical_test_point_distance = 0;
+			snprintf(geofence_violation_warning, sizeof(geofence_violation_warning), "Geofence exceeded");
+		}
 
 		gf_violation_type.flags.dist_to_home_exceeded = !_geofence.isCloserThanMaxDistToHome(fence_violation_test_point(0),
 				fence_violation_test_point(1),
@@ -838,9 +877,9 @@ void Navigator::geofence_breach_check(bool &have_geofence_position_data)
 
 			/* Issue a warning about the geofence violation once and only if we are armed */
 			if (!_geofence_violation_warning_sent && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
-				mavlink_log_critical(&_mavlink_log_pub, "Approaching on Geofence\t");
-				events::send(events::ID("navigator_approach_geofence"), {events::Log::Warning, events::LogInternal::Info},
-					     "Approaching on Geofence");
+				mavlink_log_critical(&_mavlink_log_pub, "%s", geofence_violation_warning);
+				events::send(events::ID("navigator_geofence_violation"), {events::Log::Warning, events::LogInternal::Info},
+					     geofence_violation_warning);
 
 				// we have predicted a geofence violation and if the action is to loiter then
 				// demand a reposition to a location which is inside the geofence
@@ -986,7 +1025,7 @@ float Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
 	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
+		if (_mission_cruising_speed_mc > 0.0f) {
 			return _mission_cruising_speed_mc;
 
 		} else {
@@ -994,7 +1033,7 @@ float Navigator::get_cruising_speed()
 		}
 
 	} else {
-		if (is_planned_mission() && _mission_cruising_speed_fw > 0.0f) {
+		if (_mission_cruising_speed_fw > 0.0f) {
 			return _mission_cruising_speed_fw;
 
 		} else {
@@ -1516,12 +1555,28 @@ bool Navigator::geofence_allows_position(const vehicle_global_position_s &pos)
 	    (_geofence.getGeofenceAction() != geofence_result_s::GF_ACTION_WARN)) {
 
 		if (PX4_ISFINITE(pos.lat) && PX4_ISFINITE(pos.lon)) {
-			return _geofence.check(pos, _gps_pos, _home_pos,
-					       home_position_valid());
+			return _geofence.check(pos, _gps_pos);
 		}
 	}
 
 	return true;
+}
+
+void Navigator::calculate_breaking_stop(double &lat, double &lon, float &yaw)
+{
+	// For multirotors we need to account for the braking distance, otherwise the vehicle will overshoot and go back
+	float course_over_ground = atan2f(_local_pos.vy, _local_pos.vx);
+
+	// predict braking distance
+
+	const float velocity_hor_abs = sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy * _local_pos.vy);
+
+	float multirotor_braking_distance = math::trajectory::computeBrakingDistanceFromVelocity(velocity_hor_abs,
+					    _param_mpc_jerk_auto, _param_mpc_acc_hor, 0.6f * _param_mpc_jerk_auto);
+
+	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, course_over_ground,
+					   multirotor_braking_distance, &lat, &lon);
+	yaw = get_local_position()->heading;
 }
 
 int Navigator::print_usage(const char *reason)

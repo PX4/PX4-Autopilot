@@ -7,7 +7,7 @@
 @#
 @# Context:
 @#  - msgs (List) list of all RTPS messages
-@#  - multi_topics (List) list of all multi-topic names
+@#  - topics (List) list of all topic names
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{

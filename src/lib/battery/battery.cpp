@@ -55,7 +55,7 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	const float expected_filter_dt = static_cast<float>(sample_interval_us) / 1_s;
 	_voltage_filter_v.setParameters(expected_filter_dt, 1.f);
 	_current_filter_a.setParameters(expected_filter_dt, .5f);
-	_current_average_filter_a.setParameters(expected_filter_dt, 25.f);
+	_current_average_filter_a.setParameters(expected_filter_dt, 50.f);
 	_throttle_filter.setParameters(expected_filter_dt, 1.f);
 
 	if (index > 9 || index < 1) {
@@ -93,6 +93,8 @@ Battery::Battery(int index, ModuleParams *parent, const int sample_interval_us, 
 	_param_handles.low_thr = param_find("BAT_LOW_THR");
 	_param_handles.crit_thr = param_find("BAT_CRIT_THR");
 	_param_handles.emergen_thr = param_find("BAT_EMERGEN_THR");
+
+	_param_handles.bat_avrg_current = param_find("BAT_AVRG_CURRENT");
 
 	updateParams();
 }
@@ -268,25 +270,30 @@ void Battery::computeScale()
 
 float Battery::computeRemainingTime(float current_a)
 {
-	float time_remaining_s{NAN};
+	float time_remaining_s = NAN;
 
-	// Only estimate remaining time with useful in flight current measurements
-	if (_current_filter_a.getState() > 1.f) {
-		// Initialize strongly filtered current to an estimated average consumption
-		if (_current_average_filter_a.getState() < 0.f) {
-			// TODO: better initial value based on "average current" from last flight
-			_current_average_filter_a.reset(15.f);
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status;
+
+		if (_vehicle_status_sub.copy(&vehicle_status)) {
+			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 		}
+	}
 
-		// Filter current very strong, we basically want the average consumption
-		_current_average_filter_a.update(current_a);
+	if (!PX4_ISFINITE(_current_average_filter_a.getState()) || _current_average_filter_a.getState() < FLT_EPSILON) {
+		_current_average_filter_a.reset(_params.bat_avrg_current);
+	}
 
-		// Remaining time estimation only possible with capacity
-		if (_params.capacity > 0.f) {
-			const float remaining_capacity_mah = _state_of_charge * _params.capacity;
-			const float current_ma = _current_average_filter_a.getState() * 1e3f;
-			time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
-		}
+	if (_armed && PX4_ISFINITE(current_a)) {
+		// only update with positive numbers
+		_current_average_filter_a.update(fmaxf(current_a, 0.f));
+	}
+
+	// Remaining time estimation only possible with capacity
+	if (_params.capacity > 0.f) {
+		const float remaining_capacity_mah = _state_of_charge * _params.capacity;
+		const float current_ma = fmaxf(_current_average_filter_a.getState() * 1e3f, FLT_EPSILON);
+		time_remaining_s = remaining_capacity_mah / current_ma * 3600.f;
 	}
 
 	return time_remaining_s;
@@ -304,6 +311,7 @@ void Battery::updateParams()
 	param_get(_param_handles.low_thr, &_params.low_thr);
 	param_get(_param_handles.crit_thr, &_params.crit_thr);
 	param_get(_param_handles.emergen_thr, &_params.emergen_thr);
+	param_get(_param_handles.bat_avrg_current, &_params.bat_avrg_current);
 
 	ModuleParams::updateParams();
 

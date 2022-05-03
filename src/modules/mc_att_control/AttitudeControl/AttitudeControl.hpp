@@ -75,14 +75,23 @@ public:
 	 * @param qd desired vehicle attitude setpoint
 	 * @param yawspeed_setpoint [rad/s] yaw feed forward angular rate in world frame
 	 */
-	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint) { _attitude_setpoint_q = qd; _attitude_setpoint_q.normalize(); _yawspeed_setpoint = yawspeed_setpoint; }
+	void setAttitudeSetpoint(const matrix::Quatf &qd, const float yawspeed_setpoint)
+	{
+		_attitude_setpoint_q = qd;
+		_attitude_setpoint_q.normalize();
+		_yawspeed_setpoint = yawspeed_setpoint;
+	}
 
 	/**
 	 * Adjust last known attitude setpoint by a delta rotation
 	 * Optional use to avoid glitches when attitude estimate reference e.g. heading changes.
 	 * @param q_delta delta rotation to apply
 	 */
-	void adaptAttitudeSetpoint(const matrix::Quatf &q_delta) { _attitude_setpoint_q = q_delta * _attitude_setpoint_q; }
+	void adaptAttitudeSetpoint(const matrix::Quatf &q_delta)
+	{
+		_attitude_setpoint_q = q_delta * _attitude_setpoint_q;
+		_attitude_setpoint_q.normalize();
+	}
 
 	/**
 	 * Run one control loop cycle calculation

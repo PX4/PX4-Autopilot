@@ -123,10 +123,44 @@ Type wrap_2pi(Type x)
 	return wrap(x, Type(0), Type(M_TWOPI));
 }
 
+/**
+ * Unwrap value that was wrapped with range [low, high)
+ *
+ * @param[in] last_x Last unwrapped value
+ * @param[in] new_x New value in range
+ * @param low lower limit of the wrapping range
+ * @param high upper limit of the wrapping range
+ * @return New unwrapped value
+ */
+template<typename Type>
+Type unwrap(const Type last_x, const Type new_x, const Type low, const Type high)
+{
+	return last_x + wrap(new_x - last_x, low, high);
+}
+
+/**
+ * Unwrap value with range [-π, π)
+ *
+ * @param[in] last_angle Last unwrapped angle [rad]
+ * @param[in] new_angle New angle in [-pi, pi] [rad]
+ * @return New unwrapped angle [rad]
+ */
+template<typename Type>
+Type unwrap_pi(const Type last_angle, const Type new_angle)
+{
+	return unwrap(last_angle, new_angle, Type(-M_PI), Type(M_PI));
+}
+
+/**
+ * Type-safe sign/signum function
+ *
+ * @param[in] val Number to take the sign from
+ * @return -1 if val < 0, 0 if val == 0, 1 if val > 0
+ */
 template<typename T>
 int sign(T val)
 {
-	return (T(FLT_EPSILON) < val) - (val < T(FLT_EPSILON));
+	return (T(0) < val) - (val < T(0));
 }
 
 } // namespace matrix

@@ -20,7 +20,7 @@
 . ${R}etc/init.d/rc.mc_defaults
 
 # Configure as helicopter (number 4 defined in commander_helper.cpp)
-set MAV_TYPE 4
+param set-default MAV_TYPE 4
 
 set MIXER blade130
 

@@ -109,6 +109,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	_params_handles.land_pitch_min_rad = param_find("VT_LND_PTCH_MIN");
 
+	_params_handles.vt_spoiler_mc_ld = param_find("VT_SPOILER_MC_LD");
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -141,12 +142,12 @@ bool
 VtolAttitudeControl::init()
 {
 	if (!_actuator_inputs_mc.registerCallback()) {
-		PX4_ERR("MC actuator controls callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
 	if (!_actuator_inputs_fw.registerCallback()) {
-		PX4_ERR("FW actuator controls callback registration failed!");
+		PX4_ERR("callback registration failed");
 		return false;
 	}
 
@@ -372,6 +373,8 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.mpc_land_alt1, &_params.mpc_land_alt1);
 	param_get(_params_handles.mpc_land_alt2, &_params.mpc_land_alt2);
 
+	param_get(_params_handles.vt_spoiler_mc_ld, &_params.vt_spoiler_mc_ld);
+
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
 		_vtol_type->parameters_update();
@@ -401,6 +404,7 @@ VtolAttitudeControl::Run()
 
 #endif // !ENABLE_LOCKSTEP_SCHEDULER
 
+	const float dt = math::min((now - _last_run_timestamp) / 1e6f, kMaxVTOLAttitudeControlTimeStep);
 	_last_run_timestamp = now;
 
 	if (!_initialized) {
@@ -414,6 +418,8 @@ VtolAttitudeControl::Run()
 			return;
 		}
 	}
+
+	_vtol_type->setDt(dt);
 
 	perf_begin(_loop_perf);
 
@@ -459,6 +465,12 @@ VtolAttitudeControl::Run()
 		_land_detected_sub.update(&_land_detected);
 		action_request_poll();
 		vehicle_cmd_poll();
+
+		vehicle_air_data_s air_data;
+
+		if (_vehicle_air_data_sub.update(&air_data)) {
+			_air_density = air_data.rho;
+		}
 
 		// check if mc and fw sp were updated
 		bool mc_att_sp_updated = _mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
