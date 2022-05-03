@@ -93,13 +93,11 @@ typedef enum VEHICLE_MODE_FLAG {
 
 #if defined(BOARD_HAS_POWER_CONTROL)
 static orb_advert_t tune_control_pub = nullptr;
+
 static void play_power_button_down_tune()
 {
-	tune_control_s tune_control{};
-	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
-	tune_control.tune_id = tune_control_s::TUNE_ID_POWER_OFF;
-	tune_control.timestamp = hrt_absolute_time();
-	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
+	// Override any other tunes because power-off sound should have the priority
+	set_tune_override(tune_control_s::TUNE_ID_POWER_OFF);
 }
 
 static void stop_tune()
