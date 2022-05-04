@@ -94,8 +94,7 @@ private:
 	void updateActuatorControlsStatus(const actuator_controls_s &actuators, float dt);
 
 	void publishTorqueSetpoint(const matrix::Vector3f &torque_sp, const hrt_abstime &timestamp_sample);
-
-	void publishThrustSetpoint(const float thrust_setpoint, const hrt_abstime &timestamp_sample);
+	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
 
 	RateControl _rate_control; ///< class for rate control calculations
 
@@ -138,7 +137,7 @@ private:
 	matrix::Vector3f _rates_setpoint{};
 
 	float _battery_status_scale{0.0f};
-	float _thrust_setpoint{0.0f};
+	matrix::Vector3f _thrust_setpoint{};
 
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
