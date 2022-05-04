@@ -77,7 +77,8 @@ private:
 	{
 		vehicle_local_position_s vehicle_local_position{};
 
-		if (_force_next_send || _vehicle_local_position_sub.update(&vehicle_local_position)) {
+		if ((_vehicle_local_position_sub.updated() || _force_next_send)
+		    && _vehicle_local_position_sub.copy(&vehicle_local_position)) {
 			if (vehicle_local_position.xy_global && vehicle_local_position.z_global) {
 
 				static constexpr double LLA_MIN_DIFF = 0.0000001; // ~11.132 mm at the equator
