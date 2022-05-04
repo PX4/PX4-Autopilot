@@ -221,8 +221,8 @@ void FailureDetector::updateAttitudeStatus()
 		const float max_roll(fabsf(math::radians(max_roll_deg)));
 		const float max_pitch(fabsf(math::radians(max_pitch_deg)));
 
-		const bool roll_status = (max_roll > 0.0f) && (fabsf(roll) > max_roll);
-		const bool pitch_status = (max_pitch > 0.0f) && (fabsf(pitch) > max_pitch);
+		const bool roll_status = (max_roll > FLT_EPSILON) && (fabsf(roll) > max_roll);
+		const bool pitch_status = (max_pitch > FLT_EPSILON) && (fabsf(pitch) > max_pitch);
 
 		hrt_abstime time_now = hrt_absolute_time();
 
