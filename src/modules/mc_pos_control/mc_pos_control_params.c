@@ -304,7 +304,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I_ACC, 0.4f);
  * @decimal 3
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_VEL_D_ACC, 0.2f);
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_D_ACC, 0.f);
 
 /**
  * Default horizontal velocity in mission
