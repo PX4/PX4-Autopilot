@@ -602,7 +602,7 @@ vehicle_local_position_setpoint_s MulticopterPositionControl::generateFailsafeSe
 		failsafe_setpoint.acceleration[2] = .3f;
 
 		if (warn) {
-			PX4_WARN("Failsafe: blind descend");
+			PX4_WARN("Failsafe: blind descent");
 		}
 	}
 
