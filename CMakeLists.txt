@@ -99,7 +99,7 @@
 #
 #=============================================================================
 
-cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.9 FATAL_ERROR)
 
 set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE FILEPATH "PX4 source directory" FORCE)
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE FILEPATH "PX4 binary directory" FORCE)
@@ -233,6 +233,14 @@ message(STATUS "cmake build type: ${CMAKE_BUILD_TYPE}")
 # project definition
 #
 project(px4 CXX C ASM)
+
+# Check if LTO option and check if toolchain supports it
+if(LTO)
+    include(CheckIPOSupported)
+    check_ipo_supported()
+    message(AUTHOR_WARNING "LTO enabled: LTO is highly experimental and should not be used in production")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
 
 set(package-contact "px4users@googlegroups.com")
 

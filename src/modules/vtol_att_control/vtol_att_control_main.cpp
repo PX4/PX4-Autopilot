@@ -109,6 +109,7 @@ VtolAttitudeControl::VtolAttitudeControl() :
 
 	_params_handles.land_pitch_min_rad = param_find("VT_LND_PTCH_MIN");
 
+	_params_handles.vt_spoiler_mc_ld = param_find("VT_SPOILER_MC_LD");
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -372,6 +373,8 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.mpc_land_alt1, &_params.mpc_land_alt1);
 	param_get(_params_handles.mpc_land_alt2, &_params.mpc_land_alt2);
 
+	param_get(_params_handles.vt_spoiler_mc_ld, &_params.vt_spoiler_mc_ld);
+
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
 		_vtol_type->parameters_update();
@@ -401,6 +404,7 @@ VtolAttitudeControl::Run()
 
 #endif // !ENABLE_LOCKSTEP_SCHEDULER
 
+	const float dt = math::min((now - _last_run_timestamp) / 1e6f, kMaxVTOLAttitudeControlTimeStep);
 	_last_run_timestamp = now;
 
 	if (!_initialized) {
@@ -414,6 +418,8 @@ VtolAttitudeControl::Run()
 			return;
 		}
 	}
+
+	_vtol_type->setDt(dt);
 
 	perf_begin(_loop_perf);
 
