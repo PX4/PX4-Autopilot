@@ -146,64 +146,6 @@ __EXPORT void board_on_reset(int status)
 	}
 }
 
-/****************************************************************************
- * Name: board_app_finalinitialize
- *
- * Description:
- *   Perform application specific initialization.  This function is never
- *   called directly from application code, but only indirectly via the
- *   (non-standard) boardctl() interface using the command
- *   BOARDIOC_FINALINIT.
- *
- * Input Parameters:
- *   arg - The argument has no meaning.
- *
- * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on
- *   any failure to indicate the nature of the failure.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_BOARDCTL_FINALINIT
-int board_app_finalinitialize(uintptr_t arg)
-{
-	return 0;
-}
-#endif
-
-/************************************************************************************
- * Name: stm32_boardinitialize
- *
- * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the initialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-__EXPORT void
-stm32_boardinitialize(void)
-{
-	board_on_reset(-1); /* Reset PWM first thing */
-
-	/* configure LEDs */
-
-	board_autoled_initialize();
-
-	/* configure pins */
-
-	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	px4_gpio_init(gpio, arraySize(gpio));
-
-	/* configure SPI interfaces */
-
-	stm32_spiinitialize();
-
-	/* configure USB interfaces */
-
-	stm32_usbinitialize();
-
-}
 
 /****************************************************************************
  * Name: board_app_initialize
@@ -234,12 +176,10 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
-
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
 
 	/* Need hrt running before using the ADC */
-
 	px4_platform_init();
 
 	if (OK == board_determine_hw_info()) {
@@ -250,8 +190,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
-	/* configure the DMA allocator */
+	stm32_spiinitialize();
 
+	/* configure the DMA allocator */
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}

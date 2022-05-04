@@ -149,10 +149,6 @@
 
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
-		GPIO_CAN1_TX,                     \
-		GPIO_CAN1_RX,                     \
-		GPIO_CAN2_TX,                     \
-		GPIO_CAN2_RX,                     \
 		GPIO_PWM_VOLT_SEL,                \
 		GPIO_nVDD_BRICK1_VALID,           \
 		GPIO_nVDD_BRICK1_VALID,           \

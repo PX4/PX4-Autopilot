@@ -37,13 +37,21 @@
  * Board-specific USB functions.
  */
 
-#include "board_config.h"
+#include <px4_platform_common/px4_config.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <debug.h>
+
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
-#include <stm32_otg.h>
-#include <debug.h>
-#include <syslog.h>
 
+#include <arm_arch.h>
+#include <chip.h>
+#include <stm32_gpio.h>
+#include <stm32_otg.h>
+#include "board_config.h"
 
 /************************************************************************************
  * Name:  stm32_usbsuspend
@@ -55,6 +63,7 @@
  *   while the USB is suspended.
  *
  ************************************************************************************/
+
 __EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
 	uinfo("resume: %d\n", resume);

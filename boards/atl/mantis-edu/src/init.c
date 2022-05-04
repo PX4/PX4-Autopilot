@@ -149,27 +149,6 @@ __EXPORT void board_on_reset(int status)
 {
 }
 
-/************************************************************************************
- * Name: stm32_boardinitialize
- *
- * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the initialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-__EXPORT void stm32_boardinitialize(void)
-{
-	/* Hold power state */
-	board_pwr_init(0);
-
-	/* configure pins */
-	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	px4_gpio_init(gpio, arraySize(gpio));
-	board_control_spi_sensors_power_configgpio();
-}
-
 /****************************************************************************
  * Name: board_app_initialize
  *

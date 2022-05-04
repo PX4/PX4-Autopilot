@@ -48,6 +48,7 @@ add_dependencies(drivers_board platform_gpio_mcp23009)
 
 target_link_libraries(drivers_board
 	PRIVATE
+		arch_init
 		arch_io_pins
 		arch_spi
 		arch_board_hw_info

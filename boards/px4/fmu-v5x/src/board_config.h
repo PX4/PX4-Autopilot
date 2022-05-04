@@ -250,7 +250,7 @@
 
 /* ETHERNET GPIO */
 
-#define GPIO_ETH_POWER_EN              /* PG15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTG|GPIO_PIN15)
+#define GPIO_ETH_POWER_EN              /* PG15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN15)
 
 /* NFC GPIO */
 
@@ -399,10 +399,6 @@
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
 		GPIO_HW_VER_REV_DRIVE,            \
-		GPIO_CAN1_TX,                     \
-		GPIO_CAN1_RX,                     \
-		GPIO_CAN2_TX,                     \
-		GPIO_CAN2_RX,                     \
 		GPIO_HEATER_OUTPUT,               \
 		GPIO_nPOWER_IN_A,                 \
 		GPIO_nPOWER_IN_B,                 \
@@ -424,14 +420,6 @@
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_PG6,                         \
 		GPIO_nARMED_INIT,                  \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C1_SCL), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C1_SDA), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C2_SCL), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C2_SDA), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C3_SCL), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C3_SDA), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C4_SCL), \
-		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C4_SDA), \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
@@ -442,47 +430,13 @@
 #define PX4_I2C_BUS_MTD      4,5
 
 __BEGIN_DECLS
-
-/****************************************************************************************************
- * Public Types
- ****************************************************************************************************/
-
-/****************************************************************************************************
- * Public data
- ****************************************************************************************************/
-
 #ifndef __ASSEMBLY__
-
-/****************************************************************************************************
- * Public Functions
- ****************************************************************************************************/
-
-/****************************************************************************
- * Name: stm32_sdio_initialize
- *
- * Description:
- *   Initialize SDIO-based MMC/SD card support
- *
- ****************************************************************************/
 
 int stm32_sdio_initialize(void);
 
-/****************************************************************************************************
- * Name: stm32_spiinitialize
- *
- * Description:
- *   Called to configure SPI chip select GPIO pins for the PX4FMU board.
- *
- ****************************************************************************************************/
-
 extern void stm32_spiinitialize(void);
-
-extern void stm32_usbinitialize(void);
-
 extern void board_peripheral_reset(int ms);
 
 #include <px4_platform_common/board_common.h>
-
 #endif /* __ASSEMBLY__ */
-
 __END_DECLS

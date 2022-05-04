@@ -46,3 +46,9 @@ add_subdirectory(../stm32_common/version version)
 
 add_subdirectory(px4io_serial)
 add_subdirectory(watchdog)
+
+px4_add_library(arch_init
+	init.cpp
+)
+
+target_link_libraries(arch_init PRIVATE px4_layer)

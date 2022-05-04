@@ -382,12 +382,6 @@
 
 /* I2C
  *
- *   Each I2C is associated with a U[S]ART
- *   hence the naming I2C2_SDA_UART4 in FMU USAGE spreadsheet
- *
- *
- *   I2C3 is not pined out on FMUv5 on 144 pin packages
- *
  *   The optional _GPIO configurations allow the I2C driver to manually
  *   reset the bus to clear stuck slaves.  They match the pin configuration,
  *   but are normally-high GPIOs.

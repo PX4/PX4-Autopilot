@@ -190,7 +190,6 @@
 		GPIO_HW_VER_DRIVE,                \
 		GPIO_HEATER_OUTPUT,               \
 		GPIO_VDD_3V3_SD_CARD_EN,          \
-		GPIO_OTGFS_VBUS                   \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
