@@ -42,7 +42,6 @@
 #include <px4_platform_common/sem.hpp>
 
 PWMSim::PWMSim(bool hil_mode_enabled) :
-	CDev(PWM_OUTPUT0_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_mixing_output.setAllDisarmedValues(PWM_SIM_DISARMED_MAGIC);
@@ -51,39 +50,16 @@ PWMSim::PWMSim(bool hil_mode_enabled) :
 	_mixing_output.setAllMaxValues(PWM_SIM_PWM_MAX_MAGIC);
 
 	_mixing_output.setIgnoreLockdown(hil_mode_enabled);
-
-	CDev::init();
 }
 
-void
-PWMSim::Run()
+PWMSim::~PWMSim()
 {
-	SmartLock lock_guard(_lock);
-
-	if (should_exit()) {
-		ScheduleClear();
-		_mixing_output.unregister();
-
-		exit_and_cleanup();
-		return;
-	}
-
-	_mixing_output.update();
-
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-		updateParams();
-	}
-
-	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
-	_mixing_output.updateSubscriptions(true);
+	perf_free(_cycle_perf);
+	perf_free(_interval_perf);
 }
 
-bool
-PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
-		      unsigned num_control_groups_updated)
+bool PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
+			   unsigned num_control_groups_updated)
 {
 	// Only publish once we receive actuator_controls (important for lock-step to work correctly)
 	if (num_control_groups_updated > 0) {
@@ -121,140 +97,30 @@ PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 	return false;
 }
 
-int
-PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
+void PWMSim::Run()
 {
-	SmartLock lock_guard(_lock);
+	if (should_exit()) {
+		ScheduleClear();
+		_mixing_output.unregister();
 
-	int ret = OK;
-
-	switch (cmd) {
-	case PWM_SERVO_ARM:
-		break;
-
-	case PWM_SERVO_DISARM:
-		break;
-
-	case PWM_SERVO_SET_MIN_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (i < OutputModuleInterface::MAX_ACTUATORS && !_mixing_output.useDynamicMixing()) {
-					_mixing_output.minValue(i) = pwm->values[i];
-				}
-			}
-
-			break;
-		}
-
-	case PWM_SERVO_SET_MAX_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < pwm->channel_count; i++) {
-				if (i < OutputModuleInterface::MAX_ACTUATORS && !_mixing_output.useDynamicMixing()) {
-					_mixing_output.maxValue(i) = pwm->values[i];
-				}
-			}
-
-			break;
-		}
-
-	case PWM_SERVO_SET_UPDATE_RATE:
-		// PWMSim does not limit the update rate
-		break;
-
-	case PWM_SERVO_SET_SELECT_UPDATE_RATE:
-		break;
-
-	case PWM_SERVO_GET_DEFAULT_UPDATE_RATE:
-		*(uint32_t *)arg = 9999;
-		break;
-
-	case PWM_SERVO_GET_UPDATE_RATE:
-		*(uint32_t *)arg = 9999;
-		break;
-
-	case PWM_SERVO_GET_SELECT_UPDATE_RATE:
-		*(uint32_t *)arg = 0;
-		break;
-
-	case PWM_SERVO_GET_FAILSAFE_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
-				pwm->values[i] = _mixing_output.failsafeValue(i);
-			}
-
-			pwm->channel_count = OutputModuleInterface::MAX_ACTUATORS;
-			break;
-		}
-
-	case PWM_SERVO_GET_DISARMED_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
-				pwm->values[i] = _mixing_output.disarmedValue(i);
-			}
-
-			pwm->channel_count = OutputModuleInterface::MAX_ACTUATORS;
-			break;
-		}
-
-	case PWM_SERVO_GET_MIN_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
-				pwm->values[i] = _mixing_output.minValue(i);
-			}
-
-			pwm->channel_count = OutputModuleInterface::MAX_ACTUATORS;
-			break;
-		}
-
-	case PWM_SERVO_GET_MAX_PWM: {
-			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
-
-			for (unsigned i = 0; i < OutputModuleInterface::MAX_ACTUATORS; i++) {
-				pwm->values[i] = _mixing_output.maxValue(i);
-			}
-
-			pwm->channel_count = OutputModuleInterface::MAX_ACTUATORS;
-			break;
-		}
-
-	case PWM_SERVO_GET_RATEGROUP(0) ... PWM_SERVO_GET_RATEGROUP(PWM_OUTPUT_MAX_CHANNELS - 1): {
-			// no restrictions on output grouping
-			unsigned channel = cmd - PWM_SERVO_GET_RATEGROUP(0);
-
-			*(uint32_t *)arg = (1 << channel);
-			break;
-		}
-
-	case PWM_SERVO_GET_COUNT:
-		*(unsigned *)arg = OutputModuleInterface::MAX_ACTUATORS;
-		break;
-
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-			break;
-		}
-
-	default:
-		ret = -ENOTTY;
-		break;
+		exit_and_cleanup();
+		return;
 	}
 
-	return ret;
+	_mixing_output.update();
+
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+		updateParams();
+	}
+
+	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
+	_mixing_output.updateSubscriptions(true);
 }
 
-int
-PWMSim::task_spawn(int argc, char *argv[])
+int PWMSim::task_spawn(int argc, char *argv[])
 {
 	bool hil_mode = false;
 
@@ -293,7 +159,10 @@ int PWMSim::custom_command(int argc, char *argv[])
 
 int PWMSim::print_status()
 {
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_interval_perf);
 	_mixing_output.printStatus();
+
 	return 0;
 }
 

@@ -9,14 +9,7 @@
 # @output MAIN3 thrust tilt
 # @output MAIN4 tail thruster
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.airship_defaults
 
 param set-default COM_PREARM_MODE 2
-param set-default CBRK_IO_SAFETY 22027
-
-set MIXER cloudship
-set PWM_OUT 1234

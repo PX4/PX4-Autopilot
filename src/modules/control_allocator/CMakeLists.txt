@@ -51,6 +51,5 @@ px4_add_module(
 		mathlib
 		ActuatorEffectiveness
 		ControlAllocation
-		mixer
 		px4_work_queue
 )

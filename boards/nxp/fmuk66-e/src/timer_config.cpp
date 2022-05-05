@@ -46,7 +46,6 @@
 #include "hardware/kinetis_sim.h"
 #include "hardware/kinetis_ftm.h"
 
-#include <drivers/drv_pwm_output.h>
 #include <px4_arch/io_timer_hw_description.h>
 
 #include "board_config.h"

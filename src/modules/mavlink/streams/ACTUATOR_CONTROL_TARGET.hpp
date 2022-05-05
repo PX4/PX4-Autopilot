@@ -88,10 +88,6 @@ private:
 		case 2:
 			_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_2)};
 			break;
-
-		case 3:
-			_act_ctrl_sub = new uORB::Subscription{ORB_ID(actuator_controls_3)};
-			break;
 		}
 	}
 

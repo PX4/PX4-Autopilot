@@ -17,9 +17,6 @@
 # @output AUX3 Elevon 2
 # @output AUX4 Gear
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.vtol_defaults
 
@@ -37,17 +34,8 @@ param set-default MC_YAW_P 4
 param set-default MC_YAWRATE_P 0.22
 param set-default MC_YAWRATE_I 0.02
 
-param set-default VT_FW_MOT_OFFID 34
-param set-default VT_IDLE_PWM_MC 1080
-param set-default VT_MOT_ID 123456
-param set-default VT_FW_MOT_OFFID 56
 param set-default VT_TILT_MC 0.08
 param set-default VT_TILT_TRANS 0.5
 param set-default VT_TILT_FW 0.9
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_TYPE 1
-
-set MIXER firefly6
-set MIXER_AUX firefly6
-
-set PWM_OUT 12345678

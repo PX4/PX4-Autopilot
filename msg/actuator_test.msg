@@ -1,7 +1,6 @@
 uint64 timestamp				# time since system start (microseconds)
 
 # Topic to test individual actuator output functions
-# Note: this is only used with SYS_CTRL_ALLOC=1
 
 uint8 ACTION_RELEASE_CONTROL = 0	# exit test mode for the given function
 uint8 ACTION_DO_CONTROL = 1			# enable actuator test mode

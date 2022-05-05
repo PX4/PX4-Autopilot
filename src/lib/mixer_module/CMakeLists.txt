@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -53,5 +53,4 @@ add_dependencies(mixer_module output_functions_header)
 target_compile_options(mixer_module PRIVATE ${MAX_CUSTOM_OPT_LEVEL})
 
 
-px4_add_functional_gtest(SRC mixer_module_tests.cpp LINKLIBS mixer_module mixer)
-
+px4_add_functional_gtest(SRC mixer_module_tests.cpp LINKLIBS mixer_module)

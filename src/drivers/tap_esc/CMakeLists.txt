@@ -45,7 +45,6 @@ px4_add_module(
 		module.yaml
 	DEPENDS
 		led
-		mixer
 		mixer_module
 		tunes
 	)

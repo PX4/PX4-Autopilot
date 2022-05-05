@@ -7,13 +7,11 @@
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.mc_defaults
 
 param set-default MC_ROLLRATE_P 0.18
-param set-default MC_PITCHRATE_P 0.18
 param set-default MC_ROLLRATE_I 0.15
+
+param set-default MC_PITCHRATE_P 0.18
 param set-default MC_PITCHRATE_I 0.15

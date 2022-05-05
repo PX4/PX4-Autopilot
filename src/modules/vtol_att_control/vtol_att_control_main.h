@@ -50,7 +50,6 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_pwm_output.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
@@ -217,8 +216,6 @@ private:
 	Params _params{};	// struct holding the parameters
 
 	struct {
-		param_t idle_pwm_mc;
-		param_t vtol_motor_id;
 		param_t vtol_fw_permanent_stab;
 		param_t vtol_type;
 		param_t elevons_mc_lock;
@@ -237,7 +234,6 @@ private:
 		param_t airspeed_mode;
 		param_t front_trans_timeout;
 		param_t mpc_xy_cruise;
-		param_t fw_motors_off;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
 		param_t pitch_min_rad;
@@ -246,11 +242,9 @@ private:
 		param_t dec_to_pitch_ff;
 		param_t dec_to_pitch_i;
 		param_t back_trans_dec_sp;
-		param_t vt_mc_on_fmu;
 		param_t vt_forward_thrust_enable_mode;
 		param_t mpc_land_alt1;
 		param_t mpc_land_alt2;
-		param_t sys_ctrl_alloc;
 		param_t vt_spoiler_mc_ld;
 	} _params_handles{};
 

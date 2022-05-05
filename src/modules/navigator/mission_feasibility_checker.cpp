@@ -45,7 +45,6 @@
 #include "mission_block.h"
 #include "navigator.h"
 
-#include <drivers/drv_pwm_output.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/landing_slope/Landingslope.hpp>
@@ -53,6 +52,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/position_controller_landing_status.h>
 #include <px4_platform_common/events.h>
+
+#include <drivers/drv_pwm_output.h>
 
 bool
 MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,

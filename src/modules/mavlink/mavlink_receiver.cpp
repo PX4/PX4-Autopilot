@@ -519,28 +519,6 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 							vehicle_command.param2, vehicle_command.param3, vehicle_command.param4,
 							vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
 
-	} else if (cmd_mavlink.command == MAV_CMD_SET_CAMERA_ZOOM) {
-		struct actuator_controls_s actuator_controls = {};
-		actuator_controls.timestamp = hrt_absolute_time();
-
-		for (size_t i = 0; i < 8; i++) {
-			actuator_controls.control[i] = NAN;
-		}
-
-		switch ((int)(cmd_mavlink.param1 + 0.5f)) {
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_RANGE:
-			actuator_controls.control[actuator_controls_s::INDEX_CAMERA_ZOOM] = cmd_mavlink.param2 / 50.0f - 1.0f;
-			break;
-
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_STEP:
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_CONTINUOUS:
-		case vehicle_command_s::VEHICLE_CAMERA_ZOOM_TYPE_FOCAL_LENGTH:
-		default:
-			send_ack = false;
-		}
-
-		_actuator_controls_pubs[actuator_controls_s::GROUP_INDEX_GIMBAL].publish(actuator_controls);
-
 	} else if (cmd_mavlink.command == MAV_CMD_INJECT_FAILURE) {
 		if (_mavlink->failure_injection_enabled()) {
 			_cmd_pub.publish(vehicle_command);
@@ -550,40 +528,6 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 			send_ack = true;
 		}
-
-	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_ACTUATOR) {
-		// since we're only paying attention to 3 AUX outputs, the
-		// index should be 0, otherwise ignore the message
-		if (((int) vehicle_command.param7) == 0) {
-			actuator_controls_s actuator_controls{};
-			// update with existing values to avoid changing unspecified controls
-			_actuator_controls_3_sub.update(&actuator_controls);
-
-			actuator_controls.timestamp = hrt_absolute_time();
-
-			bool updated = false;
-
-			if (PX4_ISFINITE(vehicle_command.param1)) {
-				actuator_controls.control[5] = vehicle_command.param1;
-				updated = true;
-			}
-
-			if (PX4_ISFINITE(vehicle_command.param2)) {
-				actuator_controls.control[6] = vehicle_command.param2;
-				updated = true;
-			}
-
-			if (PX4_ISFINITE(vehicle_command.param3)) {
-				actuator_controls.control[7] = vehicle_command.param3;
-				updated = true;
-			}
-
-			if (updated) {
-				_actuator_controls_pubs[3].publish(actuator_controls);
-			}
-		}
-
-		_cmd_pub.publish(vehicle_command);
 
 	} else if (cmd_mavlink.command == MAV_CMD_DO_AUTOTUNE_ENABLE) {
 
@@ -1306,10 +1250,6 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 
 			case 2:
 				_actuator_controls_pubs[2].publish(actuator_controls);
-				break;
-
-			case 3:
-				_actuator_controls_pubs[3].publish(actuator_controls);
 				break;
 
 			default:

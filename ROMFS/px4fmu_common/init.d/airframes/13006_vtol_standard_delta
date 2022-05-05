@@ -15,10 +15,6 @@
 # @output AUX2 Left elevon
 # @output AUX3 Motor
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-# @board holybro_kakutef7 exclude
-#
 
 . ${R}etc/init.d/rc.vtol_defaults
 
@@ -36,13 +32,5 @@ param set-default MPC_YAWRAUTO_MAX 20
 
 param set-default PWM_AUX_DIS3 950
 
-param set-default VT_MOT_ID 1234
-param set-default VT_FW_MOT_OFFID 1234
 param set-default VT_F_TRANS_THR 0.75
-param set-default VT_IDLE_PWM_MC 1080
 param set-default VT_TYPE 2
-
-set MIXER quad_x
-set MIXER_AUX vtol_delta
-
-set PWM_OUT 1234

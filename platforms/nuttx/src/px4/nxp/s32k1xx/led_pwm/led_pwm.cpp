@@ -54,7 +54,6 @@
 #include <stdio.h>
 
 #include <arch/board/board.h>
-#include <drivers/drv_pwm_output.h>
 
 #include <px4_arch/io_timer.h>
 
@@ -287,7 +286,7 @@ led_pwm_servo_get(unsigned channel)
 	}
 
 	unsigned timer = led_pwm_channels[channel].timer_index;
-	servo_position_t value = 0;
+	uint16_t value = 0;
 
 	/* test timer for validity */
 	if ((led_pwm_timers[timer].base == 0) ||

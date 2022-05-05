@@ -38,7 +38,6 @@
 
 #include <arch/board/board.h>
 #include "led.h"
-#include <drivers/drv_pwm_output.h>
 
 #include <px4_arch/io_timer.h>
 

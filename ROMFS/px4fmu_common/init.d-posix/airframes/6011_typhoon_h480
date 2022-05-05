@@ -27,5 +27,3 @@ param set-default TRIG_MODE 4
 param set-default MNT_MODE_IN 4
 param set-default MNT_MODE_OUT 2
 param set-default MAV_PROTO_VER 2
-
-set MIXER hexa_x

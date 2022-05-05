@@ -42,6 +42,3 @@ param set-default RWTO_MAX_ROLL 10
 
 param set-default RWTO_PSP 8
 param set-default RWTO_AIRSPD_SCL 1.8
-
-set MIXER_FILE etc/mixers-sitl/plane_sitl.main.mix
-set MIXER custom

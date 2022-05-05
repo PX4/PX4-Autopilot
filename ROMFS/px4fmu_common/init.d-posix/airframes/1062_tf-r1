@@ -34,5 +34,3 @@ param set-default CBRK_AIRSPD_CHK 162128
 
 param set-default GND_MAX_ANG 0.6
 param set-default GND_WHEEL_BASE 3.0
-
-set MIXER_FILE etc/mixers-sitl/rover_ackermann_sitl.main.mix

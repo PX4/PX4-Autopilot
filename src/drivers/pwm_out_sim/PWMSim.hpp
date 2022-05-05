@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,7 +35,6 @@
 
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <px4_platform_common/px4_config.h>
@@ -56,10 +55,11 @@
 
 using namespace time_literals;
 
-class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>, public OutputModuleInterface
+class PWMSim : public ModuleBase<PWMSim>, public OutputModuleInterface
 {
 public:
 	PWMSim(bool hil_mode_enabled);
+	~PWMSim() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -72,8 +72,6 @@ public:
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
-
-	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
@@ -91,5 +89,7 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Publication<actuator_outputs_s> _actuator_outputs_sim_pub{ORB_ID(actuator_outputs_sim)};
-};
 
+	perf_counter_t	_cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t	_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+};

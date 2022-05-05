@@ -7,14 +7,6 @@
 #
 # @maintainer Andreas Antener <andreas@uaventure.com>
 #
-# @board px4_fmu-v2 exclude
-# @board px4_fmu-v3 exclude
-# @board px4_fmu-v4 exclude
-# @board px4_fmu-v4pro exclude
-# @board px4_fmu-v5 exclude
-# @board px4_fmu-v5x exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.mc_defaults
 
@@ -82,5 +74,3 @@ param set-default RC5_TRIM          1500
 param set-default MAV_0_RATE 80000
 param set-default MAV_0_MODE 2
 param set-default SER_TEL1_BAUD 921600
-
-set MIXER_AUX none

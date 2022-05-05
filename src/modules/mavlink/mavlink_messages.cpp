@@ -44,7 +44,6 @@
 #include "mavlink_command_sender.h"
 #include "mavlink_simple_analyzer.h"
 
-#include <drivers/drv_pwm_output.h>
 #include <lib/conversion/rotation.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>

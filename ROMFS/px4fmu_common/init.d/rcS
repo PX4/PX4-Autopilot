@@ -29,24 +29,11 @@ set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOGGER_ARGS ""
 set LOGGER_BUF 8
-set MIXER none
-set MIXER_AUX none
-set MIXER_FILE none
-set MIXER_EXTRA none
-set OUTPUT_MODE none
 set PARAM_FILE ""
-set PWM_OUT none
-set PWM_MAIN_RATE p:PWM_MAIN_RATE
-set PWM_AUX_OUT none
-set PWM_AUX_RATE p:PWM_AUX_RATE
-set PWM_EXTRA_OUT none
-set PWM_EXTRA_RATE p:PWM_EXTRA_RATE
-set EXTRA_MIXER_MODE none
 set RC_INPUT_ARGS ""
 set SDCARD_AVAILABLE no
 set SDCARD_EXT_PATH /fs/microsd/ext_autostart
 set SDCARD_FORMAT no
-set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
@@ -288,13 +275,8 @@ else
 	if param greater -s UAVCAN_ENABLE 0
 	then
 		# Start core UAVCAN module.
-		if uavcan start
+		if ! uavcan start
 		then
-			if param greater UAVCAN_ENABLE 2
-			then
-				set OUTPUT_MODE uavcan_esc
-			fi
-		else
 			tune_control play error
 		fi
 	else
@@ -369,7 +351,8 @@ else
 	#
 	if param greater SYS_HITL 0
 	then
-		set OUTPUT_MODE hil
+		pwm_out_sim start -m hil
+
 		sensors start -h
 		commander start -h
 		# disable GPS
@@ -407,14 +390,32 @@ else
 
 		sensors start
 		commander start
+
+		if param greater -s DSHOT_CONFIG 0
+		then
+			dshot start
+		fi
+
+		pwm_out start
 	fi
 
 	#
 	# Configure vehicle type specific parameters.
-	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
+	# Note: rc.vehicle_setup is the entry point rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 	#
 	. ${R}etc/init.d/rc.vehicle_setup
+
+	#
+	# Start IO for PWM output or RC input if needed.
+	#
+	if [ $IO_PRESENT = yes ]
+	then
+		if ! px4io start
+		then
+			echo "PX4IO start failed"
+			tune_control play -t 18 # PROG_PX4IO_ERR
+		fi
+	fi
 
 	# Pre-takeoff continuous magnetometer calibration
 	if param compare -s MBE_ENABLE 1
@@ -573,22 +574,11 @@ unset IO_PRESENT
 unset IOFW
 unset LOGGER_ARGS
 unset LOGGER_BUF
-unset MIXER
-unset MIXER_AUX
-unset MIXER_FILE
-unset OUTPUT_MODE
 unset PARAM_FILE
-unset PWM_AUX_OUT
-unset PWM_AUX_RATE
-unset PWM_MAIN_RATE
-unset PWM_OUT
-unset PWM_EXTRA_OUT
-unset PWM_EXTRA_RATE
 unset RC_INPUT_ARGS
 unset SDCARD_AVAILABLE
 unset SDCARD_EXT_PATH
 unset SDCARD_FORMAT
-unset SDCARD_MIXERS_PATH
 unset STARTUP_TUNE
 unset USE_IO
 unset VEHICLE_TYPE

@@ -14,13 +14,7 @@
 # @output MAIN7 motor 7
 # @output MAIN8 motor 8
 #
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-#
 # @maintainer Lorenz Meier <lorenz@px4.io>
-#
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults
@@ -49,7 +43,3 @@ param set-default CA_ROTOR6_PY -0.46
 param set-default CA_ROTOR7_KM -0.05
 param set-default CA_ROTOR7_PX -0.19
 param set-default CA_ROTOR7_PY 0.46
-
-set MIXER octo_x
-
-set PWM_OUT 12345678

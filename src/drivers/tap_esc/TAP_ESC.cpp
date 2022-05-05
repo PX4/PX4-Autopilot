@@ -35,8 +35,7 @@
 
 #include <px4_platform_common/sem.hpp>
 
-TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count):
-	CDev(TAP_ESC_DEVICE_PATH),
+TAP_ESC::TAP_ESC(char const *const device, uint8_t channels_count) :
 	OutputModuleInterface(MODULE_NAME, px4::serial_port_to_wq(device)),
 	_mixing_output{"TAP_ESC", channels_count, *this, MixingOutput::SchedulingPolicy::Auto, true},
 	_channels_count(channels_count)
@@ -154,8 +153,7 @@ int TAP_ESC::init()
 		usleep(2000);
 	}
 
-	/* do regular cdev init */
-	return CDev::init();
+	return PX4_OK;
 }
 
 void TAP_ESC::send_esc_outputs(const uint16_t *pwm, const uint8_t motor_cnt)
@@ -327,8 +325,6 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 
 void TAP_ESC::Run()
 {
-	SmartLock lock_guard(_lock);
-
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -409,33 +405,6 @@ void TAP_ESC::Run()
 	_mixing_output.updateSubscriptions(true, true);
 
 	perf_end(_cycle_perf);
-}
-
-int TAP_ESC::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	SmartLock lock_guard(_lock);
-
-	int ret = OK;
-
-	switch (cmd) {
-	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
-		break;
-
-	case MIXERIOCLOADBUF: {
-			const char *buf = (const char *)arg;
-			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixer(buf, buflen);
-			break;
-		}
-
-
-	default:
-		ret = -ENOTTY;
-		break;
-	}
-
-	return ret;
 }
 
 int TAP_ESC::task_spawn(int argc, char *argv[])

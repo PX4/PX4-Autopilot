@@ -16,9 +16,6 @@
 # @output MAIN7 Elevon right
 # @output MAIN8 Elevon left
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.vtol_defaults
 
@@ -58,15 +55,8 @@ param set-default VT_F_TRANS_DUR  1.2
 param set-default VT_F_TR_OL_TM   4
 param set-default VT_FW_DIFTHR_EN 1
 param set-default VT_FW_DIFTHR_SC 0.17
-param set-default VT_FW_MOT_OFFID 3
-param set-default VT_IDLE_PWM_MC 1200
-param set-default VT_MOT_ID 123
-param set-default VT_TILT_TRANS   0.45
+param set-default VT_TILT_TRANS 0.45
 param set-default VT_TRANS_MIN_TM 1.2
 param set-default VT_TRANS_P2_DUR 1.3
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_TYPE 1
-
-set MIXER vtol_convergence
-
-set PWM_OUT 1234

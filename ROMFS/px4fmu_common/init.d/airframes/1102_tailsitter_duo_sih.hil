@@ -12,7 +12,6 @@
 #
 # @maintainer Romain Chiappinelli <romain.chiap@gmail.com>
 #
-# @board px4_fmu-v2 exclude
 #
 
 . ${R}etc/init.d/rc.vtol_defaults
@@ -47,10 +46,6 @@ param set-default HIL_ACT_FUNC6 201
 param set-default HIL_ACT_REV 32
 
 param set-default MAV_TYPE 19
-
-set MIXER vtol_tailsitter_duo_sat
-
-set PWM_OUT 1234
 
 # set SYS_HITL to 2 to start the SIH and avoid sensors startup
 param set-default SYS_HITL 2

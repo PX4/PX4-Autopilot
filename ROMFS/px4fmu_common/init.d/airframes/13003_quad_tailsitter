@@ -7,9 +7,6 @@
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.vtol_defaults
 
@@ -35,12 +32,4 @@ param set-default CA_SV_CS1_TRQ_P 0.5
 param set-default CA_SV_CS1_TRQ_Y -0.5
 param set-default CA_SV_CS1_TYPE 6
 
-param set-default PWM_MAIN_MAX 2000
-
-param set-default VT_MOT_ID 1234
-param set-default VT_IDLE_PWM_MC  1080
 param set-default VT_TYPE 0
-
-set MIXER quad_x_vtol
-
-set PWM_OUT 1234

@@ -7,16 +7,8 @@
 #
 # @maintainer Dennis Shtatov <densht@gmail.com>
 #
-# @board px4_fmu-v2 exclude
-# @board px4_fmu-v3 exclude
-# @board px4_fmu-v4 exclude
-# @board px4_fmu-v4pro exclude
-# @board px4_fmu-v5 exclude
-# @board px4_fmu-v5x exclude
-#
-. ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_x_cw
+. ${R}etc/init.d/rc.mc_defaults
 
 param set-default BAT1_N_CELLS 1
 param set-default BAT1_CAPACITY 240
@@ -53,18 +45,7 @@ param set-default MPC_MAX_FLOW_HGT 3
 
 param set-default NAV_RCL_ACT 3
 
-param set-default PWM_MAIN_DISARM 0
-param set-default PWM_MAIN_MIN 0
-param set-default PWM_MAIN_MAX 255
-
-# Run the motors at 328.125 kHz (recommended)
-param set-default PWM_MAIN_RATE 3921
-
 param set-default SENS_FLOW_MINRNG 0.05
-
-set PWM_MAIN_DISARM none
-set PWM_MAIN_MAX none
-set PWM_MAIN_MIN none
 
 syslink start
 mavlink start -d /dev/bridge0 -b 57600 -m osd -r 40000

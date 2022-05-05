@@ -9,9 +9,6 @@
 #
 # @maintainer Beat Kueng <beat-kueng@gmx.net>
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.mc_defaults
 
@@ -44,7 +41,4 @@ param set-default MPC_THR_HOVER 0.25
 param set-default MPC_THR_MIN 0.05
 param set-default MPC_Z_VEL_I_ACC 1.7
 
-param set-default PWM_MAIN_MIN 1050
-
-param set-default PWM_MAIN_RATE 0
 param set-default THR_MDL_FAC 0.3

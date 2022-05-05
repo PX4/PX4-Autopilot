@@ -10,14 +10,6 @@
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
 #
-# @board px4_fmu-v2 exclude
-# @board px4_fmu-v3 exclude
-# @board px4_fmu-v4pro exclude
-# @board px4_fmu-v5 exclude
-# @board px4_fmu-v5x exclude
-# @board bitcraze_crazyflie exclude
-# @board cuav_x7pro exclude
-#
 # @maintainer Hyon Lim <lim@uvify.com>
 #
 

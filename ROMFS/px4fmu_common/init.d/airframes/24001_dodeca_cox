@@ -22,27 +22,10 @@
 # @maintainer Ian McNanie <ianmcnanie@gmail.com>
 # @maintainer William Peale <develop707@gmail.com>
 #
-# @board bitcraze_crazyflie exclude
-# @board px4_fmu-v2 exclude
-#
 
 . ${R}etc/init.d/rc.mc_defaults
 
 param set-default NAV_ACC_RAD 2
 
-param set-default PWM_AUX_RATE 400
-param set-default PWM_AUX_DISARM 900
-param set-default PWM_AUX_MIN 1075
-param set-default PWM_AUX_MAX 1950
-
-param set-default PWM_MAIN_RATE 400
-
 param set-default RTL_DESCEND_ALT 10
 param set-default RTL_RETURN_ALT 30
-
-set MIXER dodeca_top_cox
-set MIXER_AUX dodeca_bottom_cox
-
-# Need to set all 8 channels
-set PWM_OUT 12345678
-set PWM_AUX_OUT 123456

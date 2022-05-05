@@ -46,7 +46,6 @@
 #include "hardware/s32k1xx_ftm.h"
 #include "s32k1xx_pin.h"
 
-#include <drivers/drv_pwm_output.h>
 #include <px4_arch/io_timer_hw_description.h>
 
 #include "board_config.h"

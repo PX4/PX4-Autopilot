@@ -1,1 +1,0 @@
-mixer append /dev/pwm_output0 etc/mixers-sitl/package_drop.aux.mix

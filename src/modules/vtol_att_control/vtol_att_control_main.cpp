@@ -60,21 +60,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 {
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 
-	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
-	_params.vtol_motor_id = 0;
-
-	_params_handles.sys_ctrl_alloc = param_find("SYS_CTRL_ALLOC");
-	_params.ctrl_alloc = 0;
-	param_get(_params_handles.sys_ctrl_alloc, &_params.ctrl_alloc);
-
-	if (_params.ctrl_alloc != 1) {
-		// these are not used with dynamic control allocation
-		_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
-		_params_handles.vtol_motor_id = param_find("VT_MOT_ID");
-		_params_handles.vt_mc_on_fmu = param_find("VT_MC_ON_FMU");
-		_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
-	}
-
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
@@ -274,17 +259,6 @@ VtolAttitudeControl::parameters_update()
 {
 	float v;
 	int32_t l;
-
-	if (_params.ctrl_alloc != 1) {
-		/* idle pwm for mc mode */
-		param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
-		param_get(_params_handles.vtol_motor_id, &_params.vtol_motor_id);
-		param_get(_params_handles.vt_mc_on_fmu, &l);
-		_params.vt_mc_on_fmu = l;
-
-		/* vtol motor count */
-		param_get(_params_handles.fw_motors_off, &_params.fw_motors_off);
-	}
 
 	/* vtol fw permanent stabilization */
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);

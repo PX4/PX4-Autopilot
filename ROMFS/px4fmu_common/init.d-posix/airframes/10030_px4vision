@@ -7,5 +7,3 @@
 #
 
 . ${R}etc/init.d/airframes/4016_holybro_px4vision
-
-set MIXER quad_x

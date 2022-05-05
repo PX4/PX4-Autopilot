@@ -7,7 +7,6 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-# param set-default SYS_CTRL_ALLOC 1
 param set-default CA_AIRFRAME 2
 
 param set-default CA_ROTOR_COUNT 5
@@ -74,10 +73,5 @@ param set-default NAV_ACC_RAD 5
 
 param set-default VT_FWD_THRUST_EN 4
 param set-default VT_F_TRANS_THR 0.75
-param set-default VT_MOT_ID 1234
-param set-default VT_FW_MOT_OFFID 1234
 param set-default VT_B_TRANS_DUR 8
 param set-default VT_TYPE 2
-
-set MIXER_FILE etc/mixers-sitl/standard_vtol_sitl.main.mix
-set MIXER custom

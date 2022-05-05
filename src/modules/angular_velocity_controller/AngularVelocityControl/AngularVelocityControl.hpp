@@ -41,8 +41,6 @@
 
 #include <matrix/matrix/math.hpp>
 
-#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
-
 class AngularVelocityControl
 {
 public:

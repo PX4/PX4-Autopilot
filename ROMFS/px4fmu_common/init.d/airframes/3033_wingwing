@@ -11,19 +11,11 @@
 # @output MAIN2 right aileron
 # @output MAIN4 throttle
 #
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-#
 # @maintainer Lorenz Meier <lorenz@px4.io>
-#
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.fw_defaults
 
-param set-default BAT1_N_CELLS 2
 param set-default FW_AIRSPD_MAX 15
 param set-default FW_AIRSPD_TRIM 13
 param set-default FW_R_TC 0.3
@@ -39,10 +31,14 @@ param set-default FW_PR_FF 0.35
 param set-default FW_RR_FF 0.6
 param set-default FW_RR_P 0.04
 
-param set-default PWM_MAIN_DISARM 1000
-
-# Set mixer.
-set MIXER fw_generic_wing
-
-# Provide ESC a constant 1000 us pulse.
-set PWM_OUT 4
+param set-default CA_AIRFRAME 1
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_ROTOR0_PX 0.3
+param set-default CA_SV_CS_COUNT 4
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TYPE 2
+param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default CA_SV_CS2_TYPE 3
+param set-default CA_SV_CS3_TRQ_Y 1.0
+param set-default CA_SV_CS3_TYPE 4

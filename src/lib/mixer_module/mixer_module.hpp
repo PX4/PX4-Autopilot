@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,8 +37,7 @@
 #include "functions.hpp"
 
 #include <board_config.h>
-#include <drivers/drv_pwm_output.h>
-#include <lib/mixer/MixerGroup.hpp>
+
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -47,11 +46,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/control_allocator_status.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/test_motor.h>
 
 using namespace time_literals;
 
@@ -64,8 +60,10 @@ class OutputModuleInterface : public px4::ScheduledWorkItem, public ModuleParams
 public:
 	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
 
-	OutputModuleInterface(const char *name, const px4::wq_config_t &config)
-		: px4::ScheduledWorkItem(name, config), ModuleParams(nullptr) {}
+	OutputModuleInterface(const char *name, const px4::wq_config_t &config) :
+		px4::ScheduledWorkItem(name, config),
+		ModuleParams(nullptr)
+	{}
 
 	/**
 	 * Callback to update the (physical) actuator outputs in the driver
@@ -78,9 +76,6 @@ public:
 	 */
 	virtual bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
-
-	/** called whenever the mixer gets updated/reset */
-	virtual void mixerChanged() {}
 };
 
 /**
@@ -115,21 +110,21 @@ public:
 
 	~MixingOutput();
 
-	void setDriverInstance(uint8_t instance) { _driver_instance = instance; }
-
 	void printStatus() const;
-
-	bool useDynamicMixing() const { return _use_dynamic_mixing; }
 
 	/**
 	 * Permanently disable an output function
 	 */
-	void disableFunction(int index) { _param_handles[index].function = PARAM_INVALID; _need_function_update = true; }
+	void disableFunction(int index)
+	{
+		_param_handles[index].function = PARAM_INVALID;
+		_need_function_update = true;
+	}
 
 	/**
 	 * Check if a function is configured, i.e. not set to Disabled and initialized
 	 */
-	bool isFunctionSet(int index) const { return !_use_dynamic_mixing || _functions[index] != nullptr; }
+	bool isFunctionSet(int index) const { return _functions[index] != nullptr; }
 
 	OutputFunction outputFunction(int index) const { return _function_assignment[index]; }
 
@@ -140,7 +135,7 @@ public:
 	bool update();
 
 	/**
-	 * Check for subscription updates (e.g. after a mixer is loaded).
+	 * Check for subscription updates.
 	 * Call this at the very end of Run() if allow_wq_switch
 	 * @param allow_wq_switch if true
 	 * @param limit_callbacks_to_primary set to only register callbacks for primary actuator controls (if used)
@@ -155,22 +150,7 @@ public:
 
 	void setMaxTopicUpdateRate(unsigned max_topic_update_interval_us);
 
-	/**
-	 * Reset (unload) the complete mixer.
-	 */
-	void resetMixer();
-
-	/**
-	 * Load (append) a new mixer from a buffer.
-	 * @return 0 on success, <0 error otherwise
-	 */
-	int loadMixer(const char *buf, unsigned len);
-
 	const actuator_armed_s &armed() const { return _armed; }
-
-	bool initialized() const { return _use_dynamic_mixing || _mixers != nullptr; }
-
-	MixerGroup *mixers() const { return _mixers; }
 
 	void setAllFailsafeValues(uint16_t value);
 	void setAllDisarmedValues(uint16_t value);
@@ -188,13 +168,6 @@ public:
 	 * Returns the actual failsafe value taking into account the assigned function
 	 */
 	uint16_t actualFailsafeValue(int index) const;
-
-	/**
-	 * Get the motor index that maps from PX4 convention to the configured one
-	 * @param index motor index in [0, num_motors-1]
-	 * @return reordered motor index. When out of range, the input index is returned
-	 */
-	int reorderedMotorIndex(int index) const;
 
 	void setIgnoreLockdown(bool ignore_lockdown) { _ignore_lockdown = ignore_lockdown; }
 
@@ -217,32 +190,17 @@ protected:
 	void updateParams() override;
 
 private:
-	bool updateSubscriptionsStaticMixer(bool allow_wq_switch, bool limit_callbacks_to_primary);
-	bool updateSubscriptionsDynamicMixer(bool allow_wq_switch, bool limit_callbacks_to_primary);
-
-	bool updateStaticMixer();
-	bool updateDynamicMixer();
 
 	bool armNoThrottle() const
 	{
 		return (_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode;
 	}
 
-	unsigned motorTest();
-
-	void updateOutputSlewrateMultirotorMixer();
-	void updateOutputSlewrateSimplemixer();
-	void setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs);
-	void publishMixerStatus(const actuator_outputs_s &actuator_outputs);
-	void updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs);
-
-	static int controlCallback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
-
 	void cleanupFunctions();
 
 	void initParamHandles();
 
-	void limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates);
+	inline void limitAndUpdateOutputs(float outputs[MAX_ACTUATORS], bool has_updates);
 
 	uint16_t output_limit_calc_single(int i, float value) const;
 
@@ -255,17 +213,6 @@ private:
 		param_t max{PARAM_INVALID};
 		param_t failsafe{PARAM_INVALID};
 	};
-
-	enum class MotorOrdering : int32_t {
-		PX4 = 0,
-		Betaflight = 1
-	};
-
-	/**
-	 * Reorder outputs according to _param_mot_ordering
-	 * @param values values to reorder
-	 */
-	inline void reorderOutputs(uint16_t values[MAX_ACTUATORS]);
 
 	void lock() { do {} while (px4_sem_wait(&_lock) != 0); }
 	void unlock() { px4_sem_post(&_lock); }
@@ -290,49 +237,30 @@ private:
 	const bool _output_ramp_up; ///< if true, motors will ramp up from disarmed to min_output after arming
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
-	uORB::SubscriptionCallbackWorkItem _control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs)};
-	uORB::PublicationMulti<control_allocator_status_s> _control_allocator_status_pub{ORB_ID(control_allocator_status)};
 
-	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 	actuator_armed_s _armed{};
 
-	hrt_abstime _time_last_dt_update_multicopter{0};
-	hrt_abstime _time_last_dt_update_simple_mixer{0};
 	unsigned _max_topic_update_interval_us{0}; ///< max _control_subs topic update interval (0=unlimited)
 
 	bool _throttle_armed{false};
 	bool _ignore_lockdown{false}; ///< if true, ignore the _armed.lockdown flag (for HIL outputs)
 
-	MixerGroup *_mixers{nullptr};
-	uint32_t _groups_required{0};
-	uint32_t _groups_subscribed{1u << 31}; ///< initialize to a different value than _groups_required and outside of (1 << NUM_ACTUATOR_CONTROL_GROUPS)
-
 	const SchedulingPolicy _scheduling_policy;
 	const bool _support_esc_calibration;
 
 	bool _wq_switched{false};
-	uint8_t _driver_instance{0}; ///< for boards that supports multiple outputs (e.g. PX4IO + FMU)
 	uint8_t _max_num_outputs;
-
-	struct MotorTest {
-		uORB::Subscription test_motor_sub{ORB_ID(test_motor)};
-		bool in_test_mode{false};
-		hrt_abstime timeout{0};
-	};
-	MotorTest _motor_test;
 
 	OutputModuleInterface &_interface;
 
-	perf_counter_t _control_latency_perf;
+	perf_counter_t _control_latency_perf{nullptr};
 
-	/* SYS_CTRL_ALLOC == 1 */
 	FunctionProviderBase *_function_allocated[MAX_ACTUATORS] {}; ///< unique allocated functions
 	FunctionProviderBase *_functions[MAX_ACTUATORS] {}; ///< currently assigned functions
 	OutputFunction _function_assignment[MAX_ACTUATORS] {};
 	bool _need_function_update{true};
-	bool _use_dynamic_mixing{false}; ///< set to _param_sys_ctrl_alloc on init (avoid changing after startup)
 	bool _has_backup_schedule{false};
 	const char *const _param_prefix;
 	ParamHandles _param_handles[MAX_ACTUATORS];
@@ -347,9 +275,6 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
 		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
-		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
-		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering,
-		(ParamBool<px4::params::SYS_CTRL_ALLOC>) _param_sys_ctrl_alloc
-
+		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac ///< thrust to motor control signal modelling factor
 	)
 };

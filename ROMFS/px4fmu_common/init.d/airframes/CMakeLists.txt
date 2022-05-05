@@ -32,9 +32,9 @@
 ############################################################################
 
 px4_add_romfs_files(
-	# [0-999] Reserved (historical)"
+	# [0-999] Reserved (historical)
 
-	# [1000, 1999] Simulation setups"
+	# [1000, 1999] Simulation setups
 	1000_rc_fw_easystar.hil
 	1001_rc_quad_x.hil
 	1002_standard_vtol.hil
@@ -42,7 +42,7 @@ px4_add_romfs_files(
 	1101_rc_plane_sih.hil
 	1102_tailsitter_duo_sih.hil
 
-	# [2000, 2999] Standard planes"
+	# [2000, 2999] Standard planes
 	2100_standard_plane
 	2105_maja
 	2106_albatross
@@ -50,24 +50,17 @@ px4_add_romfs_files(
 
 	2507_cloudship
 
-	# [3000, 3999] Flying wing"
+	# [3000, 3999] Flying wing
 	3000_generic_wing
-	3030_io_camflyer
 	3031_phantom
 	3032_skywalker_x5
 	3033_wingwing
-	3034_fx79
-	3035_viper
 	3036_pigeon
-	3037_parrot_disco_mod
 	3100_tbs_caipirinha
 
-	# [4000, 4999] Quadrotor x"
+	# [4000, 4999] Quadrotor x
 	4001_quad_x
-	4003_qavr5
 	4009_qav250
-	4010_dji_f330
-	4011_dji_f450
 	4014_s500
 	4015_holybro_s500
 	4016_holybro_px4vision
@@ -75,13 +68,11 @@ px4_add_romfs_files(
 	4019_x500_v2
 	4030_3dr_solo
 	4031_3dr_quad
-	4040_reaper
 	4041_beta75x
 	4050_generic_250
 	4051_s250aq
 	4052_holybro_qav250
 	4053_holybro_kopis2
-	4060_dji_matrice_100
 	4061_atl_mantis_edu
 	4071_ifo
 	4072_draco
@@ -93,26 +84,25 @@ px4_add_romfs_files(
 	4900_crazyflie
 	4901_crazyflie21
 
-	# [5000, 5999] Quadrotor +"
+	# [5000, 5999] Quadrotor +
 	5001_quad_+
 
-	# [6000, 6999] Hexarotor x"
+	# [6000, 6999] Hexarotor x
 	6001_hexa_x
 	6002_draco_r
 
-	# [7000, 7999] Hexarotor +"
+	# [7000, 7999] Hexarotor +
 	7001_hexa_+
 
-	# [8000, 8999] Octorotor +"
+	# [8000, 8999] Octorotor +
 	8001_octo_x
 
-	# [9000, 9999] Octorotor +"
+	# [9000, 9999] Octorotor +
 	9001_octo_+
 
-	# [10000, 10999] Quadrotor Wide arm / H frame"
+	# [10000, 10999] Quadrotor Wide arm / H frame
 	10015_tbs_discovery
 	10016_3dr_iris
-	10017_steadidrone_qu4d
 	10018_tbs_endurance
 
 	# [11000, 11999] Hexa Cox
@@ -120,7 +110,6 @@ px4_add_romfs_files(
 
 	# [12000, 12999] Octo Cox
 	12001_octo_cox
-	12002_steadidrone_mavrik
 
 	# [13000, 13999] VTOL
 	13000_generic_vtol_standard
@@ -133,7 +122,6 @@ px4_add_romfs_files(
 	13007_vtol_AAVVT_quad
 	13008_QuadRanger
 	13009_vtol_spt_ranger
-	13010_claire
 	13012_convergence
 	13013_deltaquad
 	13014_vtol_babyshark

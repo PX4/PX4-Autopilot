@@ -41,7 +41,6 @@ px4_add_romfs_files(
 	rc.boat_defaults
 	rc.fw_apps
 	rc.fw_defaults
-	rc.interface
 	rc.logging
 	rc.mc_apps
 	rc.mc_defaults

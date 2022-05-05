@@ -7,13 +7,9 @@
 #
 # @maintainer Romain Chiappinelli <romain.chiap@gmail.com>
 #
-# @board px4_fmu-v2 exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults
-
-set MIXER quad_x
-set PWM_OUT 1234
 
 param set UAVCAN_ENABLE 0
 

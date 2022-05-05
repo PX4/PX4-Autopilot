@@ -93,7 +93,6 @@ rules.ninja
 /googletest-*/
 /logs
 /mavsdk_tests
-/test_mixer_multirotor
 /unit-*
 /uORB/
 DartConfiguration.tcl

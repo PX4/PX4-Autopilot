@@ -20,19 +20,12 @@
 # @output AUX7 Elevator
 # @output AUX8 Rudder
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-# @board holybro_kakutef7 exclude
-#
 
 . ${R}etc/init.d/rc.vtol_defaults
 
 param set-default MAV_TYPE 21
 
-param set-default VT_IDLE_PWM_MC 1100
 param set-default VT_TYPE 1
-param set-default VT_MOT_ID 1234
-param set-default VT_FW_MOT_OFFID 24
 
 param set-default CA_AIRFRAME 3
 param set-default CA_ROTOR_COUNT 4
@@ -58,8 +51,3 @@ param set-default CA_SV_CS2_TYPE 3
 param set-default CA_SV_CS3_TRQ_Y 1.0
 param set-default CA_SV_CS3_TYPE 4
 param set-default CA_SV_TL_COUNT 4
-
-set MIXER quad_x
-set MIXER_AUX vtol_TTTTAAER
-
-set PWM_OUT 1234

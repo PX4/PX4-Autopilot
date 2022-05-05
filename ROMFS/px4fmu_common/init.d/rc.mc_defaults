@@ -20,19 +20,31 @@ param set-default NAV_ACC_RAD 2
 param set-default RTL_RETURN_ALT 30
 param set-default RTL_DESCEND_ALT 10
 
-param set-default PWM_MAIN_MAX 1950
-param set-default PWM_MAIN_MIN 1075
-param set-default PWM_MAIN_RATE 400
-
 param set-default GPS_UBX_DYNMODEL 6
 
-#
-# This is the gimbal pass mixer.
-#
-set MIXER_AUX pass
+# PX4 default motor ordering:
+#  3     1
+#     ^
+#  2     4
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
 
-set MIXER quad_x
+# front right (CCW)
+param set-default CA_ROTOR0_PX 0.707107
+param set-default CA_ROTOR0_PY 0.707107
+param set-default CA_ROTOR0_KM 0.05
 
-set PWM_OUT 1234
+# rear left (CCW)
+param set-default CA_ROTOR1_PX -0.707107
+param set-default CA_ROTOR1_PY -0.707107
+param set-default CA_ROTOR1_KM 0.05
 
-set PWM_AUX_OUT 1234
+# front left (CW)
+param set-default CA_ROTOR2_PX 0.707107
+param set-default CA_ROTOR2_PY -0.707107
+param set-default CA_ROTOR2_KM -0.05
+
+# rear right (CW)
+param set-default CA_ROTOR3_PX -0.707107
+param set-default CA_ROTOR3_PY 0.707107
+param set-default CA_ROTOR3_KM -0.05

@@ -16,19 +16,9 @@
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.vtol_defaults
 
 param set-default MAV_TYPE 20
 
-param set-default PWM_MAIN_MAX 2000
-
-param set-default VT_IDLE_PWM_MC  1080
 param set-default VT_TYPE 0
-
-set MIXER quad_+_vtol
-
-set PWM_OUT 1234

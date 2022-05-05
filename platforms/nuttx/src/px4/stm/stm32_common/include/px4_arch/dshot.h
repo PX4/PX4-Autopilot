@@ -34,7 +34,7 @@
 
 #pragma once
 
-#include <drivers/drv_pwm_output.h>
+#include <drivers/drv_dshot.h>
 #include <stm32_dma.h>
 
 #define DSHOT_MOTOR_PWM_BIT_WIDTH		20u

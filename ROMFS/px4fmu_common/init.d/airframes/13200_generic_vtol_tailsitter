@@ -12,10 +12,6 @@
 #
 # @maintainer Roman Bapst <roman@px4.io>
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-# @board holybro_kakutef7 exclude
-#
 
 . ${R}etc/init.d/rc.vtol_defaults
 
@@ -38,7 +34,3 @@ param set-default CA_SV_CS0_TYPE 5
 param set-default CA_SV_CS1_TRQ_P 0.5
 param set-default CA_SV_CS1_TRQ_Y -0.5
 param set-default CA_SV_CS1_TYPE 6
-
-set MIXER vtol_tailsitter_duo
-
-set PWM_OUT 1234

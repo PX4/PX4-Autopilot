@@ -101,8 +101,6 @@ public:
 	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
-	void mixerChanged() override;
-
 	MixingOutput &mixingOutput() { return _mixing_output; }
 
 protected:
@@ -146,7 +144,7 @@ private:
 /**
  * A UAVCAN node.
  */
-class UavcanNode : public cdev::CDev, public px4::ScheduledWorkItem, public ModuleParams
+class UavcanNode : public px4::ScheduledWorkItem, public ModuleParams
 {
 	static constexpr unsigned MaxBitRatePerSec	= 1000000;
 	static constexpr unsigned bitPerFrame		= 148;
@@ -177,8 +175,6 @@ public:
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
 	virtual		~UavcanNode();
-
-	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
 
 	static int	start(uavcan::NodeID node_id, uint32_t bitrate);
 

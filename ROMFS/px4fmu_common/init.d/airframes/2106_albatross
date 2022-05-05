@@ -14,13 +14,7 @@
 # @output MAIN7 flaps right
 # @output MAIN8 flaps left
 #
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-#
 # @maintainer Andreas Antener <andreas@uaventure.com>
-#
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.fw_defaults
@@ -35,11 +29,37 @@ param set-default FW_WR_IMAX 0.8
 param set-default FW_WR_P 1
 param set-default FW_W_RMAX 0
 
-# set disarmed value for the ESC
-param set-default PWM_MAIN_DISARM 1000
+param set-default CA_AIRFRAME 1
 
+param set-default CA_ROTOR_COUNT 1
 
-set MIXER AAVVTWFF
+# throttle
+param set-default CA_ROTOR0_PX 0.3
 
-# use PWM parameters for throttle channel
-set PWM_OUT 5
+param set-default CA_SV_CS_COUNT 4
+
+# aileron right
+param set-default CA_SV_CS0_TRQ_R -0.5
+param set-default CA_SV_CS0_TYPE 2
+
+# aileron left
+param set-default CA_SV_CS1_TRQ_R 0.5
+param set-default CA_SV_CS1_TYPE 1
+
+# v-tail right
+param set-default CA_SV_CS2_TRQ_P 1.0
+param set-default CA_SV_CS2_TYPE 8
+
+# v-tail left
+param set-default CA_SV_CS3_TRQ_Y 1.0
+param set-default CA_SV_CS3_TYPE 7
+
+# wheel
+
+# flaps right
+param set-default CA_SV_CS7_TRQ_R +0.5
+param set-default CA_SV_CS7_TYPE 10
+
+# flaps left
+param set-default CA_SV_CS7_TRQ_R -0.5
+param set-default CA_SV_CS7_TYPE 9

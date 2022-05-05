@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name Generic 10" Quad + geometry
+# @name Generic Quad + geometry
 #
 # @type Quadrotor +
 # @class Copter
@@ -9,20 +9,31 @@
 # @output MAIN2 motor 2
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
-# @output MAIN5 feed-through of RC AUX1 channel
-# @output MAIN6 feed-through of RC AUX2 channel
-#
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-# @output AUX4 feed-through of RC FLAPS channel
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
-#
-# @board bitcraze_crazyflie exclude
-# @board px4_fmu-v2 exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults
 
-set MIXER quad_+
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
+
+# right (CCW)
+param set-default CA_ROTOR0_PX 0.0
+param set-default CA_ROTOR0_PY 1.0
+param set-default CA_ROTOR0_KM 0.05
+
+# left (CCW)
+param set-default CA_ROTOR1_PX 0.0
+param set-default CA_ROTOR1_PY -1.0
+param set-default CA_ROTOR1_KM 0.05
+
+# front (CW)
+param set-default CA_ROTOR2_PX 1.0
+param set-default CA_ROTOR2_PY 0.0
+param set-default CA_ROTOR2_KM -0.05
+
+# rear (CW)
+param set-default CA_ROTOR3_PX -1.0
+param set-default CA_ROTOR3_PY 0.0
+param set-default CA_ROTOR3_KM -0.05

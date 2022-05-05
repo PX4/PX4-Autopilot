@@ -15,5 +15,3 @@ param set-default TRIG_MODE 4
 param set-default MNT_MODE_IN 4
 param set-default MNT_MODE_OUT 2
 param set-default MNT_DO_STAB 2
-
-set MIXER quad_x

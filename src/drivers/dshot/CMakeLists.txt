@@ -48,7 +48,6 @@ px4_add_module(
 	DEPENDS
 		arch_io_pins
 		arch_dshot
-		mixer
 		mixer_module
 	MODULE_CONFIG
 		module.yaml

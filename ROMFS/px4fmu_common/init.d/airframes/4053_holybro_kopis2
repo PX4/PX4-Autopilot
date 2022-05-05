@@ -7,9 +7,6 @@
 #
 # @maintainer Beat Kueng <beat@px4.io>
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.mc_defaults
 
@@ -38,7 +35,6 @@ param set-default MC_YAWRATE_MAX 1000
 param set-default MC_YAWRATE_P 0.15
 param set-default MC_YAW_P 4
 
-param set-default MOT_ORDERING 1
 param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_TILT_MAX 60
 
@@ -55,3 +51,29 @@ param set-default MPC_THR_HOVER 0.12
 param set-default MC_AIRMODE 1
 
 param set-default EV_TSK_RC_LOSS 1
+
+# Betaflight default motor ordering:
+#  4     2
+#     ^
+#  3     1
+param set-default CA_ROTOR_COUNT 4
+
+# rear right (CW)
+param set-default CA_ROTOR1_PX -0.707107
+param set-default CA_ROTOR1_PY 0.707107
+param set-default CA_ROTOR1_KM -0.05
+
+# front right (CCW)
+param set-default CA_ROTOR2_PX 0.707107
+param set-default CA_ROTOR2_PY 0.707107
+param set-default CA_ROTOR2_KM 0.05
+
+# rear left (CCW)
+param set-default CA_ROTOR3_PX -0.707107
+param set-default CA_ROTOR3_PY -0.707107
+param set-default CA_ROTOR3_KM 0.05
+
+# front left (CW)
+param set-default CA_ROTOR4_PX 0.707107
+param set-default CA_ROTOR4_PY -0.707107
+param set-default CA_ROTOR4_KM -0.05

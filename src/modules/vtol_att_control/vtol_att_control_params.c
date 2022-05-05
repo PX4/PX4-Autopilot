@@ -40,18 +40,6 @@
  */
 
 /**
- * Idle speed of VTOL when in multicopter mode
- *
- * @unit us
- * @min 900
- * @max 2000
- * @increment 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_IDLE_PWM_MC, 900);
-
-/**
  * Permanent stabilization in fw mode
  *
  * If set to one this parameter will cause permanent attitude stabilization in fw mode.
@@ -273,28 +261,6 @@ PARAM_DEFINE_INT32(VT_FW_QC_R, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_F_TR_OL_TM, 6.0f);
-
-/**
- * The channel number of motors that must be turned off in fixed wing mode.
- *
- * @min 0
- * @max 12345678
- * @increment 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);
-
-/**
- * The channel number of motors which provide lift during hover.
- *
- * @min 0
- * @max 12345678
- * @increment 1
- * @decimal 0
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_MOT_ID, 0);
 
 /**
  * Differential thrust in forwards flight.

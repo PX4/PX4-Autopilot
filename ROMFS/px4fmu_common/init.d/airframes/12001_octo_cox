@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name Generic 10" Octo coaxial geometry
+# @name Generic Octo coaxial geometry
 #
 # @type Octorotor Coaxial
 # @class Copter
@@ -16,11 +16,5 @@
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.mc_defaults
-
-set MIXER octo_cox
-
-set PWM_OUT 12345678

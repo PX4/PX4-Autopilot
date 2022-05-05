@@ -50,7 +50,6 @@ void LoggedTopics::add_default_topics()
 	add_topic("actuator_controls_0", 50);
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_controls_2", 100);
-	add_topic("actuator_controls_3", 100);
 	add_optional_topic("actuator_controls_status_0", 300);
 	add_topic("airspeed", 1000);
 	add_optional_topic("airspeed_validated", 200);
@@ -184,19 +183,12 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
 
-	// SYS_CTRL_ALLOC: additional dynamic control allocation logging when enabled
-	int32_t sys_ctrl_alloc = 0;
-	param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
 
-	_dynamic_control_allocation = sys_ctrl_alloc >= 1;
-
-	if (_dynamic_control_allocation) {
-		add_topic("actuator_motors", 100);
-		add_topic("actuator_servos", 100);
-		add_topic("vehicle_angular_acceleration", 20);
-		add_topic_multi("vehicle_thrust_setpoint", 20, 1);
-		add_topic_multi("vehicle_torque_setpoint", 20, 2);
-	}
+	add_topic("actuator_motors", 100);
+	add_topic("actuator_servos", 100);
+	add_topic("vehicle_angular_acceleration", 20);
+	add_topic_multi("vehicle_thrust_setpoint", 20, 1);
+	add_topic_multi("vehicle_torque_setpoint", 20, 2);
 
 	// SYS_HITL: default ground truth logging for simulation
 	int32_t sys_hitl = 0;
@@ -254,15 +246,9 @@ void LoggedTopics::add_high_rate_topics()
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
 
-	if (_dynamic_control_allocation) {
-		add_topic("actuator_motors");
-		add_topic("vehicle_thrust_setpoint");
-		add_topic("vehicle_torque_setpoint");
-
-	} else {
-		add_topic("actuator_controls_0");
-		add_topic("actuator_outputs");
-	}
+	add_topic("actuator_motors");
+	add_topic("vehicle_thrust_setpoint");
+	add_topic("vehicle_torque_setpoint");
 }
 
 void LoggedTopics::add_debug_topics()
@@ -274,7 +260,6 @@ void LoggedTopics::add_debug_topics()
 	add_topic_multi("satellite_info", 1000, 2);
 	add_topic("mag_worker_data");
 	add_topic("sensor_preflight_mag", 500);
-	add_topic("test_motor", 500);
 }
 
 void LoggedTopics::add_estimator_replay_topics()

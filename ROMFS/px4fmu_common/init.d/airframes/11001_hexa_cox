@@ -12,19 +12,7 @@
 # @output MAIN5 front left top, CW; angle:-60; direction:CW
 # @output MAIN6 front left bottom, CCW;angle:-60; direction:CCW
 #
-# @output AUX1 feed-through of RC AUX1 channel
-# @output AUX2 feed-through of RC AUX2 channel
-# @output AUX3 feed-through of RC AUX3 channel
-#
 # @maintainer Lorenz Meier <lorenz@px4.io>
-#
-# @board bitcraze_crazyflie exclude
-# @board px4_fmu-v2 exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults
-
-set MIXER hexa_cox
-
-# Need to set all 8 channels
-set PWM_OUT 12345678

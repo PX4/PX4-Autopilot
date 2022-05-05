@@ -10,8 +10,6 @@
 #
 # @maintainer
 #
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.rover_defaults
 
@@ -43,13 +41,3 @@ param set-default MIS_LTRMIN_ALT 0.01
 param set-default MIS_TAKEOFF_ALT 0.01
 
 param set-default NAV_ACC_RAD 0.5
-
-# Provide ESC a constant 1500 us pulse
-param set-default PWM_MAIN_DISARM 1500
-param set-default PWM_MAIN_MAX 2000
-param set-default PWM_MAIN_MIN 1000
-
-# Set mixer
-set MIXER rover_generic
-
-set PWM_MAIN_REV2 1

@@ -12,9 +12,6 @@
 #
 # @maintainer Timothy Scott
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.rover_defaults
 
@@ -56,11 +53,8 @@ param set-default NAV_ACC_RAD 0.5
 
 # Provide ESC a constant 1500 us pulse, which corresponds to
 # idle on the Roboclaw motor controller on the Aion R1
-param set-default PWM_MAIN_DISARM 1500
 param set-default PWM_MAIN_DIS0 1500
 param set-default PWM_MAIN_DIS1 1500
-param set-default PWM_MAIN_MAX 2000
-param set-default PWM_MAIN_MIN 1000
 
 # Enable Airspeed check circuit breaker because Rovers will have no airspeed sensor
 param set-default CBRK_AIRSPD_CHK 162128
@@ -73,10 +67,3 @@ param set-default RBCLW_COUNTS_REV 1200
 param set-default RBCLW_ADDRESS 128
 # 104 corresponds to Telem 4
 param set-default RBCLW_SER_CFG 104
-# Start this driver after setting parameters, because the driver uses some of those parameters.
-# roboclaw start /dev/ttyS3
-
-# Set mixer
-set MIXER generic_diff_rover
-
-set PWM_MAIN_REV2 1

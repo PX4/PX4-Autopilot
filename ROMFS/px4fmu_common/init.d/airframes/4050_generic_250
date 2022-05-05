@@ -7,8 +7,6 @@
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
-# @board bitcraze_crazyflie exclude
-#
 
 . ${R}etc/init.d/rc.mc_defaults
 
@@ -16,30 +14,21 @@ param set-default MC_ROLL_P 8
 param set-default MC_ROLLRATE_P 0.08
 param set-default MC_ROLLRATE_I 0.25
 param set-default MC_ROLLRATE_D 0.001
+param set-default MC_ROLLRATE_MAX 1600
+
 param set-default MC_PITCH_P 8
 param set-default MC_PITCHRATE_P 0.08
 param set-default MC_PITCHRATE_D 0.001
-param set-default MC_YAW_P 4
-
-
-param set-default MC_ROLLRATE_MAX 1600
 param set-default MC_PITCHRATE_MAX 1600
+
+param set-default MC_YAW_P 4
 param set-default MC_YAWRATE_MAX 1000
 
 param set-default MPC_MANTHR_MIN 0
 param set-default MPC_MAN_TILT_MAX 60
 
-# use thrust curve factor (instead of TPA)
+# use thrust curve factor
 param set-default THR_MDL_FAC 0.3
-
-param set-default PWM_MAIN_MIN 1075
-# enable one-shot
-param set-default PWM_MAIN_RATE 0
-
-# enable high-rate logging profile (helps with tuning)
-param set-default SDLOG_PROFILE 19
 
 param set-default IMU_DGYRO_CUTOFF 50
 param set-default IMU_GYRO_CUTOFF 90
-
-param set-default CBRK_IO_SAFETY 22027

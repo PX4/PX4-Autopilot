@@ -9,5 +9,3 @@
 
 param set-default MC_PITCHRATE_P 0.1
 param set-default MC_ROLLRATE_P 0.05
-
-set MIXER quad_x

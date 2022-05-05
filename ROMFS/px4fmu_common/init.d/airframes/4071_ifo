@@ -12,14 +12,6 @@
 #
 # @maintainer Hyon Lim <lim@uvify.com>
 #
-# @board px4_fmu-v2 exclude
-# @board px4_fmu-v3 exclude
-# @board px4_fmu-v4pro exclude
-# @board px4_fmu-v5 exclude
-# @board px4_fmu-v5x exclude
-# @board bitcraze_crazyflie exclude
-# @board cuav_x7pro exclude
-#
 
 . ${R}etc/init.d/rc.mc_defaults
 
@@ -37,8 +29,6 @@ param set-default IMU_DGYRO_CUTOFF 90
 param set-default IMU_GYRO_CUTOFF 100
 
 # System
-param set-default PWM_MAIN_MIN 1100
-param set-default PWM_MAIN_RATE 0
 
 param set-default SENS_BOARD_ROT 10
 

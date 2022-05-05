@@ -11,15 +11,8 @@
 # @output MAIN4 motor 4
 #
 # @maintainer
-# @board px4_fmu-v2 exclude
-#
 
 . ${R}etc/init.d/rc.mc_defaults
-
-# We set the mixer and ESC manually.
-set MIXER skip
-set MIXER_AUX skip
-set MIXER_FILE ""
 
 # Battery settings
 param set-default BAT_CRIT_THR 0.20

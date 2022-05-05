@@ -58,14 +58,5 @@
 #define UAVCAN_NODE_DB_PATH UAVCAN_SD_ROOT_PATH"/uavcan.db"
 #define UAVCAN_LOG_FILE     UAVCAN_NODE_DB_PATH"/trace.log"
 
-// device files
-// TODO: split IOCTL interface in ESC and node related functionality, then change UAVCAN_DEVICE_PATH to "/dev/uavcan/node"
-#define UAVCAN_DEVICE_PATH     "/dev/uavcan/esc"
-#define UAVCAN_ESC_DEVICE_PATH "/dev/uavcan/esc"
-
-// ioctl interface
-#define _UAVCAN_IOC(_n)               (_IOC(_UAVCAN_IOCBASE, _n))
-#define _UAVCAN_IOCBASE               (0x4000)                        // IOCTL base for module UAVCAN
-
 // public prototypes
 extern "C" __EXPORT int uavcan_main(int argc, char *argv[]);

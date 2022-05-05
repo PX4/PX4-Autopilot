@@ -7,10 +7,6 @@
 #
 # @maintainer Roman Bapst <roman@auterion.com>
 #
-# @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
-# @board holybro_kakutef7 exclude
-#
 
 . ${R}etc/init.d/rc.vtol_defaults
 
@@ -56,8 +52,6 @@ param set-default RTL_RETURN_ALT 30
 param set-default SDLOG_DIRS_MAX 7
 
 param set-default VT_F_TRANS_THR 0.75
-param set-default VT_MOT_ID 1234
-param set-default VT_FW_MOT_OFFID 1234
 param set-default VT_TYPE 2
 
 param set-default CA_AIRFRAME 2
@@ -104,7 +98,3 @@ param set-default COM_PREARM_MODE 0
 param set-default CBRK_IO_SAFETY 22027
 
 param set-default MAV_TYPE 22
-
-set MIXER standard_vtol_hitl
-
-set PWM_OUT 1234

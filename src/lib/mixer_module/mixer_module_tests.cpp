@@ -63,9 +63,6 @@ public:
 	void SetUp() override
 	{
 		param_control_autosave(false);
-
-		int32_t v = 1;
-		param_set(param_find("SYS_CTRL_ALLOC"), &v);
 	}
 
 	int update(MixingOutput &mixing_output)
@@ -97,11 +94,6 @@ public:
 		num_outputs = num_outputs_;
 		++num_updates;
 		return true;
-	}
-
-	void mixerChanged() override
-	{
-		mixer_changed = true;
 	}
 
 	void configureFunctions(const std::array<int32_t, max_num_outputs> &functions)
@@ -205,7 +197,7 @@ TEST_F(MixerModuleTest, basic)
 	// configure motor, ensure all still disarmed
 	test_module.configureFunctions({(int)OutputFunction::Motor1});
 	mixing_output.updateSubscriptions(false);
-	EXPECT_TRUE(test_module.mixer_changed);
+	//EXPECT_TRUE(test_module.mixer_changed);
 	EXPECT_EQ(test_module.num_updates, update(mixing_output));
 	EXPECT_EQ(test_module.num_outputs, max_num_outputs);
 
