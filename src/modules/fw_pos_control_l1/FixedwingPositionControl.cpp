@@ -888,8 +888,6 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const float contr
 {
 	update_in_air_states(now);
 
-	_hdg_hold_yaw = _yaw;
-
 	_att_sp.roll_reset_integral = false;
 	_att_sp.pitch_reset_integral = false;
 	_att_sp.yaw_reset_integral = false;
@@ -1415,8 +1413,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 {
 	update_in_air_states(now);
 
-	_hdg_hold_yaw = _yaw;
-
 	_att_sp.roll_reset_integral = false;
 	_att_sp.pitch_reset_integral = false;
 	_att_sp.yaw_reset_integral = false;
@@ -1662,8 +1658,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	update_in_air_states(now);
-
-	_hdg_hold_yaw = _yaw;
 
 	_att_sp.roll_reset_integral = false;
 	_att_sp.pitch_reset_integral = false;
