@@ -514,8 +514,11 @@ void Tiltrotor::fill_actuator_outputs()
 		// for the legacy mixing system pubish FW throttle on the MC output
 		mc_out[actuator_controls_s::INDEX_THROTTLE] = fw_in[actuator_controls_s::INDEX_THROTTLE];
 
-		// FW thrust is allocated on mc_thrust_sp[0] for tiltrotor with dynamic control allocation
-		_thrust_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_THROTTLE];
+		// Special case tiltrotor: instead of passing a 3D thrust vector (that would mostly have a x-component in FW, and z in MC),
+		// pass the vector magnitude as z-component, plus the collective tilt. Passing 3D thrust plus tilt is not feasible as they
+		// can't be allocated independently, and with the current controller it's not possible to have collective tilt calculated
+		// by the allocator directly.
+		_thrust_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_THROTTLE];
 
 		/* allow differential thrust if enabled */
 		if (_params->diff_thrust == 1) {
@@ -525,9 +528,9 @@ void Tiltrotor::fill_actuator_outputs()
 
 	} else {
 
+		// see comment above for passing magnitude of thrust, not 3D thrust
 		mc_out[actuator_controls_s::INDEX_THROTTLE] = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
-		_thrust_setpoint_0->xyz[2] = -mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
-		_thrust_setpoint_0->xyz[0] = -_thrust_setpoint_0->xyz[2] * sinf(_tilt_control * M_PI_2_F);
+		_thrust_setpoint_0->xyz[2] = mc_in[actuator_controls_s::INDEX_THROTTLE] * _mc_throttle_weight;
 	}
 
 	// Landing gear
