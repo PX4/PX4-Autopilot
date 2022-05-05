@@ -25,6 +25,7 @@
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -118,6 +119,7 @@ private:
     uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};                 // vehicle attitude
     uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)}; // vehicle body accel
 	uORB::Subscription _soaring_controller_status_sub{ORB_ID(soaring_controller_status)};			// vehicle status flags
+	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	
     // Publishers
 	uORB::Publication<actuator_controls_s>							_actuators_0_pub;
@@ -215,6 +217,7 @@ private:
 	void		vehicle_attitude_poll();
 	void		vehicle_angular_velocity_poll();
 	void		vehicle_angular_acceleration_poll();
+	void		actuator_controls_poll();
 	
 	void		control_update();
 	void 		manual_control_setpoint_poll();
@@ -281,6 +284,18 @@ private:
 	Vector<Vector3f, 2> _w_lpf_list;	// body rates	
 	Vector<Vector3f, 2> _a_lpf_list;
 	Vector<Vector3f, 2> _l_lpf_list;
+	// controller frequency
+	const float _sample_frequency = 250.f;
+	// Low-Pass filters stage 1
+	const float _cutoff_frequency_1 = 2.f;
+	math::LowPassFilter2p _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// linear acceleration
+	math::LowPassFilter2p _lp_filter_force[3] {{_sample_frequency, 2}, {_sample_frequency, 2}, {_sample_frequency, 2}};	// force command
+	math::LowPassFilter2p _lp_filter_omega[3] {{_sample_frequency, 2}, {_sample_frequency, 2}, {_sample_frequency, 2}};	// body rates
+	// Low-Pass filters stage 2
+	const float _cutoff_frequency_2 = 15.f;
+	math::LowPassFilter2p _lp_filter_delay[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// filter to match acceleration processing delay
+	uint _counter = 0;
+	hrt_abstime _last_time{0};
 
 	// parameter variables
 	Matrix3f _inertia {};
