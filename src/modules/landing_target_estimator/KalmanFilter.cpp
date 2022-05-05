@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,14 +39,14 @@
  *
  */
 
-#include "KalmanFilter.h"
+#include "KalmanFilter.hpp"
 
-KalmanFilter::KalmanFilter(matrix::Vector<float, 2> &initial, matrix::Matrix<float, 2, 2> &covInit)
+KalmanFilter::KalmanFilter(matrix::Vector2f &initial, matrix::Matrix2f &covInit)
 {
 	init(initial, covInit);
 }
 
-void KalmanFilter::init(matrix::Vector<float, 2> &initial, matrix::Matrix<float, 2, 2> &covInit)
+void KalmanFilter::init(matrix::Vector2f &initial, matrix::Matrix2f &covInit)
 {
 	_x = initial;
 	_covariance = covInit;
@@ -54,10 +54,10 @@ void KalmanFilter::init(matrix::Vector<float, 2> &initial, matrix::Matrix<float,
 
 void KalmanFilter::init(float initial0, float initial1, float covInit00, float covInit11)
 {
-	matrix::Vector<float, 2> initial;
+	matrix::Vector2f initial;
 	initial(0) = initial0;
 	initial(1) = initial1;
-	matrix::Matrix<float, 2, 2> covInit;
+	matrix::Matrix2f covInit;
 	covInit(0, 0) = covInit00;
 	covInit(1, 1) = covInit11;
 
@@ -69,7 +69,7 @@ void KalmanFilter::predict(float dt, float acc, float acc_unc)
 	_x(0) += _x(1) * dt + dt * dt / 2 * acc;
 	_x(1) += acc * dt;
 
-	matrix::Matrix<float, 2, 2> A; // propagation matrix
+	matrix::Matrix2f A; // propagation matrix
 	A(0, 0) = 1;
 	A(1, 1) = 1;
 	A(0, 1) = dt;
@@ -78,14 +78,13 @@ void KalmanFilter::predict(float dt, float acc, float acc_unc)
 	G(0, 0) = dt * dt / 2;
 	G(1, 0) = dt;
 
-	matrix::Matrix<float, 2, 2> process_noise = G * G.transpose() * acc_unc;
+	matrix::Matrix2f process_noise = G * G.transpose() * acc_unc;
 
 	_covariance = A * _covariance * A.transpose() + process_noise;
 }
 
 bool KalmanFilter::update(float meas, float measUnc)
 {
-
 	// H = [1, 0]
 	_residual = meas - _x(0);
 
@@ -100,46 +99,23 @@ bool KalmanFilter::update(float meas, float measUnc)
 		return false;
 	}
 
-	matrix::Vector<float, 2> kalmanGain;
+	matrix::Vector2f kalmanGain;
 	kalmanGain(0) = _covariance(0, 0);
 	kalmanGain(1) = _covariance(1, 0);
 	kalmanGain /= _innovCov;
 
 	_x += kalmanGain * _residual;
 
-	matrix::Matrix<float, 2, 2> identity;
+	matrix::Matrix2f identity;
 	identity.identity();
 
-	matrix::Matrix<float, 2, 2> KH; // kalmanGain * H
+	matrix::Matrix2f KH; // kalmanGain * H
 	KH(0, 0) = kalmanGain(0);
 	KH(1, 0) = kalmanGain(1);
 
 	_covariance = (identity - KH) * _covariance;
 
 	return true;
-
-}
-
-void KalmanFilter::getState(matrix::Vector<float, 2> &state)
-{
-	state = _x;
-}
-
-void KalmanFilter::getState(float &state0, float &state1)
-{
-	state0 = _x(0);
-	state1 = _x(1);
-}
-
-void KalmanFilter::getCovariance(matrix::Matrix<float, 2, 2> &covariance)
-{
-	covariance = _covariance;
-}
-
-void KalmanFilter::getCovariance(float &cov00, float &cov11)
-{
-	cov00 = _covariance(0, 0);
-	cov11 = _covariance(1, 1);
 }
 
 void KalmanFilter::getInnovations(float &innov, float &innovCov)

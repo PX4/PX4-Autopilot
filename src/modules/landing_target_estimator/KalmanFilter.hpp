@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,24 +59,24 @@ public:
 	/**
 	 * Default constructor, state not initialized
 	 */
-	KalmanFilter() {};
+	KalmanFilter() = default;
 
 	/**
 	 * Constructor, initialize state
 	 */
-	KalmanFilter(matrix::Vector<float, 2> &initial, matrix::Matrix<float, 2, 2> &covInit);
+	KalmanFilter(matrix::Vector2f &initial, matrix::Matrix2f &covInit);
 
 	/**
 	 * Default desctructor
 	 */
-	virtual ~KalmanFilter() {};
+	~KalmanFilter() = default;
 
 	/**
 	 * Initialize filter state
 	 * @param initial initial state
 	 * @param covInit initial covariance
 	 */
-	void init(matrix::Vector<float, 2> &initial, matrix::Matrix<float, 2, 2> &covInit);
+	void init(matrix::Vector2f &initial, matrix::Matrix2f &covInit);
 
 	/**
 	 * Initialize filter state, only specifying diagonal covariance elements
@@ -107,27 +107,13 @@ public:
 	 * Get the current filter state
 	 * @param x1 State
 	 */
-	void getState(matrix::Vector<float, 2> &state);
-
-	/**
-	 * Get the current filter state
-	 * @param state0 First state
-	 * @param state1 Second state
-	 */
-	void getState(float &state0, float &state1);
+	const matrix::Vector2f &getState() const { return _x; }
 
 	/**
 	 * Get state covariance
 	 * @param covariance Covariance of the state
 	 */
-	void getCovariance(matrix::Matrix<float, 2, 2> &covariance);
-
-	/**
-	 * Get state variances (diagonal elements)
-	 * @param cov00 Variance of first state
-	 * @param cov11 Variance of second state
-	 */
-	void getCovariance(float &cov00, float &cov11);
+	const matrix::Matrix2f &getCovariance() const { return _covariance; }
 
 	/**
 	 * Get measurement innovation and covariance of last update call
@@ -137,11 +123,10 @@ public:
 	void getInnovations(float &innov, float &innovCov);
 
 private:
-	matrix::Vector<float, 2> _x; // state
+	matrix::Vector2f _x{}; // state
+	matrix::Matrix2f _covariance{}; // state covariance
 
-	matrix::Matrix<float, 2, 2> _covariance; // state covariance
+	float _residual{0.f}; // residual of last measurement update
 
-	float _residual{0.0f}; // residual of last measurement update
-
-	float _innovCov{0.0f}; // innovation covariance of last measurement update
+	float _innovCov{0.f}; // innovation covariance of last measurement update
 };
