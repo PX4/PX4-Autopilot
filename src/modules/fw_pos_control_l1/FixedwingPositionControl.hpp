@@ -359,14 +359,6 @@ private:
 	void update_in_air_states(const hrt_abstime now);
 
 	/**
-	 * @brief Updates the time since the last position control call.
-	 *
-	 * @param now Current system time [us]
-	 * @return Time since last position control call [s]
-	 */
-	float update_position_control_mode_timestep(const hrt_abstime now);
-
-	/**
 	 * @brief Moves the current position setpoint to a value far ahead of the current vehicle yaw when in  a VTOL
 	 * transition.
 	 *
@@ -375,21 +367,17 @@ private:
 	void move_position_setpoint_for_vtol_transition(position_setpoint_s &current_sp);
 
 	uint8_t		handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr);
-	void		control_auto(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
-				     const position_setpoint_s &pos_sp_prev,
-				     const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
+	void		control_auto(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
+				     const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
 
-	void		control_auto_fixed_bank_alt_hold(const hrt_abstime &now);
-	void		control_auto_descend(const hrt_abstime &now);
+	void		control_auto_fixed_bank_alt_hold(const float control_interval);
+	void		control_auto_descend(const float control_interval);
 
-	void		control_auto_position(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
-					      const Vector2f &ground_speed,
+	void		control_auto_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-	void		control_auto_loiter(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
-					    const Vector2f &ground_speed,
+	void		control_auto_loiter(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					    const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next);
-	void		control_auto_velocity(const hrt_abstime &now, const float dt, const Vector2d &curr_pos,
-					      const Vector2f &ground_speed,
+	void		control_auto_velocity(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed,
 					      const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
 	/**
@@ -397,26 +385,38 @@ private:
 	 *
 	 * @param now Current system time [us]
 	 * @param curr_pos Current 2D local position vector of vehicle [m]
+	 * @param control_interval Time since the last position control update [s]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void		control_auto_takeoff(const hrt_abstime &now, const Vector2d &curr_pos,
-					     const Vector2f &ground_speed,
-					     const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
-	void		control_auto_landing(const hrt_abstime &now, const Vector2d &curr_pos,
+	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &curr_pos,
+				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+
+	void		control_auto_landing(const hrt_abstime &now, const float control_interval, const Vector2d &curr_pos,
 					     const Vector2f &ground_speed,
 					     const position_setpoint_s &pos_sp_prev,
 					     const position_setpoint_s &pos_sp_curr);
-	void		control_manual_altitude(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
-	void		control_manual_position(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void		control_manual_altitude(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
+	void		control_manual_position(const float control_interval, const Vector2d &curr_pos, const Vector2f &ground_speed);
 
 	float		get_tecs_pitch();
 	float		get_tecs_thrust();
 
 	float		get_manual_airspeed_setpoint();
-	float		get_auto_airspeed_setpoint(const hrt_abstime &now, const float pos_sp_cru_airspeed, const Vector2f &ground_speed,
-			float dt);
+
+	/**
+	 * @brief Returns an indicated airspeed setpoint for auto modes.
+	 *
+	 * Adjusts the setpoint for wind, accelerated stall, and slew rates.
+	 *
+	 * @param control_interval Time since the last position control update [s]
+	 * @param pos_sp_cru_airspeed The commanded cruise airspeed from the position setpoint [s]
+	 * @param ground_speed Vehicle ground velocity vector [m/s]
+	 * @return Indicated airspeed setpoint [m/s]
+	 */
+	float get_auto_airspeed_setpoint(const float control_interval, const float pos_sp_cru_airspeed,
+					 const Vector2f &ground_speed);
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
@@ -431,7 +431,7 @@ private:
 	/*
 	 * Call TECS : a wrapper function to call the TECS implementation
 	 */
-	void tecs_update_pitch_throttle(const hrt_abstime &now, float alt_sp, float airspeed_sp,
+	void tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
 					float pitch_min_rad, float pitch_max_rad,
 					float throttle_min, float throttle_max, float throttle_cruise,
 					bool climbout_mode, float climbout_pitch_min_rad,
