@@ -348,7 +348,7 @@ void MulticopterPositionControl::Run()
 			}
 		}
 
-		const bool is_trajectory_setpoint_updated = _trajectory_setpoint_sub.update(&_setpoint);
+		_trajectory_setpoint_sub.update(&_setpoint);
 
 		// adjust existing (or older) setpoint with any EKF reset deltas
 		if ((_setpoint.timestamp != 0) && (_setpoint.timestamp < vehicle_local_position.timestamp)) {
@@ -451,28 +451,25 @@ void MulticopterPositionControl::Run()
 						    _vehicle_constraints.want_takeoff,
 						    _vehicle_constraints.speed_up, false, vehicle_local_position.timestamp_sample);
 
-			const bool flying = (_takeoff.getTakeoffState() >= TakeoffState::flight);
+			const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
+			const bool flying                    = (_takeoff.getTakeoffState() >= TakeoffState::flight);
+			const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
 
-			if (is_trajectory_setpoint_updated) {
-				// make sure takeoff ramp is not amended by acceleration feed-forward
-				if (!flying) {
-					_setpoint.acceleration[2] = NAN;
-					// hover_thrust maybe reset on takeoff
-					_control.setHoverThrust(_param_mpc_thr_hover.get());
-				}
+			// make sure takeoff ramp is not amended by acceleration feed-forward
+			if (!flying) {
+				_setpoint.acceleration[2] = NAN;
+				// hover_thrust maybe reset on takeoff
+				_control.setHoverThrust(_param_mpc_thr_hover.get());
+			}
 
-				const bool not_taken_off             = (_takeoff.getTakeoffState() < TakeoffState::rampup);
-				const bool flying_but_ground_contact = (flying && _vehicle_land_detected.ground_contact);
+			if (not_taken_off || flying_but_ground_contact) {
+				// we are not flying yet and need to avoid any corrections
+				reset_setpoint_to_nan(_setpoint);
+				_setpoint.timestamp = vehicle_local_position.timestamp_sample;
+				Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
 
-				if (not_taken_off || flying_but_ground_contact) {
-					// we are not flying yet and need to avoid any corrections
-					reset_setpoint_to_nan(_setpoint);
-					_setpoint.timestamp = vehicle_local_position.timestamp_sample;
-					Vector3f(0.f, 0.f, 100.f).copyTo(_setpoint.acceleration); // High downwards acceleration to make sure there's no thrust
-
-					// prevent any integrator windup
-					_control.resetIntegral();
-				}
+				// prevent any integrator windup
+				_control.resetIntegral();
 			}
 
 			// limit tilt during takeoff ramupup
