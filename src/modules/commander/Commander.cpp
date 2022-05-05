@@ -3868,11 +3868,16 @@ void Commander::battery_status_check()
 			}
 		}
 
-		_last_battery_mode[index] = battery.mode;
-
 		if (battery.connected) {
 			_last_connected_batteries |= 1 << index;
 
+		} else {
+			_last_connected_batteries &= ~(1 << index);
+		}
+
+		_last_battery_mode[index] = battery.mode;
+
+		if (battery.connected) {
 			if (battery.warning > worst_warning) {
 				worst_warning = battery.warning;
 			}
