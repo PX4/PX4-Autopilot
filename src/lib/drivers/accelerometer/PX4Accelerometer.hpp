@@ -53,7 +53,7 @@ public:
 	void set_device_id(uint32_t device_id) { _device_id = device_id; }
 	void set_device_type(uint8_t devtype);
 	void set_error_count(uint32_t error_count) { _error_count = error_count; }
-	void set_range(float range) { _range = range; UpdateClipLimit(); }
+	void set_range(float range) { _dynamic_range = range; UpdateClipLimit(); }
 	void set_scale(float scale);
 	void set_temperature(float temperature) { _temperature = temperature; }
 
@@ -74,11 +74,11 @@ private:
 
 	int32_t			_imu_gyro_rate_max{0}; // match gyro max rate
 
-	float			_range{16 * CONSTANTS_ONE_G};
+	float			_dynamic_range{16 * CONSTANTS_ONE_G};
 	float			_scale{1.f};
 	float			_temperature{NAN};
 
-	float			_clip_limit{_range / _scale};
+	float			_clip_limit{_dynamic_range / _scale};
 
 	uint32_t		_error_count{0};
 
