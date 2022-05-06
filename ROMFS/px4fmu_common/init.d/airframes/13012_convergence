@@ -69,4 +69,9 @@ param set-default VT_TYPE 1
 
 set MIXER vtol_convergence
 
-set PWM_OUT 1234
+if ! ver hwcmp MATEK_H743
+then
+	set PWM_OUT 1234
+else
+	set PWM_OUT 3456
+fi	
