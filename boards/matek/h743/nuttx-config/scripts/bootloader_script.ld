@@ -34,7 +34,7 @@
  *
  ****************************************************************************/
 
-/* The Durandal-v1 uses an STM32H743II has 2048Kb of main FLASH memory.
+/* The H743 uses an STM32H743VIT6/STM32H743VIH6 has 2048Kb of main FLASH memory.
  * The flash memory is partitioned into a User Flash memory and a System
  * Flash memory. Each of these memories has two banks:
  *
@@ -50,7 +50,7 @@
  *
  *   3) User option bytes for user configuration, only in Bank 1.
  *
- * In the STM32H743II, two different boot spaces can be selected through
+ * In the STM32H743VIT6/STM32H743VIH6, two different boot spaces can be selected through
  * the BOOT pin and the boot base address programmed in the BOOT_ADD0 and
  * BOOT_ADD1 option bytes:
  *
@@ -59,7 +59,7 @@
  *   2) BOOT=1: Boot address defined by user option byte BOOT_ADD1[15:0].
  *      ST programmed value: System bootloader at 0x1FF0:0000
  *
- * The Durandal has a Swtich on board, the BOOT0 pin is at ground so by default,
+ * The H743 has a Swtich on board, the BOOT0 pin is at ground so by default,
  * the STM32 will boot to address 0x0800:0000 in FLASH unless the swiutch is
  * drepresed, then the boot will be from 0x1FF0:0000
  *

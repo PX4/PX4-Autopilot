@@ -20,3 +20,12 @@ dps310 -I start -a 118
 
 # External mag
 qmc5883l -X start -a 13
+
+# External airspeed sensor/differential pressure
+if ! ms4525do -I start -a 40
+then
+	if ! ms5525dso -I start -a 40
+	then
+		ms4515 -I start -a 40
+	fi
+fi
