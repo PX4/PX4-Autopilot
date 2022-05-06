@@ -2122,6 +2122,14 @@ FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const 
 {
 	const float dt = update_position_control_mode_timestep(now);
 
+	// update lateral guidance timesteps for slewrates
+	if (_param_fw_use_npfg.get()) {
+		_npfg.setDt(dt);
+
+	} else {
+		_l1_control.set_dt(dt);
+	}
+
 	// if we assume that user is taking off then help by demanding altitude setpoint well above ground
 	// and set limit to pitch angle to prevent steering into ground
 	// this will only affect planes and not VTOL
