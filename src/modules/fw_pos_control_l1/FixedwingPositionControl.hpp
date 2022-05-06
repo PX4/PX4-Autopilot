@@ -415,8 +415,11 @@ private:
 	float		get_tecs_thrust();
 
 	float		get_manual_airspeed_setpoint();
-	float		get_auto_airspeed_setpoint(const hrt_abstime &now, const float pos_sp_cru_airspeed, const Vector2f &ground_speed,
-			float dt);
+	float		get_auto_airspeed_setpoint(const hrt_abstime &now, const float pos_sp_cruise_airspeed,
+			const Vector2f &ground_speed, float dt);
+	float 		getMinimumCruiseThrottleWindCompensated(float throttle_cruise);
+	void 		compensateCruiseAndMaxThrottleForAirDensityAndWind(float &throttle_cruise, float &throttle_max,
+			float throttle_min);
 
 	void		reset_takeoff_state(bool force = false);
 	void		reset_landing_state();
@@ -524,6 +527,8 @@ private:
 		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,
 
 		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
+
+		(ParamFloat<px4::params::FW_WIND_CTHR_SC>) _param_fw_wind_cruise_throttle_scale,
 
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad
 

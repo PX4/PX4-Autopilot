@@ -481,6 +481,45 @@ FixedwingPositionControl::get_auto_airspeed_setpoint(const hrt_abstime &now, con
 	return airspeed_setpoint;
 }
 
+float FixedwingPositionControl::getMinimumCruiseThrottleWindCompensated(float throttle_cruise)
+{
+	if (_param_fw_wind_cruise_throttle_scale.get() > 0.0f) {
+		throttle_cruise += _wind_vel.length() * _param_fw_wind_cruise_throttle_scale.get();
+	}
+
+	return throttle_cruise;
+}
+
+void FixedwingPositionControl::compensateCruiseAndMaxThrottleForAirDensityAndWind(float &throttle_cruise,
+		float &throttle_max,
+		float throttle_min)
+{
+	if (_param_fw_thr_alt_scl.get() > FLT_EPSILON) {
+		// compensate cruise throttle and maximum throttle for air density
+		vehicle_air_data_s air_data;
+
+		if (_vehicle_air_data_sub.copy(&air_data)) {
+			if (PX4_ISFINITE(air_data.rho)) {
+				// scale throttle as a function of sqrt(rho0/rho)
+				const float eas2tas = sqrtf(CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C / air_data.rho);
+				const float scale = constrain(eas2tas * _param_fw_thr_alt_scl.get(), 1.f, 2.f);
+
+				throttle_max = constrain(throttle_max * scale, throttle_min, 1.0f);
+				throttle_cruise = constrain(throttle_cruise * scale, throttle_cruise,
+							    throttle_cruise + (throttle_max - throttle_cruise) * 0.9f);
+			}
+		}
+	}
+
+	if (!_tecs.airspeed_sensor_enabled()) {
+		// enforce minimum cruise throttle based on wind conditions if airspeed is not controlled
+		const float throttle_cruise_wind_compensated = getMinimumCruiseThrottleWindCompensated(throttle_cruise);
+		throttle_cruise = math::min(throttle_cruise_wind_compensated,
+					    throttle_cruise + (throttle_max - throttle_cruise) * 0.9f);
+
+	}
+}
+
 void
 FixedwingPositionControl::tecs_status_publish()
 {
@@ -2702,21 +2741,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 	_tecs.update_vehicle_state_estimates(_airspeed, _body_acceleration(0), (_local_pos.timestamp > 0), in_air_alt_control,
 					     _current_altitude, _local_pos.vz);
 
-	/* scale throttle cruise by baro pressure */
-	if (_param_fw_thr_alt_scl.get() > FLT_EPSILON) {
-		vehicle_air_data_s air_data;
-
-		if (_vehicle_air_data_sub.copy(&air_data)) {
-			if (PX4_ISFINITE(air_data.baro_pressure_pa) && PX4_ISFINITE(_param_fw_thr_alt_scl.get())) {
-				// scale throttle as a function of sqrt(p0/p) (~ EAS -> TAS at low speeds and altitudes ignoring temperature)
-				const float eas2tas = sqrtf(CONSTANTS_STD_PRESSURE_PA / air_data.baro_pressure_pa);
-				const float scale = constrain((eas2tas - 1.0f) * _param_fw_thr_alt_scl.get() + 1.f, 1.f, 2.f);
-
-				throttle_max = constrain(throttle_max * scale, throttle_min, 1.0f);
-				throttle_cruise = constrain(throttle_cruise * scale, throttle_min + 0.01f, throttle_max - 0.01f);
-			}
-		}
-	}
+	compensateCruiseAndMaxThrottleForAirDensityAndWind(throttle_cruise, throttle_max, throttle_min);
 
 	_tecs.update_pitch_throttle(_pitch - radians(_param_fw_psp_off.get()),
 				    _current_altitude, alt_sp,

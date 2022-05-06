@@ -244,12 +244,13 @@ PARAM_DEFINE_FLOAT(NPFG_PERIOD_SF, 1.5f);
 PARAM_DEFINE_FLOAT(FW_THR_CRUISE, 0.6f);
 
 /**
- * Scale throttle by pressure change
+ * Throttle air density scale
  *
- * Automatically adjust throttle to account for decreased air density at higher altitudes.
- * Start with a scale factor of 1.0 and adjust for different propulsion systems.
+ * This scale is applied to the air density compensation factor for TECS cruise and maximum throttle.
+ * E.g. cruise_throttle_compensated = cruise_throttle * eas2tas * FW_THR_ALT_SCL
+ * where eas2tas is the conversion factor from equivalent to true airspeed (calculated using estimated air density)
  *
- * When flying without airspeed sensor this will help to keep a constant performance over large altitude ranges.
+ * This compensation is most important for vehicles without airspeed sensors in order to keep a constant performance over large density altitude ranges.
  *
  * The default value of 0 will disable scaling.
  *
@@ -998,3 +999,19 @@ PARAM_DEFINE_INT32(FW_GPSF_LT, 30);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(FW_GPSF_R, 15.0f);
+
+/**
+ * Wind-based cruise throttle adaption.
+ *
+ * Scale factor from horizontal wind magnitude to cruise throttle increment.
+ * cruise_throttle_comp = cruise_throttle + wind_magnitude * FW_WIND_CTHR_SC.
+ * This parameter only has an effect if airspeed is not controlled (e.g. disabled or not valid).
+ *
+ * @unit norm
+ * @min 0
+ * @max 0.05
+ * @decimal 3
+ * @increment 0.001
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_WIND_CTHR_SC, 0.0f);
