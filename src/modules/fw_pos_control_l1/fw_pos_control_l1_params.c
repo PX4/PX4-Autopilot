@@ -94,7 +94,7 @@ PARAM_DEFINE_FLOAT(FW_L1_R_SLEW_MAX, 90.0f);
  * @boolean
  * @group FW NPFG Control
  */
-PARAM_DEFINE_INT32(FW_USE_NPFG, 0);
+PARAM_DEFINE_INT32(FW_USE_NPFG, 1);
 
 /**
  * NPFG period
