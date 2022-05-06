@@ -284,17 +284,17 @@
 
 #define STM32_SDMMC_INIT_CLKDIV     (300 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
 
-/* 25 MHz Max for now, 25 mHZ = PLL1Q/(2*div), div =  PLL1Q/(2*freq)
- * div = 4.8 = 240 / 50, So round up to 5 for default speed 24 MB/s
+/* 20 MHz Max for now - more reliable on some boards than 25 MHz
+ * 20 MHz = PLL1Q/(2*div), div =  PLL1Q/(2*freq), div = 6 = 240 / 40
  */
 
 #if defined(CONFIG_STM32H7_SDMMC_XDMA) || defined(CONFIG_STM32H7_SDMMC_IDMA)
-#  define STM32_SDMMC_MMCXFR_CLKDIV   (5 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
+#  define STM32_SDMMC_MMCXFR_CLKDIV   (6 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
 #else
 #  define STM32_SDMMC_MMCXFR_CLKDIV   (100 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
 #endif
 #if defined(CONFIG_STM32H7_SDMMC_XDMA) || defined(CONFIG_STM32H7_SDMMC_IDMA)
-#  define STM32_SDMMC_SDXFR_CLKDIV    (5 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
+#  define STM32_SDMMC_SDXFR_CLKDIV    (6 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
 #else
 #  define STM32_SDMMC_SDXFR_CLKDIV    (100 << STM32_SDMMC_CLKCR_CLKDIV_SHIFT)
 #endif
