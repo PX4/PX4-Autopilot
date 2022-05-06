@@ -755,12 +755,13 @@ void set_link_loss_nav_state(vehicle_status_s &status, actuator_armed_s &armed,
 		} else {
 			if (status_flags.local_position_valid) {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+				return;
 
 			} else if (status_flags.local_altitude_valid) {
 				status.nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+				return;
 			}
 
-			return;
 		}
 
 	// FALLTHROUGH
