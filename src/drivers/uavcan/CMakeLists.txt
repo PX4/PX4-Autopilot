@@ -45,7 +45,7 @@ if(CONFIG_ARCH_CHIP)
 		set(UAVCAN_TIMER 1)
 	elseif(${CONFIG_ARCH_CHIP} MATCHES "stm32h7")
 		set(UAVCAN_DRIVER "stm32h7")
-		set(UAVCAN_TIMER 6) # The default timer is TIM6
+		set(UAVCAN_TIMER 5) # The default timer is TIM5
 		if (DEFINED config_uavcan_timer_override)
 			set (UAVCAN_TIMER  ${config_uavcan_timer_override})
 		endif()
