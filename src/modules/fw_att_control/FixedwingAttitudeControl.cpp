@@ -599,6 +599,7 @@ void FixedwingAttitudeControl::Run()
 				_rates_sp.roll = _roll_ctrl.get_desired_bodyrate();
 				_rates_sp.pitch = _pitch_ctrl.get_desired_bodyrate();
 				_rates_sp.yaw = _yaw_ctrl.get_desired_bodyrate();
+				_rates_sp.yaw_via_wheel = _wheel_ctrl.get_desired_rate();
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
