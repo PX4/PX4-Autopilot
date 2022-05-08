@@ -44,7 +44,12 @@
 #endif
 
 #include <drivers/drv_hrt.h>
+#if defined(__PX4_LINUX)
+#include <sys/ioctl.h>
+#include <asm-generic/termbits.h>
+#else
 #include <termios.h>
+#endif
 #include <string.h>
 #include <unistd.h>
 
@@ -144,6 +149,18 @@ uint8_t crsf_frame_CRC(const crsf_frame_t &frame);
 int
 crsf_config(int uart_fd)
 {
+#if defined(__PX4_LINUX)
+	struct termios2 t;
+	ioctl(uart_fd, TCGETS2, &t);
+	/* no parity, one stop bit */
+
+	t.c_cflag &= ~(CSTOPB | PARENB |CBAUD);
+    	t.c_cflag |= BOTHER | CREAD;
+	t.c_ispeed = CRSF_BAUDRATE;
+	t.c_ospeed = CRSF_BAUDRATE;
+
+	return ioctl(uart_fd, TCSETS2, &t);
+#else
 	struct termios t;
 
 	/* no parity, one stop bit */
@@ -151,8 +168,8 @@ crsf_config(int uart_fd)
 	cfsetspeed(&t, CRSF_BAUDRATE);
 	t.c_cflag &= ~(CSTOPB | PARENB);
 	return tcsetattr(uart_fd, TCSANOW, &t);
+#endif
 }
-
 /**
  * Convert from RC to PWM value
  * @param chan_value channel value in [172, 1811]
