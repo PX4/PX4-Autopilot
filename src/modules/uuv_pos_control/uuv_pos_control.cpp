@@ -109,13 +109,12 @@ void UUVPOSControl::publish_attitude_setpoint(const float thrust_x, const float 
 	_att_sp_pub.publish(vehicle_attitude_setpoint);
 }
 
-void UUVPOSControl::pose_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
+void UUVPOSControl::pose_controller_6dof(const Vector3f &pos_des,
 		const float roll_des, const float pitch_des, const float yaw_des,
 		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
 {
 	//get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
-	Vector3f pos_des = Vector3f(x_pos_des, y_pos_des, z_pos_des);
 
 	Vector3f p_control_output = Vector3f(_param_pose_gain_x.get() * (pos_des(0) - vlocal_pos.x) - _param_pose_gain_d_x.get()
 					     * vlocal_pos.vx,
@@ -131,13 +130,12 @@ void UUVPOSControl::pose_controller_6dof(const float x_pos_des, const float y_po
 
 }
 
-void UUVPOSControl::stabilization_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
+void UUVPOSControl::stabilization_controller_6dof(const Vector3f &pos_des,
 		const float roll_des, const float pitch_des, const float yaw_des,
 		vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos)
 {
 	//get current rotation of vehicle
 	Quatf q_att(vehicle_attitude.q);
-	Vector3f pos_des = Vector3f(0, 0, z_pos_des);
 
 	Vector3f p_control_output = Vector3f(0,
 					     0,
@@ -145,7 +143,7 @@ void UUVPOSControl::stabilization_controller_6dof(const float x_pos_des, const f
 	//potential d controller missing
 	Vector3f rotated_input = q_att.rotateVectorInverse(p_control_output);//rotate the coord.sys (from global to body)
 
-	publish_attitude_setpoint(rotated_input(0) + x_pos_des, rotated_input(1) + y_pos_des, rotated_input(2),
+	publish_attitude_setpoint(rotated_input(0) + pos_des(0), rotated_input(1) + pos_des(1), rotated_input(2),
 				  roll_des, pitch_des, yaw_des);
 
 }
@@ -187,13 +185,11 @@ void UUVPOSControl::Run()
 
 			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
 			if (_param_stabilization.get() == 0) {
-				pose_controller_6dof(_trajectory_setpoint.position[0], _trajectory_setpoint.position[1],
-						     _trajectory_setpoint.position[2],
+				pose_controller_6dof(Vector3f(_trajectory_setpoint.position),
 						     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 
 			} else {
-				stabilization_controller_6dof(_trajectory_setpoint.position[0], _trajectory_setpoint.position[1],
-							      _trajectory_setpoint.position[2],
+				stabilization_controller_6dof(Vector3f(_trajectory_setpoint.position),
 							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 			}
 		}

@@ -142,10 +142,10 @@ private:
 	 */
 	void publish_attitude_setpoint(const float thrust_x, const float thrust_y, const float thrust_z,
 				       const float roll_des, const float pitch_des, const float yaw_des);
-	void pose_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
+	void pose_controller_6dof(const Vector3f &pos_des,
 				  const float roll_des, const float pitch_des, const float yaw_des,
 				  vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
-	void stabilization_controller_6dof(const float x_pos_des, const float y_pos_des, const float z_pos_des,
+	void stabilization_controller_6dof(const Vector3f &pos_des,
 					   const float roll_des, const float pitch_des, const float yaw_des,
 					   vehicle_attitude_s &vehicle_attitude, vehicle_local_position_s &vlocal_pos);
 };
