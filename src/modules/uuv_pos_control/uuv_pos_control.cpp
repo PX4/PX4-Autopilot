@@ -185,17 +185,15 @@ void UUVPOSControl::Run()
 			float pitch_des = 0;
 			float yaw_des = _trajectory_setpoint.yaw;
 
-			float x_pos_des = _trajectory_setpoint.x;
-			float y_pos_des = _trajectory_setpoint.y;
-			float z_pos_des = _trajectory_setpoint.z;
-
 			//stabilization controller(keep pos and hold depth + angle) vs position controller(global + yaw)
 			if (_param_stabilization.get() == 0) {
-				pose_controller_6dof(x_pos_des, y_pos_des, z_pos_des,
+				pose_controller_6dof(_trajectory_setpoint.position[0], _trajectory_setpoint.position[1],
+						     _trajectory_setpoint.position[2],
 						     roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 
 			} else {
-				stabilization_controller_6dof(x_pos_des, y_pos_des, z_pos_des,
+				stabilization_controller_6dof(_trajectory_setpoint.position[0], _trajectory_setpoint.position[1],
+							      _trajectory_setpoint.position[2],
 							      roll_des, pitch_des, yaw_des, _vehicle_attitude, vlocal_pos);
 			}
 		}

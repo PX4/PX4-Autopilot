@@ -2742,9 +2742,6 @@ void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpo
 		local_position_setpoint.acceleration[0] = NAN;
 		local_position_setpoint.acceleration[1] = NAN;
 		local_position_setpoint.acceleration[2] = NAN;
-		local_position_setpoint.jerk[0] = NAN;
-		local_position_setpoint.jerk[1] = NAN;
-		local_position_setpoint.jerk[2] = NAN;
 		local_position_setpoint.thrust[0] = _att_sp.thrust_body[0];
 		local_position_setpoint.thrust[1] = _att_sp.thrust_body[1];
 		local_position_setpoint.thrust[2] = _att_sp.thrust_body[2];

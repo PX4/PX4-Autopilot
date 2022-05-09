@@ -615,7 +615,6 @@ void MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_se
 	setpoint.yaw = setpoint.yawspeed = NAN;
 	setpoint.vx = setpoint.vy = setpoint.vz = NAN;
 	setpoint.acceleration[0] = setpoint.acceleration[1] = setpoint.acceleration[2] = NAN;
-	setpoint.jerk[0] = setpoint.jerk[1] = setpoint.jerk[2] = NAN;
 	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
 }
 
