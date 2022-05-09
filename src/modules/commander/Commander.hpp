@@ -182,7 +182,7 @@ private:
 
 	void send_parachute_command();
 
-	void checkWindAndWarn();
+	void checkWindSpeedThresholds();
 
 	DEFINE_PARAMETERS(
 
@@ -274,7 +274,8 @@ private:
 
 		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
 		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
-		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max
+		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
+		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max
 	)
 
 	enum class PrearmedMode {

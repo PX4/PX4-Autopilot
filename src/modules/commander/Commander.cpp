@@ -2906,9 +2906,10 @@ Commander::run()
 			}
 		}
 
-		// Publish wind speed warning if enabled via parameter
-		if (_param_com_wind_warn.get() > FLT_EPSILON && !_vehicle_land_detected.landed) {
-			checkWindAndWarn();
+		// Check wind speed actions if either high wind warning or high wind RTL is enabled
+		if ((_param_com_wind_warn.get() > FLT_EPSILON || _param_com_wind_max.get() > FLT_EPSILON)
+		    && !_vehicle_land_detected.landed) {
+			checkWindSpeedThresholds();
 		}
 
 		_status_flags.flight_terminated = _armed.force_failsafe || _armed.lockdown || _armed.manual_lockdown;
@@ -3087,7 +3088,6 @@ Commander::run()
 			fd_status.fd_alt = _failure_detector.getStatusFlags().alt;
 			fd_status.fd_ext = _failure_detector.getStatusFlags().ext;
 			fd_status.fd_arm_escs = _failure_detector.getStatusFlags().arm_escs;
-			fd_status.fd_high_wind = _failure_detector.getStatusFlags().high_wind;
 			fd_status.fd_battery = _failure_detector.getStatusFlags().battery;
 			fd_status.fd_imbalanced_prop = _failure_detector.getStatusFlags().imbalanced_prop;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
@@ -4482,7 +4482,7 @@ void Commander::send_parachute_command()
 	set_tune_override(tune_control_s::TUNE_ID_PARACHUTE_RELEASE);
 }
 
-void Commander::checkWindAndWarn()
+void Commander::checkWindSpeedThresholds()
 {
 	wind_s wind_estimate;
 
@@ -4492,7 +4492,26 @@ void Commander::checkWindAndWarn()
 		// publish a warning if it's the first since in air or 60s have passed since the last warning
 		const bool warning_timeout_passed = _last_wind_warning == 0 || hrt_elapsed_time(&_last_wind_warning) > 60_s;
 
-		if (wind.longerThan(_param_com_wind_warn.get()) && warning_timeout_passed) {
+		if (_param_com_wind_max.get() > FLT_EPSILON
+		    && wind.longerThan(_param_com_wind_max.get())
+		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
+		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
+
+			main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags, _internal_state);
+			_status_changed = true;
+			mavlink_log_critical(&_mavlink_log_pub, "Wind speeds above limit, abort operation and RTL (%.1f m/s)\t",
+					     (double)wind.norm());
+
+			events::send<float>(events::ID("commander_high_wind_rtl"),
+			{events::Log::Warning, events::LogInternal::Info},
+			"Wind speeds above limit, abort operation and RTL ({1:.1m/s})", wind.norm());
+
+		} else if (_param_com_wind_warn.get() > FLT_EPSILON
+			   && wind.longerThan(_param_com_wind_warn.get())
+			   && warning_timeout_passed
+			   && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
+			   && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
+
 			mavlink_log_critical(&_mavlink_log_pub, "High wind speed detected (%.1f m/s), landing advised\t", (double)wind.norm());
 
 			events::send<float>(events::ID("commander_high_wind_warning"),
