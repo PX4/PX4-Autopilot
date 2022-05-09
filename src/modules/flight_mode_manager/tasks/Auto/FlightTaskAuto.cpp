@@ -48,7 +48,7 @@ FlightTaskAuto::FlightTaskAuto() :
 
 }
 
-bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setpoint)
+bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
 
@@ -61,8 +61,8 @@ bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setp
 	_velocity_setpoint = _velocity;
 	_position_setpoint = _position;
 
-	Vector3f vel_prev{last_setpoint.vx, last_setpoint.vy, last_setpoint.vz};
-	Vector3f pos_prev{last_setpoint.x, last_setpoint.y, last_setpoint.z};
+	Vector3f vel_prev{last_setpoint.velocity};
+	Vector3f pos_prev{last_setpoint.position};
 	Vector3f accel_prev{last_setpoint.acceleration};
 
 	for (int i = 0; i < 3; i++) {
