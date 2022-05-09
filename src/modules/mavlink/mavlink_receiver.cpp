@@ -1087,12 +1087,9 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 
 		offboard_control_mode_s ocm{};
-		ocm.position = PX4_ISFINITE(setpoint.position[0]) || PX4_ISFINITE(setpoint.position[1])
-			       || PX4_ISFINITE(setpoint.position[2]);
-		ocm.velocity = PX4_ISFINITE(setpoint.velocity[0]) || PX4_ISFINITE(setpoint.velocity[1])
-			       || PX4_ISFINITE(setpoint.velocity[2]);
-		ocm.acceleration = PX4_ISFINITE(setpoint.acceleration[0]) || PX4_ISFINITE(setpoint.acceleration[1])
-				   || PX4_ISFINITE(setpoint.acceleration[2]);
+		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
+		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
+		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED force not supported\t");
@@ -1212,12 +1209,9 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 
 
 		offboard_control_mode_s ocm{};
-		ocm.position = PX4_ISFINITE(setpoint.position[0]) || PX4_ISFINITE(setpoint.position[1])
-			       || PX4_ISFINITE(setpoint.position[2]);
-		ocm.velocity = PX4_ISFINITE(setpoint.velocity[0]) || PX4_ISFINITE(setpoint.velocity[1])
-			       || PX4_ISFINITE(setpoint.velocity[2]);
-		ocm.acceleration = PX4_ISFINITE(setpoint.acceleration[0]) || PX4_ISFINITE(setpoint.acceleration[1])
-				   || PX4_ISFINITE(setpoint.acceleration[2]);
+		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
+		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
+		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT force not supported\t");
