@@ -484,7 +484,7 @@ void LogWriterFile::run()
 			 * not an issue because notify() is called regularly.
 			 * If the logger was switched off in the meantime, do not wait for data, instead run this loop
 			 * once more to write remaining data and close the file. */
-			if (_buffers[0]._should_run) {
+			if (_buffers[0]._should_run || _buffers[1]._should_run) {
 				pthread_cond_wait(&_cv, &_mtx);
 			}
 		}
