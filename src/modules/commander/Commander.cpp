@@ -2916,6 +2916,24 @@ Commander::run()
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
 
+		// Trigger RTL if flight time is larger than max flight time specified in COM_FLT_TIME_MAX.
+		// The user is not able to override once above threshold, except for triggering Land.
+		if (!_vehicle_land_detected.landed
+		    && _param_com_flt_time_max.get() > FLT_EPSILON
+		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
+		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND
+		    && (now - _status.takeoff_time) > (1_s * _param_com_flt_time_max.get())) {
+			main_state_transition(_status, commander_state_s::MAIN_STATE_AUTO_RTL, _status_flags, _internal_state);
+			_status_changed = true;
+			mavlink_log_critical(&_mavlink_log_pub, "Maximum flight time reached, abort operation and RTL");
+			/* EVENT
+			* @description
+			* Maximal flight time reached, return to launch.
+			*/
+			events::send(events::ID("commander_max_flight_time_rtl"), {events::Log::Critical, events::LogInternal::Warning},
+				     "Maximum flight time reached, abort operation and RTL");
+		}
+
 		// automatically set or update home position
 		if (_param_com_home_en.get() && !_home_pub.get().manual_home) {
 			if (!_armed.armed && _vehicle_land_detected.landed) {
