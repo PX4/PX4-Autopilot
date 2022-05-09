@@ -1,10 +1,10 @@
 {
     "board_id": 12,
-    "magic": "Crazyflie",
+    "magic": "Crazyflie2",
     "description": "Firmware for the Crazyflie 2.0",
     "image": "",
     "build_time": 0,
-    "summary": "CRAZYFLIE",
+    "summary": "CRAZYFLIE 2.0",
     "version": "0.1",
     "image_size": 0,
     "image_maxsize": 1032192,

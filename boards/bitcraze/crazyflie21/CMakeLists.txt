@@ -31,4 +31,4 @@
 #
 ############################################################################
 
-add_subdirectory(../crazyflie syslink)
+add_subdirectory(../crazyflie2 syslink)

@@ -271,7 +271,7 @@ misc_qgc_extra_firmware: \
 	check_nxp_fmuk66-v3_default \
 	check_nxp_fmurt1062-v1_default \
 	check_mro_x21_default \
-	check_bitcraze_crazyflie_default \
+	check_bitcraze_crazyflie2_default \
 	check_bitcraze_crazyflie21_default \
 	check_airmind_mindpx-v2_default \
 	sizes

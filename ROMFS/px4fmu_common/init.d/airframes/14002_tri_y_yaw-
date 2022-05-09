@@ -12,7 +12,6 @@
 #
 # @maintainer Trent Lukaczyk <aerialhedgehog@gmail.com>
 #
-# @board bitcraze_crazyflie exclude
 # @board px4_fmu-v2 exclude
 #
 

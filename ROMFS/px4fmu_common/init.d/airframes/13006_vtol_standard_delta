@@ -16,7 +16,6 @@
 # @output AUX3 Motor
 #
 # @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
 # @board holybro_kakutef7 exclude
 #
 

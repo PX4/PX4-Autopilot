@@ -32,9 +32,9 @@
  ****************************************************************************/
 
 /**
- * @file crazyflie_init.c
+ * @file init.c
  *
- * Crazyflie specific early startup code.  This file implements the
+ * board specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -46,7 +46,7 @@
  ****************************************************************************/
 
 #include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/tasks.h>
+#include <px4_platform/gpio.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -87,14 +87,6 @@ extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
 
-/****************************************************************************
- * Protected Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
@@ -109,11 +101,9 @@ __EXPORT void
 stm32_boardinitialize(void)
 {
 	/* configure LEDs */
-
 	board_autoled_initialize();
 
 	/* configure SPI interfaces */
-
 	stm32_spiinitialize();
 
 	stm32_usbinitialize();
@@ -152,6 +142,9 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #ifdef CONFIG_SPI
 	stm32_spi_bus_initialize();
 #endif
+
+	/* Configure the HW based on the manifest */
+	px4_platform_configure();
 
 	return OK;
 }

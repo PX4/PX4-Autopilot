@@ -15,7 +15,6 @@
 # @maintainer ThunderFly s.r.o., Roman Dvorak <dvorakroman@thunderfly.cz>
 #
 # @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.fw_defaults

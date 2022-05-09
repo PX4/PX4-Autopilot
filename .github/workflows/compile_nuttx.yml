@@ -23,7 +23,7 @@ jobs:
           ark_cannode,
           atl_mantis-edu,
           av_x-v1,
-          bitcraze_crazyflie,
+          bitcraze_crazyflie2,
           bitcraze_crazyflie21,
           cuav_can-gps-v1,
           cuav_nora,

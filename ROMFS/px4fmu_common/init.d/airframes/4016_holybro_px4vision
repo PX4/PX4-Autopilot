@@ -11,7 +11,6 @@
 # @output MAIN4 motor 4
 #
 # @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.mc_defaults

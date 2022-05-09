@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Bitcraze Crazyflie specific board sensors init
+# board specific sensors init
 #------------------------------------------------------------------------------
 
 board_adc start

@@ -32,14 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file crazyflie_usb.c
+ * @file usb.c
  *
  * Board-specific USB functions.
  */
-
-/************************************************************************************
- * Included Files
- ************************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -56,22 +52,10 @@
 #include "board_config.h"
 
 /************************************************************************************
- * Definitions
- ************************************************************************************/
-
-/************************************************************************************
- * Private Functions
- ************************************************************************************/
-
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
-
-/************************************************************************************
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called to setup USB-related GPIO pins for the PX4-STM32F4Discovery board.
+ *   Called to setup USB-related GPIO pins for the board.
  *
  ************************************************************************************/
 
@@ -83,10 +67,6 @@ __EXPORT void stm32_usbinitialize(void)
 
 #ifdef CONFIG_STM32_OTGFS
 	stm32_configgpio(GPIO_OTGFS_VBUS);
-	/* XXX We only support device mode
-	stm32_configgpio(GPIO_OTGFS_PWRON);
-	stm32_configgpio(GPIO_OTGFS_OVER);
-	*/
 #endif
 }
 
@@ -105,4 +85,3 @@ __EXPORT void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume)
 {
 	uinfo("resume: %d\n", resume);
 }
-
