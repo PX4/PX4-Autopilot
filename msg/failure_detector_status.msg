@@ -6,7 +6,6 @@ bool fd_pitch
 bool fd_alt
 bool fd_ext
 bool fd_arm_escs
-bool fd_high_wind
 bool fd_battery
 bool fd_imbalanced_prop
 
