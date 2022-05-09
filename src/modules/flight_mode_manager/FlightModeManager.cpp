@@ -459,12 +459,12 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	_current_task.task->setYawHandler(_wv_controller);
 
 	// If the task fails sned out empty NAN setpoints and the controller will emergency failsafe
-	vehicle_local_position_setpoint_s setpoint = FlightTask::empty_setpoint;
+	trajectory_setpoint_s setpoint = FlightTask::empty_setpoint;
 	vehicle_constraints_s constraints = FlightTask::empty_constraints;
 
 	if (_current_task.task->updateInitialize() && _current_task.task->update()) {
 		// setpoints and constraints for the position controller from flighttask
-		setpoint = _current_task.task->getPositionSetpoint();
+		setpoint = _current_task.task->getTrajectorySetpoint();
 		constraints = _current_task.task->getConstraints();
 	}
 
@@ -504,7 +504,7 @@ void FlightModeManager::generateTrajectorySetpoint(const float dt,
 	_old_landing_gear_position = landing_gear.landing_gear;
 }
 
-void FlightModeManager::limitAltitude(vehicle_local_position_setpoint_s &setpoint,
+void FlightModeManager::limitAltitude(trajectory_setpoint_s &setpoint,
 				      const vehicle_local_position_s &vehicle_local_position)
 {
 	if (_param_lndmc_alt_max.get() < 0.0f || !_home_position_sub.get().valid_alt
@@ -518,8 +518,8 @@ void FlightModeManager::limitAltitude(vehicle_local_position_setpoint_s &setpoin
 
 	if (vehicle_local_position.z < min_z) {
 		// above maximum altitude, only allow downwards flight == positive vz-setpoints (NED)
-		setpoint.z = min_z;
-		setpoint.vz = math::max(setpoint.vz, 0.f);
+		setpoint.position[2] = min_z;
+		setpoint.velocity[2] = math::max(setpoint.velocity[2], 0.f);
 	}
 }
 
@@ -531,11 +531,11 @@ FlightTaskError FlightModeManager::switchTask(FlightTaskIndex new_task_index)
 	}
 
 	// Save current setpoints for the next FlightTask
-	vehicle_local_position_setpoint_s last_setpoint = FlightTask::empty_setpoint;
+	trajectory_setpoint_s last_setpoint = FlightTask::empty_setpoint;
 	ekf_reset_counters_s last_reset_counters{};
 
 	if (isAnyTaskActive()) {
-		last_setpoint = _current_task.task->getPositionSetpoint();
+		last_setpoint = _current_task.task->getTrajectorySetpoint();
 		last_reset_counters = _current_task.task->getResetCounters();
 	}
 

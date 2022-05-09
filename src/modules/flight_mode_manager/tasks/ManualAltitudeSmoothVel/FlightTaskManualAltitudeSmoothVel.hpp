@@ -48,7 +48,7 @@ public:
 	FlightTaskManualAltitudeSmoothVel() = default;
 	virtual ~FlightTaskManualAltitudeSmoothVel() = default;
 
-	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
+	bool activate(const trajectory_setpoint_s &last_setpoint) override;
 
 protected:
 	virtual void _updateSetpoints() override;

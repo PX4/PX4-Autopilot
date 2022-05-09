@@ -246,7 +246,6 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 	local_position_setpoint.vy = _vel_sp(1);
 	local_position_setpoint.vz = _vel_sp(2);
 	_acc_sp.copyTo(local_position_setpoint.acceleration);
-	nans<3, 1>().copyTo(local_position_setpoint.jerk);
 	_thr_sp.copyTo(local_position_setpoint.thrust);
 }
 
