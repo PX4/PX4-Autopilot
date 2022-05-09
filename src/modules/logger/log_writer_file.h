@@ -34,6 +34,7 @@
 #pragma once
 
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/atomic.h>
 #include <stdint.h>
 #include <pthread.h>
 #include <drivers/drv_hrt.h>
@@ -205,8 +206,8 @@ private:
 
 	LogFileBuffer _buffers[(int)LogType::Count];
 
-	bool 		_exit_thread = false;
-	bool		_need_reliable_transfer = false;
+	px4::atomic_bool	_exit_thread{false};
+	bool			_need_reliable_transfer{false};
 	pthread_mutex_t		_mtx;
 	pthread_cond_t		_cv;
 	pthread_t _thread = 0;
