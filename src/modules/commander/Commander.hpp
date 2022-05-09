@@ -217,6 +217,7 @@ private:
 		(ParamInt<px4::params::COM_IMB_PROP_ACT>) _param_com_imb_prop_act,
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _param_com_disarm_land,
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
+		(ParamBool<px4::params::COM_DISARM_SAFE>) _param_com_disarm_safe,
 
 		(ParamBool<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 

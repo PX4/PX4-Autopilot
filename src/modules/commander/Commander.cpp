@@ -767,7 +767,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool forced)
 {
-	if (!forced) {
+	if (!forced && _param_com_disarm_safe.get()) {
 		const bool landed = (_vehicle_land_detected.landed || _vehicle_land_detected.maybe_landed
 				     || is_ground_rover(_vehicle_status));
 		const bool mc_manual_thrust_mode = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING

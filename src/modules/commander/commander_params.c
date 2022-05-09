@@ -244,6 +244,16 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT, 10.0f);
 
 /**
+ * Disarm safety protections
+ *
+ * Prevent disarming if flying in an altitude or position control mode and not landed.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_DISARM_SAFE, 1);
+
+/**
  * Allow arming without GPS
  *
  * The default allows the vehicle to arm without GPS signal.
