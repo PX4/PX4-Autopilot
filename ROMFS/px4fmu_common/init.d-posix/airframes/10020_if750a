@@ -16,4 +16,34 @@ param set-default MNT_MODE_IN 4
 param set-default MNT_MODE_OUT 2
 param set-default MNT_DO_STAB 2
 
-set MIXER quad_x
+
+# PX4 default motor ordering:
+#  3     1
+#     ^
+#  2     4
+param set-default SYS_CTRL_ALLOC 1
+param set-default CA_AIRFRAME 0
+param set-default CA_ROTOR_COUNT 4
+
+# front right (CCW)
+param set-default CA_ROTOR0_PX 0.707107
+param set-default CA_ROTOR0_PY 0.707107
+param set-default CA_ROTOR0_KM 0.05
+
+# rear left (CCW)
+param set-default CA_ROTOR1_PX -0.707107
+param set-default CA_ROTOR1_PY -0.707107
+param set-default CA_ROTOR1_KM 0.05
+
+# front left (CW)
+param set-default CA_ROTOR2_PX 0.707107
+param set-default CA_ROTOR2_PY -0.707107
+param set-default CA_ROTOR2_KM -0.05
+
+# rear right (CW)
+param set-default CA_ROTOR3_PX -0.707107
+param set-default CA_ROTOR3_PY 0.707107
+param set-default CA_ROTOR3_KM -0.05
+
+set MIXER skip
+set MIXER_AUX none
