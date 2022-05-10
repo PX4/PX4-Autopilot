@@ -6,4 +6,4 @@
 pwm_out mode_pwm1 start
 
 ifup can0
-uavcan_v1 start
+cyphal start
