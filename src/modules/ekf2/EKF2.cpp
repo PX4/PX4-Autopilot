@@ -1680,14 +1680,14 @@ bool EKF2::UpdateFlowSample(ekf2_timestamps_s &ekf2_timestamps)
 {
 	// EKF flow sample
 	bool new_optical_flow = false;
-	const unsigned last_generation = _optical_flow_sub.get_last_generation();
-	optical_flow_s optical_flow;
+	const unsigned last_generation = _vehicle_optical_flow_sub.get_last_generation();
+	vehicle_optical_flow_s optical_flow;
 
-	if (_optical_flow_sub.update(&optical_flow)) {
+	if (_vehicle_optical_flow_sub.update(&optical_flow)) {
 		if (_msg_missed_optical_flow_perf == nullptr) {
 			_msg_missed_optical_flow_perf = perf_alloc(PC_COUNT, MODULE_NAME": optical_flow messages missed");
 
-		} else if (_optical_flow_sub.get_last_generation() != last_generation + 1) {
+		} else if (_vehicle_optical_flow_sub.get_last_generation() != last_generation + 1) {
 			perf_count(_msg_missed_optical_flow_perf);
 		}
 

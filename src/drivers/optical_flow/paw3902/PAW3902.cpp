@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -788,7 +788,7 @@ void PAW3902::RunImpl()
 		return;
 	}
 
-	optical_flow_s report{};
+	sensor_optical_flow_s report{};
 	report.timestamp = timestamp_sample;
 	//report.device_id = get_device_id();
 
@@ -818,15 +818,15 @@ void PAW3902::RunImpl()
 
 	switch (_mode) {
 	case Mode::Bright:
-		report.mode = optical_flow_s::MODE_BRIGHT;
+		report.mode = sensor_optical_flow_s::MODE_BRIGHT;
 		break;
 
 	case Mode::LowLight:
-		report.mode = optical_flow_s::MODE_LOWLIGHT;
+		report.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
 		break;
 
 	case Mode::SuperLowLight:
-		report.mode = optical_flow_s::MODE_SUPER_LOWLIGHT;
+		report.mode = sensor_optical_flow_s::MODE_SUPER_LOWLIGHT;
 		break;
 	}
 

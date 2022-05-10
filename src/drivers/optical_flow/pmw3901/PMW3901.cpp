@@ -326,7 +326,7 @@ PMW3901::RunImpl()
 	delta_x = (float)_flow_sum_x / 385.0f;		// proportional factor + convert from pixels to radians
 	delta_y = (float)_flow_sum_y / 385.0f;		// proportional factor + convert from pixels to radians
 
-	optical_flow_s report{};
+	sensor_optical_flow_s report{};
 	report.timestamp = timestamp;
 
 	report.pixel_flow_x_integral = static_cast<float>(delta_x);

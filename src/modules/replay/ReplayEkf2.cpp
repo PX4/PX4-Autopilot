@@ -39,7 +39,7 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/vehicle_optical_flow.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -91,7 +91,7 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(distance_sensor)) {
 		_distance_sensor_msg_id = msg_id;
 
-	} else if (sub.orb_meta == ORB_ID(optical_flow)) {
+	} else if (sub.orb_meta == ORB_ID(vehicle_optical_flow)) {
 		_optical_flow_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_air_data)) {

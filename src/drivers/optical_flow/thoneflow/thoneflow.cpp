@@ -52,7 +52,7 @@
 #include <lib/parameters/param.h>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/uORB.h>
 
 #include "thoneflow_parser.h"
@@ -81,7 +81,7 @@ private:
 
 	hrt_abstime              _last_read;
 
-	optical_flow_s           _report;
+	sensor_optical_flow_s    _report;
 	orb_advert_t             _optical_flow_pub;
 
 	perf_counter_t           _sample_perf;
@@ -233,7 +233,7 @@ Thoneflow::init()
 		_report.integration_timespan = 10526;	// microseconds
 
 		/* Get a publish handle on the optical flow topic */
-		_optical_flow_pub = orb_advertise(ORB_ID(optical_flow), &_report);
+		_optical_flow_pub = orb_advertise(ORB_ID(sensor_optical_flow), &_report);
 
 		if (_optical_flow_pub == nullptr) {
 			PX4_ERR("Failed to create optical_flow object");
@@ -312,7 +312,7 @@ Thoneflow::collect()
 			float zeroval = 0.0f;
 			rotate_3f(_rotation, _report.pixel_flow_x_integral, _report.pixel_flow_y_integral, zeroval);
 
-			orb_publish(ORB_ID(optical_flow), _optical_flow_pub, &_report);
+			orb_publish(ORB_ID(sensor_optical_flow), _optical_flow_pub, &_report);
 		}
 
 		/* Bytes left to parse */

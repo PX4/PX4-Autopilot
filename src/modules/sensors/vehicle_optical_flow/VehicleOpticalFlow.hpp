@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,34 +33,64 @@
 
 #pragma once
 
-#include "sensor_bridge.hpp"
+#include "data_validator/DataValidatorGroup.hpp"
 
-#include <stdint.h>
-
+#include <lib/mathlib/math/Limits.hpp>
+#include <lib/matrix/matrix/math.hpp>
+#include <lib/perf/perf_counter.h>
+#include <lib/systemlib/mavlink_log.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_optical_flow.h>
+#include <uORB/topics/vehicle_optical_flow.h>
 
-#include <com/hex/equipment/flow/Measurement.hpp>
-
-class UavcanFlowBridge : public UavcanSensorBridgeBase
+namespace sensors
+{
+class VehicleOpticalFlow : public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
-	static const char *const NAME;
+	VehicleOpticalFlow();
+	~VehicleOpticalFlow() override;
 
-	UavcanFlowBridge(uavcan::INode &node);
+	bool Start();
+	void Stop();
 
-	const char *get_name() const override { return NAME; }
-
-	int init() override;
+	void PrintStatus();
 
 private:
+	void Run() override;
 
-	void flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &msg);
+	void ParametersUpdate();
+	void SensorCorrectionsUpdate(bool force = false);
 
-	typedef uavcan::MethodBinder < UavcanFlowBridge *,
-		void (UavcanFlowBridge::*)
-		(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &) >
-		FlowCbBinder;
+	static constexpr int MAX_SENSOR_COUNT = 3;
 
-	uavcan::Subscriber<com::hex::equipment::flow::Measurement, FlowCbBinder> _sub_flow;
+	uORB::Publication<vehicle_optical_flow_s> _vehicle_optical_flowpub{ORB_ID(vehicle_optical_flow)};
 
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
+
+	uORB::SubscriptionCallbackWorkItem _sensor_sub[MAX_SENSOR_COUNT] {
+		{this, ORB_ID(sensor_optical_flow), 0},
+		{this, ORB_ID(sensor_optical_flow), 1},
+		{this, ORB_ID(sensor_optical_flow), 2}
+	};
+
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+
+	bool _advertised[MAX_SENSOR_COUNT] {};
+
+	uint8_t _priority[MAX_SENSOR_COUNT] {};
+
+	int8_t _selected_sensor_sub_index{-1};
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SENS_BARO_QNH>) _param_sens_baro_qnh
+	)
 };
+}; // namespace sensors

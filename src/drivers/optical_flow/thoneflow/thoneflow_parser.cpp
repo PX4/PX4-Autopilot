@@ -61,7 +61,7 @@ const char *parser_state[] = {
 #endif
 
 bool thoneflow_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum THONEFLOW_PARSE_STATE *state,
-		     optical_flow_s *flow)
+		     sensor_optical_flow_s *flow)
 {
 	bool parsed_packet = false;
 

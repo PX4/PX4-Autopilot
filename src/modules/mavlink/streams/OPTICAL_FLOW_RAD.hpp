@@ -34,7 +34,7 @@
 #ifndef OPTICAL_FLOW_RAD_HPP
 #define OPTICAL_FLOW_RAD_HPP
 
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/vehicle_optical_flow.h>
 
 class MavlinkStreamOpticalFlowRad : public MavlinkStream
 {
@@ -55,11 +55,11 @@ public:
 private:
 	explicit MavlinkStreamOpticalFlowRad(Mavlink *mavlink) : MavlinkStream(mavlink) {}
 
-	uORB::Subscription _optical_flow_sub{ORB_ID(optical_flow)};
+	uORB::Subscription _optical_flow_sub{ORB_ID(vehicle_optical_flow)};
 
 	bool send() override
 	{
-		optical_flow_s flow;
+		vehicle_optical_flow_s flow;
 
 		if (_optical_flow_sub.update(&flow)) {
 			mavlink_optical_flow_rad_t msg{};

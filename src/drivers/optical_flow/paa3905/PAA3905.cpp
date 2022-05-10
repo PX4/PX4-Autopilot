@@ -535,7 +535,7 @@ void PAA3905::RunImpl()
 		return;
 	}
 
-	optical_flow_s report{};
+	sensor_optical_flow_s report{};
 	report.timestamp = timestamp_sample;
 	//report.device_id = get_device_id();
 
@@ -565,15 +565,15 @@ void PAA3905::RunImpl()
 
 	switch (_mode) {
 	case Mode::Bright:
-		report.mode = optical_flow_s::MODE_BRIGHT;
+		report.mode = sensor_optical_flow_s::MODE_BRIGHT;
 		break;
 
 	case Mode::LowLight:
-		report.mode = optical_flow_s::MODE_LOWLIGHT;
+		report.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
 		break;
 
 	case Mode::SuperLowLight:
-		report.mode = optical_flow_s::MODE_SUPER_LOWLIGHT;
+		report.mode = sensor_optical_flow_s::MODE_SUPER_LOWLIGHT;
 		break;
 	}
 

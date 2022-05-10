@@ -118,7 +118,8 @@ set(msg_files
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	onboard_computer_status.msg
-	optical_flow.msg
+	sensor_optical_flow.msg
+	vehicle_optical_flow.msg
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg

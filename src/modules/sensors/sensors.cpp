@@ -78,6 +78,7 @@
 #include "vehicle_gps_position/VehicleGPSPosition.hpp"
 #include "vehicle_imu/VehicleIMU.hpp"
 #include "vehicle_magnetometer/VehicleMagnetometer.hpp"
+#include "vehicle_optical_flow/VehicleOpticalFlow.hpp"
 
 using namespace sensors;
 using namespace time_literals;
@@ -181,6 +182,7 @@ private:
 	VehicleAirData          *_vehicle_air_data{nullptr};
 	VehicleMagnetometer     *_vehicle_magnetometer{nullptr};
 	VehicleGPSPosition	*_vehicle_gps_position{nullptr};
+	VehicleOpticalFlow      _vehicle_optical_flow;
 
 	VehicleIMU      *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
 
@@ -264,6 +266,7 @@ Sensors::Sensors(bool hil_enabled) :
 	_airspeed_validator.set_equal_value_threshold(100);
 
 	parameters_update();
+	_vehicle_optical_flow.Start();
 
 	InitializeVehicleAirData();
 	InitializeVehicleGPSPosition();
@@ -280,6 +283,7 @@ Sensors::~Sensors()
 
 	_vehicle_acceleration.Stop();
 	_vehicle_angular_velocity.Stop();
+	_vehicle_optical_flow.Stop();
 
 	if (_vehicle_air_data) {
 		_vehicle_air_data->Stop();
@@ -799,6 +803,8 @@ int Sensors::print_status()
 			i->PrintStatus();
 		}
 	}
+
+	_vehicle_optical_flow.PrintStatus();
 
 	return 0;
 }

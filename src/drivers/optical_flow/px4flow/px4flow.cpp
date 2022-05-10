@@ -51,7 +51,7 @@
 #include <px4_platform_common/module.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/sensor_optical_flow.h>
 
 /* Configuration Constants */
 #define I2C_FLOW_ADDRESS_DEFAULT    0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
@@ -98,7 +98,7 @@ private:
 	bool				_sensor_ok{false};
 	bool				_collect_phase{false};
 
-	uORB::PublicationMulti<optical_flow_s>		_px4flow_topic{ORB_ID(optical_flow)};
+	uORB::PublicationMulti<sensor_optical_flow_s>		_px4flow_topic{ORB_ID(sensor_optical_flow)};
 	uORB::PublicationMulti<distance_sensor_s>	_distance_sensor_topic{ORB_ID(distance_sensor)};
 
 	perf_counter_t		_sample_perf;
@@ -279,7 +279,7 @@ PX4FLOW::collect()
 	}
 
 
-	optical_flow_s report{};
+	sensor_optical_flow_s report{};
 
 	report.timestamp = hrt_absolute_time();
 	report.pixel_flow_x_integral = static_cast<float>(_frame_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians

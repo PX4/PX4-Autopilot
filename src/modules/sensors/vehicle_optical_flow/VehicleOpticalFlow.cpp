@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,36 +31,74 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "VehicleOpticalFlow.hpp"
 
-#include "sensor_bridge.hpp"
+#include <px4_platform_common/log.h>
 
-#include <stdint.h>
-
-#include <uORB/topics/sensor_optical_flow.h>
-
-#include <com/hex/equipment/flow/Measurement.hpp>
-
-class UavcanFlowBridge : public UavcanSensorBridgeBase
+namespace sensors
 {
-public:
-	static const char *const NAME;
 
-	UavcanFlowBridge(uavcan::INode &node);
+using namespace matrix;
+using namespace time_literals;
 
-	const char *get_name() const override { return NAME; }
+static constexpr uint32_t SENSOR_TIMEOUT{300_ms};
 
-	int init() override;
+VehicleOpticalFlow::VehicleOpticalFlow() :
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers)
+{
+}
 
-private:
+VehicleOpticalFlow::~VehicleOpticalFlow()
+{
+	Stop();
+	perf_free(_cycle_perf);
+}
 
-	void flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &msg);
+bool VehicleOpticalFlow::Start()
+{
+	ScheduleNow();
+	return true;
+}
 
-	typedef uavcan::MethodBinder < UavcanFlowBridge *,
-		void (UavcanFlowBridge::*)
-		(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &) >
-		FlowCbBinder;
+void VehicleOpticalFlow::Stop()
+{
+	Deinit();
 
-	uavcan::Subscriber<com::hex::equipment::flow::Measurement, FlowCbBinder> _sub_flow;
+	// clear all registered callbacks
+	for (auto &sub : _sensor_sub) {
+		sub.unregisterCallback();
+	}
+}
 
-};
+void VehicleOpticalFlow::ParametersUpdate()
+{
+	// Check if parameters have changed
+	if (_params_sub.updated()) {
+		// clear update
+		parameter_update_s param_update;
+		_params_sub.copy(&param_update);
+
+		updateParams();
+	}
+}
+
+void VehicleOpticalFlow::Run()
+{
+	perf_begin(_cycle_perf);
+
+	ParametersUpdate();
+
+
+	// reschedule timeout
+	ScheduleDelayed(100_ms);
+
+	perf_end(_cycle_perf);
+}
+
+void VehicleOpticalFlow::PrintStatus()
+{
+
+}
+
+}; // namespace sensors

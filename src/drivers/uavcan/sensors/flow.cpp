@@ -38,7 +38,7 @@
 const char *const UavcanFlowBridge::NAME = "flow";
 
 UavcanFlowBridge::UavcanFlowBridge(uavcan::INode &node) :
-	UavcanSensorBridgeBase("uavcan_flow", ORB_ID(optical_flow)),
+	UavcanSensorBridgeBase("uavcan_flow", ORB_ID(sensor_optical_flow)),
 	_sub_flow(node)
 {
 }
@@ -58,7 +58,7 @@ UavcanFlowBridge::init()
 
 void UavcanFlowBridge::flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &msg)
 {
-	optical_flow_s flow{};
+	sensor_optical_flow_s flow{};
 
 	// We're only given an 8 bit field for sensor ID; just use the UAVCAN node ID
 	flow.sensor_id = msg.getSrcNodeID().get();

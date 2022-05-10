@@ -1285,7 +1285,7 @@ void Simulator::check_failure_injections()
 
 int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink)
 {
-	optical_flow_s flow = {};
+	sensor_optical_flow_s flow{};
 	flow.sensor_id = flow_mavlink->sensor_id;
 	flow.timestamp = hrt_absolute_time();
 	flow.time_since_last_sonar_update = 0;
