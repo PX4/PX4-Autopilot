@@ -54,7 +54,9 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/uORB.h>
 #include <uORB/topics/transponder_report.h>
+#include <uORB/topics/sensor_gps.h>
 
 
 using namespace time_literals;
@@ -67,10 +69,44 @@ using namespace time_literals;
 #define SAGETECH_MXS_POLL_RATE     						10_ms
 #define SAGETECH_SCALE_FEET_TO_M 						0.3048f
 #define SAGETECH_SCALE_KNOTS_TO_M_PER_SEC 				0.514444f
+#define SAGETECH_SCALE_M_PER_SEC_TO_KNOTS				1.94384F
 #define SAGETECH_SCALE_FT_PER_MIN_TO_M_PER_SEC 			0.00508f
 #define ADSB_ALTITUDE_TYPE_PRESSURE_QNH 				0
 #define ADSB_ALTITUDE_TYPE_GEOMETRIC					1
+#define PAYLOAD_MXS_MAX_SIZE  							255
+#define START_BYTE										0xAA
+#define SAGETECH_PI										3.14159
+#define USEC_PER_HOUR									3600000000
+#define USEC_PER_MIN									60000000
+#define USEC_PER_SEC									1000000
 
+/*********************************************************************************
+ * Enum definitions
+ *********************************************************************************/
+typedef enum
+{
+	startByte,
+	msgByte,
+	idByte,
+	lengthByte,
+	payload,
+	checksumByte
+}parse_state_t;
+
+/*********************************************************************************
+ * Struct definitions
+ *********************************************************************************/
+typedef struct
+{
+	uint8_t state;
+	uint8_t index;
+	uint8_t start;
+	uint8_t type;
+	uint8_t id;
+	uint8_t length;
+	uint8_t payload[PAYLOAD_MXS_MAX_SIZE];
+	uint8_t checksum;
+}sagetech_packet_t;
 /*********************************************************************************
  * Class definition
  *********************************************************************************/
@@ -107,7 +143,9 @@ private:
 
 	int open_serial_port();
 
-	void handle_msg();
+	void handle_msg(const sagetech_packet_t packet);
+
+	void parse_byte(uint8_t data);
 
 	void handle_svr(sg_svr_t svr);
 
@@ -115,18 +153,34 @@ private:
 
 	uint8_t determine_emitter(sg_adsb_emitter_t emit);
 
-	char 			*_serial_port{nullptr};
+	void send_gps_msg();
+
+	void send_install_msg();
+
+	void send_op_msg();
+
+	void send_target_req_msg();
+
+	char 				*_serial_port{nullptr};
 	unsigned			_baudrate{0};
 
 	int 				_file_descriptor{-1};
+
+	sagetech_packet_t	_msgIn;
+
+	uint8_t 			_msgId{0};
 
 	uint8_t 			_buffer[128];
 	uint8_t 			_buffer_len{0};
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
+	sensor_gps_s 		_gps;
+
+	hrt_abstime			_last_gps_send{0};
 
 	uORB::PublicationMulti<transponder_report_s> 	_transponder_pub{ORB_ID(transponder_report)};
+	//uORB::PublicationMulti<sensor_gps_s>	_report_gps_pos_pub{ORB_ID(sensor_gps)};
 
 };
 

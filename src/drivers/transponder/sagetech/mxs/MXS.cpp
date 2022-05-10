@@ -134,6 +134,122 @@ int MXS::open_serial_port()
 	return PX4_OK;
 }
 
+void MXS::parse_byte(uint8_t data)
+{
+	switch(_msgIn.state)
+	{
+		case startByte:
+			if(data == START_BYTE)
+			{
+				_msgIn.start = START_BYTE;
+				_msgIn.checksum += data;
+				_msgIn.state = msgByte;
+			}
+			break;
+		case msgByte:
+			_msgIn.checksum += data;
+			_msgIn.type = data;
+			_msgIn.state = idByte;
+			break;
+		case idByte:
+			_msgIn.checksum += data;
+			_msgIn.id = data;
+			_msgIn.state = lengthByte;
+			break;
+		case lengthByte:
+			_msgIn.checksum += data;
+			_msgIn.length = data;
+			_msgIn.index = 0;
+			_msgIn.state = payload;
+			break;
+		case payload:
+			_msgIn.checksum += data;
+			_msgIn.payload[_msgIn.index] = data;
+			_msgIn.index ++;
+			if (_msgIn.index > _msgIn.length)
+			{
+				_msgIn.state = checksumByte;
+			}
+			break;
+		case checksumByte:
+			if (_msgIn.checksum == data)
+			{
+				//handle/build message
+				handle_msg(_msgIn);
+			}
+			_msgIn.state = startByte;
+			break;
+	}
+}
+
+int MXS::collect()
+{
+	perf_begin(_sample_perf);
+
+	// the buffer for read chars is buflen minus null termination
+	//unsigned _buffer_len = sizeof(_buffer) - 1;
+
+	int ret = 0;
+
+	// Check the number of bytes available in the buffer
+	int bytes_available = 0;
+	::ioctl(_file_descriptor, FIONREAD, (unsigned long)&bytes_available);
+
+	if (!bytes_available) {
+		perf_end(_sample_perf);
+		return 0;
+	}
+
+	// parse entire buffer
+	//const hrt_abstime timestamp_sample = hrt_absolute_time();
+
+	do {
+		// read from the sensor (uart buffer)
+		uint8_t data;
+		ret = ::read(_file_descriptor, &data, sizeof(data));
+
+		if (ret < 0) {
+			PX4_ERR("read err: %d", ret);
+			perf_count(_comms_errors);
+			perf_end(_sample_perf);
+			break;
+		}
+		parse_byte(data);
+
+
+		// parse buffer
+
+		// bytes left to parse
+		bytes_available -= ret;
+
+	} while (bytes_available > 0);
+
+
+	perf_end(_sample_perf);
+
+	return PX4_OK;
+}
+
+void MXS::handle_msg(const sagetech_packet_t packet)
+{
+	uint8_t msgIn[255];
+	memcpy(msgIn, &packet.start, (5 + packet.index)* sizeof(uint8_t));
+	switch(packet.type)
+	{
+		case SG_MSG_TYPE_ADSB_MSR:
+			sg_msr_t msr;
+			sgDecodeMSR(msgIn, &msr);
+			handle_msr(msr);
+			break;
+		case SG_MSG_TYPE_ADSB_SVR:
+			sg_svr_t svr;
+			sgDecodeSVR(msgIn, &svr);
+			handle_svr(svr);
+			break;
+
+	}
+}
+
 uint8_t MXS::determine_emitter(sg_adsb_emitter_t emit)
 {
 	uint8_t emitCat;
@@ -273,6 +389,97 @@ void MXS::handle_msr(sg_msr_t msr)
 	_transponder_pub.publish(t);
 }
 
+void MXS::send_gps_msg()
+{
+
+	sg_gps_t gpsOut;
+	//Grab current gps reading
+
+	//Fill gps object for MXS
+	//TODO: These are realistic values that are hard coded for now
+	gpsOut.hpl = 12.0;
+	gpsOut.hfom = 23.0;
+	gpsOut.vfom = 33.0;
+	gpsOut.nacv = nacv3dot0;
+
+	//Convert Longitude and Latitude to strings
+	const int32_t lon = _gps.lon;
+	const double lonDeg = lon * 1.0e-7;
+	const double lonMin = (lonDeg - int(lonDeg)) * 60;
+	const double lonSec = (lonMin - int(lonMin)) * 1.0e5;
+	snprintf(gpsOut.longitude, 12, "%03d%02u.%05u",(int)lonDeg,(uint8_t)lonMin,(uint16_t)lonSec);
+
+	const int32_t lat = _gps.lat;
+	const double latDeg = lon * 1.0e-7;
+	const double latMin = (lonDeg - int(lonDeg)) * 60;
+	const double latSec = (lonMin - int(lonMin)) * 1.0e5;
+	snprintf(gpsOut.latitude, 11, "%02d%02u.%05u",(int)latDeg,(uint8_t)latMin,(uint16_t)latSec);
+
+	//Convert ground speed
+	const double speedKnots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
+	if (speedKnots > 1000.0)
+	{
+		const float speedOneDec = (speedKnots - int(speedKnots)) * 1.0e1;
+		snprintf(gpsOut.grdSpeed, 7, "%04u%01u", (uint16_t)speedKnots, (uint8_t)speedOneDec);
+	}
+	else
+	{
+		const double speedTwoDec = (speedKnots - int(speedKnots)) * 1.0e1;
+		snprintf(gpsOut.grdSpeed, 7, "%03u%02u", (uint16_t)speedKnots, (uint8_t)speedTwoDec);
+	}
+
+	//Convert ground track
+	double grdTrackDeg = (double)_gps.heading * (180.0/SAGETECH_PI);
+	if (grdTrackDeg < 0)
+	{
+		grdTrackDeg  = 360 + grdTrackDeg;
+	}
+	const double grdTrackDegDec = (grdTrackDeg - int(grdTrackDeg)) * 1.0e4;
+	snprintf(gpsOut.grdTrack, 9, "%03u.%04u", (uint16_t) grdTrackDeg,(uint16_t)grdTrackDegDec);
+
+	gpsOut.latNorth = (lat>= 0) ? true: false;
+	gpsOut.lngEast = (lon>= 0) ? true: false;
+
+	gpsOut.gpsValid = _gps.vel_ned_valid;
+
+	//Convert Time of Fix
+	uint64_t timeUsec = _gps.time_utc_usec;
+	if (timeUsec)
+	{
+		const uint8_t hours = timeUsec % USEC_PER_HOUR;
+		timeUsec = timeUsec - (hours * USEC_PER_HOUR);
+		const uint8_t mins = timeUsec % USEC_PER_MIN;
+		timeUsec = timeUsec - (mins * USEC_PER_MIN);
+		const uint8_t secs = timeUsec % USEC_PER_SEC;
+		timeUsec = timeUsec - (secs * USEC_PER_SEC);
+		const uint16_t fracSecs = timeUsec * 1.0e-3;
+		snprintf(gpsOut.timeOfFix, 11, "%02u%02u%02u.%03u",hours,mins,secs,fracSecs);
+	}
+	else
+	{
+		strncpy(gpsOut.timeOfFix, "      .   ", 11);
+	}
+
+	gpsOut.height = _gps.alt_ellipsoid * 1.0e-3; //Convert to meters
+
+	//Encode GPS
+	memset(_buffer,0, sizeof(_buffer)); 	//Make sure buffer is clear
+	sgEncodeGPS(_buffer,&gpsOut, _msgId++);
+
+	//Write to serial
+	int ret = 0;
+	ret = ::write(_file_descriptor, &_buffer, sizeof(_buffer)); //Could use SG_MSG_LEN_GPS + 1
+
+	if(ret < 0)
+	{
+		PX4_ERR("Error in writing GPS: %d", ret);
+	}
+	//Update gps send time
+	_last_gps_send = hrt_absolute_time();
+
+
+}
+
 
 void MXS::print_info()
 {
@@ -282,10 +489,20 @@ void MXS::print_info()
 
 void MXS::Run()
 {
+	//Subscribe to GPS uORB
+	int gps_sub_fd = orb_subscribe(ORB_ID(sensor_gps));
+	orb_set_interval(gps_sub_fd, 200);
+	orb_copy(ORB_ID(sensor_gps), gps_sub_fd, &_gps);
 	// Ensure the serial port is open.
 	open_serial_port();
-
 	collect();
+
+	 const hrt_abstime currentTime = hrt_absolute_time();
+
+	 if (currentTime - _last_gps_send >= 200)
+	 {
+		 send_gps_msg();
+	 }
 }
 
 void MXS::start()
