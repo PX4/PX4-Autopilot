@@ -350,6 +350,30 @@ private:
 	 * @param dt Time step
 	 */
 	void		update_desired_altitude(float dt);
+
+	/**
+	 * @brief Updates timing information for landed and in-air states.
+	 *
+	 * @param now Current system time [us]
+	 */
+	void update_in_air_states(const hrt_abstime now);
+
+	/**
+	 * @brief Updates the time since the last position control call.
+	 *
+	 * @param now Current system time [us]
+	 * @return Time since last position control call [s]
+	 */
+	float update_position_control_mode_timestep(const hrt_abstime now);
+
+	/**
+	 * @brief Moves the current position setpoint to a value far ahead of the current vehicle yaw when in  a VTOL
+	 * transition.
+	 *
+	 * @param[in,out] current_sp current position setpoint
+	 */
+	void move_position_setpoint_for_vtol_transition(position_setpoint_s &current_sp);
+
 	uint8_t		handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr);
 	void		control_auto(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				     const position_setpoint_s &pos_sp_prev,
