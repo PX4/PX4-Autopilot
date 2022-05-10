@@ -112,7 +112,6 @@ px4_add_romfs_files(
 	# [10000, 10999] Quadrotor Wide arm / H frame"
 	10015_tbs_discovery
 	10016_3dr_iris
-	10017_steadidrone_qu4d
 	10018_tbs_endurance
 
 	# [11000, 11999] Hexa Cox
@@ -120,7 +119,6 @@ px4_add_romfs_files(
 
 	# [12000, 12999] Octo Cox
 	12001_octo_cox
-	12002_steadidrone_mavrik
 
 	# [13000, 13999] VTOL
 	13000_generic_vtol_standard
