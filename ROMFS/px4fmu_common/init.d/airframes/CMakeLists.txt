@@ -55,7 +55,6 @@ px4_add_romfs_files(
 	3031_phantom
 	3032_skywalker_x5
 	3033_wingwing
-	3034_fx79
 	3035_viper
 	3036_pigeon
 	3037_parrot_disco_mod
