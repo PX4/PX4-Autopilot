@@ -9,3 +9,5 @@ launch.json
 ipch/
 
 browse.vc.db*
+
+*.log
