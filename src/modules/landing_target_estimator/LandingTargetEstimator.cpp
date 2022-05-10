@@ -75,7 +75,7 @@ void LandingTargetEstimator::Run()
 	perf_begin(_cycle_perf);
 
 	// predict
-	vehicle_local_position_s vehicle_local_position;
+	vehicle_local_position_s vehicle_local_position{};
 
 	if (_vehicle_local_position_sub.update(&vehicle_local_position)) {
 		if (_estimator_initialized) {
