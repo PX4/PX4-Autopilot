@@ -66,8 +66,6 @@ px4_add_romfs_files(
 	4001_quad_x
 	4003_qavr5
 	4009_qav250
-	4010_dji_f330
-	4011_dji_f450
 	4014_s500
 	4015_holybro_s500
 	4016_holybro_px4vision
@@ -81,7 +79,6 @@ px4_add_romfs_files(
 	4051_s250aq
 	4052_holybro_qav250
 	4053_holybro_kopis2
-	4060_dji_matrice_100
 	4061_atl_mantis_edu
 	4071_ifo
 	4072_draco
