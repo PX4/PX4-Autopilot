@@ -56,7 +56,6 @@ px4_add_romfs_files(
 	3032_skywalker_x5
 	3033_wingwing
 	3036_pigeon
-	3037_parrot_disco_mod
 	3100_tbs_caipirinha
 
 	# [4000, 4999] Quadrotor x"
