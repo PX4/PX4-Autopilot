@@ -128,6 +128,10 @@ public:
 	void getHaglInnovVar(float &hagl_innov_var) const { hagl_innov_var = _hagl_innov_var; }
 	void getHaglInnovRatio(float &hagl_innov_ratio) const { hagl_innov_ratio = _hagl_test_ratio; }
 
+	void getHaglRateInnov(float &hagl_rate_innov) const { hagl_rate_innov = _rng_consistency_check.getInnov(); }
+	void getHaglRateInnovVar(float &hagl_rate_innov_var) const { hagl_rate_innov_var = _rng_consistency_check.getInnovVar(); }
+	void getHaglRateInnovRatio(float &hagl_rate_innov_ratio) const { hagl_rate_innov_ratio = _rng_consistency_check.getSignedTestRatioLpf(); }
+
 	// get the state vector at the delayed time horizon
 	matrix::Vector<float, 24> getStateAtFusionHorizonAsVector() const;
 
@@ -738,24 +742,20 @@ private:
 	template <size_t ...Idxs>
 	SquareMatrix24f computeKHP(const Vector24f &K, const SparseVector24f<Idxs...> &H) const
 	{
-		SquareMatrix24f KHP;
-		constexpr size_t non_zeros = sizeof...(Idxs);
-		float KH[non_zeros];
-
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned i = 0; i < H.non_zeros(); i++) {
-				KH[i] = K(row) * H.atCompressedIndex(i);
+		// K(HP) and (KH)P are equivalent (matrix multiplication is associative)
+		// but K(HP) is computationally much less expensive
+		Vector24f HP;
+		for (unsigned i = 0; i < H.non_zeros(); i++) {
+			const size_t row = H.index(i);
+			for (unsigned col = 0; col < _k_num_states; col++) {
+				HP(col) = HP(col) + H.atCompressedIndex(i) * P(row, col);
 			}
+		}
 
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				float tmp = 0.f;
-
-				for (unsigned i = 0; i < H.non_zeros(); i++) {
-					const size_t index = H.index(i);
-					tmp += KH[i] * P(index, column);
-				}
-
-				KHP(row, column) = tmp;
+		SquareMatrix24f KHP;
+		for (unsigned row = 0; row < _k_num_states; row++) {
+			for (unsigned col = 0; col < _k_num_states; col++) {
+				KHP(row, col) = K(row) * HP(col);
 			}
 		}
 
@@ -899,7 +899,6 @@ private:
 
 	// determine if flight condition is suitable to use range finder instead of the primary height sensor
 	void checkRangeAidSuitability();
-	bool isRangeAidSuitable() const { return _is_range_aid_suitable; }
 
 	// set control flags to use baro height
 	void setControlBaroHeight();
@@ -930,8 +929,9 @@ private:
 
 	void updateGroundEffect();
 
-	// return an estimation of the GPS altitude variance
+	// return an estimation of the sensor altitude variance
 	float getGpsHeightVariance();
+	float getRngHeightVariance() const;
 
 	// calculate the measurement variance for the optical flow sensor
 	float calcOptFlowMeasVar();

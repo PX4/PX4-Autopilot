@@ -430,22 +430,14 @@ MissionBlock::is_mission_item_reached()
 
 				float yaw_err = 0.0f;
 
-				if (dist_current_next >  1.2f * _navigator->get_loiter_radius()) {
-					// set required yaw from bearing to the next mission item
-					_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
-							    _navigator->get_global_position()->lon,
-							    next_sp.lat, next_sp.lon);
-					const float cog = atan2f(_navigator->get_local_position()->vy, _navigator->get_local_position()->vx);
-					yaw_err = wrap_pi(_mission_item.yaw - cog);
+				// set required yaw from bearing to the next mission item
+				_mission_item.yaw = get_bearing_to_next_waypoint(_navigator->get_global_position()->lat,
+						    _navigator->get_global_position()->lon,
+						    next_sp.lat, next_sp.lon);
+				const float cog = atan2f(_navigator->get_local_position()->vy, _navigator->get_local_position()->vx);
+				yaw_err = wrap_pi(_mission_item.yaw - cog);
 
-
-
-				}
-
-
-				if (fabsf(yaw_err) < _navigator->get_yaw_threshold()) {
-					exit_heading_reached = true;
-				}
+				exit_heading_reached = fabsf(yaw_err) < _navigator->get_yaw_threshold();
 
 			} else {
 				exit_heading_reached = true;
@@ -466,9 +458,10 @@ MissionBlock::is_mission_item_reached()
 			     _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
 
 				float bearing = get_bearing_to_next_waypoint(curr_sp.lat, curr_sp.lon, next_sp.lat, next_sp.lon);
-				// We should not use asinf outside of [-1..1].
-				const float ratio = math::constrain(_mission_item.loiter_radius / range, -1.0f, 1.0f);
-				float inner_angle = M_PI_2_F - asinf(ratio);
+
+				// calculate (positive) angle between current bearing vector (orbit center to next waypoint) and vector pointing to tangent exit location
+				const float ratio = math::min(fabsf(_mission_item.loiter_radius / range), 1.0f);
+				float inner_angle = acosf(ratio);
 
 				// Compute "ideal" tangent origin
 				if (curr_sp.loiter_direction > 0) {

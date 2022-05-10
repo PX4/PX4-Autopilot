@@ -214,34 +214,6 @@ PARAM_DEFINE_FLOAT(COM_RCL_ACT_T, 15.0f);
 PARAM_DEFINE_INT32(COM_HOME_EN, 1);
 
 /**
- * Home set horizontal threshold
- *
- * The home position will be set if the estimated positioning accuracy is below the threshold.
- *
- * @group Commander
- * @unit m
- * @min 2
- * @max 15
- * @decimal 2
- * @increment 0.5
- */
-PARAM_DEFINE_FLOAT(COM_HOME_H_T, 5.0f);
-
-/**
- * Home set vertical threshold
- *
- * The home position will be set if the estimated positioning accuracy is below the threshold.
- *
- * @group Commander
- * @unit m
- * @min 5
- * @max 25
- * @decimal 2
- * @increment 0.5
- */
-PARAM_DEFINE_FLOAT(COM_HOME_V_T, 10.0f);
-
-/**
  * Allows setting the home position after takeoff
  *
  * If set to true, the autopilot is allowed to set its home position after takeoff
@@ -1093,3 +1065,38 @@ PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
+
+/**
+ * Maximum allowed flight time
+ *
+ * The vehicle aborts the current operation and returns to launch when
+ * the time since takeoff is above this value. It is not possible to resume the
+ * mission or switch to any mode other than RTL or Land.
+ *
+ * Set a nagative value to disable.
+ *
+ *
+ * @unit s
+ * @min -1
+ * @max 10000
+ * @value 0 Disable
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
+
+/**
+ * Wind speed RLT threshold
+ *
+ * Wind speed threshold above which an automatic return to launch is triggered
+ * and enforced as long as the threshold is exceeded.
+ *
+ * A negative value disables the feature.
+ *
+ * @min -1
+ * @max 30
+ * @decimal 1
+ * @increment 0.1
+ * @group Commander
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);

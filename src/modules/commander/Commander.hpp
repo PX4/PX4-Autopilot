@@ -163,10 +163,10 @@ private:
 
 	void print_reject_mode(uint8_t main_state);
 
+	bool hasMovedFromCurrentHomeLocation();
 	bool set_home_position();
 	bool set_home_position_alt_only();
-	bool set_in_air_home_position();
-	bool isGPosGoodForInitializingHomePos(const vehicle_global_position_s &gpos) const;
+	void set_in_air_home_position();
 	void fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos) const;
 	void fillLocalHomePos(home_position_s &home, float x, float y, float z, float heading) const;
 	void fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos) const;
@@ -182,7 +182,7 @@ private:
 
 	void send_parachute_command();
 
-	void checkWindAndWarn();
+	void checkWindSpeedThresholds();
 
 	void updateParameters();
 
@@ -201,8 +201,6 @@ private:
 		(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,
 
 		(ParamBool<px4::params::COM_HOME_EN>) _param_com_home_en,
-		(ParamFloat<px4::params::COM_HOME_H_T>) _param_com_home_h_t,
-		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
 		(ParamBool<px4::params::COM_HOME_IN_AIR>) _param_com_home_in_air,
 
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
@@ -261,7 +259,10 @@ private:
 		(ParamInt<px4::params::CBRK_ENGINEFAIL>) _param_cbrk_enginefail,
 		(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
 		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
-		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming
+		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
+
+		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
+		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max
 	)
 
 	// optional parameters
@@ -382,7 +383,6 @@ private:
 	bool		_was_armed{false};
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
-	bool		_should_set_home_on_takeoff{true};
 	bool		_system_power_usb_connected{false};
 
 	geofence_result_s	_geofence_result{};

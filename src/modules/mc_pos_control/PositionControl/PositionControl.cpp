@@ -114,7 +114,7 @@ bool PositionControl::update(const float dt)
 		_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw; // TODO: better way to disable yaw control
 	}
 
-	// There has to be a valid output accleration and thrust setpoint otherwise something went wrong
+	// There has to be a valid output acceleration and thrust setpoint otherwise something went wrong
 	valid = valid && PX4_ISFINITE(_acc_sp(0)) && PX4_ISFINITE(_acc_sp(1)) && PX4_ISFINITE(_acc_sp(2));
 	valid = valid && PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(_thr_sp(2));
 
@@ -246,6 +246,7 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 	local_position_setpoint.vy = _vel_sp(1);
 	local_position_setpoint.vz = _vel_sp(2);
 	_acc_sp.copyTo(local_position_setpoint.acceleration);
+	nans<3, 1>().copyTo(local_position_setpoint.jerk);
 	_thr_sp.copyTo(local_position_setpoint.thrust);
 }
 

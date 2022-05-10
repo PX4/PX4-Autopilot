@@ -83,7 +83,7 @@ void RTL::on_inactive()
 	if ((hrt_absolute_time() - _destination_check_time) > 1_s) {
 		_destination_check_time = hrt_absolute_time();
 
-		if (_navigator->home_position_valid()) {
+		if (_navigator->home_global_position_valid()) {
 			find_RTL_destination();
 		}
 
@@ -723,7 +723,7 @@ void RTL::calc_and_pub_rtl_time_estimate()
 
 	// Calculate RTL time estimate only when there is a valid home position
 	// TODO: Also check if vehicle position is valid
-	if (!_navigator->home_position_valid()) {
+	if (!_navigator->home_global_position_valid()) {
 		rtl_time_estimate.valid = false;
 
 	} else {

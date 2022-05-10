@@ -95,7 +95,7 @@ void ActuatorEffectivenessRotors::updateParams()
 		return;
 	}
 
-	_geometry.num_rotors = count;
+	_geometry.num_rotors = math::min(NUM_ROTORS_MAX, (int)count);
 
 	for (int i = 0; i < _geometry.num_rotors; ++i) {
 		Vector3f &position = _geometry.rotors[i].position;
@@ -156,7 +156,7 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 {
 	int num_actuators = 0;
 
-	for (int i = 0; i < math::min(NUM_ROTORS_MAX, geometry.num_rotors); i++) {
+	for (int i = 0; i < geometry.num_rotors; i++) {
 
 		if (i + actuator_start_index >= NUM_ACTUATORS) {
 			break;
@@ -261,4 +261,15 @@ uint32_t ActuatorEffectivenessRotors::getUpwardsMotors() const
 	}
 
 	return upwards_motors;
+}
+
+bool
+ActuatorEffectivenessRotors::getEffectivenessMatrix(Configuration &configuration,
+		EffectivenessUpdateReason external_update)
+{
+	if (external_update == EffectivenessUpdateReason::NO_EXTERNAL_UPDATE) {
+		return false;
+	}
+
+	return addActuators(configuration);
 }

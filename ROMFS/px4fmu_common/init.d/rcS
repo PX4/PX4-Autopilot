@@ -298,9 +298,9 @@ else
 			tune_control play error
 		fi
 	else
-		if param greater -s UAVCAN_V1_ENABLE 0
+		if param greater -s CYPHAL_ENABLE 0
 		then
-			uavcan_v1 start
+			cyphal start
 		fi
 	fi
 
@@ -405,6 +405,7 @@ else
 			battery_status start
 		fi
 
+		sensors start
 		commander start
 	fi
 
@@ -492,12 +493,6 @@ else
 		gimbal start
 	fi
 
-	# Check for flow sensor
-	if param compare -s SENS_EN_PX4FLOW 1
-	then
-		px4flow start -X
-	fi
-
 	# Blacksheep telemetry
 	if param compare -s TEL_BST_EN 1
 	then
@@ -512,6 +507,12 @@ else
 	if param compare -s IMU_GYRO_CAL_EN 1
 	then
 		gyro_calibration start
+	fi
+
+	# Check for px4flow sensor
+	if param compare -s SENS_EN_PX4FLOW 1
+	then
+		px4flow start -X &
 	fi
 
 	#

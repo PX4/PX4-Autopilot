@@ -3,8 +3,9 @@ menu "Differential pressure"
         bool "Common differential pressure module's"
         default n
         select DRIVERS_DIFFERENTIAL_PRESSURE_ETS
-        select DRIVERS_DIFFERENTIAL_PRESSURE_MS4525
-        select DRIVERS_DIFFERENTIAL_PRESSURE_MS5525
+        select DRIVERS_DIFFERENTIAL_PRESSURE_MS4515
+        select DRIVERS_DIFFERENTIAL_PRESSURE_MS4525DO
+        select DRIVERS_DIFFERENTIAL_PRESSURE_MS5525DSO
         select DRIVERS_DIFFERENTIAL_PRESSURE_SDP3X
         ---help---
             Enable default set of differential pressure drivers

@@ -69,6 +69,7 @@
 #include "streams/COLLISION.hpp"
 #include "streams/COMMAND_LONG.hpp"
 #include "streams/COMPONENT_INFORMATION.hpp"
+#include "streams/COMPONENT_METADATA.hpp"
 #include "streams/DISTANCE_SENSOR.hpp"
 #include "streams/EFI_STATUS.hpp"
 #include "streams/ESC_INFO.hpp"
@@ -548,6 +549,9 @@ static const StreamListItem streams_list[] = {
 #if defined(COMPONENT_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamComponentInformation>(),
 #endif // COMPONENT_INFORMATION_HPP
+#if defined(COMPONENT_METADATA_HPP)
+	create_stream_list_item<MavlinkStreamComponentMetadata>(),
+#endif // COMPONENT_METADATA_HPP
 #if defined(RAW_RPM_HPP)
 	create_stream_list_item<MavlinkStreamRawRpm>(),
 #endif // RAW_RPM_HPP

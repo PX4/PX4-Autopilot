@@ -60,7 +60,7 @@ public:
 		FixedUpwards, ///< axis is fixed, pointing upwards (negative Z)
 	};
 
-	static constexpr int NUM_ROTORS_MAX = 8;
+	static constexpr int NUM_ROTORS_MAX = 12;
 
 	struct RotorGeometry {
 		matrix::Vector3f position;
@@ -81,6 +81,8 @@ public:
 				    bool tilt_support = false);
 	virtual ~ActuatorEffectivenessRotors() = default;
 
+	bool getEffectivenessMatrix(Configuration &configuration, EffectivenessUpdateReason external_update) override;
+
 	void getDesiredAllocationMethod(AllocationMethod allocation_method_out[MAX_NUM_MATRICES]) const override
 	{
 		allocation_method_out[0] = AllocationMethod::SEQUENTIAL_DESATURATION;
@@ -96,7 +98,7 @@ public:
 
 	bool addActuators(Configuration &configuration);
 
-	const char *name() const override { return "Multirotor"; }
+	const char *name() const override { return "Rotors"; }
 
 	/**
 	 * Sets the motor axis from tilt configurations and current tilt control.

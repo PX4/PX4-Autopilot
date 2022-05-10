@@ -81,6 +81,7 @@ bool FlightTaskAuto::activate(const vehicle_local_position_setpoint_s &last_setp
 	_yaw_sp_prev = PX4_ISFINITE(last_setpoint.yaw) ? last_setpoint.yaw : _yaw;
 	_updateTrajConstraints();
 	_is_emergency_braking_active = false;
+	_time_last_cruise_speed_override = 0;
 
 	return ret;
 }
@@ -222,6 +223,12 @@ bool FlightTaskAuto::update()
 	return ret;
 }
 
+void FlightTaskAuto::overrideCruiseSpeed(const float cruise_speed_m_s)
+{
+	_mc_cruise_speed = cruise_speed_m_s;
+	_time_last_cruise_speed_override = hrt_absolute_time();
+}
+
 void FlightTaskAuto::_prepareLandSetpoints()
 {
 	_velocity_setpoint.setNaN(); // Don't take over any smoothed velocity setpoint
@@ -344,8 +351,14 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	_type = (WaypointType)_sub_triplet_setpoint.get().current.type;
 
-	// Always update cruise speed since that can change without waypoint changes.
-	_mc_cruise_speed = _sub_triplet_setpoint.get().current.cruising_speed;
+	// Prioritize cruise speed from the triplet when it's valid and more recent than the previously commanded cruise speed
+	const float cruise_speed_from_triplet = _sub_triplet_setpoint.get().current.cruising_speed;
+
+	if (PX4_ISFINITE(cruise_speed_from_triplet)
+	    && (cruise_speed_from_triplet > 0.f)
+	    && (_sub_triplet_setpoint.get().current.timestamp > _time_last_cruise_speed_override)) {
+		_mc_cruise_speed = cruise_speed_from_triplet;
+	}
 
 	if (!PX4_ISFINITE(_mc_cruise_speed) || (_mc_cruise_speed < 0.0f)) {
 		// If no speed is planned use the default cruise speed as limit
@@ -470,7 +483,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// set heading
 	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
-		_yaw_setpoint = _yaw;
+		_yaw_setpoint = NAN;
 		// use the yawrate setpoint from WV only if not moving lateral (velocity setpoint below half of _param_mpc_xy_cruise)
 		// otherwise, keep heading constant (as output from WV is not according to wind in this case)
 		bool vehicle_is_moving_lateral = _velocity_setpoint.xy().longerThan(_param_mpc_xy_cruise.get() / 2.0f);

@@ -48,7 +48,7 @@ for filename in os.listdir(metadata_directory):
 
 #        # print out the check levels
 #        print('\n'+'The following metadata loaded from '+filename+' were used'+'\n')
-#        val = population_data.get(filename, {}).get('imu_hfdang_mean')
+#        val = population_data.get(filename, {}).get('imu_hfgyro_mean')
 #        print(val)
 
 # Open pdf file for plotting
@@ -90,10 +90,10 @@ population_results = {
 'ofy_fail_pct_avg':[float('NaN'),'The mean percentage of innovation test fails for the Y axis optical flow sensor'],
 'imu_coning_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the IMU delta angle coning vibration level (mrad)'],
 'imu_coning_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the IMU delta angle coning vibration level (mrad)'],
-'imu_hfdang_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the IMU high frequency delta angle vibration level (mrad)'],
-'imu_hfdang_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the IMU delta high frequency delta angle vibration level (mrad)'],
-'imu_hfdvel_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the IMU high frequency delta velocity vibration level (m/s)'],
-'imu_hfdvel_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the IMU delta high frequency delta velocity vibration level (m/s)'],
+'imu_hfgyro_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the IMU high frequency gyro vibration level (rad/s)'],
+'imu_hfgyro_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the IMU delta high frequency gyro vibration level (rad/s)'],
+'imu_hfaccel_max_avg':[float('NaN'),'The mean of the maximum in-flight values of the IMU high frequency accel vibration level (m/s/s)'],
+'imu_hfaccel_mean_avg':[float('NaN'),'The mean of the mean in-flight value of the IMU delta high frequency accel vibration level (m/s/s)'],
 'obs_ang_median_avg':[float('NaN'),'The mean of the median in-flight value of the output observer angular tracking error magnitude (mrad)'],
 'obs_vel_median_avg':[float('NaN'),'The mean of the median in-flight value of the output observer velocity tracking error magnitude (m/s)'],
 'obs_pos_median_avg':[float('NaN'),'The mean of the median in-flight value of the output observer position tracking error magnitude (m)'],
@@ -360,54 +360,54 @@ if (len(result1) > 0 and len(result2) > 0):
     plt.close(8)
 
 # IMU high frequency delta angle vibration levels
-temp = np.asarray([population_data[k].get('imu_hfdang_peak') for k in found_keys])
+temp = np.asarray([population_data[k].get('imu_hfgyro_peak') for k in found_keys])
 result1 = 1000.0 * temp[np.isfinite(temp)]
-temp = np.asarray([population_data[k].get('imu_hfdang_mean') for k in found_keys])
+temp = np.asarray([population_data[k].get('imu_hfgyro_mean') for k in found_keys])
 result2 = 1000.0 * temp[np.isfinite(temp)]
 
 if (len(result1) > 0 and len(result2) > 0):
-    population_results['imu_hfdang_max_avg'][0] = np.mean(result1)
-    population_results['imu_hfdang_mean_avg'][0] = np.mean(result2)
+    population_results['imu_hfgyro_max_avg'][0] = np.mean(result1)
+    population_results['imu_hfgyro_mean_avg'][0] = np.mean(result2)
 
     plt.figure(9,figsize=(20,13))
 
     plt.subplot(2,1,1)
     plt.hist(result1)
-    plt.title("Gaussian Histogram - IMU HF Delta Angle Vibration Peak")
-    plt.xlabel("imu_hfdang_max (mrad)")
+    plt.title("Gaussian Histogram - IMU HF Gyroscope Vibration Peak")
+    plt.xlabel("imu_hfgyro_max (rad/s)")
     plt.ylabel("Frequency")
 
     plt.subplot(2,1,2)
     plt.hist(result2)
-    plt.title("Gaussian Histogram - IMU HF Delta Angle Vibration Mean")
-    plt.xlabel("imu_hfdang_mean (mrad)")
+    plt.title("Gaussian Histogram - IMU HF Gyroscope Vibration Mean")
+    plt.xlabel("imu_hfgyro_mean (rad/s)")
     plt.ylabel("Frequency")
 
     pp.savefig()
     plt.close(9)
 
-# IMU high frequency delta velocity vibration levels
-temp = np.asarray([population_data[k].get('imu_hfdvel_peak') for k in found_keys])
+# IMU high frequency accel vibration levels
+temp = np.asarray([population_data[k].get('imu_hfaccel_peak') for k in found_keys])
 result1 = temp[np.isfinite(temp)]
-temp = np.asarray([population_data[k].get('imu_hfdvel_mean') for k in found_keys])
+temp = np.asarray([population_data[k].get('imu_hfaccel_mean') for k in found_keys])
 result2 = temp[np.isfinite(temp)]
 
 if (len(result1) > 0 and len(result2) > 0):
-    population_results['imu_hfdvel_max_avg'][0] = np.mean(result1)
-    population_results['imu_hfdvel_mean_avg'][0] = np.mean(result2)
+    population_results['imu_hfaccel_max_avg'][0] = np.mean(result1)
+    population_results['imu_hfaccel_mean_avg'][0] = np.mean(result2)
 
     plt.figure(10,figsize=(20,13))
 
     plt.subplot(2,1,1)
     plt.hist(result1)
-    plt.title("Gaussian Histogram - IMU HF Delta Velocity Vibration Peak")
-    plt.xlabel("imu_hfdvel_max (m/s)")
+    plt.title("Gaussian Histogram - IMU HF Accelerometer Vibration Peak")
+    plt.xlabel("imu_hfaccel_max (m/s/s)")
     plt.ylabel("Frequency")
 
     plt.subplot(2,1,2)
     plt.hist(result2)
-    plt.title("Gaussian Histogram - IMU HF Delta Velocity Vibration Mean")
-    plt.xlabel("imu_hfdvel_mean (m/s)")
+    plt.title("Gaussian Histogram - IMU HF Accelerometer Vibration Mean")
+    plt.xlabel("imu_hfaccel_mean (m/s/s)")
     plt.ylabel("Frequency")
 
     pp.savefig()
@@ -535,12 +535,12 @@ single_log_results = {
 'hgt_sensor_status':['Pass','Height sensor check summary. This sensor data can be sourced from either Baro, GPS, range fidner or external vision system. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
 'hgt_test_max':[float('NaN'),'The maximum in-flight value of the height sensor innovation consistency test ratio.'],
 'hgt_test_mean':[float('NaN'),'The mean in-flight value of the height sensor innovation consistency test ratio.'],
-'imu_coning_mean':[float('NaN'),'Mean in-flight value of the IMU delta angle coning vibration metric (rad)'],
-'imu_coning_peak':[float('NaN'),'Peak in-flight value of the IMU delta angle coning vibration metric (rad)'],
-'imu_hfdang_mean':[float('NaN'),'Mean in-flight value of the IMU delta angle high frequency vibration metric (rad)'],
-'imu_hfdang_peak':[float('NaN'),'Peak in-flight value of the IMU delta angle high frequency vibration metric (rad)'],
-'imu_hfdvel_mean':[float('NaN'),'Mean in-flight value of the IMU delta velocity high frequency vibration metric (m/s)'],
-'imu_hfdvel_peak':[float('NaN'),'Peak in-flight value of the IMU delta velocity high frequency vibration metric (m/s)'],
+'imu_coning_mean':[float('NaN'),'Mean in-flight value of the IMU delta angle coning vibration metric (rad^2)'],
+'imu_coning_peak':[float('NaN'),'Peak in-flight value of the IMU delta angle coning vibration metric (rad^2)'],
+'imu_hfgyro_mean':[float('NaN'),'Mean in-flight value of the IMU gyro high frequency vibration metric (rad/s)'],
+'imu_hfgyro_peak':[float('NaN'),'Peak in-flight value of the IMU gyro high frequency vibration metric (rad/s)'],
+'imu_hfaccel_mean':[float('NaN'),'Mean in-flight value of the IMU accel high frequency vibration metric (m/s/s)'],
+'imu_hfaccel_peak':[float('NaN'),'Peak in-flight value of the IMU accel high frequency vibration metric (m/s/s)'],
 'imu_sensor_status':['Pass','IMU sensor check summary. A Fail result indicates a significant error that caused a significant reduction in vehicle navigation performance was detected. A Warning result indicates that error levels higher than normal were detected but these errors did not significantly impact navigation performance. A Pass result indicates that no amonalies were detected and no further investigation is required'],
 'in_air_transition_time':[float('NaN'),'The time in seconds measured from startup that the EKF transtioned into in-air mode. Set to a nan if a transition event is not detected.'],
 'mag_percentage_amber':[float('NaN'),'The percentage of in-flight consolidated magnetic field sensor innovation consistency test values > 0.5.'],

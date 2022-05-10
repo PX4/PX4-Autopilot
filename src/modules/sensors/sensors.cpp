@@ -42,8 +42,8 @@
  */
 
 #include <drivers/drv_adc.h>
-#include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
+#include <drivers/drv_sensor.h>
 #include <lib/airspeed/airspeed.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
@@ -139,13 +139,16 @@ private:
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
+	uint64_t _airspeed_last_publish{0};
+	uint64_t _diff_pres_timestamp_sum{0};
+	float _diff_pres_pressure_sum{0.f};
+	float _diff_pres_temperature_sum{0.f};
+	float _baro_pressure_sum{0.f};
+	int _diff_pres_count{0};
+
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-
-	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
-
-	uORB::Subscription	_adc_report_sub{ORB_ID(adc_report)};		/**< adc_report sub */
-	differential_pressure_s	_diff_pres {};
-	uORB::PublicationMulti<differential_pressure_s>	_diff_pres_pub{ORB_ID(differential_pressure)};		/**< differential_pressure */
+	uORB::Subscription _adc_report_sub {ORB_ID(adc_report)};
+	uORB::PublicationMulti<differential_pressure_s> _diff_pres_pub{ORB_ID(differential_pressure)};
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 
@@ -393,6 +396,18 @@ void Sensors::diff_pres_poll()
 
 	if (_diff_pres_sub.update(&diff_pres)) {
 
+		if (!PX4_ISFINITE(diff_pres.differential_pressure_pa)) {
+			// ignore invalid data and reset accumulated
+
+			// reset
+			_diff_pres_timestamp_sum = 0;
+			_diff_pres_pressure_sum = 0;
+			_diff_pres_temperature_sum = 0;
+			_baro_pressure_sum = 0;
+			_diff_pres_count = 0;
+			return;
+		}
+
 		vehicle_air_data_s air_data{};
 		_vehicle_air_data_sub.copy(&air_data);
 
@@ -413,49 +428,71 @@ void Sensors::diff_pres_poll()
 			}
 		}
 
-		airspeed_s airspeed{};
-		airspeed.timestamp = diff_pres.timestamp;
+		// push raw data into validator
+		float airspeed_input[3] { diff_pres.differential_pressure_pa, air_temperature_celsius, 0.0f };
+		_airspeed_validator.put(diff_pres.timestamp_sample, airspeed_input, diff_pres.error_count, 100); // TODO: real priority?
 
-		/* push data into validator */
-		float airspeed_input[3] = { diff_pres.differential_pressure_raw_pa, diff_pres.temperature, 0.0f };
+		// accumulate average for publication
+		_diff_pres_timestamp_sum += diff_pres.timestamp_sample;
+		_diff_pres_pressure_sum += diff_pres.differential_pressure_pa;
+		_diff_pres_temperature_sum += air_temperature_celsius;
+		_baro_pressure_sum += air_data.baro_pressure_pa;
+		_diff_pres_count++;
 
-		_airspeed_validator.put(airspeed.timestamp, airspeed_input, diff_pres.error_count, 100); // TODO: real priority?
+		if ((_diff_pres_count > 0) && hrt_elapsed_time(&_airspeed_last_publish) >= 50_ms) {
 
-		airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
+			// average data and apply calibration offset (SENS_DPRES_OFF)
+			const uint64_t timestamp_sample = _diff_pres_timestamp_sum / _diff_pres_count;
+			const float differential_pressure_pa = _diff_pres_pressure_sum / _diff_pres_count - _parameters.diff_pres_offset_pa;
+			const float baro_pressure_pa = _baro_pressure_sum / _diff_pres_count;
+			const float temperature = _diff_pres_temperature_sum / _diff_pres_count;
 
-		enum AIRSPEED_SENSOR_MODEL smodel;
+			// reset
+			_diff_pres_timestamp_sum = 0;
+			_diff_pres_pressure_sum = 0;
+			_diff_pres_temperature_sum = 0;
+			_baro_pressure_sum = 0;
+			_diff_pres_count = 0;
 
-		switch ((diff_pres.device_id >> 16) & 0xFF) {
-		case DRV_DIFF_PRESS_DEVTYPE_SDP31:
 
-		/* fallthrough */
-		case DRV_DIFF_PRESS_DEVTYPE_SDP32:
+			enum AIRSPEED_SENSOR_MODEL smodel;
 
-		/* fallthrough */
-		case DRV_DIFF_PRESS_DEVTYPE_SDP33:
-			/* fallthrough */
-			smodel = AIRSPEED_SENSOR_MODEL_SDP3X;
-			break;
+			switch ((diff_pres.device_id >> 16) & 0xFF) {
+			case DRV_DIFF_PRESS_DEVTYPE_SDP31:
 
-		default:
-			smodel = AIRSPEED_SENSOR_MODEL_MEMBRANE;
-			break;
-		}
+			// fallthrough
+			case DRV_DIFF_PRESS_DEVTYPE_SDP32:
 
-		/* don't risk to feed negative airspeed into the system */
-		airspeed.indicated_airspeed_m_s = calc_IAS_corrected((enum AIRSPEED_COMPENSATION_MODEL)
-						  _parameters.air_cmodel,
-						  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-						  diff_pres.differential_pressure_filtered_pa, air_data.baro_pressure_pa,
-						  air_temperature_celsius);
+			// fallthrough
+			case DRV_DIFF_PRESS_DEVTYPE_SDP33:
+				smodel = AIRSPEED_SENSOR_MODEL_SDP3X;
+				break;
 
-		airspeed.true_airspeed_m_s = calc_TAS_from_CAS(airspeed.indicated_airspeed_m_s, air_data.baro_pressure_pa,
-					     air_temperature_celsius); // assume that CAS = IAS as we don't have an CAS-scale here
+			default:
+				smodel = AIRSPEED_SENSOR_MODEL_MEMBRANE;
+				break;
+			}
 
-		airspeed.air_temperature_celsius = air_temperature_celsius;
+			float indicated_airspeed_m_s = calc_IAS_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
+						       smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
+						       differential_pressure_pa, baro_pressure_pa, temperature);
 
-		if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && PX4_ISFINITE(airspeed.true_airspeed_m_s)) {
-			_airspeed_pub.publish(airspeed);
+			// assume that CAS = IAS as we don't have an CAS-scale here
+			float true_airspeed_m_s = calc_TAS_from_CAS(indicated_airspeed_m_s, baro_pressure_pa, temperature);
+
+			if (PX4_ISFINITE(indicated_airspeed_m_s) && PX4_ISFINITE(true_airspeed_m_s)) {
+
+				airspeed_s airspeed;
+				airspeed.timestamp_sample = timestamp_sample;
+				airspeed.indicated_airspeed_m_s = indicated_airspeed_m_s;
+				airspeed.true_airspeed_m_s = true_airspeed_m_s;
+				airspeed.air_temperature_celsius = temperature;
+				airspeed.confidence = _airspeed_validator.confidence(hrt_absolute_time());
+				airspeed.timestamp = hrt_absolute_time();
+				_airspeed_pub.publish(airspeed);
+
+				_airspeed_last_publish = airspeed.timestamp;
+			}
 		}
 	}
 }
@@ -472,23 +509,6 @@ Sensors::parameter_update_poll(bool forced)
 		// update parameters from storage
 		parameters_update();
 		updateParams();
-
-		/* update airspeed scale */
-		int fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
-
-		/* this sensor is optional, abort without error */
-		if (fd >= 0) {
-			struct airspeed_scale airscale = {
-				_parameters.diff_pres_offset_pa,
-				1.0f,
-			};
-
-			if (OK != px4_ioctl(fd, AIRSPEEDIOCSSCALE, (long unsigned int)&airscale)) {
-				warn("WARNING: failed to set scale / offsets for airspeed sensor");
-			}
-
-			px4_close(fd);
-		}
 	}
 }
 
@@ -502,49 +522,41 @@ void Sensors::adc_poll()
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
 	if (_parameters.diff_pres_analog_scale > 0.0f) {
+		adc_report_s adc;
 
-		hrt_abstime t = hrt_absolute_time();
+		if (_adc_report_sub.update(&adc)) {
+			/* Read add channels we got */
+			for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; i++) {
+				if (adc.channel_id[i] == -1) {
+					continue;	// skip non-exist channels
+				}
 
-		/* rate limit to 100 Hz */
-		if (t - _last_adc >= 10000) {
-			adc_report_s adc;
+				if (ADC_AIRSPEED_VOLTAGE_CHANNEL == adc.channel_id[i]) {
 
-			if (_adc_report_sub.update(&adc)) {
-				/* Read add channels we got */
-				for (unsigned i = 0; i < PX4_MAX_ADC_CHANNELS; i++) {
-					if (adc.channel_id[i] == -1) {
-						continue;	// skip non-exist channels
-					}
+					/* calculate airspeed, raw is the difference from */
+					const float voltage = (float)(adc.raw_data[i]) * adc.v_ref / adc.resolution * ADC_DP_V_DIV;
 
-					if (ADC_AIRSPEED_VOLTAGE_CHANNEL == adc.channel_id[i]) {
+					/**
+					 * The voltage divider pulls the signal down, only act on
+					 * a valid voltage from a connected sensor. Also assume a non-
+					 * zero offset from the sensor if its connected.
+					 *
+					 * Notice: This won't work on devices which have PGA controlled
+					 * vref. Those devices require no divider at all.
+					 */
+					if (voltage > 0.4f) {
+						const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale;
 
-						/* calculate airspeed, raw is the difference from */
-						const float voltage = (float)(adc.raw_data[i]) * adc.v_ref / adc.resolution * ADC_DP_V_DIV;
+						differential_pressure_s diff_pres{};
+						diff_pres.timestamp_sample = adc.timestamp;
+						diff_pres.differential_pressure_pa = diff_pres_pa_raw;
+						diff_pres.temperature = NAN;
+						diff_pres.timestamp = hrt_absolute_time();
 
-						/**
-						 * The voltage divider pulls the signal down, only act on
-						 * a valid voltage from a connected sensor. Also assume a non-
-						 * zero offset from the sensor if its connected.
-						 *
-						 * Notice: This won't work on devices which have PGA controlled
-						 * vref. Those devices require no divider at all.
-						 */
-						if (voltage > 0.4f) {
-							const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
-
-							_diff_pres.timestamp = t;
-							_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-							_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
-									(diff_pres_pa_raw * 0.1f);
-							_diff_pres.temperature = -1000.0f;
-
-							_diff_pres_pub.publish(_diff_pres);
-						}
+						_diff_pres_pub.publish(diff_pres);
 					}
 				}
 			}
-
-			_last_adc = t;
 		}
 	}
 
