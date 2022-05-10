@@ -55,6 +55,16 @@ endif()
 # build NuttX
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
 
+# check that CONFIG_ARCH_BOARD_CUSTOM_DIR is in PX4_BOARD_DIR
+if(CONFIG_ARCH_BOARD_CUSTOM_DIR_RELPATH)
+	get_filename_component(nuttx_defconfig_root "${NUTTX_DEFCONFIG}/../.." ABSOLUTE)
+	get_filename_component(nuttx_config_from_defconfig "${NUTTX_DIR}/${CONFIG_ARCH_BOARD_CUSTOM_DIR}" ABSOLUTE)
+
+	if(NOT ${nuttx_defconfig_root} MATCHES ${nuttx_config_from_defconfig})
+		message(FATAL_ERROR "NuttX custom board directory (${CONFIG_ARCH_BOARD_CUSTOM_DIR}) isn't in board directory (${PX4_BOARD_DIR})")
+	endif()
+endif()
+
 set(nuttx_libs)
 set(SCRIPT_PREFIX)
 if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")

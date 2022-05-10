@@ -189,8 +189,8 @@ ECL_L1_Pos_Controller::navigate_waypoints(const Vector2f &vector_A, const Vector
 		float xtrackErr = vector_A_to_airplane % vector_AB;
 		float sine_eta1 = xtrackErr / math::max(_L1_distance, 0.1f);
 
-		/* limit output to 45 degrees */
-		sine_eta1 = math::constrain(sine_eta1, -0.7071f, 0.7071f); //sin(pi/4) = 0.7071
+		/* limit output to feasible values */
+		sine_eta1 = math::constrain(sine_eta1, -1.0f, 1.0f);
 		float eta1 = asinf(sine_eta1);
 		eta = eta1 + eta2;
 
