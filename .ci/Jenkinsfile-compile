@@ -101,7 +101,7 @@ pipeline {
                      "px4_fmu-v5_rtps",
                      "px4_fmu-v5_stackcheck",
                      "px4_fmu-v5_uavcanv0periph",
-                     "px4_fmu-v5_uavcanv1",
+                     "px4_fmu-v5_cyphal",
                      "px4_fmu-v5_lto",
                      "px4_fmu-v5x_default",
                      "px4_fmu-v6u_default",
