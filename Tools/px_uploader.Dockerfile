@@ -28,3 +28,7 @@ ADD px4-firmware/Tools/px_uploader.py /bin/
 
 # copy /bin/* -> /firmware/*
 ADD bin/ /firmware/
+
+ADD px4-firmware/ssrc_config/indoor_lighthouse/config.txt /flight_modes/indoor_config.txt
+ADD px4-firmware/ssrc_config/HIL/config.txt /flight_modes/hitl_config.txt
+ADD px4-firmware/ssrc_config/HIL/ethernet/config.txt /flight_modes/hitl_eth_config.txt
