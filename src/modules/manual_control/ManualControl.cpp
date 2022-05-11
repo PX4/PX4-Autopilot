@@ -72,7 +72,7 @@ void ManualControl::Run()
 
 		if (_vehicle_status_sub.copy(&vehicle_status)) {
 			_system_id = vehicle_status.system_id;
-			_rotary_wing = (vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+			_rotary_wing = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 			_vtol = vehicle_status.is_vtol;
 		}
 	}
