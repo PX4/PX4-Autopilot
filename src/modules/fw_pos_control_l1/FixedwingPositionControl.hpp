@@ -765,7 +765,8 @@ private:
 		(ParamFloat<px4::params::FW_WING_SPAN>) _param_fw_wing_span,
 		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height,
 
-		(ParamFloat<px4::params::RWTO_L1_PERIOD>) _param_rwto_l1_period
+		(ParamFloat<px4::params::RWTO_L1_PERIOD>) _param_rwto_l1_period,
+		(ParamBool<px4::params::RWTO_NUDGE>) _param_rwto_nudge
 	)
 
 };

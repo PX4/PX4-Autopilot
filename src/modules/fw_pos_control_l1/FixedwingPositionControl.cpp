@@ -1424,6 +1424,11 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		// yaw control is disabled once in "taking off" state
 		_att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
 
+		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
+		if (_param_rwto_nudge.get()) {
+			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.r;
+		}
+
 		// tune up the lateral position control guidance when on the ground
 		if (_att_sp.fw_control_yaw) {
 			_npfg.setPeriod(_param_rwto_l1_period.get());
@@ -2358,6 +2363,9 @@ FixedwingPositionControl::Run()
 
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw = false;
+
+		// default to zero - is used (IN A HACKY WAY) to pass direct nose wheel steering via yaw stick to the actuators during auto takeoff
+		_att_sp.yaw_sp_move_rate = 0.0f;
 
 		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING) {
 			reset_landing_state();
