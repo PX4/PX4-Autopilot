@@ -212,6 +212,22 @@ ActuatorEffectivenessRotors::computeEffectivenessMatrix(const Geometry &geometry
 			effectiveness(j, i + actuator_start_index) = moment(j);
 			effectiveness(j + 3, i + actuator_start_index) = thrust(j);
 		}
+
+		if (geometry.yaw_by_differential_thrust_disabled) {
+			// set yaw effectiveness to 0 if yaw is controlled by other means (e.g. tilts)
+			effectiveness(2, i + actuator_start_index) = 0.f;
+		}
+
+		if (geometry.three_dimensional_thrust_disabled) {
+			// Special case tiltrotor: instead of passing a 3D thrust vector (that would mostly have a x-component in FW, and z in MC),
+			// pass the vector magnitude as z-component, plus the collective tilt. Passing 3D thrust plus tilt is not feasible as they
+			// can't be allocated independently, and with the current controller it's not possible to have collective tilt calculated
+			// by the allocator directly.
+
+			effectiveness(0 + 3, i + actuator_start_index) = 0.f;
+			effectiveness(1 + 3, i + actuator_start_index) = 0.f;
+			effectiveness(2 + 3, i + actuator_start_index) = ct;
+		}
 	}
 
 	return num_actuators;

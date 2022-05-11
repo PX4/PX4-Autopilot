@@ -86,3 +86,4 @@ param set-default VT_B_TRANS_DUR 8
 param set-default VT_FWD_THRUST_EN 4
 param set-default VT_TILT_TRANS 0.6
 param set-default VT_TYPE 1
+

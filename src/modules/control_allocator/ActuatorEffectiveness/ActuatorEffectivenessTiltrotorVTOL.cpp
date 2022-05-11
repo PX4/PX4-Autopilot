@@ -60,7 +60,8 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 
 	// MC motors
 	configuration.selected_matrix = 0;
-	_mc_rotors.enablePropellerTorque(!_tilts.hasYawControl());
+	_mc_rotors.enableYawByDifferentialThrust(!_tilts.hasYawControl());
+	_mc_rotors.enableThreeDimensionalThrust(false);
 
 	// Update matrix with tilts in vertical position when update is triggered by a manual
 	// configuration (parameter) change. This is to make sure the normalization
@@ -127,6 +128,18 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 			for (int i = 0; i < _tilts.count(); ++i) {
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 					actuator_sp(i + _first_tilt_idx) += control_tilt;
+				}
+			}
+		}
+
+		// in FW directly use throttle sp
+		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
+
+			actuator_controls_s actuator_controls_0;
+
+			if (_actuator_controls_0_sub.copy(&actuator_controls_0)) {
+				for (int i = 0; i < _first_tilt_idx; ++i) {
+					actuator_sp(i) = actuator_controls_0.control[actuator_controls_s::INDEX_THROTTLE];
 				}
 			}
 		}
