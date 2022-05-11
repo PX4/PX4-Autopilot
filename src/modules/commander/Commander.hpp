@@ -184,6 +184,8 @@ private:
 
 	void checkWindSpeedThresholds();
 
+	void updateParameters();
+
 	DEFINE_PARAMETERS(
 
 		(ParamInt<px4::params::NAV_DLL_ACT>) _param_nav_dll_act,
@@ -222,9 +224,6 @@ private:
 
 		(ParamFloat<px4::params::COM_WIND_WARN>) _param_com_wind_warn,
 
-		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
-		(ParamInt<px4::params::RC_MAP_MODE_SW>) _param_rc_map_mode_sw,
-
 		// Quadchute
 		(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 
@@ -262,21 +261,16 @@ private:
 		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
 		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
 
-		// Geofence
-		(ParamInt<px4::params::GF_ACTION>) _param_geofence_action,
-
-		// Mavlink
-		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
-		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
-		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
-
-		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist,
-
-		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
-		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
 		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
 		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max
 	)
+
+	// optional parameters
+	param_t _param_cp_dist{PARAM_INVALID};
+	param_t _param_mav_comp_id{PARAM_INVALID};
+	param_t _param_mav_sys_id{PARAM_INVALID};
+	param_t _param_mav_type{PARAM_INVALID};
+	param_t _param_rc_map_fltmode{PARAM_INVALID};
 
 	enum class PrearmedMode {
 		DISABLED = 0,
@@ -320,6 +314,8 @@ private:
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
 
+	bool            _collision_prevention_enabled{false};
+
 	bool		_rtl_time_actions_done{false};
 
 	FailureDetector	_failure_detector;
@@ -357,6 +353,7 @@ private:
 	Hysteresis	_offboard_available{false};
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
+	bool            _mode_switch_mapped{false};
 
 	bool		_last_local_altitude_valid{false};
 	bool		_last_local_position_valid{false};
