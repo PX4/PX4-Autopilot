@@ -52,18 +52,18 @@
 #endif // NuttX
 
 
-O1HeapInstance *uavcan_allocator{nullptr};
+O1HeapInstance *cyphal_allocator{nullptr};
 
-static void *memAllocate(CanardInstance *const ins, const size_t amount) { return o1heapAllocate(uavcan_allocator, amount); }
-static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree(uavcan_allocator, pointer); }
+static void *memAllocate(CanardInstance *const ins, const size_t amount) { return o1heapAllocate(cyphal_allocator, amount); }
+static void memFree(CanardInstance *const ins, void *const pointer) { o1heapFree(cyphal_allocator, pointer); }
 
 
 CanardHandle::CanardHandle(uint32_t node_id, const size_t capacity, const size_t mtu_bytes)
 {
-	_uavcan_heap = memalign(O1HEAP_ALIGNMENT, HeapSize);
-	uavcan_allocator = o1heapInit(_uavcan_heap, HeapSize, nullptr, nullptr);
+	_cyphal_heap = memalign(O1HEAP_ALIGNMENT, HeapSize);
+	cyphal_allocator = o1heapInit(_cyphal_heap, HeapSize, nullptr, nullptr);
 
-	if (uavcan_allocator == nullptr) {
+	if (cyphal_allocator == nullptr) {
 		PX4_ERR("o1heapInit failed with size %u", HeapSize);
 	}
 
@@ -89,8 +89,8 @@ CanardHandle::~CanardHandle()
 	delete _can_interface;
 	_can_interface = nullptr;
 
-	delete static_cast<uint8_t *>(_uavcan_heap);
-	_uavcan_heap = nullptr;
+	delete static_cast<uint8_t *>(_cyphal_heap);
+	_cyphal_heap = nullptr;
 
 }
 
@@ -198,6 +198,11 @@ int8_t CanardHandle::RxUnsubscribe(const CanardTransferKind transfer_kind,
 CanardTreeNode *CanardHandle::getRxSubscriptions(CanardTransferKind kind)
 {
 	return _canard_instance.rx_subscriptions[kind];
+}
+
+O1HeapDiagnostics CanardHandle::getO1HeapDiagnostics()
+{
+	return o1heapGetDiagnostics(cyphal_allocator);
 }
 
 int32_t CanardHandle::mtu()
