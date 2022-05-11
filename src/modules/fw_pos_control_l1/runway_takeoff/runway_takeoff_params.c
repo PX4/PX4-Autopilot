@@ -144,3 +144,11 @@ PARAM_DEFINE_FLOAT(RWTO_RAMP_TIME, 2.0f);
  * @group Runway Takeoff
  */
 PARAM_DEFINE_FLOAT(RWTO_L1_PERIOD, 5.0f);
+
+/**
+ * Enable use of yaw stick for nudging the wheel during runway ground roll
+ *
+ * @boolean
+ * @group Runway Takeoff
+ */
+PARAM_DEFINE_INT32(RWTO_NUDGE, 0);
