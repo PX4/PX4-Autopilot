@@ -189,8 +189,6 @@ static bool dsm_decode_channel(uint16_t raw, unsigned shift, uint8_t &channel, u
 		static constexpr uint16_t offset = 903; // microseconds
 		value = roundf(servo_position * 0.583f) + offset;
 
-		PX4_DEBUG(stderr, "CH%d=%d(0x%02x), ", channel, value, raw);
-
 		return true;
 	}
 
@@ -470,6 +468,9 @@ int dsm_config(int fd)
 
 void dsm_proto_init()
 {
+	memset(&dsm_frame, 0, sizeof(dsm_frame_t));
+	memset(&dsm_buf, 0, sizeof(dsm_buf_t));
+
 	dsm_channel_shift = 0;
 	dsm_frame_drops = 0;
 	dsm_chan_count = 0;
@@ -509,11 +510,6 @@ int dsm_init(const char *device)
 
 void dsm_deinit()
 {
-#ifdef SPEKTRUM_POWER_PASSIVE
-	// Turn power controls to passive
-	SPEKTRUM_POWER_PASSIVE();
-#endif
-
 	if (dsm_fd >= 0) {
 		close(dsm_fd);
 	}
@@ -580,7 +576,9 @@ void dsm_bind(uint16_t cmd, int pulses)
 #if defined(DSM_DEBUG)
 		printf("DSM: DSM_CMD_BIND_REINIT_UART\n");
 #endif
+#if defined(SPEKTRUM_RX_AS_UART)
 		SPEKTRUM_RX_AS_UART();
+#endif // SPEKTRUM_RX_AS_UART
 		break;
 
 	}
