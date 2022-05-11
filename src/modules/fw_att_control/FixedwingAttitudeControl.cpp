@@ -556,6 +556,9 @@ void FixedwingAttitudeControl::Run()
 					if (wheel_control) {
 						yaw_u = _wheel_ctrl.control_bodyrate(dt, control_input);
 
+						// XXX: this is an abuse -- used to ferry manual yaw inputs from position controller during auto modes
+						yaw_u += _att_sp.yaw_sp_move_rate * _param_fw_man_y_sc.get();
+
 					} else {
 						yaw_u = _yaw_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(2));
 					}
