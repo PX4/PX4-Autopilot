@@ -139,6 +139,7 @@ extern int mpfs_board_spinor_init(struct spi_dev_s *spinor);
 extern int mpfs_pwm_setup(void);
 extern void board_spidev_initialize(void);
 extern int board_spibus_initialize(void);
+extern int board_domains_init(void);
 
 #include <px4_platform_common/board_common.h>
 

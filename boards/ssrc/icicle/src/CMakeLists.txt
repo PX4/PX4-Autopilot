@@ -35,6 +35,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 	add_library(drivers_board
 		bootloader_main.c
 		mpfs_emmcsd.c
+		mpfs_domain.c
 	)
 	target_link_libraries(drivers_board
 		PRIVATE
@@ -43,7 +44,11 @@ if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 			bootloader
 	)
 
-	target_include_directories(drivers_board PRIVATE ${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common)
+	target_include_directories(drivers_board
+		 PRIVATE
+			${PX4_SOURCE_DIR}/platforms/nuttx/src/bootloader/common
+			${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/arch/risc-v/src/opensbi/opensbi-3rdparty/include
+	)
 
 else()
 	add_library(drivers_board
