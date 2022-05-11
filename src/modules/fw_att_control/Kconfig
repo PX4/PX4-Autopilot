@@ -1,6 +1,8 @@
 menuconfig MODULES_FW_ATT_CONTROL
 	bool "fw_att_control"
 	default n
+	select MODULES_COMMANDER
+	select MODULES_FW_POS_CONTROL_L1
 	---help---
 		Enable support for fw_att_control
 

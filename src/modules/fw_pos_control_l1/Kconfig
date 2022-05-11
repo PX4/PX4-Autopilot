@@ -1,6 +1,8 @@
 menuconfig MODULES_FW_POS_CONTROL_L1
 	bool "fw_pos_control_l1"
 	default n
+	select MODULES_COMMANDER
+	select MODULES_NAVIGATOR
 	---help---
 		Enable support for fw_pos_control_l1
 

@@ -1,6 +1,7 @@
 menuconfig MODULES_AIRSPEED_SELECTOR
 	bool "airspeed_selector"
 	default n
+	select MODULES_FW_POS_CONTROL_L1
 	---help---
 		Enable support for airspeed_selector
 
