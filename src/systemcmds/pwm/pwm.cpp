@@ -105,7 +105,7 @@ Set the PWM rate for all channels to 400 Hz:
 $ pwm rate -a -r 400
 
 Arm and set the outputs of channels 1 and 3 to a PWM value to 1200 us:
-$ pwm arm -c 13 -p 1200
+$ pwm min -c 13 -p 1200
 
 )DESCR_STR");
 
