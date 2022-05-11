@@ -34,6 +34,7 @@
 #pragma once
 
 #include <canard.h>
+#include "o1heap/o1heap.h"
 #include "CanardInterface.hpp"
 
 class CanardHandle
@@ -68,6 +69,7 @@ public:
 	int8_t RxUnsubscribe(const CanardTransferKind transfer_kind,
 			     const CanardPortID       port_id);
 	CanardTreeNode *getRxSubscriptions(CanardTransferKind kind);
+	O1HeapDiagnostics getO1HeapDiagnostics();
 
 	int32_t mtu();
 	CanardNodeID node_id();
@@ -80,6 +82,6 @@ private:
 
 	CanardTxQueue _queue;
 
-	void *_uavcan_heap{nullptr};
+	void *_cyphal_heap{nullptr};
 
 };
