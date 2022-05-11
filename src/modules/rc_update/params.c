@@ -1557,14 +1557,12 @@ PARAM_DEFINE_INT32(RC_MAP_TRANS_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_GEAR_SW, 0);
 
 /**
- * Button flight mode selection
+ * Mask to indicate which channels are buttons for the Triggers
  *
- * This bitmask allows to specify multiple channels for changing flight modes using
- * momentary buttons. Each channel is assigned to a mode slot ((lowest channel = slot 1).
- * The resulting modes for each slot X is defined by the COM_FLTMODEX parameters.
- * The functionality can be used only if RC_MAP_FLTMODE is disabled.
+ * This bitmask allows to specify multiple channels to indicate whether it's a button.
+ * If not marked, the channel is assumed to be a switch. This configuration allows the
+ * rc_update to correctly decode the input signals to trigger appropriate actions.
  *
- * The maximum number of available slots and hence bits set in the mask is 6.
  * @min 0
  * @max 258048
  * @group Radio Switches
@@ -1587,7 +1585,67 @@ PARAM_DEFINE_INT32(RC_MAP_GEAR_SW, 0);
  * @bit 16 Mask Channel 17 as a mode button
  * @bit 17 Mask Channel 18 as a mode button
  */
-PARAM_DEFINE_INT32(RC_MAP_FLTM_BTN, 0);
+PARAM_DEFINE_INT32(RC_ISBTN_MASK, 0);
+
+/**
+ * RC Channel for trigger slot 1
+ *
+ * @min -1
+ * @max 20
+ * @group Radio Trigger
+ * @value -1 Unassigned
+ * @value 0 Manual
+ * @value 1 Altitude
+ * @value 2 Position
+ * @value 3 Mission
+ * @value 4 Hold
+ * @value 5 Return
+ * @value 6 Acro
+ * @value 7 Offboard
+ * @value 8 Stabilized
+ * @value 10 Takeoff
+ * @value 11 Land
+ * @value 12 Follow Me
+ * @value 13 Precision Land
+ * @value 14 Return
+ * @value 15 Loiter
+ * @value 16 Offboard
+ * @value 17 Killswitch
+ * @value 18 Armswitch
+ * @value 19 Transition
+ * @value 20 Gear
+ */
+PARAM_DEFINE_INT32(RC_TRIG1_CHAN, 0);
+
+/**
+ * Which action the Trigger slot 1 triggers
+ *
+ * @min 0
+ * @max
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ * @group Radio Trigger
+ *
+ */
+PARAM_DEFINE_INT32(RC_TRIG1_ACTION, 0);
+
 
 /**
  * AUX1 Passthrough RC channel
