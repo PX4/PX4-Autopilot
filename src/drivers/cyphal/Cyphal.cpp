@@ -245,12 +245,12 @@ void CyphalNode::print_info()
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
 
-	/*O1HeapDiagnostics heap_diagnostics = o1heapGetDiagnostics(uavcan_allocator);
+	O1HeapDiagnostics heap_diagnostics = _canard_handle.getO1HeapDiagnostics();
 
 	PX4_INFO("Heap status %zu/%zu Peak alloc %zu Peak req %zu OOM count %" PRIu64,
 		 heap_diagnostics.allocated, heap_diagnostics.capacity,
 		 heap_diagnostics.peak_allocated, heap_diagnostics.peak_request_size,
-		 heap_diagnostics.oom_count);*/
+		 heap_diagnostics.oom_count);
 
 	_pub_manager.printInfo();
 
