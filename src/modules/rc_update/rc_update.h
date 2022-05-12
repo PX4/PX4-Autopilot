@@ -189,7 +189,7 @@ public:
 	uint8_t _input_source_previous{input_rc_s::RC_INPUT_SOURCE_UNKNOWN};
 
 	uint8_t _potential_button_press_slot{0};
-	systemlib::Hysteresis _button_pressed_hysteresis{false};
+	systemlib::Hysteresis _trigger_slots_hysteresis[]
 	systemlib::Hysteresis _rc_signal_lost_hysteresis{true};
 
 	uint8_t _channel_count_max{0};
@@ -207,9 +207,11 @@ public:
 		(ParamInt<px4::params::RC_MAP_FAILSAFE>) _param_rc_map_failsafe,
 
 		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
+		(ParamInt<px4::params::RC_TRIG_BTN_MASK>) _param_rc_trig_btn_mask,
+		(ParamInt<px4::params::RC_TRIG1_CHAN>) _param_rc_trig1_chan,
+		(ParamInt<px4::params::RC_TRIG1_ACTION>) _param_rc_trig1_action,
 
 		(ParamInt<px4::params::RC_MAP_FLAPS>) _param_rc_map_flaps,
-
 		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
 		(ParamInt<px4::params::RC_MAP_LOITER_SW>) _param_rc_map_loiter_sw,
 		(ParamInt<px4::params::RC_MAP_OFFB_SW>) _param_rc_map_offb_sw,
@@ -217,7 +219,6 @@ public:
 		(ParamInt<px4::params::RC_MAP_ARM_SW>) _param_rc_map_arm_sw,
 		(ParamInt<px4::params::RC_MAP_TRANS_SW>) _param_rc_map_trans_sw,
 		(ParamInt<px4::params::RC_MAP_GEAR_SW>) _param_rc_map_gear_sw,
-		(ParamInt<px4::params::RC_MAP_FLTM_BTN>) _param_rc_map_fltm_btn,
 
 		(ParamInt<px4::params::RC_MAP_AUX1>) _param_rc_map_aux1,
 		(ParamInt<px4::params::RC_MAP_AUX2>) _param_rc_map_aux2,
