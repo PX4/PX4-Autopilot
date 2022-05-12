@@ -148,6 +148,7 @@ private:
 	void handle_vehicle_commands();
 
 	MixingOutput _mixing_output {PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	uint32_t _reversible_outputs{};
 
 	Telemetry *_telemetry{nullptr};
 

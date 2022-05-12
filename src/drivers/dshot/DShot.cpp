@@ -455,29 +455,44 @@ bool DShot::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	} else {
 		int telemetry_index = 0;
 
-		const uint32_t reversible_outputs = _mixing_output.reversibleOutputs();
-
 		for (int i = 0; i < (int)num_outputs; i++) {
 
 			uint16_t output = outputs[i];
-
-			// DShot 3D splits the throttle ranges in two.
-			// This is in terms of DShot values, code below is in terms of actuator_output
-			// Direction 1) 48 is the slowest, 1047 is the fastest.
-			// Direction 2) 1049 is the slowest, 2047 is the fastest.
-			if (_param_dshot_3d_enable.get() || (reversible_outputs & (1u << i))) {
-				if (output >= _param_dshot_3d_dead_l.get() && output <= _param_dshot_3d_dead_h.get()) {
-					output = DSHOT_DISARM_VALUE;
-
-				} else if (output < 1000 && output > 0) { //Todo: allow actuator 0 or dshot 48 to be used
-					output = 999 - output;
-				}
-			}
 
 			if (output == DSHOT_DISARM_VALUE) {
 				up_dshot_motor_command(i, DShot_cmd_motor_stop, telemetry_index == requested_telemetry_index);
 
 			} else {
+
+				// DShot 3D splits the throttle ranges in two.
+				// This is in terms of DShot values, code below is in terms of actuator_output
+				// Direction 1) 48 is the slowest, 1047 is the fastest.
+				// Direction 2) 1049 is the slowest, 2047 is the fastest.
+				if (_param_dshot_3d_enable.get() || (_reversible_outputs & (1u << i))) {
+					if (output >= _param_dshot_3d_dead_l.get() && output < _param_dshot_3d_dead_h.get()) {
+						output = DSHOT_DISARM_VALUE;
+
+					} else {
+						bool upper_range = output >= 1000;
+
+						if (upper_range) {
+							output -= 1000;
+
+						} else {
+							output = 999 - output; // lower range is inverted
+						}
+
+						float max_output = 999.f;
+						float min_output = max_output * _param_dshot_min.get();
+						output = math::min(max_output, (min_output + output * (max_output - min_output) / max_output));
+
+						if (upper_range) {
+							output += 1000;
+						}
+
+					}
+				}
+
 				up_dshot_motor_data_set(i, math::min(output, static_cast<uint16_t>(DSHOT_MAX_THROTTLE)),
 							telemetry_index == requested_telemetry_index);
 			}
@@ -555,6 +570,13 @@ void DShot::Run()
 	}
 
 	handle_vehicle_commands();
+
+	if (!_mixing_output.armed().armed) {
+		if (_reversible_outputs != _mixing_output.reversibleOutputs()) {
+			_reversible_outputs = _mixing_output.reversibleOutputs();
+			update_params();
+		}
+	}
 
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
 	_mixing_output.updateSubscriptions(true);
@@ -649,6 +671,13 @@ void DShot::update_params()
 	_mixing_output.setAllMinValues(math::constrain(static_cast<int>((_param_dshot_min.get() *
 				       static_cast<float>(DSHOT_MAX_THROTTLE))),
 				       DSHOT_MIN_THROTTLE, DSHOT_MAX_THROTTLE));
+
+	// Do not use the minimum parameter for reversible outputs
+	for (unsigned i = 0; i < _num_outputs; ++i) {
+		if ((1 << i) & _reversible_outputs) {
+			_mixing_output.minValue(i) = DSHOT_MIN_THROTTLE;
+		}
+	}
 }
 
 int DShot::ioctl(file *filp, int cmd, unsigned long arg)
