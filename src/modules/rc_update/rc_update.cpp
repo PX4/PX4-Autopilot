@@ -309,11 +309,6 @@ void RCUpdate::set_params_from_rc()
 void
 RCUpdate::map_flight_modes_buttons()
 {
-	static_assert(rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + manual_control_switches_s::MODE_SLOT_NUM <= sizeof(
-			      _rc.function) / sizeof(_rc.function[0]), "Unexpected number of RC functions");
-	static_assert(rc_channels_s::FUNCTION_FLTBTN_SLOT_COUNT == manual_control_switches_s::MODE_SLOT_NUM,
-		      "Unexpected number of Flight Modes slots");
-
 	// Reset all the slots to -1
 	for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
 		_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot] = -1;

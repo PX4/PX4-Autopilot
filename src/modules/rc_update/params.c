@@ -1557,7 +1557,7 @@ PARAM_DEFINE_INT32(RC_MAP_TRANS_SW, 0);
 PARAM_DEFINE_INT32(RC_MAP_GEAR_SW, 0);
 
 /**
- * Mask to indicate which channels are buttons for the Triggers
+ * Mask to indicate if the channel is a button for the trigger action
  *
  * This bitmask allows to specify multiple channels to indicate whether it's a button.
  * If not marked, the channel is assumed to be a switch. This configuration allows the
@@ -1565,30 +1565,58 @@ PARAM_DEFINE_INT32(RC_MAP_GEAR_SW, 0);
  *
  * @min 0
  * @max 258048
- * @group Radio Switches
- * @bit 0 Mask Channel 1 as a mode button
- * @bit 1 Mask Channel 2 as a mode button
- * @bit 2 Mask Channel 3 as a mode button
- * @bit 3 Mask Channel 4 as a mode button
- * @bit 4 Mask Channel 5 as a mode button
- * @bit 5 Mask Channel 6 as a mode button
- * @bit 6 Mask Channel 7 as a mode button
- * @bit 7 Mask Channel 8 as a mode button
- * @bit 8 Mask Channel 9 as a mode button
- * @bit 9 Mask Channel 10 as a mode button
- * @bit 10 Mask Channel 11 as a mode button
- * @bit 11 Mask Channel 12 as a mode button
- * @bit 12 Mask Channel 13 as a mode button
- * @bit 13 Mask Channel 14 as a mode button
- * @bit 14 Mask Channel 15 as a mode button
- * @bit 15 Mask Channel 16 as a mode button
- * @bit 16 Mask Channel 17 as a mode button
- * @bit 17 Mask Channel 18 as a mode button
+ * @group Radio Trigger
+ * @bit 0 Mask Channel 1 as a button
+ * @bit 1 Mask Channel 2 as a button
+ * @bit 2 Mask Channel 3 as a button
+ * @bit 3 Mask Channel 4 as a button
+ * @bit 4 Mask Channel 5 as a button
+ * @bit 5 Mask Channel 6 as a button
+ * @bit 6 Mask Channel 7 as a button
+ * @bit 7 Mask Channel 8 as a button
+ * @bit 8 Mask Channel 9 as a button
+ * @bit 9 Mask Channel 10 as a button
+ * @bit 10 Mask Channel 11 as a button
+ * @bit 11 Mask Channel 12 as a button
+ * @bit 12 Mask Channel 13 as a button
+ * @bit 13 Mask Channel 14 as a button
+ * @bit 14 Mask Channel 15 as a button
+ * @bit 15 Mask Channel 16 as a button
+ * @bit 16 Mask Channel 17 as a button
+ * @bit 17 Mask Channel 18 as a button
  */
-PARAM_DEFINE_INT32(RC_ISBTN_MASK, 0);
+PARAM_DEFINE_INT32(RC_TRIG_BTN_MASK, 0);
 
 /**
  * RC Channel for trigger slot 1
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Trigger
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_TRIG1_CHAN, 0);
+
+/**
+ * Which action the Trigger slot 1 triggers
  *
  * @min -1
  * @max 20
@@ -1614,34 +1642,6 @@ PARAM_DEFINE_INT32(RC_ISBTN_MASK, 0);
  * @value 18 Armswitch
  * @value 19 Transition
  * @value 20 Gear
- */
-PARAM_DEFINE_INT32(RC_TRIG1_CHAN, 0);
-
-/**
- * Which action the Trigger slot 1 triggers
- *
- * @min 0
- * @max
- * @value 0 Unassigned
- * @value 1 Channel 1
- * @value 2 Channel 2
- * @value 3 Channel 3
- * @value 4 Channel 4
- * @value 5 Channel 5
- * @value 6 Channel 6
- * @value 7 Channel 7
- * @value 8 Channel 8
- * @value 9 Channel 9
- * @value 10 Channel 10
- * @value 11 Channel 11
- * @value 12 Channel 12
- * @value 13 Channel 13
- * @value 14 Channel 14
- * @value 15 Channel 15
- * @value 16 Channel 16
- * @value 17 Channel 17
- * @value 18 Channel 18
- * @group Radio Trigger
  *
  */
 PARAM_DEFINE_INT32(RC_TRIG1_ACTION, 0);
