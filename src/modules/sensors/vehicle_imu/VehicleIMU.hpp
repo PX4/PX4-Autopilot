@@ -177,7 +177,7 @@ private:
 	InFlightCalibration _accel_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
 	InFlightCalibration _gyro_learned_calibration[ORB_MULTI_MAX_INSTANCES] {};
 
-	static constexpr hrt_abstime INFLIGHT_CALIBRATION_QUIET_PERIOD_US{30_s};
+	static constexpr hrt_abstime INFLIGHT_CALIBRATION_QUIET_PERIOD_US{1_s};
 
 	hrt_abstime _in_flight_calibration_check_timestamp_last{0};
 

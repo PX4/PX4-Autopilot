@@ -1878,6 +1878,9 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 {
+	_accel_cal.cal_available = true;
+	return;
+
 	if (_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS) {
 		_accel_cal.cal_available = false;
 		return;
@@ -1918,6 +1921,9 @@ void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 
 void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 {
+	_gyro_cal.cal_available = true;
+	return;
+
 	static constexpr float max_var_allowed = 1e-3f;
 	static constexpr float max_var_ratio = 1e2f;
 
@@ -1948,6 +1954,9 @@ void EKF2::UpdateGyroCalibration(const hrt_abstime &timestamp)
 
 void EKF2::UpdateMagCalibration(const hrt_abstime &timestamp)
 {
+	_mag_cal.cal_available = true;
+	return;
+
 	// Check if conditions are OK for learning of magnetometer bias values
 	// the EKF is operating in the correct mode and there are no filter faults
 

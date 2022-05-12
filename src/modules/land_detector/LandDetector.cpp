@@ -93,6 +93,15 @@ void LandDetector::Run()
 	actuator_armed_s actuator_armed;
 
 	if (_actuator_armed_sub.update(&actuator_armed)) {
+		if (!_armed && actuator_armed.armed) {
+			// force in air briefly
+			_freefall_hysteresis.set_state_and_update(false, actuator_armed.timestamp);
+			_ground_contact_hysteresis.set_state_and_update(false, actuator_armed.timestamp);
+			_maybe_landed_hysteresis.set_state_and_update(false, actuator_armed.timestamp);
+			_landed_hysteresis.set_state_and_update(false, actuator_armed.timestamp);
+			_ground_effect_hysteresis.set_state_and_update(false, actuator_armed.timestamp);
+		}
+
 		_armed = actuator_armed.armed;
 	}
 

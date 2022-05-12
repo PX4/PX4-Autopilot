@@ -234,8 +234,8 @@ void VehicleMagnetometer::UpdateMagCalibration()
 	// This is a reference variance used to calculate the fraction of learned magnetometer bias that will be used to update the stored value.
 	// Larger values cause a larger fraction of the learned biases to be used.
 	static constexpr float magb_vref = 2.5e-7f;
-	static constexpr float min_var_allowed = magb_vref * 0.01f;
-	static constexpr float max_var_allowed = magb_vref * 100.f;
+	// static constexpr float min_var_allowed = magb_vref * 0.01f;
+	// static constexpr float max_var_allowed = magb_vref * 100.f;
 
 	if (_armed) {
 		static constexpr uint8_t mag_cal_size = sizeof(_mag_cal) / sizeof(_mag_cal[0]);
@@ -251,8 +251,8 @@ void VehicleMagnetometer::UpdateMagCalibration()
 				const bool valid = (hrt_elapsed_time(&estimator_sensor_bias.timestamp) < 1_s)
 						   && (estimator_sensor_bias.mag_device_id != 0) &&
 						   estimator_sensor_bias.mag_bias_valid &&
-						   estimator_sensor_bias.mag_bias_stable &&
-						   (bias_variance.min() > min_var_allowed) && (bias_variance.max() < max_var_allowed);
+						   estimator_sensor_bias.mag_bias_stable;/* &&
+						   (bias_variance.min() > min_var_allowed) && (bias_variance.max() < max_var_allowed);*/
 
 				if (valid) {
 					// find corresponding mag calibration
@@ -301,6 +301,8 @@ void VehicleMagnetometer::UpdateMagCalibration()
 					for (int axis_index = 0; axis_index < 3; axis_index++) {
 						state_variance(axis_index) = fmaxf(state_variance(axis_index) * (1.f - kalman_gain(axis_index)), 0.f);
 					}
+
+					_calibration[mag_index].set_offset({0.1f, 0.2f, 0.3f}); // hack
 
 					if (_calibration[mag_index].set_offset(mag_cal_offset)) {
 
