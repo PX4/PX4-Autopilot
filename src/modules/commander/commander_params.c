@@ -228,7 +228,7 @@ PARAM_DEFINE_INT32(COM_HOME_IN_AIR, 0);
 /**
  * RC control input mode
  *
- * The default value of 0 requires a valid RC transmitter setup.
+ * With value 0 a valid RC transmitter calibration is required.
  * Setting this to 1 allows joystick control and disables RC input handling and the associated checks.
  *
  * @group Commander
