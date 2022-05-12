@@ -1,6 +1,6 @@
 # Trajectory setpoint in NED frame
 # Input to PID position controller.
-# Needs to be cinematically consistent and feasible for smooth flight.
+# Needs to be kinematically consistent and feasible for smooth flight.
 # setting a value to NaN means the state should not be controlled
 
 uint64 timestamp # time since system start (microseconds)
