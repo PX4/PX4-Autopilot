@@ -1,3 +1,5 @@
+FROM ghcr.io/tiiuae/px4-post-update-init:main as init_tool
+
 FROM python:alpine3.14
 
 # run this with something like:
@@ -19,12 +21,13 @@ FROM python:alpine3.14
 
 WORKDIR /firmware
 
-ENTRYPOINT ["/bin/px_uploader.py"]
+ENTRYPOINT ["/entrypoint.sh"]
 
 # dependency of px_uploader.py
 RUN pip3 install --user pyserial
 
 ADD px4-firmware/Tools/px_uploader.py /bin/
+ADD px4-firmware/Tools/px_uploader.entrypoint /entrypoint.sh
 
 # copy /bin/* -> /firmware/*
 ADD bin/ /firmware/
@@ -32,3 +35,6 @@ ADD bin/ /firmware/
 ADD px4-firmware/ssrc_config/indoor_lighthouse/config.txt /flight_modes/indoor_config.txt
 ADD px4-firmware/ssrc_config/HIL/config.txt /flight_modes/hitl_config.txt
 ADD px4-firmware/ssrc_config/HIL/ethernet/config.txt /flight_modes/hitl_eth_config.txt
+
+COPY --from=init_tool /px4-post-update-init /bin/px4-post-update-init
+
