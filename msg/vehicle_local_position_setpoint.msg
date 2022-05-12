@@ -17,3 +17,7 @@ float32[3] thrust	# normalized thrust vector in NED
 
 float32 yaw		# in radians NED -PI..+PI
 float32 yawspeed	# in radians/sec
+
+float32[3] velocity_proportional_portion
+float32[3] velocity_integral_potion
+float32[3] velocity_derivative_portion

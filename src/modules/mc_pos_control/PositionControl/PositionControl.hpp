@@ -216,4 +216,9 @@ private:
 	matrix::Vector3f _thr_sp; /**< desired thrust */
 	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
+
+	// Velocity PID portions for logging
+	matrix::Vector3f _velocity_proportional_portion;
+	matrix::Vector3f _velocity_integral_potion;
+	matrix::Vector3f _velocity_derivative_portion;
 };

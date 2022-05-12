@@ -141,7 +141,10 @@ void PositionControl::_velocityControl(const float dt)
 {
 	// PID velocity control
 	Vector3f vel_error = _vel_sp - _vel;
-	Vector3f acc_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int - _vel_dot.emult(_gain_vel_d);
+	_velocity_proportional_portion = vel_error.emult(_gain_vel_p);
+	_velocity_integral_potion = _vel_int;
+	_velocity_derivative_portion = - _vel_dot.emult(_gain_vel_d);
+	Vector3f acc_sp_velocity = _velocity_proportional_portion + _velocity_integral_potion + _velocity_derivative_portion;
 
 	// No control input from setpoints or corresponding states which are NAN
 	ControlMath::addIfNotNanVector3f(_acc_sp, acc_sp_velocity);
@@ -240,13 +243,17 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 	local_position_setpoint.x = _pos_sp(0);
 	local_position_setpoint.y = _pos_sp(1);
 	local_position_setpoint.z = _pos_sp(2);
-	local_position_setpoint.yaw = _yaw_sp;
-	local_position_setpoint.yawspeed = _yawspeed_sp;
 	local_position_setpoint.vx = _vel_sp(0);
 	local_position_setpoint.vy = _vel_sp(1);
 	local_position_setpoint.vz = _vel_sp(2);
 	_acc_sp.copyTo(local_position_setpoint.acceleration);
 	_thr_sp.copyTo(local_position_setpoint.thrust);
+	local_position_setpoint.yaw = _yaw_sp;
+	local_position_setpoint.yawspeed = _yawspeed_sp;
+
+	_velocity_proportional_portion.copyTo(local_position_setpoint.velocity_proportional_portion);
+	_velocity_integral_potion.copyTo(local_position_setpoint.velocity_integral_potion);
+	_velocity_derivative_portion.copyTo(local_position_setpoint.velocity_derivative_portion);
 }
 
 void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
