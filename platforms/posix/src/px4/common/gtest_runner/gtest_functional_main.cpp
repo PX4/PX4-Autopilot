@@ -36,12 +36,16 @@
 #include <uORB/Subscription.hpp>
 
 #include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 
 int main(int argc, char **argv)
 {
 	testing::InitGoogleTest(&argc, argv);
 
 	uORB::Manager::initialize();
+
+	perf_init();
 	param_init();
+
 	return RUN_ALL_TESTS();
 }

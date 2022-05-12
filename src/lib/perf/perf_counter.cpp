@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2023 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,7 +37,6 @@
  * @brief Performance measuring tools.
  */
 
-#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -47,6 +46,8 @@
 #include <systemlib/err.h>
 
 #include "perf_counter.h"
+
+#include <px4_platform_common/sem.hpp>
 
 /**
  * Header common to all counters.
@@ -97,20 +98,25 @@ struct perf_ctr_interval : public perf_ctr_header {
 static sq_queue_t	perf_counters = { nullptr, nullptr };
 
 /**
- * mutex protecting access to the perf_counters linked list (which is read from & written to by different threads)
+ * semaphore protecting access to the perf_counters linked list (which is read from & written to by different threads)
  */
-pthread_mutex_t perf_counters_mutex = PTHREAD_MUTEX_INITIALIZER;
-// FIXME: the mutex does **not** protect against access to/from the perf
+static px4_sem_t perf_counters_lock;
+
+// FIXME: the semaphore does **not** protect against access to/from the perf
 // counter's data. It can still happen that a counter is updated while it is
 // printed. This can lead to inconsistent output, or completely bogus values
 // (especially the 64bit values which are in general not atomically updated).
-// The same holds for shared perf counters (perf_alloc_once), that can be updated
-// concurrently (this affects the 'ctrl_latency' counter).
 
+void perf_init()
+{
+	px4_sem_init(&perf_counters_lock, 0, 1);
+}
 
 perf_counter_t
 perf_alloc(enum perf_counter_type type, const char *name)
 {
+	SmartLock smart_lock(perf_counters_lock);
+
 	perf_counter_t ctr = nullptr;
 
 	switch (type) {
@@ -133,41 +139,10 @@ perf_alloc(enum perf_counter_type type, const char *name)
 	if (ctr != nullptr) {
 		ctr->type = type;
 		ctr->name = name;
-		pthread_mutex_lock(&perf_counters_mutex);
 		sq_addfirst(&ctr->link, &perf_counters);
-		pthread_mutex_unlock(&perf_counters_mutex);
 	}
 
 	return ctr;
-}
-
-perf_counter_t
-perf_alloc_once(enum perf_counter_type type, const char *name)
-{
-	pthread_mutex_lock(&perf_counters_mutex);
-	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
-
-	while (handle != nullptr) {
-		if (!strcmp(handle->name, name)) {
-			if (type == handle->type) {
-				/* they are the same counter */
-				pthread_mutex_unlock(&perf_counters_mutex);
-				return handle;
-
-			} else {
-				/* same name but different type, assuming this is an error and not intended */
-				pthread_mutex_unlock(&perf_counters_mutex);
-				return nullptr;
-			}
-		}
-
-		handle = (perf_counter_t)sq_next(&handle->link);
-	}
-
-	pthread_mutex_unlock(&perf_counters_mutex);
-
-	/* if the execution reaches here, no existing counter of that name was found */
-	return perf_alloc(type, name);
 }
 
 void
@@ -177,9 +152,8 @@ perf_free(perf_counter_t handle)
 		return;
 	}
 
-	pthread_mutex_lock(&perf_counters_mutex);
+	SmartLock smart_lock(perf_counters_lock);
 	sq_rem(&handle->link, &perf_counters);
-	pthread_mutex_unlock(&perf_counters_mutex);
 
 	switch (handle->type) {
 	case PC_COUNT:
@@ -586,29 +560,25 @@ perf_mean(perf_counter_t handle)
 void
 perf_iterate_all(perf_callback cb, void *user)
 {
-	pthread_mutex_lock(&perf_counters_mutex);
+	SmartLock smart_lock(perf_counters_lock);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != nullptr) {
 		cb(handle, user);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
-
-	pthread_mutex_unlock(&perf_counters_mutex);
 }
 
 void
 perf_print_all(void)
 {
-	pthread_mutex_lock(&perf_counters_mutex);
+	SmartLock smart_lock(perf_counters_lock);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != nullptr) {
 		perf_print_counter(handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
-
-	pthread_mutex_unlock(&perf_counters_mutex);
 }
 
 void
@@ -630,15 +600,13 @@ perf_print_latency(void)
 void
 perf_reset_all(void)
 {
-	pthread_mutex_lock(&perf_counters_mutex);
+	SmartLock smart_lock(perf_counters_lock);
 	perf_counter_t handle = (perf_counter_t)sq_peek(&perf_counters);
 
 	while (handle != nullptr) {
 		perf_reset(handle);
 		handle = (perf_counter_t)sq_next(&handle->link);
 	}
-
-	pthread_mutex_unlock(&perf_counters_mutex);
 
 	reset_latency_counters();
 }
