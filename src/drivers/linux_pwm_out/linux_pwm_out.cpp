@@ -126,8 +126,6 @@ bool LinuxPWMOut::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 
 void LinuxPWMOut::Run()
 {
-	SmartLock lock_guard(_lock);
-
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -135,6 +133,8 @@ void LinuxPWMOut::Run()
 		exit_and_cleanup();
 		return;
 	}
+
+	SmartLock lock_guard(_lock);
 
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
