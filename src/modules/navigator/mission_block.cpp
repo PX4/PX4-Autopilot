@@ -367,7 +367,8 @@ MissionBlock::is_mission_item_reached()
 
 			/* accept yaw if reached or if timeout is set in which case we ignore not forced headings */
 			if (fabsf(yaw_err) < _navigator->get_yaw_threshold()
-			    || (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading)) {
+			    || (_navigator->get_yaw_timeout() >= FLT_EPSILON && !_mission_item.force_heading)
+			    || !_navigator->get_local_position()->heading_good_for_control) {
 
 				_waypoint_yaw_reached = true;
 			}
