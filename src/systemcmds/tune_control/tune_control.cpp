@@ -93,13 +93,14 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 			break;
 
 		case 'd':
-			tune_control.duration = (uint32_t)(strtol(myoptarg, nullptr, 0));
+			// Convert ms into us
+			tune_control.duration = (uint32_t)(strtol(myoptarg, nullptr, 0)) * 1000;
 			break;
 
 		case 't':
 			value = (uint8_t)(strtol(myoptarg, nullptr, 0));
 
-			if (value > 0 && value < tunes.get_default_tunes_size()) {
+			if (value > 0 && value < tunes.get_default_tunes_count()) {
 				tune_control.tune_id = value;
 
 			} else {
@@ -151,10 +152,17 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 
 	if (!strcmp(argv[myoptind], "play")) {
 		if (argc > 2 && !strcmp(argv[2], "error")) {
+			// Play an Error tune
 			tune_control.tune_id = tune_control_s::TUNE_ID_ERROR;
 			publish_tune_control(tune_control);
 
+		} else if (argc > 2 && !strcmp(argv[2], "note")) {
+			// Play a single note
+			tune_control.tune_id = tune_control_s::TUNE_ID_CUSTOM;
+			publish_tune_control(tune_control);
+
 		} else if (argc > 2 && string_input) {
+			// Play a given melody string
 			PX4_INFO("Start playback...");
 			tunes.set_string(tune_string, tune_control.volume);
 
@@ -177,11 +185,7 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 			PX4_INFO("Playback finished.");
 
 		} else if (argc > 2) {
-			// tune id instead of string has been provided
-			if (tune_control.tune_id == 0) {
-				tune_control.tune_id = 1;
-			}
-
+			// Play a specific tune id
 			PX4_DEBUG("Publishing standard tune %d", tune_control.tune_id);
 			publish_tune_control(tune_control);
 
@@ -191,40 +195,16 @@ extern "C" __EXPORT int tune_control_main(int argc, char *argv[])
 			return 1;
 		}
 
-	} else if (!strcmp(argv[myoptind], "libtest")) {
-		Tunes::ControlResult ret = tunes.set_control(tune_control);
-
-		if (ret == Tunes::ControlResult::InvalidTune) {
-			PX4_WARN("Tune ID not recognized.");
-		}
-
-		while (tunes.get_next_note(frequency, duration, silence, volume) == Tunes::Status::Continue) {
-			PX4_INFO("frequency: %d, duration %d, silence %d, volume %d",
-				 frequency, duration, silence, volume);
-
-			px4_usleep(500000);
-			exit_counter++;
-
-			// exit if the loop is doing too many iterations
-			if (exit_counter > MAX_NOTE_ITERATION) {
-				break;
-			}
-		}
-
 	} else if (!strcmp(argv[myoptind], "stop")) {
 		PX4_INFO("Stopping playback...");
-		tune_control.tune_id = 0;
-		tune_control.frequency = 0;
-		tune_control.duration = 0;
-		tune_control.silence = 0;
-		tune_control.tune_override = true;
+		tune_control.tune_id = tune_control_s::TUNE_ID_STOP;
 		publish_tune_control(tune_control);
 
 		// We wait the maximum update interval to ensure
 		// The stop will not be overwritten
 		px4_usleep(tunes.get_maximum_update_interval());
 
-	}	else {
+	} else {
 		usage();
 		return 1;
 	}
@@ -253,13 +233,13 @@ $ tune_control play -t 2
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("tune_control", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("play", "Play system tune or single note.");
-	PRINT_MODULE_USAGE_ARG("error", "Play error tune", false);
-	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 21, "Play predefined system tune", true);
-	PRINT_MODULE_USAGE_PARAM_INT('f', -1, 0, 22, "Frequency of note in Hz (0-22kHz)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('d', -1, 1, 21, "Duration of note in us", true);
-	PRINT_MODULE_USAGE_PARAM_INT('s', 40, 0, 100, "Volume level (loudness) of the note (0-100)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("play", "Play system tune");
+	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 20, "Play predefined system tune", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr, R"(<string> - e.g. "MFT200e8a8a")", "Melody in string form", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("libtest", "Test library");
+	PRINT_MODULE_USAGE_PARAM_INT('s', 40, 0, 100, "Volume level (loudness) of the note (0-100)", true);
+	PRINT_MODULE_USAGE_ARG("error", "Play error tune", false);
+	PRINT_MODULE_USAGE_ARG("note", "Play a single note", false);
+	PRINT_MODULE_USAGE_PARAM_INT('f', -1, 0, 22, "Frequency of note in Hz (0-22kHz)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('d', -1, 1, 21, "Duration of note in ms", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop playback (use for repeated tunes)");
 }

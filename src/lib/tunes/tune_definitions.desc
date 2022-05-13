@@ -80,6 +80,13 @@
  * MB     The MB command causes the tune to repeat when it ends.
  */
 
+/*
+ * NOTE : These tunes must match the TUNE_ID* constants defined in the tune_control.msg file!
+ *
+ * Since the tune_definitions.h generates the TuneID enum based on this definitions below,
+ * if the order goes out of sync, the tune_control uORB message may trigger an unexpected
+ * tune from the list below!
+ */
 
 //           ordinal name                  tune                                        interruptible*     hint
 //  * Repeated tunes should always be defined as interruptible, if not an explicit 'tone_control stop' is needed

@@ -70,12 +70,12 @@ void Tunes::reset(bool repeat_flag)
 {
 	// reset pointer
 	if (!repeat_flag)	{
-		_tune = nullptr;
-		_next_tune = nullptr;
+		_tune_str = nullptr;
+		_next_note_pointer = nullptr;
 
 	} else {
-		_tune = _tune_start_ptr;
-		_next_tune = _tune;
+		_tune_str = _tune_str_start;
+		_next_note_pointer = _tune_str;
 	}
 
 	// reset music parameter
@@ -87,20 +87,28 @@ void Tunes::reset(bool repeat_flag)
 
 Tunes::ControlResult Tunes::set_control(const tune_control_s &tune_control)
 {
+	// Stop the tune (special command, and therefore it's ID is bigger than 'default_tunes_count'!)
+	if ((TuneID)tune_control.tune_id == TuneID::STOP) {
+		_tune_str = nullptr;
+		_next_note_pointer = nullptr;
+		return ControlResult::Success;
+	}
+
 	// Sanity check
-	if (tune_control.tune_id >= _default_tunes_size) {
+	if (tune_control.tune_id >= _default_tunes_count) {
 		return ControlResult::InvalidTune;
 	}
 
-	// Accept new tune or a stop?
-	if (_tune == nullptr ||  	   // No tune is currently being played
-	    tune_control.tune_override ||  // Override interrupts everything
-	    _default_tunes_interruptable[_current_tune_id]) {
+	// Can set the new tune?
+	if (_tune_str == nullptr ||  	   // No tune is currently being played
+	    tune_control.tune_override ||  // Override flag is set (interrupts everything)
+	    _default_tunes_interruptable[(int)_current_tune_id]) { // Current tune is interuptable
 
-		// Check if this exact tune is already being played back
-		if (tune_control.tune_id != static_cast<int>(TuneID::CUSTOM) &&
-		    _tune == _default_tunes[tune_control.tune_id]) {
-			return ControlResult::AlreadyPlaying; // Nothing to do
+		// Check if this exact tune is already being played
+		const bool is_custom_tune = ((TuneID)tune_control.tune_id == TuneID::CUSTOM);
+
+		if (!is_custom_tune && _tune_str == _default_tunes[tune_control.tune_id]) {
+			return ControlResult::AlreadyPlaying;
 		}
 
 		// Reset repeat flag. Can jump to true again while tune is being parsed later
@@ -114,39 +122,39 @@ Tunes::ControlResult Tunes::set_control(const tune_control_s &tune_control)
 			_volume = tune_control.volume;
 
 		} else {
-			_volume = tune_control_s::VOLUME_LEVEL_MAX;
+			_volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 		}
 
-
-		// Special treatment for custom tunes
-		if (tune_control.tune_id == static_cast<int>(TuneID::CUSTOM)) {
+		if (is_custom_tune) {
+			// Special treatment for custom tunes
 			_using_custom_msg = true;
 			_frequency        = (unsigned)tune_control.frequency;
 			_duration         = (unsigned)tune_control.duration;
 			_silence          = (unsigned)tune_control.silence;
 
 		} else {
+			// Start a new tune string
 			_using_custom_msg = false;
-			_tune             = _default_tunes[tune_control.tune_id];
-			_tune_start_ptr   = _tune;
-			_next_tune        = _tune;
+			_tune_str             = _default_tunes[tune_control.tune_id];
+			_tune_str_start   = _tune_str;
+			_next_note_pointer        = _tune_str;
 		}
 
-		_current_tune_id = tune_control.tune_id;
+		_current_tune_id = (TuneID)tune_control.tune_id;
 		return ControlResult::Success;
 	}
 
-	return ControlResult::WouldInterrupt;
+	return ControlResult::CantInterrupt;
 }
 
 void Tunes::set_string(const char *const string, uint8_t volume)
 {
 	// Only play new tune if nothing is being played currently.
-	if (_tune == nullptr) {
+	if (_tune_str == nullptr) {
 		// Set tune string the first time.
-		_tune           = string;
-		_tune_start_ptr = string;
-		_next_tune      = _tune;
+		_tune_str           = string;
+		_tune_str_start = string;
+		_next_note_pointer      = _tune_str;
 
 		if (volume <= tune_control_s::VOLUME_LEVEL_MAX) {
 			_volume = volume;
@@ -199,7 +207,7 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 	}
 
 	// Make sure we still have a tune.
-	if ((_next_tune == nullptr) || (_tune == nullptr)) {
+	if ((_next_note_pointer == nullptr) || (_tune_str == nullptr)) {
 		return tune_error();
 	}
 
@@ -216,7 +224,7 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 			return tune_end();
 		}
 
-		_next_tune++;
+		_next_note_pointer++;
 
 		switch (c) {
 		case 'L':	// Select note length.
@@ -258,7 +266,7 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 				return tune_error();
 			}
 
-			_next_tune++;
+			_next_note_pointer++;
 
 			switch (c) {
 			case 'N':
@@ -333,7 +341,7 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 					note++;
 				}
 
-				_next_tune++;
+				_next_note_pointer++;
 				break;
 
 			case '-':	// Down a semitone.
@@ -341,7 +349,7 @@ Tunes::Status Tunes::get_next_note(unsigned &frequency, unsigned &duration, unsi
 					note--;
 				}
 
-				_next_tune++;
+				_next_note_pointer++;
 				break;
 
 			default:
@@ -396,8 +404,8 @@ Tunes::Status Tunes::tune_error()
 	}
 
 	// The tune appears to be bad (unexpected EOF, bad character, etc.).
-	if (_next_tune != nullptr) {
-		PX4_WARN("Tune error at: %s", _next_tune);
+	if (_next_note_pointer != nullptr) {
+		PX4_WARN("Tune error at: %s", _next_note_pointer);
 	}
 
 	_repeat = false;	// Don't loop on error.
@@ -470,11 +478,11 @@ unsigned Tunes::rest_duration(unsigned rest_length, unsigned dots) const
 
 int Tunes::next_char()
 {
-	while (isspace(*_next_tune)) {
-		_next_tune++;
+	while (isspace(*_next_note_pointer)) {
+		_next_note_pointer++;
 	}
 
-	return toupper(*_next_tune);
+	return toupper(*_next_note_pointer);
 }
 
 unsigned Tunes::next_number()
@@ -489,7 +497,7 @@ unsigned Tunes::next_number()
 			return number;
 		}
 
-		_next_tune++;
+		_next_note_pointer++;
 		number = (number * 10) + (next_character - '0');
 	}
 }
@@ -499,7 +507,7 @@ unsigned Tunes::next_dots()
 	unsigned dots = 0;
 
 	while (next_char() == '.') {
-		_next_tune++;
+		_next_note_pointer++;
 		dots++;
 	}
 

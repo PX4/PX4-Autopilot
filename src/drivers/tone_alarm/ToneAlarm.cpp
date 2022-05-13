@@ -166,7 +166,7 @@ void ToneAlarm::Run()
 
 					break;
 
-				case Tunes::ControlResult::WouldInterrupt:
+				case Tunes::ControlResult::CantInterrupt:
 					// otherwise re-publish tune to process next
 					PX4_DEBUG("tune already playing, requeing tune: %d", tune_control.tune_id);
 					{

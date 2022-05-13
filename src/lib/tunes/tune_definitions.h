@@ -57,6 +57,7 @@
 #define PX4_DEFINE_TUNE(ordinal,name,tune,interruptable) name,
 enum class TuneID {
 #include "tune_definitions.desc"
-	NONE = -1
+	STOP = 127, // Special Tune ID that stops the tune
+	NONE = -1   // Undefined Tune ID
 };
 #undef PX4_DEFINE_TUNE
