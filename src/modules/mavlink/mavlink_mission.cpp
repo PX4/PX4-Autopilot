@@ -298,19 +298,21 @@ void
 MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t seq)
 {
 	mission_item_s mission_item{};
-	int read_result = 0;
+	int16_t bytes_read = 0;
+	bool read_success = false;
 
 	switch (_mission_type) {
 
 	case MAV_MISSION_TYPE_MISSION: {
-			read_result = dm_read(_dataman_id, seq, &mission_item, sizeof(mission_item_s)) == sizeof(mission_item_s);
+			bytes_read = dm_read(_dataman_id, seq, &mission_item, sizeof(mission_item_s));
+			read_success = (bytes_read == sizeof(mission_item_s));
 		}
 		break;
 
 	case MAV_MISSION_TYPE_FENCE: { // Read a geofence point
 			mission_fence_point_s mission_fence_point;
-			read_result = dm_read(DM_KEY_FENCE_POINTS, seq + 1, &mission_fence_point, sizeof(mission_fence_point_s)) ==
-				      sizeof(mission_fence_point_s);
+			bytes_read = dm_read(DM_KEY_FENCE_POINTS, seq + 1, &mission_fence_point, sizeof(mission_fence_point_s));
+			read_success = (bytes_read == sizeof(mission_fence_point_s));
 
 			mission_item.nav_cmd = mission_fence_point.nav_cmd;
 			mission_item.frame = mission_fence_point.frame;
@@ -330,8 +332,8 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 
 	case MAV_MISSION_TYPE_RALLY: { // Read a safe point / rally point
 			mission_safe_point_s mission_safe_point;
-			read_result = dm_read(DM_KEY_SAFE_POINTS, seq + 1, &mission_safe_point, sizeof(mission_safe_point_s)) ==
-				      sizeof(mission_safe_point_s);
+			bytes_read = dm_read(DM_KEY_SAFE_POINTS, seq + 1, &mission_safe_point, sizeof(mission_safe_point_s));
+			read_success = (bytes_read == sizeof(mission_safe_point_s));
 
 			mission_item.nav_cmd = MAV_CMD_NAV_RALLY_POINT;
 			mission_item.frame = mission_safe_point.frame;
@@ -348,7 +350,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		break;
 	}
 
-	if (read_result > 0) {
+	if (read_success) {
 		_time_last_sent = hrt_absolute_time();
 
 		if (_int_mode) {
@@ -382,9 +384,14 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		send_mission_ack(_transfer_partner_sysid, _transfer_partner_compid, MAV_MISSION_ERROR);
 
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
-			_mavlink->send_statustext_critical("Mission storage: Unable to read from microSD\t");
-			events::send(events::ID("mavlink_mission_storage_read_failure"), events::Log::Error,
-				     "Mission: Unable to read from storage");
+			mavlink_log_critical(_mavlink->get_mavlink_log_pub(),
+					     "Mission storage: Unable to read from storage, type: %" PRId8 " bytes read: %" PRId16 "\t",
+					     (uint8_t)_mission_type, bytes_read);
+			/* EVENT
+			 * @description Mission type: {1}. Number of bytes read: {2}
+			 */
+			events::send<uint8_t, int16_t>(events::ID("mavlink_mission_storage_read_failure"), events::Log::Error,
+						       "Mission: Unable to read from storage", _mission_type, bytes_read);
 		}
 
 		PX4_DEBUG("WPM: Send MISSION_ITEM ERROR: could not read seq %u from dataman ID %i", seq, _dataman_id);
