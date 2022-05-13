@@ -18,5 +18,3 @@ param set-default MAV_2_RADIO_CTL 0
 param set-default MAV_2_RATE 100000
 param set-default MAV_2_REMOTE_PRT 14550
 param set-default MAV_2_UDP_PRT 14550
-
-param set-default CBRK_IO_SAFETY 0
