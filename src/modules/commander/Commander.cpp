@@ -2392,7 +2392,10 @@ Commander::run()
 			// Check for auto-disarm on landing or pre-flight
 			if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
 
-				if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming) {
+				const bool landed_amid_mission = (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION)
+								 && !_mission_result_sub.get().finished;
+
+				if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming && !landed_amid_mission) {
 					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
 					_auto_disarm_landed.set_state_and_update(_vehicle_land_detected.landed, hrt_absolute_time());
 
