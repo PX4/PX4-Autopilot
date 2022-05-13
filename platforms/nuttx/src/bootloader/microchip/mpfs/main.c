@@ -76,6 +76,11 @@
 #define BOARD_RESET_REASON_SYSTEMRESET_MASK 0x2
 #define BOARD_RESET_REASON_DEBUGGER_MASK 0x8
 
+#ifdef CONFIG_MMCSD
+static int px4_fd = -1;
+static bool sdcard_mounted;
+#endif
+
 static struct mtd_dev_s *mtd = 0;
 static struct mtd_geometry_s geo;
 
@@ -164,6 +169,37 @@ SPI_NOR_CS_FUNC(FAR struct spi_dev_s *dev, uint32_t devid, bool selected)
 }
 #endif
 
+#ifdef CONFIG_MMCSD
+void partition_handler(FAR struct partition_s *part, FAR void *arg)
+{
+	if (part->index == 0) {
+		register_blockpartition("/dev/mmcsd0p0", 0, "/dev/mmcsd0", part->firstblock, part->nblocks);
+	}
+}
+
+static int load_sdcard_images(const char *name, uint64_t loadaddr)
+{
+	struct stat file_stat;
+
+	_alert("Loading %s\n", name);
+
+	int mmcsd_fd = open(name, O_RDONLY);
+
+	if (mmcsd_fd > 0) {
+		fstat(mmcsd_fd, &file_stat);
+		size_t got = read(mmcsd_fd, (void *)loadaddr, file_stat.st_size);
+
+		if (got > 0 && got == (size_t)file_stat.st_size) {
+			close(mmcsd_fd);
+			return 0;
+		}
+	}
+
+	close(mmcsd_fd);
+	return -1;
+}
+#endif
+
 static void
 board_init(void)
 {
@@ -229,6 +265,16 @@ board_init(void)
 #if defined(CONFIG_MMCSD)
 
 	if (mpfs_board_emmcsd_init() == OK) {
+		/* Parse partitions */
+		parse_block_partition("/dev/mmcsd0", partition_handler, "/sdcard/");
+
+		/* Mount the sdcard/eMMC */
+		sdcard_mounted = mount("/dev/mmcsd0p0", "/sdcard/", "vfat", 0, NULL) == 0 ? true : false;
+
+		if (!sdcard_mounted) {
+			_err("SD card mount failed\n");
+		}
+
 #  if defined(CONFIG_USBMSC_COMPOSITE)
 
 		if (board_composite_initialize(0) == OK) {
@@ -264,13 +310,22 @@ board_deinit(void)
 	//	putreg32(RCC_AHB1RSTR_OTGFSRST, STM32_RCC_AHB1RSTR);
 #endif
 
-#ifdef CONFIG_MTD_M25P
-	mpfs_spibus_uninitialize(spinor);
-#endif
+#ifdef CONFIG_MMCSD
 
-#if defined(CONFIG_MMCSD)
+	/* Umount the sdcard now if mounted */
+	if (sdcard_mounted) {
+		umount("/sdcard");
+	}
+
+	/* If this is left open from flashing, close it now */
+	close(px4_fd);
+
 	/* deinitialise the MMC/SD interrupt */
 	up_disable_irq(MPFS_IRQ_MMC_MAIN);
+#endif
+
+#ifdef CONFIG_MTD_M25P
+	mpfs_spibus_uninitialize(spinor);
 #endif
 
 #if defined(BOARD_FORCE_BL_PIN)
@@ -338,11 +393,40 @@ flash_func_sector_size(unsigned sector)
 	}
 }
 
+#ifdef CONFIG_MMCSD
+static void create_px4_file(void)
+{
+	px4_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
+
+	/* Couldn't open the file, make sure that the directory exists and try to re-open */
+
+	if (px4_fd < 0) {
+		int ret = mkdir("/sdcard/boot", S_IRWXU | S_IRWXG | S_IRWXO);
+
+		if (ret < 0) {
+			_alert("boot directory creation failed %d\n", ret);
+		}
+
+		px4_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
+	}
+
+	if (px4_fd < 0) {
+		_alert("FATAL: Not able to create px4 fw image!\n");
+
+	} else {
+		/* Truncate the file to 0 size */
+		lseek(px4_fd, 0, SEEK_SET);
+		ftruncate(px4_fd, 0);
+	}
+}
+#endif
+
 void
 flash_func_erase_sector(unsigned sector)
 {
 
 	unsigned ss = flash_func_sector_size(sector);
+	uint64_t *addr = (uint64_t *)((uint64_t)APP_LOAD_ADDRESS + sector * ss);
 
 	/* Break any loading process */
 
@@ -364,6 +448,8 @@ flash_func_erase_sector(unsigned sector)
 	device_flashed = false;
 
 #ifdef CONFIG_MTD_M25P
+	/* Flash into NOR flash */
+
 	int ret = MTD_ERASE(mtd, sector, 1);
 
 	if (ret < 0) {
@@ -373,8 +459,20 @@ flash_func_erase_sector(unsigned sector)
 
 #endif
 
-	uint32_t *addr = (uint32_t *)((uint64_t)APP_LOAD_ADDRESS + sector * ss);
+#if defined(CONFIG_MMCSD)
+	/* Flashing into eMMC/SD */
+
+	/* Erase the whole file when erasing the first sector */
+	if (sector == 0) {
+		create_px4_file();
+	}
+
+#endif
+
+	/* Erase the RAM contents */
+
 	memset(addr, 0xFFFFFFFF, ss);
+
 }
 
 #ifdef CONFIG_MTD_M25P
@@ -419,6 +517,15 @@ flash_func_write_word(uintptr_t address, uint32_t word)
 	// update the end of the image
 	if (address + sizeof(uint32_t) > end_address) {
 		end_address = address + sizeof(uint32_t);
+	}
+
+#endif
+
+#ifdef CONFIG_MMCSD
+
+	/* Write also to file, from the app_load_address */
+	if (lseek(px4_fd, address, SEEK_SET) >= 0) {
+		write(px4_fd, (void *)app_load_addr, 4);
 	}
 
 #endif
@@ -591,81 +698,30 @@ static size_t get_image_size(void)
 }
 #endif
 
-#ifdef CONFIG_MMCSD
-void partition_handler(FAR struct partition_s *part, FAR void *arg)
-{
-	//_alert("found partition %d\n",part->index);
-	if (part->index == 0) {
-		register_blockpartition("/dev/mmcsd0p0", 0, "/dev/mmcsd0", part->firstblock, part->nblocks);
-	}
-}
-#endif
-
-static int load_sdcard_images(const char *name, uint64_t loadaddr)
-{
-	int mmcsd_fd;
-	struct stat file_stat;
-
-	_alert("Loading %s\n", name);
-	mmcsd_fd = open(name, O_RDONLY);
-
-	if (mmcsd_fd > 0) {
-		fstat(mmcsd_fd, &file_stat);
-		size_t got = read(mmcsd_fd, (void *)loadaddr, file_stat.st_size);
-
-		if (got > 0) {
-			close(mmcsd_fd);
-			return 0;
-		}
-	}
-
-	close(mmcsd_fd);
-	return -1;
-}
-
-
 static int loader_main(int argc, char *argv[])
 {
+	int ret;
 	ssize_t image_sz = 0;
 
 	loading_status = IN_PROGRESS;
 	_alert("%s %d\n", __func__, __LINE__);
-#ifdef CONFIG_MMCSD
 
+#if defined(CONFIG_MMCSD)
 
-	parse_block_partition("/dev/mmcsd0", partition_handler, "/sdcard/");
-	_alert("%s %d\n", __func__, __LINE__);
-	/*
-	 * Mount the sdcard and check if the image is present
-	 */
-	int ret = mount("/dev/mmcsd0p0", "/sdcard/", "vfat", 0, NULL);
+	ret = load_sdcard_images("/sdcard/boot/" IMAGE_FN, APP_LOAD_ADDRESS);
 
-	if (ret >= 0) {
-		int mmc_fd = open("/sdcard/boot/" IMAGE_FN, O_RDWR | O_CREAT);
+	if (ret == 0) {
+		image_sz = get_image_size();
 
-		if (mmc_fd) {
-			ret = read(mmc_fd, (void *)APP_LOAD_ADDRESS, BOARD_FLASH_SIZE);
-			close(mmc_fd);
-
-			if (ret > 0) {
-				image_sz = get_image_size();
-
-				if (image_sz > 0) {
-					_alert("Loading from SD card\n");
-				}
-			}
+		if (image_sz > 0) {
+			_alert("PX4 load success\n");
 		}
-
-		umount("/sdcard");
-
-	} else {
-		_alert("%s No SDCARD %d\n", __func__, ret);
 	}
 
 #endif
 
-#ifdef CONFIG_MTD_M25P
-	/* If loading from sdcard didn't succeed, use SPI-NOR (normal boot media) */
+#if defined(CONFIG_MTD_M25P)
+	/* If loading from sdcard didn't succeed, use SPI-NOR */
 
 	// Read first FLASH_RW_BLOCK size data, search if TOC exists
 
@@ -699,17 +755,9 @@ static int loader_main(int argc, char *argv[])
 
 #endif
 
-#ifdef CONFIG_OPENSBI
+#if defined(CONFIG_OPENSBI) && defined(CONFIG_MMCSD)
 
-	/*
-	 * Mount the emmc and check if the image is present
-	 */
-	ret = mount("/dev/mmcsd0p0", "/sdcard/", "vfat", 0, NULL);
-
-	if (ret < 0) {
-		_err("SD card mount failed\n");
-
-	} else {
+	if (sdcard_mounted) {
 		ret = load_sdcard_images("/sdcard/boot/u-boot.bin", CONFIG_MPFS_HART3_ENTRYPOINT);
 
 		if (ret) {
@@ -814,6 +862,7 @@ bootloader_main(void)
 #if INTERFACE_USART
 	cinit(BOARD_INTERFACE_CONFIG_USART, USART);
 #endif
+
 #if INTERFACE_USB
 	cinit(BOARD_INTERFACE_CONFIG_USB, USB);
 #endif
