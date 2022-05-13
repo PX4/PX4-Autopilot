@@ -623,7 +623,7 @@ void AirspeedModule::select_airspeed_and_publish()
 			 * @description Previously selected sensor index: {1}, current sensor index: {2}.
 			 */
 			events::send<uint8_t, uint8_t>(events::ID("airspeed_selector_estimation_regain"), events::Log::Info,
-						       "Airspeed sensor healthy, start using again", _prev_airspeed_index,
+						       "Airspeed sensor healthy, start using again ({1}, {2})", _prev_airspeed_index,
 						       _valid_airspeed_index);
 		}
 	}
