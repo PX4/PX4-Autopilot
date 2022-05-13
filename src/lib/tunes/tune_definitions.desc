@@ -32,15 +32,14 @@
  ****************************************************************************/
 
 /**
- * Driver for the PX4 audio .
+ * Definitions of settings for the default tunes inside PX4
  *
- * The tune_control supports a set of predefined "alarm" tunes and
- * one user-supplied tune.
+ * Tunes follow the syntax of the Microsoft GWBasic/QBasic PLAY statement, with some exceptions and extensions.
  *
- * Tunes follow the syntax of the Microsoft GWBasic/QBasic PLAY
- * statement, with some exceptions and extensions.
+ * If you are curious about the original Microsoft BASIC MML (Music Macro Language), read here:
+ * http://www.vgmpf.com/Wiki/index.php?title=Microsoft_BASIC_MML
  *
- * From Wikibooks:
+ * Syntax description:
  *
  * PLAY "[string expression]"
  *
@@ -77,9 +76,8 @@
  *
  * Extensions/variations:
  *
- * MB MF  The MF command causes the tune to play once and then stop. The MB command causes the
- *        tune to repeat when it ends.
- *
+ * MF     The MF command causes the tune to play once and then stop.
+ * MB     The MB command causes the tune to repeat when it ends.
  */
 
 

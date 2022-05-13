@@ -40,7 +40,8 @@
 #include <errno.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/tune_control.h>
-#include "tune_definition.h"
+
+#include "tune_definitions.h"
 
 #define TUNE_DEFAULT_NOTE_LENGTH 4
 #define TUNE_DEFAULT_OCTAVE 4

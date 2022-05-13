@@ -32,8 +32,8 @@
 ############################################################################
 
 px4_add_library(tunes
-	default_tunes.cpp
-	tune_definition.h
+	tune_definitions.h
+	tune_definitions.cpp
 	tunes.cpp
 	tunes.h
 )

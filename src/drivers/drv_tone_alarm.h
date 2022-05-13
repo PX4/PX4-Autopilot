@@ -41,7 +41,6 @@
 #pragma once
 
 #include "drv_hrt.h"
-#include <lib/tunes/tune_definition.h>
 #include <uORB/topics/tune_control.h>
 
 namespace ToneAlarmInterface
