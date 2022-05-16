@@ -43,13 +43,23 @@ void BaroBiasEstimator::predict(const float dt)
 {
 	// State is constant
 	// Predict state covariance only
-	_state_var += _process_var * dt * dt;
+	float delta_state_var = _process_var * dt * dt;
+
+	if (isOffsetDetected()) {
+		// A bias in the state has been detected by the innovation sequence check
+		// Boost the process noise until the offset is removed
+		delta_state_var *= _process_var_boost_gain;
+	}
+
+	_state_var += delta_state_var;
 	constrainStateVar();
 
 	if (dt > FLT_EPSILON && fabsf(_dt - dt) > 0.001f) {
-		_signed_innov_test_ratio_lpf.setParameters(dt, _lpf_time_constant);
+		_signed_innov_test_ratio_lpf.setParameters(dt, _innov_sequence_monitnoring_time_constant);
 		_dt = dt;
 	}
+
+	_status.bias_var = _state_var;
 }
 
 void BaroBiasEstimator::constrainStateVar()
@@ -70,14 +80,7 @@ void BaroBiasEstimator::fuseBias(const float measurement, const float measuremen
 
 	}
 
-	if (isLargeOffsetDetected()) {
-		// A bias in the state has been detected by the innovation
-		// sequence check.
-		bumpStateVariance();
-	}
-
-	const float signed_innov_test_ratio = matrix::sign(innov) * innov_test_ratio;
-	_signed_innov_test_ratio_lpf.update(math::constrain(signed_innov_test_ratio, -1.f, 1.f));
+	updateOffsetDetection(innov, innov_test_ratio);
 
 	_status = packStatus(innov, innov_var, innov_test_ratio);
 }
@@ -103,14 +106,28 @@ inline void BaroBiasEstimator::updateStateCovariance(const float K)
 	constrainStateVar();
 }
 
-inline bool BaroBiasEstimator::isLargeOffsetDetected() const
+inline void BaroBiasEstimator::updateOffsetDetection(const float innov, const float innov_test_ratio)
 {
-	return fabsf(_signed_innov_test_ratio_lpf.getState()) > 0.2f;
+	const float signed_innov_test_ratio = matrix::sign(innov) * innov_test_ratio;
+	_signed_innov_test_ratio_lpf.update(math::constrain(signed_innov_test_ratio, -1.f, 1.f));
+
+	if (innov > 0.f) {
+		_time_since_last_positive_innov = 0.f;
+		_time_since_last_negative_innov += _dt;
+
+	} else {
+		_time_since_last_negative_innov = 0.f;
+		_time_since_last_positive_innov += _dt;
+	}
 }
 
-inline void BaroBiasEstimator::bumpStateVariance()
+inline bool BaroBiasEstimator::isOffsetDetected() const
 {
-	_state_var += _process_var_boost_gain * _process_var * _dt * _dt;
+	// There is an offset in the estimate if the average of innovation is statistically too large
+	// or if the sign of the innovation is constantly the same
+	return fabsf(_signed_innov_test_ratio_lpf.getState()) > 0.2f
+	       || (_time_since_last_positive_innov > _innov_sequence_monitnoring_time_constant)
+	       || (_time_since_last_negative_innov > _innov_sequence_monitnoring_time_constant);
 }
 
 inline BaroBiasEstimator::status BaroBiasEstimator::packStatus(const float innov, const float innov_var,
