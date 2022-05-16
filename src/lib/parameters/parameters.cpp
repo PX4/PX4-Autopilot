@@ -95,6 +95,10 @@ static struct work_s autosave_work {};
 static px4::atomic_bool autosave_scheduled{false};
 static bool autosave_disabled = false;
 
+// notify worker
+static struct work_s notify_work {};
+static px4::atomic<uint8_t> notify_delay_count{0};
+
 static px4::AtomicBitset<param_info_count> params_active;  // params found
 static px4::AtomicBitset<param_info_count> params_changed; // params non-default
 static px4::Bitset<param_info_count> params_custom_default; // params with runtime default value
@@ -664,6 +668,32 @@ param_control_autosave(bool enable)
 	param_unlock_writer();
 }
 
+static void notify_worker(void *arg)
+{
+	param_notify_changes();
+	notify_delay_count.store(0);
+}
+
+static void schedule_notify_changes()
+{
+#if defined(ENABLE_LOCKSTEP_SCHEDULER) || defined(CONFIG_ARCH_BOARD_PX4_SITL)
+	// on SITL call notify_worker directly to avoid issues with lockstep and SITL tests
+	(void)notify_work;
+	notify_worker(nullptr);
+	return;
+#else
+
+	if (notify_delay_count.fetch_add(1) < 100) {
+		// delay notification by 20 ms, but no more than 100 times
+		work_queue(LPWORK, &notify_work, &notify_worker, nullptr, USEC2TICK(20'000));
+
+	} else {
+		// do nothing until notify_delay_count is cleared by the notify worker
+	}
+
+#endif
+}
+
 static int
 param_set_internal(param_t param, const void *val, bool mark_saved, bool notify_changes)
 {
@@ -763,7 +793,7 @@ out:
 	 * a thing has been set.
 	 */
 	if ((result == PX4_OK) && param_changed && notify_changes) {
-		param_notify_changes();
+		schedule_notify_changes();
 	}
 
 	return result;
@@ -908,7 +938,7 @@ int param_set_default_value(param_t param, const void *val)
 
 	if ((result == PX4_OK) && param_used(param)) {
 		// send notification if param is already in use
-		param_notify_changes();
+		schedule_notify_changes();
 	}
 
 	return result;
@@ -942,7 +972,7 @@ static int param_reset_internal(param_t param, bool notify = true)
 	param_unlock_writer();
 
 	if (s != nullptr && notify) {
-		param_notify_changes();
+		schedule_notify_changes();
 	}
 
 	return (!param_found);
