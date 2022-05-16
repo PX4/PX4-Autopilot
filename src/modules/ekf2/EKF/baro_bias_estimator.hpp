@@ -78,7 +78,6 @@ public:
 	void setProcessNoiseStdDev(float process_noise)
 	{
 		_process_var = process_noise * process_noise;
-		_state_drift_rate = 3.f * process_noise;
 	}
 	void setBiasStdDev(float state_noise) { _state_var = state_noise * state_noise; }
 	void setInnovGate(float gate_size) { _gate_size = gate_size; }
@@ -92,7 +91,6 @@ public:
 private:
 	float _state{0.f};
 	float _state_max{100.f};
-	float _state_drift_rate{0.005f}; ///< in m/s
 	float _dt{0.01f};
 
 	float _gate_size{3.f}; ///< Used for innovation filtering (innovation test ratio)
@@ -100,7 +98,10 @@ private:
 	float _process_var{25.0e-6f}; ///< State process noise variance (m^2/s^2)
 	float _state_var_max{2.f}; ///< Used to constrain the state variance (m^2)
 
-	AlphaFilter<float> _signed_innov_test_ratio_lpf; ///< innovation sequence monitoring; used to detect a bias in the state
+	// Innovation sequence monitoring; used to detect a bias in the state
+	AlphaFilter<float> _signed_innov_test_ratio_lpf;
+	float _time_since_last_negative_innov{0.f};
+	float _time_since_last_positive_innov{0.f};
 
 	status _status;
 
@@ -118,12 +119,12 @@ private:
 	void updateState(float K, float innov);
 	void updateStateCovariance(float K);
 
-	bool isLargeOffsetDetected() const;
-	void bumpStateVariance();
+	void updateOffsetDetection(float innov, float innov_test_ratio);
+	bool isOffsetDetected() const;
 
 	status packStatus(float innov, float innov_var, float innov_test_ratio) const;
 
-	static constexpr float _lpf_time_constant{10.f}; ///< in seconds
+	static constexpr float _innov_sequence_monitnoring_time_constant{10.f}; ///< in seconds
 	static constexpr float _process_var_boost_gain{1.0e3f};
 };
 #endif // !EKF_BARO_BIAS_ESTIMATOR_HPP
