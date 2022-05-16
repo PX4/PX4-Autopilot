@@ -60,6 +60,29 @@ events::px4::enums::arming_state_t ArmStateMachine::eventArmingState(uint8_t arm
 	return events::px4::enums::arming_state_t::init;
 }
 
+const char *ArmStateMachine::getArmingStateName(uint8_t arming_state)
+{
+	switch (arming_state) {
+
+	case vehicle_status_s::ARMING_STATE_INIT: return "Init";
+
+	case vehicle_status_s::ARMING_STATE_STANDBY: return "Standby";
+
+	case vehicle_status_s::ARMING_STATE_ARMED: return "Armed";
+
+	case vehicle_status_s::ARMING_STATE_STANDBY_ERROR: return "Standby error";
+
+	case vehicle_status_s::ARMING_STATE_SHUTDOWN: return "Shutdown";
+
+	case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE: return "In-air restore";
+
+	default: return "Unknown";
+	}
+
+	static_assert(vehicle_status_s::ARMING_STATE_MAX - 1 == vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE,
+		      "enum def mismatch");
+}
+
 transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &status,
 		const vehicle_control_mode_s &control_mode, const safety_s &safety,
 		const arming_state_t new_arming_state, actuator_armed_s &armed, const bool fRunPreArmChecks,
@@ -205,7 +228,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		if (!feedback_provided) {
 			// FIXME: this catch-all does not provide helpful information to the user
 			mavlink_log_critical(mavlink_log_pub, "Transition denied: %s to %s\t",
-					     arming_state_names[status.arming_state], arming_state_names[new_arming_state]);
+					     getArmingStateName(status.arming_state), getArmingStateName(new_arming_state));
 			events::send<events::px4::enums::arming_state_t, events::px4::enums::arming_state_t>(
 				events::ID("commander_transition_denied"), events::Log::Critical,
 				"Arming state transition denied: {1} to {2}",
