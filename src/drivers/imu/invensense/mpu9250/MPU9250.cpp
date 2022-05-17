@@ -451,8 +451,9 @@ int MPU9250::DataReadyInterruptCallback(int irq, void *context, void *arg)
 void MPU9250::DataReady()
 {
 	// at least the required number of samples in the FIFO
-	if (++_drdy_count >= _fifo_gyro_samples) {
-		_drdy_timestamp_sample.store(hrt_absolute_time());
+	uint64_t expected = 0;
+
+	if ((++_drdy_count >= _fifo_gyro_samples) && _drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
 		_drdy_count -= _fifo_gyro_samples;
 		ScheduleNow();
 	}
@@ -604,7 +605,6 @@ void MPU9250::FIFOReset()
 
 	// reset while FIFO is disabled
 	_drdy_count = 0;
-	_drdy_timestamp_sample.store(0);
 
 	// FIFO_EN: enable both gyro and accel
 	// USER_CTRL: re-enable FIFO
@@ -613,6 +613,9 @@ void MPU9250::FIFOReset()
 			RegisterSetAndClearBits(r.reg, r.set_bits, r.clear_bits);
 		}
 	}
+
+	// clear sample timestamp to allow data ready scheduling to resume
+	_drdy_timestamp_sample.store(0);
 }
 
 void MPU9250::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)

@@ -394,8 +394,12 @@ int ADIS16470::DataReadyInterruptCallback(int irq, void *context, void *arg)
 
 void ADIS16470::DataReady()
 {
-	_drdy_timestamp_sample.store(hrt_absolute_time());
-	ScheduleNow();
+	// schedule transfer if sample timestamp has been cleared (thread ready for next transfer)
+	uint64_t expected = 0;
+
+	if (_drdy_timestamp_sample.compare_exchange(&expected, hrt_absolute_time())) {
+		ScheduleNow();
+	}
 }
 
 bool ADIS16470::DataReadyInterruptConfigure()
