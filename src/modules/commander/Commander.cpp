@@ -702,7 +702,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 		run_preflight_checks = false;
 	}
 
-	if (run_preflight_checks && !_armed.armed) {
+	if (run_preflight_checks && !_arm_state_machine.isArmed()) {
 		if (_vehicle_control_mode.flag_control_manual_enabled) {
 			if (_vehicle_control_mode.flag_control_climb_rate_enabled &&
 			    !_status.rc_signal_lost && _is_throttle_above_center) {
@@ -1630,7 +1630,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 unsigned
 Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 {
-	if (_armed.armed || (_safety.safety_switch_available && !_safety.safety_off)) {
+	if (_arm_state_machine.isArmed() || (_safety.safety_switch_available && !_safety.safety_off)) {
 		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 
@@ -1678,7 +1678,7 @@ Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 unsigned
 Commander::handle_command_actuator_test(const vehicle_command_s &cmd)
 {
-	if (_armed.armed || (_safety.safety_switch_available && !_safety.safety_off)) {
+	if (_arm_state_machine.isArmed() || (_safety.safety_switch_available && !_safety.safety_off)) {
 		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 
@@ -1758,7 +1758,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 	case action_request_s::ACTION_ARM: arm(arm_disarm_reason); break;
 
 	case action_request_s::ACTION_TOGGLE_ARMING:
-		if (_armed.armed) {
+		if (_arm_state_machine.isArmed()) {
 			disarm(arm_disarm_reason);
 
 		} else {
@@ -1803,7 +1803,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 
 		// if there's never been a mode change force RC switch as initial state
 		if (action_request.source == action_request_s::SOURCE_RC_MODE_SLOT
-		    && !_armed.armed && (_internal_state.main_state_changes == 0)
+		    && !_arm_state_machine.isArmed() && (_internal_state.main_state_changes == 0)
 		    && (action_request.mode == commander_state_s::MAIN_STATE_ALTCTL
 			|| action_request.mode == commander_state_s::MAIN_STATE_POSCTL)) {
 			_internal_state.main_state = action_request.mode;
@@ -2190,7 +2190,7 @@ Commander::run()
 			_parameter_update_sub.copy(&update);
 
 			/* update parameters */
-			if (!_armed.armed) {
+			if (!_arm_state_machine.isArmed()) {
 				updateParameters();
 
 				_status_changed = true;
@@ -2244,7 +2244,7 @@ Commander::run()
 			_vehicle_land_detected_sub.copy(&_vehicle_land_detected);
 
 			// Only take actions if armed
-			if (_armed.armed) {
+			if (_arm_state_machine.isArmed()) {
 				if (!was_landed && _vehicle_land_detected.landed) {
 					mavlink_log_info(&_mavlink_log_pub, "Landing detected\t");
 					events::send(events::ID("commander_landing_detected"), events::Log::Info, "Landing detected");
@@ -2288,7 +2288,7 @@ Commander::run()
 						 _safety.safety_switch_available, _status);
 
 				// disarm if safety is now on and still armed
-				if (_armed.armed && _safety.safety_switch_available && !_safety.safety_off
+				if (_arm_state_machine.isArmed() && _safety.safety_switch_available && !_safety.safety_off
 				    && (_status.hil_state == vehicle_status_s::HIL_STATE_OFF)) {
 					disarm(arm_disarm_reason_t::safety_button);
 				}
@@ -2387,7 +2387,7 @@ Commander::run()
 		estimator_check();
 
 		// Auto disarm when landed or kill switch engaged
-		if (_armed.armed) {
+		if (_arm_state_machine.isArmed()) {
 
 			// Check for auto-disarm on landing or pre-flight
 			if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
@@ -2505,7 +2505,7 @@ Commander::run()
 			}
 
 			// Transition main state to loiter or auto-mission after takeoff is completed.
-			if (_armed.armed && !_vehicle_land_detected.landed
+			if (_arm_state_machine.isArmed() && !_vehicle_land_detected.landed
 			    && (_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF ||
 				_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF)
 			    && (mission_result.timestamp >= _status.nav_state_timestamp)
@@ -2529,7 +2529,7 @@ Commander::run()
 		const bool in_low_battery_failsafe_delay = _battery_failsafe_timestamp != 0;
 
 		// Geofence actions
-		if (_armed.armed
+		if (_arm_state_machine.isArmed()
 		    && (_geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE)
 		    && !in_low_battery_failsafe_delay) {
 
@@ -2629,7 +2629,7 @@ Commander::run()
 		}
 
 		/* Check for mission flight termination */
-		if (_armed.armed && _mission_result_sub.get().flight_termination &&
+		if (_arm_state_machine.isArmed() && _mission_result_sub.get().flight_termination &&
 		    !_status_flags.circuit_breaker_flight_termination_disabled) {
 
 
@@ -2679,7 +2679,8 @@ Commander::run()
 
 				const bool is_mavlink = manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC;
 
-				if (!_armed.armed && (is_mavlink || !_mode_switch_mapped) && (_internal_state.main_state_changes == 0)) {
+				if (!_arm_state_machine.isArmed() && (is_mavlink || !_mode_switch_mapped)
+				    && (_internal_state.main_state_changes == 0)) {
 					// if there's never been a mode change force position control as initial state
 					_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
 					_internal_state.main_state_changes++;
@@ -2713,7 +2714,7 @@ Commander::run()
 			// but only if actually in air.
 			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
 			    && !in_low_battery_failsafe_delay && !_geofence_warning_action_on
-			    && _armed.armed
+			    && _arm_state_machine.isArmed()
 			    && !_status_flags.rc_calibration_in_progress
 			    && manual_control_setpoint.valid
 			    && manual_control_setpoint.sticks_moving
@@ -2750,7 +2751,7 @@ Commander::run()
 		avoidance_check();
 
 		/* check if we are disarmed and there is a better mode to wait in */
-		if (!_armed.armed) {
+		if (!_arm_state_machine.isArmed()) {
 			/* if there is no radio control but GPS lock the user might want to fly using
 			 * just a tablet. Since the RC will force its mode switch setting on connecting
 			 * we can as well just wait in a hold mode which enables tablet control.
@@ -2800,7 +2801,7 @@ Commander::run()
 			auto fd_status_flags = _failure_detector.getStatusFlags();
 			_status_changed = true;
 
-			if (_armed.armed) {
+			if (_arm_state_machine.isArmed()) {
 				if (fd_status_flags.arm_escs) {
 					// 500ms is the PWM spoolup time. Within this timeframe controllers are not affecting actuator_outputs
 					if (hrt_elapsed_time(&_status.armed_time) < 500_ms) {
@@ -2952,7 +2953,7 @@ Commander::run()
 
 		// automatically set or update home position
 		if (_param_com_home_en.get() && !_home_pub.get().manual_home) {
-			if (!_armed.armed && _vehicle_land_detected.landed) {
+			if (!_arm_state_machine.isArmed() && _vehicle_land_detected.landed) {
 				const bool can_set_home_lpos_first_time = (!_home_pub.get().valid_lpos && _status_flags.local_position_valid);
 				const bool can_set_home_gpos_first_time = ((!_home_pub.get().valid_hpos || !_home_pub.get().valid_alt)
 						&& (_status_flags.global_position_valid || _status_flags.gps_position_valid));
@@ -2968,10 +2969,10 @@ Commander::run()
 		}
 
 		// check for arming state change
-		if (_was_armed != _armed.armed) {
+		if (_was_armed != _arm_state_machine.isArmed()) {
 			_status_changed = true;
 
-			if (_armed.armed) {
+			if (_arm_state_machine.isArmed()) {
 				if (!_vehicle_land_detected.landed) { // check if takeoff already detected upon arming
 					_have_taken_off_since_arming = true;
 				}
@@ -2985,7 +2986,7 @@ Commander::run()
 			}
 		}
 
-		if (!_armed.armed) {
+		if (!_arm_state_machine.isArmed()) {
 			/* Reset the flag if disarmed. */
 			_have_taken_off_since_arming = false;
 			_imbalanced_propeller_check_triggered = false;
@@ -3067,7 +3068,7 @@ Commander::run()
 		    || !(_armed == actuator_armed_prev)) {
 
 			// Evaluate current prearm status (skip during arm -> disarm transition)
-			if (!actuator_armed_prev.armed && !_armed.armed && !_status_flags.calibration_enabled) {
+			if (!actuator_armed_prev.armed && !_arm_state_machine.isArmed() && !_status_flags.calibration_enabled) {
 
 				_status_flags.system_hotplug_timeout = (hrt_elapsed_time(&_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
 
@@ -3087,6 +3088,8 @@ Commander::run()
 			}
 
 			// publish actuator_armed first (used by output modules)
+			_armed.armed = _arm_state_machine.isArmed();
+			_armed.ready_to_arm = _arm_state_machine.isArmed() || _arm_state_machine.isStandby();
 			_armed.timestamp = hrt_absolute_time();
 			_armed_pub.publish(_armed);
 
@@ -3123,7 +3126,7 @@ Commander::run()
 		}
 
 		/* play arming and battery warning tunes */
-		if (!_arm_tune_played && _armed.armed &&
+		if (!_arm_tune_played && _arm_state_machine.isArmed() &&
 		    (_safety.safety_switch_available || (_safety.safety_switch_available && _safety.safety_off))) {
 
 			/* play tune when armed */
@@ -3141,7 +3144,7 @@ Commander::run()
 			/* play tune on battery warning */
 			set_tune(tune_control_s::TUNE_ID_BATTERY_WARNING_SLOW);
 
-		} else if (_status.failsafe && _armed.armed) {
+		} else if (_status.failsafe && _arm_state_machine.isArmed()) {
 			tune_failsafe(true);
 
 		} else {
@@ -3149,7 +3152,7 @@ Commander::run()
 		}
 
 		/* reset arm_tune_played when disarmed */
-		if (!_armed.armed || (_safety.safety_switch_available && !_safety.safety_off)) {
+		if (!_arm_state_machine.isArmed() || (_safety.safety_switch_available && !_safety.safety_off)) {
 
 			// Notify the user that it is safe to approach the vehicle
 			if (_arm_tune_played) {
@@ -3192,11 +3195,11 @@ Commander::run()
 		_last_local_position_valid = _status_flags.local_position_valid;
 		_last_global_position_valid = _status_flags.global_position_valid;
 
-		_was_armed = _armed.armed;
+		_was_armed = _arm_state_machine.isArmed();
 
 		arm_auth_update(now, params_updated);
 
-		px4_indicate_external_reset_lockout(LockoutComponent::Commander, _armed.armed);
+		px4_indicate_external_reset_lockout(LockoutComponent::Commander, _arm_state_machine.isArmed());
 
 		perf_end(_loop_perf);
 
@@ -3335,7 +3338,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 
 #if !defined(CONFIG_ARCH_LEDS) && defined(BOARD_HAS_CONTROL_STATUS_LEDS)
 
-	if (_armed.armed) {
+	if (_arm_state_machine.isArmed()) {
 		if (_status.failsafe) {
 			BOARD_ARMED_LED_OFF();
 
@@ -3351,7 +3354,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			BOARD_ARMED_LED_ON();
 		}
 
-	} else if (_armed.ready_to_arm) {
+	} else if (_arm_state_machine.isStandby()) {
 		BOARD_ARMED_LED_OFF();
 
 		// ready to arm, blink at 1Hz
@@ -3426,7 +3429,7 @@ Commander::update_control_mode()
 	_vehicle_control_mode = {};
 
 	/* set vehicle_control_mode according to set_navigation_state */
-	_vehicle_control_mode.flag_armed = _armed.armed;
+	_vehicle_control_mode.flag_armed = _arm_state_machine.isArmed();
 
 	switch (_status.nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
@@ -3575,7 +3578,7 @@ Commander::print_reject_mode(uint8_t main_state)
 
 		/* only buzz if armed, because else we're driving people nuts indoors
 		they really need to look at the leds as well. */
-		tune_negative(_armed.armed);
+		tune_negative(_arm_state_machine.isArmed());
 
 		_last_print_mode_reject_time = hrt_absolute_time();
 	}
@@ -3707,7 +3710,7 @@ void Commander::data_link_check()
 						events::send(events::ID("commander_dl_regained"), events::Log::Info, "Data link regained");
 					}
 
-					if (!_armed.armed && !_status_flags.calibration_enabled) {
+					if (!_arm_state_machine.isArmed() && !_status_flags.calibration_enabled) {
 						// make sure to report preflight check failures to a connecting GCS
 						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _status, _status_flags, _vehicle_control_mode,
 									       true, false, hrt_elapsed_time(&_boot_timestamp));
@@ -3881,7 +3884,7 @@ void Commander::battery_status_check()
 			battery_required_count++;
 		}
 
-		if (_armed.armed) {
+		if (_arm_state_machine.isArmed()) {
 
 			if ((_last_connected_batteries & (1 << index)) && !battery.connected) {
 				mavlink_log_critical(&_mavlink_log_pub, "Battery %d disconnected. Land now! \t", index + 1);
@@ -3927,9 +3930,11 @@ void Commander::battery_status_check()
 					     fault_index++) {
 						if (battery.faults & (1 << fault_index)) {
 							mavlink_log_emergency(&_mavlink_log_pub, "Battery %d: %s. %s \t", index + 1,
-									      battery_fault_reason_str(static_cast<battery_fault_reason_t>(fault_index)),  _armed.armed ? "Land now!" : "");
+									      battery_fault_reason_str(static_cast<battery_fault_reason_t>(fault_index)),
+									      _arm_state_machine.isArmed() ? "Land now!" : "");
 
-							events::px4::enums::suggested_action_t action = _armed.armed ? events::px4::enums::suggested_action_t::land :
+							events::px4::enums::suggested_action_t action = _arm_state_machine.isArmed() ?
+									events::px4::enums::suggested_action_t::land :
 									events::px4::enums::suggested_action_t::none;
 
 							/* EVENT
@@ -3963,7 +3968,7 @@ void Commander::battery_status_check()
 	if (_rtl_time_estimate_sub.copy(&rtl_time_estimate)
 	    && (hrt_absolute_time() - rtl_time_estimate.timestamp) < 2_s
 	    && rtl_time_estimate.valid
-	    && _armed.armed
+	    && _arm_state_machine.isArmed()
 	    && !_vehicle_land_detected.ground_contact // not in any landing stage
 	    && !_rtl_time_actions_done
 	    && PX4_ISFINITE(worst_battery_time_s)
@@ -3989,7 +3994,7 @@ void Commander::battery_status_check()
 	bool battery_warning_level_increased_while_armed = false;
 	bool update_internal_battery_state = false;
 
-	if (_armed.armed) {
+	if (_arm_state_machine.isArmed()) {
 		if (worst_warning > _battery_warning) {
 			battery_warning_level_increased_while_armed = true;
 			update_internal_battery_state = true;
@@ -4226,7 +4231,7 @@ void Commander::estimator_check()
 		bool xy_valid = lpos.xy_valid && !_nav_test_failed;
 		bool v_xy_valid = lpos.v_xy_valid && !_nav_test_failed;
 
-		if (!_armed.armed) {
+		if (!_arm_state_machine.isArmed()) {
 			if (pre_flt_fail_innov_heading || pre_flt_fail_innov_vel_horiz) {
 				xy_valid = false;
 			}
@@ -4417,7 +4422,8 @@ void Commander::esc_status_check()
 				if ((esc_status.esc_online_flags & (1 << index)) == 0) {
 					snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", index + 1);
 					esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
-					events::px4::enums::suggested_action_t action = _armed.armed ? events::px4::enums::suggested_action_t::land :
+					events::px4::enums::suggested_action_t action = _arm_state_machine.isArmed() ?
+							events::px4::enums::suggested_action_t::land :
 							events::px4::enums::suggested_action_t::none;
 					// TODO: use esc_status.esc[index].actuator_function as index after SYS_CTRL_ALLOC becomes default
 					events::send<uint8_t, events::px4::enums::suggested_action_t>(events::ID("commander_esc_offline"),
@@ -4425,7 +4431,8 @@ void Commander::esc_status_check()
 				}
 			}
 
-			mavlink_log_critical(&_mavlink_log_pub, "%soffline. %s\t", esc_fail_msg, _armed.armed ? "Land now!" : "");
+			mavlink_log_critical(&_mavlink_log_pub, "%soffline. %s\t", esc_fail_msg,
+					     _arm_state_machine.isArmed() ? "Land now!" : "");
 
 			_last_esc_online_flags = esc_status.esc_online_flags;
 			_status_flags.escs_error = true;
@@ -4459,7 +4466,7 @@ void Commander::esc_status_check()
 						}
 
 						mavlink_log_emergency(&_mavlink_log_pub, "ESC%d: %s. %s \t", index + 1,
-								      esc_fault_reason_str(fault_reason_index),  _armed.armed ? user_action : "");
+								      esc_fault_reason_str(fault_reason_index), _arm_state_machine.isArmed() ? user_action : "");
 
 						events::send<uint8_t, events::px4::enums::esc_fault_reason_t, events::px4::enums::suggested_action_t>
 						(events::ID("commander_esc_fault"), {events::Log::Emergency, events::LogInternal::Warning},
