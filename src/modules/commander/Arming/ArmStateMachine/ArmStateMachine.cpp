@@ -154,21 +154,20 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 
 		// Finish up the state transition
 		if (valid_transition) {
-			bool was_armed = armed.armed;
-			armed.armed = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-			armed.ready_to_arm = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-					     || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
 			ret = TRANSITION_CHANGED;
-			_arm_state = new_arming_state;
 
-			if (was_armed && !armed.armed) { // disarm transition
+			// Record arm/disarm reason
+			if (isArmed() && (new_arming_state != vehicle_status_s::ARMING_STATE_ARMED)) { // disarm transition
 				status.latest_disarming_reason = (uint8_t)calling_reason;
 
-			} else if (!was_armed && armed.armed) { // arm transition
+			} else if (!isArmed() && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)) { // arm transition
 				status.latest_arming_reason = (uint8_t)calling_reason;
 			}
 
-			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+			// Switch state
+			_arm_state = new_arming_state;
+
+			if (isArmed()) {
 				status.armed_time = hrt_absolute_time();
 
 			} else {
