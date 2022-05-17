@@ -234,7 +234,8 @@ void Tailsitter::update_transition_state()
 
 	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_FRONT_P1) {
 
-		const float trans_pitch_rate = M_PI_2_F / _param_vt_f_trans_dur.get() ;
+		// calculate pitching rate - and constrain to at least 0.1s transition time
+		const float trans_pitch_rate = M_PI_2_F / math::max(_param_vt_f_trans_dur.get(), 0.1f);
 
 		if (tilt < M_PI_2_F - math::radians(_param_fw_psp_off.get())) {
 			_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis,
@@ -251,7 +252,8 @@ void Tailsitter::update_transition_state()
 
 	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_BACK) {
 
-		const float trans_pitch_rate = M_PI_2_F / _param_vt_b_trans_dur.get() ;
+		// calculate pitching rate - and constrain to at least 0.1s transition time
+		const float trans_pitch_rate = M_PI_2_F / math::max(_param_vt_b_trans_dur.get(), 0.1f);
 
 		if (!_flag_idle_mc) {
 			_flag_idle_mc = set_idle_mc();
