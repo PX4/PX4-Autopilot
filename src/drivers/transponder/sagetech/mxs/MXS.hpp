@@ -41,7 +41,11 @@
 #ifndef DRIVERS_TRANSPONDER_SAGETECH_MXS_MXS_HPP_
 #define DRIVERS_TRANSPONDER_SAGETECH_MXS_MXS_HPP_
 
-#include "Include/sg.h"
+extern "C"
+{
+	#include "sg.h"
+}
+
 
 #include <termios.h>
 #include <stdint.h>
@@ -76,9 +80,9 @@ using namespace time_literals;
 #define PAYLOAD_MXS_MAX_SIZE  							255
 #define START_BYTE										0xAA
 #define SAGETECH_PI										3.14159
-#define USEC_PER_HOUR									3600000000
-#define USEC_PER_MIN									60000000
-#define USEC_PER_SEC									1000000
+#define SAGETECH_USEC_PER_HOUR							3600000000
+#define SAGETECH_USEC_PER_MIN							60000000
+#define SAGETECH_USEC_PER_SEC							1000000
 
 /*********************************************************************************
  * Enum definitions
@@ -114,10 +118,10 @@ typedef struct
 class MXS : public px4::ScheduledWorkItem ,public device::Device
 {
 public:
-	MXS(const char *serial_port);
+	MXS(const char *serial_port,unsigned baudrate);
 	~MXS() override;
 
-	int init();
+	//int init();
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -161,6 +165,8 @@ private:
 
 	void send_target_req_msg();
 
+	speed_t convert_baudrate(unsigned baud);
+
 	char 				*_serial_port{nullptr};
 	unsigned			_baudrate{0};
 
@@ -183,7 +189,6 @@ private:
 	//uORB::PublicationMulti<sensor_gps_s>	_report_gps_pos_pub{ORB_ID(sensor_gps)};
 
 };
-
 
 
 #endif /* DRIVERS_TRANSPONDER_SAGETECH_MXS_MXS_HPP_ */

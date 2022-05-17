@@ -41,28 +41,47 @@
 #include "MXS.hpp"
 
 
-MXS::MXS(const char *serial_port):ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)),
+MXS::MXS(const char *serial_port, unsigned baudrate):ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)),
 Device(MODULE_NAME),
 _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 
 {
-	//Dave the serial port
-	strncpy(_serial_port, serial_port, sizeof(_serial_port) - 1);
-	/* enforce null termination */
-	_serial_port[sizeof(_serial_port) - 1] = '\0';
+	PX4_INFO("Saving serial port %d",baudrate );
+	_baudrate = baudrate;
+	//Save the serial port
+	if(serial_port == nullptr)
+	{
+		PX4_WARN("No port specified");
+	}
+	else
+	{
+		PX4_INFO("Saving serial port %s",serial_port );
+		_serial_port = strdup(serial_port);
+		set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SERIAL);
+		set_device_type(DRV_TRNS_DEVTYPE_MXS);
+		char c = serial_port[strlen(serial_port) - 1]; // last digit of path (eg /dev/ttyS2)
+		set_device_bus(atoi(&c));
+	}
 
-	set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SERIAL);
-	set_device_type(DRV_TRNS_DEVTYPE_MXS);
-	char c = serial_port[strlen(serial_port) - 1]; // last digit of path (eg /dev/ttyS2)
-	set_device_bus(atoi(&c));
+
+
+}
+MXS::~MXS()
+{
+	stop();
+
+	free((char *)_serial_port);
+	perf_free(_comms_errors);
+	perf_free(_sample_perf);
 }
 
 int MXS::open_serial_port()
 {
+	speed_t baud = convert_baudrate(_baudrate);
 	// File descriptor already initialized?
 	if (_file_descriptor > 0) {
-		PX4_INFO("serial port already open");
+		//PX4_INFO("serial port already open");
 		return PX4_OK;
 	}
 
@@ -70,6 +89,7 @@ int MXS::open_serial_port()
 	int flags = (O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	// Open the serial port.
+	PX4_INFO("Atempting to open port %s with baudrate %d",_serial_port, _baudrate);
 	_file_descriptor = ::open(_serial_port, flags);
 
 	if (_file_descriptor < 0) {
@@ -100,7 +120,7 @@ int MXS::open_serial_port()
 	uart_config.c_oflag &= ~ONLCR;
 
 	// Set the input baud rate in the uart_config struct.
-	int termios_state = cfsetispeed(&uart_config, _baudrate);
+	int termios_state = cfsetispeed(&uart_config, baud);
 
 	if (termios_state < 0) {
 		PX4_ERR("CFG: %d ISPD", termios_state);
@@ -109,7 +129,7 @@ int MXS::open_serial_port()
 	}
 
 	// Set the output baud rate in the uart_config struct.
-	termios_state = cfsetospeed(&uart_config, _baudrate);
+	termios_state = cfsetospeed(&uart_config, baud);
 
 	if (termios_state < 0) {
 		PX4_ERR("CFG: %d OSPD", termios_state);
@@ -234,6 +254,7 @@ void MXS::handle_msg(const sagetech_packet_t packet)
 {
 	uint8_t msgIn[255];
 	memcpy(msgIn, &packet.start, (5 + packet.index)* sizeof(uint8_t));
+	PX4_INFO("Current MXS Message: %s",msgIn );
 	switch(packet.type)
 	{
 		case SG_MSG_TYPE_ADSB_MSR:
@@ -313,6 +334,51 @@ uint8_t MXS::determine_emitter(sg_adsb_emitter_t emit)
 
 
 	return emitCat;
+}
+
+speed_t MXS::convert_baudrate(unsigned baud)
+{
+	speed_t ret;
+	switch (baud)
+	{
+	case 600:
+		ret = B600;
+		break;
+	case 4800:
+		ret = B4800;
+		break;
+	case 9600:
+		ret = B9600;
+		break;
+	case 19200:
+		ret = B19200;
+		break;
+	/*case 28800:
+		ret = B28800;
+		break;*/
+	case 38400:
+		ret = B38400;
+		break;
+	case 57600:
+		ret = B57600;
+		break;
+	case 115200:
+		ret = B115200;
+		break;
+	case 230400:
+		ret = B230400;
+		break;
+	case 460800:
+		ret = B460800;
+		break;
+	case 921600:
+		ret = B921600;
+		break;
+	default:
+		ret = B230400;
+		break;
+	}
+	return ret;
 }
 
 void MXS::handle_svr(sg_svr_t svr)
@@ -446,12 +512,12 @@ void MXS::send_gps_msg()
 	uint64_t timeUsec = _gps.time_utc_usec;
 	if (timeUsec)
 	{
-		const uint8_t hours = timeUsec % USEC_PER_HOUR;
-		timeUsec = timeUsec - (hours * USEC_PER_HOUR);
-		const uint8_t mins = timeUsec % USEC_PER_MIN;
-		timeUsec = timeUsec - (mins * USEC_PER_MIN);
-		const uint8_t secs = timeUsec % USEC_PER_SEC;
-		timeUsec = timeUsec - (secs * USEC_PER_SEC);
+		const uint8_t hours = timeUsec % SAGETECH_USEC_PER_HOUR;
+		timeUsec = timeUsec - (hours * SAGETECH_USEC_PER_HOUR);
+		const uint8_t mins = timeUsec % SAGETECH_USEC_PER_MIN;
+		timeUsec = timeUsec - (mins * SAGETECH_USEC_PER_MIN);
+		const uint8_t secs = timeUsec % SAGETECH_USEC_PER_SEC;
+		timeUsec = timeUsec - (secs * SAGETECH_USEC_PER_SEC);
 		const uint16_t fracSecs = timeUsec * 1.0e-3;
 		snprintf(gpsOut.timeOfFix, 11, "%02u%02u%02u.%03u",hours,mins,secs,fracSecs);
 	}
@@ -464,10 +530,19 @@ void MXS::send_gps_msg()
 
 	//Encode GPS
 	memset(_buffer,0, sizeof(_buffer)); 	//Make sure buffer is clear
-	sgEncodeGPS(_buffer,&gpsOut, _msgId++);
+	sgEncodeGPS(_buffer,&gpsOut, uint8_t(_msgId++));
 
 	//Write to serial
 	int ret = 0;
+	char out[255] = "";
+	for ( int i = 0; i  < SG_MSG_LEN_GPS + 1; i ++)
+	{
+		char str[3];
+		sprintf(str,"%X",_buffer[i]);
+		strcat(out, str);
+	}
+	PX4_INFO("Writing GPS %s\n",out);
+
 	ret = ::write(_file_descriptor, &_buffer, sizeof(_buffer)); //Could use SG_MSG_LEN_GPS + 1
 
 	if(ret < 0)
@@ -480,7 +555,6 @@ void MXS::send_gps_msg()
 
 }
 
-
 void MXS::print_info()
 {
 	perf_print_counter(_comms_errors);
@@ -489,6 +563,9 @@ void MXS::print_info()
 
 void MXS::Run()
 {
+#ifdef DEBUG_MXS
+	PX4_INFO("MXS Driver running");
+#endif
 	//Subscribe to GPS uORB
 	int gps_sub_fd = orb_subscribe(ORB_ID(sensor_gps));
 	orb_set_interval(gps_sub_fd, 200);
@@ -501,14 +578,14 @@ void MXS::Run()
 
 	 if (currentTime - _last_gps_send >= 200)
 	 {
-		 send_gps_msg();
+		send_gps_msg();
 	 }
 }
 
 void MXS::start()
 {
 	// Schedule the driver at regular intervals.
-	ScheduleOnInterval(SAGETECH_MXS_POLL_RATE);
+	ScheduleOnInterval(SAGETECH_MXS_POLL_RATE,SAGETECH_MXS_POLL_RATE);
 }
 
 void MXS::stop()

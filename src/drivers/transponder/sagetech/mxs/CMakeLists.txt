@@ -31,22 +31,48 @@
 #
 ############################################################################
 add_library(sagetech_sdk_public STATIC IMPORTED GLOBAL)
-set_property(TARGET sagetech_sdk_public PROPERTY IMPORTED_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/Lib/libsagetech-sdk-public.a)
 
 px4_add_module(
 	MODULE drivers__transponder__sagetech_mxs
 	MAIN mxs
 	COMPILE_FLAGS
 	INCLUDES
-		Include
+		SagetechSDK
 	SRCS
+		SagetechSDK/sgDecodeMSR.c
+		SagetechSDK/sgDecodeSVR.c
+		SagetechSDK/sgEncodeGPS.c
+		SagetechSDK/appendChecksum.c
+		SagetechSDK/calcChecksum.c
+		SagetechSDK/charArray2Buf.c
+		SagetechSDK/double2Buf.c
+		SagetechSDK/float2Buf.c
+		SagetechSDK/icao2Buf.c
+		SagetechSDK/int242Buf.c
+		SagetechSDK/latLon2Buf.c
+		SagetechSDK/target.c
+		SagetechSDK/toAlt.c
+		SagetechSDK/toDist.c
+		SagetechSDK/toDouble.c
+		SagetechSDK/toFloat.c
+		SagetechSDK/toGS.c
+		SagetechSDK/toHeading.c
+		SagetechSDK/toHeading2.c
+		SagetechSDK/toIcao.c
+		SagetechSDK/toInt16.c
+		SagetechSDK/toInt32.c
+		SagetechSDK/toLatLon.c
+		SagetechSDK/toTOA.c
+		SagetechSDK/toUint16.c
+		SagetechSDK/toUint24.c
+		SagetechSDK/toUint32.c
+		SagetechSDK/toVel.c
+		SagetechSDK/uint162Buf.c
+		SagetechSDK/uint242Buf.c
+		SagetechSDK/uint322Buf.c
 		MXS.cpp
 		MXS.hpp
 		MXS_main.cpp
 	MODULE_CONFIG
 		module.yaml
-	DEPENDS
-	sagetech_sdk_public
 	)
-
-target_link_libraries(sagetech_sdk_public INTERFACE drivers__transponder__sagetech_mxs)

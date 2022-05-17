@@ -1,6 +1,6 @@
 menu "Transponder"
-    menuconfig COMMON_TRANSPONDER
-        bool "Common transponder"
+    menuconfig TRANSPONDER
+        bool "Transponder"
         default n
         select DRIVERS_TRANSPONDER_SAGETECH_MXS
         ---help---

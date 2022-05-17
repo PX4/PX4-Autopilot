@@ -40,11 +40,143 @@
 
 #include "MXS.hpp"
 
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
+namespace mxs
+{
+
+MXS	*g_dev{nullptr};
+
+static int start(const char *port, unsigned baudrate)
+{
+	if (g_dev != nullptr) {
+		PX4_ERR("MXS driver already started");
+		return PX4_OK;
+	}
+
+	// Instantiate the driver.
+	g_dev = new MXS(port, baudrate);
+
+	if (g_dev == nullptr) {
+		PX4_ERR("MXS driver start failed");
+		return PX4_OK;
+	}
+
+	if (OK != g_dev->init()) {
+		PX4_ERR("MXS driver start failed");
+		delete g_dev;
+		g_dev = nullptr;
+		return PX4_ERROR;
+	}
+
+	PX4_INFO("MXS Driver Running");
+
+	g_dev->start();
+
+	return PX4_OK;
+}
+
+
+static int status()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
+	}
+
+	g_dev->print_info();
+
+	return PX4_OK;
+}
+
+static int stop()
+{
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
+
+	}
+
+	PX4_INFO("driver stopped");
+	return PX4_OK;
+}
+
+static int usage()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Serial bus driver for the Sagetech MXS Transponder.
+
+Most boards are configured to enable/start the driver on a specified UART using the TRANS_MXS_CFG parameter.
+
+Setup/usage information: TBD
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+$ mxs start -d /dev/ttyS1 -b 230400
+Stop driver
+$ mxs stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("mxs", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("transponder");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS1", "<file:dev>", "Sagetech MXS device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 600, 0, 921600, "Baudrate", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Current status of the Driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	return PX4_OK;
+}
+
+}//namespace
 extern "C" __EXPORT int mxs_main(int argc, char *argv[]);
 int mxs_main(int argc, char *argv[])
 {
-	return 0;
+	PX4_INFO("Running MXS");
+	const char *myoptarg = nullptr;
+
+	int ch = 0;
+	int myoptind = 1;
+
+	const char *port = nullptr;
+	unsigned baud = 0;
+
+	while ((ch = px4_getopt(argc, argv, "d:b", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			port = myoptarg;
+			break;
+
+		case 'b':
+			baud = (unsigned)atoi(myoptarg);
+			break;
+
+		default:
+			PX4_WARN("Unknown option");
+			return mxs::usage();
+		}
+	}
+
+	if (myoptind >= argc) {
+		return mxs::usage();
+	}
+
+	if (!strcmp(argv[myoptind], "start")) {
+		return mxs::start(port, baud);
+
+	}
+	else if (!strcmp(argv[myoptind], "status")) {
+		return mxs::status();
+
+	}
+	else if (!strcmp(argv[myoptind], "stop")) {
+		return mxs::stop();
+	}
+	return mxs::usage();
 }
 
 
