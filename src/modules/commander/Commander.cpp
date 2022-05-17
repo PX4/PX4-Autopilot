@@ -479,7 +479,7 @@ int Commander::custom_command(int argc, char *argv[])
 
 int Commander::print_status()
 {
-	PX4_INFO("arming: %s", _arm_state_machine.getArmingStateName(_status.arming_state));
+	PX4_INFO("Arm state: %s", _arm_state_machine.getArmStateName());
 	PX4_INFO("navigation: %s", nav_state_names[_status.nav_state]);
 	perf_print_counter(_loop_perf);
 	perf_print_counter(_preflight_check_perf);
@@ -829,7 +829,6 @@ Commander::Commander() :
 	// We want to accept RC inputs as default
 	_status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	_status.nav_state_timestamp = hrt_absolute_time();
-	_status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
 
 	/* mark all signals lost as long as they haven't been found */
 	_status.rc_signal_lost = true;
@@ -1027,12 +1026,13 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				const bool forced = (static_cast<int>(lroundf(cmd.param2)) == 21196);
 				const bool cmd_from_io = (static_cast<int>(roundf(cmd.param3)) == 1234);
 
-				if (!forced) {
-					// Flick to in-air restore first if this comes from an onboard system and from IO
-					if (cmd.source_system == _status.system_id && cmd.source_component == _status.component_id
-					    && cmd_from_io && (arming_action == vehicle_command_s::ARMING_ACTION_ARM)) {
-						_status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
-					}
+				// Flick to in-air restore first if this comes from an onboard system and from IO
+				if (!forced && cmd_from_io
+				    && (cmd.source_system == _status.system_id)
+				    && (cmd.source_component == _status.component_id)
+				    && (arming_action == vehicle_command_s::ARMING_ACTION_ARM)) {
+					// TODO: replace with a proper allowed transition
+					_arm_state_machine.forceArmState(vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE);
 				}
 
 				transition_result_t arming_res = TRANSITION_DENIED;
@@ -1386,8 +1386,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
 
-			if ((_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-			    || _status.arming_state == vehicle_status_s::ARMING_STATE_SHUTDOWN || _worker_thread.isBusy()) {
+			if (_arm_state_machine.isArmed() || _arm_state_machine.isShutdown() || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
@@ -1506,9 +1505,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_FIXED_MAG_CAL_YAW: {
 			// Magnetometer quick calibration using world magnetic model and known heading
-			if ((_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-			    || (_status.arming_state == vehicle_status_s::ARMING_STATE_SHUTDOWN)
-			    || _worker_thread.isBusy()) {
+			if (_arm_state_machine.isArmed() || _arm_state_machine.isShutdown() || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
@@ -1543,9 +1540,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE: {
 
-			if ((_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-			    || _status.arming_state == vehicle_status_s::ARMING_STATE_SHUTDOWN
-			    || _worker_thread.isBusy()) {
+			if (_arm_state_machine.isArmed() || _arm_state_machine.isShutdown() || _worker_thread.isBusy()) {
 
 				// reject if armed or shutting down
 				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
@@ -2455,7 +2450,7 @@ Commander::run()
 		}
 
 		/* If in INIT state, try to proceed to STANDBY state */
-		if (!_status_flags.calibration_enabled && _status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
+		if (!_status_flags.calibration_enabled && _arm_state_machine.isInit()) {
 
 			_arm_state_machine.arming_state_transition(_status, _vehicle_control_mode, _safety,
 					vehicle_status_s::ARMING_STATE_STANDBY, _armed,
@@ -3099,6 +3094,7 @@ Commander::run()
 			update_control_mode();
 
 			// vehicle_status publish (after prearm/preflight updates above)
+			_status.arming_state = _arm_state_machine.getArmState();
 			_status.timestamp = hrt_absolute_time();
 			_status_pub.publish(_status);
 
@@ -3276,14 +3272,14 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 		uint8_t led_color = led_control_s::COLOR_WHITE;
 		bool set_normal_color = false;
 
-		uint64_t overload_warn_delay = (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 1_ms : 250_ms;
+		uint64_t overload_warn_delay = _arm_state_machine.isArmed() ? 1_ms : 250_ms;
 
 		// set mode
 		if (overload && (time_now_us >= _overload_start + overload_warn_delay)) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_PURPLE;
 
-		} else if (_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		} else if (_arm_state_machine.isArmed()) {
 			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
@@ -3291,7 +3287,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_RED;
 
-		} else if (_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+		} else if (_arm_state_machine.isStandby()) {
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 
@@ -3299,7 +3295,7 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 
-		} else if (_status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
+		} else if (_arm_state_machine.isInit()) {
 			// if in init status it should not be in the error state
 			led_mode = led_control_s::MODE_OFF;
 
@@ -4166,7 +4162,7 @@ void Commander::estimator_check()
 
 			if (run_quality_checks && _status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
-				if (_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
+				if (!_arm_state_machine.isArmed()) {
 					_nav_test_failed = false;
 					_nav_test_passed = false;
 
