@@ -38,51 +38,6 @@
 constexpr bool
 ArmStateMachine::arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX];
 
-events::px4::enums::arming_state_t ArmStateMachine::eventArmingState(uint8_t arming_state)
-{
-	switch (arming_state) {
-	case vehicle_status_s::ARMING_STATE_INIT: return events::px4::enums::arming_state_t::init;
-
-	case vehicle_status_s::ARMING_STATE_STANDBY: return events::px4::enums::arming_state_t::standby;
-
-	case vehicle_status_s::ARMING_STATE_ARMED: return events::px4::enums::arming_state_t::armed;
-
-	case vehicle_status_s::ARMING_STATE_STANDBY_ERROR: return events::px4::enums::arming_state_t::standby_error;
-
-	case vehicle_status_s::ARMING_STATE_SHUTDOWN: return events::px4::enums::arming_state_t::shutdown;
-
-	case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE: return events::px4::enums::arming_state_t::inair_restore;
-	}
-
-	static_assert(vehicle_status_s::ARMING_STATE_MAX - 1 == (int)events::px4::enums::arming_state_t::inair_restore,
-		      "enum def mismatch");
-
-	return events::px4::enums::arming_state_t::init;
-}
-
-const char *ArmStateMachine::getArmingStateName(uint8_t arming_state)
-{
-	switch (arming_state) {
-
-	case vehicle_status_s::ARMING_STATE_INIT: return "Init";
-
-	case vehicle_status_s::ARMING_STATE_STANDBY: return "Standby";
-
-	case vehicle_status_s::ARMING_STATE_ARMED: return "Armed";
-
-	case vehicle_status_s::ARMING_STATE_STANDBY_ERROR: return "Standby error";
-
-	case vehicle_status_s::ARMING_STATE_SHUTDOWN: return "Shutdown";
-
-	case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE: return "In-air restore";
-
-	default: return "Unknown";
-	}
-
-	static_assert(vehicle_status_s::ARMING_STATE_MAX - 1 == vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE,
-		      "enum def mismatch");
-}
-
 transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &status,
 		const vehicle_control_mode_s &control_mode, const safety_s &safety,
 		const arming_state_t new_arming_state, actuator_armed_s &armed, const bool fRunPreArmChecks,
@@ -96,13 +51,12 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		      "ARMING_STATE_IN_AIR_RESTORE == ARMING_STATE_MAX - 1");
 
 	transition_result_t ret = TRANSITION_DENIED;
-	arming_state_t current_arming_state = status.arming_state;
 	bool feedback_provided = false;
 
 	const bool hil_enabled = (status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
 	/* only check transition if the new state is actually different from the current one */
-	if (new_arming_state == current_arming_state) {
+	if (new_arming_state == _arm_state) {
 		ret = TRANSITION_NOT_CHANGED;
 
 	} else {
@@ -136,7 +90,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 			if ((_last_preflight_check == 0) || (hrt_elapsed_time(&_last_preflight_check) > 1000 * 1000)) {
 
 				status_flags.system_sensors_initialized = PreFlightCheck::preflightCheck(mavlink_log_pub, status,
-						status_flags, control_mode, false, status.arming_state != vehicle_status_s::ARMING_STATE_ARMED,
+						status_flags, control_mode, false, !isArmed(),
 						time_since_boot);
 
 				_last_preflight_check = hrt_absolute_time();
@@ -144,7 +98,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		}
 
 		// Check that we have a valid state transition
-		bool valid_transition = arming_transitions[new_arming_state][status.arming_state];
+		bool valid_transition = arming_transitions[new_arming_state][_arm_state];
 
 		if (valid_transition) {
 			// We have a good transition. Now perform any secondary validation.
@@ -152,7 +106,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 
 				//      Do not perform pre-arm checks if coming from in air restore
 				//      Allow if vehicle_status_s::HIL_STATE_ON
-				if (status.arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE) {
+				if (_arm_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE) {
 
 					bool prearm_check_ret = true;
 
@@ -177,8 +131,8 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 			status_flags.system_sensors_initialized = true;
 
 			/* recover from a prearm fail */
-			if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
-				status.arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
+			if (_arm_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
+				_arm_state = vehicle_status_s::ARMING_STATE_STANDBY;
 			}
 
 			// HIL can always go to standby
@@ -189,7 +143,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 
 		if (!hil_enabled &&
 		    (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-		    (status.arming_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
+		    (_arm_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
 
 			// Sensors need to be initialized for STANDBY state, except for HIL
 			if (!status_flags.system_sensors_initialized) {
@@ -205,7 +159,7 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 			armed.ready_to_arm = (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 					     || (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY);
 			ret = TRANSITION_CHANGED;
-			status.arming_state = new_arming_state;
+			_arm_state = new_arming_state;
 
 			if (was_armed && !armed.armed) { // disarm transition
 				status.latest_disarming_reason = (uint8_t)calling_reason;
@@ -228,13 +182,58 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		if (!feedback_provided) {
 			// FIXME: this catch-all does not provide helpful information to the user
 			mavlink_log_critical(mavlink_log_pub, "Transition denied: %s to %s\t",
-					     getArmingStateName(status.arming_state), getArmingStateName(new_arming_state));
+					     getArmStateName(_arm_state), getArmStateName(new_arming_state));
 			events::send<events::px4::enums::arming_state_t, events::px4::enums::arming_state_t>(
 				events::ID("commander_transition_denied"), events::Log::Critical,
 				"Arming state transition denied: {1} to {2}",
-				eventArmingState(status.arming_state), eventArmingState(new_arming_state));
+				getArmStateEvent(_arm_state), getArmStateEvent(new_arming_state));
 		}
 	}
 
 	return ret;
+}
+
+const char *ArmStateMachine::getArmStateName(uint8_t arming_state)
+{
+	switch (arming_state) {
+
+	case vehicle_status_s::ARMING_STATE_INIT: return "Init";
+
+	case vehicle_status_s::ARMING_STATE_STANDBY: return "Standby";
+
+	case vehicle_status_s::ARMING_STATE_ARMED: return "Armed";
+
+	case vehicle_status_s::ARMING_STATE_STANDBY_ERROR: return "Standby error";
+
+	case vehicle_status_s::ARMING_STATE_SHUTDOWN: return "Shutdown";
+
+	case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE: return "In-air restore";
+
+	default: return "Unknown";
+	}
+
+	static_assert(vehicle_status_s::ARMING_STATE_MAX - 1 == vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE,
+		      "enum def mismatch");
+}
+
+events::px4::enums::arming_state_t ArmStateMachine::getArmStateEvent(uint8_t arming_state)
+{
+	switch (arming_state) {
+	case vehicle_status_s::ARMING_STATE_INIT: return events::px4::enums::arming_state_t::init;
+
+	case vehicle_status_s::ARMING_STATE_STANDBY: return events::px4::enums::arming_state_t::standby;
+
+	case vehicle_status_s::ARMING_STATE_ARMED: return events::px4::enums::arming_state_t::armed;
+
+	case vehicle_status_s::ARMING_STATE_STANDBY_ERROR: return events::px4::enums::arming_state_t::standby_error;
+
+	case vehicle_status_s::ARMING_STATE_SHUTDOWN: return events::px4::enums::arming_state_t::shutdown;
+
+	case vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE: return events::px4::enums::arming_state_t::inair_restore;
+	}
+
+	static_assert(vehicle_status_s::ARMING_STATE_MAX - 1 == (int)events::px4::enums::arming_state_t::inair_restore,
+		      "enum def mismatch");
+
+	return events::px4::enums::arming_state_t::init;
 }

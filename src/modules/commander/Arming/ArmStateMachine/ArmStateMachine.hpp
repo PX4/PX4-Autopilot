@@ -52,7 +52,7 @@ public:
 	ArmStateMachine() = default;
 	~ArmStateMachine() = default;
 
-	static const char *getArmingStateName(uint8_t arming_state);
+	void forceArmState(uint8_t new_arm_state) { _arm_state = new_arm_state; }
 
 	transition_result_t
 	arming_state_transition(vehicle_status_s &status, const vehicle_control_mode_s &control_mode, const safety_s &safety,
@@ -61,9 +61,21 @@ public:
 				vehicle_status_flags_s &status_flags, const PreFlightCheck::arm_requirements_t &arm_requirements,
 				const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason);
 
-private:
-	static inline events::px4::enums::arming_state_t eventArmingState(uint8_t arming_state);
+	// Getters
+	uint8_t getArmState() const { return _arm_state; }
 
+	bool isInit() const { return (_arm_state == vehicle_status_s::ARMING_STATE_INIT); }
+	bool isStandby() const { return (_arm_state == vehicle_status_s::ARMING_STATE_STANDBY); }
+	bool isArmed() const { return (_arm_state == vehicle_status_s::ARMING_STATE_ARMED); }
+	bool isShutdown() const { return (_arm_state == vehicle_status_s::ARMING_STATE_SHUTDOWN); }
+
+	static const char *getArmStateName(uint8_t arming_state);
+	const char *getArmStateName() const { return getArmStateName(_arm_state); }
+
+private:
+	static inline events::px4::enums::arming_state_t getArmStateEvent(uint8_t arming_state);
+
+	uint8_t _arm_state{vehicle_status_s::ARMING_STATE_INIT};
 	hrt_abstime _last_preflight_check = 0; ///< initialize so it gets checked immediately
 
 	// This array defines the arming state transitions. The rows are the new state, and the columns

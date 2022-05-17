@@ -268,7 +268,7 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		PreFlightCheck::arm_requirements_t arm_req{};
 
 		// Setup initial machine state
-		status.arming_state = test->current_state.arming_state;
+		arm_state_machine.forceArmState(test->current_state.arming_state);
 		status_flags.system_sensors_initialized = test->system_sensors_initialized;
 		status.hil_state = test->hil_state;
 		// The power status of the test unit is not relevant for the unit test
@@ -297,7 +297,7 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 
 		// Validate result of transition
 		EXPECT_EQ(result, test->expected_transition_result) << test->assertMsg;
-		EXPECT_EQ(status.arming_state, test->expected_state.arming_state) << test->assertMsg;
+		EXPECT_EQ(arm_state_machine.getArmState(), test->expected_state.arming_state) << test->assertMsg;
 		EXPECT_EQ(armed.armed, test->expected_state.armed) << test->assertMsg;
 		EXPECT_EQ(armed.ready_to_arm, test->expected_state.ready_to_arm) << test->assertMsg;
 	}
