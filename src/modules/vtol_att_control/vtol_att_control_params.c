@@ -81,7 +81,7 @@ PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
  * Time in seconds used for a transition
  *
  * @unit s
- * @min 0.00
+ * @min 0.1
  * @max 20.00
  * @increment 1
  * @decimal 2
@@ -95,7 +95,7 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
  * Time in seconds used for a back transition
  *
  * @unit s
- * @min 0.00
+ * @min 0.1
  * @max 20.00
  * @increment 1
  * @decimal 2
@@ -187,7 +187,7 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
  * Time in seconds after which transition will be cancelled. Disabled if set to 0.
  *
  * @unit s
- * @min 0.00
+ * @min 0.1
  * @max 30.00
  * @increment 1
  * @decimal 2
