@@ -159,10 +159,12 @@ int s32k1xx_bringup(void)
 	if (s32k1xx_gpioread(BOARD_REVISION_DETECT_PIN)) {
 		/* STB high -> active CAN phy */
 		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ONE);
+		s32k1xx_pinconfig(PIN_CAN1_STB  | GPIO_OUTPUT_ONE);
 
 	} else {
 		/* STB low -> active CAN phy */
 		s32k1xx_pinconfig(PIN_CAN0_STB  | GPIO_OUTPUT_ZERO);
+		s32k1xx_pinconfig(PIN_CAN1_STB  | GPIO_OUTPUT_ZERO);
 	}
 
 #endif
