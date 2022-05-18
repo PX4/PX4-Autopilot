@@ -44,7 +44,7 @@
 
 #include <uORB/topics/landing_gear.h>
 
-#define PITCH_TRANSITION_FRONT_P1 -1.1f	// pitch angle to switch to TRANSITION_P2
+#define PITCH_TRANSITION_FRONT_P1 -0.5f	// pitch angle to switch to TRANSITION_P2 (28°)
 #define PITCH_TRANSITION_BACK -0.25f	// pitch angle to switch to MC
 
 using namespace matrix;
