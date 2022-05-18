@@ -146,6 +146,7 @@ void Tailsitter::update_vtol_state()
 
 				if (transition_to_fw) {
 					_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
+					printf("transition to FW completed\n");
 				}
 
 				// check front transition timeout
@@ -340,6 +341,12 @@ void Tailsitter::fill_actuator_outputs()
 			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
 			_torque_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
 		}
+
+		mc_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
+		_torque_setpoint_0->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
+
+		mc_out[actuator_controls_s::INDEX_YAW] = -fw_in[actuator_controls_s::INDEX_ROLL];
+		_torque_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_ROLL];
 
 	} else {
 		_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL];
