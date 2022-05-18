@@ -1,5 +1,5 @@
-# Default parameter set for HITL (partly derived from indoor flying parameters)
-# [ type: hitl ]
+# Default parameter set for HITL with ethernet gazebo connection (partly derived from indoor flying parameters)
+# [ type: hitl_eth ]
 
 #####################################
 # HITL configuration
@@ -8,11 +8,8 @@
 # Set HITL flag
 param set SYS_HITL 1
 
-# HIL on TELEMETRY 2
-param set SER_TEL2_BAUD 2000000
-param set MAV_1_CONFIG 102
-param set MAV_1_MODE 2
-param set MAV_1_RATE 200000
+# Start Mavlink for simulator connection
+mavlink start -u 14560 -m onboard -r 2000000
 
 # disable some checks to allow to fly
 # - with usb
