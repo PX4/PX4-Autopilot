@@ -563,7 +563,7 @@ $ microdds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_STRING('h', "127.0.0.1", "<IP>", "Host IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 15555, 0, 3000000, "Remote Port", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('l', "Restrict to localhost (use in combination with ROS_LOCALHOST_ONLY=1)", true);
-    PRINT_MODULE_USAGE_PARAM_STRING('n', "", "" ,"Client DDS namespace", true);
+    PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr ,"Client DDS namespace", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
