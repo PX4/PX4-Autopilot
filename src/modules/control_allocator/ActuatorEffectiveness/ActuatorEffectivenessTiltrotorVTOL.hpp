@@ -95,4 +95,5 @@ protected:
 	float _last_tilt_control{NAN};
 
 	uORB::Subscription _actuator_controls_1_sub{ORB_ID(actuator_controls_1)};
+	uORB::Subscription _actuator_controls_0_sub{ORB_ID(actuator_controls_0)};
 };

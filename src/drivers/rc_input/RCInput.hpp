@@ -131,7 +131,6 @@ private:
 
 	bool _initialized{false};
 	bool _rc_scan_locked{false};
-	bool _report_lock{true};
 
 	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
 

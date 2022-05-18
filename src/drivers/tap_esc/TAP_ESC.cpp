@@ -290,6 +290,8 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 
 				if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
 					_esc_feedback.esc[feed_back_data.channelID].timestamp = hrt_absolute_time();
+					_esc_feedback.esc[feed_back_data.channelID].actuator_function = (uint8_t)_mixing_output.outputFunction(
+								feed_back_data.channelID);
 					_esc_feedback.esc[feed_back_data.channelID].esc_errorcount = 0;
 					_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
 #if defined(ESC_HAVE_VOLTAGE_SENSOR)
@@ -327,8 +329,6 @@ bool TAP_ESC::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], u
 
 void TAP_ESC::Run()
 {
-	SmartLock lock_guard(_lock);
-
 	if (should_exit()) {
 		ScheduleClear();
 		_mixing_output.unregister();
@@ -336,6 +336,8 @@ void TAP_ESC::Run()
 		exit_and_cleanup();
 		return;
 	}
+
+	SmartLock lock_guard(_lock);
 
 	// push backup schedule
 	ScheduleDelayed(20_ms);

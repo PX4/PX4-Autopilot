@@ -80,6 +80,7 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/tecs_status.h>
+#include <uORB/topics/trajectory_setpoint.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -94,7 +95,6 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
 #include <uORB/uORB.h>
-#include <vtol_att_control/vtol_type.h>
 
 using namespace launchdetection;
 using namespace runwaytakeoff;
@@ -350,6 +350,30 @@ private:
 	 * @param dt Time step
 	 */
 	void		update_desired_altitude(float dt);
+
+	/**
+	 * @brief Updates timing information for landed and in-air states.
+	 *
+	 * @param now Current system time [us]
+	 */
+	void update_in_air_states(const hrt_abstime now);
+
+	/**
+	 * @brief Updates the time since the last position control call.
+	 *
+	 * @param now Current system time [us]
+	 * @return Time since last position control call [s]
+	 */
+	float update_position_control_mode_timestep(const hrt_abstime now);
+
+	/**
+	 * @brief Moves the current position setpoint to a value far ahead of the current vehicle yaw when in  a VTOL
+	 * transition.
+	 *
+	 * @param[in,out] current_sp current position setpoint
+	 */
+	void move_position_setpoint_for_vtol_transition(position_setpoint_s &current_sp);
+
 	uint8_t		handle_setpoint_type(const uint8_t setpoint_type, const position_setpoint_s &pos_sp_curr);
 	void		control_auto(const hrt_abstime &now, const Vector2d &curr_pos, const Vector2f &ground_speed,
 				     const position_setpoint_s &pos_sp_prev,
@@ -502,7 +526,6 @@ private:
 		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
 
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad
-
 	)
 
 };

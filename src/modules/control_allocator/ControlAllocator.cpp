@@ -205,7 +205,7 @@ ControlAllocator::update_allocation_method(bool force)
 bool
 ControlAllocator::update_effectiveness_source()
 {
-	EffectivenessSource source = (EffectivenessSource)_param_ca_airframe.get();
+	const EffectivenessSource source = (EffectivenessSource)_param_ca_airframe.get();
 
 	if (_effectiveness_source_id != source) {
 
@@ -252,6 +252,10 @@ ControlAllocator::update_effectiveness_source()
 
 		case EffectivenessSource::CUSTOM:
 			tmp = new ActuatorEffectivenessCustom(this);
+			break;
+
+		case EffectivenessSource::HELICOPTER:
+			tmp = new ActuatorEffectivenessHelicopter(this);
 			break;
 
 		default:
@@ -301,8 +305,12 @@ ControlAllocator::Run()
 		parameter_update_s param_update;
 		_parameter_update_sub.copy(&param_update);
 
-		updateParams();
-		parameters_updated();
+		if (_handled_motor_failure_bitmask == 0) {
+			// We don't update the geometry after an actuator failure, as it could lead to unexpected results
+			// (e.g. a user could add/remove motors, such that the bitmask isn't correct anymore)
+			updateParams();
+			parameters_updated();
+		}
 	}
 
 	if (_num_control_allocation == 0 || _actuator_effectiveness == nullptr) {
@@ -371,6 +379,8 @@ ControlAllocator::Run()
 
 	if (do_update) {
 		_last_run = now;
+
+		check_for_motor_failures();
 
 		update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::NO_EXTERNAL_UPDATE);
 
@@ -499,6 +509,27 @@ ControlAllocator::update_effectiveness_matrix_if_needed(EffectivenessUpdateReaso
 			}
 		}
 
+		// Handle failed actuators
+		if (_handled_motor_failure_bitmask) {
+			actuator_idx = 0;
+			memset(&actuator_idx_matrix, 0, sizeof(actuator_idx_matrix));
+
+			for (int motors_idx = 0; motors_idx < _num_actuators[0] && motors_idx < actuator_motors_s::NUM_CONTROLS; motors_idx++) {
+				int selected_matrix = _control_allocation_selection_indexes[actuator_idx];
+
+				if (_handled_motor_failure_bitmask & (1 << motors_idx)) {
+					ActuatorEffectiveness::EffectivenessMatrix &matrix = config.effectiveness_matrices[selected_matrix];
+
+					for (int i = 0; i < NUM_AXES; i++) {
+						matrix(i, actuator_idx_matrix[selected_matrix]) = 0.0f;
+					}
+				}
+
+				++actuator_idx_matrix[selected_matrix];
+				++actuator_idx;
+			}
+		}
+
 		for (int i = 0; i < _num_control_allocation; ++i) {
 			_control_allocation[i]->setActuatorMin(minimum[i]);
 			_control_allocation[i]->setActuatorMax(maximum[i]);
@@ -553,7 +584,8 @@ ControlAllocator::publish_control_allocator_status()
 	control_allocator_status.allocated_thrust[2] = allocated_control(5);
 
 	// Unallocated control
-	matrix::Vector<float, NUM_AXES> unallocated_control = _control_allocation[0]->getControlSetpoint() - allocated_control;
+	const matrix::Vector<float, NUM_AXES> unallocated_control = _control_allocation[0]->getControlSetpoint() -
+			allocated_control;
 	control_allocator_status.unallocated_torque[0] = unallocated_control(0);
 	control_allocator_status.unallocated_torque[1] = unallocated_control(1);
 	control_allocator_status.unallocated_torque[2] = unallocated_control(2);
@@ -581,6 +613,9 @@ ControlAllocator::publish_control_allocator_status()
 		}
 	}
 
+	// Handled motor failures
+	control_allocator_status.handled_motor_failure_mask = _handled_motor_failure_bitmask;
+
 	_control_allocator_status_pub.publish(control_allocator_status);
 }
 
@@ -600,7 +635,7 @@ ControlAllocator::publish_actuator_controls()
 	int actuator_idx = 0;
 	int actuator_idx_matrix[ActuatorEffectiveness::MAX_NUM_MATRICES] {};
 
-	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors();
+	uint32_t stopped_motors = _actuator_effectiveness->getStoppedMotors() | _handled_motor_failure_bitmask;
 
 	// motors
 	int motors_idx;
@@ -641,6 +676,56 @@ ControlAllocator::publish_actuator_controls()
 		}
 
 		_actuator_servos_pub.publish(actuator_servos);
+	}
+}
+
+void
+ControlAllocator::check_for_motor_failures()
+{
+	failure_detector_status_s failure_detector_status;
+
+	if ((FailureMode)_param_ca_failure_mode.get() > FailureMode::IGNORE
+	    && _failure_detector_status_sub.update(&failure_detector_status)) {
+		if (failure_detector_status.fd_motor) {
+
+			if (_handled_motor_failure_bitmask != failure_detector_status.motor_failure_mask) {
+				// motor failure bitmask changed
+				switch ((FailureMode)_param_ca_failure_mode.get()) {
+				case FailureMode::REMOVE_FIRST_FAILING_MOTOR: {
+						// Count number of failed motors
+						const int num_motors_failed = math::countSetBits(failure_detector_status.motor_failure_mask);
+
+						// Only handle if it is the first failure
+						if (_handled_motor_failure_bitmask == 0 && num_motors_failed == 1) {
+							_handled_motor_failure_bitmask = failure_detector_status.motor_failure_mask;
+							PX4_WARN("Removing motor from allocation (0x%x)", _handled_motor_failure_bitmask);
+
+							for (int i = 0; i < _num_control_allocation; ++i) {
+								_control_allocation[i]->setHadActuatorFailure(true);
+							}
+
+							update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
+						}
+					}
+					break;
+
+				default:
+					break;
+				}
+
+			}
+
+		} else if (_handled_motor_failure_bitmask != 0) {
+			// Clear bitmask completely
+			PX4_INFO("Restoring all motors");
+			_handled_motor_failure_bitmask = 0;
+
+			for (int i = 0; i < _num_control_allocation; ++i) {
+				_control_allocation[i]->setHadActuatorFailure(false);
+			}
+
+			update_effectiveness_matrix_if_needed(EffectivenessUpdateReason::MOTOR_ACTIVATION_UPDATE);
+		}
 	}
 }
 
@@ -710,6 +795,11 @@ int ControlAllocator::print_status()
 		PX4_INFO("  maximum =");
 		_control_allocation[i]->getActuatorMax().T().print();
 		PX4_INFO("  Configured actuators: %i", _control_allocation[i]->numConfiguredActuators());
+	}
+
+	if (_handled_motor_failure_bitmask) {
+		PX4_INFO("Failed motors: %i (0x%x)", math::countSetBits(_handled_motor_failure_bitmask),
+			 _handled_motor_failure_bitmask);
 	}
 
 	// Print perf

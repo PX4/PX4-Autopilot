@@ -1003,6 +1003,10 @@ void UavcanMixingInterfaceESC::mixerChanged()
 	if (_mixing_output.useDynamicMixing()) {
 		for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
 			rotor_count += _mixing_output.isFunctionSet(i);
+
+			if (i < esc_status_s::CONNECTED_ESC_MAX) {
+				_esc_controller.esc_status().esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
+			}
 		}
 
 	} else {

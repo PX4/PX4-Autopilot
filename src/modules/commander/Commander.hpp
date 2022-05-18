@@ -64,7 +64,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionMultiArray.hpp>
 #include <uORB/topics/action_request.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
@@ -182,7 +181,9 @@ private:
 
 	void send_parachute_command();
 
-	void checkWindAndWarn();
+	void checkWindSpeedThresholds();
+
+	void updateParameters();
 
 	DEFINE_PARAMETERS(
 
@@ -222,9 +223,6 @@ private:
 
 		(ParamFloat<px4::params::COM_WIND_WARN>) _param_com_wind_warn,
 
-		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
-		(ParamInt<px4::params::RC_MAP_MODE_SW>) _param_rc_map_mode_sw,
-
 		// Quadchute
 		(ParamInt<px4::params::COM_QC_ACT>) _param_com_qc_act,
 
@@ -241,9 +239,7 @@ private:
 		(ParamFloat<px4::params::COM_LKDOWN_TKO>) _param_com_lkdown_tko,
 
 		// Engine failure
-		(ParamFloat<px4::params::COM_EF_THROT>) _param_ef_throttle_thres,
-		(ParamFloat<px4::params::COM_EF_C2T>) _param_ef_current2throttle_thres,
-		(ParamFloat<px4::params::COM_EF_TIME>) _param_ef_time_thres,
+		(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
 
 		(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_arm_without_gps,
 		(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_arm_mission_required,
@@ -257,24 +253,20 @@ private:
 		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
 		(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk,
-		(ParamInt<px4::params::CBRK_ENGINEFAIL>) _param_cbrk_enginefail,
 		(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
 		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
 		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
 
-		// Geofence
-		(ParamInt<px4::params::GF_ACTION>) _param_geofence_action,
-
-		// Mavlink
-		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
-		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
-		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
-
-		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist,
-
-		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
-		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr
+		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
+		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max
 	)
+
+	// optional parameters
+	param_t _param_cp_dist{PARAM_INVALID};
+	param_t _param_mav_comp_id{PARAM_INVALID};
+	param_t _param_mav_sys_id{PARAM_INVALID};
+	param_t _param_mav_type{PARAM_INVALID};
+	param_t _param_rc_map_fltmode{PARAM_INVALID};
 
 	enum class PrearmedMode {
 		DISABLED = 0,
@@ -285,6 +277,14 @@ private:
 	enum class RcOverrideBits : int32_t {
 		AUTO_MODE_BIT = (1 << 0),
 		OFFBOARD_MODE_BIT = (1 << 1),
+	};
+
+	enum class ActuatorFailureActions {
+		DISABLED = 0,
+		AUTO_LOITER = 1,
+		AUTO_LAND = 2,
+		AUTO_RTL = 3,
+		TERMINATE = 4,
 	};
 
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
@@ -318,6 +318,8 @@ private:
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
 
+	bool            _collision_prevention_enabled{false};
+
 	bool		_rtl_time_actions_done{false};
 
 	FailureDetector	_failure_detector;
@@ -343,7 +345,6 @@ private:
 
 	uint8_t		_battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	hrt_abstime	_battery_failsafe_timestamp{0};
-	float		_battery_current{0.0f};
 	uint8_t		_last_connected_batteries{0};
 	uint32_t	_last_battery_custom_fault[battery_status_s::MAX_INSTANCES] {};
 	uint16_t	_last_battery_fault[battery_status_s::MAX_INSTANCES] {};
@@ -355,6 +356,7 @@ private:
 	Hysteresis	_offboard_available{false};
 
 	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
+	bool            _mode_switch_mapped{false};
 
 	bool		_last_local_altitude_valid{false};
 	bool		_last_local_position_valid{false};
@@ -369,7 +371,6 @@ private:
 
 	hrt_abstime	_boot_timestamp{0};
 	hrt_abstime	_last_disarmed_timestamp{0};
-	hrt_abstime	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
 	hrt_abstime	_overload_start{0};		///< time when CPU overload started
 
 	hrt_abstime _led_armed_state_toggle{0};
@@ -406,7 +407,6 @@ private:
 
 	// Subscriptions
 	uORB::Subscription					_action_request_sub {ORB_ID(action_request)};
-	uORB::Subscription					_actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
 	uORB::Subscription					_cpuload_sub{ORB_ID(cpuload)};
 	uORB::Subscription					_esc_status_sub{ORB_ID(esc_status)};
 	uORB::Subscription					_estimator_selector_status_sub{ORB_ID(estimator_selector_status)};

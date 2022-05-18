@@ -33,7 +33,6 @@
 
 #include "FixedwingPositionControl.hpp"
 
-#include <vtol_att_control/vtol_type.h>
 #include <px4_platform_common/events.h>
 
 using math::constrain;
@@ -59,12 +58,6 @@ FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 {
 	if (vtol) {
 		_param_handle_airspeed_trans = param_find("VT_ARSP_TRANS");
-
-		// VTOL parameter VTOL_TYPE
-		int32_t vt_type = -1;
-		param_get(param_find("VT_TYPE"), &vt_type);
-
-		_vtol_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
 	}
 
 	// limit to 50 Hz
@@ -370,7 +363,7 @@ FixedwingPositionControl::vehicle_attitude_poll()
 
 		// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 		// between multirotor and fixed wing flight
-		if (_vtol_tailsitter) {
+		if (_vehicle_status.is_vtol_tailsitter) {
 			const Dcmf R_offset{Eulerf{0.f, M_PI_2_F, 0.f}};
 			R = R * R_offset;
 
@@ -755,19 +748,28 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 
 	if (((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled) ||
 	     _control_mode.flag_control_offboard_enabled) && pos_sp_curr_valid) {
+
 		if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-			// TAKEOFF: handle like a regular POSITION setpoint if already flying
-			if (!in_takeoff_situation() && (_airspeed >= _param_fw_airspd_min.get() || !_airspeed_valid)) {
-				// SETPOINT_TYPE_TAKEOFF -> SETPOINT_TYPE_POSITION
+
+			if (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode) {
 				_control_mode_current = FW_POSCTRL_MODE_AUTO;
+
+				// in this case we want the waypoint handled as a position setpoint -- a submode in control_auto()
+				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 
 			} else {
 				_control_mode_current = FW_POSCTRL_MODE_AUTO_TAKEOFF;
 			}
 
-		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND
-			   && !_vehicle_status.in_transition_mode) {
-			_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING;
+		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+
+			if (!_vehicle_status.in_transition_mode) {
+				_control_mode_current = FW_POSCTRL_MODE_AUTO_LANDING;
+
+			} else {
+				// in this case we want the waypoint handled as a position setpoint -- a submode in control_auto()
+				_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+			}
 
 		} else {
 			_control_mode_current = FW_POSCTRL_MODE_AUTO;
@@ -827,55 +829,36 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 }
 
 void
-FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &curr_pos,
-				       const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
-				       const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next)
+FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 {
-	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, MIN_AUTO_TIMESTEP,
-					 MAX_AUTO_TIMESTEP);
-	_last_time_position_control_called = now;
-
-	if (_param_fw_use_npfg.get()) {
-		_npfg.setDt(dt);
-
-	} else {
-		_l1_control.set_dt(dt);
-	}
-
 	/* save time when airplane is in air */
 	if (!_was_in_air && !_landed) {
 		_was_in_air = true;
 		_time_went_in_air = now;
-		_takeoff_ground_alt = _current_altitude;
+		_takeoff_ground_alt = _current_altitude; // XXX: is this really a good idea?
 	}
 
 	/* reset flag when airplane landed */
 	if (_landed) {
 		_was_in_air = false;
 	}
+}
 
-	/* Reset integrators if switching to this mode from a other mode in which posctl was not active */
-	if (_control_mode_current == FW_POSCTRL_MODE_OTHER) {
-		/* reset integrators */
-		_tecs.reset_state();
-	}
+float
+FixedwingPositionControl::update_position_control_mode_timestep(const hrt_abstime now)
+{
+	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, MIN_AUTO_TIMESTEP,
+					 MAX_AUTO_TIMESTEP);
+	_last_time_position_control_called = now;
 
-	/* reset hold yaw */
-	_hdg_hold_yaw = _yaw;
+	return dt;
+}
 
-	/* get circle mode */
-	const bool was_circle_mode = (_param_fw_use_npfg.get()) ? _npfg.circleMode() : _l1_control.circle_mode();
-
-	/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
-	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
-	_tecs.set_height_error_time_constant(_param_fw_t_h_error_tc.get());
-
-	/* Initialize attitude controller integrator reset flags to 0 */
-	_att_sp.roll_reset_integral = false;
-	_att_sp.pitch_reset_integral = false;
-	_att_sp.yaw_reset_integral = false;
-
-	position_setpoint_s current_sp = pos_sp_curr;
+void
+FixedwingPositionControl::move_position_setpoint_for_vtol_transition(position_setpoint_s &current_sp)
+{
+	// TODO: velocity, altitude, or just a heading hold position mode should be used for this, not position
+	// shifting hacks
 
 	if (_vehicle_status.in_transition_to_fw) {
 
@@ -899,6 +882,25 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 		_transition_waypoint(0) = static_cast<double>(NAN);
 		_transition_waypoint(1) = static_cast<double>(NAN);
 	}
+}
+
+void
+FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &curr_pos,
+				       const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
+				       const position_setpoint_s &pos_sp_curr, const position_setpoint_s &pos_sp_next)
+{
+	const float dt = update_position_control_mode_timestep(now);
+
+	update_in_air_states(now);
+
+	_hdg_hold_yaw = _yaw;
+
+	_att_sp.roll_reset_integral = false;
+	_att_sp.pitch_reset_integral = false;
+	_att_sp.yaw_reset_integral = false;
+
+	position_setpoint_s current_sp = pos_sp_curr;
+	move_position_setpoint_for_vtol_transition(current_sp);
 
 	const uint8_t position_sp_type = handle_setpoint_type(current_sp.type, current_sp);
 
@@ -908,6 +910,20 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	    || current_sp.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 		publishOrbitStatus(current_sp);
 	}
+
+	// update lateral guidance timesteps for slewrates
+	if (_param_fw_use_npfg.get()) {
+		_npfg.setDt(dt);
+
+	} else {
+		_l1_control.set_dt(dt);
+	}
+
+	const bool was_circle_mode = (_param_fw_use_npfg.get()) ? _npfg.circleMode() : _l1_control.circle_mode();
+
+	/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
+	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
+	_tecs.set_height_error_time_constant(_param_fw_t_h_error_tc.get());
 
 	switch (position_sp_type) {
 	case position_setpoint_s::SETPOINT_TYPE_IDLE:
@@ -930,16 +946,6 @@ FixedwingPositionControl::control_auto(const hrt_abstime &now, const Vector2d &c
 	case position_setpoint_s::SETPOINT_TYPE_LOITER:
 		control_auto_loiter(now, dt, curr_pos, ground_speed, pos_sp_prev, current_sp, pos_sp_next);
 		break;
-	}
-
-	/* reset landing state */
-	if (position_sp_type != position_setpoint_s::SETPOINT_TYPE_LAND) {
-		reset_landing_state();
-	}
-
-	/* reset takeoff/launch state */
-	if (position_sp_type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-		reset_takeoff_state();
 	}
 
 	if (was_circle_mode && !_l1_control.circle_mode()) {
@@ -1043,15 +1049,8 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 
 	uint8_t position_sp_type = setpoint_type;
 
-	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
-		// TAKEOFF: handle like a regular POSITION setpoint if already flying
-		if (!in_takeoff_situation() && (_airspeed >= _param_fw_airspd_min.get() || !_airspeed_valid)) {
-			// SETPOINT_TYPE_TAKEOFF -> SETPOINT_TYPE_POSITION
-			position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
-		}
-
-	} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION
-		   || pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_POSITION
+	    || pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 		float dist_xy = -1.f;
 		float dist_z = -1.f;
@@ -1086,11 +1085,6 @@ FixedwingPositionControl::handle_setpoint_type(const uint8_t setpoint_type, cons
 				position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 			}
 		}
-	}
-
-	// set to type position during VTOL transitions in Land mode (to not start FW landing logic)
-	if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LAND && _vehicle_status.in_transition_mode) {
-		position_sp_type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	}
 
 	return position_sp_type;
@@ -1151,8 +1145,7 @@ FixedwingPositionControl::control_auto_position(const hrt_abstime &now, const fl
 	// Altitude first order hold (FOH)
 	if (pos_sp_prev.valid && PX4_ISFINITE(pos_sp_prev.alt) &&
 	    ((pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_POSITION) ||
-	     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_LOITER) ||
-	     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF))
+	     (pos_sp_prev.type == position_setpoint_s::SETPOINT_TYPE_LOITER))
 	   ) {
 		const float d_curr_prev = get_distance_to_next_waypoint((double)curr_wp(0), (double)curr_wp(1),
 					  pos_sp_prev.lat, pos_sp_prev.lon);
@@ -1432,16 +1425,27 @@ void
 FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
-	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, MIN_AUTO_TIMESTEP,
-					 MAX_AUTO_TIMESTEP);
-	_last_time_position_control_called = now;
+	const float dt = update_position_control_mode_timestep(now);
 
+	update_in_air_states(now);
+
+	_hdg_hold_yaw = _yaw;
+
+	_att_sp.roll_reset_integral = false;
+	_att_sp.pitch_reset_integral = false;
+	_att_sp.yaw_reset_integral = false;
+
+	// update lateral guidance timesteps for slewrates
 	if (_param_fw_use_npfg.get()) {
 		_npfg.setDt(dt);
 
 	} else {
 		_l1_control.set_dt(dt);
 	}
+
+	/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
+	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
+	_tecs.set_height_error_time_constant(_param_fw_t_h_error_tc.get());
 
 	/* current waypoint (the one currently heading for) */
 	Vector2d curr_wp(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -1501,7 +1505,9 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const Vec
 		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-			_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+			// NOTE: current waypoint is passed twice to trigger the "point following" logic -- TODO: create
+			// point following navigation interface instead of this hack.
+			_npfg.navigateWaypoints(curr_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 			_att_sp.roll_body = _runway_takeoff.getRoll(_npfg.getRollSetpoint());
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
@@ -1676,16 +1682,29 @@ void
 FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
-	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, MIN_AUTO_TIMESTEP,
-					 MAX_AUTO_TIMESTEP);
-	_last_time_position_control_called = now;
+	const float dt = update_position_control_mode_timestep(now);
 
+	update_in_air_states(now);
+
+	_hdg_hold_yaw = _yaw;
+
+	_att_sp.roll_reset_integral = false;
+	_att_sp.pitch_reset_integral = false;
+	_att_sp.yaw_reset_integral = false;
+
+	// update lateral guidance timesteps for slewrates
 	if (_param_fw_use_npfg.get()) {
 		_npfg.setDt(dt);
 
 	} else {
 		_l1_control.set_dt(dt);
 	}
+
+	/* restore TECS parameters, in case changed intermittently (e.g. in landing handling) */
+	_tecs.set_speed_weight(_param_fw_t_spdweight.get());
+
+	// Enable tighter altitude control for landings
+	_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 
 	/* current waypoint (the one currently heading for) */
 	Vector2d curr_wp(pos_sp_curr.lat, pos_sp_curr.lon);
@@ -1703,9 +1722,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const Vec
 		prev_wp(0) = pos_sp_curr.lat;
 		prev_wp(1) = pos_sp_curr.lon;
 	}
-
-	// Enable tighter altitude control for landings
-	_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 
 	// save time at which we started landing and reset abort_landing
 	if (_time_started_landing == 0) {
@@ -2099,9 +2115,15 @@ void
 FixedwingPositionControl::control_manual_position(const hrt_abstime &now, const Vector2d &curr_pos,
 		const Vector2f &ground_speed)
 {
-	const float dt = math::constrain((now - _last_time_position_control_called) * 1e-6f, MIN_AUTO_TIMESTEP,
-					 MAX_AUTO_TIMESTEP);
-	_last_time_position_control_called = now;
+	const float dt = update_position_control_mode_timestep(now);
+
+	// update lateral guidance timesteps for slewrates
+	if (_param_fw_use_npfg.get()) {
+		_npfg.setDt(dt);
+
+	} else {
+		_l1_control.set_dt(dt);
+	}
 
 	// if we assume that user is taking off then help by demanding altitude setpoint well above ground
 	// and set limit to pitch angle to prevent steering into ground
@@ -2472,9 +2494,19 @@ FixedwingPositionControl::Run()
 				_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
 				_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
 
+				_tecs.reset_state();
+
 				break;
 			}
 
+		}
+
+		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING) {
+			reset_landing_state();
+		}
+
+		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF) {
+			reset_takeoff_state();
 		}
 
 		if (_control_mode_current != FW_POSCTRL_MODE_OTHER) {
@@ -2643,12 +2675,6 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const hrt_abstime &now, flo
 		_reinitialize_tecs = false;
 	}
 
-	if (_vehicle_status.engine_failure) {
-		/* Force the slow downwards spiral */
-		pitch_min_rad = radians(-1.0f);
-		pitch_max_rad = radians(5.0f);
-	}
-
 	/* No underspeed protection in landing mode */
 	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
 
@@ -2709,9 +2735,6 @@ void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpo
 		local_position_setpoint.acceleration[0] = NAN;
 		local_position_setpoint.acceleration[1] = NAN;
 		local_position_setpoint.acceleration[2] = NAN;
-		local_position_setpoint.jerk[0] = NAN;
-		local_position_setpoint.jerk[1] = NAN;
-		local_position_setpoint.jerk[2] = NAN;
 		local_position_setpoint.thrust[0] = _att_sp.thrust_body[0];
 		local_position_setpoint.thrust[1] = _att_sp.thrust_body[1];
 		local_position_setpoint.thrust[2] = _att_sp.thrust_body[2];

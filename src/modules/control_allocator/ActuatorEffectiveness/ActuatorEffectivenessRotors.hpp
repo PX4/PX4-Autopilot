@@ -60,7 +60,7 @@ public:
 		FixedUpwards, ///< axis is fixed, pointing upwards (negative Z)
 	};
 
-	static constexpr int NUM_ROTORS_MAX = 8;
+	static constexpr int NUM_ROTORS_MAX = 12;
 
 	struct RotorGeometry {
 		matrix::Vector3f position;
@@ -74,7 +74,9 @@ public:
 		RotorGeometry rotors[NUM_ROTORS_MAX];
 		int num_rotors{0};
 		bool propeller_torque_disabled{false};
+		bool yaw_by_differential_thrust_disabled{false};
 		bool propeller_torque_disabled_non_upwards{false}; ///< keeps propeller torque enabled for upward facing motors
+		bool three_dimensional_thrust_disabled{false}; ///< for handling of tiltrotor VTOL, as they pass in 1D thrust and collective tilt
 	};
 
 	ActuatorEffectivenessRotors(ModuleParams *parent, AxisConfiguration axis_config = AxisConfiguration::Configurable,
@@ -118,7 +120,11 @@ public:
 
 	void enablePropellerTorque(bool enable) { _geometry.propeller_torque_disabled = !enable; }
 
+	void enableYawByDifferentialThrust(bool enable) { _geometry.yaw_by_differential_thrust_disabled = !enable; }
+
 	void enablePropellerTorqueNonUpwards(bool enable) { _geometry.propeller_torque_disabled_non_upwards = !enable; }
+
+	void enableThreeDimensionalThrust(bool enable) { _geometry.three_dimensional_thrust_disabled = !enable; }
 
 	uint32_t getUpwardsMotors() const;
 

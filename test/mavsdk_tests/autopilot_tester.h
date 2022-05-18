@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -101,6 +101,7 @@ public:
 	void check_home_within(float acceptance_radius_m);
 	void check_home_not_within(float min_distance_m);
 	void set_takeoff_altitude(const float altitude_m);
+	void set_rtl_altitude(const float altitude_m);
 	void set_height_source(HeightSource height_source);
 	void set_rc_loss_exception(RcLossException mask);
 	void arm();
@@ -109,7 +110,9 @@ public:
 	void transition_to_fixedwing();
 	void transition_to_multicopter();
 	void wait_until_disarmed(std::chrono::seconds timeout_duration = std::chrono::seconds(60));
-	void wait_until_hovering();
+	void wait_until_hovering(); // TODO: name suggests, that function waits for drone velocity to be zero and not just drone in the air
+	void wait_until_altitude(float rel_altitude_m, std::chrono::seconds timeout);
+	void wait_until_speed_lower_than(float speed, std::chrono::seconds timeout);
 	void prepare_square_mission(MissionOptions mission_options);
 	void prepare_straight_mission(MissionOptions mission_options);
 	void execute_mission();
@@ -121,6 +124,7 @@ public:
 	void load_qgc_mission_raw_and_move_here(const std::string &plan_file);
 	void execute_mission_raw();
 	void execute_rtl();
+	void execute_land();
 	void offboard_goto(const Offboard::PositionNedYaw &target, float acceptance_radius_m = 0.3f,
 			   std::chrono::seconds timeout_duration = std::chrono::seconds(60));
 	void offboard_land();
@@ -129,7 +133,16 @@ public:
 	void request_ground_truth();
 	void check_mission_item_speed_above(int item_index, float min_speed_m_s);
 	void check_tracks_mission(float corridor_radius_m = 1.5f);
+	void start_checking_altitude(const float max_deviation_m);
+	void stop_checking_altitude();
 
+	// Blocking call to get the drone's current position in NED frame
+	std::array<float, 3> get_current_position_ned();
+
+protected:
+	mavsdk::Param *getParams() const { return _param.get();}
+	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
+	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
 
 private:
 	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();

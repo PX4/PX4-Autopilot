@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,7 +54,7 @@ static constexpr uint8_t Bit5 = (1 << 5);
 static constexpr uint8_t Bit6 = (1 << 6);
 static constexpr uint8_t Bit7 = (1 << 7);
 
-static constexpr uint32_t SPI_SPEED = 12 * 1000 * 1000; // 24 MHz SPI
+static constexpr uint32_t SPI_SPEED = 24 * 1000 * 1000; // 24 MHz SPI
 static constexpr uint8_t DIR_READ = 0x80;
 
 static constexpr uint8_t WHOAMI = 0x67;
@@ -66,20 +66,12 @@ namespace Register
 {
 
 enum class BANK_0 : uint8_t {
-	DEVICE_CONFIG     = 0x01,
+	SIGNAL_PATH_RESET = 0x02,
 
 	INT_CONFIG        = 0x06,
 
-
 	TEMP_DATA1        = 0x09,
 	TEMP_DATA0        = 0x0A,
-
-	INT_STATUS        = 0x3A,
-	FIFO_COUNTH       = 0x3D,
-	FIFO_COUNTL       = 0x3E,
-	FIFO_DATA         = 0x3F,
-
-	SIGNAL_PATH_RESET = 0x02,
 
 	PWR_MGMT0         = 0x1F,
 	GYRO_CONFIG0      = 0x20,
@@ -90,41 +82,28 @@ enum class BANK_0 : uint8_t {
 	FIFO_CONFIG1      = 0x28,
 	FIFO_CONFIG2      = 0x29,
 	FIFO_CONFIG3      = 0x2A,
-
 	INT_SOURCE0       = 0x2B,
 
+	INT_STATUS        = 0x3A,
+	FIFO_COUNTH       = 0x3D,
+	FIFO_COUNTL       = 0x3E,
+	FIFO_DATA         = 0x3F,
+
 	WHO_AM_I          = 0x75,
-	// REG_BANK_SEL      = 0x76,
 
 	BLK_SEL_W         = 0x79,
 	MADDR_W           = 0x7A,
 	M_W               = 0x7B,
-
 	BLK_SEL_R         = 0x7C,
 	MADDR_R           = 0x7D,
 	M_R               = 0x7E,
-
 };
 
-enum class MREG_1 : uint8_t {
-	FIFO_CONFIG5_MREG1      = 0x01,
-	INT_CONFIG0_MREG1       = 0x04,
+enum class MREG1 : uint8_t {
+	FIFO_CONFIG5 = 0x01,
+
+	INT_CONFIG0  = 0x04,
 };
-
-enum class MREG_2 : uint8_t {
-	OTP_CTRL7_MREG2  = 0x06,
-};
-
-enum class MREG_3 : uint8_t {
-	XA_ST_DATA_MREG3 = 0x00,
-	YA_ST_DATA_MREG3 = 0x01,
-	ZA_ST_DATA_MREG3 = 0x02,
-	XG_ST_DATA_MREG3 = 0x03,
-	YG_ST_DATA_MREG3 = 0x04,
-	ZG_ST_DATA_MREG3 = 0x05,
-};
-
-
 
 };
 
@@ -132,45 +111,64 @@ enum class MREG_3 : uint8_t {
 
 // SIGNAL_PATH_RESET
 enum SIGNAL_PATH_RESET_BIT : uint8_t {
-	SOFT_RESET_DEVICE_CONFIG  = Bit4, //
-	FIFO_FLUSH                = Bit2,
+	SOFT_RESET_DEVICE_CONFIG  = Bit4, // 1: Software reset enabled
+	FIFO_FLUSH                = Bit2, // When set to 1, FIFO will get flushed
 };
 
 // INT_CONFIG
 enum INT_CONFIG_BIT : uint8_t {
-	INT1_MODE           = Bit2,
-	INT1_DRIVE_CIRCUIT  = Bit1,
-	INT1_POLARITY       = Bit0,
+	INT1_MODE          = Bit2, // INT1 interrupt mode 1: Latched mode
+	INT1_DRIVE_CIRCUIT = Bit1, // INT1 drive circuit 1: Push pull
+	INT1_POLARITY      = Bit0, // INT1 interrupt polarity 0: Active low
 };
+
+// PWR_MGMT0
+enum PWR_MGMT0_BIT : uint8_t {
+	// 3:2 GYRO_MODE
+	GYRO_MODE_LOW_NOISE  = Bit3 | Bit2, // 11: Places gyroscope in Low Noise (LN) Mode
+	// 1:0 ACCEL_MODE
+	ACCEL_MODE_LOW_NOISE = Bit1 | Bit0, // 11: Places accelerometer in Low Noise (LN) Mode
+};
+
+// GYRO_CONFIG0
+enum GYRO_CONFIG0_BIT : uint8_t {
+	// 6:5 GYRO_FS_SEL
+	GYRO_FS_SEL_2000_DPS_SET   = 0,           // 0b000 = ±2000dps
+	GYRO_FS_SEL_2000_DPS_CLEAR = Bit6 | Bit5,
+
+	// 3:0 GYRO_ODR
+	GYRO_ODR_1600HZ_SET        = Bit2 | Bit0, // 0101: 1600Hz
+	GYRO_ODR_1600HZ_CLEAR      = Bit3 | Bit1,
+};
+
+// ACCEL_CONFIG0
+enum ACCEL_CONFIG0_BIT : uint8_t {
+	// 6:5 ACCEL_UI_FS_SEL
+	ACCEL_UI_FS_SEL_16G_SET   = 0,           // 000: ±16g
+	ACCEL_UI_FS_SEL_16G_CLEAR = Bit6 | Bit5,
+
+	// 3:0 ACCEL_ODR
+	ACCEL_ODR_1600HZ_SET      = Bit2 | Bit0, // 0101: 1600Hz
+	ACCEL_ODR_1600HZ_CLEAR    = Bit3 | Bit1,
+};
+
 // GYRO_CONFIG1
 enum GYRO_CONFIG1_BIT : uint8_t {
-
-	// 2:0 GYRO_ODR
-	GYRO_UI_FILT_BW_16Hz   = Bit2 | Bit1 | Bit0,   // 111: 16Hz
-	GYRO_UI_FILT_BW_25Hz   = Bit2 | Bit1,          // 110: 25Hz
-	GYRO_UI_FILT_BW_34Hz   = Bit2 | Bit0,  	// 101: 34Hz
-	GYRO_UI_FILT_BW_53Hz   = Bit2,         	// 100: 53Hz
-	GYRO_UI_FILT_BW_73Hz   = Bit1 | Bit0,  	// 011: 73Hz
-	GYRO_UI_FILT_BW_121Hz  = Bit1,        		// 010: 121Hz
-	GYRO_UI_FILT_BW_180Hz  = Bit0,        		// 001: 180Hz
+	// 2:0 GYRO_UI_FILT_BW
+	GYRO_UI_FILT_BW_BYPASSED_CLEAR = Bit2 | Bit1 | Bit0, // 000: Low pass filter bypassed
 };
 
 // ACCEL_CONFIG1
 enum ACCEL_CONFIG1_BIT : uint8_t {
-
-	// 2:0 ACCEL_ODR
-	ACCEL_UI_FILT_BW_16Hz   = Bit2 | Bit1 | Bit0,   // 111: 16Hz
-	ACCEL_UI_FILT_BW_25Hz   = Bit2 | Bit1,          // 110: 25Hz
-	ACCEL_UI_FILT_BW_34Hz   = Bit2 | Bit0,  	// 101: 34Hz
-	ACCEL_UI_FILT_BW_53Hz   = Bit2,         	// 100: 53Hz
-	ACCEL_UI_FILT_BW_73Hz   = Bit1 | Bit0,  	// 011: 73Hz
-	ACCEL_UI_FILT_BW_121Hz  = Bit1,        		// 010: 121Hz
-	ACCEL_UI_FILT_BW_180Hz  = Bit0,        		// 001: 180Hz
+	// 2:0 ACCEL_UI_FILT_BW
+	ACCEL_UI_FILT_BW_BYPASSED_CLEAR = Bit2 | Bit1 | Bit0, // 000: Low pass filter bypassed
 };
+
 // FIFO_CONFIG1
 enum FIFO_CONFIG1_BIT : uint8_t {
-	// 1 FIFO_MODE
-	FIFO_MODE_STOP_ON_FULL = Bit1, // 11: STOP-on-FULL Mode
+	// FIFO_MODE
+	FIFO_MODE_STOP_ON_FULL = Bit1, // 1: STOP-on-FULL Mode
+	FIFO_BYPASS            = Bit0, // 0: FIFO is not bypassed
 };
 
 // INT_STATUS
@@ -180,113 +178,63 @@ enum INT_STATUS_BIT : uint8_t {
 	FIFO_FULL_INT  = Bit1,
 };
 
-// PWR_MGMT0
-enum PWR_MGMT0_BIT : uint8_t {
-	GYRO_MODE_LOW_NOISE  = Bit3 | Bit2, // 11: Places gyroscope in Low Noise (LN) Mode
-	ACCEL_MODE_LOW_NOISE = Bit1 | Bit0, // 11: Places accelerometer in Low Noise (LN) Mode
+// INT_SOURCE0
+enum INT_SOURCE0_BIT : uint8_t {
+	RESET_DONE_INT1_EN = Bit4, // 1: Reset done interrupt routed to INT1
+	FIFO_THS_INT1_EN   = Bit2, // FIFO threshold interrupt routed to INT1
 };
 
-// GYRO_CONFIG0
-enum GYRO_CONFIG0_BIT : uint8_t {
-	// 6:5 GYRO_FS_SEL
-	GYRO_FS_SEL_2000_DPS = 0,            // 0b000 = ±2000dps
-	GYRO_FS_SEL_1000_DPS = Bit5,         // 0b001 = ±1000 dps
-	GYRO_FS_SEL_500_DPS  = Bit6,         // 0b010 = ±500 dps
-	GYRO_FS_SEL_250_DPS  = Bit6 | Bit5,  // 0b011 = ±250 dps
 
-	// 3:0 GYRO_ODR
-	GYRO_ODR_1600Hz      = Bit2 | Bit0,         // 0101: 1600Hz
-	GYRO_ODR_800Hz       = Bit2 | Bit1,         // 0110: 800Hz
-	GYRO_ODR_400Hz       = Bit2 | Bit1 | Bit0,  // 0111: 400Hz
-	GYRO_ODR_200Hz       = Bit3,         // 1000: 200Hz
-};
-
-// ACCEL_CONFIG0
-enum ACCEL_CONFIG0_BIT : uint8_t {
-	// 6:5 ACCEL_FS_SEL
-	ACCEL_FS_SEL_16G = 0,           // 000: ±16g
-	ACCEL_FS_SEL_8G  = Bit5,        // 001: ±8g
-	ACCEL_FS_SEL_4G  = Bit6,        // 010: ±4g
-	ACCEL_FS_SEL_2G  = Bit6 | Bit5, // 011: ±2g
-
-	// 3:0 ACCEL_ODR
-	ACCEL_ODR_1600Hz  = Bit2 | Bit0,         // 0101: 1600Hz
-	ACCEL_ODR_800Hz  = Bit2 | Bit1,         // 0110: 800Hz
-	ACCEL_ODR_400Hz   = Bit2 | Bit1 | Bit0,  // 0111: 400Hz
-	ACCEL_ODR_200Hz   = Bit3,         	// 1000: 200Hz
-};
+//---------------- USER BANK MREG1 Register bits
 
 // FIFO_CONFIG5
 enum FIFO_CONFIG5_BIT : uint8_t {
-	FIFO_RESUME_PARTIAL_RD = Bit4,
-	FIFO_WM_GT_TH          = Bit5,
-	FIFO_HIRES_EN          = Bit3,
-	FIFO_TMST_FSYNC_EN     = Bit2,
-	FIFO_GYRO_EN           = Bit1,
-	FIFO_ACCEL_EN          = Bit0,
+	FIFO_WM_GT_TH = Bit5, // 0: Trigger FIFO Watermark interrupt when FIFO_COUNT = FIFO_WM
+	FIFO_GYRO_EN  = Bit1, // 1: Enables Gyro packets to go to FIFO
+	FIFO_ACCEL_EN = Bit0, // 1: Enables Accel packets to go to FIFO
 };
 
 // INT_CONFIG0
 enum INT_CONFIG0_BIT : uint8_t {
 	// 3:2 FIFO_THS_INT_CLEAR
-	CLEAR_ON_FIFO_READ = Bit3,
-};
-
-// INT_SOURCE0
-enum INT_SOURCE0_BIT : uint8_t {
-	ST_INT1_END        = Bit7,
-	FSYNC_INT1_EN      = Bit6,
-	PLL_RDY_INT1_EN    = Bit5,
-	RESET_DONE_INT1_EN = Bit4,
-	DRDY_INT1_EN       = Bit3,
-	FIFO_THS_INT1_EN   = Bit2, // FIFO threshold interrupt routed to INT1
-	FIFO_FULL_INT1_EN  = Bit1,
-	AGC_RDY_INT1_EN    = Bit0,
-};
-
-// REG_BANK_SEL
-enum REG_BANK_SEL_BIT : uint8_t {
-	USER_BANK_0 = 0,           // 0: Select USER BANK 0.
-	USER_BANK_1 = Bit4,        // 1: Select USER BANK 1.
-	USER_BANK_2 = Bit5,        // 2: Select USER BANK 2.
-	USER_BANK_3 = Bit5 | Bit4, // 3: Select USER BANK 3.
+	FIFO_THS_INT_CLEAR = Bit3, // 10: Clear on FIFO data 1Byte Read
 };
 
 namespace FIFO
 {
-static constexpr size_t SIZE = 2048;
+static constexpr size_t SIZE = 1024;
 
 // FIFO_DATA layout when FIFO_CONFIG1 has FIFO_GYRO_EN and FIFO_ACCEL_EN set
 
 // Packet 3
 struct DATA {
 	uint8_t FIFO_Header;
-	uint8_t ACCEL_DATA_X1;
-	uint8_t ACCEL_DATA_X0;
-	uint8_t ACCEL_DATA_Y1;
-	uint8_t ACCEL_DATA_Y0;
-	uint8_t ACCEL_DATA_Z1;
-	uint8_t ACCEL_DATA_Z0;
-	uint8_t GYRO_DATA_X1;
-	uint8_t GYRO_DATA_X0;
-	uint8_t GYRO_DATA_Y1;
-	uint8_t GYRO_DATA_Y0;
-	uint8_t GYRO_DATA_Z1;
-	uint8_t GYRO_DATA_Z0;
-	uint8_t temperature;  // Temperature[7:0]
-	uint8_t timestamp_l;
-	uint8_t timestamp_h;
+	uint8_t ACCEL_DATA_X1; // Accel X [19:12]
+	uint8_t ACCEL_DATA_X0; // Accel X [11:4]
+	uint8_t ACCEL_DATA_Y1; // Accel Y [19:12]
+	uint8_t ACCEL_DATA_Y0; // Accel Y [11:4]
+	uint8_t ACCEL_DATA_Z1; // Accel Z [19:12]
+	uint8_t ACCEL_DATA_Z0; // Accel Z [11:4]
+	uint8_t GYRO_DATA_X1;  // Gyro X [19:12]
+	uint8_t GYRO_DATA_X0;  // Gyro X [11:4]
+	uint8_t GYRO_DATA_Y1;  // Gyro Y [19:12]
+	uint8_t GYRO_DATA_Y0;  // Gyro Y [11:4]
+	uint8_t GYRO_DATA_Z1;  // Gyro Z [19:12]
+	uint8_t GYRO_DATA_Z0;  // Gyro Z [11:4]
+	uint8_t temperature;   // Temperature[7:0]
+	uint8_t TimeStamp_h;   // TimeStamp[15:8]
+	uint8_t TimeStamp_l;   // TimeStamp[7:0]
 };
 
 // With FIFO_ACCEL_EN and FIFO_GYRO_EN header should be 8’b_0110_10xx
 enum FIFO_HEADER_BIT : uint8_t {
 	HEADER_MSG             = Bit7, // 1: FIFO is empty
-	HEADER_ACCEL           = Bit6,
-	HEADER_GYRO            = Bit5,
-	HEADER_20              = Bit4,
+	HEADER_ACCEL           = Bit6, // 1: Packet is sized so that accel data have location in the packet, FIFO_ACCEL_EN must be 1
+	HEADER_GYRO            = Bit5, // 1: Packet is sized so that gyro data have location in the packet, FIFO_GYRO_EN must be1
+	HEADER_20              = Bit4, // 1: Packet has a new and valid sample of extended 20-bit data for gyro and/or accel
 	HEADER_TIMESTAMP_FSYNC = Bit3 | Bit2,
-	HEADER_ODR_ACCEL       = Bit1,
-	HEADER_ODR_GYRO        = Bit0,
+	HEADER_ODR_ACCEL       = Bit1, // 1: The ODR for accel is different for this accel data packet compared to the previous accel packet
+	HEADER_ODR_GYRO        = Bit0, // 1: The ODR for gyro is different for this gyro data packet compared to the previous gyro packet
 };
 
 }

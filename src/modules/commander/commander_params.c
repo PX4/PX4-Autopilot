@@ -129,49 +129,6 @@ PARAM_DEFINE_INT32(COM_HLDL_LOSS_T, 120);
 PARAM_DEFINE_INT32(COM_HLDL_REG_T, 0);
 
 /**
- * Engine Failure Throttle Threshold
- *
- * Engine failure triggers only above this throttle value
- *
- * @group Commander
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- */
-PARAM_DEFINE_FLOAT(COM_EF_THROT, 0.5f);
-
-/**
- * Engine Failure Current/Throttle Threshold
- *
- * Engine failure triggers only below this current value
- *
- * @group Commander
- * @min 0.0
- * @max 50.0
- * @unit A/%
- * @decimal 2
- * @increment 1
- */
-PARAM_DEFINE_FLOAT(COM_EF_C2T, 5.0f);
-
-/**
- * Engine Failure Time Threshold
- *
- * Engine failure triggers only if the throttle threshold and the
- * current to throttle threshold are violated for this time
- *
- * @group Commander
- * @unit s
- * @min 0.0
- * @max 60.0
- * @decimal 1
- * @increment 1
- */
-PARAM_DEFINE_FLOAT(COM_EF_TIME, 10.0f);
-
-/**
  * RC loss time threshold
  *
  * After this amount of seconds without RC connection it's considered lost and not used anymore
@@ -894,6 +851,23 @@ PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
 PARAM_DEFINE_INT32(COM_RCL_EXCEPT, 0);
 
 /**
+ * Set the actuator failure failsafe mode
+ *
+ * Note: actuator failure needs to be enabled and configured via FD_ACT_*
+ * parameters.
+ *
+ * @min 0
+ * @max 3
+ * @value 0 Disabled
+ * @value 1 Hold mode
+ * @value 2 Land mode
+ * @value 3 Return mode
+ * @value 4 Terminate
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ACT_FAIL_ACT, 0);
+
+/**
  * Flag to enable obstacle avoidance.
  *
  * @boolean
@@ -1065,3 +1039,38 @@ PARAM_DEFINE_INT32(COM_ARM_SDCARD, 1);
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(COM_WIND_WARN, -1.f);
+
+/**
+ * Maximum allowed flight time
+ *
+ * The vehicle aborts the current operation and returns to launch when
+ * the time since takeoff is above this value. It is not possible to resume the
+ * mission or switch to any mode other than RTL or Land.
+ *
+ * Set a nagative value to disable.
+ *
+ *
+ * @unit s
+ * @min -1
+ * @max 10000
+ * @value 0 Disable
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_FLT_TIME_MAX, -1);
+
+/**
+ * Wind speed RLT threshold
+ *
+ * Wind speed threshold above which an automatic return to launch is triggered
+ * and enforced as long as the threshold is exceeded.
+ *
+ * A negative value disables the feature.
+ *
+ * @min -1
+ * @max 30
+ * @decimal 1
+ * @increment 0.1
+ * @group Commander
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(COM_WIND_MAX, -1.f);
