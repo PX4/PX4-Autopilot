@@ -69,13 +69,12 @@ uint8 system_type			# system type, contains mavlink MAV_TYPE
 uint8 system_id			# system id, contains MAVLink's system ID field
 uint8 component_id			# subsystem / component id, contains MAVLink's component ID field
 
-uint8 vehicle_type          # Type of vehicle (fixed-wing, rotary wing, ground)
+uint8 vehicle_type          # Type of vehicle (rotary wing/fixed-wing/rover/airship, see above)
                             # If the vehicle is a VTOL, then this value will be VEHICLE_TYPE_ROTARY_WING while flying as a multicopter,
                             # and VEHICLE_TYPE_FIXED_WING when flying as a fixed-wing
 
 bool is_vtol				# True if the system is VTOL capable
 bool is_vtol_tailsitter                 # True if the system performs a 90° pitch down rotation during transition from MC to FW
-bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
 

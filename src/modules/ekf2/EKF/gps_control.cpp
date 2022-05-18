@@ -41,7 +41,7 @@
 
 void Ekf::controlGpsFusion()
 {
-	if (!(_params.fusion_mode & MASK_USE_GPS)) {
+	if (!(_params.fusion_mode & SensorFusionMask::USE_GPS)) {
 		stopGpsFusion();
 		return;
 	}
@@ -109,7 +109,7 @@ void Ekf::controlGpsFusion()
 
 					// TODO: move this to EV control logic
 					// Reset position state to external vision if we are going to use absolute values
-					if (_control_status.flags.ev_pos && !(_params.fusion_mode & MASK_ROTATE_EV)) {
+					if (_control_status.flags.ev_pos && !(_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS)) {
 						resetHorizontalPositionToVision();
 					}
 				}
@@ -136,7 +136,7 @@ void Ekf::controlGpsFusion()
 					startGpsFusion();
 				}
 
-			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE)) {
+			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MagFuseType::NONE)) {
 				// If no mag is used, align using the yaw estimator (if available)
 				if (resetYawToEKFGSF()) {
 					_information_events.flags.yaw_aligned_to_imu_gps = true;

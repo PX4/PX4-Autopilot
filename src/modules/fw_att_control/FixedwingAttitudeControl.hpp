@@ -151,8 +151,6 @@ private:
 
 	bool _flag_control_attitude_enabled_last{false};
 
-	bool _is_tailsitter{false};
-
 	float _energy_integration_time{0.0f};
 	float _control_energy[4] {};
 	float _control_prev[3] {};

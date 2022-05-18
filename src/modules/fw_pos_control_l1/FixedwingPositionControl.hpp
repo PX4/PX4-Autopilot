@@ -95,7 +95,6 @@
 #include <uORB/topics/wind.h>
 #include <uORB/topics/orbit_status.h>
 #include <uORB/uORB.h>
-#include <vtol_att_control/vtol_type.h>
 
 using namespace launchdetection;
 using namespace runwaytakeoff;
@@ -527,7 +526,6 @@ private:
 		(ParamFloat<px4::params::FW_TKO_PITCH_MIN>) _takeoff_pitch_min,
 
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad
-
 	)
 
 };
