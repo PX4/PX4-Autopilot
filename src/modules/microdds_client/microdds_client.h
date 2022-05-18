@@ -49,7 +49,7 @@ public:
 	};
 
 	MicroddsClient(Transport transport, const char *device, int baudrate, const char *host, const char *port,
-		       bool localhost_only, const char* client_namespace);
+		       bool localhost_only, const char *client_namespace);
 
 	~MicroddsClient();
 
@@ -75,7 +75,7 @@ private:
 	int setBaudrate(int fd, unsigned baud);
 
 	const bool _localhost_only;
-    std::string _client_namespace;
+	char *_client_namespace;
 
 	SendTopicsSubs *_subs{nullptr};
 	RcvTopicsPubs *_pubs{nullptr};

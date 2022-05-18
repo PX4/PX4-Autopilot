@@ -55,7 +55,16 @@ MicroddsClient::MicroddsClient(Transport transport, const char *device, int baud
 			       const char *port, bool localhost_only, const char *client_namespace)
 	: _localhost_only(localhost_only)
 {
-    _client_namespace = (client_namespace != nullptr ? std::string(client_namespace) + "/":"");
+	if (client_namespace == nullptr) {
+		_client_namespace = new char [1];
+		_client_namespace[0] = '\0';
+
+	} else {
+		uint8_t ns_size = strlen(client_namespace) + 2;
+		_client_namespace = new char [ns_size];
+		strcpy(_client_namespace, client_namespace);
+		strcat(_client_namespace, "/");
+	}
 
 	if (transport == Transport::Serial) {
 
@@ -167,36 +176,45 @@ void MicroddsClient::run()
 
 		// Create entities
 		uxrObjectId participant_id = uxr_object_id(0x01, UXR_PARTICIPANT_ID);
-		std::string participant_xml = _localhost_only ?
-					      "<dds>"
-					      "<profiles>"
-					      "<transport_descriptors>"
-					      "<transport_descriptor>"
-					      "<transport_id>udp_localhost</transport_id>"
-					      "<type>UDPv4</type>"
-					      "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
-					      "</transport_descriptor>"
-					      "</transport_descriptors>"
-					      "</profiles>"
-					      "<participant>"
-					      "<rtps>"
-                          "<name>" + _client_namespace + "px4_xrce_participant</name>"
-					      "<useBuiltinTransports>false</useBuiltinTransports>"
-					      "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
-					      "</rtps>"
-					      "</participant>"
-					      "</dds>"
-					      :
-					      "<dds>"
-					      "<participant>"
-					      "<rtps>"
-                          "<name>" + _client_namespace + "px4_xrce_participant</name>"
-					      "</rtps>"
-					      "</participant>"
-					      "</dds>" ;
+		const char *participant_xml_begin = _localhost_only ?
+						    "<dds>"
+						    "<profiles>"
+						    "<transport_descriptors>"
+						    "<transport_descriptor>"
+						    "<transport_id>udp_localhost</transport_id>"
+						    "<type>UDPv4</type>"
+						    "<interfaceWhiteList><address>127.0.0.1</address></interfaceWhiteList>"
+						    "</transport_descriptor>"
+						    "</transport_descriptors>"
+						    "</profiles>"
+						    "<participant>"
+						    "<rtps>"
+						    "<name>"
+						    :
+						    "<dds>"
+						    "<participant>"
+						    "<rtps>"
+						    "<name>";
+		const char *participant_xml_end = _localhost_only ?
+						  "px4_xrce_participant</name>"
+						  "<useBuiltinTransports>false</useBuiltinTransports>"
+						  "<userTransports><transport_id>udp_localhost</transport_id></userTransports>"
+						  "</rtps>"
+						  "</participant>"
+						  "</dds>"
+						  :
+						  "px4_xrce_participant</name>"
+						  "</rtps>"
+						  "</participant>"
+						  "</dds>" ;
+		uint16_t participant_name_size = strlen(participant_xml_begin) + strlen(_client_namespace) + strlen(
+				participant_xml_end) + 1;
+		char *participant_xml = new char [participant_name_size];
+		strcpy(participant_xml, participant_xml_begin);
+		strcat(participant_xml, _client_namespace);
+		strcat(participant_xml, participant_xml_end);
 		uint16_t participant_req = uxr_buffer_create_participant_xml(&session, reliable_out, participant_id, 0,
-					   participant_xml.c_str(), UXR_REPLACE);
-
+					   participant_xml, UXR_REPLACE);
 		uint8_t request_status;
 
 		if (!uxr_run_session_until_all_status(&session, 1000, &participant_req, &request_status, 1)) {
@@ -450,7 +468,7 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 	int baudrate = 921600;
 	const char *port = "15555";
 	bool localhost_only = false;
-    const char *client_namespace = nullptr;
+	const char *client_namespace = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:l:n:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -492,9 +510,9 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 			localhost_only = true;
 			break;
 
-        case 'n':
-            client_namespace = myoptarg;
-            break;
+		case 'n':
+			client_namespace = myoptarg;
+			break;
 
 		case '?':
 			error_flag = true;
