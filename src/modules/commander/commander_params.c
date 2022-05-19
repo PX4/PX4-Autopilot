@@ -927,7 +927,7 @@ PARAM_DEFINE_INT32(COM_PREARM_MODE, 0);
 /**
  * Enable force safety
  *
- * Force safety when the vehicle disarms
+ * Force safety when the vehicle disarms. Not supported when safety button used over PX4IO board.
  *
  * @boolean
  * @group Commander
