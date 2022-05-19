@@ -106,7 +106,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
 	_param_ekf2_aid_mask(_params->fusion_mode),
-	_param_ekf2_hgt_mode(_params->vdist_sensor_type),
+	_param_ekf2_hgt_mode(_params->height_sensor_ref),
 	_param_ekf2_terr_mask(_params->terrain_fusion_mode),
 	_param_ekf2_noaid_tout(_params->valid_timeout_max),
 	_param_ekf2_rng_noise(_params->range_noise),
@@ -292,7 +292,7 @@ void EKF2::Run()
 		}
 
 		// if using baro ensure sensor interval minimum is sufficient to accommodate system averaged baro output
-		if (_params->vdist_sensor_type == 0) {
+		if (_params->fusion_mode & SensorFusionMask::USE_BARO_HGT) {
 			float sens_baro_rate = 0.f;
 
 			if (param_get(param_find("SENS_BARO_RATE"), &sens_baro_rate) == PX4_OK) {

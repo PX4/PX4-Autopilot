@@ -437,7 +437,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	float max_time_delay_ms = math::max((float)_params.sensor_interval_max_ms, _params.auxvel_delay_ms);
 
 	// using baro
-	if (_params.vdist_sensor_type == 0) {
+	if (_params.fusion_mode & SensorFusionMask::USE_BARO_HGT) {
 		max_time_delay_ms = math::max(_params.baro_delay_ms, max_time_delay_ms);
 	}
 
@@ -452,7 +452,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	}
 
 	// range aid or range height
-	if (_params.range_aid || (_params.vdist_sensor_type == VerticalHeightSensor::RANGE)) {
+	if (_params.range_aid || (_params.fusion_mode & SensorFusionMask::USE_RNG_HGT)) {
 		max_time_delay_ms = math::max(_params.range_delay_ms, max_time_delay_ms);
 	}
 

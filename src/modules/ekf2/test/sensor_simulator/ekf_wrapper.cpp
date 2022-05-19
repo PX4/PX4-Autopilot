@@ -10,9 +10,19 @@ EkfWrapper::~EkfWrapper()
 {
 }
 
-void EkfWrapper::setBaroHeight()
+void EkfWrapper::setBaroHeightRef()
 {
-	_ekf_params->vdist_sensor_type = VerticalHeightSensor::BARO;
+	_ekf_params->height_sensor_ref |= HeightSensorRef::BARO;
+}
+
+void EkfWrapper::enableBaroHeightFusion()
+{
+	_ekf_params->fusion_mode |= SensorFusionMask::USE_BARO_HGT;
+}
+
+void EkfWrapper::disableBaroHeightFusion()
+{
+	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_BARO_HGT;
 }
 
 bool EkfWrapper::isIntendingBaroHeightFusion() const
@@ -20,9 +30,19 @@ bool EkfWrapper::isIntendingBaroHeightFusion() const
 	return _ekf->control_status_flags().baro_hgt;
 }
 
-void EkfWrapper::setGpsHeight()
+void EkfWrapper::setGpsHeightRef()
 {
-	_ekf_params->vdist_sensor_type = VerticalHeightSensor::GPS;
+	_ekf_params->height_sensor_ref |= HeightSensorRef::GPS;
+}
+
+void EkfWrapper::enableGpsHeightFusion()
+{
+	_ekf_params->fusion_mode |= SensorFusionMask::USE_GPS_HGT;
+}
+
+void EkfWrapper::disableGpsHeightFusion()
+{
+	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_GPS_HGT;
 }
 
 bool EkfWrapper::isIntendingGpsHeightFusion() const
@@ -30,9 +50,19 @@ bool EkfWrapper::isIntendingGpsHeightFusion() const
 	return _ekf->control_status_flags().gps_hgt;
 }
 
-void EkfWrapper::setRangeHeight()
+void EkfWrapper::setRangeHeightRef()
 {
-	_ekf_params->vdist_sensor_type = VerticalHeightSensor::RANGE;
+	_ekf_params->height_sensor_ref |= HeightSensorRef::RANGE;
+}
+
+void EkfWrapper::enableRangeHeightFusion()
+{
+	_ekf_params->fusion_mode |= SensorFusionMask::USE_RNG_HGT;
+}
+
+void EkfWrapper::disableRangeHeightFusion()
+{
+	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_RNG_HGT;
 }
 
 bool EkfWrapper::isIntendingRangeHeightFusion() const
@@ -40,9 +70,19 @@ bool EkfWrapper::isIntendingRangeHeightFusion() const
 	return _ekf->control_status_flags().rng_hgt;
 }
 
-void EkfWrapper::setVisionHeight()
+void EkfWrapper::setVisionHeightRef()
 {
-	_ekf_params->vdist_sensor_type = VerticalHeightSensor::EV;
+	_ekf_params->height_sensor_ref |= HeightSensorRef::EV;
+}
+
+void EkfWrapper::enableVisionHeightFusion()
+{
+	_ekf_params->fusion_mode |= SensorFusionMask::USE_EXT_VIS_HGT;
+}
+
+void EkfWrapper::disableVisionHeightFusion()
+{
+	_ekf_params->fusion_mode &= ~SensorFusionMask::USE_EXT_VIS_HGT;
 }
 
 bool EkfWrapper::isIntendingVisionHeightFusion() const

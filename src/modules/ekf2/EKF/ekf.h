@@ -47,6 +47,7 @@
 
 #include "EKFGSF_yaw.h"
 #include "bias_estimator.hpp"
+#include "height_bias_estimator.hpp"
 
 #include <uORB/topics/estimator_aid_source_1d.h>
 #include <uORB/topics/estimator_aid_source_2d.h>
@@ -586,14 +587,7 @@ private:
 
 	// Variables used to perform in flight resets and switch between height sources
 	AlphaFilter<Vector3f> _mag_lpf{0.1f};	///< filtered magnetometer measurement for instant reset (Gauss)
-
-	float _baro_hgt_offset{0.0f};		///< baro height reading at the local NED origin (m)
-	float _gps_hgt_offset{0.0f};		///< GPS height reading at the local NED origin (m)
-	float _rng_hgt_offset{0.0f};		///< Range height reading at the local NED origin (m)
-	float _ev_hgt_offset{0.0f};		///< EV height reading at the local NED origin (m)
-
-	float _baro_hgt_bias{0.0f};
-	float _baro_hgt_bias_var{1.f};
+	AlphaFilter<float> _baro_lpf{0.1f};	///< filtered barometric height measurement (m)
 
 	// Variables used to control activation of post takeoff functionality
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
@@ -708,6 +702,8 @@ private:
 	void resetHorizontalPositionToOpticalFlow();
 	void resetHorizontalPositionToLastKnown();
 	void resetHorizontalPositionTo(const Vector2f &new_horz_pos);
+
+	bool isHeightResetRequired() const;
 
 	void resetVerticalPositionTo(float new_vert_pos);
 
@@ -923,9 +919,6 @@ private:
 	void runMagAndMagDeclFusions(const Vector3f &mag);
 	void run3DMagAndDeclFusions(const Vector3f &mag);
 
-	// control fusion of range finder observations
-	void controlRangeFinderFusion();
-
 	// control fusion of air data observations
 	void controlAirDataFusion();
 
@@ -934,9 +927,6 @@ private:
 
 	// control fusion of multi-rotor drag specific force observations
 	void controlDragFusion();
-
-	// control fusion of pressure altitude observations
-	void controlBaroFusion();
 
 	// control fusion of fake position observations to constrain drift
 	void controlFakePosFusion();
@@ -948,28 +938,18 @@ private:
 	// control fusion of auxiliary velocity observations
 	void controlAuxVelFusion();
 
-	// control for height sensor timeouts, sensor changes and state resets
-	void controlHeightSensorTimeouts();
-
 	void checkVerticalAccelerationHealth();
 
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion();
+	void checkHeightSensorRefFallback();
+	void controlBaroHeightFusion();
+	void controlGnssHeightFusion();
+	void controlRangeHeightFusion();
+	void controlEvHeightFusion();
 
 	// determine if flight condition is suitable to use range finder instead of the primary height sensor
 	void checkRangeAidSuitability();
-
-	// set control flags to use baro height
-	void setControlBaroHeight();
-
-	// set control flags to use range height
-	void setControlRangeHeight();
-
-	// set control flags to use GPS height
-	void setControlGPSHeight();
-
-	// set control flags to use external vision height
-	void setControlEVHeight();
 
 	void stopMagFusion();
 	void stopMag3DFusion();
@@ -978,13 +958,16 @@ private:
 	void startMag3DFusion();
 
 	void startBaroHgtFusion();
+	void stopBaroHgtFusion();
+
 	void startGpsHgtFusion();
+	void stopGpsHgtFusion();
+
 	void startRngHgtFusion();
+	void stopRngHgtFusion();
 	void startRngAidHgtFusion();
 	void startEvHgtFusion();
-
-	void updateBaroHgtOffset();
-	void updateBaroHgtBias();
+	void stopEvHgtFusion();
 
 	void updateGroundEffect();
 
@@ -1091,7 +1074,12 @@ private:
 	// yaw estimator instance
 	EKFGSF_yaw _yawEstimator{};
 
-	BiasEstimator _baro_b_est{};
+	uint8_t _height_sensor_ref{HeightSensor::UNKNOWN};
+
+	HeightBiasEstimator _baro_b_est{HeightSensor::BARO, _height_sensor_ref};
+	HeightBiasEstimator _gps_hgt_b_est{HeightSensor::GNSS, _height_sensor_ref};
+	HeightBiasEstimator _rng_hgt_b_est{HeightSensor::RANGE, _height_sensor_ref};
+	HeightBiasEstimator _ev_hgt_b_est{HeightSensor::EV, _height_sensor_ref};
 
 	int64_t _ekfgsf_yaw_reset_time{0};	///< timestamp of last emergency yaw reset (uSec)
 	uint8_t _ekfgsf_yaw_reset_count{0};	// number of times the yaw has been reset to the EKF-GSF estimate
