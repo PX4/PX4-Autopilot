@@ -336,17 +336,23 @@ void Tailsitter::fill_actuator_outputs()
 		// FW thrust is allocated on mc_thrust_sp[0] for tailsitter with dynamic control allocation
 		_thrust_setpoint_0->xyz[2] = -fw_in[actuator_controls_s::INDEX_THROTTLE];
 
-		/* allow differential thrust if enabled */
+		/* allow differential thrust for yaw if enabled */
 		if (_param_vt_fw_difthr_en.get()) {
 			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
 			_torque_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
 		}
 
-		mc_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
-		_torque_setpoint_0->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
+		if (_param_vt_fw_difthr_r.get()) {
+			// enable differential thrust for fixed-wing roll control
+			mc_out[actuator_controls_s::INDEX_YAW] = -fw_in[actuator_controls_s::INDEX_ROLL];
+			_torque_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_ROLL];
+		}
 
-		mc_out[actuator_controls_s::INDEX_YAW] = -fw_in[actuator_controls_s::INDEX_ROLL];
-		_torque_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_ROLL];
+		if (_param_vt_fw_difthr_p.get()) {
+			// enable differential thrust for fixed-wing pitch control
+			mc_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
+			_torque_setpoint_0->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
+		}
 
 	} else {
 		_torque_setpoint_0->xyz[0] = mc_in[actuator_controls_s::INDEX_ROLL];
@@ -370,10 +376,25 @@ void Tailsitter::fill_actuator_outputs()
 		fw_out[actuator_controls_s::INDEX_PITCH] = 0;
 
 	} else {
-		fw_out[actuator_controls_s::INDEX_ROLL]  = fw_in[actuator_controls_s::INDEX_ROLL];
-		fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
-		_torque_setpoint_1->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
-		_torque_setpoint_1->xyz[2] = -fw_in[actuator_controls_s::INDEX_ROLL];
+		if (_param_vt_elev_lock.get()) {
+			// lock the elevator always
+			fw_out[actuator_controls_s::INDEX_PITCH] = 0.0f;
+			_torque_setpoint_1->xyz[1] = 0.0f;
+
+		} else {
+			fw_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
+			_torque_setpoint_1->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
+		}
+
+		if (_param_vt_ail_fw_lock.get() && _vtol_schedule.flight_mode != vtol_mode::MC_MODE) {
+			// lock the ailerons in transition and fixed-wing
+			fw_out[actuator_controls_s::INDEX_ROLL]  = 0.0f;
+			_torque_setpoint_1->xyz[2] = 0.0f;
+
+		} else {
+			fw_out[actuator_controls_s::INDEX_ROLL]  = fw_in[actuator_controls_s::INDEX_ROLL];
+			_torque_setpoint_1->xyz[2] = -fw_in[actuator_controls_s::INDEX_ROLL];
+		}
 	}
 
 	_actuators_out_0->timestamp_sample = _actuators_mc_in->timestamp_sample;

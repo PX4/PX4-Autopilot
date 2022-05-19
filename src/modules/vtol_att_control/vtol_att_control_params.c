@@ -76,6 +76,22 @@ PARAM_DEFINE_INT32(VT_TYPE, 0);
 PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
 
 /**
+ * Lock elevator action always
+ *
+ * @boolean
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_ELEV_LOCK, 1);
+
+/**
+ * Lock ailerons in transition and fixed-wing modes
+ *
+ * @boolean
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_AIL_FW_LOCK, 0);
+
+/**
  * Duration of a front transition
  *
  * Time in seconds used for a transition
@@ -296,6 +312,30 @@ PARAM_DEFINE_INT32(VT_MOT_ID, 0);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_FW_DIFTHR_EN, 0);
+
+/**
+ * Differential thrust in forwards flight for pitch.
+ *
+ * Set to 1 to enable differential thrust in fixed-wing flight.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_DIFTHR_P, 1);
+
+/**
+ * Differential thrust in forwards flight for roll.
+ *
+ * Set to 1 to enable differential thrust in fixed-wing flight.
+ *
+ * @min 0
+ * @max 1
+ * @decimal 0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_FW_DIFTHR_R, 1);
 
 /**
  * Differential thrust scaling factor
