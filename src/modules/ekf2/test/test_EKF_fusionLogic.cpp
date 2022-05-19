@@ -358,6 +358,7 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusion)
 	// GIVEN: EKF that receives baro and GPS data
 	_sensor_simulator.startGps();
 	_sensor_simulator.runSeconds(11);
+	_ekf_wrapper.enableGpsHeightFusion();
 
 	// THEN: EKF should intend to fuse baro by default
 	EXPECT_TRUE(_ekf_wrapper.isIntendingBaroHeightFusion());
@@ -396,26 +397,28 @@ TEST_F(EkfFusionLogicTest, doBaroHeightFusionTimeout)
 
 	// BUT WHEN: GPS height data is also available
 	_sensor_simulator.startGps();
+	_ekf_wrapper.enableGpsHeightFusion();
 	_sensor_simulator.runSeconds(11);
 	reset_logging_checker.capturePostResetState();
 	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(2));
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 
 	// AND: the baro data jumps by a lot
 	_sensor_simulator._baro.setData(800.f);
 	_sensor_simulator.runSeconds(20);
 	reset_logging_checker.capturePostResetState();
 
-	// THEN: EKF should fallback to GPS height
+	// THEN: EKF should fallback to GPS height (without reset)
 	EXPECT_FALSE(_ekf_wrapper.isIntendingBaroHeightFusion());
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsHeightFusion());
-	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(3));
-	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(2));
+	EXPECT_TRUE(reset_logging_checker.isVerticalVelocityResetCounterIncreasedBy(2));
+	EXPECT_TRUE(reset_logging_checker.isVerticalPositionResetCounterIncreasedBy(1));
 }
 
 TEST_F(EkfFusionLogicTest, doGpsHeightFusion)
 {
 	// WHEN: commanding GPS height and sending GPS data
-	_ekf_wrapper.setGpsHeight();
+	_ekf_wrapper.enableGpsHeightFusion();
 	_sensor_simulator.startGps();
 	_sensor_simulator.runSeconds(11);
 
@@ -434,7 +437,7 @@ TEST_F(EkfFusionLogicTest, doGpsHeightFusion)
 TEST_F(EkfFusionLogicTest, doRangeHeightFusion)
 {
 	// WHEN: commanding range height and sending range data
-	_ekf_wrapper.setRangeHeight();
+	_ekf_wrapper.enableRangeHeightFusion();
 	_sensor_simulator.startRangeFinder();
 	_sensor_simulator.runSeconds(2.5f);
 	// THEN: EKF should intend to fuse range height
@@ -462,7 +465,7 @@ TEST_F(EkfFusionLogicTest, doRangeHeightFusion)
 TEST_F(EkfFusionLogicTest, doVisionHeightFusion)
 {
 	// WHEN: commanding vision height and sending vision data
-	_ekf_wrapper.setVisionHeight();
+	_ekf_wrapper.enableVisionHeightFusion();
 	_sensor_simulator.startExternalVision();
 	_sensor_simulator.runSeconds(2);
 

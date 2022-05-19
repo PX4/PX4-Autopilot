@@ -97,7 +97,7 @@ inline bool BiasEstimator::isTestRatioPassing(const float innov_test_ratio) cons
 
 inline void BiasEstimator::updateState(const float K, const float innov)
 {
-	_state = math::constrain(_state + K * innov, -_state_max, _state_max);
+	_state = _state + K * innov;
 }
 
 inline void BiasEstimator::updateStateCovariance(const float K)

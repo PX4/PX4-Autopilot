@@ -44,17 +44,18 @@ void Ekf::updateBaroHgt(const baroSample &baro_sample, estimator_aid_source_1d_s
 	resetEstimatorAidStatusFlags(baro_hgt);
 
 	// innovation gate size
-	float innov_gate = fmaxf(_params.baro_innov_gate, 1.f);
+	const float innov_gate = fmaxf(_params.baro_innov_gate, 1.f);
 
-	// observation variance - user parameter defined
-	float obs_var = sq(fmaxf(_params.baro_noise, 0.01f));
+	// measurement variance - user parameter defined
+	const float measurement_var = sq(fmaxf(_params.baro_noise, 0.01f));
+	const float measurement = _baro_sample_delayed.hgt;
 
 	// vertical position innovation - baro measurement has opposite sign to earth z axis
-	baro_hgt.observation = -(_baro_sample_delayed.hgt - _baro_b_est.getBias() - _baro_hgt_offset);
-	baro_hgt.observation_variance = obs_var;
+	baro_hgt.observation = -(measurement - _baro_b_est.getBias());
+	baro_hgt.observation_variance = measurement_var + _baro_b_est.getBiasVar();
 
 	baro_hgt.innovation = _state.pos(2) - baro_hgt.observation;
-	baro_hgt.innovation_variance = P(9, 9) + obs_var;
+	baro_hgt.innovation_variance = P(9, 9) + baro_hgt.observation_variance;
 
 	// Compensate for positive static pressure transients (negative vertical position innovations)
 	// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
@@ -86,6 +87,12 @@ void Ekf::updateBaroHgt(const baroSample &baro_sample, estimator_aid_source_1d_s
 	baro_hgt.fusion_enabled = _control_status.flags.baro_hgt;
 
 	baro_hgt.timestamp_sample = baro_sample.time_us;
+
+	// update the bias estimator before updating the main filter but after
+	// using its current state to compute the vertical position innovation
+	_baro_b_est.setMaxStateNoise(_params.baro_noise);
+	_baro_b_est.setProcessNoiseStdDev(_params.baro_drift_rate);
+	_baro_b_est.fuseBias(measurement - (-_state.pos(2)) , measurement_var + P(9, 9));
 }
 
 void Ekf::fuseBaroHgt(estimator_aid_source_1d_s &baro_hgt)
@@ -104,18 +111,19 @@ void Ekf::updateRngHgt(estimator_aid_source_1d_s &rng_hgt)
 	// reset flags
 	resetEstimatorAidStatusFlags(rng_hgt);
 
-	// observation variance - user parameter defined
-	float obs_var = fmaxf(sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sensor.getDistBottom()), 0.01f);
+	// measurement variance - user parameter defined
+	const float measurement_var = fmaxf(sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sensor.getDistBottom()), 0.01f);
+	const float measurement = math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance);
 
 	// innovation gate size
-	float innov_gate = fmaxf(_params.range_innov_gate, 1.f);
+	const float innov_gate = fmaxf(_params.range_innov_gate, 1.f);
 
 	// vertical position innovation, use range finder with tilt correction
-	rng_hgt.observation = (-math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance)) + _rng_hgt_offset;
-	rng_hgt.observation_variance = obs_var;
+	rng_hgt.observation = -(measurement - _rng_hgt_b_est.getBias());
+	rng_hgt.observation_variance = measurement_var + _rng_hgt_b_est.getBiasVar();
 
 	rng_hgt.innovation = _state.pos(2) - rng_hgt.observation;
-	rng_hgt.innovation_variance = P(9, 9) + obs_var;
+	rng_hgt.innovation_variance = P(9, 9) + rng_hgt.observation_variance;
 
 	setEstimatorAidStatusTestRatio(rng_hgt, innov_gate);
 
@@ -130,6 +138,14 @@ void Ekf::updateRngHgt(estimator_aid_source_1d_s &rng_hgt)
 	rng_hgt.fusion_enabled = _control_status.flags.rng_hgt;
 
 	rng_hgt.timestamp_sample = _range_sensor.getSampleAddress()->time_us;
+
+	// update the bias estimator before updating the main filter but after
+	// using its current state to compute the vertical position innovation
+	const float rng_noise = sqrtf(measurement_var);
+	_rng_hgt_b_est.setMaxStateNoise(rng_noise);
+	_rng_hgt_b_est.setProcessNoiseStdDev(rng_noise); // TODO: fix
+
+	_rng_hgt_b_est.fuseBias(measurement - (-_state.pos(2)) , measurement_var + P(9, 9));
 }
 
 void Ekf::fuseRngHgt(estimator_aid_source_1d_s &rng_hgt)
@@ -145,14 +161,24 @@ void Ekf::fuseRngHgt(estimator_aid_source_1d_s &rng_hgt)
 
 void Ekf::fuseEvHgt()
 {
+	const float measurement = _ev_sample_delayed.pos(2);
+	const float measurement_var = fmaxf(_ev_sample_delayed.posVar(2), sq(0.01f));
+
+	const float bias = _ev_hgt_b_est.getBias();
+	const float bias_var = _ev_hgt_b_est.getBiasVar();
+
+	const float ev_noise = sqrtf(measurement_var);
+	_ev_hgt_b_est.setMaxStateNoise(ev_noise);
+	_ev_hgt_b_est.setProcessNoiseStdDev(ev_noise); // TODO: fix
+	_ev_hgt_b_est.fuseBias(measurement - _state.pos(2), measurement_var + P(9, 9));
+
 	// calculate the innovation assuming the external vision observation is in local NED frame
-	_ev_pos_innov(2) = _state.pos(2) - _ev_sample_delayed.pos(2);
+	const float obs = measurement - bias;
+	const float obs_var = measurement_var + bias_var;
+	_ev_pos_innov(2) = _state.pos(2) - obs;
 
 	// innovation gate size
 	float innov_gate = fmaxf(_params.ev_pos_innov_gate, 1.f);
-
-	// observation variance - defined externally
-	float obs_var = fmaxf(_ev_sample_delayed.posVar(2), sq(0.01f));
 
 	// _ev_pos_test_ratio(1) is the vertical test ratio
 	fuseVerticalPosition(_ev_pos_innov(2), innov_gate, obs_var,
