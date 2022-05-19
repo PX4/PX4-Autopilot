@@ -46,11 +46,6 @@
 
 using namespace time_literals;
 
-/**
- * Airship attitude control app start / stop handling function
- */
-extern "C" __EXPORT int airship_att_control_main(int argc, char *argv[]);
-
 class AirshipAttitudeControl : public ModuleBase<AirshipAttitudeControl>, public ModuleParams,
 	public px4::WorkItem
 {
@@ -80,27 +75,27 @@ private:
 	/**
 	 * Check for parameter update and handle it.
 	 */
-	void		parameter_update_poll();
+	void parameter_update_poll();
 
-	void		publish_actuator_controls();
+	void publish_actuator_controls();
 
 	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample);
 	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
 
-	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};		/**< parameter updates subscription */
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
-	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	/**< manual control setpoint subscription */
+	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};        /**< parameter updates subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};                         /**< vehicle status subscription */
+	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};             /**< manual control setpoint subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
-	uORB::Publication<actuator_controls_s>		_actuators_0_pub;
-	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
-	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
+	uORB::Publication<actuator_controls_s>          _actuator_controls_0_pub;
+	uORB::Publication<vehicle_thrust_setpoint_s>    _vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
+	uORB::Publication<vehicle_torque_setpoint_s>    _vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
-	struct manual_control_setpoint_s	_manual_control_sp {};	/**< manual control setpoint */
-	struct vehicle_status_s			_vehicle_status {};	/**< vehicle status */
-	struct actuator_controls_s		_actuators {};		/**< actuator controls */
+	manual_control_setpoint_s       _manual_control_sp {};  /**< manual control setpoint */
+	vehicle_status_s                _vehicle_status {};     /**< vehicle status */
+	actuator_controls_s             _actuator_controls {};          /**< actuator controls */
 
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t  _loop_perf;     /**< loop performance counter */
 
 };
