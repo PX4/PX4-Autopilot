@@ -91,6 +91,20 @@ typedef enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_ENUM_END = 129, /*  | */
 } VEHICLE_MODE_FLAG;
 
+// TODO: generate
+static constexpr bool operator ==(const actuator_armed_s &a, const actuator_armed_s &b)
+{
+	return (a.armed == b.armed &&
+		a.prearmed == b.prearmed &&
+		a.ready_to_arm == b.ready_to_arm &&
+		a.lockdown == b.lockdown &&
+		a.manual_lockdown == b.manual_lockdown &&
+		a.force_failsafe == b.force_failsafe &&
+		a.in_esc_calibration_mode == b.in_esc_calibration_mode &&
+		a.soft_stop == b.soft_stop);
+}
+static_assert(sizeof(actuator_armed_s) == 16, "actuator_armed equality operator review");
+
 #if defined(BOARD_HAS_POWER_CONTROL)
 static orb_advert_t tune_control_pub = nullptr;
 static void play_power_button_down_tune()
@@ -2126,8 +2140,6 @@ void Commander::updateParameters()
 void
 Commander::run()
 {
-	bool sensor_fail_tune_played = false;
-
 	/* initialize */
 	led_init();
 	buzzer_init();
@@ -2170,6 +2182,9 @@ Commander::run()
 	while (!should_exit()) {
 
 		perf_begin(_loop_perf);
+
+		const actuator_armed_s actuator_armed_prev{_armed};
+		const vehicle_status_flags_s vehicle_status_flags_prev{_status_flags};
 
 		/* update parameters */
 		const bool params_updated = _parameter_update_sub.updated();
@@ -3018,54 +3033,49 @@ Commander::run()
 			_failsafe_old = _status.failsafe;
 		}
 
-		/* publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed */
-		if (hrt_elapsed_time(&_status.timestamp) >= 500_ms || _status_changed || nav_state_changed) {
 
-			update_control_mode();
+		// prearm mode
+		switch ((PrearmedMode)_param_com_prearm_mode.get()) {
+		case PrearmedMode::DISABLED:
+			/* skip prearmed state  */
+			_armed.prearmed = false;
+			break;
 
-			_status.timestamp = hrt_absolute_time();
-			_status_pub.publish(_status);
+		case PrearmedMode::ALWAYS:
+			/* safety is not present, go into prearmed
+			* (all output drivers should be started / unlocked last in the boot process
+			* when the rest of the system is fully initialized)
+			*/
+			_armed.prearmed = (hrt_elapsed_time(&_boot_timestamp) > 5_s);
+			break;
 
-			switch ((PrearmedMode)_param_com_prearm_mode.get()) {
-			case PrearmedMode::DISABLED:
-				/* skip prearmed state  */
+		case PrearmedMode::SAFETY_BUTTON:
+			if (_safety.safety_switch_available) {
+				/* safety switch is present, go into prearmed if safety is off */
+				_armed.prearmed = _safety.safety_off;
+
+			} else {
+				/* safety switch is not present, do not go into prearmed */
 				_armed.prearmed = false;
-				break;
-
-			case PrearmedMode::ALWAYS:
-				/* safety is not present, go into prearmed
-				* (all output drivers should be started / unlocked last in the boot process
-				* when the rest of the system is fully initialized)
-				*/
-				_armed.prearmed = (hrt_elapsed_time(&_boot_timestamp) > 5_s);
-				break;
-
-			case PrearmedMode::SAFETY_BUTTON:
-				if (_safety.safety_switch_available) {
-					/* safety switch is present, go into prearmed if safety is off */
-					_armed.prearmed = _safety.safety_off;
-
-				} else {
-					/* safety switch is not present, do not go into prearmed */
-					_armed.prearmed = false;
-				}
-
-				break;
-
-			default:
-				_armed.prearmed = false;
-				break;
 			}
 
-			_armed.timestamp = hrt_absolute_time();
-			_armed_pub.publish(_armed);
+			break;
 
-			/* publish internal state for logging purposes */
-			_internal_state.timestamp = hrt_absolute_time();
-			_commander_state_pub.publish(_internal_state);
+		default:
+			_armed.prearmed = false;
+			break;
+		}
 
-			// Evaluate current prearm status
-			if (!_armed.armed && !_status_flags.calibration_enabled) {
+
+		// publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed
+		if (hrt_elapsed_time(&_status.timestamp) >= 500_ms || _status_changed || nav_state_changed
+		    || !(_armed == actuator_armed_prev)) {
+
+			// Evaluate current prearm status (skip during arm -> disarm transition)
+			if (!actuator_armed_prev.armed && !_armed.armed && !_status_flags.calibration_enabled) {
+
+				_status_flags.system_hotplug_timeout = (hrt_elapsed_time(&_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
+
 				perf_begin(_preflight_check_perf);
 				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _status, _status_flags, _vehicle_control_mode,
 							   false, true, hrt_elapsed_time(&_boot_timestamp));
@@ -3077,17 +3087,31 @@ Commander::run()
 				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, _status_flags, _vehicle_control_mode, _safety, arm_req,
 							_status, false);
 
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, (preflight_check_res
-						 && prearm_check_res), _status);
+				const bool prearm_check_ok = preflight_check_res && prearm_check_res;
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, prearm_check_ok, _status);
 			}
 
-			/* publish vehicle_status_flags */
+			// publish actuator_armed first (used by output modules)
+			_armed.timestamp = hrt_absolute_time();
+			_armed_pub.publish(_armed);
+
+			// update and publish vehicle_control_mode
+			update_control_mode();
+
+			// vehicle_status publish (after prearm/preflight updates above)
+			_status.timestamp = hrt_absolute_time();
+			_status_pub.publish(_status);
+
+			// publish vehicle_status_flags (after prearm/preflight updates above)
 			_status_flags.timestamp = hrt_absolute_time();
 			_vehicle_status_flags_pub.publish(_status_flags);
 
-			/* publish failure_detector data */
+			// commander_state publish internal state for logging purposes
+			_internal_state.timestamp = hrt_absolute_time();
+			_commander_state_pub.publish(_internal_state);
+
+			// failure_detector_status publish
 			failure_detector_status_s fd_status{};
-			fd_status.timestamp = hrt_absolute_time();
 			fd_status.fd_roll = _failure_detector.getStatusFlags().roll;
 			fd_status.fd_pitch = _failure_detector.getStatusFlags().pitch;
 			fd_status.fd_alt = _failure_detector.getStatusFlags().alt;
@@ -3098,6 +3122,7 @@ Commander::run()
 			fd_status.fd_motor = _failure_detector.getStatusFlags().motor;
 			fd_status.imbalanced_prop_metric = _failure_detector.getImbalancedPropMetric();
 			fd_status.motor_failure_mask = _failure_detector.getMotorFailures();
+			fd_status.timestamp = hrt_absolute_time();
 			_failure_detector_status_pub.publish(fd_status);
 		}
 
@@ -3139,14 +3164,10 @@ Commander::run()
 		}
 
 		/* play sensor failure tunes if we already waited for hotplug sensors to come up and failed */
-		_status_flags.system_hotplug_timeout = (hrt_elapsed_time(&_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
-
-		if (!sensor_fail_tune_played && (!_status_flags.system_sensors_initialized
-						 && _status_flags.system_hotplug_timeout)) {
+		if (!_status_flags.system_sensors_initialized &&
+		    !vehicle_status_flags_prev.system_hotplug_timeout && _status_flags.system_hotplug_timeout) {
 
 			set_tune_override(tune_control_s::TUNE_ID_GPS_WARNING);
-			sensor_fail_tune_played = true;
-			_status_changed = true;
 		}
 
 		// check if the worker has finished
