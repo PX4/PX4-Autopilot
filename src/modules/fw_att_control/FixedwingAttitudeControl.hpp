@@ -106,24 +106,24 @@ private:
 	void publishTorqueSetpoint(const hrt_abstime &timestamp_sample);
 	void publishThrustSetpoint(const hrt_abstime &timestamp_sample);
 
-	uORB::SubscriptionCallbackWorkItem _att_sub{this, ORB_ID(vehicle_attitude)};	/**< vehicle attitude */
+	uORB::SubscriptionCallbackWorkItem _att_sub{this, ORB_ID(vehicle_attitude)};		/**< vehicle attitude */
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
-	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint */
+	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};			/**< vehicle attitude setpoint */
 	uORB::Subscription _autotune_attitude_control_status_sub{ORB_ID(autotune_attitude_control_status)};
-	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
-	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};		/**< local position subscription */
-	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};		/**< notification of manual control updates */
-	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint */
-	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};				/**< battery status subscription */
+	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			/**< local position subscription */
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};	/**< notification of manual control updates */
+	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};			/**< vehicle rates setpoint */
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};			/**< vehicle status subscription */
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};		/**< vehicle land detected subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};				/**< vehicle status subscription */
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::SubscriptionData<airspeed_validated_s> _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
-	uORB::Publication<actuator_controls_s>		_actuators_0_pub;
+	uORB::Publication<actuator_controls_s>		_actuator_controls_0_pub;
 	uORB::Publication<actuator_controls_status_s>	_actuator_controls_status_pub;
 	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub;
 	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
@@ -131,15 +131,15 @@ private:
 	uORB::Publication<vehicle_thrust_setpoint_s>	_vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};
 	uORB::Publication<vehicle_torque_setpoint_s>	_vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};
 
-	actuator_controls_s			_actuators {};		/**< actuator control inputs */
-	manual_control_setpoint_s		_manual_control_setpoint {};		/**< r/c channel data */
-	vehicle_attitude_setpoint_s		_att_sp {};		/**< vehicle attitude setpoint */
-	vehicle_control_mode_s			_vcontrol_mode {};	/**< vehicle control mode */
-	vehicle_local_position_s		_local_pos {};		/**< local position */
-	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
-	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
+	actuator_controls_s			_actuator_controls {};		/**< actuator control inputs */
+	manual_control_setpoint_s		_manual_control_setpoint {};	/**< r/c channel data */
+	vehicle_attitude_setpoint_s		_att_sp {};			/**< vehicle attitude setpoint */
+	vehicle_control_mode_s			_vcontrol_mode {};		/**< vehicle control mode */
+	vehicle_local_position_s		_local_pos {};			/**< local position */
+	vehicle_rates_setpoint_s		_rates_sp {};			/* attitude rates setpoint */
+	vehicle_status_s			_vehicle_status {};		/**< vehicle status */
 
-	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t	_loop_perf;						/**< loop performance counter */
 
 	hrt_abstime _last_run{0};
 

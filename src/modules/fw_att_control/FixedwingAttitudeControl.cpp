@@ -41,7 +41,7 @@ using math::radians;
 FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
-	_actuators_0_pub(vtol ? ORB_ID(actuator_controls_virtual_fw) : ORB_ID(actuator_controls_0)),
+	_actuator_controls_0_pub(vtol ? ORB_ID(actuator_controls_virtual_fw) : ORB_ID(actuator_controls_0)),
 	_actuator_controls_status_pub(vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0)),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
@@ -134,7 +134,7 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 	if (_vcontrol_mode.flag_control_manual_enabled && (!is_tailsitter_transition || is_fixed_wing)) {
 
-		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
+		// Always copy the new manual setpoint, even if it wasn't updated, to fill the actuators with valid values
 		if (_manual_control_setpoint_sub.copy(&_manual_control_setpoint)) {
 
 			if (!_vcontrol_mode.flag_control_climb_rate_enabled) {
@@ -173,13 +173,13 @@ FixedwingAttitudeControl::vehicle_manual_poll(const float yaw_body)
 
 				} else {
 					/* manual/direct control */
-					_actuators.control[actuator_controls_s::INDEX_ROLL] =
+					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
 						_manual_control_setpoint.y * _param_fw_man_r_sc.get() + _param_trim_roll.get();
-					_actuators.control[actuator_controls_s::INDEX_PITCH] =
+					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
 						-_manual_control_setpoint.x * _param_fw_man_p_sc.get() + _param_trim_pitch.get();
-					_actuators.control[actuator_controls_s::INDEX_YAW] =
+					_actuator_controls.control[actuator_controls_s::INDEX_YAW] =
 						_manual_control_setpoint.r * _param_fw_man_y_sc.get() + _param_trim_yaw.get();
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.z, 0.0f,
+					_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(_manual_control_setpoint.z, 0.0f,
 							1.0f);
 				}
 			}
@@ -536,14 +536,16 @@ void FixedwingAttitudeControl::Run()
 
 					/* Run attitude RATE controllers which need the desired attitudes from above, add trim */
 					float roll_u = _roll_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(0));
-					_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
+					_actuator_controls.control[actuator_controls_s::INDEX_ROLL] =
+						(PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
 
 					if (!PX4_ISFINITE(roll_u)) {
 						_roll_ctrl.reset_integrator();
 					}
 
 					float pitch_u = _pitch_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(1));
-					_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
+					_actuator_controls.control[actuator_controls_s::INDEX_PITCH] =
+						(PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
 
 					if (!PX4_ISFINITE(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
@@ -558,11 +560,11 @@ void FixedwingAttitudeControl::Run()
 						yaw_u = _yaw_ctrl.control_euler_rate(dt, control_input, bodyrate_ff(2));
 					}
 
-					_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
+					_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
 
 					/* add in manual rudder control in manual modes */
 					if (_vcontrol_mode.flag_control_manual_enabled) {
-						_actuators.control[actuator_controls_s::INDEX_YAW] += _manual_control_setpoint.r;
+						_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _manual_control_setpoint.r;
 					}
 
 					if (!PX4_ISFINITE(yaw_u)) {
@@ -571,13 +573,12 @@ void FixedwingAttitudeControl::Run()
 					}
 
 					/* throttle passed through if it is finite */
-					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = (PX4_ISFINITE(_att_sp.thrust_body[0])) ?
-							_att_sp.thrust_body[0] :
-							0.0f;
+					_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] =
+						(PX4_ISFINITE(_att_sp.thrust_body[0])) ? _att_sp.thrust_body[0] : 0.0f;
 
 					/* scale effort by battery status */
 					if (_param_fw_bat_scale_en.get() &&
-					    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
+					    _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
 
 						if (_battery_status_sub.updated()) {
 							battery_status_s battery_status{};
@@ -587,7 +588,7 @@ void FixedwingAttitudeControl::Run()
 							}
 						}
 
-						_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_scale;
+						_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_scale;
 					}
 				}
 
@@ -611,15 +612,16 @@ void FixedwingAttitudeControl::Run()
 				_pitch_ctrl.set_bodyrate_setpoint(_rates_sp.pitch);
 
 				float roll_u = _roll_ctrl.control_bodyrate(dt, control_input);
-				_actuators.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
+				_actuator_controls.control[actuator_controls_s::INDEX_ROLL] = (PX4_ISFINITE(roll_u)) ? roll_u + trim_roll : trim_roll;
 
 				float pitch_u = _pitch_ctrl.control_bodyrate(dt, control_input);
-				_actuators.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch : trim_pitch;
+				_actuator_controls.control[actuator_controls_s::INDEX_PITCH] = (PX4_ISFINITE(pitch_u)) ? pitch_u + trim_pitch :
+						trim_pitch;
 
 				float yaw_u = _yaw_ctrl.control_bodyrate(dt, control_input);
-				_actuators.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
+				_actuator_controls.control[actuator_controls_s::INDEX_YAW] = (PX4_ISFINITE(yaw_u)) ? yaw_u + trim_yaw : trim_yaw;
 
-				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ?
+				_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_rates_sp.thrust_body[0]) ?
 						_rates_sp.thrust_body[0] : 0.0f;
 			}
 
@@ -640,24 +642,24 @@ void FixedwingAttitudeControl::Run()
 
 		// Add feed-forward from roll control output to yaw control output
 		// This can be used to counteract the adverse yaw effect when rolling the plane
-		_actuators.control[actuator_controls_s::INDEX_YAW] += _param_fw_rll_to_yaw_ff.get()
-				* constrain(_actuators.control[actuator_controls_s::INDEX_ROLL], -1.0f, 1.0f);
+		_actuator_controls.control[actuator_controls_s::INDEX_YAW] += _param_fw_rll_to_yaw_ff.get()
+				* constrain(_actuator_controls.control[actuator_controls_s::INDEX_ROLL], -1.0f, 1.0f);
 
-		_actuators.control[actuator_controls_s::INDEX_FLAPS] = _flaps_setpoint_with_slewrate.getState();
-		_actuators.control[actuator_controls_s::INDEX_SPOILERS] = _spoiler_setpoint_with_slewrate.getState();
-		_actuators.control[actuator_controls_s::INDEX_AIRBRAKES] = 0.f;
+		_actuator_controls.control[actuator_controls_s::INDEX_FLAPS] = _flaps_setpoint_with_slewrate.getState();
+		_actuator_controls.control[actuator_controls_s::INDEX_SPOILERS] = _spoiler_setpoint_with_slewrate.getState();
+		_actuator_controls.control[actuator_controls_s::INDEX_AIRBRAKES] = 0.f;
 		// FIXME: this should use _vcontrol_mode.landing_gear_pos in the future
-		_actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = _manual_control_setpoint.aux3;
+		_actuator_controls.control[actuator_controls_s::INDEX_LANDING_GEAR] = _manual_control_setpoint.aux3;
 
 		/* lazily publish the setpoint only once available */
-		_actuators.timestamp = hrt_absolute_time();
-		_actuators.timestamp_sample = att.timestamp;
+		_actuator_controls.timestamp = hrt_absolute_time();
+		_actuator_controls.timestamp_sample = att.timestamp;
 
 		/* Only publish if any of the proper modes are enabled */
 		if (_vcontrol_mode.flag_control_rates_enabled ||
 		    _vcontrol_mode.flag_control_attitude_enabled ||
 		    _vcontrol_mode.flag_control_manual_enabled) {
-			_actuators_0_pub.publish(_actuators);
+			_actuator_controls_0_pub.publish(_actuator_controls);
 
 			if (!_vehicle_status.is_vtol) {
 				publishTorqueSetpoint(angular_velocity.timestamp_sample);
@@ -676,9 +678,9 @@ void FixedwingAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestam
 	vehicle_torque_setpoint_s v_torque_sp = {};
 	v_torque_sp.timestamp = hrt_absolute_time();
 	v_torque_sp.timestamp_sample = timestamp_sample;
-	v_torque_sp.xyz[0] = _actuators.control[actuator_controls_s::INDEX_ROLL];
-	v_torque_sp.xyz[1] = _actuators.control[actuator_controls_s::INDEX_PITCH];
-	v_torque_sp.xyz[2] = _actuators.control[actuator_controls_s::INDEX_YAW];
+	v_torque_sp.xyz[0] = _actuator_controls.control[actuator_controls_s::INDEX_ROLL];
+	v_torque_sp.xyz[1] = _actuator_controls.control[actuator_controls_s::INDEX_PITCH];
+	v_torque_sp.xyz[2] = _actuator_controls.control[actuator_controls_s::INDEX_YAW];
 
 	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 }
@@ -688,7 +690,7 @@ void FixedwingAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestam
 	vehicle_thrust_setpoint_s v_thrust_sp = {};
 	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = timestamp_sample;
-	v_thrust_sp.xyz[0] = _actuators.control[actuator_controls_s::INDEX_THROTTLE];
+	v_thrust_sp.xyz[0] = _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
 	v_thrust_sp.xyz[1] = 0.0f;
 	v_thrust_sp.xyz[2] = 0.0f;
 
@@ -770,11 +772,11 @@ void FixedwingAttitudeControl::updateActuatorControlsStatus(float dt)
 		if (i <= actuator_controls_status_s::INDEX_YAW) {
 			// We assume that the attitude is actuated by control surfaces
 			// consuming power only when they move
-			control_signal = _actuators.control[i] - _control_prev[i];
-			_control_prev[i] = _actuators.control[i];
+			control_signal = _actuator_controls.control[i] - _control_prev[i];
+			_control_prev[i] = _actuator_controls.control[i];
 
 		} else {
-			control_signal = _actuators.control[i];
+			control_signal = _actuator_controls.control[i];
 		}
 
 		_control_energy[i] += control_signal * control_signal * dt;
@@ -785,7 +787,7 @@ void FixedwingAttitudeControl::updateActuatorControlsStatus(float dt)
 	if (_energy_integration_time > 500e-3f) {
 
 		actuator_controls_status_s status;
-		status.timestamp = _actuators.timestamp;
+		status.timestamp = _actuator_controls.timestamp;
 
 		for (int i = 0; i < 4; i++) {
 			status.control_power[i] = _control_energy[i] / _energy_integration_time;
