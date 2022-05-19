@@ -277,7 +277,7 @@ MulticopterAttitudeControl::Run()
 
 		/* check for updates in other topics */
 		_manual_control_setpoint_sub.update(&_manual_control_setpoint);
-		_v_control_mode_sub.update(&_v_control_mode);
+		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 
 		if (_vehicle_land_detected_sub.updated()) {
 			vehicle_land_detected_s vehicle_land_detected;
@@ -306,15 +306,15 @@ MulticopterAttitudeControl::Run()
 		// vehicle is a tailsitter in transition mode
 		const bool is_tailsitter_transition = (_vtol_tailsitter && _vtol_in_transition_mode);
 
-		bool run_att_ctrl = _v_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
+		bool run_att_ctrl = _vehicle_control_mode.flag_control_attitude_enabled && (is_hovering || is_tailsitter_transition);
 
 		if (run_att_ctrl) {
 
 			// Generate the attitude setpoint from stick inputs if we are in Manual/Stabilized mode
-			if (_v_control_mode.flag_control_manual_enabled &&
-			    !_v_control_mode.flag_control_altitude_enabled &&
-			    !_v_control_mode.flag_control_velocity_enabled &&
-			    !_v_control_mode.flag_control_position_enabled) {
+			if (_vehicle_control_mode.flag_control_manual_enabled &&
+			    !_vehicle_control_mode.flag_control_altitude_enabled &&
+			    !_vehicle_control_mode.flag_control_velocity_enabled &&
+			    !_vehicle_control_mode.flag_control_position_enabled) {
 
 				generate_attitude_setpoint(q, dt, _reset_yaw_sp);
 				attitude_setpoint_generated = true;
@@ -340,14 +340,14 @@ MulticopterAttitudeControl::Run()
 			}
 
 			// publish rate setpoint
-			vehicle_rates_setpoint_s v_rates_sp{};
-			v_rates_sp.roll = rates_sp(0);
-			v_rates_sp.pitch = rates_sp(1);
-			v_rates_sp.yaw = rates_sp(2);
-			_thrust_setpoint_body.copyTo(v_rates_sp.thrust_body);
-			v_rates_sp.timestamp = hrt_absolute_time();
+			vehicle_rates_setpoint_s rates_setpoint{};
+			rates_setpoint.roll = rates_sp(0);
+			rates_setpoint.pitch = rates_sp(1);
+			rates_setpoint.yaw = rates_sp(2);
+			_thrust_setpoint_body.copyTo(rates_setpoint.thrust_body);
+			rates_setpoint.timestamp = hrt_absolute_time();
 
-			_v_rates_sp_pub.publish(v_rates_sp);
+			_vehicle_rates_setpoint_pub.publish(rates_setpoint);
 		}
 
 		// reset yaw setpoint during transitions, tailsitter.cpp generates
@@ -425,7 +425,11 @@ https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth
 	return 0;
 }
 
-int mc_att_control_main(int argc, char *argv[])
+
+/**
+ * Multicopter attitude control app start / stop handling function
+ */
+extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[])
 {
 	return MulticopterAttitudeControl::main(argc, argv);
 }

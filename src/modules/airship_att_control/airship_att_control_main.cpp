@@ -45,7 +45,7 @@ using namespace matrix;
 AirshipAttitudeControl::AirshipAttitudeControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
-	_actuators_0_pub(ORB_ID(actuator_controls_0)),
+	_actuator_controls_0_pub(ORB_ID(actuator_controls_0)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "airship_att_control"))
 {
 }
@@ -86,20 +86,20 @@ AirshipAttitudeControl::publish_actuator_controls()
 	// zero actuators if not armed
 	if (_vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
 		for (uint8_t i = 0 ; i < 4 ; i++) {
-			_actuators.control[i] = 0.0f;
+			_actuator_controls.control[i] = 0.0f;
 		}
 
 	} else {
-		_actuators.control[0] = 0.0f;
-		_actuators.control[1] = _manual_control_sp.x;
-		_actuators.control[2] = _manual_control_sp.r;
-		_actuators.control[3] = _manual_control_sp.z;
+		_actuator_controls.control[0] = 0.0f;
+		_actuator_controls.control[1] = _manual_control_sp.x;
+		_actuator_controls.control[2] = _manual_control_sp.r;
+		_actuator_controls.control[3] = _manual_control_sp.z;
 	}
 
-	// note: _actuators.timestamp_sample is set in AirshipAttitudeControl::Run()
-	_actuators.timestamp = hrt_absolute_time();
+	// note: _actuator_controls.timestamp_sample is set in AirshipAttitudeControl::Run()
+	_actuator_controls.timestamp = hrt_absolute_time();
 
-	_actuators_0_pub.publish(_actuators);
+	_actuator_controls_0_pub.publish(_actuator_controls);
 }
 
 void AirshipAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_sample)
@@ -107,9 +107,9 @@ void AirshipAttitudeControl::publishTorqueSetpoint(const hrt_abstime &timestamp_
 	vehicle_torque_setpoint_s v_torque_sp = {};
 	v_torque_sp.timestamp = hrt_absolute_time();
 	v_torque_sp.timestamp_sample = timestamp_sample;
-	v_torque_sp.xyz[0] = _actuators.control[0];
-	v_torque_sp.xyz[1] = _actuators.control[1];
-	v_torque_sp.xyz[2] = _actuators.control[2];
+	v_torque_sp.xyz[0] = _actuator_controls.control[0];
+	v_torque_sp.xyz[1] = _actuator_controls.control[1];
+	v_torque_sp.xyz[2] = _actuator_controls.control[2];
 
 	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 }
@@ -119,7 +119,7 @@ void AirshipAttitudeControl::publishThrustSetpoint(const hrt_abstime &timestamp_
 	vehicle_thrust_setpoint_s v_thrust_sp = {};
 	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = timestamp_sample;
-	v_thrust_sp.xyz[0] = _actuators.control[3];
+	v_thrust_sp.xyz[0] = _actuator_controls.control[3];
 	v_thrust_sp.xyz[1] = 0.0f;
 	v_thrust_sp.xyz[2] = 0.0f;
 
@@ -142,7 +142,7 @@ AirshipAttitudeControl::Run()
 
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 
-		_actuators.timestamp_sample = angular_velocity.timestamp_sample;
+		_actuator_controls.timestamp_sample = angular_velocity.timestamp_sample;
 
 		/* run the rate controller immediately after a gyro update */
 		publish_actuator_controls();
@@ -190,7 +190,7 @@ int AirshipAttitudeControl::print_status()
 
 	perf_print_counter(_loop_perf);
 
-	print_message(ORB_ID(actuator_controls), _actuators);
+	print_message(ORB_ID(actuator_controls), _actuator_controls);
 
 	return 0;
 }
@@ -227,7 +227,10 @@ To reduce control latency, the module directly polls on the gyro topic published
 	return 0;
 }
 
-int airship_att_control_main(int argc, char *argv[])
+/**
+ * Airship attitude control app start / stop handling function
+ */
+extern "C" __EXPORT int airship_att_control_main(int argc, char *argv[])
 {
 	return AirshipAttitudeControl::main(argc, argv);
 }

@@ -301,8 +301,8 @@ VtolAttitudeControl::Run()
 	if (should_run) {
 		parameters_update();
 
-		_v_control_mode_sub.update(&_v_control_mode);
-		_v_att_sub.update(&_v_att);
+		_vehicle_control_mode_sub.update(&_vehicle_control_mode);
+		_vehicle_attitude_sub.update(&_vehicle_attitude);
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);
 		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
@@ -333,7 +333,7 @@ VtolAttitudeControl::Run()
 
 			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
 				_vtol_type->update_transition_state();
-				_v_att_sp_pub.publish(_v_att_sp);
+				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
 			}
 
 			break;
@@ -344,7 +344,7 @@ VtolAttitudeControl::Run()
 
 			if (!_vtol_type->was_in_trans_mode() || mc_att_sp_updated || fw_att_sp_updated) {
 				_vtol_type->update_transition_state();
-				_v_att_sp_pub.publish(_v_att_sp);
+				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
 			}
 
 			break;
@@ -355,7 +355,7 @@ VtolAttitudeControl::Run()
 
 			if (mc_att_sp_updated) {
 				_vtol_type->update_mc_state();
-				_v_att_sp_pub.publish(_v_att_sp);
+				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
 			}
 
 			break;
@@ -366,15 +366,15 @@ VtolAttitudeControl::Run()
 
 			if (fw_att_sp_updated) {
 				_vtol_type->update_fw_state();
-				_v_att_sp_pub.publish(_v_att_sp);
+				_vehicle_attitude_sp_pub.publish(_vehicle_attitude_sp);
 			}
 
 			break;
 		}
 
 		_vtol_type->fill_actuator_outputs();
-		_actuators_0_pub.publish(_actuators_out_0);
-		_actuators_1_pub.publish(_actuators_out_1);
+		_actuator_controls_0_pub.publish(_actuators_out_0);
+		_actuator_controls_1_pub.publish(_actuators_out_1);
 
 		_vehicle_torque_setpoint0_pub.publish(_torque_setpoint_0);
 		_vehicle_torque_setpoint1_pub.publish(_torque_setpoint_1);
