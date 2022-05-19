@@ -4,6 +4,7 @@ Mixer for the gazebo tailsitter model
 R: 4x
 
 Z:
+Z:
 
 # left elevon
 M: 2
