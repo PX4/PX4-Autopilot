@@ -187,13 +187,6 @@ static int do_esc_calibration_ioctl(orb_advert_t *mavlink_log_pub)
 		goto Out;
 	}
 
-	/* tell IO to switch off safety without using the safety switch */
-	if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0) != PX4_OK) {
-		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Unable to force safety off");
-		return_code = PX4_ERROR;
-		goto Out;
-	}
-
 	calibration_log_info(mavlink_log_pub, "[cal] Connect battery now");
 
 	timeout_start = hrt_absolute_time();
@@ -233,9 +226,6 @@ static int do_esc_calibration_ioctl(orb_advert_t *mavlink_log_pub)
 Out:
 
 	if (fd != -1) {
-		if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_ON, 0) != PX4_OK) {
-			calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Safety switch still off");
-		}
 
 		if (px4_ioctl(fd, PWM_SERVO_DISARM, 0) != PX4_OK) {
 			calibration_log_info(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Servos still armed");
