@@ -608,22 +608,31 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * 5 : Set to true to enable multi-rotor drag specific force fusion
  * 6 : set to true if the EV observations are in a non NED reference frame and need to be rotated before being used
  * 7 : Set to true to enable GPS yaw fusion. Cannot be used if bit position 4 is true.
+ * 8 : Set to true to enable vision velocity fusion
+ * 9 : Set to true to enable barometer height fusion.
+ * 10 : Set to true to enable GPS height fusion.
+ * 11 : Set to true to enable range finder height fusion.
+ * 12 : Set to true to enable vision height fusion.
  *
  * @group EKF2
  * @min 0
- * @max 511
- * @bit 0 use GPS
- * @bit 1 use optical flow
+ * @max 8091
+ * @bit 0 position: GPS
+ * @bit 1 velocity: optical flow
  * @bit 2 inhibit IMU bias estimation
- * @bit 3 vision position fusion
- * @bit 4 vision yaw fusion
- * @bit 5 multi-rotor drag fusion
+ * @bit 3 position: vision
+ * @bit 4 yaw: vision
+ * @bit 5 wind: multi-rotor drag fusion
  * @bit 6 rotate external vision
- * @bit 7 GPS yaw fusion
- * @bit 8 vision velocity fusion
+ * @bit 7 yaw: GPS
+ * @bit 8 velocity: vision
+ * @bit 9 height: barometer
+ * @bit 10 height: GPS
+ * @bit 11 height: range finder
+ * @bit 12 height: vision
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
+PARAM_DEFINE_INT32(EKF2_AID_MASK, 513);
 
 /**
  * Determines the primary source of height data used by the EKF.

@@ -64,8 +64,17 @@ public:
 		float innov_test_ratio;
 	};
 
-	BiasEstimator() = default;
+	BiasEstimator(float state_init, float state_var_init): _state{state_init}, _state_var{state_var_init} {};
 	virtual ~BiasEstimator() = default;
+
+	void reset()
+	{
+		_state = 0.f;
+		_state_var = 0.f;
+		_signed_innov_test_ratio_lpf.reset(0.f);
+		_time_since_last_negative_innov = 0.f;
+		_time_since_last_positive_innov = 0.f;
+	}
 
 	virtual void predict(float dt);
 	virtual void fuseBias(float measurement, float measurement_var);
@@ -86,7 +95,6 @@ public:
 
 private:
 	float _state{0.f};
-	float _state_max{100.f};
 	float _dt{0.01f};
 
 	float _gate_size{3.f}; ///< Used for innovation filtering (innovation test ratio)
