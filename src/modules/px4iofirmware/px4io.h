@@ -131,8 +131,6 @@ extern struct sys_state_s system_state;
 # define ADC_VSERVO			4
 # define ADC_RSSI			5
 
-#define BUTTON_SAFETY		px4_arch_gpioread(GPIO_BTN_SAFETY)
-
 #define PX4_CRITICAL_SECTION(cmd)	{ irqstate_t flags = px4_enter_critical_section(); cmd; px4_leave_critical_section(flags); }
 
 void atomic_modify_or(volatile uint16_t *target, uint16_t modification);
@@ -145,9 +143,9 @@ void atomic_modify_and(volatile uint16_t *target, uint16_t modification);
 extern void	mixer_tick(void);
 
 /**
- * Safety switch/LED.
+ * Safety button/LED.
  */
-extern void	safety_init(void);
+extern void	safety_button_init(void);
 extern void	failsafe_led_init(void);
 
 /**
