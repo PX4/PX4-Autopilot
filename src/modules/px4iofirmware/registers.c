@@ -413,7 +413,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_REBOOT_BL:
-			if (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) {
+			if (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED) {
 				// don't allow reboot while armed
 				break;
 			}
@@ -433,22 +433,19 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			dsm_bind(value & 0x0f, (value >> 4) & 0xF);
 			break;
 
-		case PX4IO_P_SETUP_FORCE_SAFETY_ON:
-			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
-				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
-
-			} else {
-				return -1;
-			}
+		case PX4IO_P_SETUP_SAFETY_BUTTON_ACK:
+			// clear safety button pressed flag so it can be used again
+			r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_BUTTON_EVENT;
 
 			break;
 
-		case PX4IO_P_SETUP_FORCE_SAFETY_OFF:
-			if (value == PX4IO_FORCE_SAFETY_MAGIC) {
+		case PX4IO_P_SETUP_SAFETY_OFF:
+
+			if (value) {
 				r_status_flags |= PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 
 			} else {
-				return -1;
+				r_status_flags &= ~PX4IO_P_STATUS_FLAGS_SAFETY_OFF;
 			}
 
 			break;

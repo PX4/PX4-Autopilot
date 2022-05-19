@@ -154,8 +154,7 @@ show_debug_messages(void)
 static void
 update_mem_usage(void)
 {
-	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
-			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+	if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 		return;
 	}
 
@@ -183,8 +182,7 @@ ring_blink(void)
 {
 #if defined(LED_GREEN)
 
-	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
-			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+	if (/* FMU is armed */ (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
 		LED_GREEN(true);
 		return;
 	}
@@ -314,8 +312,8 @@ extern "C" __EXPORT int user_start(int argc, char *argv[])
 	ENABLE_SBUS_OUT(false);
 #endif
 
-	/* start the safety switch handler */
-	safety_init();
+	/* start the safety button handler */
+	safety_button_init();
 
 	/* initialise the control inputs */
 	controls_init();
