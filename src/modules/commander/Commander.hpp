@@ -151,6 +151,8 @@ private:
 
 	void estimator_check();
 
+	void manual_control_check();
+
 	bool handle_command(const vehicle_command_s &cmd);
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
@@ -195,6 +197,7 @@ private:
 		(ParamInt<px4::params::COM_HLDL_LOSS_T>) _param_com_hldl_loss_t,
 		(ParamInt<px4::params::COM_HLDL_REG_T>) _param_com_hldl_reg_t,
 
+		(ParamFloat<px4::params::COM_RC_LOSS_T>) _param_com_rc_loss_t,
 		(ParamInt<px4::params::NAV_RCL_ACT>) _param_nav_rcl_act,
 		(ParamFloat<px4::params::COM_RCL_ACT_T>) _param_com_rcl_act_t,
 		(ParamInt<px4::params::COM_RCL_EXCEPT>) _param_com_rcl_except,

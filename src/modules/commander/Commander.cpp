@@ -837,7 +837,6 @@ Commander::Commander() :
 	_status_flags.offboard_control_signal_lost = true;
 
 	_status_flags.power_input_valid = true;
-	_status_flags.rc_calibration_valid = true;
 
 	// default for vtol is rotary wing
 	_vtol_status.vehicle_vtol_state = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
@@ -2653,98 +2652,7 @@ Commander::run()
 			}
 		}
 
-		manual_control_setpoint_s manual_control_setpoint;
-
-		if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
-			if (manual_control_setpoint.valid) {
-				if (!_status_flags.rc_signal_found_once) {
-					_status_flags.rc_signal_found_once = true;
-					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true,
-							 _status_flags.rc_calibration_valid, _status);
-					_status_changed = true;
-
-				} else {
-					if (_status.rc_signal_lost) {
-						if (_last_valid_manual_control_setpoint > 0) {
-							float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f;
-							mavlink_log_info(&_mavlink_log_pub, "Manual control regained after %.1fs\t", (double)elapsed);
-							events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
-									    "Manual control regained after {1:.1} s", elapsed);
-						}
-
-						set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true,
-								 _status_flags.rc_calibration_valid, _status);
-						_status_changed = true;
-					}
-				}
-
-				const bool is_mavlink = manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC;
-
-				if (!_arm_state_machine.isArmed() && (is_mavlink || !_mode_switch_mapped)
-				    && (_internal_state.main_state_changes == 0)) {
-					// if there's never been a mode change force position control as initial state
-					_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
-					_internal_state.main_state_changes++;
-				}
-
-				_status.rc_signal_lost = false;
-				_is_throttle_above_center = manual_control_setpoint.z > 0.6f;
-				_is_throttle_low = manual_control_setpoint.z < 0.1f;
-				_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
-
-			} else {
-				if (_status_flags.rc_signal_found_once && !_status.rc_signal_lost) {
-					mavlink_log_critical(&_mavlink_log_pub, "Manual control lost\t");
-					events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
-						     "Manual control lost");
-					_status.rc_signal_lost = true;
-					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true,
-							 false, _status);
-					_status_changed = true;
-				}
-			}
-
-
-			const bool override_enabled =
-				((_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::AUTO_MODE_BIT))
-				 && _vehicle_control_mode.flag_control_auto_enabled)
-				|| ((_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::OFFBOARD_MODE_BIT))
-				    && _vehicle_control_mode.flag_control_offboard_enabled);
-
-			// Abort autonomous mode and switch to position mode if sticks are moved significantly
-			// but only if actually in air.
-			if ((_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
-			    && !in_low_battery_failsafe_delay && !_geofence_warning_action_on
-			    && _arm_state_machine.isArmed()
-			    && !_status_flags.rc_calibration_in_progress
-			    && manual_control_setpoint.valid
-			    && manual_control_setpoint.sticks_moving
-			    && override_enabled) {
-				const transition_result_t posctl_result =
-					main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
-
-				if (posctl_result == TRANSITION_CHANGED) {
-					tune_positive(true);
-					mavlink_log_info(&_mavlink_log_pub, "Pilot took over position control using sticks\t");
-					events::send(events::ID("commander_rc_override_pos"), events::Log::Info,
-						     "Pilot took over position control using sticks");
-					_status_changed = true;
-
-				} else if (posctl_result == TRANSITION_DENIED) {
-					// If transition to POSCTL was denied, then we can try again with ALTCTL.
-					const transition_result_t altctl_result =
-						main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags, _internal_state);
-
-					if (altctl_result == TRANSITION_CHANGED) {
-						tune_positive(true);
-						mavlink_log_info(&_mavlink_log_pub, "Pilot took over altitude control using sticks\t");
-						events::send(events::ID("commander_rc_override_alt"), events::Log::Info,
-							     "Pilot took over altitude control using sticks");
-						_status_changed = true;
-					}
-				}
-			}
-		}
+		manual_control_check();
 
 		// data link checks which update the status
 		data_link_check();
@@ -4339,6 +4247,123 @@ void Commander::estimator_check()
 
 	if (condition_gps_position_was_valid && !_status_flags.gps_position_valid) {
 		PX4_DEBUG("GPS no longer valid");
+	}
+}
+
+void Commander::manual_control_check()
+{
+	manual_control_setpoint_s manual_control_setpoint;
+	const bool manual_control_updated = _manual_control_setpoint_sub.update(&manual_control_setpoint);
+
+	if (manual_control_updated && manual_control_setpoint.valid) {
+
+		if (!_status_flags.rc_signal_found_once) {
+			_status_flags.rc_signal_found_once = true;
+
+		} else if (_status.rc_signal_lost) {
+			if (_last_valid_manual_control_setpoint > 0) {
+				float elapsed = hrt_elapsed_time(&_last_valid_manual_control_setpoint) * 1e-6f;
+				mavlink_log_info(&_mavlink_log_pub, "Manual control regained after %.1fs\t", (double)elapsed);
+				events::send<float>(events::ID("commander_rc_regained"), events::Log::Info,
+						    "Manual control regained after {1:.1} s", elapsed);
+			}
+		}
+
+		if (_status.rc_signal_lost) {
+			_status.rc_signal_lost = false;
+			_status_changed = true;
+		}
+
+		_last_valid_manual_control_setpoint = manual_control_setpoint.timestamp;
+		_is_throttle_above_center = (manual_control_setpoint.z > 0.6f);
+		_is_throttle_low = (manual_control_setpoint.z < 0.1f);
+
+		const bool is_mavlink = (manual_control_setpoint.data_source > manual_control_setpoint_s::SOURCE_RC);
+
+		if (is_mavlink) {
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true, _status);
+
+		} else {
+			// if not mavlink also report valid RC calibration for health
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, _status_flags.rc_calibration_valid, _status);
+		}
+
+		if (_arm_state_machine.isArmed()) {
+			// Abort autonomous mode and switch to position mode if sticks are moved significantly
+			// but only if actually in air.
+			if (manual_control_setpoint.sticks_moving
+			    && !_vehicle_control_mode.flag_control_manual_enabled
+			    && (_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)
+			   ) {
+				bool override_enabled = false;
+
+				if (_vehicle_control_mode.flag_control_auto_enabled) {
+					if (_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::AUTO_MODE_BIT)) {
+						override_enabled = true;
+					}
+				}
+
+				if (_vehicle_control_mode.flag_control_offboard_enabled) {
+					if (_param_com_rc_override.get() & static_cast<int32_t>(RcOverrideBits::OFFBOARD_MODE_BIT)) {
+						override_enabled = true;
+					}
+				}
+
+				const bool in_low_battery_failsafe_delay = (_battery_failsafe_timestamp != 0);
+
+				if (override_enabled && !in_low_battery_failsafe_delay && !_geofence_warning_action_on) {
+
+					const transition_result_t posctl_result =
+						main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
+
+					if (posctl_result == TRANSITION_CHANGED) {
+						tune_positive(true);
+						mavlink_log_info(&_mavlink_log_pub, "Pilot took over position control using sticks\t");
+						events::send(events::ID("commander_rc_override_pos"), events::Log::Info,
+							     "Pilot took over position control using sticks");
+						_status_changed = true;
+
+					} else if (posctl_result == TRANSITION_DENIED) {
+						// If transition to POSCTL was denied, then we can try again with ALTCTL.
+						const transition_result_t altctl_result =
+							main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags, _internal_state);
+
+						if (altctl_result == TRANSITION_CHANGED) {
+							tune_positive(true);
+							mavlink_log_info(&_mavlink_log_pub, "Pilot took over altitude control using sticks\t");
+							events::send(events::ID("commander_rc_override_alt"), events::Log::Info,
+								     "Pilot took over altitude control using sticks");
+							_status_changed = true;
+						}
+					}
+				}
+			}
+
+		} else {
+			// disarmed
+			// if there's never been a mode change force position control as initial state
+			if (_internal_state.main_state_changes == 0) {
+				if (is_mavlink || !_mode_switch_mapped) {
+					_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
+					_internal_state.main_state_changes++;
+				}
+			}
+		}
+
+	} else if ((manual_control_updated && !manual_control_setpoint.valid)
+		   || hrt_elapsed_time(&_last_valid_manual_control_setpoint) > _param_com_rc_loss_t.get() * 1_s) {
+
+		// prohibit stick use in case of reported invalidity or data timeout
+		if (!_status.rc_signal_lost) {
+			_status.rc_signal_lost = true;
+			_status_changed = true;
+
+			mavlink_log_critical(&_mavlink_log_pub, "Manual control lost\t");
+			events::send(events::ID("commander_rc_lost"), {events::Log::Critical, events::LogInternal::Info},
+				     "Manual control lost");
+
+			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, false, _status);
+		}
 	}
 }
 
