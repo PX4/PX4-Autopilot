@@ -37,7 +37,6 @@
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/events.h>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
@@ -55,8 +54,8 @@ public:
 	void forceArmState(uint8_t new_arm_state) { _arm_state = new_arm_state; }
 
 	transition_result_t
-	arming_state_transition(vehicle_status_s &status, const vehicle_control_mode_s &control_mode, const safety_s &safety,
-				const arming_state_t new_arming_state,
+	arming_state_transition(vehicle_status_s &status, const vehicle_control_mode_s &control_mode,
+				const bool safety_button_available, const bool safety_off, const arming_state_t new_arming_state,
 				actuator_armed_s &armed, const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub,
 				vehicle_status_flags_s &status_flags, const PreFlightCheck::arm_requirements_t &arm_requirements,
 				const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason);

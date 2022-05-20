@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 - 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,11 +41,11 @@
 #pragma once
 
 #include <uORB/uORB.h>
-#include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vehicle_status.h>
 #include <drivers/drv_hrt.h>
+#include "../../Safety.hpp"
 
 typedef bool (*sens_check_func_t)(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
 				  const bool is_mandatory, bool &report_fail);
@@ -94,8 +94,8 @@ public:
 	};
 
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-				const vehicle_control_mode_s &control_mode,
-				const safety_s &safety, const arm_requirements_t &arm_requirements, vehicle_status_s &status,
+				const vehicle_control_mode_s &control_mode, const bool safety_button_available, const bool safety_off,
+				const arm_requirements_t &arm_requirements, vehicle_status_s &status,
 				bool report_fail = true);
 
 private:
