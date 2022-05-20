@@ -55,7 +55,7 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		hil_state_t                     hil_state;                              // Current vehicle_status_s.hil_state
 		bool
 		system_sensors_initialized;   // Current vehicle_status_s.system_sensors_initialized
-		bool                            safety_switch_available;                // Current safety_s.safety_switch_available
+		bool                            safety_button_available;                // Current safety_s.safety_button_available
 		bool                            safety_off;                             // Current safety_s.safety_off
 		arming_state_t                  requested_state;                        // Requested arming state to transition to
 		ArmingTransitionVolatileState_t expected_state;                         // Expected machine state after transition
@@ -166,17 +166,17 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
-		// Safety switch arming tests
+		// Safety button arming tests
 
 		{
-			"transition: standby to armed, no safety switch",
+			"transition: standby to armed, no safety button",
 			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_NOT_AVAILABLE, ATT_SAFETY_OFF,
 			vehicle_status_s::ARMING_STATE_ARMED,
 			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, TRANSITION_CHANGED
 		},
 
 		{
-			"transition: standby to armed, safety switch off",
+			"transition: standby to armed, safety button off",
 			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_OFF,
 			vehicle_status_s::ARMING_STATE_ARMED,
 			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, TRANSITION_CHANGED
@@ -242,10 +242,10 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		//    vehicle_status_s::ARMING_STATE_STANDBY,
 		//    { vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED },
 
-		// Safety switch arming tests
+		// safety button arming tests
 
 		{
-			"no transition: init to armed, safety switch on",
+			"no transition: init to armed, safety button on",
 			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_ARMED,
 			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, TRANSITION_DENIED
@@ -254,7 +254,6 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 
 	struct vehicle_status_s status {};
 	struct vehicle_status_flags_s status_flags {};
-	struct safety_s safety {};
 	struct actuator_armed_s armed {};
 
 	size_t cArmingTransitionTests = sizeof(rgArmingTransitionTests) / sizeof(rgArmingTransitionTests[0]);
@@ -270,8 +269,6 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		status.hil_state = test->hil_state;
 		// The power status of the test unit is not relevant for the unit test
 		status_flags.circuit_breaker_engaged_power_check = true;
-		safety.safety_switch_available = test->safety_switch_available;
-		safety.safety_off = test->safety_off;
 
 		vehicle_control_mode_s control_mode{};
 
@@ -279,7 +276,8 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		transition_result_t result = arm_state_machine.arming_state_transition(
 						     status,
 						     control_mode,
-						     safety,
+						     test->safety_button_available,
+						     test->safety_off,
 						     test->requested_state,
 						     armed,
 						     true /* enable pre-arm checks */,
