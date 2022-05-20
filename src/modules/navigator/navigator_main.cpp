@@ -1500,8 +1500,20 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 	switch (vcmd->command) {
 	case NAV_CMD_IMAGE_START_CAPTURE:
 
-		// We are only capturing multiple if param3 is 0 or > 1.
-		if (static_cast<int>(vcmd->param3) != 1) {
+		if (static_cast<int>(vcmd->param3) == 1) {
+			// When sending a single capture we need to include the sequence number, thus camera_trigger needs to handle this cmd
+			vcmd->param1 = 0.0f;
+			vcmd->param2 = 0.0f;
+			vcmd->param3 = 0.0f;
+			vcmd->param4 = 0.0f;
+			vcmd->param5 = 1.0;
+			vcmd->param6 = 0.0;
+			vcmd->param7 = 0.0f;
+			vcmd->command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
+
+		} else {
+			// We are only capturing multiple if param3 is 0 or > 1.
+			// For multiple pictures the sequence number does not need to be included, thus there is no need to go through camera_trigger
 			_is_capturing_images = true;
 		}
 
