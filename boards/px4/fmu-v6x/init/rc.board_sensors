@@ -25,17 +25,23 @@ then
 	ina238 -X -b 2 -t 2 -k start
 fi
 
+if ver hwtypecmp V6X04 V6X14
+then
+	# Internal SPI bus ICM20649
+	icm20649 -s -R 6 start
+else
 # Internal SPI BMI088
-bmi088 -A -R 4 -s start
-bmi088 -G -R 4 -s start
+	bmi088 -A -R 4 -s start
+	bmi088 -G -R 4 -s start
+fi
 
 # Internal SPI bus ICM42688p
 icm42688p -R 6 -s start
 
-if ver hwtypecmp V6X03 V6X13
+if ver hwtypecmp V6X03 V6X13 V6X04 V6X14
 then
 	# Internal SPI bus ICM-42670-P (hard-mounted)
-	icm42670p -R 14 -s start
+	icm42670p -R 10 -s start
 else
 	# Internal SPI bus ICM-20649 (hard-mounted)
 	icm20649 -R 14 -s start
