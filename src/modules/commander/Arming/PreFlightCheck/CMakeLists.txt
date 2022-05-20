@@ -33,7 +33,6 @@
 
 px4_add_library(PreFlightCheck
 	PreFlightCheck.cpp
-	checks/preArmCheck.cpp
 	checks/magnetometerCheck.cpp
 	checks/magConsistencyCheck.cpp
 	checks/accelerometerCheck.cpp
@@ -46,7 +45,6 @@ px4_add_library(PreFlightCheck
 	checks/powerCheck.cpp
 	checks/airframeCheck.cpp
 	checks/ekf2Check.cpp
-	checks/failureDetectorCheck.cpp
 	checks/manualControlCheck.cpp
 	checks/modeCheck.cpp
 	checks/cpuResourceCheck.cpp

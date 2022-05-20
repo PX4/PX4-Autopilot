@@ -52,10 +52,9 @@ static constexpr unsigned max_mandatory_baro_count = 1;
 
 bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 				    vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
-				    bool report_failures, const bool prearm, const hrt_abstime &time_since_boot)
+				    bool report_failures)
 {
-	report_failures = (report_failures && status_flags.system_hotplug_timeout
-			   && !status_flags.calibration_enabled);
+	report_failures = (report_failures && !status_flags.calibration_enabled);
 
 	bool failed = false;
 
@@ -142,7 +141,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 		const float arming_max_airspeed_allowed = airspeed_trim / 2.0f; // set to half of trim airspeed
 
-		if (!airspeedCheck(mavlink_log_pub, status, optional, report_failures, prearm, (bool)max_airspeed_check_en,
+		if (!airspeedCheck(mavlink_log_pub, status, optional, report_failures, (max_airspeed_check_en == 1),
 				   arming_max_airspeed_allowed)
 		    && !(bool)optional) {
 			failed = true;
@@ -174,7 +173,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	/* ---- SYSTEM POWER ---- */
 	if (status_flags.power_input_valid && !status_flags.circuit_breaker_engaged_power_check) {
-		if (!powerCheck(mavlink_log_pub, status, report_failures, prearm)) {
+		if (!powerCheck(mavlink_log_pub, status, report_failures)) {
 			failed = true;
 		}
 	}
@@ -193,22 +192,10 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	if (estimator_type == 2) {
 
-		const bool in_grace_period = time_since_boot < 10_s;
-		const bool do_report_ekf2_failures = report_failures && (!in_grace_period || prearm);
-		const bool ekf_healthy = ekf2Check(mavlink_log_pub, status, false, do_report_ekf2_failures) &&
-					 ekf2CheckSensorBias(mavlink_log_pub, do_report_ekf2_failures);
+		const bool ekf_healthy = ekf2Check(mavlink_log_pub, status, report_failures) &&
+					 ekf2CheckSensorBias(mavlink_log_pub, report_failures);
 
-		// For the first 10 seconds the ekf2 can be unhealthy, and we just mark it
-		// as not present.
-		// After that or if we're forced to report, we'll set the flags as is.
-
-		if (!ekf_healthy && !do_report_ekf2_failures) {
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, false, false, status);
-
-		} else {
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, true, ekf_healthy, status);
-		}
-
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, true, true, ekf_healthy, status);
 
 		if (control_mode.flag_control_attitude_enabled
 		    || control_mode.flag_control_velocity_enabled
@@ -216,11 +203,6 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 			// healthy estimator only required for dependent control modes
 			failed |= !ekf_healthy;
 		}
-	}
-
-	/* ---- Failure Detector ---- */
-	if (!failureDetectorCheck(mavlink_log_pub, status, report_failures, prearm)) {
-		failed = true;
 	}
 
 	failed = failed || !manualControlCheck(mavlink_log_pub, report_failures);

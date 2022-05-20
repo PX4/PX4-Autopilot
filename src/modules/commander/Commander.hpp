@@ -34,7 +34,6 @@
 #pragma once
 
 /*   Helper classes  */
-#include "Arming/ArmStateMachine/ArmStateMachine.hpp"
 #include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
 #include "Safety.hpp"
@@ -98,6 +97,8 @@ using systemlib::Hysteresis;
 
 using namespace time_literals;
 
+using arm_disarm_reason_t = events::px4::enums::arm_disarm_reason_t;
+
 class Commander : public ModuleBase<Commander>, public ModuleParams
 {
 public:
@@ -129,7 +130,7 @@ public:
 private:
 	void answer_command(const vehicle_command_s &cmd, uint8_t result);
 
-	transition_result_t arm(arm_disarm_reason_t calling_reason, bool run_preflight_checks = true);
+	transition_result_t arm(arm_disarm_reason_t calling_reason, bool force = false);
 	transition_result_t disarm(arm_disarm_reason_t calling_reason, bool forced = false);
 
 	void battery_status_check();
@@ -146,9 +147,8 @@ private:
 	void data_link_check();
 
 	void avoidance_check();
-
+	void cpuload_check();
 	void esc_status_check();
-
 	void estimator_check();
 
 	bool handle_command(const vehicle_command_s &cmd);
@@ -175,13 +175,25 @@ private:
 
 	void update_control_mode();
 
-	bool shutdown_if_allowed();
-
 	bool stabilization_required();
 
 	void send_parachute_command();
 
 	void checkWindSpeedThresholds();
+
+	struct arm_requirements_t {
+		bool arm_authorization = false;
+		bool esc_check = false;
+		bool global_position = false;
+		bool mission = false;
+		bool geofence = false;
+	};
+
+	bool preArmCheck(const vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
+			 const safety_s &safety, const arm_requirements_t &arm_requirements, const vehicle_status_s &status,
+			 bool report_fail = true);
+
+	void runPreflight(bool report_preflight = true, bool report_prearm = true);
 
 	void updateParameters();
 
@@ -257,6 +269,7 @@ private:
 		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
 		(ParamInt<px4::params::CBRK_VTOLARMING>) _param_cbrk_vtolarming,
 
+		(ParamFloat<px4::params::COM_CPU_MAX>) _param_com_cpu_max,
 		(ParamInt<px4::params::COM_FLT_TIME_MAX>) _param_com_flt_time_max,
 		(ParamFloat<px4::params::COM_WIND_MAX>) _param_com_wind_max
 	)
@@ -291,10 +304,8 @@ private:
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
 
 	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
-	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
-	ArmStateMachine _arm_state_machine{};
-	PreFlightCheck::arm_requirements_t	_arm_requirements{};
+	arm_requirements_t _arm_requirements{};
 
 	hrt_abstime	_valid_distance_sensor_time_us{0}; /**< Last time that distance sensor data arrived (usec) */
 
@@ -371,6 +382,7 @@ private:
 
 	hrt_abstime	_boot_timestamp{0};
 	hrt_abstime	_last_disarmed_timestamp{0};
+	hrt_abstime	_last_preflight_check{0};
 	hrt_abstime	_overload_start{0};		///< time when CPU overload started
 
 	hrt_abstime _led_armed_state_toggle{0};
@@ -381,11 +393,7 @@ private:
 	uint8_t		_heading_reset_counter{0};
 
 	bool		_status_changed{true};
-	bool		_arm_tune_played{false};
-	bool		_was_armed{false};
-	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
-	bool		_system_power_usb_connected{false};
 
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_vehicle_land_detected{};

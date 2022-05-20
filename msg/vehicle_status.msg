@@ -1,12 +1,8 @@
 uint64 timestamp				# time since system start (microseconds)
 
-uint8 ARMING_STATE_INIT = 0
-uint8 ARMING_STATE_STANDBY = 1
-uint8 ARMING_STATE_ARMED = 2
-uint8 ARMING_STATE_STANDBY_ERROR = 3
-uint8 ARMING_STATE_SHUTDOWN = 4
-uint8 ARMING_STATE_IN_AIR_RESTORE = 5
-uint8 ARMING_STATE_MAX = 6
+uint8 ARMING_STATE_DISARMED = 1
+uint8 ARMING_STATE_ARMED    = 2
+uint8 ARMING_STATE_MAX      = 3
 
 # FailureDetector status
 uint16 FAILURE_NONE = 0

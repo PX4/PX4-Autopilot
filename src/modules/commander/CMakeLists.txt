@@ -55,6 +55,7 @@ px4_add_module(
 		Safety.cpp
 		state_machine_helper.cpp
 		worker_thread.cpp
+		preArmCheck.cpp
 	DEPENDS
 		circuit_breaker
 		failure_detector
@@ -62,7 +63,6 @@ px4_add_module(
 		hysteresis
 		PreFlightCheck
 		ArmAuthorization
-		ArmStateMachine
 		HealthFlags
 		sensor_calibration
 		world_magnetic_model

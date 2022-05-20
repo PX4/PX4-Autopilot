@@ -2,8 +2,10 @@
 
 uint64 timestamp				# time since system start (microseconds)
 
+bool preflight_check_passing
+bool prearm_check_passing
+
 bool calibration_enabled
-bool system_sensors_initialized
 bool system_hotplug_timeout		# true if the hotplug sensor search is over
 bool auto_mission_available
 bool angular_velocity_valid
@@ -18,6 +20,7 @@ bool power_input_valid                	# set if input power is valid
 bool battery_healthy                	# set if battery is available and not low
 bool escs_error		      		# set to true if one or more ESCs reporting esc_status are offline
 bool escs_failure		      	# set to true if one or more ESCs reporting esc_status has a failure
+bool overload                           # maximum cpuload exceeded or free memory dangerously low
 
 bool position_reliant_on_gps
 bool position_reliant_on_optical_flow

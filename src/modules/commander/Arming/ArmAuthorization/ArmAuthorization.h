@@ -36,7 +36,7 @@
 #include <stdint.h>
 
 #include <drivers/drv_hrt.h>
-#include <uORB/uORB.h>
+#include <uORB/topics/vehicle_command_ack.h>
 
 enum arm_auth_methods {
 	ARM_AUTH_METHOD_ARM_REQ = 0,
