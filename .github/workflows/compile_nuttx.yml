@@ -61,6 +61,7 @@ jobs:
           px4_fmu-v4pro,
           px4_fmu-v5,
           px4_fmu-v5x,
+          px4_fmu-v6c,
           px4_fmu-v6u,
           px4_fmu-v6x,
           raspberrypi_pico,

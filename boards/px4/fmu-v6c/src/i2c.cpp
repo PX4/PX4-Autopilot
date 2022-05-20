@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,67 +30,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
+#include <px4_arch/i2c_hw_description.h>
 
-#include "../../../stm32_common/include/px4_arch/hw_description.h"
-
-static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma)
-{
-	uint32_t dma_map = 0;
-
-	switch (timer) {
-	case Timer::Timer1:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM1UP_0 : DMAMAP_DMA12_TIM1UP_1;
-		break;
-
-	case Timer::Timer2:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM2UP_0 : DMAMAP_DMA12_TIM2UP_1;
-
-		break;
-
-	case Timer::Timer3:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM3UP_0 : DMAMAP_DMA12_TIM3UP_1;
-
-		break;
-
-	case Timer::Timer4:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM4UP_0 : DMAMAP_DMA12_TIM4UP_1;
-
-		break;
-
-	case Timer::Timer5:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM5UP_0 : DMAMAP_DMA12_TIM5UP_1;
-
-		break;
-
-	case Timer::Timer6:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM6UP_0 : DMAMAP_DMA12_TIM6UP_1;
-
-		break;
-
-	case Timer::Timer7:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM7UP_0 : DMAMAP_DMA12_TIM7UP_1;
-
-		break;
-
-	case Timer::Timer8:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM8UP_0 : DMAMAP_DMA12_TIM8UP_1;
-
-		break;
-
-	case Timer::Timer9:
-	case Timer::Timer10:
-	case Timer::Timer11:
-	case Timer::Timer12:
-	case Timer::Timer13:
-	case Timer::Timer14:
-	case Timer::Timer15:
-	case Timer::Timer16:
-	case Timer::Timer17:
-		break;
-	}
-
-	constexpr_assert(dma_map != 0, "Invalid DMA config for given timer");
-	return dma_map;
-}
+constexpr px4_i2c_bus_t px4_i2c_buses[I2C_BUS_MAX_BUS_ITEMS] = {
+	initI2CBusExternal(1),
+	initI2CBusExternal(2),
+	initI2CBusInternal(4),
+};
