@@ -28,28 +28,28 @@ class XMLOutput():
         xml_version.text = "1"
         for group in groups:
             xml_group = ET.SubElement(xml_parameters, "airframe_group")
-            xml_group.attrib["name"] = group.GetName()
+            xml_group.attrib["name"] = group.GetType()
             xml_group.attrib["image"] = group.GetImageName()
-            for param in group.GetParams():
+            for airframe in group.GetAirframes():
 
                 # check if there is an exclude tag for this airframe
                 excluded = False
-                for code in param.GetArchCodes():
-                    if "CONFIG_ARCH_BOARD_{0}".format(code) == board and param.GetArchValue(code) == "exclude":
+                for code in airframe.GetArchCodes():
+                    if "CONFIG_ARCH_BOARD_{0}".format(code) == board and airframe.GetArchValue(code) == "exclude":
                         excluded = True
 
                 if not excluded:
-                    #print("generating: {0} {1}".format(param.GetName(), excluded))
+                    #print("generating: {0} {1}".format(airframe.GetName(), excluded))
                     xml_param = ET.SubElement(xml_group, "airframe")
-                    xml_param.attrib["name"] = param.GetName()
-                    xml_param.attrib["id"] = param.GetId()
-                    xml_param.attrib["maintainer"] = param.GetMaintainer()
-                    for code in param.GetFieldCodes():
-                        value = param.GetFieldValue(code)
+                    xml_param.attrib["name"] = airframe.GetName()
+                    xml_param.attrib["id"] = airframe.GetId()
+                    xml_param.attrib["maintainer"] = airframe.GetMaintainer()
+                    for code in airframe.GetFieldCodes():
+                        value = airframe.GetFieldValue(code)
                         xml_field = ET.SubElement(xml_param, code)
                         xml_field.text = value
-                    for code in param.GetOutputCodes():
-                        value = param.GetOutputValue(code)
+                    for code in airframe.GetOutputCodes():
+                        value = airframe.GetOutputValue(code)
                         valstrs = value.split(";")
                         xml_field = ET.SubElement(xml_param, "output")
                         xml_field.attrib["name"] = code
