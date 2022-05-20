@@ -2912,7 +2912,7 @@ Commander::run()
 			checkWindAndWarn();
 		}
 
-		_status_flags.flight_terminated = _armed.force_failsafe || _armed.lockdown || _armed.manual_lockdown;
+		_status_flags.flight_terminated = _armed.force_failsafe || _armed.manual_lockdown;
 
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
