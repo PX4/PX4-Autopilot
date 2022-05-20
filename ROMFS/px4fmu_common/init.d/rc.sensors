@@ -181,6 +181,30 @@ then
 	pcf8583 start -X -a 0x51
 fi
 
+# INA226 digital power monitor
+if param compare SENS_EN_INA226 1
+then
+	ina226 -X start
+fi
+
+# INA228 digital power monitor
+if param compare SENS_EN_INA228 1
+then
+	ina228 -X start
+fi
+
+# INA231 digital power monitor
+if param compare SENS_EN_INA231 1
+then
+	ina231 -X start
+fi
+
+# INA238 digital power monitor
+if param compare SENS_EN_INA238 1
+then
+	ina238 -X start
+fi
+
 # probe for optional external I2C devices
 if param compare SENS_EXT_I2C_PRB 1
 then
