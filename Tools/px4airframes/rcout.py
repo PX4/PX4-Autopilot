@@ -3,6 +3,9 @@ import codecs
 import os
 
 class RCOutput():
+    """
+        Generates RC scripts for the airframes
+    """
     def __init__(self, groups, board, post_start=False):
 
         result = (  "#\n"
@@ -34,33 +37,33 @@ class RCOutput():
         result += "set AIRFRAME none\n"
         result += "\n"
         for group in groups:
-            result += "# GROUP: %s\n\n" % group.GetName()
-            for param in group.GetParams():
+            result += "# GROUP: %s\n\n" % group.GetType()
+            for airframe in group.GetAirframes():
                 excluded = False
-                for code in param.GetArchCodes():
-                    if "{0}".format(code) == board and param.GetArchValue(code) == "exclude":
+                for code in airframe.GetArchCodes():
+                    if "{0}".format(code) == board and airframe.GetArchValue(code) == "exclude":
                         excluded = True
                 if excluded:
                     continue
 
                 if post_start:
                     # Path to post-start sript
-                    path = param.GetPostPath()
+                    path = airframe.GetPostPath()
                 else:
                     # Path to start script
-                    path = param.GetPath()
+                    path = airframe.GetPath()
 
                 if not path:
                     continue
 
                 path = os.path.split(path)[1]
 
-                id_val = param.GetId()
-                name = param.GetFieldValue("short_desc")
-                long_desc = param.GetFieldValue("long_desc")
+                id_val = airframe.GetId()
+                name = airframe.GetFieldValue("short_desc")
+                long_desc = airframe.GetFieldValue("long_desc")
 
                 result +=   "#\n"
-                result +=   "# %s\n" % param.GetName()
+                result +=   "# %s\n" % airframe.GetName()
                 result +=   "if param compare SYS_AUTOSTART %s\n" % id_val
                 result +=   "then\n"
                 result +=   "\tset AIRFRAME %s\n" % path
