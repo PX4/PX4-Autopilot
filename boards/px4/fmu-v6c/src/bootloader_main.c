@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019, 2021 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,67 +30,33 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
+/**
+ * @file bootloader_main.c
+ *
+ * FMU-specific early startup code for bootloader
+*/
 
-#include "../../../stm32_common/include/px4_arch/hw_description.h"
+#include "board_config.h"
+#include "bl.h"
 
-static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma)
+#include <nuttx/config.h>
+#include <nuttx/board.h>
+#include <chip.h>
+#include <stm32_uart.h>
+#include <arch/board/board.h>
+#include "arm_internal.h"
+#include <px4_platform_common/init.h>
+
+extern int sercon_main(int c, char **argv);
+
+void board_late_initialize(void)
 {
-	uint32_t dma_map = 0;
+	sercon_main(0, NULL);
+}
 
-	switch (timer) {
-	case Timer::Timer1:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM1UP_0 : DMAMAP_DMA12_TIM1UP_1;
-		break;
-
-	case Timer::Timer2:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM2UP_0 : DMAMAP_DMA12_TIM2UP_1;
-
-		break;
-
-	case Timer::Timer3:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM3UP_0 : DMAMAP_DMA12_TIM3UP_1;
-
-		break;
-
-	case Timer::Timer4:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM4UP_0 : DMAMAP_DMA12_TIM4UP_1;
-
-		break;
-
-	case Timer::Timer5:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM5UP_0 : DMAMAP_DMA12_TIM5UP_1;
-
-		break;
-
-	case Timer::Timer6:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM6UP_0 : DMAMAP_DMA12_TIM6UP_1;
-
-		break;
-
-	case Timer::Timer7:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM7UP_0 : DMAMAP_DMA12_TIM7UP_1;
-
-		break;
-
-	case Timer::Timer8:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM8UP_0 : DMAMAP_DMA12_TIM8UP_1;
-
-		break;
-
-	case Timer::Timer9:
-	case Timer::Timer10:
-	case Timer::Timer11:
-	case Timer::Timer12:
-	case Timer::Timer13:
-	case Timer::Timer14:
-	case Timer::Timer15:
-	case Timer::Timer16:
-	case Timer::Timer17:
-		break;
-	}
-
-	constexpr_assert(dma_map != 0, "Invalid DMA config for given timer");
-	return dma_map;
+extern void sys_tick_handler(void);
+void board_timerhook(void)
+{
+	sys_tick_handler();
 }
