@@ -4253,11 +4253,9 @@ void Commander::estimator_check()
 void Commander::manual_control_check()
 {
 	manual_control_setpoint_s manual_control_setpoint;
+	const bool manual_control_updated = _manual_control_setpoint_sub.update(&manual_control_setpoint);
 
-	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)
-	    && manual_control_setpoint.valid
-	    && (hrt_elapsed_time(&manual_control_setpoint.timestamp) < _param_com_rc_loss_t.get() * 1_s)
-	   ) {
+	if (manual_control_updated && manual_control_setpoint.valid) {
 
 		if (!_status_flags.rc_signal_found_once) {
 			_status_flags.rc_signal_found_once = true;
@@ -4315,8 +4313,8 @@ void Commander::manual_control_check()
 
 				if (override_enabled && !in_low_battery_failsafe_delay && !_geofence_warning_action_on) {
 
-					transition_result_t posctl_result = main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL,
-									    _status_flags, _internal_state);
+					const transition_result_t posctl_result =
+						main_state_transition(_status, commander_state_s::MAIN_STATE_POSCTL, _status_flags, _internal_state);
 
 					if (posctl_result == TRANSITION_CHANGED) {
 						tune_positive(true);
@@ -4327,8 +4325,8 @@ void Commander::manual_control_check()
 
 					} else if (posctl_result == TRANSITION_DENIED) {
 						// If transition to POSCTL was denied, then we can try again with ALTCTL.
-						transition_result_t altctl_result = main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL,
-										    _status_flags, _internal_state);
+						const transition_result_t altctl_result =
+							main_state_transition(_status, commander_state_s::MAIN_STATE_ALTCTL, _status_flags, _internal_state);
 
 						if (altctl_result == TRANSITION_CHANGED) {
 							tune_positive(true);
@@ -4343,7 +4341,7 @@ void Commander::manual_control_check()
 
 		} else {
 			// disarmed
-			//  if there's never been a mode change force position control as initial state
+			// if there's never been a mode change force position control as initial state
 			if (_internal_state.main_state_changes == 0) {
 				if (is_mavlink || !_mode_switch_mapped) {
 					_internal_state.main_state = commander_state_s::MAIN_STATE_POSCTL;
@@ -4352,12 +4350,11 @@ void Commander::manual_control_check()
 			}
 		}
 
-	} else {
-		// check timeout (COM_RC_LOSS_T) if previously valid
-		if (!_status.rc_signal_lost
-		    && (hrt_elapsed_time(&manual_control_setpoint.timestamp) > _param_com_rc_loss_t.get() * 1_s)) {
+	} else if ((manual_control_updated && !manual_control_setpoint.valid)
+		   || hrt_elapsed_time(&_last_valid_manual_control_setpoint) > _param_com_rc_loss_t.get() * 1_s) {
 
-			// no longer valid
+		// prohibit stick use in case of reported invalidity or data timeout
+		if (!_status.rc_signal_lost) {
 			_status.rc_signal_lost = true;
 			_status_changed = true;
 
