@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,67 +30,75 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
+
+#include <nuttx/spi/spi.h>
+#include <px4_platform_common/px4_manifest.h>
+//                                                              KiB BS    nB
+static const px4_mft_device_t spi2 = {             // FM25V02A on FMUM 32K 512 X 64
+	.bus_type = px4_mft_device_t::SPI,
+	.devid    = SPIDEV_FLASH(0)
+};
+
+static const px4_mft_device_t i2c4 = {             // 24LC64T on IMU   8K 32 X 256
+	.bus_type =  px4_mft_device_t::I2C,
+	.devid    =  PX4_MK_I2C_DEVID(4, 0x50)
+};
 
 
-#include "../../../stm32_common/include/px4_arch/hw_description.h"
+static const px4_mtd_entry_t fmum_fram = {
+	.device = &spi2,
+	.npart = 2,
+	.partd = {
+		{
+			.type = MTD_PARAMETERS,
+			.path = "/fs/mtd_params",
+			.nblocks = 32
+		},
+		{
+			.type = MTD_WAYPOINTS,
+			.path = "/fs/mtd_waypoints",
+			.nblocks = 32
 
-static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma)
-{
-	uint32_t dma_map = 0;
+		}
+	},
+};
 
-	switch (timer) {
-	case Timer::Timer1:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM1UP_0 : DMAMAP_DMA12_TIM1UP_1;
-		break;
+static const px4_mtd_entry_t imu_eeprom = {
+	.device = &i2c4,
+	.npart = 2,
+	.partd = {
+		{
+			.type = MTD_CALDATA,
+			.path = "/fs/mtd_caldata",
+			.nblocks = 248
+		},
+		{
+			.type = MTD_ID,
+			.path = "/fs/mtd_id",
+			.nblocks = 8 // 256 = 32 * 8
+		}
+	},
+};
 
-	case Timer::Timer2:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM2UP_0 : DMAMAP_DMA12_TIM2UP_1;
-
-		break;
-
-	case Timer::Timer3:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM3UP_0 : DMAMAP_DMA12_TIM3UP_1;
-
-		break;
-
-	case Timer::Timer4:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM4UP_0 : DMAMAP_DMA12_TIM4UP_1;
-
-		break;
-
-	case Timer::Timer5:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM5UP_0 : DMAMAP_DMA12_TIM5UP_1;
-
-		break;
-
-	case Timer::Timer6:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM6UP_0 : DMAMAP_DMA12_TIM6UP_1;
-
-		break;
-
-	case Timer::Timer7:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM7UP_0 : DMAMAP_DMA12_TIM7UP_1;
-
-		break;
-
-	case Timer::Timer8:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM8UP_0 : DMAMAP_DMA12_TIM8UP_1;
-
-		break;
-
-	case Timer::Timer9:
-	case Timer::Timer10:
-	case Timer::Timer11:
-	case Timer::Timer12:
-	case Timer::Timer13:
-	case Timer::Timer14:
-	case Timer::Timer15:
-	case Timer::Timer16:
-	case Timer::Timer17:
-		break;
+static const px4_mtd_manifest_t board_mtd_config = {
+	.nconfigs   = 2,
+	.entries = {
+		&fmum_fram,
+		&imu_eeprom
 	}
+};
 
-	constexpr_assert(dma_map != 0, "Invalid DMA config for given timer");
-	return dma_map;
+static const px4_mft_entry_s mtd_mft = {
+	.type = MTD,
+	.pmft = (void *) &board_mtd_config,
+};
+
+static const px4_mft_s mft = {
+	.nmft = 1,
+	.mfts = &mtd_mft
+};
+
+const px4_mft_s *board_get_manifest(void)
+{
+	return &mft;
 }

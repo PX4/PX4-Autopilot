@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2020, 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,67 +30,32 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
+#include <px4_arch/spi_hw_description.h>
+#include <drivers/drv_sensor.h>
+#include <nuttx/spi/spi.h>
 
-#include "../../../stm32_common/include/px4_arch/hw_description.h"
+constexpr px4_spi_bus_all_hw_t px4_spi_buses_all_hw[BOARD_NUM_SPI_CFG_HW_VERSIONS] = {
+	initSPIHWVersion(V6C00, {
+		initSPIBus(SPI::Bus::SPI1, {
+			initSPIDevice(DRV_GYR_DEVTYPE_BMI055,  SPI::CS{GPIO::PortC, GPIO::Pin14}, SPI::DRDY{GPIO::PortE, GPIO::Pin5}),
+			initSPIDevice(DRV_ACC_DEVTYPE_BMI055,  SPI::CS{GPIO::PortC, GPIO::Pin15}, SPI::DRDY{GPIO::PortE, GPIO::Pin4}),
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortC, GPIO::Pin13}, SPI::DRDY{GPIO::PortE, GPIO::Pin6}),
+		}, {GPIO::PortB, GPIO::Pin2}),
+		initSPIBus(SPI::Bus::SPI2, {
+			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin4})
+		}),
+	}),
+	initSPIHWVersion(V6C10, {
+		initSPIBus(SPI::Bus::SPI1, {
+			initSPIDevice(DRV_GYR_DEVTYPE_BMI055,  SPI::CS{GPIO::PortC, GPIO::Pin14}, SPI::DRDY{GPIO::PortE, GPIO::Pin5}),
+			initSPIDevice(DRV_ACC_DEVTYPE_BMI055,  SPI::CS{GPIO::PortC, GPIO::Pin15}, SPI::DRDY{GPIO::PortE, GPIO::Pin4}),
+			initSPIDevice(DRV_IMU_DEVTYPE_ICM42688P, SPI::CS{GPIO::PortC, GPIO::Pin13}, SPI::DRDY{GPIO::PortE, GPIO::Pin6}),
+		}, {GPIO::PortB, GPIO::Pin2}),
+		initSPIBus(SPI::Bus::SPI2, {
+			initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin4})
+		}),
+	}),
+};
 
-static inline constexpr uint32_t getTimerUpdateDMAMap(Timer::Timer timer, const DMA &dma)
-{
-	uint32_t dma_map = 0;
-
-	switch (timer) {
-	case Timer::Timer1:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM1UP_0 : DMAMAP_DMA12_TIM1UP_1;
-		break;
-
-	case Timer::Timer2:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM2UP_0 : DMAMAP_DMA12_TIM2UP_1;
-
-		break;
-
-	case Timer::Timer3:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM3UP_0 : DMAMAP_DMA12_TIM3UP_1;
-
-		break;
-
-	case Timer::Timer4:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM4UP_0 : DMAMAP_DMA12_TIM4UP_1;
-
-		break;
-
-	case Timer::Timer5:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM5UP_0 : DMAMAP_DMA12_TIM5UP_1;
-
-		break;
-
-	case Timer::Timer6:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM6UP_0 : DMAMAP_DMA12_TIM6UP_1;
-
-		break;
-
-	case Timer::Timer7:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM7UP_0 : DMAMAP_DMA12_TIM7UP_1;
-
-		break;
-
-	case Timer::Timer8:
-		dma_map = (dma.index == DMA::Index1) ? DMAMAP_DMA12_TIM8UP_0 : DMAMAP_DMA12_TIM8UP_1;
-
-		break;
-
-	case Timer::Timer9:
-	case Timer::Timer10:
-	case Timer::Timer11:
-	case Timer::Timer12:
-	case Timer::Timer13:
-	case Timer::Timer14:
-	case Timer::Timer15:
-	case Timer::Timer16:
-	case Timer::Timer17:
-		break;
-	}
-
-	constexpr_assert(dma_map != 0, "Invalid DMA config for given timer");
-	return dma_map;
-}
+static constexpr bool unused = validateSPIConfig(px4_spi_buses_all_hw);
