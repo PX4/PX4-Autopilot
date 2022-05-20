@@ -51,9 +51,9 @@ div.frame_variant td, div.frame_variant th {
   text-align : left;
 }
 </style>\n\n"""
- 
+
         type_set = set()
-        
+
         if len(image_path) > 0 and image_path[-1] != '/':
             image_path = image_path + '/'
 
@@ -62,7 +62,7 @@ div.frame_variant td, div.frame_variant th {
                result += '## %s\n\n' % group.GetClass()
                type_set.add(group.GetClass())
 
-            result += '### %s\n\n' % group.GetName()
+            result += '### %s\n\n' % group.GetType()
 
             # Display an image of the frame
             image_name = group.GetImageName()
@@ -73,11 +73,11 @@ div.frame_variant td, div.frame_variant th {
             # check if all outputs are equal for the group: if so, show them
             # only once
             all_outputs = {}
-            num_configs = len(group.GetParams())
-            for param in group.GetParams():
-                if not self.IsExcluded(param, board):
-                    for output_name in param.GetOutputCodes():
-                        value = param.GetOutputValue(output_name)
+            num_configs = len(group.GetAirframes())
+            for airframe in group.GetAirframes():
+                if not self.IsExcluded(airframe, board):
+                    for output_name in airframe.GetOutputCodes():
+                        value = airframe.GetOutputValue(output_name)
                         key_value_pair = (output_name, value)
                         if key_value_pair not in all_outputs:
                             all_outputs[key_value_pair] = 0
@@ -104,18 +104,17 @@ div.frame_variant td, div.frame_variant th {
             result += ' </thead>\n'
             result += '<tbody>\n'
 
-            for param in group.GetParams():
-                if not self.IsExcluded(param, board):
-                    #print("generating: {0} {1}".format(param.GetName(), excluded))
-                    name = param.GetName()
-                    airframe_id = param.GetId()
+            for airframe in group.GetAirframes():
+                if not self.IsExcluded(airframe, board):
+                    name = airframe.GetName()
+                    airframe_id = airframe.GetId()
                     airframe_id_entry = '<p><code>SYS_AUTOSTART</code> = %s</p>' % (airframe_id)
-                    maintainer = param.GetMaintainer()
+                    maintainer = airframe.GetMaintainer()
                     maintainer_entry = ''
                     if maintainer != '':
                         maintainer_entry = 'Maintainer: %s' % (html.escape(maintainer))
-                    url = param.GetFieldValue('url')
-                    name_anchor='%s_%s_%s' % (group.GetClass(),group.GetName(),name)
+                    url = airframe.GetFieldValue('url')
+                    name_anchor='%s_%s_%s' % (group.GetClass(),group.GetType(),name)
                     name_anchor=name_anchor.replace(' ','_').lower()
                     name_anchor=name_anchor.replace('"','_').lower()
                     name_anchor='id="%s"' % name_anchor
@@ -124,8 +123,8 @@ div.frame_variant td, div.frame_variant th {
                         name_entry = '<a href="%s">%s</a>' % (url, name)
                     outputs = '<ul>'
                     has_outputs = False
-                    for output_name in param.GetOutputCodes():
-                        value = param.GetOutputValue(output_name)
+                    for output_name in airframe.GetOutputCodes():
+                        value = airframe.GetOutputValue(output_name)
                         valstrs = value.split(";")
                         key_value_pair = (output_name, value)
                         if all_outputs[key_value_pair] < num_configs:
@@ -152,9 +151,9 @@ div.frame_variant td, div.frame_variant th {
 
         self.output = result
 
-    def IsExcluded(self, param, board):
-        for code in param.GetArchCodes():
-            if "CONFIG_ARCH_BOARD_{0}".format(code) == board and param.GetArchValue(code) == "exclude":
+    def IsExcluded(self, airframe, board):
+        for code in airframe.GetArchCodes():
+            if "CONFIG_ARCH_BOARD_{0}".format(code) == board and airframe.GetArchValue(code) == "exclude":
                 return True
         return False
 
