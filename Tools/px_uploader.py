@@ -136,8 +136,11 @@ class firmware(object):
 
         self.image = bytearray(zlib.decompress(base64.b64decode(self.desc['image'])))
 
-        # pad image to 4-byte length
-        while ((len(self.image) % 4) != 0):
+        # PX4 bootloader in theory requires only 4-byte padding,
+        # but a bug exists with the flash block caching where if the data
+        # does not fill up the block, it will not be written (left as all 1s).
+        # So pad up to the flash block size (8 words).
+        while ((len(self.image) % (4 * 8)) != 0):
             self.image.extend(b'\xff')
 
     def property(self, propname):
