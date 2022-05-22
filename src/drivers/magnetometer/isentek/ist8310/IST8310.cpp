@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -117,7 +117,7 @@ void IST8310::RunImpl()
 		    && ((RegisterRead(Register::CNTL2) & CNTL2_BIT::SRST) == 0)) {
 
 			// if reset succeeded then configure
-			_state = STATE::CONFIGURE;
+			_state = STATE::SELF_TEST_CHECK;
 			ScheduleDelayed(10_ms);
 
 		} else {
@@ -133,6 +133,129 @@ void IST8310::RunImpl()
 			}
 		}
 
+		break;
+
+	case STATE::SELF_TEST_CHECK: {
+
+			// Self-Test mode is used to check if the 3-axis outputs read in Single Measurement Mode are correct.
+			// It is activated by setting Self-Test Register, STR(0x0Ch) to 0x40h; then all 3-axis outputs will change their polarity.
+			RegisterWrite(Register::TCCNTL, 0x0);
+			RegisterWrite(Register::CNTL2, CNTL2_BIT::DREN);
+
+
+
+			// User can check the 3-axis output values before and after activating Self-Test Mode;
+			// if the absolute values are the same, then the IC is working correctly.
+			RegisterWrite(Register::CNTL1, CNTL1_BIT::MODE_SINGLE_MEASUREMENT);
+
+			px4_usleep(5000);
+
+
+			// read STAT1 until DRDY?
+
+			int16_t read_0[3] {};
+
+			{
+				struct TransferBuffer {
+					uint8_t STAT1;
+					uint8_t DATAXL;
+					uint8_t DATAXH;
+					uint8_t DATAYL;
+					uint8_t DATAYH;
+					uint8_t DATAZL;
+					uint8_t DATAZH;
+				} buffer{};
+
+				uint8_t cmd = static_cast<uint8_t>(Register::STAT1);
+
+				if (transfer(&cmd, 1, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
+					if (buffer.STAT1 & STAT1_BIT::DRDY) {
+						read_0[0] = combine(buffer.DATAXH, buffer.DATAXL);
+						read_0[1] = combine(buffer.DATAYH, buffer.DATAYL);
+						read_0[2] = combine(buffer.DATAZH, buffer.DATAZL);
+
+					} else {
+						PX4_ERR("read 0 data not ready");
+					}
+
+				}
+			}
+
+
+			// activate self test
+			RegisterSetAndClearBits(Register::STR, STR_BIT::SELF_TEST, 0);
+
+
+
+			// read again
+
+
+
+			// read 2
+			RegisterWrite(Register::CNTL1, CNTL1_BIT::MODE_SINGLE_MEASUREMENT);
+
+			px4_usleep(5000);
+
+			int16_t read_1[3] {};
+
+			{
+				struct TransferBuffer {
+					uint8_t STAT1;
+					uint8_t DATAXL;
+					uint8_t DATAXH;
+					uint8_t DATAYL;
+					uint8_t DATAYH;
+					uint8_t DATAZL;
+					uint8_t DATAZH;
+				} buffer{};
+
+				uint8_t cmd = static_cast<uint8_t>(Register::STAT1);
+
+				if (transfer(&cmd, 1, (uint8_t *)&buffer, sizeof(buffer)) == PX4_OK) {
+
+					if (buffer.STAT1 & STAT1_BIT::DRDY) {
+						read_1[0] = combine(buffer.DATAXH, buffer.DATAXL);
+						read_1[1] = combine(buffer.DATAYH, buffer.DATAYL);
+						read_1[2] = combine(buffer.DATAZH, buffer.DATAZL);
+
+					} else {
+						PX4_ERR("read 1 data not ready");
+					}
+				}
+			}
+
+
+
+			PX4_INFO("self test X %d -> %d", read_0[0], read_1[0]);
+			PX4_INFO("self test Y %d -> %d", read_0[1], read_1[1]);
+			PX4_INFO("self test Z %d -> %d", read_0[2], read_1[2]);
+
+
+
+
+
+
+
+			// It can be turned off by setting STR(0x0Ch) to 0x00h.
+			RegisterSetAndClearBits(Register::STR, 0, STR_BIT::SELF_TEST);
+
+
+			// Please set Temperature Compensation Control Register, TCCNTL (0x40h) to 0x01h to disable temperature
+			// compensation function to avoid wrong compensation while using this self-test function and set it back to 0x00h in real measurement.
+
+
+			// User can check the 3-axis output values before and after activating Self-Test Mode
+
+			// 0x01h into Control register 1, CNTL1(0x0Ah), IST8310 enters Single Measurement
+
+
+			//  the minimum waiting time between two measurements is 5ms (ODR=200Hz)
+
+
+			_state = STATE::CONFIGURE;
+			ScheduleDelayed(10_ms);
+
+		}
 		break;
 
 	case STATE::CONFIGURE:
@@ -184,7 +307,7 @@ void IST8310::RunImpl()
 					int16_t z = combine(buffer.DATAZH, buffer.DATAZL);
 
 					// sensor's frame is +x forward, +y right, +z up
-					z = (z == INT16_MIN) ? INT16_MAX : -z; // flip z
+					z = math::negate(z); // flip z
 
 					_px4_mag.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf));
 					_px4_mag.update(now, x, y, z);

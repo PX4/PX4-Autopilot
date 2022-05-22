@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -116,6 +116,7 @@ enum CNTL1_BIT : uint8_t {
 
 // CNTL2
 enum CNTL2_BIT : uint8_t {
+	DREN = Bit3, // Data ready enable control
 	SRST = Bit0, // Soft reset, perform the same routine as POR
 };
 
@@ -129,6 +130,11 @@ enum CNTL3_BIT : uint8_t {
 	Z_16BIT = Bit6, // Sensor output resolution adjustment for Z axis: 16-bit (Sensitivity: 1320 LSB/Gauss)
 	Y_16BIT = Bit5, // Sensor output resolution adjustment for Y axis: 16-bit (Sensitivity: 1320 LSB/Gauss)
 	X_16BIT = Bit4, // Sensor output resolution adjustment for X axis: 16-bit (Sensitivity: 1320 LSB/Gauss)
+};
+
+// TCCNTL
+enum TCCNTL_BIT : uint8_t {
+	TEMP_COMP_DIS = Bit0, // Set to ‘1’ to disable temperature compensation function
 };
 
 // AVGCNTL

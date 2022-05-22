@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -96,17 +96,20 @@ private:
 	enum class STATE : uint8_t {
 		RESET,
 		WAIT_FOR_RESET,
+		SELF_TEST_CHECK,
 		CONFIGURE,
 		MEASURE,
 		READ,
 	} _state{STATE::RESET};
 
 	uint8_t _checked_register{0};
-	static constexpr uint8_t size_register_cfg{4};
+	static constexpr uint8_t size_register_cfg{6};
 	register_config_t _register_cfg[size_register_cfg] {
 		// Register               | Set bits, Clear bits
-		{ Register::CNTL2,        0, CNTL2_BIT::SRST },
+		{ Register::CNTL2,        CNTL2_BIT::DREN, CNTL2_BIT::SRST },
+		{ Register::STR,          0, STR_BIT::SELF_TEST },
 		{ Register::CNTL3,        CNTL3_BIT::Z_16BIT | CNTL3_BIT::Y_16BIT | CNTL3_BIT::X_16BIT, 0 },
+		{ Register::TCCNTL,       0, TCCNTL_BIT::TEMP_COMP_DIS },
 		{ Register::AVGCNTL,      AVGCNTL_BIT::Y_16TIMES_SET | AVGCNTL_BIT::XZ_16TIMES_SET, AVGCNTL_BIT::Y_16TIMES_CLEAR | AVGCNTL_BIT::XZ_16TIMES_CLEAR },
 		{ Register::PDCNTL,       PDCNTL_BIT::PULSE_NORMAL, 0 },
 	};
