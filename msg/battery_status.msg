@@ -76,3 +76,26 @@ float32 design_capacity             # The design capacity of the battery
 uint16 average_time_to_full         # The predicted remaining time until the battery reaches full charge, in minutes
 uint16 over_discharge_count         # Number of battery overdischarge
 float32 nominal_voltage             # Nominal voltage of the battery pack
+
+uint32 status_flags                       # Battery status flags
+
+# Battery status flags (combined faults and modes)
+
+uint32 STATUS_FLAG_READY = 1                      # The battery is ready to use (fly).
+uint32 STATUS_FLAG_CHARGING = 2                   # Battery is charging.
+uint32 STATUS_FLAG_CELL_BALANCING = 4             # Battery is cell balancing (during charging).
+uint32 STATUS_FLAG_FAULT_CELL_IMBALANCE = 8       # Battery cells are not balanced.
+uint32 STATUS_FLAG_AUTO_DISCHARGING = 16          # Battery is auto discharging (towards storage level).
+uint32 STATUS_FLAG_REQUIRES_SERVICE = 32          # Battery requires service (not safe to fly).
+uint32 STATUS_FLAG_BAD_BATTERY = 64               # Battery is faulty and cannot be repaired (not safe to fly).
+uint32 STATUS_FLAG_PROTECTIONS_ENABLED = 128      # Automatic battery protection monitoring is enabled.
+uint32 STATUS_FLAG_FAULT_PROTECTION_SYSTEM = 256  # The battery fault protection system had detected a fault and cut all power from the battery.
+uint32 STATUS_FLAG_FAULT_OVER_VOLT = 512          # One or more cells are above their maximum voltage rating.
+uint32 STATUS_FLAG_FAULT_UNDER_VOLT = 1024        # One or more cells are below their minimum voltage rating.
+uint32 STATUS_FLAG_FAULT_OVER_TEMPERATURE = 2048  # Over-temperature fault.
+uint32 STATUS_FLAG_FAULT_UNDER_TEMPERATURE = 4096 # Under-temperature fault.
+uint32 STATUS_FLAG_FAULT_OVER_CURRENT = 8192      # Over-current fault.
+uint32 STATUS_FLAG_FAULT_SHORT_CIRCUIT = 16384    # Short circuit event detected.
+uint32 STATUS_FLAG_FAULT_INCOMPATIBLE_VOLTAGE = 32768    # Voltage not compatible with power rail voltage.
+uint32 STATUS_FLAG_FAULT_INCOMPATIBLE_FIRMWARE = 65536   # Battery firmware is not compatible with current autopilot firmware.
+uint32 STATUS_FLAG_FAULT_INCOMPATIBLE_CELLS_CONFIGURATION = 131072  # Battery is not compatible due to cell configuration (e.g. 5s1p when vehicle requires 6s).

@@ -64,6 +64,7 @@
 #include "streams/ATTITUDE_TARGET.hpp"
 #include "streams/AUTOPILOT_VERSION.hpp"
 #include "streams/BATTERY_STATUS.hpp"
+#include "streams/BATTERY_STATUS_V2.hpp"
 #include "streams/CAMERA_IMAGE_CAPTURED.hpp"
 #include "streams/CAMERA_TRIGGER.hpp"
 #include "streams/COLLISION.hpp"
@@ -328,7 +329,12 @@ static const StreamListItem streams_list[] = {
 #if defined(SYSTEM_TIME_HPP)
 	create_stream_list_item<MavlinkStreamSysStatus>(),
 #endif // SYSTEM_TIME_HPP
+#if defined(BATTERY_STATUS_HPP)
 	create_stream_list_item<MavlinkStreamBatteryStatus>(),
+#endif // BATTERY_STATUS_HPP
+#if defined(BATTERY_STATUS_V2_HPP)
+	create_stream_list_item<MavlinkStreamBatteryStatusV2>(),
+#endif // BATTERY_STATUS_V2_HPP
 #if defined(SMART_BATTERY_INFO_HPP)
 	create_stream_list_item<MavlinkStreamSmartBatteryInfo>(),
 #endif // SMART_BATTERY_INFO_HPP
