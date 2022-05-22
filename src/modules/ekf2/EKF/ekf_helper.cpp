@@ -947,7 +947,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 		hgt = math::max(sqrtf(_aid_src_gnss_pos.test_ratio[2]), FLT_MIN);
 
 	} else if (_control_status.flags.rng_hgt) {
-		hgt = math::max(sqrtf(_rng_hgt_test_ratio), FLT_MIN);
+		hgt = math::max(sqrtf(_aid_src_rng_hgt.test_ratio), FLT_MIN);
 
 	} else if (_control_status.flags.ev_hgt) {
 		hgt = math::max(sqrtf(_ev_pos_test_ratio(1)), FLT_MIN);

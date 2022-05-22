@@ -125,8 +125,8 @@ void Ekf::controlFusionModes()
 
 	if (_range_buffer) {
 		// Get range data from buffer and check validity
-		bool is_rng_data_ready = _range_buffer->pop_first_older_than(_imu_sample_delayed.time_us, _range_sensor.getSampleAddress());
-		_range_sensor.setDataReadiness(is_rng_data_ready);
+		_rng_data_ready = _range_buffer->pop_first_older_than(_imu_sample_delayed.time_us, _range_sensor.getSampleAddress());
+		_range_sensor.setDataReadiness(_rng_data_ready);
 
 		// update range sensor angle parameters in case they have changed
 		_range_sensor.setPitchOffset(_params.rng_sens_pitch);
@@ -959,13 +959,15 @@ void Ekf::controlHeightFusion()
 		}
 	}
 
-	if (_control_status.flags.rng_hgt) {
+	if (_rng_data_ready) {
+		updateRngHgt(_aid_src_rng_hgt);
 
-		if (_range_sensor.isDataHealthy()) {
-			fuseRngHgt();
+		if (_control_status.flags.rng_hgt && _range_sensor.isDataHealthy()) {
+			fuseRngHgt(_aid_src_rng_hgt);
 		}
+	}
 
-	} else if (_control_status.flags.ev_hgt) {
+	if (_control_status.flags.ev_hgt) {
 
 		if (_control_status.flags.ev_hgt && _ev_data_ready) {
 			fuseEvHgt();
