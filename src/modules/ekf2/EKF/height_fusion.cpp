@@ -99,20 +99,48 @@ void Ekf::fuseBaroHgt(estimator_aid_source_1d_s &baro_hgt)
 	}
 }
 
-void Ekf::fuseRngHgt()
+void Ekf::updateRngHgt(estimator_aid_source_1d_s &rng_hgt)
 {
-	// use range finder with tilt correction
-	_rng_hgt_innov = _state.pos(2) - (-math::max(_range_sensor.getDistBottom(),
-					  _params.rng_gnd_clearance)) - _rng_hgt_offset;
-
-	// innovation gate size
-	float innov_gate = fmaxf(_params.range_innov_gate, 1.f);
+	// reset flags
+	resetEstimatorAidStatusFlags(rng_hgt);
 
 	// observation variance - user parameter defined
 	float obs_var = fmaxf(sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sensor.getDistBottom()), 0.01f);
 
-	fuseVerticalPosition(_rng_hgt_innov, innov_gate, obs_var,
-			     _rng_hgt_innov_var, _rng_hgt_test_ratio);
+	// innovation gate size
+	float innov_gate = fmaxf(_params.range_innov_gate, 1.f);
+
+	// vertical position innovation, use range finder with tilt correction
+	rng_hgt.observation = (-math::max(_range_sensor.getDistBottom(), _params.rng_gnd_clearance)) + _rng_hgt_offset;
+	rng_hgt.observation_variance = obs_var;
+
+	rng_hgt.innovation = _state.pos(2) - rng_hgt.observation;
+	rng_hgt.innovation_variance = P(9, 9) + obs_var;
+
+	setEstimatorAidStatusTestRatio(rng_hgt, innov_gate);
+
+	// special case if there is bad vertical acceleration data, then don't reject measurement,
+	// but limit innovation to prevent spikes that could destabilise the filter
+	if (_fault_status.flags.bad_acc_vertical && rng_hgt.innovation_rejected) {
+		const float innov_limit = innov_gate * sqrtf(rng_hgt.innovation_variance);
+		rng_hgt.innovation = math::constrain(rng_hgt.innovation, -innov_limit, innov_limit);
+		rng_hgt.innovation_rejected = false;
+	}
+
+	rng_hgt.fusion_enabled = _control_status.flags.rng_hgt;
+
+	rng_hgt.timestamp_sample = _range_sensor.getSampleAddress()->time_us;
+}
+
+void Ekf::fuseRngHgt(estimator_aid_source_1d_s &rng_hgt)
+{
+	if (rng_hgt.fusion_enabled
+	    && !rng_hgt.innovation_rejected
+	    && fuseVelPosHeight(rng_hgt.innovation, rng_hgt.innovation_variance, 5)) {
+
+		rng_hgt.fused = true;
+		rng_hgt.time_last_fuse = _time_last_imu;
+	}
 }
 
 void Ekf::fuseEvHgt()
