@@ -779,20 +779,30 @@ void Ekf::checkVerticalAccelerationHealth()
 	bool are_vertical_pos_and_vel_independant = false;
 
 	if (_control_status.flags.gps) {
-		// velocity
-		auto &gps_vel = _aid_src_gnss_vel;
+		// GNSS velocity
+		const auto &gps_vel = _aid_src_gnss_vel;
 
 		if (gps_vel.time_last_fuse[2] > _vert_vel_fuse_time_us) {
 			_vert_vel_fuse_time_us = gps_vel.time_last_fuse[2];
 			_vert_vel_innov_ratio = gps_vel.innovation[2] / sqrtf(gps_vel.innovation_variance[2]);
 		}
 
-		// position
-		auto &gps_pos = _aid_src_gnss_pos;
+		// GNSS position
+		const auto &gps_pos = _aid_src_gnss_pos;
 
 		if (gps_pos.time_last_fuse[2] > _vert_pos_fuse_attempt_time_us) {
 			_vert_pos_fuse_attempt_time_us = gps_pos.time_last_fuse[2];
 			_vert_pos_innov_ratio = gps_pos.innovation[2] / sqrtf(gps_pos.innovation_variance[2]);
+		}
+	}
+
+	if (_control_status.flags.baro_hgt) {
+		// baro height
+		const auto &baro_hgt = _aid_src_baro_hgt;
+
+		if (baro_hgt.time_last_fuse > _vert_pos_fuse_attempt_time_us) {
+			_vert_pos_fuse_attempt_time_us = baro_hgt.time_last_fuse;
+			_vert_pos_innov_ratio = baro_hgt.innovation / sqrtf(baro_hgt.innovation_variance);
 		}
 	}
 
@@ -941,15 +951,15 @@ void Ekf::controlHeightFusion()
 	updateBaroHgtOffset();
 	updateGroundEffect();
 
-	if (_control_status.flags.baro_hgt) {
+	if (_baro_data_ready) {
+		updateBaroHgt(_baro_sample_delayed, _aid_src_baro_hgt);
 
-		if (_baro_data_ready && !_baro_hgt_faulty) {
-			fuseBaroHgt();
+		if (_control_status.flags.baro_hgt && !_baro_hgt_faulty) {
+			fuseBaroHgt(_aid_src_baro_hgt);
 		}
+	}
 
-	} else if (_control_status.flags.gps_hgt) {
-		// handled by gps fusion
-	} else if (_control_status.flags.rng_hgt) {
+	if (_control_status.flags.rng_hgt) {
 
 		if (_range_sensor.isDataHealthy()) {
 			fuseRngHgt();

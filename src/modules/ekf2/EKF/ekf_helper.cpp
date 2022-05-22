@@ -941,7 +941,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 
 	// return the vertical position innovation test ratio
 	if (_control_status.flags.baro_hgt) {
-		hgt = math::max(sqrtf(_baro_hgt_test_ratio), FLT_MIN);
+		hgt = math::max(sqrtf(_aid_src_baro_hgt.test_ratio), FLT_MIN);
 
 	} else if (_control_status.flags.gps_hgt) {
 		hgt = math::max(sqrtf(_aid_src_gnss_pos.test_ratio[2]), FLT_MIN);

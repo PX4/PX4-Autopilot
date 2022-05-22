@@ -991,7 +991,7 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 			bool bad_vz_ev  = _control_status.flags.ev_vel && (down_dvel_bias * _ev_vel_innov(2) < 0.0f);
 
 			if (bad_vz_gps || bad_vz_ev) {
-				bool bad_z_baro = _control_status.flags.baro_hgt && (down_dvel_bias * _baro_hgt_innov < 0.0f);
+				bool bad_z_baro = _control_status.flags.baro_hgt && (down_dvel_bias * _aid_src_baro_hgt.innovation    < 0.0f);
 				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_pos.innovation[2] < 0.0f);
 				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _rng_hgt_innov < 0.0f);
 				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _ev_pos_innov(2) < 0.0f);
