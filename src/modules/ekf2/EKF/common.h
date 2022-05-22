@@ -438,9 +438,9 @@ union innovation_fault_status_u {
 		bool reject_ver_vel   : 1; ///< 1 - true if vertical velocity observations have been rejected
 		bool reject_hor_pos   : 1; ///< 2 - true if horizontal position observations have been rejected
 		bool reject_ver_pos   : 1; ///< 3 - true if true if vertical position observations have been rejected
-		bool reject_mag_x     : 1; ///< 4 - true if the X magnetometer observation has been rejected
-		bool reject_mag_y     : 1; ///< 5 - true if the Y magnetometer observation has been rejected
-		bool reject_mag_z     : 1; ///< 6 - true if the Z magnetometer observation has been rejected
+		bool __reject_mag_x     : 1; ///< 4 - true if the X magnetometer observation has been rejected
+		bool __reject_mag_y     : 1; ///< 5 - true if the Y magnetometer observation has been rejected
+		bool __reject_mag_z     : 1; ///< 6 - true if the Z magnetometer observation has been rejected
 		bool reject_yaw       : 1; ///< 7 - true if the yaw observation has been rejected
 		bool reject_airspeed  : 1; ///< 8 - true if the airspeed observation has been rejected
 		bool reject_sideslip  : 1; ///< 9 - true if the synthetic sideslip observation has been rejected

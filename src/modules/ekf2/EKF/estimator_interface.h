@@ -330,7 +330,6 @@ protected:
 	// innovation consistency check monitoring ratios
 	float _yaw_test_ratio{};		// yaw innovation consistency check ratio
 	AlphaFilter<float> _yaw_signed_test_ratio_lpf{0.1f}; // average signed test ratio used to detect a bias in the state
-	Vector3f _mag_test_ratio{};		// magnetometer XYZ innovation consistency check ratios
 	Vector2f _ev_vel_test_ratio{};		// EV velocity innovation consistency check ratios
 	Vector2f _ev_pos_test_ratio{};		// EV position innovation consistency check ratios
 	Vector2f _aux_vel_test_ratio{};		// Auxiliary horizontal velocity innovation consistency check ratio

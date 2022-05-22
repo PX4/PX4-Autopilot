@@ -112,9 +112,9 @@ public:
 	void getHeadingInnovVar(float &heading_innov_var) const { heading_innov_var = _heading_innov_var; }
 	void getHeadingInnovRatio(float &heading_innov_ratio) const { heading_innov_ratio = _yaw_test_ratio; }
 
-	void getMagInnov(float mag_innov[3]) const { _mag_innov.copyTo(mag_innov); }
-	void getMagInnovVar(float mag_innov_var[3]) const { _mag_innov_var.copyTo(mag_innov_var); }
-	void getMagInnovRatio(float &mag_innov_ratio) const { mag_innov_ratio = _mag_test_ratio.max(); }
+	void getMagInnov(float mag_innov[3]) const { memcpy(mag_innov, _aid_src_mag.innovation, sizeof(_aid_src_mag.innovation)); }
+	void getMagInnovVar(float mag_innov_var[3]) const { memcpy(mag_innov_var, _aid_src_mag.innovation_variance, sizeof(_aid_src_mag.innovation_variance)); }
+	void getMagInnovRatio(float &mag_innov_ratio) const { mag_innov_ratio = Vector3f(_aid_src_mag.test_ratio).max(); }
 
 	void getDragInnov(float drag_innov[2]) const { _drag_innov.copyTo(drag_innov); }
 	void getDragInnovVar(float drag_innov_var[2]) const { _drag_innov_var.copyTo(drag_innov_var); }
@@ -345,6 +345,9 @@ public:
 
 	const auto &aid_src_fake_pos() const { return _aid_src_fake_pos; }
 
+	const auto &aid_src_mag_heading() const { return _aid_src_mag_heading; }
+	const auto &aid_src_mag() const { return _aid_src_mag; }
+
 	const auto &aid_src_gnss_vel() const { return _aid_src_gnss_vel; }
 	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
 
@@ -462,9 +465,6 @@ private:
 	float _heading_innov{0.0f};	///< heading measurement innovation (rad)
 	float _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
 
-	Vector3f _mag_innov{};		///< earth magnetic field innovations (Gauss)
-	Vector3f _mag_innov_var{};	///< earth magnetic field innovation variance (Gauss**2)
-
 	Vector2f _drag_innov{};		///< multirotor drag measurement innovation (m/sec**2)
 	Vector2f _drag_innov_var{};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 
@@ -495,6 +495,9 @@ private:
 	estimator_aid_source_1d_s _aid_src_rng_hgt{};
 
 	estimator_aid_source_2d_s _aid_src_fake_pos{};
+
+	estimator_aid_source_1d_s _aid_src_mag_heading{};
+	estimator_aid_source_3d_s _aid_src_mag{};
 
 	estimator_aid_source_3d_s _aid_src_gnss_vel{};
 	estimator_aid_source_3d_s _aid_src_gnss_pos{};
@@ -597,7 +600,7 @@ private:
 	void predictCovariance();
 
 	// ekf sequential fusion of magnetometer measurements
-	void fuseMag(const Vector3f &mag);
+	void fuseMag(estimator_aid_source_3d_s &aid_src_mag, const Vector3f &mag);
 
 	// fuse the first euler angle from either a 321 or 312 rotation sequence as the observation (currently measures yaw using the magnetometer)
 	void fuseHeading(float measured_hdg = NAN, float obs_var = NAN);

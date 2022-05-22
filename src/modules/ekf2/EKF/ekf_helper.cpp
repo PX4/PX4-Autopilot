@@ -910,7 +910,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 	status = _innov_check_fail_status.value;
 
 	// return the largest magnetometer innovation test ratio
-	mag = sqrtf(math::max(_yaw_test_ratio, _mag_test_ratio.max()));
+	mag = sqrtf(math::max(_yaw_test_ratio, Vector3f(_aid_src_mag.test_ratio).max()));
 
 	// return the largest velocity and position innovation test ratio
 	vel = NAN;
@@ -983,7 +983,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status) const
 	soln_status.flags.pred_pos_horiz_abs = soln_status.flags.pos_horiz_abs;
 	const bool gps_vel_innov_bad = Vector3f(_aid_src_gnss_vel.test_ratio).max() > 1.f;
 	const bool gps_pos_innov_bad = Vector2f(_aid_src_gnss_pos.test_ratio).max() > 1.f;
-	const bool mag_innov_good = (_mag_test_ratio.max() < 1.0f) && (_yaw_test_ratio < 1.0f);
+	const bool mag_innov_good = (Vector3f(_aid_src_mag.test_ratio).max() < 1.0f) && (_yaw_test_ratio < 1.0f);
 	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad) && mag_innov_good;
 	soln_status.flags.accel_error = _fault_status.flags.bad_acc_vertical;
 	*status = soln_status.value;
@@ -1236,12 +1236,18 @@ void Ekf::stopMag3DFusion()
 	if (_control_status.flags.mag_3D) {
 		saveMagCovData();
 		_control_status.flags.mag_3D = false;
+
+		resetEstimatorAidStatus(_aid_src_mag);
 	}
 }
 
 void Ekf::stopMagHdgFusion()
 {
-	_control_status.flags.mag_hdg = false;
+	if (_control_status.flags.mag_hdg) {
+		_control_status.flags.mag_hdg = false;
+
+		resetEstimatorAidStatus(_aid_src_mag_heading);
+	}
 }
 
 void Ekf::startMagHdgFusion()
