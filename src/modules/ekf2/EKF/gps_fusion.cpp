@@ -55,10 +55,9 @@ void Ekf::updateGpsVel(const gpsSample &gps_sample)
 
 		gps_vel.innovation[i] = _state.vel(i) - gps_sample.vel(i);
 		gps_vel.innovation_variance[i] = P(4 + i, 4 + i) + obs_var(i);
-		gps_vel.test_ratio[i] = sq(gps_vel.innovation[i]) / (sq(innov_gate) * gps_vel.innovation_variance[i]);
-
-		gps_vel.innovation_rejected[i] = (gps_vel.test_ratio[i] > 1.f);
 	}
+
+	setEstimatorAidStatusTestRatio(gps_vel, innov_gate);
 
 	// vz special case if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter
@@ -109,10 +108,9 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 
 		gps_pos.innovation[i] = _state.pos(i) - position(i);
 		gps_pos.innovation_variance[i] = P(7 + i, 7 + i) + obs_var(i);
-		gps_pos.test_ratio[i] = sq(gps_pos.innovation[i]) / (sq(innov_gate) * gps_pos.innovation_variance[i]);
-
-		gps_pos.innovation_rejected[i] = (gps_pos.test_ratio[i] > 1.f);
 	}
+
+	setEstimatorAidStatusTestRatio(gps_pos, innov_gate);
 
 	// z special case if there is bad vertical acceleration data, then don't reject measurement,
 	// but limit innovation to prevent spikes that could destabilise the filter

@@ -139,10 +139,12 @@ void Ekf::fuseFakePosition()
 
 		fake_pos.innovation[i] = _state.pos(i) - _last_known_posNE(i);
 		fake_pos.innovation_variance[i] = P(7 + i, 7 + i) + obs_var(i);
-		fake_pos.test_ratio[i] = sq(fake_pos.innovation[i]) / (sq(innov_gate) * fake_pos.innovation_variance[i]);
+	}
 
-		fake_pos.innovation_rejected[i] = (fake_pos.test_ratio[i] > 1.f);
+	setEstimatorAidStatusTestRatio(fake_pos, innov_gate);
 
+	// fuse
+	for (int i = 0; i < 2; i++) {
 		// always protect against extreme values that could result in a NaN
 		fake_pos.fusion_enabled[i] = fake_pos.test_ratio[i] < sq(100.0f / innov_gate);
 
