@@ -43,7 +43,7 @@
  * @group Battery Calibration
  * @category system
  */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.6f);
 
 /**
  * This parameter is deprecated. Please use BAT1_V_CHARGED instead.
