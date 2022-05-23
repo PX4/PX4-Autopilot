@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -274,8 +274,8 @@ void ICM42605::RunImpl()
 				}
 			}
 
+			// check configuration registers periodically or immediately following any failure
 			if (!success || hrt_elapsed_time(&_last_config_check_timestamp) > 100_ms) {
-				// check configuration registers periodically or immediately following any failure
 				if (RegisterCheck(_register_bank0_cfg[_checked_register_bank0])
 				   ) {
 					_last_config_check_timestamp = now;
@@ -286,77 +286,11 @@ void ICM42605::RunImpl()
 					perf_count(_bad_register_perf);
 					Reset();
 				}
-
-			} else {
-				// periodically update temperature (~1 Hz)
-				if (hrt_elapsed_time(&_temperature_update_timestamp) >= 1_s) {
-					UpdateTemperature();
-					_temperature_update_timestamp = now;
-				}
 			}
 		}
 
 		break;
 	}
-}
-
-void ICM42605::ConfigureAccel()
-{
-	const uint8_t ACCEL_FS_SEL = RegisterRead(Register::BANK_0::ACCEL_CONFIG0) & (Bit7 | Bit6 | Bit5); // 7:5 ACCEL_FS_SEL
-
-	switch (ACCEL_FS_SEL) {
-	case ACCEL_FS_SEL_2G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 16384.f);
-		_px4_accel.set_range(2.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_4G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 8192.f);
-		_px4_accel.set_range(4.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_8G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 4096.f);
-		_px4_accel.set_range(8.f * CONSTANTS_ONE_G);
-		break;
-
-	case ACCEL_FS_SEL_16G:
-		_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
-		_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
-		break;
-	}
-}
-
-void ICM42605::ConfigureGyro()
-{
-	const uint8_t GYRO_FS_SEL = RegisterRead(Register::BANK_0::GYRO_CONFIG0) & (Bit7 | Bit6 | Bit5); // 7:5 GYRO_FS_SEL
-
-	float range_dps = 0.f;
-
-	switch (GYRO_FS_SEL) {
-	case GYRO_FS_SEL_125_DPS:
-		range_dps = 125.f;
-		break;
-
-	case GYRO_FS_SEL_250_DPS:
-		range_dps = 250.f;
-		break;
-
-	case GYRO_FS_SEL_500_DPS:
-		range_dps = 500.f;
-		break;
-
-	case GYRO_FS_SEL_1000_DPS:
-		range_dps = 1000.f;
-		break;
-
-	case GYRO_FS_SEL_2000_DPS:
-		range_dps = 2000.f;
-		break;
-	}
-
-	_px4_gyro.set_scale(math::radians(range_dps / 32768.f));
-	_px4_gyro.set_range(math::radians(range_dps));
 }
 
 void ICM42605::ConfigureSampleRate(int sample_rate)
@@ -419,8 +353,11 @@ bool ICM42605::Configure()
 		}
 	}
 
-	ConfigureAccel();
-	ConfigureGyro();
+	_px4_accel.set_range(16.f * CONSTANTS_ONE_G);
+	_px4_accel.set_scale(CONSTANTS_ONE_G / 2048.f);
+
+	_px4_gyro.set_range(math::radians(2000.f));
+	_px4_gyro.set_scale(math::radians(2000.f / 32768.f));
 
 	return success;
 }
@@ -585,9 +522,11 @@ bool ICM42605::FIFORead(const hrt_abstime &timestamp_sample, uint8_t samples)
 	}
 
 	if (valid_samples > 0) {
-		ProcessGyro(timestamp_sample, buffer.f, valid_samples);
-		ProcessAccel(timestamp_sample, buffer.f, valid_samples);
-		return true;
+		if (ProcessTemperature(buffer.f, valid_samples)) {
+			ProcessGyro(timestamp_sample, buffer.f, valid_samples);
+			ProcessAccel(timestamp_sample, buffer.f, valid_samples);
+			return true;
+		}
 	}
 
 	return false;
@@ -608,7 +547,7 @@ void ICM42605::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 {
 	sensor_accel_fifo_s accel{};
 	accel.timestamp_sample = timestamp_sample;
-	accel.samples = 0;
+	accel.samples = samples;
 	accel.dt = FIFO_SAMPLE_DT;
 
 	for (int i = 0; i < samples; i++) {
@@ -618,18 +557,15 @@ void ICM42605::ProcessAccel(const hrt_abstime &timestamp_sample, const FIFO::DAT
 
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
-		accel.x[accel.samples] = accel_x;
-		accel.y[accel.samples] = (accel_y == INT16_MIN) ? INT16_MAX : -accel_y;
-		accel.z[accel.samples] = (accel_z == INT16_MIN) ? INT16_MAX : -accel_z;
-		accel.samples++;
+		accel.x[i] = accel_x;
+		accel.y[i] = math::negate(accel_y);
+		accel.z[i] = math::negate(accel_z);
 	}
 
 	_px4_accel.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
 				   perf_event_count(_fifo_empty_perf) + perf_event_count(_fifo_overflow_perf));
 
-	if (accel.samples > 0) {
-		_px4_accel.updateFIFO(accel);
-	}
+	_px4_accel.updateFIFO(accel);
 }
 
 void ICM42605::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA fifo[], const uint8_t samples)
@@ -640,15 +576,15 @@ void ICM42605::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	gyro.dt = FIFO_SAMPLE_DT;
 
 	for (int i = 0; i < samples; i++) {
-		const int16_t gyro_x = combine(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0);
-		const int16_t gyro_y = combine(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0);
-		const int16_t gyro_z = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
+		int16_t gyro_x = combine(fifo[i].GYRO_DATA_X1, fifo[i].GYRO_DATA_X0);
+		int16_t gyro_y = combine(fifo[i].GYRO_DATA_Y1, fifo[i].GYRO_DATA_Y0);
+		int16_t gyro_z = combine(fifo[i].GYRO_DATA_Z1, fifo[i].GYRO_DATA_Z0);
 
 		// sensor's frame is +x forward, +y left, +z up
 		//  flip y & z to publish right handed with z down (x forward, y right, z down)
 		gyro.x[i] = gyro_x;
-		gyro.y[i] = (gyro_y == INT16_MIN) ? INT16_MAX : -gyro_y;
-		gyro.z[i] = (gyro_z == INT16_MIN) ? INT16_MAX : -gyro_z;
+		gyro.y[i] = math::negate(gyro_y);
+		gyro.z[i] = math::negate(gyro_z);
 	}
 
 	_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
@@ -657,25 +593,32 @@ void ICM42605::ProcessGyro(const hrt_abstime &timestamp_sample, const FIFO::DATA
 	_px4_gyro.updateFIFO(gyro);
 }
 
-void ICM42605::UpdateTemperature()
+bool ICM42605::ProcessTemperature(const FIFO::DATA fifo[], const uint8_t samples)
 {
-	// read current temperature
-	uint8_t temperature_buf[3] {};
-	temperature_buf[0] = static_cast<uint8_t>(Register::BANK_0::TEMP_DATA1) | DIR_READ;
-	SelectRegisterBank(REG_BANK_SEL_BIT::USER_BANK_0);
+	float temperature_sum{0};
+	int valid_samples = 0;
 
-	if (transfer(temperature_buf, temperature_buf, sizeof(temperature_buf)) != PX4_OK) {
-		perf_count(_bad_transfer_perf);
-		return;
+	for (int i = 0; i < samples; i++) {
+		// Temperature data stored in FIFO is an 8-bit quantity, FIFO_TEMP_DATA
+		// It can be converted to degrees centigrade by using the following formula:
+		//  Temperature in Degrees Centigrade = (FIFO_TEMP_DATA / 2.07) + 25
+		temperature_sum += (fifo[i].FIFO_TEMP_DATA / 2.07f) + 25.f;
+		valid_samples++;
 	}
 
-	const int16_t TEMP_DATA = combine(temperature_buf[1], temperature_buf[2]);
+	if (valid_samples > 0) {
+		// use average temperature reading
+		const float temperature_avg = temperature_sum / valid_samples;
 
-	// Temperature in Degrees Centigrade
-	const float TEMP_degC = (TEMP_DATA / TEMPERATURE_SENSITIVITY) + TEMPERATURE_OFFSET;
+		if (PX4_ISFINITE(temperature_avg)) {
+			_px4_accel.set_temperature(temperature_avg);
+			_px4_gyro.set_temperature(temperature_avg);
+			return true;
 
-	if (PX4_ISFINITE(TEMP_degC)) {
-		_px4_accel.set_temperature(TEMP_degC);
-		_px4_gyro.set_temperature(TEMP_degC);
+		} else {
+			perf_count(_bad_transfer_perf);
+		}
 	}
+
+	return false;
 }
