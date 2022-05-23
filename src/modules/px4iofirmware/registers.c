@@ -413,7 +413,7 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			break;
 
 		case PX4IO_P_SETUP_REBOOT_BL:
-			if (r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED) {
+			if (!(r_status_flags & PX4IO_P_STATUS_FLAGS_OUTPUTS_ARMED)) {
 				// don't allow reboot while armed
 				break;
 			}
