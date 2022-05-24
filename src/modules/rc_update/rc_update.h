@@ -66,6 +66,9 @@ using namespace time_literals;
 namespace rc_update
 {
 
+// Number of Generic Trigger slots that can be configured
+static constexpr uint8_t RC_TRIG_SLOT_COUNT = 6;
+
 /**
  ** class RCUpdate
  *
@@ -190,8 +193,9 @@ private:
 	uint8_t _channel_count_previous{0};
 	uint8_t _input_source_previous{input_rc_s::RC_INPUT_SOURCE_UNKNOWN};
 
-	uint8_t _potential_button_press_slot{0};
-	systemlib::Hysteresis _trigger_slots_hysteresis[]
+	// Hysteresis objects to track status of the each trigger slots for generic action
+	systemlib::Hysteresis _trigger_slots_hysteresis[RC_TRIG_SLOT_COUNT];
+
 	systemlib::Hysteresis _rc_signal_lost_hysteresis{true};
 
 	uint8_t _channel_count_max{0};
@@ -201,18 +205,15 @@ private:
 	perf_counter_t _valid_data_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": valid data interval")};
 
 	DEFINE_PARAMETERS(
-
 		(ParamInt<px4::params::RC_MAP_ROLL>) _param_rc_map_roll,
 		(ParamInt<px4::params::RC_MAP_PITCH>) _param_rc_map_pitch,
 		(ParamInt<px4::params::RC_MAP_YAW>) _param_rc_map_yaw,
 		(ParamInt<px4::params::RC_MAP_THROTTLE>) _param_rc_map_throttle,
 		(ParamInt<px4::params::RC_MAP_FAILSAFE>) _param_rc_map_failsafe,
-
 		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
 		(ParamInt<px4::params::RC_TRIG_BTN_MASK>) _param_rc_trig_btn_mask,
 		(ParamInt<px4::params::RC_TRIG1_CHAN>) _param_rc_trig1_chan,
 		(ParamInt<px4::params::RC_TRIG1_ACTION>) _param_rc_trig1_action,
-
 		(ParamInt<px4::params::RC_MAP_FLAPS>) _param_rc_map_flaps,
 		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
 		(ParamInt<px4::params::RC_MAP_LOITER_SW>) _param_rc_map_loiter_sw,
