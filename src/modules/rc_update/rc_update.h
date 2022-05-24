@@ -69,6 +69,8 @@ namespace rc_update
 
 // Number of Generic Trigger slots that can be configured
 static constexpr uint8_t RC_TRIG_SLOT_COUNT = 6;
+// Value of the RC_TRIG#_CHAN when the channel is unassigned
+static constexpr uint8_t RC_TRIG_CHAN_UNASSIGNED = 0;
 
 // Enum class translation of the RC_TRIG#_ACTION values
 static constexpr enum RC_TRIGGER_ACTIONS {
@@ -161,8 +163,6 @@ public:
 	 * @param
 	 */
 	void		set_params_from_rc();
-
-	void		map_flight_modes_buttons();
 
 	static constexpr uint8_t RC_MAX_CHAN_COUNT{input_rc_s::RC_INPUT_MAX_CHANNELS}; /**< maximum number of r/c channels we handle */
 

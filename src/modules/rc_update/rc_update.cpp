@@ -115,7 +115,6 @@ RCUpdate::RCUpdate() :
 		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG_%d_ACTION", trig_slot);
 		_trigger_action_param_handles[trig_slot - 1] = param_find(param_name_buf);
 	}
-	}
 
 	rc_parameter_map_poll(true /* forced */);
 	parameters_updated();
@@ -320,37 +319,6 @@ void RCUpdate::set_params_from_rc()
 						  _rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
 
 			param_set(_parameter_handles.rc_param[i], &param_val);
-		}
-	}
-}
-
-void
-RCUpdate::map_flight_modes_buttons()
-{
-	// Reset all the slots to -1
-	for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
-		_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot] = -1;
-	}
-
-	// If the functionality is disabled we don't need to map channels
-	const int flightmode_buttons = _param_rc_map_fltm_btn.get();
-
-	if (flightmode_buttons == 0) {
-		return;
-	}
-
-	uint8_t slot = 0;
-
-	for (uint8_t channel = 0; channel < RC_MAX_CHAN_COUNT; channel++) {
-		if (flightmode_buttons & (1 << channel)) {
-			PX4_DEBUG("Slot %d assigned to channel %d", slot + 1, channel);
-			_rc.function[rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot] = channel;
-			slot++;
-		}
-
-		if (slot >= manual_control_switches_s::MODE_SLOT_NUM) {
-			// we have filled all the available slots
-			break;
 		}
 	}
 }
@@ -626,9 +594,16 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	}
 
 	// Go through the trigger slots and update the states
-
+	const uint32_t rc_trigger_is_button_mask = _param_rc_trig_btn_mask.get();
 	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		int channel{RC_TRIG_CHAN_UNASSIGNED};
+		param_get(_trigger_channel_param_handles[trig_slot-1], &channel);
+		int action{RC_TRIGGER_ACTION_UNASSIGNED};
+		param_get(_trigger_action_param_handles[trig_slot-1], &action);
 
+		if (channel > RC_TRIG_CHAN_UNASSIGNED) {
+
+		}
 	}
 
 	// Update the Generic Action states
