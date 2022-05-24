@@ -451,7 +451,7 @@ private:
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 	uORB::Publication<vehicle_status_s>			_vehicle_status_pub{ORB_ID(vehicle_status)};
 
-	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
+	uORB::PublicationData<home_position_s>			_home_position_pub{ORB_ID(home_position)};
 
 	uORB::Publication<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
