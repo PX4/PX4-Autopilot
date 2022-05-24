@@ -396,7 +396,7 @@ private:
 	hrt_abstime _last_wind_warning{0};
 
 	// commander publications
-	actuator_armed_s        _armed{};
+	actuator_armed_s        _actuator_armed{};
 	commander_state_s       _internal_state{};
 	vehicle_control_mode_s  _vehicle_control_mode{};
 	vehicle_status_s        _vehicle_status{};
@@ -442,7 +442,7 @@ private:
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// Publications
-	uORB::Publication<actuator_armed_s>			_armed_pub{ORB_ID(actuator_armed)};
+	uORB::Publication<actuator_armed_s>			_actuator_armed_pub{ORB_ID(actuator_armed)};
 	uORB::Publication<commander_state_s>			_commander_state_pub{ORB_ID(commander_state)};
 	uORB::Publication<failure_detector_status_s>		_failure_detector_status_pub{ORB_ID(failure_detector_status)};
 	uORB::Publication<test_motor_s>				_test_motor_pub{ORB_ID(test_motor)};

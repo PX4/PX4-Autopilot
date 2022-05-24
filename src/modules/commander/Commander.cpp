@@ -499,7 +499,7 @@ bool Commander::shutdown_if_allowed()
 	return TRANSITION_DENIED != _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
 			_safety.isButtonAvailable(), _safety.isSafetyOff(),
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
-			_armed, false /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags, _arm_requirements,
+			_actuator_armed, false /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags, _arm_requirements,
 			hrt_elapsed_time(&_boot_timestamp), arm_disarm_reason_t::shutdown);
 }
 
@@ -751,7 +751,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 
 	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
 					 _safety.isButtonAvailable(), _safety.isSafetyOff(),
-					 vehicle_status_s::ARMING_STATE_ARMED, _armed, run_preflight_checks,
+					 vehicle_status_s::ARMING_STATE_ARMED, _actuator_armed, run_preflight_checks,
 					 &_mavlink_log_pub, _vehicle_status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
 					 calling_reason);
 
@@ -795,7 +795,7 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 
 	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
 					 _safety.isButtonAvailable(), _safety.isSafetyOff(),
-					 vehicle_status_s::ARMING_STATE_STANDBY, _armed, false,
+					 vehicle_status_s::ARMING_STATE_STANDBY, _actuator_armed, false,
 					 &_mavlink_log_pub, _vehicle_status_flags, _arm_requirements,
 					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
 
@@ -1073,7 +1073,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			if (cmd.param1 > 1.5f) {
 				// Test termination command triggers lockdown but not actual termination.
 				if (!_lockdown_triggered) {
-					_armed.lockdown = true;
+					_actuator_armed.lockdown = true;
 					_lockdown_triggered = true;
 					PX4_WARN("forcing lockdown (motors off)");
 				}
@@ -1081,15 +1081,15 @@ Commander::handle_command(const vehicle_command_s &cmd)
 			} else if (cmd.param1 > 0.5f) {
 				// Trigger real termination.
 				if (!_flight_termination_triggered) {
-					_armed.force_failsafe = true;
+					_actuator_armed.force_failsafe = true;
 					_flight_termination_triggered = true;
 					PX4_WARN("forcing failsafe (termination)");
 					send_parachute_command();
 				}
 
 			} else {
-				_armed.force_failsafe = false;
-				_armed.lockdown = false;
+				_actuator_armed.force_failsafe = false;
+				_actuator_armed.lockdown = false;
 
 				_lockdown_triggered = false;
 				_flight_termination_triggered = false;
@@ -1406,7 +1406,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 				/* try to go to INIT/PREFLIGHT arming state */
 				if (TRANSITION_DENIED == _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
 						_safety.isButtonAvailable(), _safety.isSafetyOff(),
-						vehicle_status_s::ARMING_STATE_INIT, _armed,
+						vehicle_status_s::ARMING_STATE_INIT, _actuator_armed,
 						false /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags,
 						PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
 						30_s, // time since boot not relevant for switching to ARMING_STATE_INIT
@@ -1494,7 +1494,7 @@ Commander::handle_command(const vehicle_command_s &cmd)
 
 						} else {
 							_vehicle_status_flags.calibration_enabled = true;
-							_armed.in_esc_calibration_mode = true;
+							_actuator_armed.in_esc_calibration_mode = true;
 							_worker_thread.startTask(WorkerThread::Request::ESCCalibration);
 						}
 
@@ -1788,17 +1788,17 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 		break;
 
 	case action_request_s::ACTION_UNKILL:
-		if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && _armed.manual_lockdown) {
+		if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && _actuator_armed.manual_lockdown) {
 			mavlink_log_info(&_mavlink_log_pub, "Kill-switch disengaged\t");
 			events::send(events::ID("commander_kill_sw_disengaged"), events::Log::Info, "Kill-switch disengaged");
 			_status_changed = true;
-			_armed.manual_lockdown = false;
+			_actuator_armed.manual_lockdown = false;
 		}
 
 		break;
 
 	case action_request_s::ACTION_KILL:
-		if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && !_armed.manual_lockdown) {
+		if (arm_disarm_reason == arm_disarm_reason_t::rc_switch && !_actuator_armed.manual_lockdown) {
 			const char kill_switch_string[] = "Kill-switch engaged\t";
 			events::LogLevels log_levels{events::Log::Info};
 
@@ -1813,7 +1813,7 @@ void Commander::executeActionRequest(const action_request_s &action_request)
 			events::send(events::ID("commander_kill_sw_engaged"), log_levels, "Kill-switch engaged");
 
 			_status_changed = true;
-			_armed.manual_lockdown = true;
+			_actuator_armed.manual_lockdown = true;
 			send_parachute_command();
 		}
 
@@ -2200,7 +2200,7 @@ Commander::run()
 
 		perf_begin(_loop_perf);
 
-		const actuator_armed_s actuator_armed_prev{_armed};
+		const actuator_armed_s actuator_armed_prev{_actuator_armed};
 		const vehicle_status_flags_s vehicle_status_flags_prev{_vehicle_status_flags};
 
 		/* update parameters */
@@ -2359,8 +2359,8 @@ Commander::run()
 
 				const bool should_soft_stop = (_vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
-				if (_armed.soft_stop != should_soft_stop) {
-					_armed.soft_stop = should_soft_stop;
+				if (_actuator_armed.soft_stop != should_soft_stop) {
+					_actuator_armed.soft_stop = should_soft_stop;
 					_status_changed = true;
 				}
 			}
@@ -2422,18 +2422,18 @@ Commander::run()
 			}
 
 			// Auto disarm after 5 seconds if kill switch is engaged
-			bool auto_disarm = _armed.manual_lockdown;
+			bool auto_disarm = _actuator_armed.manual_lockdown;
 
 			// auto disarm if locked down to avoid user confusion
 			//  skipped in HITL where lockdown is enabled for safety
 			if (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) {
-				auto_disarm |= _armed.lockdown;
+				auto_disarm |= _actuator_armed.lockdown;
 			}
 
 			_auto_disarm_killed.set_state_and_update(auto_disarm, hrt_absolute_time());
 
 			if (_auto_disarm_killed.get_state()) {
-				if (_armed.manual_lockdown) {
+				if (_actuator_armed.manual_lockdown) {
 					disarm(arm_disarm_reason_t::kill_switch, true);
 
 				} else {
@@ -2464,7 +2464,7 @@ Commander::run()
 
 			_arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
 					_safety.isButtonAvailable(), _safety.isSafetyOff(),
-					vehicle_status_s::ARMING_STATE_STANDBY, _armed,
+					vehicle_status_s::ARMING_STATE_STANDBY, _actuator_armed,
 					true /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags,
 					_arm_requirements, hrt_elapsed_time(&_boot_timestamp),
 					arm_disarm_reason_t::transition_to_standby);
@@ -2598,7 +2598,7 @@ Commander::run()
 							mavlink_log_critical(&_mavlink_log_pub, "Geofence violation! Flight terminated\t");
 							events::send(events::ID("commander_geofence_termination"), {events::Log::Alert, events::LogInternal::Warning},
 								     "Geofence violation! Flight terminated");
-							_armed.force_failsafe = true;
+							_actuator_armed.force_failsafe = true;
 							_status_changed = true;
 							send_parachute_command();
 						}
@@ -2655,7 +2655,7 @@ Commander::run()
 				events::send(events::ID("commander_mission_termination"), {events::Log::Alert, events::LogInternal::Warning},
 					     "GPS failure: Flight terminated");
 				_flight_termination_triggered = true;
-				_armed.force_failsafe = true;
+				_actuator_armed.force_failsafe = true;
 				_status_changed = true;
 				send_parachute_command();
 			}
@@ -2743,7 +2743,7 @@ Commander::run()
 
 					if (is_right_after_takeoff && !_lockdown_triggered) {
 						// This handles the case where something fails during the early takeoff phase
-						_armed.lockdown = true;
+						_actuator_armed.lockdown = true;
 						_lockdown_triggered = true;
 						mavlink_log_emergency(&_mavlink_log_pub, "Critical failure detected: lockdown\t");
 						/* EVENT
@@ -2761,7 +2761,7 @@ Commander::run()
 					} else if (!_vehicle_status_flags.circuit_breaker_flight_termination_disabled &&
 						   !_flight_termination_triggered && !_lockdown_triggered) {
 
-						_armed.force_failsafe = true;
+						_actuator_armed.force_failsafe = true;
 						_flight_termination_triggered = true;
 						mavlink_log_emergency(&_mavlink_log_pub, "Critical failure detected: terminate flight\t");
 						/* EVENT
@@ -2830,12 +2830,12 @@ Commander::run()
 					break;
 
 				case ActuatorFailureActions::TERMINATE:
-					if (!_armed.manual_lockdown) {
+					if (!_actuator_armed.manual_lockdown) {
 						mavlink_log_critical(&_mavlink_log_pub, "Flight termination due to actuator failure\t");
 						events::send(events::ID("commander_act_failure_term"), events::Log::Warning,
 							     "Flight termination due to actuator failure");
 						_status_changed = true;
-						_armed.manual_lockdown = true;
+						_actuator_armed.manual_lockdown = true;
 						send_parachute_command();
 					}
 
@@ -2855,7 +2855,7 @@ Commander::run()
 			checkWindSpeedThresholds();
 		}
 
-		_vehicle_status_flags.flight_terminated = _armed.force_failsafe || _armed.manual_lockdown;
+		_vehicle_status_flags.flight_terminated = _actuator_armed.force_failsafe || _actuator_armed.manual_lockdown;
 
 		/* Get current timestamp */
 		const hrt_abstime now = hrt_absolute_time();
@@ -2922,7 +2922,7 @@ Commander::run()
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(_vehicle_status,
-						       _armed,
+						       _actuator_armed,
 						       _internal_state,
 						       &_mavlink_log_pub,
 						       static_cast<link_loss_actions_t>(_param_nav_dll_act.get()),
@@ -2962,7 +2962,7 @@ Commander::run()
 		switch ((PrearmedMode)_param_com_prearm_mode.get()) {
 		case PrearmedMode::DISABLED:
 			/* skip prearmed state  */
-			_armed.prearmed = false;
+			_actuator_armed.prearmed = false;
 			break;
 
 		case PrearmedMode::ALWAYS:
@@ -2970,30 +2970,30 @@ Commander::run()
 			* (all output drivers should be started / unlocked last in the boot process
 			* when the rest of the system is fully initialized)
 			*/
-			_armed.prearmed = (hrt_elapsed_time(&_boot_timestamp) > 5_s);
+			_actuator_armed.prearmed = (hrt_elapsed_time(&_boot_timestamp) > 5_s);
 			break;
 
 		case PrearmedMode::SAFETY_BUTTON:
 			if (_safety.isButtonAvailable()) {
 				/* safety button is present, go into prearmed if safety is off */
-				_armed.prearmed = _safety.isSafetyOff();
+				_actuator_armed.prearmed = _safety.isSafetyOff();
 
 			} else {
 				/* safety button is not present, do not go into prearmed */
-				_armed.prearmed = false;
+				_actuator_armed.prearmed = false;
 			}
 
 			break;
 
 		default:
-			_armed.prearmed = false;
+			_actuator_armed.prearmed = false;
 			break;
 		}
 
 
 		// publish states (armed, control_mode, vehicle_status, commander_state, vehicle_status_flags, failure_detector_status) at 2 Hz or immediately when changed
 		if (hrt_elapsed_time(&_vehicle_status.timestamp) >= 500_ms || _status_changed || nav_state_changed
-		    || !(_armed == actuator_armed_prev)) {
+		    || !(_actuator_armed == actuator_armed_prev)) {
 
 			// Evaluate current prearm status (skip during arm -> disarm transition)
 			if (!actuator_armed_prev.armed && !_arm_state_machine.isArmed() && !_vehicle_status_flags.calibration_enabled) {
@@ -3018,10 +3018,10 @@ Commander::run()
 			}
 
 			// publish actuator_armed first (used by output modules)
-			_armed.armed = _arm_state_machine.isArmed();
-			_armed.ready_to_arm = _arm_state_machine.isArmed() || _arm_state_machine.isStandby();
-			_armed.timestamp = hrt_absolute_time();
-			_armed_pub.publish(_armed);
+			_actuator_armed.armed = _arm_state_machine.isArmed();
+			_actuator_armed.ready_to_arm = _arm_state_machine.isArmed() || _arm_state_machine.isStandby();
+			_actuator_armed.timestamp = hrt_absolute_time();
+			_actuator_armed_pub.publish(_actuator_armed);
 
 			// update and publish vehicle_control_mode
 			update_control_mode();
@@ -3101,7 +3101,7 @@ Commander::run()
 		// check if the worker has finished
 		if (_worker_thread.hasResult()) {
 			int ret = _worker_thread.getResultAndReset();
-			_armed.in_esc_calibration_mode = false;
+			_actuator_armed.in_esc_calibration_mode = false;
 
 			if (_vehicle_status_flags.calibration_enabled) { // did we do a calibration?
 				_vehicle_status_flags.calibration_enabled = false;
