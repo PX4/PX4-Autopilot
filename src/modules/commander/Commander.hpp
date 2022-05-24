@@ -397,7 +397,7 @@ private:
 
 	// commander publications
 	actuator_armed_s        _actuator_armed{};
-	commander_state_s       _internal_state{};
+	commander_state_s       _commander_state{};
 	vehicle_control_mode_s  _vehicle_control_mode{};
 	vehicle_status_s        _vehicle_status{};
 	vehicle_status_flags_s  _vehicle_status_flags{};
