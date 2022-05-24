@@ -1860,7 +1860,8 @@ Commander::hasMovedFromCurrentHomeLocation()
 		if (_vehicle_status_flags.global_position_valid) {
 			const vehicle_global_position_s &gpos = _global_position_sub.get();
 
-			get_distance_to_point_global_wgs84(_home_position_pub.get().lat, _home_position_pub.get().lon, _home_position_pub.get().alt,
+			get_distance_to_point_global_wgs84(_home_position_pub.get().lat, _home_position_pub.get().lon,
+							   _home_position_pub.get().alt,
 							   gpos.lat, gpos.lon, gpos.alt,
 							   &home_dist_xy, &home_dist_z);
 
@@ -1874,7 +1875,8 @@ Commander::hasMovedFromCurrentHomeLocation()
 			const double lon = static_cast<double>(gps.lon) * 1e-7;
 			const float alt = static_cast<float>(gps.alt) * 1e-3f;
 
-			get_distance_to_point_global_wgs84(_home_position_pub.get().lat, _home_position_pub.get().lon, _home_position_pub.get().alt,
+			get_distance_to_point_global_wgs84(_home_position_pub.get().lat, _home_position_pub.get().lon,
+							   _home_position_pub.get().alt,
 							   lat, lon, alt,
 							   &home_dist_xy, &home_dist_z);
 
@@ -2286,7 +2288,8 @@ Commander::run()
 							set_home_position();
 
 						} else if (_param_com_home_in_air.get()
-							   && (!_home_position_pub.get().valid_lpos || !_home_position_pub.get().valid_hpos || !_home_position_pub.get().valid_alt)) {
+							   && (!_home_position_pub.get().valid_lpos || !_home_position_pub.get().valid_hpos
+							       || !_home_position_pub.get().valid_alt)) {
 							set_in_air_home_position();
 						}
 					}
@@ -2878,7 +2881,8 @@ Commander::run()
 		// automatically set or update home position
 		if (_param_com_home_en.get() && !_home_position_pub.get().manual_home) {
 			if (!_arm_state_machine.isArmed() && _vehicle_land_detected.landed) {
-				const bool can_set_home_lpos_first_time = (!_home_position_pub.get().valid_lpos && _vehicle_status_flags.local_position_valid);
+				const bool can_set_home_lpos_first_time = (!_home_position_pub.get().valid_lpos
+						&& _vehicle_status_flags.local_position_valid);
 				const bool can_set_home_gpos_first_time = ((!_home_position_pub.get().valid_hpos || !_home_position_pub.get().valid_alt)
 						&& (_vehicle_status_flags.global_position_valid || _vehicle_status_flags.gps_position_valid));
 				const bool can_set_home_alt_first_time = (!_home_position_pub.get().valid_alt && _local_position_sub.get().z_global);
