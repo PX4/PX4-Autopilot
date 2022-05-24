@@ -129,57 +129,59 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
+CMAKE_ARGS ?=
+
 # additional config parameters passed to cmake
 ifdef EXTERNAL_MODULES_LOCATION
-	CMAKE_ARGS += -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
+	override CMAKE_ARGS += -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
 endif
 
 ifdef PX4_CMAKE_BUILD_TYPE
-	CMAKE_ARGS += -DCMAKE_BUILD_TYPE=${PX4_CMAKE_BUILD_TYPE}
+	override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=${PX4_CMAKE_BUILD_TYPE}
 else
 
 	# Address Sanitizer
 	ifdef PX4_ASAN
-		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=AddressSanitizer
+		override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=AddressSanitizer
 	endif
 
 	# Memory Sanitizer
 	ifdef PX4_MSAN
-		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=MemorySanitizer
+		override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=MemorySanitizer
 	endif
 
 	# Thread Sanitizer
 	ifdef PX4_TSAN
-		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=ThreadSanitizer
+		override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=ThreadSanitizer
 	endif
 
 	# Undefined Behavior Sanitizer
 	ifdef PX4_UBSAN
-		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=UndefinedBehaviorSanitizer
+		override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=UndefinedBehaviorSanitizer
 	endif
 
 	# Fuzz Testing
 	ifdef PX4_FUZZ
-		CMAKE_ARGS += -DCMAKE_BUILD_TYPE=FuzzTesting
+		override CMAKE_ARGS += -DCMAKE_BUILD_TYPE=FuzzTesting
 	endif
 
 endif
 
 # Pick up specific Python path if set
 ifdef PYTHON_EXECUTABLE
-	CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
+	override CMAKE_ARGS += -DPYTHON_EXECUTABLE=${PYTHON_EXECUTABLE}
 endif
 
 # Check if the microRTPS agent is to be built
 ifdef BUILD_MICRORTPS_AGENT
-  CMAKE_ARGS += -DBUILD_MICRORTPS_AGENT=ON
+  override CMAKE_ARGS += -DBUILD_MICRORTPS_AGENT=ON
 endif
 
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-	$(eval CMAKE_ARGS += -DCONFIG=$(1))
+	$(eval override CMAKE_ARGS += -DCONFIG=$(1))
 	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
 	@# check if the desired cmake configuration matches the cache then CMAKE_CACHE_CHECK stays empty
 	@$(call cmake-cache-check)
@@ -383,7 +385,7 @@ format:
 .PHONY: rostest python_coverage
 
 tests:
-	$(eval CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
+	$(eval override CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
 	$(eval ARGS += test_results)
 	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
 	$(eval UBSAN_OPTIONS += color=always)
