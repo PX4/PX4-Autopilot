@@ -599,8 +599,14 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		if (switches.mode_slot > num_slots) {
 			switches.mode_slot = num_slots;
 		}
+	}
 
-	} else if (_param_rc_map_fltm_btn.get() > 0) {
+	for (uint8_t trig_slot = 0; trig_slot < RC_TRIG_SLOT_COUNT; trig_slot++) {
+
+		const bool is_btn = _param_rc_trig_btn_mask.get() && (1 << trig_slot);
+	}
+
+	else if (_param_rc_map_flightmode_buttons.get() > 0) {
 		switches.mode_slot = manual_control_switches_s::MODE_SLOT_NONE;
 		bool is_consistent_button_press = false;
 
