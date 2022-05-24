@@ -394,7 +394,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 		// This looks suspicously like INT32_MAX was sent in a COMMAND_LONG instead of
 		// a COMMAND_INT.
 		PX4_ERR("param5/param6 invalid of command %" PRIu16, cmd_mavlink.command);
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 		return;
 	}
 
@@ -430,7 +430,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 	if (cmd_mavlink.x == 0x7ff80000 && cmd_mavlink.y == 0x7ff80000) {
 		// This looks like NAN was by accident sent as int.
 		PX4_ERR("x/y invalid of command %" PRIu16, cmd_mavlink.command);
-		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+		acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 		return;
 	}
 
@@ -468,14 +468,14 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 {
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 	bool send_ack = true;
-	uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+	uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 	uint8_t progress = 0; // TODO: should be 255, 0 for backwards compatibility
 
 	if (!target_ok) {
 		// Reject alien commands only if there is no forwarding or we've never seen target component before
 		if (!_mavlink->get_forwarding_on()
 		    || !_mavlink->component_was_seen(cmd_mavlink.target_system, cmd_mavlink.target_component, _mavlink)) {
-			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_RESULT_FAILED);
+			acknowledge(msg->sysid, msg->compid, cmd_mavlink.command, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
 		}
 
 		return;
@@ -500,7 +500,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 	} else if (cmd_mavlink.command == MAV_CMD_SET_MESSAGE_INTERVAL) {
 		if (set_message_interval((int)roundf(cmd_mavlink.param1), cmd_mavlink.param2, cmd_mavlink.param3)) {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 		}
 
 	} else if (cmd_mavlink.command == MAV_CMD_GET_MESSAGE_INTERVAL) {
@@ -541,7 +541,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			send_ack = false;
 
 		} else {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 			send_ack = true;
 		}
 
@@ -627,7 +627,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		if (has_module) {
 
 			// most are in progress
-			result = vehicle_command_ack_s::VEHICLE_RESULT_IN_PROGRESS;
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_IN_PROGRESS;
 
 			switch (status.state) {
 			case autotune_attitude_control_status_s::STATE_IDLE:
@@ -669,17 +669,17 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			case autotune_attitude_control_status_s::STATE_COMPLETE:
 				progress = 100;
 				// ack it properly with an ACCEPTED once we're done
-				result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 				break;
 
 			case autotune_attitude_control_status_s::STATE_FAIL:
 				progress = 0;
-				result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 				break;
 			}
 
 		} else {
-			result = vehicle_command_ack_s::VEHICLE_RESULT_UNSUPPORTED;
+			result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
 		}
 
 		send_ack = true;
@@ -698,7 +698,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 			// on a radio link
 			if (_mavlink->get_data_rate() < 5000) {
 				send_ack = true;
-				result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 				_mavlink->send_statustext_critical("Not enough bandwidth to enable log streaming\t");
 				events::send<uint32_t>(events::ID("mavlink_log_not_enough_bw"), events::Log::Error,
 						       "Not enough bandwidth to enable log streaming ({1} \\< 5000)", _mavlink->get_data_rate());
@@ -753,7 +753,8 @@ uint8_t MavlinkReceiver::handle_request_message_command(uint16_t message_id, flo
 		}
 	}
 
-	return (message_sent ? vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED : vehicle_command_ack_s::VEHICLE_RESULT_DENIED);
+	return (message_sent ? vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED :
+		vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED);
 }
 
 

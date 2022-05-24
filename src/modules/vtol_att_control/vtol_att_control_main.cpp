@@ -135,7 +135,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			vehicle_status_s vehicle_status{};
 			_vehicle_status_sub.copy(&vehicle_status);
 
-			uint8_t result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+			uint8_t result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 			const int transition_command_param1 = int(vehicle_command.param1 + 0.5f);
 
@@ -146,7 +146,7 @@ void VtolAttitudeControl::vehicle_cmd_poll()
 			     || vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
 			     ||  vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ORBIT)) {
 
-				result = vehicle_command_ack_s::VEHICLE_RESULT_TEMPORARILY_REJECTED;
+				result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 
 			} else {
 				_transition_command = transition_command_param1;

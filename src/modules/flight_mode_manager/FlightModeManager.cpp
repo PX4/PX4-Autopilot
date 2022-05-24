@@ -390,15 +390,15 @@ void FlightModeManager::handleCommand()
 		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			// switch to the commanded task
 			bool switch_succeeded = (switchTask(desired_task) == FlightTaskError::NoError);
-			uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
+			uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED;
 
 			// if we are in/switched to the desired task
 			if (switch_succeeded) {
-				cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
+				cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
 				// if the task is running apply parameters to it and see if it rejects
 				if (isAnyTaskActive() && !_current_task.task->applyCommandParameters(command)) {
-					cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+					cmd_result = vehicle_command_ack_s::VEHICLE_CMD_RESULT_DENIED;
 
 					// if we just switched and parameters are not accepted, go to failsafe
 					if (switch_succeeded) {

@@ -230,7 +230,7 @@ void Navigator::run()
 
 				// DO_GO_AROUND is currently handled by the position controller (unacknowledged)
 				// TODO: move DO_GO_AROUND handling to navigator
-				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION
 				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
@@ -463,7 +463,7 @@ void Navigator::run()
 					PX4_WARN("planned mission landing not available");
 				}
 
-				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_MISSION_START) {
 				if (_mission_result.valid && PX4_ISFINITE(cmd.param1) && (cmd.param1 >= 0)) {
@@ -492,7 +492,7 @@ void Navigator::run()
 				}
 
 				// TODO: handle responses for supported DO_CHANGE_SPEED options?
-				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_ROI
 				   || cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_ROI
@@ -534,7 +534,7 @@ void Navigator::run()
 
 				_vehicle_roi_pub.publish(_vroi);
 
-				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				publish_vehicle_command_ack(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION
 				   && get_vstatus()->nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_VTOL_TAKEOFF) {

@@ -590,10 +590,10 @@ void PX4IO::Run()
 
 				/* publish ACK */
 				if (dsm_ret == OK) {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
 				} else {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_FAILED);
+					answer_command(cmd, vehicle_command_ack_s::VEHICLE_CMD_RESULT_FAILED);
 				}
 			}
 		}
