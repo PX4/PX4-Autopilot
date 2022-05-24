@@ -1,0 +1,35 @@
+#!/bin/sh
+#
+# @name Canard Plane
+#
+# @type Canard Plane
+# @class Plane
+#
+# @output MAIN1  left elevon
+# @output MAIN2 right elevon
+# @output MAIN3 throttle
+# @output MAIN4 rudder
+# @output MAIN5 left canard
+# @output MAIN6 right canard
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer takumi kitajima <takumi@aerolab.jp>
+#
+#
+#
+
+. ${R}etc/init.d/rc.fw_defaults
+
+param set-default CA_AIRFRAME 1
+param set-default CA_ROTOR_COUNT 1
+param set-default CA_SV_CS_COUNT 5
+param set-default CA_SV_CS1_TYPE 5
+param set-default CA_SV_CS2_TYPE 6
+param set-default CA_SV_CS3_TYPE 4
+param set-default CA_SV_CS4_TYPE 3
+param set-default CA_SV_CS5_TYPE 3
+
+set MIXER ETRC
