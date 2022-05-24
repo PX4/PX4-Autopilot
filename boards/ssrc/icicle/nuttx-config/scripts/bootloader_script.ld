@@ -88,13 +88,6 @@ EXTERN(__start)
 
 SECTIONS
 {
-    .text.sbi : {
-      sbi*
-      riscv_atomic*
-      riscv_locks*
-      riscv_asm*
-    } > ddr
-
     .ddrstorage : {
       *(.ddrstorage)
     } > ddr
