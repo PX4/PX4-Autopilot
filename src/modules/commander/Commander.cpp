@@ -2817,7 +2817,8 @@ Commander::run()
 					mavlink_log_critical(&_mavlink_log_pub, "Landing due to actuator failure\t");
 					events::send(events::ID("commander_act_failure_land"), events::Log::Warning,
 						     "Landing due to actuator failure");
-					main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LAND, _vehicle_status_flags, _commander_state);
+					main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LAND, _vehicle_status_flags,
+							      _commander_state);
 					_status_changed = true;
 					break;
 
