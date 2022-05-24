@@ -674,8 +674,12 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  *
  * This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control.
  *
- * @value 0 Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
- * @value 1 Land/Terminate. Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
+ * If Altitude/Manual is selected: assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
+ *
+ * If Land/Terminate is selected: assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
+ *
+ * @value 0 Altitude/Manual
+ * @value 1 Land/Terminate
  *
  * @group Commander
  */
