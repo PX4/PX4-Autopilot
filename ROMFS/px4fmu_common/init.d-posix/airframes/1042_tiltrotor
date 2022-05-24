@@ -9,7 +9,7 @@
 
 param set-default MAV_TYPE 21
 
-# param set-default SYS_CTRL_ALLOC 1
+param set-default SYS_CTRL_ALLOC 1
 param set-default CA_AIRFRAME 3
 
 param set-default CA_ROTOR_COUNT 4
@@ -27,9 +27,7 @@ param set-default CA_ROTOR3_PY 0.1875
 param set-default CA_ROTOR3_KM -0.05
 
 param set-default CA_ROTOR0_TILT 1
-param set-default CA_ROTOR1_TILT 2
 param set-default CA_ROTOR2_TILT 3
-param set-default CA_ROTOR3_TILT 4
 param set-default CA_SV_CS0_TRQ_R -0.5
 param set-default CA_SV_CS0_TYPE 1
 param set-default CA_SV_CS1_TRQ_R 0.5
@@ -82,7 +80,6 @@ param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_D_ACC 0.1
 
 param set-default NAV_ACC_RAD 5
-param set-default NAV_LOITER_RAD 80
 
 param set-default VT_B_TRANS_DUR 8
 param set-default VT_FWD_THRUST_EN 4

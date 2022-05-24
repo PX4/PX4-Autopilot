@@ -55,7 +55,7 @@ def perform_imu_checks(
 
     # perform the vibration check
     imu_status['imu_vibration_check'] = 'Pass'
-    for imu_vibr_metric in ['imu_coning', 'imu_hfdang', 'imu_hfdvel']:
+    for imu_vibr_metric in ['imu_coning', 'imu_hfgyro', 'imu_hfaccel']:
         mean_metric = '{:s}_mean'.format(imu_vibr_metric)
         peak_metric = '{:s}_peak'.format(imu_vibr_metric)
         if imu_metrics[mean_metric] > check_levels['{:s}_warn'.format(mean_metric)] \
@@ -123,7 +123,8 @@ def perform_sensor_innov_checks(
                                               ('magy', 'magy_fail_percentage', 'mag'),
                                               ('magz', 'magz_fail_percentage', 'mag'),
                                               ('yaw', 'yaw_fail_percentage', 'yaw'),
-                                              ('vel', 'vel_fail_percentage', 'vel'),
+                                              ('velh', 'vel_fail_percentage', 'vel'),
+                                              ('velv', 'vel_fail_percentage', 'vel'),
                                               ('posh', 'pos_fail_percentage', 'pos'),
                                               ('tas', 'tas_fail_percentage', 'tas'),
                                               ('hagl', 'hagl_fail_percentage', 'hagl'),

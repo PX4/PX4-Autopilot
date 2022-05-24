@@ -69,6 +69,7 @@
 #include "streams/COLLISION.hpp"
 #include "streams/COMMAND_LONG.hpp"
 #include "streams/COMPONENT_INFORMATION.hpp"
+#include "streams/COMPONENT_METADATA.hpp"
 #include "streams/DISTANCE_SENSOR.hpp"
 #include "streams/EFI_STATUS.hpp"
 #include "streams/ESC_INFO.hpp"
@@ -257,11 +258,6 @@ union px4_custom_mode get_px4_custom_mode(uint8_t nav_state)
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
 		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
 		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_RTL;
-		break;
-
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL:
-		custom_mode.main_mode = PX4_CUSTOM_MAIN_MODE_AUTO;
-		custom_mode.sub_mode = PX4_CUSTOM_SUB_MODE_AUTO_LAND;
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_ACRO:
@@ -548,6 +544,9 @@ static const StreamListItem streams_list[] = {
 #if defined(COMPONENT_INFORMATION_HPP)
 	create_stream_list_item<MavlinkStreamComponentInformation>(),
 #endif // COMPONENT_INFORMATION_HPP
+#if defined(COMPONENT_METADATA_HPP)
+	create_stream_list_item<MavlinkStreamComponentMetadata>(),
+#endif // COMPONENT_METADATA_HPP
 #if defined(RAW_RPM_HPP)
 	create_stream_list_item<MavlinkStreamRawRpm>(),
 #endif // RAW_RPM_HPP

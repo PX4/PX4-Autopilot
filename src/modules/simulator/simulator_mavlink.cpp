@@ -87,6 +87,12 @@ Simulator::Simulator()
 	int32_t sys_ctrl_alloc = 0;
 	param_get(param_find("SYS_CTRL_ALLOC"), &sys_ctrl_alloc);
 	_use_dynamic_mixing = sys_ctrl_alloc >= 1;
+
+	for (int i = 0; i < actuator_outputs_s::NUM_ACTUATOR_OUTPUTS; ++i) {
+		char param_name[17];
+		snprintf(param_name, sizeof(param_name), "%s_%s%d", "PWM_MAIN", "FUNC", i + 1);
+		param_get(param_find(param_name), &_output_functions[i]);
+	}
 }
 
 void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *msg)
@@ -114,7 +120,7 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 
 		switch (_system_type) {
 		case MAV_TYPE_AIRSHIP:
-		case MAV_TYPE_VTOL_DUOROTOR:
+		case MAV_TYPE_VTOL_TAILSITTER_DUOROTOR:
 		case MAV_TYPE_COAXIAL:
 			pos_thrust_motors_count = 2;
 			is_fixed_wing = false;
@@ -126,13 +132,13 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 			break;
 
 		case MAV_TYPE_QUADROTOR:
-		case MAV_TYPE_VTOL_QUADROTOR:
+		case MAV_TYPE_VTOL_TAILSITTER_QUADROTOR:
 		case MAV_TYPE_VTOL_TILTROTOR:
 			pos_thrust_motors_count = 4;
 			is_fixed_wing = false;
 			break;
 
-		case MAV_TYPE_VTOL_RESERVED2:
+		case MAV_TYPE_VTOL_FIXEDROTOR:
 			pos_thrust_motors_count = 5;
 			is_fixed_wing = false;
 			break;
@@ -142,7 +148,7 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 			is_fixed_wing = false;
 			break;
 
-		case MAV_TYPE_VTOL_RESERVED3:
+		case MAV_TYPE_VTOL_TAILSITTER:
 			// this is the tricopter VTOL / quad plane with 3 motors and 2 servos
 			pos_thrust_motors_count = 3;
 			is_fixed_wing = false;
@@ -200,6 +206,29 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 #endif
 }
 
+void Simulator::send_esc_telemetry(mavlink_hil_actuator_controls_t hil_act_control)
+{
+	esc_status_s esc_status{};
+	esc_status.timestamp = hrt_absolute_time();
+	esc_status.esc_count = math::min(actuator_outputs_s::NUM_ACTUATOR_OUTPUTS, esc_status_s::CONNECTED_ESC_MAX);
+
+	const bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	esc_status.esc_armed_flags = armed ? 255 : 0;  // ugly
+
+	for (int i = 0; i < esc_status.esc_count; i++) {
+		esc_status.esc[i].actuator_function = _output_functions[i]; // TODO: this should be in pwm_out_sim...
+		esc_status.esc[i].timestamp = esc_status.timestamp;
+		esc_status.esc[i].esc_errorcount = 0; // TODO
+		esc_status.esc[i].esc_voltage = _battery_status.voltage_v;
+		esc_status.esc[i].esc_current = armed ? 1.0 + math::abs_t(hil_act_control.controls[i]) * 15.0 :
+						0.0f; // TODO: magic number
+		esc_status.esc[i].esc_rpm = hil_act_control.controls[i] * 6000;  // TODO: magic number
+		esc_status.esc[i].esc_temperature = 20.0 + math::abs_t(hil_act_control.controls[i]) * 40.0;
+	}
+
+	_esc_status_pub.publish(esc_status);
+}
+
 void Simulator::send_controls()
 {
 	orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuator_outputs);
@@ -214,6 +243,8 @@ void Simulator::send_controls()
 		PX4_DEBUG("sending controls t=%ld (%ld)", _actuator_outputs.timestamp, hil_act_control.time_usec);
 
 		send_mavlink_message(message);
+
+		send_esc_telemetry(hil_act_control);
 	}
 }
 
@@ -328,7 +359,7 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	if ((sensors.fields_updated & SensorSource::BARO) == SensorSource::BARO && !_baro_blocked) {
 
 		if (!_baro_stuck) {
-			_last_baro_pressure = sensors.abs_pressure * hPa2Pa; // convert hPa to Pa
+			_last_baro_pressure = sensors.abs_pressure * 100.f; // hPa to Pa
 			_last_baro_temperature = sensors.temperature;
 		}
 
@@ -352,11 +383,11 @@ void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor
 	// differential pressure
 	if ((sensors.fields_updated & SensorSource::DIFF_PRESS) == SensorSource::DIFF_PRESS && !_airspeed_blocked) {
 		differential_pressure_s report{};
-		report.timestamp = time;
+		report.timestamp_sample = time;
+		report.device_id = 1377548; // 1377548: DRV_DIFF_PRESS_DEVTYPE_SIM, BUS: 1, ADDR: 5, TYPE: SIMULATION
+		report.differential_pressure_pa = sensors.diff_pressure * 100.f; // hPa to Pa;
 		report.temperature = _sensors_temperature;
-		report.differential_pressure_filtered_pa = sensors.diff_pressure * hPa2Pa; // convert hPa to Pa;
-		report.differential_pressure_raw_pa = sensors.diff_pressure * hPa2Pa; // convert hPa to Pa;
-
+		report.timestamp = hrt_absolute_time();
 		_differential_pressure_pub.publish(report);
 	}
 }
@@ -756,6 +787,7 @@ void Simulator::send()
 			parameters_update(false);
 			check_failure_injections();
 			_vehicle_status_sub.update(&_vehicle_status);
+			_battery_status_sub.update(&_battery_status);
 
 			// Wait for other modules, such as logger or ekf2
 			px4_lockstep_wait_for_components();

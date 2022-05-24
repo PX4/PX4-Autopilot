@@ -119,6 +119,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
 	_param_ekf2_rng_qlty_t(_params->range_valid_quality_s),
+	_param_ekf2_rng_k_gate(_params->range_kin_consistency_gate),
 	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
 	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
 	_param_ekf2_of_n_min(_params->flow_noise),
@@ -307,7 +308,7 @@ void EKF2::Run()
 		}
 
 		// if using mag ensure sensor interval minimum is sufficient to accommodate system averaged mag output
-		if (_params->mag_fusion_type != MAG_FUSE_TYPE_NONE) {
+		if (_params->mag_fusion_type != MagFuseType::NONE) {
 			float sens_mag_rate = 0.f;
 
 			if (param_get(param_find("SENS_MAG_RATE"), &sens_mag_rate) == PX4_OK) {
@@ -350,11 +351,12 @@ void EKF2::Run()
 					// Validate the ekf origin status.
 					uint64_t origin_time {};
 					_ekf.getEkfGlobalOrigin(origin_time, latitude, longitude, altitude);
-					PX4_INFO("New NED origin (LLA): %3.10f, %3.10f, %4.3f\n", latitude, longitude, static_cast<double>(altitude));
+					PX4_INFO("%d - New NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
+						 _instance, latitude, longitude, static_cast<double>(altitude));
 
 				} else {
-					PX4_ERR("Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
-						latitude, longitude, static_cast<double>(altitude));
+					PX4_ERR("%d - Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
+						_instance, latitude, longitude, static_cast<double>(altitude));
 				}
 			}
 		}
@@ -425,7 +427,7 @@ void EKF2::Run()
 		}
 
 	} else {
-		const unsigned last_generation = _vehicle_imu_sub.get_last_generation();
+		const unsigned last_generation = _sensor_combined_sub.get_last_generation();
 		sensor_combined_s sensor_combined;
 		imu_updated = _sensor_combined_sub.update(&sensor_combined);
 
@@ -447,6 +449,28 @@ void EKF2::Run()
 			}
 
 			imu_dt = sensor_combined.gyro_integral_dt;
+
+			if (sensor_combined.accel_calibration_count != _accel_calibration_count) {
+
+				PX4_DEBUG("%d - resetting accelerometer bias", _instance);
+
+				_ekf.resetAccelBias();
+				_accel_calibration_count = sensor_combined.accel_calibration_count;
+
+				// reset bias learning
+				_accel_cal = {};
+			}
+
+			if (sensor_combined.gyro_calibration_count != _gyro_calibration_count) {
+
+				PX4_DEBUG("%d - resetting rate gyro bias", _instance);
+
+				_ekf.resetGyroBias();
+				_gyro_calibration_count = sensor_combined.gyro_calibration_count;
+
+				// reset bias learning
+				_gyro_cal = {};
+			}
 		}
 
 		if (_sensor_selection_sub.updated() || (_device_id_accel == 0 || _device_id_gyro == 0)) {
@@ -592,6 +616,8 @@ void EKF2::Run()
 			UpdateMagCalibration(now);
 			PublishSensorBias(now);
 
+			PublishAidSourceStatus(now);
+
 		} else {
 			// ekf no update
 			perf_set_elapsed(_ecl_ekf_update_perf, hrt_elapsed_time(&ekf_update_start));
@@ -608,6 +634,16 @@ void EKF2::Run()
 
 	// re-schedule as backup timeout
 	ScheduleDelayed(100_ms);
+}
+
+void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
+{
+	// GNSS velocity & position
+	PublishAidSourceStatus(_ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
+	PublishAidSourceStatus(_ekf.aid_src_gnss_pos(), _status_gnss_pos_pub_last, _estimator_aid_src_gnss_pos_pub);
+
+	// fake position
+	PublishAidSourceStatus(_ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -691,6 +727,10 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 		event_flags.starting_vision_vel_fusion          = _ekf.information_event_flags().starting_vision_vel_fusion;
 		event_flags.starting_vision_yaw_fusion          = _ekf.information_event_flags().starting_vision_yaw_fusion;
 		event_flags.yaw_aligned_to_imu_gps              = _ekf.information_event_flags().yaw_aligned_to_imu_gps;
+		event_flags.reset_hgt_to_baro                   = _ekf.information_event_flags().reset_hgt_to_baro;
+		event_flags.reset_hgt_to_gps                    = _ekf.information_event_flags().reset_hgt_to_gps;
+		event_flags.reset_hgt_to_rng                    = _ekf.information_event_flags().reset_hgt_to_rng;
+		event_flags.reset_hgt_to_ev                     = _ekf.information_event_flags().reset_hgt_to_ev;
 
 		event_flags.warning_event_changes               = _filter_warning_event_changes;
 		event_flags.gps_quality_poor                    = _ekf.warning_event_flags().gps_quality_poor;
@@ -817,6 +857,7 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 	_ekf.getAirspeedInnov(innovations.airspeed);
 	_ekf.getBetaInnov(innovations.beta);
 	_ekf.getHaglInnov(innovations.hagl);
+	_ekf.getHaglRateInnov(innovations.hagl_rate);
 	// Not yet supported
 	innovations.aux_vvel = NAN;
 
@@ -857,6 +898,7 @@ void EKF2::PublishInnovationTestRatios(const hrt_abstime &timestamp)
 	_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
 	_ekf.getBetaInnovRatio(test_ratios.beta);
 	_ekf.getHaglInnovRatio(test_ratios.hagl);
+	_ekf.getHaglRateInnovRatio(test_ratios.hagl_rate);
 	// Not yet supported
 	test_ratios.aux_vvel = NAN;
 
@@ -881,6 +923,7 @@ void EKF2::PublishInnovationVariances(const hrt_abstime &timestamp)
 	_ekf.getAirspeedInnovVar(variances.airspeed);
 	_ekf.getBetaInnovVar(variances.beta);
 	_ekf.getHaglInnovVar(variances.hagl);
+	_ekf.getHaglRateInnovVar(variances.hagl_rate);
 	// Not yet supported
 	variances.aux_vvel = NAN;
 
@@ -1128,7 +1171,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			_last_gyro_bias_published = gyro_bias;
 		}
 
-		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
+		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS)) {
 			bias.accel_device_id = _device_id_accel;
 			accel_bias.copyTo(bias.accel_bias);
 			bias.accel_bias_limit = _params->acc_bias_lim;
@@ -1280,6 +1323,7 @@ void EKF2::PublishStatusFlags(const hrt_abstime &timestamp)
 		status_flags.cs_rng_fault             = _ekf.control_status_flags().rng_fault;
 		status_flags.cs_inertial_dead_reckoning = _ekf.control_status_flags().inertial_dead_reckoning;
 		status_flags.cs_wind_dead_reckoning     = _ekf.control_status_flags().wind_dead_reckoning;
+		status_flags.cs_rng_kin_consistent      = _ekf.control_status_flags().rng_kin_consistent;
 
 		status_flags.fault_status_changes     = _filter_fault_status_changes;
 		status_flags.fs_bad_mag_x             = _ekf.fault_status_flags().bad_mag_x;
@@ -1457,7 +1501,7 @@ void EKF2::UpdateAirspeedSample(ekf2_timestamps_s &ekf2_timestamps)
 			    && (airspeed.indicated_airspeed_m_s > 0.f)
 			   ) {
 				airspeedSample airspeed_sample {
-					.time_us = airspeed.timestamp,
+					.time_us = airspeed.timestamp_sample,
 					.true_airspeed = true_airspeed_m_s,
 					.eas2tas = airspeed.true_airspeed_m_s / airspeed.indicated_airspeed_m_s,
 				};
@@ -1570,10 +1614,10 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 			ev_data.vel(2) = ev_odom.vz;
 
 			if (ev_odom.velocity_frame == vehicle_odometry_s::BODY_FRAME_FRD) {
-				ev_data.vel_frame = velocity_frame_t::BODY_FRAME_FRD;
+				ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
 
 			} else {
-				ev_data.vel_frame = velocity_frame_t::LOCAL_FRAME_FRD;
+				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
 			}
 
 			// velocity measurement error from ev_data or parameters
@@ -1709,7 +1753,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			perf_count(_msg_missed_gps_perf);
 		}
 
-		gps_message gps_msg{
+		gpsMessage gps_msg{
 			.time_usec = vehicle_gps_position.timestamp,
 			.lat = vehicle_gps_position.lat,
 			.lon = vehicle_gps_position.lon,
@@ -1852,7 +1896,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 {
-	if (_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS) {
+	if (_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS) {
 		_accel_cal.cal_available = false;
 		return;
 	}

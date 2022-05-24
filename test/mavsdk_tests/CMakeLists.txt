@@ -16,6 +16,9 @@ if(MAVSDK_FOUND)
     add_executable(mavsdk_tests
         test_main.cpp
         autopilot_tester.cpp
+        autopilot_tester_failure.cpp
+        test_multicopter_control_allocation.cpp
+        test_multicopter_failure_injection.cpp
         test_multicopter_failsafe.cpp
         test_multicopter_mission.cpp
         test_multicopter_offboard.cpp
@@ -25,15 +28,6 @@ if(MAVSDK_FOUND)
 
     target_link_libraries(mavsdk_tests
         MAVSDK::mavsdk
-        MAVSDK::mavsdk_action
-        MAVSDK::mavsdk_failure
-        MAVSDK::mavsdk_info
-        MAVSDK::mavsdk_manual_control
-        MAVSDK::mavsdk_mission
-        MAVSDK::mavsdk_mission_raw
-        MAVSDK::mavsdk_offboard
-        MAVSDK::mavsdk_param
-        MAVSDK::mavsdk_telemetry
         ${CMAKE_THREAD_LIBS_INIT}
     )
 

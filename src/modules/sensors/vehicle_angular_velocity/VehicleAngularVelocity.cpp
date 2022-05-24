@@ -90,7 +90,7 @@ void VehicleAngularVelocity::Stop()
 {
 	// clear all registered callbacks
 	_sensor_sub.unregisterCallback();
-	_sensor_fifo_sub.unregisterCallback();
+	_sensor_gyro_fifo_sub.unregisterCallback();
 	_sensor_selection_sub.unregisterCallback();
 
 	Deinit();
@@ -136,7 +136,7 @@ bool VehicleAngularVelocity::UpdateSampleRate()
 				const uint8_t samples = roundf(configured_interval_us / publish_interval_us);
 
 				if (_fifo_available) {
-					_sensor_fifo_sub.set_required_updates(math::constrain(samples, (uint8_t)1, sensor_gyro_fifo_s::ORB_QUEUE_LENGTH));
+					_sensor_gyro_fifo_sub.set_required_updates(math::constrain(samples, (uint8_t)1, sensor_gyro_fifo_s::ORB_QUEUE_LENGTH));
 
 				} else {
 					_sensor_sub.set_required_updates(math::constrain(samples, (uint8_t)1, sensor_gyro_s::ORB_QUEUE_LENGTH));
@@ -148,7 +148,7 @@ bool VehicleAngularVelocity::UpdateSampleRate()
 
 			} else {
 				_sensor_sub.set_required_updates(1);
-				_sensor_fifo_sub.set_required_updates(1);
+				_sensor_gyro_fifo_sub.set_required_updates(1);
 				_publish_interval_min_us = 0;
 			}
 		}
@@ -279,7 +279,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 					}
 
 					if (sensor_gyro_fifo_sub.get().device_id == device_id) {
-						if (_sensor_fifo_sub.ChangeInstance(i) && _sensor_fifo_sub.registerCallback()) {
+						if (_sensor_gyro_fifo_sub.ChangeInstance(i) && _sensor_gyro_fifo_sub.registerCallback()) {
 							// make sure non-FIFO sub is unregistered
 							_sensor_sub.unregisterCallback();
 
@@ -323,7 +323,7 @@ bool VehicleAngularVelocity::SensorSelectionUpdate(const hrt_abstime &time_now_u
 					if (sensor_gyro_sub.get().device_id == device_id) {
 						if (_sensor_sub.ChangeInstance(i) && _sensor_sub.registerCallback()) {
 							// make sure FIFO sub is unregistered
-							_sensor_fifo_sub.unregisterCallback();
+							_sensor_gyro_fifo_sub.unregisterCallback();
 
 							_calibration.set_device_id(sensor_gyro_sub.get().device_id);
 
@@ -788,7 +788,7 @@ void VehicleAngularVelocity::Run()
 		// process all outstanding fifo messages
 		sensor_gyro_fifo_s sensor_fifo_data;
 
-		while (_sensor_fifo_sub.update(&sensor_fifo_data)) {
+		while (_sensor_gyro_fifo_sub.update(&sensor_fifo_data)) {
 			const float inverse_dt_s = 1e6f / sensor_fifo_data.dt;
 			const int N = sensor_fifo_data.samples;
 			static constexpr int FIFO_SIZE_MAX = sizeof(sensor_fifo_data.x) / sizeof(sensor_fifo_data.x[0]);
@@ -813,9 +813,10 @@ void VehicleAngularVelocity::Run()
 				}
 
 				// Publish
-				if (!_sensor_fifo_sub.updated()) {
+				if (!_sensor_gyro_fifo_sub.updated()) {
 					if (CalibrateAndPublish(sensor_fifo_data.timestamp_sample,
-								angular_velocity_uncalibrated, angular_acceleration_uncalibrated)) {
+								angular_velocity_uncalibrated,
+								angular_acceleration_uncalibrated)) {
 
 						perf_end(_cycle_perf);
 						return;
@@ -856,7 +857,8 @@ void VehicleAngularVelocity::Run()
 				// Publish
 				if (!_sensor_sub.updated()) {
 					if (CalibrateAndPublish(sensor_data.timestamp_sample,
-								angular_velocity_uncalibrated, angular_acceleration_uncalibrated)) {
+								angular_velocity_uncalibrated,
+								angular_acceleration_uncalibrated)) {
 
 						perf_end(_cycle_perf);
 						return;
@@ -875,33 +877,32 @@ void VehicleAngularVelocity::Run()
 }
 
 bool VehicleAngularVelocity::CalibrateAndPublish(const hrt_abstime &timestamp_sample,
-		const Vector3f &angular_velocity_uncalibrated, const Vector3f &angular_acceleration_uncalibrated)
+		const Vector3f &angular_velocity_uncalibrated,
+		const Vector3f &angular_acceleration_uncalibrated)
 {
 	if (timestamp_sample >= _last_publish + _publish_interval_min_us) {
 
 		// Publish vehicle_angular_acceleration
-		vehicle_angular_acceleration_s v_angular_acceleration;
-		v_angular_acceleration.timestamp_sample = timestamp_sample;
+		vehicle_angular_acceleration_s angular_acceleration;
+		angular_acceleration.timestamp_sample = timestamp_sample;
 
 		// Angular acceleration: rotate sensor frame to board, scale raw data to SI, apply any additional configured rotation
 		_angular_acceleration = _calibration.rotation() * angular_acceleration_uncalibrated;
-		_angular_acceleration.copyTo(v_angular_acceleration.xyz);
+		_angular_acceleration.copyTo(angular_acceleration.xyz);
 
-		v_angular_acceleration.timestamp = hrt_absolute_time();
-		_vehicle_angular_acceleration_pub.publish(v_angular_acceleration);
-
+		angular_acceleration.timestamp = hrt_absolute_time();
+		_vehicle_angular_acceleration_pub.publish(angular_acceleration);
 
 		// Publish vehicle_angular_velocity
-		vehicle_angular_velocity_s v_angular_velocity;
-		v_angular_velocity.timestamp_sample = timestamp_sample;
+		vehicle_angular_velocity_s angular_velocity;
+		angular_velocity.timestamp_sample = timestamp_sample;
 
 		// Angular velocity: rotate sensor frame to board, scale raw data to SI, apply calibration, and remove in-run estimated bias
 		_angular_velocity = _calibration.Correct(angular_velocity_uncalibrated) - _bias;
-		_angular_velocity.copyTo(v_angular_velocity.xyz);
+		_angular_velocity.copyTo(angular_velocity.xyz);
 
-		v_angular_velocity.timestamp = hrt_absolute_time();
-		_vehicle_angular_velocity_pub.publish(v_angular_velocity);
-
+		angular_velocity.timestamp = hrt_absolute_time();
+		_vehicle_angular_velocity_pub.publish(angular_velocity);
 
 		// shift last publish time forward, but don't let it get further behind than the interval
 		_last_publish = math::constrain(_last_publish + _publish_interval_min_us,

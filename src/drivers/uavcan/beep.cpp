@@ -72,17 +72,13 @@ void UavcanBeepController::periodic_update(const uavcan::TimerEvent &)
 		_tune_control_sub.copy(&_tune);
 
 		if (_tune.timestamp > 0) {
-			Tunes::ControlResult result = _tunes.set_control(_tune);
-
-			if (result == Tunes::ControlResult::Success) {
-				_play_tone = true;
-			}
+			_tunes.set_control(_tune);
 		}
 	}
 
 	const hrt_abstime timestamp_now = hrt_absolute_time();
 
-	if ((timestamp_now - _interval_timestamp <= _duration) || !_play_tone) {
+	if ((timestamp_now - _interval_timestamp <= _duration)) {
 		return;
 	}
 
@@ -92,7 +88,7 @@ void UavcanBeepController::periodic_update(const uavcan::TimerEvent &)
 		_duration = _silence_length;
 		_silence_length = 0;
 
-	} else if (_play_tone && (_tunes.get_next_note(_frequency, _duration, _silence_length) == Tunes::Status::Continue)) {
+	} else if (_tunes.get_next_note(_frequency, _duration, _silence_length) == Tunes::Status::Continue) {
 
 		// Start playing the note.
 		// A frequency of 0 corresponds to ToneAlarmInterface::stop_note()

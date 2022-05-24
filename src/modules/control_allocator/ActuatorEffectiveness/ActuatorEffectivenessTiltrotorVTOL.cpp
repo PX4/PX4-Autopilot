@@ -60,7 +60,8 @@ ActuatorEffectivenessTiltrotorVTOL::getEffectivenessMatrix(Configuration &config
 
 	// MC motors
 	configuration.selected_matrix = 0;
-	_mc_rotors.enablePropellerTorque(!_tilts.hasYawControl());
+	_mc_rotors.enableYawByDifferentialThrust(!_tilts.hasYawControl());
+	_mc_rotors.enableThreeDimensionalThrust(false);
 
 	// Update matrix with tilts in vertical position when update is triggered by a manual
 	// configuration (parameter) change. This is to make sure the normalization
@@ -98,9 +99,9 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 		actuator_controls_s actuator_controls_1;
 
 		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
-			float control_flaps = -1.f; // For tilt-rotors INDEX_FLAPS is set as combined tilt. TODO: fix this
-			float airbrakes_control = actuator_controls_1.control[actuator_controls_s::INDEX_AIRBRAKES];
-			_control_surfaces.applyFlapsAndAirbrakes(control_flaps, airbrakes_control, _first_control_surface_idx, actuator_sp);
+			const float flaps_control = actuator_controls_1.control[actuator_controls_s::INDEX_FLAPS];
+			const float airbrakes_control = actuator_controls_1.control[actuator_controls_s::INDEX_AIRBRAKES];
+			_control_surfaces.applyFlapsAndAirbrakes(flaps_control, airbrakes_control, _first_control_surface_idx, actuator_sp);
 		}
 	}
 
@@ -109,7 +110,7 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 		actuator_controls_s actuator_controls_1;
 
 		if (_actuator_controls_1_sub.copy(&actuator_controls_1)) {
-			float control_tilt = actuator_controls_1.control[4] * 2.f - 1.f;
+			float control_tilt = actuator_controls_1.control[actuator_controls_s::INDEX_COLLECTIVE_TILT] * 2.f - 1.f;
 
 			// set control_tilt to exactly -1 or 1 if close to these end points
 			control_tilt = control_tilt < -0.99f ? -1.f : control_tilt;
@@ -127,6 +128,18 @@ void ActuatorEffectivenessTiltrotorVTOL::updateSetpoint(const matrix::Vector<flo
 			for (int i = 0; i < _tilts.count(); ++i) {
 				if (_tilts.config(i).tilt_direction == ActuatorEffectivenessTilts::TiltDirection::TowardsFront) {
 					actuator_sp(i + _first_tilt_idx) += control_tilt;
+				}
+			}
+		}
+
+		// in FW directly use throttle sp
+		if (_flight_phase == FlightPhase::FORWARD_FLIGHT) {
+
+			actuator_controls_s actuator_controls_0;
+
+			if (_actuator_controls_0_sub.copy(&actuator_controls_0)) {
+				for (int i = 0; i < _first_tilt_idx; ++i) {
+					actuator_sp(i) = actuator_controls_0.control[actuator_controls_s::INDEX_THROTTLE];
 				}
 			}
 		}

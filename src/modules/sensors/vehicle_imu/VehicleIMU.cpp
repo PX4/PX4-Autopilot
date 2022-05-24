@@ -407,11 +407,11 @@ bool VehicleIMU::UpdateAccel()
 
 			_publish_status = true;
 
-			if (_accel_calibration.enabled() && (hrt_elapsed_time(&_last_clipping_notify_time) > 3_s)) {
+			if (_accel_calibration.enabled() && (hrt_elapsed_time(&_last_accel_clipping_notify_time) > 3_s)) {
 				// start notifying the user periodically if there's significant continuous clipping
 				const uint64_t clipping_total = _status.accel_clipping[0] + _status.accel_clipping[1] + _status.accel_clipping[2];
 
-				if (clipping_total > _last_clipping_notify_total_count + 1000) {
+				if (clipping_total > _last_accel_clipping_notify_total_count + 1000) {
 					mavlink_log_critical(&_mavlink_log_pub, "Accel %" PRIu8 " clipping, not safe to fly!\t", _instance);
 					/* EVENT
 					 * @description Land now, and check the vehicle setup.
@@ -419,8 +419,8 @@ bool VehicleIMU::UpdateAccel()
 					 */
 					events::send<uint8_t>(events::ID("vehicle_imu_accel_clipping"), events::Log::Critical,
 							      "Accel {1} clipping, not safe to fly!", _instance);
-					_last_clipping_notify_time = accel.timestamp_sample;
-					_last_clipping_notify_total_count = clipping_total;
+					_last_accel_clipping_notify_time = accel.timestamp_sample;
+					_last_accel_clipping_notify_total_count = clipping_total;
 				}
 			}
 		}
@@ -534,6 +534,52 @@ bool VehicleIMU::UpdateGyro()
 		_gyro_integrator.put(gyro_raw, dt);
 
 		updated = true;
+
+		if (gyro.clip_counter[0] > 0 || gyro.clip_counter[1] > 0 || gyro.clip_counter[2] > 0) {
+			// rotate sensor clip counts into vehicle body frame
+			const Vector3f clipping{_gyro_calibration.rotation() *
+						Vector3f{(float)gyro.clip_counter[0], (float)gyro.clip_counter[1], (float)gyro.clip_counter[2]}};
+
+			// round to get reasonble clip counts per axis (after board rotation)
+			const uint8_t clip_x = roundf(fabsf(clipping(0)));
+			const uint8_t clip_y = roundf(fabsf(clipping(1)));
+			const uint8_t clip_z = roundf(fabsf(clipping(2)));
+
+			_status.gyro_clipping[0] += clip_x;
+			_status.gyro_clipping[1] += clip_y;
+			_status.gyro_clipping[2] += clip_z;
+
+			if (clip_x > 0) {
+				_delta_angle_clipping |= vehicle_imu_s::CLIPPING_X;
+			}
+
+			if (clip_y > 0) {
+				_delta_angle_clipping |= vehicle_imu_s::CLIPPING_Y;
+			}
+
+			if (clip_z > 0) {
+				_delta_angle_clipping |= vehicle_imu_s::CLIPPING_Z;
+			}
+
+			_publish_status = true;
+
+			if (_gyro_calibration.enabled() && (hrt_elapsed_time(&_last_gyro_clipping_notify_time) > 3_s)) {
+				// start notifying the user periodically if there's significant continuous clipping
+				const uint64_t clipping_total = _status.gyro_clipping[0] + _status.gyro_clipping[1] + _status.gyro_clipping[2];
+
+				if (clipping_total > _last_gyro_clipping_notify_total_count + 1000) {
+					mavlink_log_critical(&_mavlink_log_pub, "Gyro %" PRIu8 " clipping, not safe to fly!\t", _instance);
+					/* EVENT
+					 * @description Land now, and check the vehicle setup.
+					 * Clipping can lead to fly-aways.
+					 */
+					events::send<uint8_t>(events::ID("vehicle_imu_gyro_clipping"), events::Log::Critical,
+							      "Gyro {1} clipping, not safe to fly!", _instance);
+					_last_gyro_clipping_notify_time = gyro.timestamp_sample;
+					_last_gyro_clipping_notify_total_count = clipping_total;
+				}
+			}
+		}
 	}
 
 	return updated;
@@ -547,6 +593,8 @@ bool VehicleIMU::Publish()
 	Vector3f delta_angle;
 	Vector3f delta_velocity;
 
+	const Vector3f accumulated_coning_corrections = _gyro_integrator.accumulated_coning_corrections();
+
 	if (_accel_integrator.reset(delta_velocity, imu.delta_velocity_dt)
 	    && _gyro_integrator.reset(delta_angle, imu.delta_angle_dt)) {
 
@@ -554,17 +602,22 @@ bool VehicleIMU::Publish()
 
 			// delta angle: apply offsets, scale, and board rotation
 			_gyro_calibration.SensorCorrectionsUpdate();
-			const float gyro_dt_inv = 1.e6f / imu.delta_angle_dt;
-			const Vector3f angular_velocity{_gyro_calibration.Correct(delta_angle * gyro_dt_inv)};
+			const float gyro_dt_s = 1.e-6f * imu.delta_angle_dt;
+			const Vector3f angular_velocity{_gyro_calibration.Correct(delta_angle / gyro_dt_s)};
 			UpdateGyroVibrationMetrics(angular_velocity);
-			const Vector3f delta_angle_corrected{angular_velocity / gyro_dt_inv};
+			const Vector3f delta_angle_corrected{angular_velocity * gyro_dt_s};
+
+			// accumulate delta angle coning corrections
+			_coning_norm_accum += accumulated_coning_corrections.norm() * gyro_dt_s;
+			_coning_norm_accum_total_time_s += gyro_dt_s;
+
 
 			// delta velocity: apply offsets, scale, and board rotation
 			_accel_calibration.SensorCorrectionsUpdate();
-			const float accel_dt_inv = 1.e6f / imu.delta_velocity_dt;
-			const Vector3f acceleration{_accel_calibration.Correct(delta_velocity * accel_dt_inv)};
+			const float accel_dt_s = 1.e-6f * imu.delta_velocity_dt;
+			const Vector3f acceleration{_accel_calibration.Correct(delta_velocity / accel_dt_s)};
 			UpdateAccelVibrationMetrics(acceleration);
-			const Vector3f delta_velocity_corrected{acceleration / accel_dt_inv};
+			const Vector3f delta_velocity_corrected{acceleration * accel_dt_s};
 
 			// vehicle_imu_status
 			//  publish before vehicle_imu so that error counts are available synchronously if needed
@@ -590,6 +643,11 @@ bool VehicleIMU::Publish()
 				Vector3f(_gyro_calibration.rotation() * _raw_gyro_mean.mean()).copyTo(_status.mean_gyro);
 				Vector3f(_gyro_calibration.rotation() * _raw_gyro_mean.variance()).copyTo(_status.var_gyro);
 				_raw_gyro_mean.reset();
+
+				// Gyro delta angle coning metric = length of coning corrections averaged since last status publication
+				_status.delta_angle_coning_metric = _coning_norm_accum / _coning_norm_accum_total_time_s;
+				_coning_norm_accum = 0;
+				_coning_norm_accum_total_time_s = 0;
 
 				// gyro temperature
 				_status.temperature_gyro = _gyro_temperature_sum / _gyro_temperature_sum_count;
@@ -691,10 +749,6 @@ void VehicleIMU::UpdateGyroVibrationMetrics(const Vector3f &angular_velocity)
 	// Gyro high frequency vibe = filtered length of (angular_velocity - angular_velocity_prev)
 	_status.gyro_vibration_metric = 0.99f * _status.gyro_vibration_metric
 					+ 0.01f * Vector3f(angular_velocity - _angular_velocity_prev).norm();
-
-	// Gyro delta angle coning metric = filtered length of (angular_velocity x angular_velocity_prev)
-	const Vector3f coning_metric{angular_velocity % _angular_velocity_prev};
-	_status.gyro_coning_vibration = 0.99f * _status.gyro_coning_vibration + 0.01f * coning_metric.norm();
 
 	_angular_velocity_prev = angular_velocity;
 }

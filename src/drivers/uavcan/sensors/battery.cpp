@@ -87,7 +87,7 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	battery_status[instance].voltage_filtered_v = msg.voltage;
 	battery_status[instance].current_a = msg.current;
 	battery_status[instance].current_filtered_a = msg.current;
-	// battery_status[instance].current_average_a = msg.;
+	battery_status[instance].current_average_a = msg.current;
 
 	if (battery_aux_support[instance] == false) {
 		sumDischarged(battery_status[instance].timestamp, battery_status[instance].current_a);
@@ -101,11 +101,11 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	battery_status[instance].connected = true;
 	battery_status[instance].source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
 	// battery_status[instance].priority = msg.;
-	// battery_status[instance].capacity = msg.;
+	battery_status[instance].capacity = msg.full_charge_capacity_wh;
 	battery_status[instance].full_charge_capacity_wh = msg.full_charge_capacity_wh;
 	battery_status[instance].remaining_capacity_wh = msg.remaining_capacity_wh;
 	// battery_status[instance].cycle_count = msg.;
-	// battery_status[instance].time_remaining_s = msg.;
+	battery_status[instance].time_remaining_s = NAN;
 	// battery_status[instance].average_time_to_empty = msg.;
 	battery_status[instance].serial_number = msg.model_instance_id;
 	battery_status[instance].id = msg.getSrcNodeID().get();

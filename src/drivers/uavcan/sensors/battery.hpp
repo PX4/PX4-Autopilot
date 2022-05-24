@@ -85,5 +85,5 @@ private:
 	uint8_t _warning;
 	hrt_abstime _last_timestamp;
 	battery_status_s battery_status[battery_status_s::MAX_INSTANCES] {};
-	bool battery_aux_support[battery_status_s::MAX_INSTANCES] {};
+	bool battery_aux_support[battery_status_s::MAX_INSTANCES] {false};
 };

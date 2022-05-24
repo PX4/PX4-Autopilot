@@ -24,10 +24,10 @@ bool position_reliant_on_optical_flow
 bool position_reliant_on_vision_position
 
 bool dead_reckoning
+bool flight_terminated
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check
-bool circuit_breaker_engaged_enginefailure_check
 bool circuit_breaker_flight_termination_disabled
 bool circuit_breaker_engaged_usb_check
 bool circuit_breaker_engaged_posfailure_check	# set to true when the position valid checks have been disabled

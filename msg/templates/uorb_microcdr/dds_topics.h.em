@@ -7,7 +7,7 @@
 @#
 @# Context:
 @#  - msgs (List) list of all RTPS messages
-@#  - multi_topics (List) list of all multi-topic names
+@#  - topics (List) list of all topic names
 @#  - spec (msggen.MsgSpec) Parsed specification of the .msg file
 @###############################################
 @{
@@ -43,11 +43,11 @@ struct SendTopicsSubs {
 	uORB::Subscription @(topic)_sub{ORB_ID(@(topic))};
 	uxrObjectId @(topic)_data_writer;
 @[    end for]@
-	
+
 	uxrSession* session;
 
 	uint32_t num_payload_sent{};
-	
+
 	bool init(uxrSession* session_, uxrStreamId stream_id, uxrObjectId participant_id);
 	void update(uxrStreamId stream_id);
 };
@@ -140,7 +140,7 @@ struct RcvTopicsPubs {
 	uxrSession* session;
 
 	uint32_t num_payload_received{};
-	
+
 	bool init(uxrSession* session_, uxrStreamId stream_id, uxrStreamId input_stream, uxrObjectId participant_id);
 };
 

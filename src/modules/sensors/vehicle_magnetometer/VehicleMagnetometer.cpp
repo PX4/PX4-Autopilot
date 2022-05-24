@@ -486,7 +486,7 @@ void VehicleMagnetometer::Run()
 	// Publish
 	if (_param_sens_mag_rate.get() > 0) {
 		int interval_us = 1e6f / _param_sens_mag_rate.get();
-		const bool multi_mode = (_param_sens_mag_mode.get() == 1);
+		const bool multi_mode = (_param_sens_mag_mode.get() == 0);
 
 		for (int instance = 0; instance < MAX_SENSOR_COUNT; instance++) {
 			if (updated[instance] && (_data_sum_count[instance] > 0)) {

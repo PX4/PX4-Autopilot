@@ -127,14 +127,15 @@ private:
 	struct Telemetry {
 		DShotTelemetry handler{};
 		uORB::PublicationMultiData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
-		int last_motor_index{-1};
+		int last_telemetry_index{-1};
+		uint8_t actuator_functions[esc_status_s::CONNECTED_ESC_MAX] {};
 	};
 
 	void enable_dshot_outputs(const bool enabled);
 
 	void init_telemetry(const char *device);
 
-	void handle_new_telemetry_data(const int motor_index, const DShotTelemetry::EscData &data);
+	void handle_new_telemetry_data(const int telemetry_index, const DShotTelemetry::EscData &data);
 
 	int request_esc_info();
 
@@ -147,6 +148,7 @@ private:
 	void handle_vehicle_commands();
 
 	MixingOutput _mixing_output {PARAM_PREFIX, DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	uint32_t _reversible_outputs{};
 
 	Telemetry *_telemetry{nullptr};
 

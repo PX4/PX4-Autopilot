@@ -7,6 +7,11 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+# TODO: Enable motor failure detection when the
+# VTOL no longer reports 0A for all ESCs in SITL
+param set-default FD_ACT_EN 0
+param set-default FD_ACT_MOT_TOUT 500
+
 # param set-default SYS_CTRL_ALLOC 1
 param set-default CA_AIRFRAME 2
 
@@ -71,7 +76,6 @@ param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_D_ACC 0.1
 
 param set-default NAV_ACC_RAD 5
-param set-default NAV_LOITER_RAD 80
 
 param set-default VT_FWD_THRUST_EN 4
 param set-default VT_F_TRANS_THR 0.75

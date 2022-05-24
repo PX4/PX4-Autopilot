@@ -116,22 +116,6 @@ PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
 PARAM_DEFINE_INT32(CBRK_FLIGHTTERM, 121212);
 
 /**
- * Circuit breaker for engine failure detection
- *
- * Setting this parameter to 284953 will disable the engine failure detection.
- * If the aircraft is in engine failure mode the engine failure flag will be
- * set to healthy
- * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
- *
- * @reboot_required true
- * @min 0
- * @max 284953
- * @category Developer
- * @group Circuit Breaker
- */
-PARAM_DEFINE_INT32(CBRK_ENGINEFAIL, 284953);
-
-/**
  * Circuit breaker for disabling buzzer
  *
  * Setting this parameter to 782097 will disable the buzzer audio notification.

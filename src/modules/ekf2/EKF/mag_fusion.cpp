@@ -48,14 +48,14 @@
 void Ekf::fuseMag(const Vector3f &mag)
 {
 	// assign intermediate variables
-	const float &q0 = _state.quat_nominal(0);
-	const float &q1 = _state.quat_nominal(1);
-	const float &q2 = _state.quat_nominal(2);
-	const float &q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
-	const float &magN = _state.mag_I(0);
-	const float &magE = _state.mag_I(1);
-	const float &magD = _state.mag_I(2);
+	const float magN = _state.mag_I(0);
+	const float magE = _state.mag_I(1);
+	const float magD = _state.mag_I(2);
 
 	// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
 	const float R_MAG = sq(fmaxf(_params.mag_noise, 0.0f));
@@ -174,12 +174,20 @@ void Ekf::fuseMag(const Vector3f &mag)
 	for (uint8_t index = 0; index <= 2; index++) {
 		_mag_test_ratio(index) = sq(_mag_innov(index)) / (sq(math::max(_params.mag_innov_gate, 1.0f)) * _mag_innov_var(index));
 
-		if (_mag_test_ratio(index) > 1.0f) {
+		const bool innov_check_fail = (_mag_test_ratio(index) > 1.0f);
+
+		if (innov_check_fail) {
 			all_innovation_checks_passed = false;
-			_innov_check_fail_status.value |= (1 << (index + 3));
+		}
+
+		if (index == 0) {
+			_innov_check_fail_status.flags.reject_mag_x = innov_check_fail;
+
+		} else if (index == 1) {
+			_innov_check_fail_status.flags.reject_mag_y = innov_check_fail;
 
 		} else {
-			_innov_check_fail_status.value &= ~(1 << (index + 3));
+			_innov_check_fail_status.flags.reject_mag_z = innov_check_fail;
 		}
 	}
 
@@ -424,10 +432,10 @@ void Ekf::fuseMag(const Vector3f &mag)
 bool Ekf::fuseYaw321(float yaw, float yaw_variance, bool zero_innovation)
 {
 	// assign intermediate state variables
-	const float &q0 = _state.quat_nominal(0);
-	const float &q1 = _state.quat_nominal(1);
-	const float &q2 = _state.quat_nominal(2);
-	const float &q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
 	const float R_YAW = fmaxf(yaw_variance, 1.0e-4f);
 	const float measurement = wrap_pi(yaw);
@@ -779,8 +787,8 @@ void Ekf::fuseHeading(float measured_hdg, float obs_var)
 void Ekf::fuseDeclination(float decl_sigma)
 {
 	// assign intermediate state variables
-	const float &magN = _state.mag_I(0);
-	const float &magE = _state.mag_I(1);
+	const float magN = _state.mag_I(0);
+	const float magE = _state.mag_I(1);
 
 	// minimum North field strength before calculation becomes badly conditioned (T)
 	constexpr float N_field_min = 0.001f;
@@ -852,7 +860,7 @@ void Ekf::limitDeclination()
 	float decl_reference;
 	float h_field_min = 0.001f;
 
-	if (_params.mag_declination_source & MASK_USE_GEO_DECL) {
+	if (_params.mag_declination_source & GeoDeclinationMask::USE_GEO_DECL) {
 		// use parameter value until GPS is available, then use value returned by geo library
 		if (_NED_origin_initialised || PX4_ISFINITE(_mag_declination_gps)) {
 			decl_reference = _mag_declination_gps;

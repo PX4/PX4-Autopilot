@@ -97,19 +97,24 @@ static void timer_callback(void *arg)
 
 	timer_callback_data_s *data = (timer_callback_data_s *)arg;
 
-	if (watchdog_update(data->watchdog_data)) {
-		data->watchdog_triggered = true;
-	}
+	int semaphore_value = 0;
+
+	px4_sem_getvalue(&data->semaphore, &semaphore_value);
 
 	/* check the value of the semaphore: if the logger cannot keep up with running it's main loop as fast
 	 * as the timer_callback here increases the semaphore count, the counter would increase unbounded,
 	 * leading to an overflow at some point. This case we want to avoid here, so we check the current
 	 * value against a (somewhat arbitrary) threshold, and avoid calling sem_post() if it's exceeded.
 	 * (it's not a problem if the threshold is a bit too large, it just means the logger will do
-	 * multiple iterations at once, the next time it's scheduled). */
-	int semaphore_value;
+	 * multiple iterations at once, the next time it's scheduled).
+	 * As the watchdog also uses the counter we use a conservatively high value */
+	bool semaphore_value_saturated = semaphore_value > 100;
 
-	if (px4_sem_getvalue(&data->semaphore, &semaphore_value) == 0 && semaphore_value > 1) {
+	if (watchdog_update(data->watchdog_data, semaphore_value_saturated)) {
+		data->watchdog_triggered = true;
+	}
+
+	if (semaphore_value_saturated) {
 		return;
 	}
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,6 +32,8 @@
  ****************************************************************************/
 
 #include "PWMOut.hpp"
+
+#include <px4_platform_common/sem.hpp>
 
 pthread_mutex_t pwm_out_module_mutex = PTHREAD_MUTEX_INITIALIZER;
 static px4::atomic<PWMOut *> _objects[PWM_OUT_MAX_INSTANCES] {};
@@ -445,6 +447,8 @@ void PWMOut::Run()
 		return;
 	}
 
+	SmartLock lock_guard(_lock);
+
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
@@ -688,6 +692,8 @@ void PWMOut::update_params()
 
 int PWMOut::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
+	SmartLock lock_guard(_lock);
+
 	int ret = pwm_ioctl(filp, cmd, arg);
 
 	/* if nobody wants it, let CDev have it */
@@ -704,8 +710,6 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	PX4_DEBUG("pwm_out%u: ioctl cmd: %d, arg: %ld", _instance, cmd, arg);
 
-	lock();
-
 	switch (cmd) {
 	case PWM_SERVO_ARM:
 		update_pwm_out_state(true);
@@ -713,8 +717,6 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
-	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
-	case PWM_SERVO_SET_FORCE_SAFETY_ON:
 		break;
 
 	case PWM_SERVO_DISARM:
@@ -912,14 +914,14 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		break;
 
 	case MIXERIOCRESET:
-		_mixing_output.resetMixerThreadSafe();
+		_mixing_output.resetMixer();
 
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_output.loadMixer(buf, buflen);
 			update_params();
 
 			break;
@@ -929,8 +931,6 @@ int PWMOut::pwm_ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		ret = -ENOTTY;
 		break;
 	}
-
-	unlock();
 
 	return ret;
 }

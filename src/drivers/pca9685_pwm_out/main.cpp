@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +48,8 @@
 #include <px4_platform_common/getopt.h>
 
 #include "PCA9685.h"
+
+#include <px4_platform_common/sem.hpp>
 
 #define PCA9685_DEFAULT_IICBUS  1
 #define PCA9685_DEFAULT_ADDRESS (0x40)
@@ -387,6 +389,8 @@ void PCA9685Wrapper::Run()
 		return;
 	}
 
+	SmartLock lock_guard(_lock);
+
 	perf_begin(_cycle_perf);
 
 	switch (_state) {
@@ -464,21 +468,20 @@ void PCA9685Wrapper::Run()
 
 int PCA9685Wrapper::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 {
-	int ret = OK;
+	SmartLock lock_guard(_lock);
 
-	lock();
+	int ret = OK;
 
 	switch (cmd) {
 	case MIXERIOCRESET:
-		_mixing_output.resetMixerThreadSafe();
+		_mixing_output.resetMixer();
 
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-
-			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_output.loadMixer(buf, buflen);
 
 			break;
 		}
@@ -489,9 +492,7 @@ int PCA9685Wrapper::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_SET_ARM_OK:
-	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
 	case PWM_SERVO_CLEAR_ARM_OK:
-	case PWM_SERVO_SET_FORCE_SAFETY_ON:
 	case PWM_SERVO_ARM:
 	case PWM_SERVO_DISARM:
 		break;
@@ -500,8 +501,6 @@ int PCA9685Wrapper::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 		ret = -ENOTTY;
 		break;
 	}
-
-	unlock();
 
 	if (ret == -ENOTTY) {
 		ret = CDev::ioctl(filep, cmd, arg);

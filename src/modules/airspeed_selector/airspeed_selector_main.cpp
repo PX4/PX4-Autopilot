@@ -513,7 +513,8 @@ void AirspeedModule::update_wind_estimator_sideslip()
 	// update wind and airspeed estimator
 	_wind_estimator_sideslip.update(_time_now_usec);
 
-	if (_vehicle_local_position_valid && !_vtol_vehicle_status.vtol_in_rw_mode) {
+	if (_vehicle_local_position_valid
+	    && _vtol_vehicle_status.vehicle_vtol_state == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW) {
 		Vector3f vI(_vehicle_local_position.vx, _vehicle_local_position.vy, _vehicle_local_position.vz);
 		Quatf q(_vehicle_attitude.q);
 

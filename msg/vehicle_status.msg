@@ -1,5 +1,3 @@
-# If you change the order, add or remove arming_state_t states make sure to update the arrays
-# in state_machine_helper.cpp as well.
 uint64 timestamp				# time since system start (microseconds)
 
 uint8 ARMING_STATE_INIT = 0
@@ -11,15 +9,15 @@ uint8 ARMING_STATE_IN_AIR_RESTORE = 5
 uint8 ARMING_STATE_MAX = 6
 
 # FailureDetector status
-uint8 FAILURE_NONE = 0
-uint8 FAILURE_ROLL = 1 	        # (1 << 0)
-uint8 FAILURE_PITCH = 2	        # (1 << 1)
-uint8 FAILURE_ALT = 4 	        # (1 << 2)
-uint8 FAILURE_EXT = 8 	        # (1 << 3)
-uint8 FAILURE_ARM_ESC = 16      # (1 << 4)
-uint8 FAILURE_HIGH_WIND = 32        # (1 << 5)
-uint8 FAILURE_BATTERY = 64          # (1 << 6)
-uint8 FAILURE_IMBALANCED_PROP = 128 # (1 << 7)
+uint16 FAILURE_NONE = 0
+uint16 FAILURE_ROLL = 1              # (1 << 0)
+uint16 FAILURE_PITCH = 2             # (1 << 1)
+uint16 FAILURE_ALT = 4               # (1 << 2)
+uint16 FAILURE_EXT = 8               # (1 << 3)
+uint16 FAILURE_ARM_ESC = 16          # (1 << 4)
+uint16 FAILURE_BATTERY = 32          # (1 << 5)
+uint16 FAILURE_IMBALANCED_PROP = 64  # (1 << 6)
+uint16 FAILURE_MOTOR = 128           # (1 << 7)
 
 # HIL
 uint8 HIL_STATE_OFF = 0
@@ -32,7 +30,7 @@ uint8 NAVIGATION_STATE_POSCTL = 2		# Position control mode
 uint8 NAVIGATION_STATE_AUTO_MISSION = 3		# Auto mission mode
 uint8 NAVIGATION_STATE_AUTO_LOITER = 4		# Auto loiter mode
 uint8 NAVIGATION_STATE_AUTO_RTL = 5		# Auto return to launch mode
-uint8 NAVIGATION_STATE_AUTO_LANDENGFAIL = 8 	# Auto land on engine failure
+uint8 NAVIGATION_STATE_UNUSED3 = 8 	        # Free slot
 uint8 NAVIGATION_STATE_UNUSED = 9	        # Free slot
 uint8 NAVIGATION_STATE_ACRO = 10		# Acro mode
 uint8 NAVIGATION_STATE_UNUSED1 = 11		# Free slot
@@ -69,13 +67,12 @@ uint8 system_type			# system type, contains mavlink MAV_TYPE
 uint8 system_id			# system id, contains MAVLink's system ID field
 uint8 component_id			# subsystem / component id, contains MAVLink's component ID field
 
-uint8 vehicle_type          # Type of vehicle (fixed-wing, rotary wing, ground)
+uint8 vehicle_type          # Type of vehicle (rotary wing/fixed-wing/rover/airship, see above)
                             # If the vehicle is a VTOL, then this value will be VEHICLE_TYPE_ROTARY_WING while flying as a multicopter,
                             # and VEHICLE_TYPE_FIXED_WING when flying as a fixed-wing
 
 bool is_vtol				# True if the system is VTOL capable
 bool is_vtol_tailsitter                 # True if the system performs a 90° pitch down rotation during transition from MC to FW
-bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
 
@@ -86,11 +83,10 @@ uint8 data_link_lost_counter			# counts unique data link lost events
 
 bool high_latency_data_link_lost 			# Set to true if the high latency data link (eg. RockBlock Iridium 9603 telemetry module) is lost
 
-bool engine_failure				# Set to true if an engine failure is detected
 bool mission_failure				# Set to true if mission could not continue/finish
 bool geofence_violated
 
-uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
+uint16 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 
 # see SYS_STATUS mavlink message for the following
 # lower 32 bits are for the base flags, higher 32 bits are or the extended flags
@@ -120,3 +116,6 @@ uint8 latest_disarming_reason
 uint64 armed_time       # Arming timestamp (microseconds)
 
 uint64 takeoff_time     # Takeoff timestamp (microseconds)
+
+bool safety_button_available	# Set to true if a safety button is connected
+bool safety_off					# Set to true if safety is off

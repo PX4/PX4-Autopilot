@@ -148,13 +148,13 @@ int MavlinkShell::start()
 		close(fd_backups[i]);
 	}
 
-#ifdef __PX4_NUTTX
-	sched_unlock();
-#endif /* __PX4_NUTTX */
-
 	//close unused pipe fd's
 	close(_shell_fds[0]);
 	close(_shell_fds[1]);
+
+#ifdef __PX4_NUTTX
+	sched_unlock();
+#endif /* __PX4_NUTTX */
 
 	return ret;
 }

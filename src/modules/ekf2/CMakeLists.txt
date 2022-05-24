@@ -66,6 +66,7 @@ px4_add_module(
 		EKF/mag_control.cpp
 		EKF/mag_fusion.cpp
 		EKF/optflow_fusion.cpp
+		EKF/range_finder_consistency_check.cpp
 		EKF/sensor_range_finder.cpp
 		EKF/sideslip_fusion.cpp
 		EKF/terrain_estimator.cpp

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4iov2_init.c
+ * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
  * stm32_boardinitialize() function that is called during cpu startup.
@@ -84,38 +84,32 @@
 
 __EXPORT void stm32_boardinitialize(void)
 {
-
 	/* configure GPIOs */
 
 	/* Set up for sensing HW */
-
 	stm32_configgpio(GPIO_SENSE_PC14_DN);
 	stm32_configgpio(GPIO_SENSE_PC15_UP);
 
-	/* LEDS - default to off */
-	stm32_configgpio(GPIO_LED1);
-	stm32_configgpio(GPIO_LED2);
-	stm32_configgpio(GPIO_LED3);
-	stm32_configgpio(GPIO_LED4);
+	/* some boards such as Pixhawk 2.1 made
+	the unfortunate choice to combine the blue led channel with
+	the IMU heater. We need a software hack to fix the hardware hack
+	by allowing to disable the LED / heater.
+	*/
+	if (SENSE_PIXHAWK2()) {
+		stm32_configgpio(GPIO_HEATER_OUTPUT);
 
-	/*  PixHawk 1:
-	 *      PC14 Floating
-	 *      PC15 Floating
-	 *
-	 *  PixHawk 2:
-	 *      PC14 3.3v
-	 *      PC15 GND
-	 */
-
-	uint8_t sense = stm32_gpioread(GPIO_SENSE_PC15_UP) << 1  | stm32_gpioread(GPIO_SENSE_PC14_DN);
-
-	if (sense == SENSE_PH2) {
-		stm32_configgpio(GPIO_HEATER_OFF);
+	} else {
+		stm32_configgpio(GPIO_LED_BLUE);
 	}
 
 	stm32_configgpio(GPIO_PC14);
 	stm32_configgpio(GPIO_PC15);
 
+
+	/* LEDS - default to off */
+	stm32_configgpio(GPIO_LED_AMBER);
+	stm32_configgpio(GPIO_LED_SAFETY);
+	stm32_configgpio(GPIO_LED_GREEN);
 
 	stm32_configgpio(GPIO_BTN_SAFETY);
 
@@ -163,4 +157,7 @@ __EXPORT void stm32_boardinitialize(void)
 
 	stm32_gpiowrite(GPIO_PWM8, true);
 	stm32_configgpio(GPIO_PWM8);
+
+	/* disable heater */
+	HEATER_OUTPUT_EN(false);
 }

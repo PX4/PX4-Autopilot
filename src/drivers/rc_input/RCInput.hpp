@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -91,21 +91,23 @@ public:
 private:
 
 	enum RC_SCAN {
-		RC_SCAN_PPM = 0,
-		RC_SCAN_SBUS,
-		RC_SCAN_DSM,
-		RC_SCAN_SUMD,
-		RC_SCAN_ST24,
-		RC_SCAN_CRSF,
-		RC_SCAN_GHST
+		RC_SCAN_NONE = 0,
+		RC_SCAN_PPM  = 1,
+		RC_SCAN_SBUS = 2,
+		RC_SCAN_DSM  = 3,
+		RC_SCAN_ST24 = 5,
+		RC_SCAN_SUMD = 4,
+		RC_SCAN_CRSF = 6,
+		RC_SCAN_GHST = 7,
 	} _rc_scan_state{RC_SCAN_SBUS};
 
-	static constexpr char const *RC_SCAN_STRING[7] {
+	static constexpr char const *RC_SCAN_STRING[] {
+		"None",
 		"PPM",
 		"SBUS",
 		"DSM",
-		"SUMD",
 		"ST24",
+		"SUMD",
 		"CRSF",
 		"GHST"
 	};
@@ -129,7 +131,6 @@ private:
 
 	bool _initialized{false};
 	bool _rc_scan_locked{false};
-	bool _report_lock{true};
 
 	static constexpr unsigned	_current_update_interval{4000}; // 250 Hz
 
@@ -168,6 +169,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::RC_RSSI_PWM_CHAN>) _param_rc_rssi_pwm_chan,
 		(ParamInt<px4::params::RC_RSSI_PWM_MIN>) _param_rc_rssi_pwm_min,
-		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max
+		(ParamInt<px4::params::RC_RSSI_PWM_MAX>) _param_rc_rssi_pwm_max,
+		(ParamInt<px4::params::RC_INPUT_PROTO>) _param_rc_input_proto
 	)
 };

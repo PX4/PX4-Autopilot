@@ -188,12 +188,6 @@ typedef uint16_t	servo_position_t;
 /** get the maximum PWM value the output will send */
 #define PWM_SERVO_GET_MAX_PWM	_PX4_IOC(_PWM_SERVO_BASE, 19)
 
-/** force safety switch off (to disable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_OFF		_PX4_IOC(_PWM_SERVO_BASE, 25)
-
-/** force safety switch on (to enable use of safety switch) */
-#define PWM_SERVO_SET_FORCE_SAFETY_ON		_PX4_IOC(_PWM_SERVO_BASE, 28)
-
 /*
  *
  *

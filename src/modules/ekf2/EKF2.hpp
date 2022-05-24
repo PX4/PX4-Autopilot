@@ -135,6 +135,7 @@ private:
 
 	void Run() override;
 
+	void PublishAidSourceStatus(const hrt_abstime &timestamp);
 	void PublishAttitude(const hrt_abstime &timestamp);
 	void PublishBaroBias(const hrt_abstime &timestamp);
 	void PublishEventFlags(const hrt_abstime &timestamp);
@@ -167,6 +168,21 @@ private:
 	void UpdateGyroCalibration(const hrt_abstime &timestamp);
 	void UpdateMagCalibration(const hrt_abstime &timestamp);
 
+	// publish helper for estimator_aid_source topics
+	template <typename T>
+	void PublishAidSourceStatus(const T &status, hrt_abstime &status_publish_last, uORB::PublicationMulti<T> &pub)
+	{
+		if (status.timestamp_sample > status_publish_last) {
+			// publish if updated
+			T status_out{status};
+			status_out.estimator_instance = _instance;
+			status_out.timestamp = hrt_absolute_time();
+			pub.publish(status_out);
+
+			// record timestamp sample
+			status_publish_last = status.timestamp_sample;
+		}
+	}
 
 	/*
 	 * Calculate filtered WGS84 height from estimated AMSL height
@@ -239,6 +255,11 @@ private:
 	hrt_abstime _last_sensor_bias_published{0};
 	hrt_abstime _last_gps_status_published{0};
 
+	hrt_abstime _status_gnss_vel_pub_last{0};
+	hrt_abstime _status_gnss_pos_pub_last{0};
+
+	hrt_abstime _status_fake_pos_pub_last{0};
+
 	float _last_baro_bias_published{};
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
@@ -297,6 +318,11 @@ private:
 	uORB::PublicationMulti<estimator_status_s>           _estimator_status_pub{ORB_ID(estimator_status)};
 	uORB::PublicationMulti<vehicle_odometry_s>           _estimator_visual_odometry_aligned_pub{ORB_ID(estimator_visual_odometry_aligned)};
 	uORB::PublicationMulti<yaw_estimator_status_s>       _yaw_est_pub{ORB_ID(yaw_estimator_status)};
+
+	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_gnss_vel_pub{ORB_ID(estimator_aid_src_gnss_vel)};
+	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_gnss_pos_pub{ORB_ID(estimator_aid_src_gnss_pos)};
+
+	uORB::PublicationMulti<estimator_aid_source_2d_s> _estimator_aid_src_fake_pos_pub{ORB_ID(estimator_aid_src_fake_pos)};
 
 	// publications with topic dependent on multi-mode
 	uORB::PublicationMulti<vehicle_attitude_s>           _attitude_pub;
@@ -435,6 +461,8 @@ private:
 		_param_ekf2_rng_a_igate,	///< gate size used for innovation consistency checks for range aid fusion (STD)
 		(ParamExtFloat<px4::params::EKF2_RNG_QLTY_T>)
 		_param_ekf2_rng_qlty_t, ///< Minimum duration during which the reported range finder signal quality needs to be non-zero in order to be declared valid (s)
+		(ParamExtFloat<px4::params::EKF2_RNG_K_GATE>)
+		_param_ekf2_rng_k_gate, ///< range finder kinematic consistency gate size (STD)
 
 		// vision estimate fusion
 		(ParamInt<px4::params::EKF2_EV_NOISE_MD>)

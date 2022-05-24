@@ -10,7 +10,7 @@ to output 4 and the wheel to output 5.
 Inputs to the mixer come from channel group 0 (vehicle attitude), channels 0
 (roll), 1 (pitch), 2 (yaw) and 3 (thrust) 4 (flaps).
 
-Aileron mixer (roll + flaperon)
+Aileron mixer (roll + spoiler)
 ---------------------------------
 
 This mixer assumes that the aileron servos are set up correctly mechanically;
@@ -20,11 +20,11 @@ endpoints to suit.
 
 M: 2
 S: 0 0  10000  10000      0 -10000  10000
-S: 0 6  10000  10000      0 -10000  10000
+S: 0 5  10000  10000      0 -10000  10000
 
 M: 2
 S: 0 0  10000  10000      0 -10000  10000
-S: 0 6 -10000 -10000      0 -10000  10000
+S: 0 5 -10000 -10000      0 -10000  10000
 
 Elevator mixer
 ------------

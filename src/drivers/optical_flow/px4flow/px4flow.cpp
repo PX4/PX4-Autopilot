@@ -406,6 +406,14 @@ px4flow_main(int argc, char *argv[])
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_FLOW_DEVTYPE_PX4FLOW);
 
 	if (!strcmp(verb, "start")) {
+		// px4flow can require more time to fully start and be accessible
+		static constexpr uint64_t STARTUP_MIN_TIME_US = 6'000'000;
+		const hrt_abstime time_now_us = hrt_absolute_time();
+
+		if (time_now_us < STARTUP_MIN_TIME_US) {
+			px4_usleep(STARTUP_MIN_TIME_US - time_now_us);
+		}
+
 		return ThisDriver::module_start(cli, iterator);
 	}
 

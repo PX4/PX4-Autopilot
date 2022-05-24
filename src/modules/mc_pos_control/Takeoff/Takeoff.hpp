@@ -53,11 +53,11 @@ enum class TakeoffState {
 	flight = takeoff_status_s::TAKEOFF_STATE_FLIGHT
 };
 
-class Takeoff
+class TakeoffHandling
 {
 public:
-	Takeoff() = default;
-	~Takeoff() = default;
+	TakeoffHandling() = default;
+	~TakeoffHandling() = default;
 
 	// initialize parameters
 	void setSpoolupTime(const float seconds) { _spoolup_time_hysteresis.set_hysteresis_time_from(false, seconds * 1_s); }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2017, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -946,24 +946,22 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 {
 	int ret = OK;
 
-	lock();
+	pthread_mutex_lock(&_node_mutex);
 
 	switch (cmd) {
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
-	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
-		// these are no-ops, as no safety switch
 		break;
 
 	case MIXERIOCRESET:
-		_mixing_interface_esc.mixingOutput().resetMixerThreadSafe();
+		_mixing_interface_esc.mixingOutput().resetMixer();
 
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-			ret = _mixing_interface_esc.mixingOutput().loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_interface_esc.mixingOutput().loadMixer(buf, buflen);
 		}
 		break;
 
@@ -972,7 +970,7 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 	}
 
-	unlock();
+	pthread_mutex_unlock(&_node_mutex);
 
 	if (ret == -ENOTTY) {
 		ret = CDev::ioctl(filp, cmd, arg);
@@ -1003,6 +1001,10 @@ void UavcanMixingInterfaceESC::mixerChanged()
 	if (_mixing_output.useDynamicMixing()) {
 		for (unsigned i = 0; i < MAX_ACTUATORS; ++i) {
 			rotor_count += _mixing_output.isFunctionSet(i);
+
+			if (i < esc_status_s::CONNECTED_ESC_MAX) {
+				_esc_controller.esc_status().esc[i].actuator_function = (uint8_t)_mixing_output.outputFunction(i);
+			}
 		}
 
 	} else {

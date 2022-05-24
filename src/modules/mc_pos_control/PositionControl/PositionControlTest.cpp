@@ -52,7 +52,6 @@ TEST(PositionControlTest, EmptySetpoint)
 	EXPECT_FLOAT_EQ(output_setpoint.vy, 0.f);
 	EXPECT_FLOAT_EQ(output_setpoint.vz, 0.f);
 	EXPECT_EQ(Vector3f(output_setpoint.acceleration), Vector3f(0.f, 0.f, 0.f));
-	EXPECT_EQ(Vector3f(output_setpoint.jerk), Vector3f(0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(output_setpoint.thrust), Vector3f(0, 0, 0));
 
 	vehicle_attitude_setpoint_s attitude{};

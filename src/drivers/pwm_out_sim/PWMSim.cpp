@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,6 +39,8 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 
+#include <px4_platform_common/sem.hpp>
+
 PWMSim::PWMSim(bool hil_mode_enabled) :
 	CDev(PWM_OUTPUT0_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default)
@@ -63,6 +65,8 @@ PWMSim::Run()
 		exit_and_cleanup();
 		return;
 	}
+
+	SmartLock lock_guard(_lock);
 
 	_mixing_output.update();
 
@@ -120,9 +124,9 @@ PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 int
 PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
-	int ret = OK;
+	SmartLock lock_guard(_lock);
 
-	lock();
+	int ret = OK;
 
 	switch (cmd) {
 	case PWM_SERVO_ARM:
@@ -231,23 +235,20 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		break;
 
 	case MIXERIOCRESET:
-		_mixing_output.resetMixerThreadSafe();
+		_mixing_output.resetMixer();
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strlen(buf);
-			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
+			ret = _mixing_output.loadMixer(buf, buflen);
 			break;
 		}
-
 
 	default:
 		ret = -ENOTTY;
 		break;
 	}
-
-	unlock();
 
 	return ret;
 }

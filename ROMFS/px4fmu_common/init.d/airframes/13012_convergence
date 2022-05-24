@@ -22,7 +22,7 @@
 
 . ${R}etc/init.d/rc.vtol_defaults
 
-param set-defualt MAV_TYPE 21
+param set-default MAV_TYPE 21
 
 param set-default CBRK_AIRSPD_CHK 162128
 
@@ -69,4 +69,9 @@ param set-default VT_TYPE 1
 
 set MIXER vtol_convergence
 
-set PWM_OUT 1234
+if ! ver hwcmp MATEK_H743
+then
+	set PWM_OUT 1234
+else
+	set PWM_OUT 3456
+fi	

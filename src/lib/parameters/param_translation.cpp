@@ -146,6 +146,25 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-04-11: translate VT_PTCH_MIN to VT_PITCH_MIN
+	{
+		if (strcmp("VT_PTCH_MIN", node->name) == 0) {
+			strcpy(node->name, "VT_PITCH_MIN");
+			PX4_INFO("copying %s -> %s", "VT_PTCH_MIN", "VT_PITCH_MIN");
+			return true;
+		}
+	}
+
+	// 2022-04-11: translate VT_LND_PTCH_MIN to VT_LND_PITCH_MIN
+	{
+		if (strcmp("VT_LND_PTCH_MIN", node->name) == 0) {
+			strcpy(node->name, "VT_LND_PITCH_MIN");
+			PX4_INFO("copying %s -> %s", "VT_LND_PTCH_MIN", "VT_LND_PITCH_MIN");
+			return true;
+		}
+	}
+
+
 	// 2021-10-21: translate NAV_GPSF_LT to FW_GPSF_LT and NAV_GPSF_R to FW_GPSF_R
 	{
 		if (strcmp("NAV_GPSF_LT", node->name) == 0) {
@@ -174,6 +193,21 @@ bool param_modify_on_import(bson_node_t node)
 		if (strcmp("IMU_GYRO_NF_BW", node->name) == 0) {
 			strcpy(node->name, "IMU_GYRO_NF0_BW");
 			PX4_INFO("copying %s -> %s", "IMU_GYRO_NF_BW", "IMU_GYRO_NF0_BW");
+			return true;
+		}
+	}
+
+	// 2022-04-25 (v1.13 alpha): translate MS4525->MS4525DO and MS5525->MS5525DSO
+	{
+		if (strcmp("SENS_EN_MS4525", node->name) == 0) {
+			strcpy(node->name, "SENS_EN_MS4525DO");
+			PX4_INFO("copying %s -> %s", "SENS_EN_MS4525", "SENS_EN_MS4525DO");
+			return true;
+		}
+
+		if (strcmp("SENS_EN_MS5525", node->name) == 0) {
+			strcpy(node->name, "SENS_EN_MS5525DS");
+			PX4_INFO("copying %s -> %s", "SENS_EN_MS5525", "SENS_EN_MS5525DS");
 			return true;
 		}
 	}

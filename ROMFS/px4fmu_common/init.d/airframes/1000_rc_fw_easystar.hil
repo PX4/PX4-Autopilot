@@ -61,6 +61,8 @@ param set-default HIL_ACT_FUNC6 400
 
 param set SYS_HITL 1
 
+param set UAVCAN_ENABLE 0
+
 # disable some checks to allow to fly
 # - with usb
 param set-default CBRK_USB_CHK 197848
