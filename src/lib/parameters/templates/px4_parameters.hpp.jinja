@@ -23,7 +23,7 @@ enum class params : uint16_t {
 static constexpr param_info_s parameters[] = {
 {% for param in params %}
 	{
-		"{{ param.attrib["name"] }}",
+		.name = "{{ param.attrib["name"] }}",
 	{%- if param.attrib["type"] == "FLOAT" %}
 		.val = {{ "{" }} .f = {{ param.attrib["default"] }} {{ "}" }},
 	{%- elif param.attrib["type"] == "INT32" %}
