@@ -20,9 +20,7 @@ uint8 FUNCTION_PARAM_3_5     = 16
 uint8 FUNCTION_KILLSWITCH    = 17
 uint8 FUNCTION_TRANSITION    = 18
 uint8 FUNCTION_GEAR          = 19
-uint8 FUNCTION_ARMSWITCH     = 2
-
-uint8 FUNCTION_FLTBTN_SLOT_COUNT = 6
+uint8 FUNCTION_ARMSWITCH     = 20
 
 uint64 timestamp_last_valid					# Timestamp of last valid RC signal
 float32[18] channels						# Scaled to -1..1 (throttle: 0..1)
