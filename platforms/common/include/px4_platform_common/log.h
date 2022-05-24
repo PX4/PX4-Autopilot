@@ -117,7 +117,6 @@ __END_DECLS
 
 #include <inttypes.h>
 #include <stdint.h>
-#include <sys/cdefs.h>
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -376,15 +375,28 @@ __END_DECLS
 /****************************************************************************
  * Messages that should never be filtered or compiled out
  ****************************************************************************/
+#if defined(PRINTF_LOG)
+#define PX4_INFO(FMT, ...) 	printf(FMT "\n", ##__VA_ARGS__)
+#else
 #define PX4_INFO(FMT, ...) 	__px4_log_modulename(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
+#endif
 
-#ifdef __NUTTX
+#if defined(__NUTTX) || defined(PRINTF_LOG)
 #define PX4_INFO_RAW		printf
 #else
 #define PX4_INFO_RAW(FMT, ...) 	__px4_log_raw(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
 #endif
 
-#if defined(TRACE_BUILD)
+#if defined(PRINTF_LOG)
+/****************************************************************************
+ * Direct printf output for minimized dependencies
+ ****************************************************************************/
+#define PX4_PANIC(FMT, ...)	printf("Panic: " FMT "\n", ##__VA_ARGS__)
+#define PX4_ERR(FMT, ...)	printf("Error: " FMT "\n", ##__VA_ARGS__)
+#define PX4_WARN(FMT, ...) 	printf("Warn: " FMT "\n", ##__VA_ARGS__)
+#define PX4_DEBUG(FMT, ...) 	printf(FMT "\n", ##__VA_ARGS__)
+
+#elif defined(TRACE_BUILD)
 /****************************************************************************
  * Extremely Verbose settings for a Trace build
  ****************************************************************************/
