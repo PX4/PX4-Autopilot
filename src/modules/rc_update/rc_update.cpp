@@ -64,7 +64,15 @@ static bool operator !=(const manual_control_switches_s &a, const manual_control
 
 RCUpdate::RCUpdate() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
+	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	_trigger_slots_hysteresis{
+		systemlib::Hysteresis{false},
+		systemlib::Hysteresis{false},
+		systemlib::Hysteresis{false},
+		systemlib::Hysteresis{false},
+		systemlib::Hysteresis{false},
+		systemlib::Hysteresis{false}
+	}
 {
 	// initialize parameter handles
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
@@ -96,13 +104,23 @@ RCUpdate::RCUpdate() :
 		// shifted by 1 because param name starts at 1
 		char name[rc_parameter_map_s::PARAM_ID_LEN];
 		snprintf(name, rc_parameter_map_s::PARAM_ID_LEN, "RC_MAP_PARAM%d", i + 1);
-		_parameter_handles.rc_map_param[i] = param_find(name);
+		_trigger_channel_param_handles.rc_map_param[i] = param_find(name);
+	}
+
+	// Find and set RC Channel & Actions for each Trigger actions (1 ~ 6)
+	char param_name_buf[17] = {};
+	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG_%d_CHAN", trig_slot);
+		_trigger_channel_param_handles[trig_slot - 1] = param_find(param_name_buf);
+		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG_%d_ACTION", trig_slot);
+		_trigger_action_param_handles[trig_slot - 1] = param_find(param_name_buf);
+	}
 	}
 
 	rc_parameter_map_poll(true /* forced */);
 	parameters_updated();
 
-	_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
+	//_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
 }
 
 RCUpdate::~RCUpdate()
@@ -601,9 +619,31 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		}
 	}
 
-	for (uint8_t trig_slot = 0; trig_slot < RC_TRIG_SLOT_COUNT; trig_slot++) {
+	// Use the Generic RC Switch / Button only when the RC is in use
+	if (_manual_control_setpoint_sub.update() &&
+		_manual_control_setpoint_sub.get().data_source == manual_control_setpoint_s::SOURCE_RC) {
+		_manual_control_setpoint_source_is_rc = true;
+	}
 
-		const bool is_btn = _param_rc_trig_btn_mask.get() && (1 << trig_slot);
+	// Go through the trigger slots and update the states
+
+	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+
+	}
+
+	// Update the Generic Action states
+	const uint8_t trig1_chan = _param_rc_trig1_chan.get();
+	const uint8_t trig1_action = _param_rc_trig1_action.get();
+	// Trigger Channel is configured
+	if (trig1_chan > 0) {
+		const bool is_btn = _param_rc_trig_btn_mask.get() & (1 << 0);
+		if (is_btn) {
+
+		}
+		else {
+			// Is Switch
+
+		}
 	}
 
 	else if (_param_rc_map_flightmode_buttons.get() > 0) {

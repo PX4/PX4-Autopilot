@@ -1618,6 +1618,9 @@ PARAM_DEFINE_INT32(RC_TRIG1_CHAN, 0);
 /**
  * Which action the Trigger slot 1 triggers
  *
+ * The flight mode enums follow the convention defined in the commander_state.msg uORB message.
+ * Everything else (16 ~ ) is a non-flight-mode actions
+ *
  * @min -1
  * @max 20
  * @group Radio Trigger
@@ -1626,7 +1629,7 @@ PARAM_DEFINE_INT32(RC_TRIG1_CHAN, 0);
  * @value 1 Altitude
  * @value 2 Position
  * @value 3 Mission
- * @value 4 Hold
+ * @value 4 Loiter
  * @value 5 Return
  * @value 6 Acro
  * @value 7 Offboard
@@ -1635,14 +1638,14 @@ PARAM_DEFINE_INT32(RC_TRIG1_CHAN, 0);
  * @value 11 Land
  * @value 12 Follow Me
  * @value 13 Precision Land
- * @value 14 Return
- * @value 15 Loiter
- * @value 16 Offboard
- * @value 17 Killswitch
- * @value 18 Armswitch
- * @value 19 Transition
- * @value 20 Gear
- *
+ * @value 14 Orbit
+ * @value 15 Auto VTOL Takeoff
+ * @value 16 Killswitch
+ * @value 17 Arm
+ * @value 18 VTOL Transition
+ * @value 19 Gear
+ * @value 20 Photo
+ * @value 21 Video
  */
 PARAM_DEFINE_INT32(RC_TRIG1_ACTION, 0);
 

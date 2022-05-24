@@ -49,6 +49,7 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
+
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -68,6 +69,34 @@ namespace rc_update
 
 // Number of Generic Trigger slots that can be configured
 static constexpr uint8_t RC_TRIG_SLOT_COUNT = 6;
+
+// Enum class translation of the RC_TRIG#_ACTION values
+static constexpr enum RC_TRIGGER_ACTIONS {
+	RC_TRIGGER_ACTION_UNASSIGNED = -1,
+	// Commander States (defined in commander_state.msg)
+	RC_TRIGGER_ACTION_MANUAL_FLIGHTMODE = 0,
+	RC_TRIGGER_ACTION_ALTITUDE_FLIGHTMODE = 1,
+	RC_TRIGGER_ACTION_POSITION_FLIGHTMODE = 2,
+	RC_TRIGGER_ACTION_MISSION_FLIHGTMODE = 3,
+	RC_TRIGGER_ACTION_HOLD_FLIGHTMODE = 4,
+	RC_TRIGGER_ACTION_RETURN_FLIGHTMODE = 5,
+	RC_TRIGGER_ACTION_ACRO_FLIGHTMODE = 6,
+	RC_TRIGGER_ACTION_OFFBOARD_FLIGHTMODE = 7,
+	RC_TRIGGER_ACTION_STABILIZED_FLIGHTMODE = 8,
+	RC_TRIGGER_ACTION_TAKEOFF = 10,
+	RC_TRIGGER_ACTION_LAND = 11,
+	RC_TRIGGER_ACTION_FOLLOW_ME_FLIGHTMODE = 12,
+	RC_TRIGGER_ACTION_PRECISION_LAND_FLIGHTMODE = 13,
+	RC_TRIGGER_ACTION_ORBIT_FLIGHTMODE = 14,
+	RC_TRIGGER_ACTION_AUTO_VTOL_TAKEOFF = 15,
+	// Non- Commander State Actions
+	RC_TRIGGER_ACTION_KILLSWITCH = 16,
+	RC_TRIGGER_ACTION_ARM = 17,
+	RC_TRIGGER_ACTION_VTOL_TRANSITION = 18,
+	RC_TRIGGER_ACTION_GEAR = 19,
+	RC_TRIGGER_ACTION_PHOTO = 20,
+	RC_TRIGGER_ACTION_VIDEO = 21
+};
 
 /**
  ** class RCUpdate
@@ -162,9 +191,8 @@ public:
 	} _parameter_handles{};
 
 	uORB::SubscriptionCallbackWorkItem _input_rc_sub{this, ORB_ID(input_rc)};
-
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
+	uORB::SubscriptionData<manual_control_setpoint_s> _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _rc_parameter_map_sub{ORB_ID(rc_parameter_map)};
 	uORB::Subscription _actuator_controls_3_sub{ORB_ID(actuator_controls_3)};
 
@@ -191,8 +219,12 @@ public:
 	uint8_t _channel_count_previous{0};
 	uint8_t _input_source_previous{input_rc_s::RC_INPUT_SOURCE_UNKNOWN};
 
+	// Flag to indicate that RC input is being used for manual control (whether we can use generic action)
+	bool _manual_control_setpoint_source_is_rc{false};
 	// Hysteresis objects to track status of the each trigger slots for generic action
 	systemlib::Hysteresis _trigger_slots_hysteresis[RC_TRIG_SLOT_COUNT];
+	param_t _trigger_channel_param_handles[RC_TRIG_SLOT_COUNT] {};
+	param_t _trigger_action_param_handles[RC_TRIG_SLOT_COUNT] {};
 
 	systemlib::Hysteresis _rc_signal_lost_hysteresis{true};
 
@@ -210,8 +242,6 @@ public:
 		(ParamInt<px4::params::RC_MAP_FAILSAFE>) _param_rc_map_failsafe,
 		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
 		(ParamInt<px4::params::RC_TRIG_BTN_MASK>) _param_rc_trig_btn_mask,
-		(ParamInt<px4::params::RC_TRIG1_CHAN>) _param_rc_trig1_chan,
-		(ParamInt<px4::params::RC_TRIG1_ACTION>) _param_rc_trig1_action,
 		(ParamInt<px4::params::RC_MAP_FLAPS>) _param_rc_map_flaps,
 		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
 		(ParamInt<px4::params::RC_MAP_LOITER_SW>) _param_rc_map_loiter_sw,
