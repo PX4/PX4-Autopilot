@@ -192,7 +192,7 @@ MulticopterRateControl::Run()
 				vehicle_rates_setpoint.yaw            = _rates_setpoint(2);
 				vehicle_rates_setpoint.thrust_body[0] = 0.0f;
 				vehicle_rates_setpoint.thrust_body[1] = 0.0f;
-				vehicle_rates_setpoint.thrust_body[2] = _thrust_setpoint;
+				vehicle_rates_setpoint.thrust_body[2] = -_thrust_setpoint;
 				vehicle_rates_setpoint.timestamp      = hrt_absolute_time();
 
 				_vehicle_rates_setpoint_pub.publish(vehicle_rates_setpoint);
