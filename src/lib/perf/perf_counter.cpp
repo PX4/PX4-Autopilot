@@ -41,7 +41,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/queue.h>
 #include <drivers/drv_hrt.h>
 #include <math.h>
 #include <pthread.h>
