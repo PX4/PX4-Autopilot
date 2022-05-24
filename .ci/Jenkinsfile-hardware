@@ -94,9 +94,10 @@ pipeline {
               steps {
                 checkoutSCM()
                 sh 'make cuav_x7pro_bootloader'
+                sh 'make cuav_x7pro_default'
                 sh 'make cuav_x7pro_test'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'cuav_x7pro_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'cuav_x7pro'
               }
               post {
                 always {
@@ -113,15 +114,20 @@ pipeline {
                   steps {
                     sh 'export'
                     sh 'find /dev/serial'
-                    unstash 'cuav_x7pro_test'
+                    unstash 'cuav_x7pro'
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_bootloader/cuav_x7pro_bootloader.elf'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_default/cuav_x7pro_default.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                     resetBoard()
                   }
                 }
                 stage("tests") {
                   steps {
+                    // test loading a range of airframes
+                    sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 2100 3000 4001 6001 8001 10016'
+
+                    // flash test
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/cuav_x7pro_test/cuav_x7pro_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                     runTests()
                   }
                 }
@@ -163,10 +169,11 @@ pipeline {
               }
               steps {
                 checkoutSCM()
+                sh 'make px4_fmu-v3_default'
+                sh 'make px4_fmu-v3_default bootloader_elf'
                 sh 'make px4_fmu-v3_test'
-                sh 'make px4_fmu-v3_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v3_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v3'
               }
               post {
                 always {
@@ -183,15 +190,20 @@ pipeline {
                   steps {
                     sh 'export'
                     sh 'find /dev/serial'
-                    unstash 'px4_fmu-v3_test'
+                    unstash 'px4_fmu-v3'
                     sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v3_test/px4_fmu-v3_bootloader.elf'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v3_default/px4_fmu-v3_default.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                     resetBoard()
                   }
                 }
                 stage("tests") {
                   steps {
+                    // test loading a range of airframes
+                    sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 2100 3000 4001 6001 8001 10016'
+
+                    // flash test
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v3_test/px4_fmu-v3_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                     runTests()
                   }
                 }
@@ -533,9 +545,9 @@ pipeline {
           }
         }
 
-        stage("px4_fmu-v5_test") {
+        stage("px4_fmu-v5") {
           stages {
-            stage("build px4_fmu-v5_test") {
+            stage("build px4_fmu-v5") {
               agent {
                 docker {
                   image 'px4io/px4-dev-nuttx-focal:2021-09-08'
@@ -544,10 +556,11 @@ pipeline {
               }
               steps {
                 checkoutSCM()
+                sh 'make px4_fmu-v5_default bootloader_elf'
+                sh 'make px4_fmu-v5_default'
                 sh 'make px4_fmu-v5_test'
-                sh 'make px4_fmu-v5_test bootloader_elf'
                 sh 'ccache -s'
-                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v5_test'
+                stash includes: 'build/*/*.elf, platforms/nuttx/Debug/*, platforms/nuttx/NuttX/nuttx/tools/nuttx-gdbinit, Tools/HIL/*', name: 'px4_fmu-v5'
               }
               post {
                 always {
@@ -564,16 +577,11 @@ pipeline {
                   steps {
                     sh 'export'
                     sh 'find /dev/serial'
-                    unstash 'px4_fmu-v5_test'
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_test/px4_fmu-v5_bootloader.elf'
+                    unstash 'px4_fmu-v5'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_default/px4_fmu-v5_bootloader.elf'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_default/px4_fmu-v5_default.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
                     resetBoard()
-                  }
-                }
-                stage("tests") {
-                  steps {
-                    runTests()
                   }
                 }
                 stage("status") {
@@ -585,11 +593,22 @@ pipeline {
                     checkStatus()
                     quickCalibrate()
                     sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-*` --cmd "px4io status" || true'
+
+                    // test loading a range of airframes
+                    sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 2100 3000 4001 6001 8001 10016'
                   }
                 }
                 stage("print topics") {
                   steps {
                     printTopics()
+                  }
+                }
+                stage("tests") {
+                  steps {
+                    unstash 'px4_fmu-v5'
+                    // flash test
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_test/px4_fmu-v5_test.elf && ./Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-*` --baudrate 57600'
+                    runTests()
                   }
                 }
               }
@@ -792,9 +811,6 @@ void resetParameters() {
 }
 
 void runTests() {
-
-  // test loading a range of airframes
-  sh './Tools/HIL/test_airframes.sh `find /dev/serial -name *usb-*` 2100 3000 4001 6001 8001 10016'
 
   resetParameters()
 
