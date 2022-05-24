@@ -453,7 +453,7 @@ private:
 
 	uORB::PublicationData<home_position_s>			_home_position_pub{ORB_ID(home_position)};
 
-	uORB::Publication<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::Publication<vehicle_command_ack_s>		_vehicle_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
 

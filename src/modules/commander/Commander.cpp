@@ -3550,7 +3550,7 @@ void Commander::answer_command(const vehicle_command_s &cmd, uint8_t result)
 	command_ack.target_system = cmd.source_system;
 	command_ack.target_component = cmd.source_component;
 	command_ack.timestamp = hrt_absolute_time();
-	_command_ack_pub.publish(command_ack);
+	_vehicle_command_ack_pub.publish(command_ack);
 }
 
 int Commander::task_spawn(int argc, char *argv[])
