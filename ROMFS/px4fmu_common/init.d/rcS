@@ -21,7 +21,6 @@ set +e
 # it wastes flash
 #
 set R /
-set AUTOCNF no
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
 set FRC /fs/microsd/etc/rc.txt
@@ -177,13 +176,12 @@ else
 	fi
 
 	#
-	# Set AUTOCNF flag to use it in AUTOSTART scripts.
+	# If the airframe has been previously reset SYS_AUTCONFIG will have been set to 1 and other params will be reset on the next boot.
 	#
 	if param greater SYS_AUTOCONFIG 0
 	then
-		# Wipe out params except RC*, flight modes, total flight time, calibration parameters, next flight UUID
-		param reset_all SYS_AUTO* RC* COM_FLTMODE* LND_FLIGHT* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT*
-		set AUTOCNF yes
+		# Reset params except Airframe, RC calibration, sensor calibration, flight modes, total flight time, and next flight UUID.
+		param reset_all SYS_AUTOSTART RC* CAL_* COM_FLTMODE* LND_FLIGHT* TC_* COM_FLIGHT*
 	fi
 
 	#
@@ -272,14 +270,6 @@ else
 	then
 		echo "Custom: ${FCONFIG}"
 		. $FCONFIG
-	fi
-
-	#
-	# If autoconfig parameter was set, reset it and save parameters.
-	#
-	if [ $AUTOCNF = yes ]
-	then
-		param set SYS_AUTOCONFIG 0
 	fi
 
 	#
@@ -565,7 +555,6 @@ fi
 # Unset all script parameters to free RAM.
 #
 unset R
-unset AUTOCNF
 unset FCONFIG
 unset FEXTRAS
 unset FRC
