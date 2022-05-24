@@ -11,7 +11,7 @@ import numpy as np
 from analysis.detectors import InAirDetector
 
 def calculate_ecl_ekf_metrics(
-        ulog: ULog, innov_flags: Dict[str, float], innov_fail_checks: List[str],
+        ulog: ULog, estimator_status_flags: Dict[str, float], innov_fail_checks: List[str],
         sensor_checks: List[str], in_air: InAirDetector, in_air_no_ground_effects: InAirDetector,
         multi_instance: int = 0, red_thresh: float = 1.0, amb_thresh: float = 0.5) -> Tuple[dict, dict, dict, dict]:
 
@@ -20,7 +20,7 @@ def calculate_ecl_ekf_metrics(
         red_thresh=red_thresh, amb_thresh=amb_thresh)
 
     innov_fail_metrics = calculate_innov_fail_metrics(
-        innov_flags, innov_fail_checks, in_air, in_air_no_ground_effects)
+        estimator_status_flags, innov_fail_checks, in_air, in_air_no_ground_effects)
 
     imu_metrics = calculate_imu_metrics(ulog, multi_instance, in_air_no_ground_effects)
 
@@ -90,10 +90,10 @@ def calculate_sensor_metrics(
 
 
 def calculate_innov_fail_metrics(
-        innov_flags: dict, innov_fail_checks: List[str], in_air: InAirDetector,
+        estimator_status_flags: dict, innov_fail_checks: List[str], in_air: InAirDetector,
         in_air_no_ground_effects: InAirDetector) -> dict:
     """
-    :param innov_flags:
+    :param estimator_status_flags:
     :param innov_fail_checks:
     :param in_air:
     :param in_air_no_ground_effects:
@@ -103,17 +103,18 @@ def calculate_innov_fail_metrics(
     innov_fail_metrics = dict()
 
     # calculate innovation check fail metrics
-    for signal_id, signal, result in [('posv', 'posv_innov_fail', 'hgt_fail_percentage'),
-                                      ('magx', 'magx_innov_fail', 'magx_fail_percentage'),
-                                      ('magy', 'magy_innov_fail', 'magy_fail_percentage'),
-                                      ('magz', 'magz_innov_fail', 'magz_fail_percentage'),
-                                      ('yaw', 'yaw_innov_fail', 'yaw_fail_percentage'),
-                                      ('vel', 'vel_innov_fail', 'vel_fail_percentage'),
-                                      ('posh', 'posh_innov_fail', 'pos_fail_percentage'),
-                                      ('tas', 'tas_innov_fail', 'tas_fail_percentage'),
-                                      ('hagl', 'hagl_innov_fail', 'hagl_fail_percentage'),
-                                      ('ofx', 'ofx_innov_fail', 'ofx_fail_percentage'),
-                                      ('ofy', 'ofy_innov_fail', 'ofy_fail_percentage')]:
+    for signal_id, signal, result in [('posv', 'reject_ver_pos', 'hgt_fail_percentage'),
+                                      ('magx', 'reject_mag_x', 'magx_fail_percentage'),
+                                      ('magy', 'reject_mag_y', 'magy_fail_percentage'),
+                                      ('magz', 'reject_mag_z', 'magz_fail_percentage'),
+                                      ('yaw', 'reject_yaw', 'yaw_fail_percentage'),
+                                      ('velh', 'reject_hor_vel', 'vel_fail_percentage'),
+                                      ('velv', 'reject_ver_vel', 'vel_fail_percentage'),
+                                      ('posh', 'reject_hor_pos', 'pos_fail_percentage'),
+                                      ('tas', 'reject_airspeed', 'tas_fail_percentage'),
+                                      ('hagl', 'reject_hagl', 'hagl_fail_percentage'),
+                                      ('ofx', 'reject_optflow_x', 'ofx_fail_percentage'),
+                                      ('ofy', 'reject_optflow_y', 'ofy_fail_percentage')]:
 
         # only run innov fail checks, if they apply.
         if signal_id in innov_fail_checks:
@@ -125,7 +126,7 @@ def calculate_innov_fail_metrics(
                 in_air_detector = in_air
 
             innov_fail_metrics[result] = calculate_stat_from_signal(
-                innov_flags, 'estimator_status', signal, in_air_detector,
+                estimator_status_flags, 'estimator_status_flags', signal, in_air_detector,
                 lambda x: 100.0 * np.mean(x > 0.5))
 
     return innov_fail_metrics
@@ -152,7 +153,7 @@ def calculate_imu_metrics(ulog: ULog, multi_instance, in_air_no_ground_effects: 
 
             if vehicle_imu_status_data['accel_device_id'][0] == estimator_status_data['accel_device_id'][0]:
 
-                for signal, result in [('delta_angle_coning_metric', 'imu_coning'),
+                for signal, result in [('gyro_coning_vibration', 'imu_coning'),
                                        ('gyro_vibration_metric', 'imu_hfgyro'),
                                        ('accel_vibration_metric', 'imu_hfaccel')]:
 
