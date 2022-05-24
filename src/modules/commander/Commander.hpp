@@ -391,7 +391,7 @@ private:
 
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_vehicle_land_detected{};
-	vtol_vehicle_status_s	_vtol_status{};
+	vtol_vehicle_status_s	_vtol_vehicle_status{};
 
 	hrt_abstime _last_wind_warning{0};
 
@@ -399,8 +399,8 @@ private:
 	actuator_armed_s        _armed{};
 	commander_state_s       _internal_state{};
 	vehicle_control_mode_s  _vehicle_control_mode{};
-	vehicle_status_s        _status{};
-	vehicle_status_flags_s  _status_flags{};
+	vehicle_status_s        _vehicle_status{};
+	vehicle_status_flags_s  _vehicle_status_flags{};
 
 	Safety _safety{};
 
@@ -449,7 +449,7 @@ private:
 	uORB::Publication<actuator_test_s>			_actuator_test_pub{ORB_ID(actuator_test)};
 	uORB::Publication<vehicle_control_mode_s>		_control_mode_pub{ORB_ID(vehicle_control_mode)};
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
-	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
+	uORB::Publication<vehicle_status_s>			_vehicle_status_pub{ORB_ID(vehicle_status)};
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 
