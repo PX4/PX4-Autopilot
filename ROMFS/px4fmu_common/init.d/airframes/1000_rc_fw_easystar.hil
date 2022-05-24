@@ -72,4 +72,4 @@ param set-default CBRK_SUPPLY_CHK 894281
 param set-default COM_PREARM_MODE 0
 param set-default CBRK_IO_SAFETY 22027
 
-set MIXER_FILE etc/mixers-sitl/plane_sitl.main.mix
+set MIXER plane_sitl
