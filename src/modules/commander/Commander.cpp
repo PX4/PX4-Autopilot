@@ -3488,7 +3488,7 @@ Commander::update_control_mode()
 		    || _vehicle_control_mode.flag_control_acceleration_enabled);
 
 	_vehicle_control_mode.timestamp = hrt_absolute_time();
-	_control_mode_pub.publish(_vehicle_control_mode);
+	_vehicle_control_mode_pub.publish(_vehicle_control_mode);
 }
 
 bool
