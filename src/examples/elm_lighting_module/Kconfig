@@ -1,0 +1,5 @@
+menuconfig EXAMPLES_ELM_LIGHTING_MODULE
+	bool "elm_lighting_module"
+	default n
+	---help---
+		Enable support for elm_lighting_module

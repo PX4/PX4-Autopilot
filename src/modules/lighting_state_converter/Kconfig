@@ -1,0 +1,5 @@
+menuconfig MODULES_LIGHTING_STATE_CONVERTER
+	bool "lighting_state_converter"
+	default n
+	---help---
+		Enable support for lighting_state_converter

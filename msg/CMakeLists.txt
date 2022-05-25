@@ -104,6 +104,7 @@ set(msg_files
 	landing_gear.msg
 	landing_target_innovations.msg
 	landing_target_pose.msg
+	lighting_states.msg
 	led_control.msg
 	log_message.msg
 	logger_status.msg

@@ -7,3 +7,4 @@ pwm_out mode_pwm1 start
 
 ifup can0
 cyphal start
+lighting_state_converter start

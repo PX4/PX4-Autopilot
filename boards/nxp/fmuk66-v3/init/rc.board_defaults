@@ -9,3 +9,11 @@ param set-default BAT1_A_PER_V 15.391030303
 rgbled_pwm start
 safety_button start
 
+# pre-arm stuff
+param set-default SYS_CTRL_ALLOC 1
+param set-default COM_PREARM_MODE 2
+
+# Cyphal stuff
+ifup can0
+cyphal start
+elm_lighting_module

@@ -64,13 +64,18 @@
 #define CONFIG_CYPHAL_UORB_SENSOR_GPS_PUBLISHER 0
 #endif
 
+#ifndef CONFIG_CYPHAL_UORB_LIGHTING_STATES_PUBLISHER
+#define CONFIG_CYPHAL_UORB_LIGHTING_STATES_PUBLISHER 0
+#endif
+
 /* Preprocessor calculation of publisher count */
 
 #define UAVCAN_PUB_COUNT CONFIG_CYPHAL_GNSS_PUBLISHER + \
 	CONFIG_CYPHAL_ESC_CONTROLLER + \
 	CONFIG_CYPHAL_READINESS_PUBLISHER + \
 	CONFIG_CYPHAL_UORB_ACTUATOR_OUTPUTS_PUBLISHER + \
-	CONFIG_CYPHAL_UORB_SENSOR_GPS_PUBLISHER
+	CONFIG_CYPHAL_UORB_SENSOR_GPS_PUBLISHER + \
+	CONFIG_CYPHAL_UORB_LIGHTING_STATES_PUBLISHER
 
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
@@ -157,6 +162,16 @@ private:
 				return new uORB_over_UAVCAN_Publisher<sensor_gps_s>(handle, pmgr, ORB_ID(sensor_gps));
 			},
 			"uorb.sensor_gps",
+			0
+		},
+#endif
+#if CONFIG_CYPHAL_UORB_LIGHTING_STATES_PUBLISHER
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanPublisher *
+			{
+				return new uORB_over_UAVCAN_Publisher<lighting_states_s>(handle, pmgr, ORB_ID(lighting_states));
+			},
+			"uorb.lighting_states",
 			0
 		},
 #endif
