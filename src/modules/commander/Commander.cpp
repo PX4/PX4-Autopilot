@@ -2900,22 +2900,21 @@ Commander::run()
 			}
 		}
 
-		// check for arming state change
+		// check for arming state changes
 		if (_was_armed != _arm_state_machine.isArmed()) {
 			_status_changed = true;
+		}
 
-			if (_arm_state_machine.isArmed()) {
-				if (!_vehicle_land_detected.landed) { // check if takeoff already detected upon arming
-					_have_taken_off_since_arming = true;
-				}
+		if (!_was_armed && _arm_state_machine.isArmed() && !_vehicle_land_detected.landed) {
+			_have_taken_off_since_arming = true;
+		}
 
-			} else { // increase the flight uuid upon disarming
-				const int32_t flight_uuid = _param_flight_uuid.get() + 1;
-				_param_flight_uuid.set(flight_uuid);
-				_param_flight_uuid.commit_no_notification();
+		if (_was_armed && !_arm_state_machine.isArmed()) {
+			const int32_t flight_uuid = _param_flight_uuid.get() + 1;
+			_param_flight_uuid.set(flight_uuid);
+			_param_flight_uuid.commit_no_notification();
 
-				_last_disarmed_timestamp = hrt_absolute_time();
-			}
+			_last_disarmed_timestamp = hrt_absolute_time();
 		}
 
 		if (!_arm_state_machine.isArmed()) {
