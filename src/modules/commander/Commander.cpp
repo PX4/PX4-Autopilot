@@ -2684,7 +2684,7 @@ Commander::run()
 			 * just a tablet. Since the RC will force its mode switch setting on connecting
 			 * we can as well just wait in a hold mode which enables tablet control.
 			 */
-			if (_vehicle_status.rc_signal_lost && (_commander_state.main_state == commander_state_s::MAIN_STATE_MANUAL)
+			if (_vehicle_status.rc_signal_lost && (_commander_state.main_state_changes == 0)
 			    && _vehicle_status_flags.global_position_valid) {
 
 				main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _vehicle_status_flags,
