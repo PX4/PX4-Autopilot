@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2022-2023 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022-2025 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,7 +99,9 @@ bool HomePosition::setHomePosition(bool force)
 		const vehicle_local_position_s &lpos = _local_position_sub.get();
 		_heading_reset_counter = lpos.heading_reset_counter; // TODO: should not be here
 
-		fillLocalHomePos(home, lpos);
+		const vehicle_attitude_s &attitude = _attitude_sub.get();
+
+		fillLocalHomePos(home, lpos, attitude);
 		updated = true;
 	}
 
@@ -135,19 +137,25 @@ bool HomePosition::setHomePosition(bool force)
 	return updated;
 }
 
-void HomePosition::fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos)
+void HomePosition::fillLocalHomePos(home_position_s &home, const vehicle_local_position_s &lpos,
+				    const vehicle_attitude_s &attitude)
 {
-	fillLocalHomePos(home, lpos.x, lpos.y, lpos.z, lpos.heading);
+	matrix::Quatf q(attitude.q);
+	matrix::Eulerf euler(q);
+	fillLocalHomePos(home, lpos.x, lpos.y, lpos.z, euler(0), euler(1), euler(2));
 }
 
-void HomePosition::fillLocalHomePos(home_position_s &home, float x, float y, float z, float heading)
+void HomePosition::fillLocalHomePos(home_position_s &home, float x, float y, float z, float roll, float pitch,
+				    float yaw)
 {
 	home.x = x;
 	home.y = y;
 	home.z = z;
 	home.valid_lpos = true;
 
-	home.yaw = heading;
+	home.roll = roll;
+	home.pitch = pitch;
+	home.yaw = yaw;
 }
 
 void HomePosition::fillGlobalHomePos(home_position_s &home, const vehicle_global_position_s &gpos)
@@ -229,7 +237,7 @@ void HomePosition::setInAirHomePosition()
 			ref_pos.project(home.lat, home.lon, home_x, home_y);
 
 			const float home_z = -(home.alt - lpos.ref_alt);
-			fillLocalHomePos(home, home_x, home_y, home_z, NAN);
+			fillLocalHomePos(home, home_x, home_y, home_z, NAN, NAN, NAN);
 
 			home.timestamp = hrt_absolute_time();
 			home.update_count++;
@@ -245,7 +253,7 @@ void HomePosition::setInAirHomePosition()
 	}
 }
 
-bool HomePosition::setManually(double lat, double lon, float alt, float yaw)
+bool HomePosition::setManually(double lat, double lon, float alt, float roll, float pitch, float yaw)
 {
 	const vehicle_local_position_s &vehicle_local_position = _local_position_sub.get();
 
@@ -268,6 +276,8 @@ bool HomePosition::setManually(double lat, double lon, float alt, float yaw)
 	home.z = -(alt - vehicle_local_position.ref_alt);
 	home.valid_lpos = vehicle_local_position.xy_valid && vehicle_local_position.z_valid;
 
+	home.roll = roll;
+	home.pitch = pitch;
 	home.yaw = yaw;
 
 	home.timestamp = hrt_absolute_time();
@@ -303,6 +313,7 @@ void HomePosition::update(bool set_automatically, bool check_if_changed)
 {
 	_local_position_sub.update();
 	_global_position_sub.update();
+	_attitude_sub.update();
 
 	if (_vehicle_air_data_sub.updated()) {
 		vehicle_air_data_s baro_data;
