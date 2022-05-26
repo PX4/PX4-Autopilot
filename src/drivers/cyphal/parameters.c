@@ -188,3 +188,21 @@ PARAM_DEFINE_INT32(UCAN1_SERVO_PUB, -1);
  * @group Cyphal
  */
 PARAM_DEFINE_INT32(UCAN1_ACTR_PUB, -1);
+
+/**
+ * lighting_states uORB over Cyphal publication port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_UORB_LS_P, -1);
+
+/**
+ * lighting_states uORB over Cyphal publication port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_UORB_LS_S, -1);
