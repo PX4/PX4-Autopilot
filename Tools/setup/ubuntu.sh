@@ -16,6 +16,8 @@ set -e
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
 INSTALL_ARCH=`uname -m`
+INSTALL_UDDS="false"
+INSTALL_SIM_JAMMY="false"
 
 # Parse arguments
 for arg in "$@"
@@ -26,6 +28,14 @@ do
 
 	if [[ $arg == "--no-sim-tools" ]]; then
 		INSTALL_SIM="false"
+	fi
+
+	if [[ $arg == "--microdds" ]]; then
+		INSTALL_UDDS="true"
+	fi
+
+	if [[ $arg == "--sim_jammy" ]]; then
+		INSTALL_SIM_JAMMY="true"
 	fi
 
 done
@@ -68,7 +78,9 @@ elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 elif [[ "${UBUNTU_RELEASE}" == "20.04" ]]; then
 	echo "Ubuntu 20.04"
 elif [[ "${UBUNTU_RELEASE}" == "22.04" ]]; then
-	echo "Ubuntu 22.04"
+	echo "Ubuntu 22.04, simulation build off by default." 
+	echo "Use --sim_jammy to enable simulation build."
+	INSTALL_SIM=$INSTALL_SIM_JAMMY
 fi
 
 
@@ -175,7 +187,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	else
 		echo "Installing arm-none-eabi-gcc-${NUTTX_GCC_VERSION}";
-		wget -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2 && \
+		wget -q --show-progress -O /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/${NUTTX_GCC_VERSION_SHORT}/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-${INSTALL_ARCH}-linux.tar.bz2 && \
 			sudo tar -jxf /tmp/gcc-arm-none-eabi-${NUTTX_GCC_VERSION}-linux.tar.bz2 -C /opt/;
 
 		# add arm-none-eabi-gcc to user's PATH
@@ -188,6 +200,25 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		fi
 	fi
 fi
+
+# Install microDDS tools (fastrtpsgen)
+if [[ $INSTALL_UDDS == "true" ]] && [ ! -f /usr/local/bin/fastrtpsgen ]; then
+	if command -v gradle &> /dev/null || [ ! -d /opt/gradle ]; then
+		echo "Installing gradle 6.3"
+		wget -q --show-progress -O /tmp/gradle-6.3-bin.zip https://downloads.gradle-dn.com/distributions/gradle-6.3-bin.zip
+		sudo mkdir -p /opt/gradle
+		sudo unzip -d /opt/gradle /tmp/gradle-6.3-bin.zip
+		export PATH=$PATH:/opt/gradle/gradle-6.3/bin
+	fi
+	echo "Installing fastrtpsgen"
+	git clone --recursive https://github.com/eProsima/Fast-DDS-Gen.git -b v1.0.4 /tmp/Fast-DDS-Gen
+	cd /tmp/Fast-DDS-Gen
+	gradle assemble
+	sudo env "PATH=$PATH" gradle install
+elif [[ $INSTALL_UDDS == "true" ]]; then
+	echo "fastrtpsgen already installed."
+fi
+
 
 # Simulation tools
 if [[ $INSTALL_SIM == "true" ]]; then
@@ -233,7 +264,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	fi
 
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
-	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+	wget -q --show-progress http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
 	# Update list, since new gazebo-stable.list has been added
 	sudo apt-get update -y --quiet
 	sudo DEBIAN_FRONTEND=noninteractive apt-get -y --quiet --no-install-recommends install \
