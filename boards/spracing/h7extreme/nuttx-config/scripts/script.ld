@@ -239,7 +239,10 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > qspi
+	    . = ALIGN(8);
+		FILL(0xff)
+		. += 8;
+	} > sram AT > qspi = 0xff
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

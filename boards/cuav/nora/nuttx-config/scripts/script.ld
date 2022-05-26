@@ -186,7 +186,10 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > AXI_SRAM AT > FLASH
+	    . = ALIGN(8);
+		FILL(0xff)
+		. += 8;
+	} > AXI_SRAM AT > FLASH  = 0xff
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

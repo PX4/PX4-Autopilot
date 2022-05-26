@@ -156,7 +156,6 @@ SECTIONS
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
-
 	} > flash
 
 	/*
@@ -187,7 +186,10 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > flash
+	    . = ALIGN(8);
+		FILL(0xff)
+		. += 8;
+	} > sram AT > flash = 0xff
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
