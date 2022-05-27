@@ -188,12 +188,11 @@ SECTIONS
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
 
-	    /* Pad out last section as the STM32H7 Flash write size is 256 bits. 32 bytes */
-
-	    . = ALIGN(16);
+		/* Pad out last section as the STM32H7 Flash write size is 256 bits. 32 bytes */
+		. = ALIGN(16);
 		FILL(0xffff)
 		. += 16;
-	} > AXI_SRAM AT > FLASH = 0xffff
+	} > AXI_SRAM AT > FLASH  = 0xffff
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
@@ -205,13 +204,13 @@ SECTIONS
 	} > AXI_SRAM
 
 	/* Emit the the D3 power domain section for locating BDMA data */
+
 	.sram4_reserve (NOLOAD) :
 	{
 		*(.sram4)
 		. = ALIGN(4);
 		_sram4_heap_start = ABSOLUTE(.);
 	} > SRAM4
-
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
@@ -226,13 +225,4 @@ SECTIONS
 	.debug_line 0 : { *(.debug_line) }
 	.debug_pubnames 0 : { *(.debug_pubnames) }
 	.debug_aranges 0 : { *(.debug_aranges) }
-
-	.ramfunc : {
-		_sramfuncs = .;
-		*(.ramfunc  .ramfunc.*)
-		. = ALIGN(4);
-		_eramfuncs = .;
-	} > ITCM_RAM AT > FLASH
-
-	_framfuncs = LOADADDR(.ramfunc);
 }
