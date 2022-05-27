@@ -11,8 +11,12 @@ qmc5883l -I -R 6 start
 
 mpu6000 -s -R 2 start
 mpu6500 -s -R 2 start
-lsm303d -s -R 10 start
-l3gd20 -s -R 14 start
+
+lsm303d -s -R 2 start
+if ! l3gd20 -s -R 2 start
+then
+	l3gd20h -s -R 2 start
+fi
 
 # Internal SPI
 ms5611 -s start

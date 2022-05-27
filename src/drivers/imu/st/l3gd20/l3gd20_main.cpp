@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,26 +31,55 @@
  *
  ****************************************************************************/
 
-#include <px4_arch/spi_hw_description.h>
-#include <drivers/drv_sensor.h>
-#include <nuttx/spi/spi.h>
+#include "L3GD20.hpp"
 
-constexpr px4_spi_bus_t px4_spi_buses[SPI_BUS_MAX_BUS_ITEMS] = {
-	initSPIBus(SPI::Bus::SPI1, {
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU6000, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-		initSPIDevice(DRV_IMU_DEVTYPE_MPU9250, SPI::CS{GPIO::PortC, GPIO::Pin2}, SPI::DRDY{GPIO::PortD, GPIO::Pin15}),
-		initSPIDevice(DRV_GYR_DEVTYPE_L3GD20, SPI::CS{GPIO::PortC, GPIO::Pin13}, SPI::DRDY{GPIO::PortB, GPIO::Pin0}),
-		initSPIDevice(DRV_IMU_DEVTYPE_LSM303D, SPI::CS{GPIO::PortC, GPIO::Pin15}),
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5611, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-		initSPIDevice(DRV_BARO_DEVTYPE_MS5607, SPI::CS{GPIO::PortD, GPIO::Pin7}),
-	}, {GPIO::PortE, GPIO::Pin3}),
-	initSPIBus(SPI::Bus::SPI2, {
-		initSPIDevice(SPIDEV_FLASH(0), SPI::CS{GPIO::PortD, GPIO::Pin10})
-	}),
-	initSPIBusExternal(SPI::Bus::SPI4, {
-		initSPIConfigExternal(SPI::CS{GPIO::PortE, GPIO::Pin4}),
-		initSPIConfigExternal(SPI::CS{GPIO::PortC, GPIO::Pin14}),
-	}),
-};
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
-static constexpr bool unused = validateSPIConfig(px4_spi_buses);
+void L3GD20::print_usage()
+{
+	PRINT_MODULE_USAGE_NAME("l3gd20", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}
+
+extern "C" int l3gd20_main(int argc, char *argv[])
+{
+	int ch;
+	using ThisDriver = L3GD20;
+	BusCLIArguments cli{false, true};
+	cli.default_spi_frequency = ST_L3GD20::SPI_SPEED;
+
+	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
+		switch (ch) {
+		case 'R':
+			cli.rotation = (enum Rotation)atoi(cli.optArg());
+			break;
+		}
+	}
+
+	const char *verb = cli.optArg();
+
+	if (!verb) {
+		ThisDriver::print_usage();
+		return -1;
+	}
+
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_GYR_DEVTYPE_L3GD20);
+
+	if (!strcmp(verb, "start")) {
+		return ThisDriver::module_start(cli, iterator);
+
+	} else if (!strcmp(verb, "stop")) {
+		return ThisDriver::module_stop(iterator);
+
+	} else if (!strcmp(verb, "status")) {
+		return ThisDriver::module_status(iterator);
+	}
+
+	ThisDriver::print_usage();
+	return -1;
+}

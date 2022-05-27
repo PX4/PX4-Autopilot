@@ -94,13 +94,6 @@ extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
 
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-static int hw_version = 0;
-static int hw_revision = 0;
-static char hw_type[4] = HW_VER_TYPE_INIT;
-
 /************************************************************************************
  * Name: board_peripheral_reset
  *
@@ -137,8 +130,6 @@ __EXPORT void board_peripheral_reset(int ms)
 
 __EXPORT void board_on_reset(int status)
 {
-	UNUSED(status);
-
 	/* configure the GPIO pins to outputs and keep them low */
 	for (int i = 0; i < DIRECT_PWM_OUTPUT_CHANNELS; ++i) {
 		px4_arch_configgpio(io_timer_channel_get_gpio_output(i));
@@ -166,127 +157,11 @@ __EXPORT void board_on_reset(int status)
 }
 
 /************************************************************************************
-  * Name: determin_hw_version
- *
- * Description:
- *
- * This function looks at HW deltas to determine what the
- * build is running on using the following criteria:
- *
- * MSN  PB12   FMUv2                Cube             MINI
- * CAN2_RX       CONECTOR             MX30521          NC
- * PU.PD         1,0                   1,1             1,0
- *
- * LSN  PB4    FMUv2                Cube             MINI
- *               ACCEL_DRDY LSM303D    NC              NC
- * PU.PD         0,0                   1,0             1,0
-
- *  PB12:PB4
- *  ud   ud
- *  10   00 - 0x8 FMUv2
- *  11   10 - 0xE Cube AKA V2.0
- *  10   10 - 0xA PixhawkMini
- *  10   11 - 0xB FMUv2 questionable hardware (should be treated like regular FMUv2)
- *
- *  This will return OK on success and -1 on not supported
- *
- *  hw_type Initial state is {'V','2',0, 0}
- *   V 2    - FMUv2
- *   V 3 0  - FMUv3 2.0
- *   V 3 1  - FMUv3 2.1 - not differentiateable,
- *   V 2 M  - FMUv2 Mini
- *
- ************************************************************************************/
-
-static int determin_hw_version(int *version, int *revision)
-{
-	*revision = 0; /* default revision */
-	int rv = 0;
-	int pos = 0;
-	stm32_configgpio(GPIO_PULLDOWN | (HW_VER_PB4 & ~GPIO_PUPD_MASK));
-	up_udelay(10);
-	rv |= stm32_gpioread(HW_VER_PB4) << pos++;
-	stm32_configgpio(HW_VER_PB4);
-	up_udelay(10);
-	rv |= stm32_gpioread(HW_VER_PB4) << pos++;
-
-	int votes = 16;
-	int ones[2] = {0, 0};
-	int zeros[2] = {0, 0};
-
-	while (votes--) {
-		stm32_configgpio(GPIO_PULLDOWN | (HW_VER_PB12 & ~GPIO_PUPD_MASK));
-		up_udelay(10);
-		stm32_gpioread(HW_VER_PB12) ? ones[0]++ : zeros[0]++;
-		stm32_configgpio(HW_VER_PB12);
-		up_udelay(10);
-		stm32_gpioread(HW_VER_PB12) ? ones[1]++ : zeros[1]++;
-	}
-
-	if (ones[0] > zeros[0]) {
-		rv |= 1 << pos;
-	}
-
-	pos++;
-
-	if (ones[1] > zeros[1]) {
-		rv |= 1 << pos;
-	}
-
-	stm32_configgpio(HW_VER_PB4_INIT);
-	stm32_configgpio(HW_VER_PB12_INIT);
-	*version = rv;
-	return OK;
-}
-
-/************************************************************************************
- * Name: board_get_hw_type_name
- *
- * Description:
- *   Optional returns a string defining the HW type
- *
- *
- ************************************************************************************/
-
-__EXPORT const char *board_get_hw_type_name()
-{
-	return (const char *) hw_type;
-}
-
-/************************************************************************************
- * Name: board_get_hw_version
- *
- * Description:
- *   Optional returns a integer HW version
- *
- *
- ************************************************************************************/
-
-__EXPORT int board_get_hw_version()
-{
-	return  HW_VER_SIMPLE(hw_version);
-}
-
-/************************************************************************************
- * Name: board_get_hw_revision
- *
- * Description:
- *   Optional returns a integer HW revision
- *
- *
- ************************************************************************************/
-
-__EXPORT int board_get_hw_revision()
-{
-	return  hw_revision;
-}
-
-/************************************************************************************
  * Name: stm32_boardinitialize
  *
  * Description:
  *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
+ *   is called early in the initialization -- after all memory has been configured
  *   and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
@@ -356,78 +231,17 @@ stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-static struct spi_dev_s *spi1;
-static struct spi_dev_s *spi2;
-static struct spi_dev_s *spi4;
-static struct sdio_dev_s *sdio;
-
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Ensure the power is on 1 ms before we drive the GPIO pins */
 	usleep(1000);
 
-	if (OK == determin_hw_version(&hw_version, & hw_revision)) {
-		switch (hw_version) {
-		case HW_VER_FMUV2_STATE:
-			break;
-
-		case HW_VER_FMUV3_STATE:
-			hw_type[1]++;
-			hw_type[2] = '0';
-
-			/* Has CAN2 transceiver Remove pull up */
-
-			stm32_configgpio(GPIO_CAN2_RX);
-
-			break;
-
-		case HW_VER_FMUV2MINI_STATE:
-
-			/* Detection for a Pixhack3 */
-
-			stm32_configgpio(HW_VER_PA8);
-			up_udelay(10);
-			bool isph3 = stm32_gpioread(HW_VER_PA8);
-			stm32_configgpio(HW_VER_PA8_INIT);
-
-
-			if (isph3) {
-
-				/* Pixhack3 looks like a FMuV3 Cube */
-
-				hw_version = HW_VER_FMUV3_STATE;
-				hw_type[1]++;
-				hw_type[2] = '0';
-				syslog(LOG_INFO, "\nPixhack V3 detected, forcing to fmu-v3");
-
-			} else {
-
-				/* It is a mini */
-
-				hw_type[2] = 'M';
-			}
-
-			break;
-
-		default:
-
-			/* questionable px4_fmu-v2 hardware, try forcing regular FMUv2 (not much else we can do) */
-
-			syslog(LOG_ERR, "\nbad version detected, forcing to fmu-v2");
-			hw_version = HW_VER_FMUV2_STATE;
-			break;
-		}
-
-		syslog(LOG_DEBUG, "\nFMUv2 ver 0x%1X : Rev %x %s\n", hw_version, hw_revision, hw_type);
-	}
-
-	/* configure SPI interfaces (after the hw is determined) */
-	stm32_spiinitialize();
-
 	px4_platform_init();
 
-	/* configure the DMA allocator */
+	/* configure SPI interfaces */
+	stm32_spiinitialize();
 
+	// Configure the DMA allocator.
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
@@ -446,54 +260,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_AMBER);
 	}
 
-	/* Configure SPI-based devices */
-
-	spi1 = stm32_spibus_initialize(1);
-
-	if (!spi1) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 1);
-		led_on(LED_AMBER);
-	}
-
-	/* Default SPI1 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi1, 10000000);
-	SPI_SETBITS(spi1, 8);
-	SPI_SETMODE(spi1, SPIDEV_MODE3);
-	up_udelay(20);
-
-	/* Get the SPI port for the FRAM */
-
-	spi2 = stm32_spibus_initialize(2);
-
-	if (!spi2) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 2);
-		led_on(LED_AMBER);
-	}
-
-	/* Default SPI2 to 37.5 MHz (40 MHz rounded to nearest valid divider, F4 max)
-	 * and de-assert the known chip selects. */
-
-	// XXX start with 10.4 MHz in FRAM usage and go up to 37.5 once validated
-	SPI_SETFREQUENCY(spi2, 12 * 1000 * 1000);
-	SPI_SETBITS(spi2, 8);
-	SPI_SETMODE(spi2, SPIDEV_MODE3);
-
-	spi4 = stm32_spibus_initialize(4);
-
-	if (!spi4) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", 4);
-		led_on(LED_AMBER);
-	}
-
-	/* Default SPI4 to 1MHz and de-assert the known chip selects. */
-	SPI_SETFREQUENCY(spi4, 10000000);
-	SPI_SETBITS(spi4, 8);
-	SPI_SETMODE(spi4, SPIDEV_MODE3);
-
 #ifdef CONFIG_MMCSD
-	/* First, get an instance of the SDIO interface */
 
-	sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
+	// First, get an instance of the SDIO interface.
+	struct sdio_dev_s *sdio = sdio_initialize(CONFIG_NSH_MMCSDSLOTNO);
 
 	if (!sdio) {
 		led_on(LED_AMBER);

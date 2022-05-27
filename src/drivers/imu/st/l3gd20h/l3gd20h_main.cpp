@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,39 +31,27 @@
  *
  ****************************************************************************/
 
-#include "L3GD20.hpp"
+#include "L3GD20H.hpp"
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/module.h>
 
-void
-L3GD20::print_usage()
+void L3GD20H::print_usage()
 {
-	PRINT_MODULE_USAGE_NAME("l3gd20", "driver");
+	PRINT_MODULE_USAGE_NAME("l3gd20h", "driver");
 	PRINT_MODULE_USAGE_SUBCATEGORY("imu");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
-	PRINT_MODULE_USAGE_COMMAND("regdump");
-	PRINT_MODULE_USAGE_COMMAND("testerror");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-void L3GD20::custom_method(const BusCLIArguments &cli)
-{
-	switch (cli.custom1) {
-	case 0: print_registers(); break;
-
-	case 1: test_error(); break;
-	}
-}
-
-extern "C" int l3gd20_main(int argc, char *argv[])
+extern "C" int l3gd20h_main(int argc, char *argv[])
 {
 	int ch;
-	using ThisDriver = L3GD20;
+	using ThisDriver = L3GD20H;
 	BusCLIArguments cli{false, true};
-	cli.default_spi_frequency = 11 * 1000 * 1000;
+	cli.default_spi_frequency = ST_L3GD20H::SPI_SPEED;
 
 	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
 		switch (ch) {
@@ -80,28 +68,16 @@ extern "C" int l3gd20_main(int argc, char *argv[])
 		return -1;
 	}
 
-	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_GYR_DEVTYPE_L3GD20);
+	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_GYR_DEVTYPE_L3GD20H);
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
-	}
 
-	if (!strcmp(verb, "stop")) {
+	} else if (!strcmp(verb, "stop")) {
 		return ThisDriver::module_stop(iterator);
-	}
 
-	if (!strcmp(verb, "status")) {
+	} else if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
-	}
-
-	if (!strcmp(verb, "regdump")) {
-		cli.custom1 = 0;
-		return ThisDriver::module_custom_method(cli, iterator);
-	}
-
-	if (!strcmp(verb, "testerror")) {
-		cli.custom1 = 1;
-		return ThisDriver::module_custom_method(cli, iterator);
 	}
 
 	ThisDriver::print_usage();

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__lsm303d
+	MODULE drivers__imu__st__lsm303d
 	MAIN lsm303d
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		lsm303d_main.cpp
 		LSM303D.cpp
+		LSM303D.hpp
+		ST_LSM303D_registers.hpp
 	DEPENDS
 		drivers_accelerometer
 		drivers_magnetometer
