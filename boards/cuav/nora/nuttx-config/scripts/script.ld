@@ -111,6 +111,7 @@ MEMORY
 {
 	ITCM_RAM  (rwx) : ORIGIN = 0x00000000, LENGTH =   64K
 	FLASH      (rx) : ORIGIN = 0x08020000, LENGTH = 1920K
+
 	DTCM1_RAM (rwx) : ORIGIN = 0x20000000, LENGTH =   64K
 	DTCM2_RAM (rwx) : ORIGIN = 0x20010000, LENGTH =   64K
 	AXI_SRAM  (rwx) : ORIGIN = 0x24000000, LENGTH =  512K /* D1 domain AXI bus */
@@ -186,7 +187,12 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > AXI_SRAM AT > FLASH
+
+		/* Pad out last section as the STM32H7 Flash write size is 256 bits. 32 bytes */
+		. = ALIGN(16);
+		FILL(0xffff)
+		. += 16;
+	} > AXI_SRAM AT > FLASH  = 0xffff
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
