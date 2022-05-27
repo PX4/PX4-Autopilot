@@ -76,7 +76,7 @@ inline int fc_is_dirty(flash_cache_line_t *fl)
 
 int fc_flush(flash_cache_line_t *fl)
 {
-	size_t bytes = (fl->index + 1) * sizeof(fl->words[0]);
+	const size_t bytes = sizeof(fl->words);
 	size_t rv = arch_flash_write(fl->start_address, fl->words, bytes);
 
 	if (rv == bytes) {
