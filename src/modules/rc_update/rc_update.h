@@ -69,11 +69,15 @@ namespace rc_update
 
 // Number of Generic Trigger slots that can be configured
 static constexpr uint8_t RC_TRIG_SLOT_COUNT = 6;
+
 // Value of the RC_TRIG#_CHAN when the channel is unassigned
 static constexpr uint8_t RC_TRIG_CHAN_UNASSIGNED = 0;
 
+// Value of the RC_TRIG#_ACTION when the action is unassigned
+static constexpr uint8_t RC_TRIG_ACTION_UNASSIGNED = -1;
+
 // Enum class translation of the RC_TRIG#_ACTION values
-static constexpr enum RC_TRIGGER_ACTIONS {
+enum RC_TRIGGER_ACTIONS {
 	RC_TRIGGER_ACTION_UNASSIGNED = -1,
 	// Commander States (defined in commander_state.msg)
 	RC_TRIGGER_ACTION_MANUAL_FLIGHTMODE = 0,
@@ -174,6 +178,9 @@ public:
 		bool rev[RC_MAX_CHAN_COUNT];
 
 		int32_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
+
+		uint8_t generic_trigger_chan[RC_TRIG_SLOT_COUNT];
+		uint8_t generic_trigger_action[RC_TRIG_SLOT_COUNT];
 	} _parameters{};
 
 	struct ParameterHandles {
@@ -184,10 +191,12 @@ public:
 		param_t dz[RC_MAX_CHAN_COUNT];
 
 		param_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
-		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the parameters which are bound
-								to a RC channel, equivalent float values in the
-								_parameters struct are not existing
-								because these parameters are never read. */
+		param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
+		/**< param handles for the parameters which are bound to a RC channel, equivalent float values
+		 * in the_parameters struct are not existing because these parameters are never read. */
+
+		param_t generic_trigger_chan[RC_TRIG_SLOT_COUNT];
+		param_t generic_trigger_action[RC_TRIG_SLOT_COUNT];
 	} _parameter_handles{};
 
 	uORB::SubscriptionCallbackWorkItem _input_rc_sub{this, ORB_ID(input_rc)};
@@ -221,7 +230,6 @@ public:
 
 	// Flag to indicate that RC input is being used for manual control (whether we can use generic action)
 	bool _manual_control_setpoint_source_is_rc{false};
-	// Hysteresis objects to track status of the each trigger slots for generic action
 	systemlib::Hysteresis _trigger_slots_hysteresis[RC_TRIG_SLOT_COUNT];
 	param_t _trigger_channel_param_handles[RC_TRIG_SLOT_COUNT] {};
 	param_t _trigger_action_param_handles[RC_TRIG_SLOT_COUNT] {};

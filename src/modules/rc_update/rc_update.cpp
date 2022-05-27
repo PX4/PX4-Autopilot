@@ -66,13 +66,13 @@ RCUpdate::RCUpdate() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_trigger_slots_hysteresis{
-		systemlib::Hysteresis{false},
-		systemlib::Hysteresis{false},
-		systemlib::Hysteresis{false},
-		systemlib::Hysteresis{false},
-		systemlib::Hysteresis{false},
-		systemlib::Hysteresis{false}
-	}
+	systemlib::Hysteresis{false},
+	systemlib::Hysteresis{false},
+	systemlib::Hysteresis{false},
+	systemlib::Hysteresis{false},
+	systemlib::Hysteresis{false},
+	systemlib::Hysteresis{false}
+}
 {
 	// initialize parameter handles
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
@@ -104,16 +104,16 @@ RCUpdate::RCUpdate() :
 		// shifted by 1 because param name starts at 1
 		char name[rc_parameter_map_s::PARAM_ID_LEN];
 		snprintf(name, rc_parameter_map_s::PARAM_ID_LEN, "RC_MAP_PARAM%d", i + 1);
-		_trigger_channel_param_handles.rc_map_param[i] = param_find(name);
+		_parameter_handles.rc_map_param[i] = param_find(name);
 	}
 
-	// Find and set RC Channel & Actions for each Trigger actions (1 ~ 6)
-	char param_name_buf[17] = {};
+	// Find param handles for Generic Trigger Channel & Actions for slot 1 ~ 6
 	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		char param_name_buf[17] = {};
 		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG_%d_CHAN", trig_slot);
-		_trigger_channel_param_handles[trig_slot - 1] = param_find(param_name_buf);
+		_parameter_handles.generic_trigger_chan[trig_slot - 1] = param_find(param_name_buf);
 		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG_%d_ACTION", trig_slot);
-		_trigger_action_param_handles[trig_slot - 1] = param_find(param_name_buf);
+		_parameter_handles.generic_trigger_action[trig_slot - 1] = param_find(param_name_buf);
 	}
 
 	rc_parameter_map_poll(true /* forced */);
@@ -170,6 +170,16 @@ void RCUpdate::parameters_updated()
 	}
 
 	update_rc_functions();
+
+	// Update and check values of the generic action parameters
+	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		int32_t new_channel{RC_TRIG_CHAN_UNASSIGNED};
+		int32_t new_action{RC_TRIG_ACTION_UNASSIGNED};
+		param_get(_parameter_handles.generic_trigger_chan[trig_slot - 1], &new_channel);
+		param_get(_parameter_handles.generic_trigger_action[trig_slot - 1], &new_action);
+
+
+	}
 
 	// deprecated parameters, will be removed post v1.12 once QGC is updated
 	{
@@ -247,8 +257,6 @@ void RCUpdate::update_rc_functions()
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		_rc.function[rc_channels_s::FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
 	}
-
-	map_flight_modes_buttons();
 }
 
 void RCUpdate::rc_parameter_map_poll(bool forced)
@@ -589,17 +597,18 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 
 	// Use the Generic RC Switch / Button only when the RC is in use
 	if (_manual_control_setpoint_sub.update() &&
-		_manual_control_setpoint_sub.get().data_source == manual_control_setpoint_s::SOURCE_RC) {
+	    _manual_control_setpoint_sub.get().data_source == manual_control_setpoint_s::SOURCE_RC) {
 		_manual_control_setpoint_source_is_rc = true;
 	}
 
 	// Go through the trigger slots and update the states
 	const uint32_t rc_trigger_is_button_mask = _param_rc_trig_btn_mask.get();
+
 	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
 		int channel{RC_TRIG_CHAN_UNASSIGNED};
-		param_get(_trigger_channel_param_handles[trig_slot-1], &channel);
+		param_get(_trigger_channel_param_handles[trig_slot - 1], &channel);
 		int action{RC_TRIGGER_ACTION_UNASSIGNED};
-		param_get(_trigger_action_param_handles[trig_slot-1], &action);
+		param_get(_trigger_action_param_handles[trig_slot - 1], &action);
 
 		if (channel > RC_TRIG_CHAN_UNASSIGNED) {
 
@@ -609,13 +618,14 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 	// Update the Generic Action states
 	const uint8_t trig1_chan = _param_rc_trig1_chan.get();
 	const uint8_t trig1_action = _param_rc_trig1_action.get();
+
 	// Trigger Channel is configured
 	if (trig1_chan > 0) {
 		const bool is_btn = _param_rc_trig_btn_mask.get() & (1 << 0);
+
 		if (is_btn) {
 
-		}
-		else {
+		} else {
 			// Is Switch
 
 		}
