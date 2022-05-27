@@ -186,10 +186,13 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	    . = ALIGN(8);
-		FILL(0xff)
-		. += 8;
-	} > AXI_SRAM AT > FLASH  = 0xff
+
+	    /* Pad out last section as the STM32H7 Flash write size is 256 bits. 32 bytes */
+
+	    . = ALIGN(16);
+		FILL(0xffff)
+		. += 16;
+	} > AXI_SRAM AT > FLASH  = 0xffff
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
