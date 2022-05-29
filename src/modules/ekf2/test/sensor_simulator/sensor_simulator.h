@@ -65,7 +65,8 @@ using namespace sensor_simulator::sensor;
 
 struct sensor_info {
 	uint64_t timestamp{};
-	enum measurement_t {IMU, MAG, BARO, GPS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type = IMU;
+	enum class measurement_t {IMU, MAG, BARO, GPS, AIRSPEED, RANGE, FLOW, VISION, LANDING_STATUS} sensor_type =
+		measurement_t::IMU;
 	std::array<double, 10> sensor_data{};
 };
 
