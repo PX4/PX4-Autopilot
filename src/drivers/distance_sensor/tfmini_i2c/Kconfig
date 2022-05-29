@@ -1,0 +1,5 @@
+menuconfig DRIVERS_DISTANCE_SENSOR_TFMINI_I2C
+	bool "tfmini_i2c"
+	default n
+	---help---
+		Enable support for tfmini_i2c

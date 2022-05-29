@@ -58,6 +58,11 @@ then
 	pga460 start
 fi
 
+if param greater -s SENS_EN_TFI2C 0
+then
+	tfmini_i2c start -X
+fi
+
 # Lightware i2c lidar sensor
 if param greater -s SENS_EN_SF1XX 0
 then
