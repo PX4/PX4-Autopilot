@@ -40,14 +40,6 @@
 
 using namespace matrix;
 
-FlightTaskAuto::FlightTaskAuto() :
-	_obstacle_avoidance(this),
-	_sticks(this),
-	_stick_acceleration_xy(this)
-{
-
-}
-
 bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
@@ -257,9 +249,7 @@ void FlightTaskAuto::_prepareLandSetpoints()
 		vertical_speed *= (1 + _sticks.getPositionExpo()(2));
 
 		// Only set a yawrate setpoint if weather vane is not active or the yaw stick is out of its dead-zone
-		const bool weather_vane_active = (_ext_yaw_handler != nullptr) && _ext_yaw_handler->is_active();
-
-		if (!weather_vane_active || fabsf(_sticks.getPositionExpo()(3)) > FLT_EPSILON) {
+		if (!_weathervane.isActive() || fabsf(_sticks.getPositionExpo()(3)) > FLT_EPSILON) {
 			_stick_yaw.generateYawSetpoint(_yawspeed_setpoint, _land_heading,
 						       _sticks.getPositionExpo()(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _is_yaw_good_for_control, _deltatime);
 		}
@@ -455,11 +445,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_next_was_valid = _sub_triplet_setpoint.get().next.valid;
 	}
 
-	if (_ext_yaw_handler != nullptr) {
-		// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)
-		(_param_wv_en.get() && !_sub_triplet_setpoint.get().current.disable_weather_vane) ?	_ext_yaw_handler->activate() :
-		_ext_yaw_handler->deactivate();
-	}
+	// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)
+	_weathervane.setNavigatorForceDisabled(_sub_triplet_setpoint.get().current.disable_weather_vane);
 
 	// Calculate the current vehicle state and check if it has updated.
 	State previous_state = _current_state;
@@ -476,13 +463,15 @@ bool FlightTaskAuto::_evaluateTriplets()
 				_triplet_next_wp,
 				_sub_triplet_setpoint.get().next.yaw,
 				_sub_triplet_setpoint.get().next.yawspeed_valid ? _sub_triplet_setpoint.get().next.yawspeed : (float)NAN,
-				_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active(), _sub_triplet_setpoint.get().current.type);
+				_weathervane.isActive(), _sub_triplet_setpoint.get().current.type);
 		_obstacle_avoidance.checkAvoidanceProgress(
 			_position, _triplet_prev_wp, _target_acceptance_radius, Vector2f(_closest_pt));
 	}
 
 	// set heading
-	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
+	_weathervane.update();
+
+	if (_weathervane.isActive()) {
 		_yaw_setpoint = NAN;
 		// use the yawrate setpoint from WV only if not moving lateral (velocity setpoint below half of _param_mpc_xy_cruise)
 		// otherwise, keep heading constant (as output from WV is not according to wind in this case)
@@ -492,7 +481,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 			_yawspeed_setpoint = 0.0f;
 
 		} else {
-			_yawspeed_setpoint = _ext_yaw_handler->get_weathervane_yawrate();
+			_yawspeed_setpoint = _weathervane.getWeathervaneYawrate();
 		}
 
 

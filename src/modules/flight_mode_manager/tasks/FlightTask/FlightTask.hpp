@@ -55,7 +55,6 @@
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/home_position.h>
 #include <lib/geo/geo.h>
-#include <lib/weather_vane/WeatherVane.hpp>
 
 struct ekf_reset_counters_s {
 	uint8_t xy;
@@ -163,11 +162,6 @@ public:
 		updateParams();
 	}
 
-	/**
-	 * Sets an external yaw handler which can be used by any flight task to implement a different yaw control strategy.
-	 * This method does nothing, each flighttask which wants to use the yaw handler needs to override this method.
-	 */
-	virtual void setYawHandler(WeatherVane *ext_yaw_handler) {}
 	virtual void overrideCruiseSpeed(const float cruise_speed_m_s) {}
 
 	void updateVelocityControllerFeedback(const matrix::Vector3f &vel_sp,
