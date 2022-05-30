@@ -41,6 +41,7 @@
 #include <lib/version/version.h>
 
 #include "Publishers/BatteryInfo.hpp"
+#include "Publishers/ESCStatus.hpp"
 #include "Publishers/FlowMeasurement.hpp"
 #include "Publishers/HygrometerMeasurement.hpp"
 #include "Publishers/GnssFix2.hpp"
@@ -53,10 +54,13 @@
 #include "Publishers/StaticPressure.hpp"
 #include "Publishers/StaticTemperature.hpp"
 
+#include "Subscribers/ArmingStatus.hpp"
 #include "Subscribers/BeepCommand.hpp"
+#include "Subscribers/ESCRawCommand.hpp"
 #include "Subscribers/LightsCommand.hpp"
 #include "Subscribers/MovingBaselineData.hpp"
 #include "Subscribers/RTCMStream.hpp"
+#include "Subscribers/ServoArrayCommand.hpp"
 
 using namespace time_literals;
 
@@ -296,6 +300,7 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 
 	// TODO: make runtime (and build time?) configurable
 	_publisher_list.add(new BatteryInfo(this, _node));
+	_publisher_list.add(new ESCStatus(this, _node));
 	_publisher_list.add(new FlowMeasurement(this, _node));
 	_publisher_list.add(new HygrometerMeasurement(this, _node));
 	_publisher_list.add(new GnssFix2(this, _node));
@@ -315,7 +320,16 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	_publisher_list.add(new StaticPressure(this, _node));
 	_publisher_list.add(new StaticTemperature(this, _node));
 
+	int32_t enable_arming_status_sub = 0;
+	param_get(param_find("CANNODE_ARM_STAT"), &enable_arming_status_sub);
+
+	if (enable_arming_status_sub != 0) {
+		_subscriber_list.add(new ArmingStatus(_node));
+
+	}
+
 	_subscriber_list.add(new BeepCommand(_node));
+	_subscriber_list.add(new ESCRawCommand(_node));
 	_subscriber_list.add(new LightsCommand(_node));
 
 	int32_t cannode_sub_mbd = 0;
@@ -331,6 +345,8 @@ int UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events
 	if (cannode_sub_rtcm == 1) {
 		_subscriber_list.add(new RTCMStream(_node));
 	}
+
+	_subscriber_list.add(new ServoArrayCommand(_node));
 
 	for (auto &subscriber : _subscriber_list) {
 		subscriber->init();

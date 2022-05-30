@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2014-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,67 +32,50 @@
  ****************************************************************************/
 
 /**
- * UAVCAN Node ID.
+ * @file arming_status.cpp
  *
- * Read the specs at http://uavcan.org to learn more about Node ID.
- *
- * @min 1
- * @max 125
- * @group UAVCAN
+ * @author Alex Klimaj <alex@arkelectron.com>
  */
-PARAM_DEFINE_INT32(CANNODE_NODE_ID, 120);
 
-/**
- * UAVCAN CAN bus bitrate.
- *
- * @min 20000
- * @max 1000000
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_BITRATE, 1000000);
+#include "arming_status.hpp"
 
-/**
- * CAN built-in bus termination
- *
- * @boolean
- * @max 1
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_TERM, 0);
+UavcanArmingStatus::UavcanArmingStatus(uavcan::INode &node) :
+	_arming_status_pub(node),
+	_timer(node)
+{
+	_arming_status_pub.setPriority(uavcan::TransferPriority::Default);
+}
 
-/**
- * Enable Arming Status subscription
- *
- * @boolean
- * @max 1
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_ARM_STAT, 0);
+int UavcanArmingStatus::init()
+{
+	/*
+	 * Setup timer and call back function for periodic updates
+	 */
+	if (!_timer.isRunning()) {
+		_timer.setCallback(TimerCbBinder(this, &UavcanArmingStatus::periodic_update));
+		_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / MAX_RATE_HZ));
+	}
 
-/**
- * Enable MovingBaselineData subscription
- *
- * @boolean
- * @max 1
- * @reboot_required true
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_SUB_MBD, 0);
+	return 0;
+}
 
-/**
- * Enable RTCM subscription
- *
- * @boolean
- * @reboot_required true
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_SUB_RTCM, 0);
+void UavcanArmingStatus::periodic_update(const uavcan::TimerEvent &)
+{
+	actuator_armed_s actuator_armed;
 
-/**
- * Enable MovingBaselineData publication
- *
- * @boolean
- * @reboot_required true
- * @group UAVCAN
- */
-PARAM_DEFINE_INT32(CANNODE_PUB_MBD, 0);
+	if (_actuator_armed_sub.update(&actuator_armed)) {
+		uavcan::equipment::safety::ArmingStatus cmd;
+
+		if (actuator_armed.lockdown || actuator_armed.manual_lockdown) {
+			cmd.status = cmd.STATUS_DISARMED;
+
+		} else if (actuator_armed.armed || actuator_armed.prearmed) {
+			cmd.status = cmd.STATUS_FULLY_ARMED;
+
+		} else {
+			cmd.status = cmd.STATUS_DISARMED;
+		}
+
+		(void)_arming_status_pub.broadcast(cmd);
+	}
+}

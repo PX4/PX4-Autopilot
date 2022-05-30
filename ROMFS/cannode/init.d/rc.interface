@@ -1,0 +1,284 @@
+#!/bin/sh
+#
+# Script to configure control interfaces.
+#
+#
+# NOTE: environment variable references:
+#  If the dollar sign ('$') is followed by a left bracket ('{') then the
+#  variable name is terminated with the right bracket character ('}').
+#  Otherwise, the variable name goes to the end of the argument.
+#
+
+set OUTPUT_CMD pwm_out
+set MIXER_AUX_FILE none
+set MIXER_EXTRA_FILE none
+
+set OUTPUT_DEV none
+set OUTPUT_AUX_DEV /dev/pwm_output1
+set OUTPUT_EXTRA_DEV /dev/pwm_output0
+
+# set these before starting the modules
+if [ $PWM_AUX_OUT != none ]
+then
+
+	param set PWM_AUX_OUT ${PWM_AUX_OUT}
+fi
+
+
+if [ $PWM_OUT != none ]
+then
+	param set PWM_MAIN_OUT ${PWM_OUT}
+fi
+
+#
+# If mount (gimbal) control is enabled and output mode is AUX, set the aux
+# mixer to mount (override the airframe-specific MIXER_AUX setting).
+#
+if param greater -s MNT_MODE_IN -1
+then
+        if param compare -s MNT_MODE_OUT 0
+        then
+                set MIXER_AUX mount
+        fi
+fi
+
+#
+# Set the default output mode if none was set.
+#
+if [ $OUTPUT_MODE = none -a $OUTPUT_MODE != skip ]
+then
+	if [ $USE_IO = yes ]
+	then
+		# Enable IO output only if IO is present.
+		if [ $IO_PRESENT = yes ]
+		then
+			set OUTPUT_MODE io
+			if param greater -s DSHOT_CONFIG 0
+			then
+				set OUTPUT_CMD dshot
+			fi
+		fi
+	else
+		if param greater -s DSHOT_CONFIG 0
+		then
+			set OUTPUT_MODE dshot
+			set OUTPUT_CMD dshot
+		else
+			set OUTPUT_MODE pwm_out
+		fi
+	fi
+fi
+
+#
+# If OUTPUT_MODE = none then something is wrong with setup and we shouldn't try to enable output.
+#
+if [ $OUTPUT_MODE != none -a $OUTPUT_MODE != skip ]
+then
+
+	if [ $OUTPUT_MODE = hil -o $OUTPUT_MODE = sim ]
+	then
+		if ! pwm_out_sim start -m $OUTPUT_MODE
+		then
+			tune_control play error
+		fi
+	fi
+
+	if [ $OUTPUT_MODE = uavcan_esc ]
+	then
+		if param compare UAVCAN_ENABLE 0
+		then
+			param set UAVCAN_ENABLE 3
+		fi
+	fi
+
+	#
+	# Start IO for PWM output or RC input if needed.
+	#
+	if [ $IO_PRESENT = yes ]
+	then
+		if ! px4io start
+		then
+			echo "PX4IO start failed"
+			tune_control play -t 18 # PROG_PX4IO_ERR
+		fi
+	fi
+
+	if [ $OUTPUT_MODE = $OUTPUT_CMD -o $OUTPUT_MODE = io ]
+	then
+		if param compare SYS_CTRL_ALLOC 1
+		then
+			pwm_out start
+			dshot start
+		else
+			if ! $OUTPUT_CMD start
+			then
+				echo "$OUTPUT_CMD start failed"
+				tune_control play error
+			fi
+		fi
+	fi
+fi
+
+if [ $MIXER != none -a $MIXER != skip ]
+then
+	#
+	# Load main mixer.
+	#
+	if [ $MIXER_AUX = none -a $USE_IO = yes ]
+	then
+		set MIXER_AUX ${MIXER}
+	fi
+
+	if [ "$MIXER_FILE" = none ]
+	then
+		if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix ]
+		then
+			# Use the mixer file from the SD-card if it exists.
+			set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix
+		else
+			# Try out the old convention, for backward compatibility.
+			if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.mix ]
+			then
+				set MIXER_FILE ${SDCARD_MIXERS_PATH}/${MIXER}.mix
+			else
+				set MIXER_FILE /etc/mixers/${MIXER}.main.mix
+			fi
+		fi
+	fi
+
+	set OUTPUT_DEV /dev/pwm_output0
+
+	if [ $OUTPUT_MODE = uavcan_esc ]
+	then
+		set OUTPUT_DEV /dev/uavcan/esc
+	fi
+
+	if mixer load ${OUTPUT_DEV} ${MIXER_FILE}
+	then
+		echo "INFO  [init] Mixer: ${MIXER_FILE} on ${OUTPUT_DEV}"
+
+	else
+		echo "ERROR  [init] Failed loading mixer: ${MIXER_FILE}"
+		tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
+	fi
+
+else
+	if [ $MIXER != skip ]
+	then
+		echo "ERROR  [init] Mixer undefined"
+		tune_control play -t 18 # tune 18 = PROG_PX4IO_ERR
+	fi
+fi
+
+if [ $MIXER_AUX != none ]
+then
+	#
+	# Load aux mixer.
+	#
+	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix ]
+	then
+		set MIXER_AUX_FILE ${SDCARD_MIXERS_PATH}/${MIXER_AUX}.aux.mix
+	else
+
+		if [ -f /etc/mixers/${MIXER_AUX}.aux.mix ]
+		then
+			set MIXER_AUX_FILE /etc/mixers/${MIXER_AUX}.aux.mix
+		fi
+	fi
+
+	if [ $MIXER_AUX_FILE != none ]
+	then
+		# Append aux mixer to main device.
+		if param greater SYS_HITL 0
+		then
+			if mixer append ${OUTPUT_DEV} ${MIXER_AUX_FILE}
+			then
+				echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} appended to ${OUTPUT_DEV}"
+			else
+				echo "ERROR  [init] Failed appending mixer: ${MIXER_AUX_FILE}"
+			fi
+		fi
+		if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
+		then
+			if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
+			then
+				echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} on ${OUTPUT_AUX_DEV}"
+			else
+				echo "ERROR  [init] Failed loading mixer: ${MIXER_AUX_FILE}"
+			fi
+		else
+			echo "INFO  [init] setting PWM_AUX_OUT none"
+			set PWM_AUX_OUT none
+		fi
+
+		# for DShot do not configure pwm values
+		if [ $OUTPUT_CMD != dshot ]
+		then
+			# Set min / max for aux out and rates.
+			if [ $PWM_AUX_OUT != none ]
+			then
+				# Set PWM_AUX output frequency.
+				if [ $PWM_AUX_RATE != none ]
+				then
+					pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
+				fi
+			fi
+		fi
+	fi
+fi
+
+if [ $OUTPUT_MODE = pwm_out -o $OUTPUT_MODE = io ]
+then
+	if [ $PWM_OUT != none -a $PWM_MAIN_RATE != none ]
+	then
+		# Set PWM output frequency.
+		if ! param compare SYS_CTRL_ALLOC 1
+		then
+			pwm rate -c ${PWM_OUT} -r ${PWM_MAIN_RATE}
+		fi
+	fi
+fi
+
+if [ $EXTRA_MIXER_MODE != none ]
+then
+
+	if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_EXTRA}.aux.mix ]
+	then
+		# Use the mixer file from the SD-card if it exists.
+		set MIXER_EXTRA_FILE ${SDCARD_MIXERS_PATH}/${MIXER_EXTRA}.aux.mix
+	else
+		# Try out the old convention, for backward compatibility.
+		if [ -f ${SDCARD_MIXERS_PATH}/${MIXER_EXTRA}.mix ]
+		then
+			set MIXER_EXTRA_FILE ${SDCARD_MIXERS_PATH}/${MIXER_EXTRA}.mix
+		else
+			set MIXER_EXTRA_FILE /etc/mixers/${MIXER_EXTRA}.aux.mix
+		fi
+	fi
+
+
+	if mixer load ${OUTPUT_EXTRA_DEV} ${MIXER_EXTRA_FILE}
+	then
+		echo "INFO  [init] Mixer: ${MIXER_EXTRA_FILE} on ${OUTPUT_EXTRA_DEV}"
+	else
+		echo "ERROR  [init] Failed loading mixer: ${MIXER_EXTRA_FILE}"
+		tune_control play -t 20
+	fi
+
+	if [ $PWM_EXTRA_OUT != none ]
+	then
+		# Set PWM output frequency.
+		if [ $PWM_EXTRA_RATE != none ]
+		then
+			pwm rate -c ${PWM_EXTRA_OUT} -r ${PWM_EXTRA_RATE}
+		fi
+	fi
+fi
+
+unset OUTPUT_CMD
+unset MIXER_AUX_FILE
+unset MIXER_EXTRA_FILE
+
+unset OUTPUT_DEV
+unset OUTPUT_AUX_DEV
+unset OUTPUT_EXTRA_DEV

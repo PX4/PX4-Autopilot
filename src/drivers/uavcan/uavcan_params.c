@@ -186,6 +186,18 @@ PARAM_DEFINE_INT32(UAVCAN_LGT_NAV, 3);
 PARAM_DEFINE_INT32(UAVCAN_LGT_LAND, 0);
 
 /**
+ * publish Arming Status stream
+ *
+ * Enable UAVCAN Arming Status stream publication
+ *  uavcan::equipment::safety::ArmingStatus
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_PUB_ARM, 0);
+
+/**
  * publish RTCM stream
  *
  * Enable UAVCAN RTCM stream publication

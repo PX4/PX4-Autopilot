@@ -2,6 +2,9 @@
 #
 # board specific defaults
 #------------------------------------------------------------------------------
+param set-default SYS_CTRL_ALLOC 1
+
 pwm_out start
 
-control_allocator start
+# Load mixer and configure outputs.
+. ${R}etc/init.d/rc.interface
