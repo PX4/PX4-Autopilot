@@ -1686,6 +1686,11 @@ int PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 		}
 
+		/* For Legacy PX4IO Firmware only:
+		 * If IO has already safety off it won't accept going into bootloader mode,
+		 * therefore we need to set safety on first. */
+		io_reg_set(PX4IO_PAGE_SETUP, 14, 22027);
+
 		/* reboot into bootloader - arg must be PX4IO_REBOOT_BL_MAGIC */
 		usleep(1);
 		ret = io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
