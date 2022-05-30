@@ -98,7 +98,9 @@ ControlAllocator::init()
 		return false;
 	}
 
+#ifndef ENABLE_LOCKSTEP_SCHEDULER // Backup schedule would interfere with lockstep
 	ScheduleDelayed(50_ms);
+#endif
 
 	return true;
 }
@@ -296,8 +298,10 @@ ControlAllocator::Run()
 
 	perf_begin(_loop_perf);
 
+#ifndef ENABLE_LOCKSTEP_SCHEDULER // Backup schedule would interfere with lockstep
 	// Push backup schedule
 	ScheduleDelayed(50_ms);
+#endif
 
 	// Check if parameters have changed
 	if (_parameter_update_sub.updated() && !_armed) {
