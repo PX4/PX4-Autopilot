@@ -413,7 +413,8 @@ void FlightModeManager::handleCommand()
 		FlightTaskIndex desired_task = switchVehicleCommand(command.command);
 
 		// ignore all unkown commands
-		if (desired_task != FlightTaskIndex::None) {
+		if (desired_task != FlightTaskIndex::None
+		    && _vehicle_status_sub.get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			// switch to the commanded task
 			bool switch_succeeded = (switchTask(desired_task) == FlightTaskError::NoError);
 			uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
