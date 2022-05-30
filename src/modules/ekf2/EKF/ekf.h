@@ -348,6 +348,9 @@ public:
 	const auto &aid_src_gnss_vel() const { return _aid_src_gnss_vel; }
 	const auto &aid_src_gnss_pos() const { return _aid_src_gnss_pos; }
 
+	const auto &aid_src_ev_vel() const { return _aid_src_gnss_vel; }
+	const auto &aid_src_ev_pos() const { return _aid_src_gnss_pos; }
+
 private:
 
 	// set the internal states and status to their default value
@@ -381,7 +384,7 @@ private:
 
 	// variables used when position data is being fused using a relative position odometry model
 	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
-	Vector2f _hpos_pred_prev{};		///< previous value of NE position state used by odometry fusion (m)
+	Vector3f _hpos_pred_prev{};		///< previous value of NE position state used by odometry fusion (m)
 	bool _hpos_prev_available{false};	///< true when previous values of the estimate and measurement are available for use
 	Dcmf _R_ev_to_ekf;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame, initialized with Identity
 	bool _inhibit_ev_yaw_use{false};	///< true when the vision yaw data should not be used (e.g.: NE fusion requires true North)
@@ -450,12 +453,6 @@ private:
 	float _vert_vel_innov_ratio{0.f};		///< standard deviation of vertical velocity innovation
 	uint64_t _vert_vel_fuse_time_us{0};	///< last system time in usec time vertical velocity measurement fuson was attempted
 
-	Vector3f _ev_vel_innov{};	///< external vision velocity innovations (m/sec)
-	Vector3f _ev_vel_innov_var{};	///< external vision velocity innovation variances ((m/sec)**2)
-
-	Vector3f _ev_pos_innov{};	///< external vision position innovations (m)
-	Vector3f _ev_pos_innov_var{};	///< external vision position innovation variances (m**2)
-
 	Vector3f _aux_vel_innov{};	///< horizontal auxiliary velocity innovations: (m/sec)
 	Vector3f _aux_vel_innov_var{};	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
 
@@ -498,6 +495,9 @@ private:
 
 	estimator_aid_source_3d_s _aid_src_gnss_vel{};
 	estimator_aid_source_3d_s _aid_src_gnss_pos{};
+
+	estimator_aid_source_3d_s _aid_src_ev_vel{};
+	estimator_aid_source_3d_s _aid_src_ev_pos{};
 
 	// output predictor states
 	Vector3f _delta_angle_corr{};	///< delta angle correction vector (rad)
@@ -647,7 +647,6 @@ private:
 
 	void fuseBaroHgt(estimator_aid_source_1d_s &baro_hgt);
 	void fuseRngHgt(estimator_aid_source_1d_s &range_hgt);
-	void fuseEvHgt();
 
 	void updateBaroHgt(const baroSample &baro_sample, estimator_aid_source_1d_s &baro_hgt);
 	void updateRngHgt(estimator_aid_source_1d_s &rng_hgt);
@@ -701,6 +700,12 @@ private:
 	void updateGpsPos(const gpsSample &gps_sample);
 	void fuseGpsPos();
 
+	void updateEvVel(const extVisionSample &ev_sample);
+	void fuseEvVel();
+
+	void updateEvPos(const extVisionSample &ev_sample);
+	void fuseEvPos();
+
 	// calculate optical flow body angular rate compensation
 	// returns false if bias corrected body rate data is unavailable
 	bool calcOptFlowBodyRateComp();
@@ -747,13 +752,6 @@ private:
 
 	// modify output filter to match the the EKF state at the fusion time horizon
 	void alignOutputFilter();
-
-	// update the rotation matrix which transforms EV navigation frame measurements into NED
-	void calcExtVisRotMat();
-
-	Vector3f getVisionVelocityInEkfFrame() const;
-
-	Vector3f getVisionVelocityVarianceInEkfFrame() const;
 
 	// matrix vector multiplication for computing K<24,1> * H<1,24> * P<24,24>
 	// that is optimized by exploring the sparsity in H

@@ -263,6 +263,9 @@ private:
 	hrt_abstime _status_gnss_vel_pub_last{0};
 	hrt_abstime _status_gnss_pos_pub_last{0};
 
+	hrt_abstime _status_ev_vel_pub_last{0};
+	hrt_abstime _status_ev_pos_pub_last{0};
+
 	float _last_baro_bias_published{};
 
 	float _airspeed_scale_factor{1.0f}; ///< scale factor correction applied to airspeed measurements
@@ -329,6 +332,9 @@ private:
 
 	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_gnss_vel_pub{ORB_ID(estimator_aid_src_gnss_vel)};
 	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_gnss_pos_pub{ORB_ID(estimator_aid_src_gnss_pos)};
+
+	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_ev_vel_pub{ORB_ID(estimator_aid_src_ev_vel)};
+	uORB::PublicationMulti<estimator_aid_source_3d_s> _estimator_aid_src_ev_pos_pub{ORB_ID(estimator_aid_src_ev_pos)};
 
 	// publications with topic dependent on multi-mode
 	uORB::PublicationMulti<vehicle_attitude_s>           _attitude_pub;
