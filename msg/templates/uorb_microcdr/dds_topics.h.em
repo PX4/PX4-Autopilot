@@ -37,6 +37,18 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 #include <uORB/ucdr/@(receive_base_types[idx]).h>
 @[end for]@
 
+#define TOPIC_NAME_SIZE 128
+
+static bool generate_topic_name(char* topic, const char* client_namespace, const char* direction, const char* name) {
+	if(client_namespace == nullptr) {
+		return snprintf(topic, TOPIC_NAME_SIZE, "rt/fmu/%s/%s",
+						direction, name) > 0;
+	} else {
+		return snprintf(topic, TOPIC_NAME_SIZE, "rt/%s/fmu/%s/%s",
+						client_namespace, direction, name) > 0;
+	}
+}
+
 // Subscribers for messages to send
 struct SendTopicsSubs {
 @[    for idx, topic in enumerate(send_topics)]@
@@ -48,11 +60,11 @@ struct SendTopicsSubs {
 
 	uint32_t num_payload_sent{};
 
-	bool init(uxrSession* session_, uxrStreamId stream_id, uxrObjectId participant_id);
+	bool init(uxrSession* session_, uxrStreamId stream_id, uxrObjectId participant_id, const char* client_namespace);
 	void update(uxrStreamId stream_id);
 };
 
-bool SendTopicsSubs::init(uxrSession* session_, uxrStreamId stream_id, uxrObjectId participant_id)
+bool SendTopicsSubs::init(uxrSession* session_, uxrStreamId stream_id, uxrObjectId participant_id, const char* client_namespace)
 {
 	session = session_;
 
@@ -61,11 +73,15 @@ bool SendTopicsSubs::init(uxrSession* session_, uxrStreamId stream_id, uxrObject
 topic_pascal = topic.replace("_", " ").title().replace(" ", "")
 }@
 	{
-
+		char topic[TOPIC_NAME_SIZE];
 		uxrObjectId topic_id = uxr_object_id(@(idx)+1, UXR_TOPIC_ID);
 
-		uint16_t topic_req = uxr_buffer_create_topic_bin(session, stream_id, topic_id, participant_id, "rt/fmu/out/@(topic_pascal)",
-                    "px4_msgs::msg::dds_::@(topic_pascal)_", UXR_REPLACE);
+		if(generate_topic_name(topic, client_namespace, "out","@(topic_pascal)") == false){
+			PX4_ERR("topic path too long");
+			return false;
+		}
+
+		uint16_t topic_req = uxr_buffer_create_topic_bin(session, stream_id, topic_id, participant_id, topic, "px4_msgs::msg::dds_::@(topic_pascal)_", UXR_REPLACE);
 
 		uxrObjectId publisher_id = uxr_object_id(@(idx)+1, UXR_PUBLISHER_ID);
 		const char* publisher_xml = "";
@@ -133,10 +149,10 @@ struct RcvTopicsPubs {
 
 	uint32_t num_payload_received{};
 
-	bool init(uxrSession* session_, uxrStreamId stream_id, uxrStreamId input_stream, uxrObjectId participant_id);
+	bool init(uxrSession* session_, uxrStreamId stream_id, uxrStreamId input_stream, uxrObjectId participant_id, const char* client_namespace);
 };
 
-bool RcvTopicsPubs::init(uxrSession* session_, uxrStreamId stream_id, uxrStreamId input_stream, uxrObjectId participant_id)
+bool RcvTopicsPubs::init(uxrSession* session_, uxrStreamId stream_id, uxrStreamId input_stream, uxrObjectId participant_id, const char* client_namespace)
 {
 	session = session_;
     uxr_set_topic_callback(session, on_topic_update, this);
@@ -147,14 +163,18 @@ bool RcvTopicsPubs::init(uxrSession* session_, uxrStreamId stream_id, uxrStreamI
 topic_pascal = topic.replace("_", " ").title().replace(" ", "")
 }@
 	{
-
+		char topic[TOPIC_NAME_SIZE];
 		uxrObjectId subscriber_id = uxr_object_id(@(idx)+1, UXR_SUBSCRIBER_ID);
 		const char* subscriber_xml = "";
 		uint16_t subscriber_req = uxr_buffer_create_subscriber_xml(session, stream_id, subscriber_id, participant_id, subscriber_xml, UXR_REPLACE);
 
+		if(generate_topic_name(topic, client_namespace, "in","@(topic_pascal)") == false){
+			PX4_ERR("topic path too long");
+			return false;
+		}
+
 		uxrObjectId topic_id = uxr_object_id(1000+@(idx), UXR_TOPIC_ID);
-		uint16_t topic_req = uxr_buffer_create_topic_bin(session, stream_id, topic_id, participant_id, "rt/fmu/in/@(topic_pascal)",
-                    "px4_msgs::msg::dds_::@(topic_pascal)_", UXR_REPLACE);
+		uint16_t topic_req = uxr_buffer_create_topic_bin(session, stream_id, topic_id, participant_id, topic, "px4_msgs::msg::dds_::@(topic_pascal)_", UXR_REPLACE);
 
 		uxrObjectId datareader_id = uxr_object_id(@(idx)+1, UXR_DATAREADER_ID);
 

@@ -52,8 +52,8 @@
 using namespace time_literals;
 
 MicroddsClient::MicroddsClient(Transport transport, const char *device, int baudrate, const char *host,
-			       const char *port, bool localhost_only)
-	: _localhost_only(localhost_only)
+			       const char *port, bool localhost_only, const char *client_namespace)
+	: _localhost_only(localhost_only), _client_namespace(client_namespace)
 {
 	if (transport == Transport::Serial) {
 
@@ -202,12 +202,12 @@ void MicroddsClient::run()
 			return;
 		}
 
-		if (!_subs->init(&session, reliable_out, participant_id)) {
+		if (!_subs->init(&session, reliable_out, participant_id, _client_namespace)) {
 			PX4_ERR("subs init failed");
 			return;
 		}
 
-		if (!_pubs->init(&session, reliable_out, input_stream, participant_id)) {
+		if (!_pubs->init(&session, reliable_out, input_stream, participant_id, _client_namespace)) {
 			PX4_ERR("pubs init failed");
 			return;
 		}
@@ -448,8 +448,9 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 	int baudrate = 921600;
 	const char *port = "15555";
 	bool localhost_only = false;
+	const char *client_namespace = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:l", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:b:h:p:l:n", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't':
 			if (!strcmp(myoptarg, "serial")) {
@@ -489,6 +490,10 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 			localhost_only = true;
 			break;
 
+		case 'n':
+			client_namespace = myoptarg;
+			break;
+
 		case '?':
 			error_flag = true;
 			break;
@@ -511,7 +516,7 @@ MicroddsClient *MicroddsClient::instantiate(int argc, char *argv[])
 		}
 	}
 
-	return new MicroddsClient(transport, device, baudrate, ip, port, localhost_only);
+	return new MicroddsClient(transport, device, baudrate, ip, port, localhost_only, client_namespace);
 }
 
 int MicroddsClient::print_usage(const char *reason)
@@ -538,6 +543,7 @@ $ microdds_client start -t udp -h 127.0.0.1 -p 15555
 	PRINT_MODULE_USAGE_PARAM_STRING('h', "127.0.0.1", "<IP>", "Host IP", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 15555, 0, 3000000, "Remote Port", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('l', "Restrict to localhost (use in combination with ROS_LOCALHOST_ONLY=1)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('n', nullptr, nullptr ,"Client DDS namespace", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
