@@ -36,4 +36,4 @@ px4_add_library(FlightTaskManualAcceleration
 )
 target_include_directories(FlightTaskManualAcceleration PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(FlightTaskManualAcceleration PUBLIC FlightTaskManualAltitudeSmoothVel FlightTaskUtility)
+target_link_libraries(FlightTaskManualAcceleration PUBLIC FlightTaskManualAltitudeSmoothVel FlightTaskUtility WeatherVane)
