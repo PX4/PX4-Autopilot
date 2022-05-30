@@ -60,7 +60,6 @@ FlightModeManager::~FlightModeManager()
 		_current_task.task->~FlightTask();
 	}
 
-	delete _wv_controller;
 	perf_free(_loop_perf);
 }
 
@@ -107,33 +106,7 @@ void FlightModeManager::Run()
 		_home_position_sub.update();
 		_vehicle_control_mode_sub.update();
 		_vehicle_land_detected_sub.update();
-
-		if (_vehicle_status_sub.update()) {
-			if (_vehicle_status_sub.get().is_vtol && (_wv_controller == nullptr)) {
-				// if vehicle is a VTOL we want to enable weathervane capabilities
-				_wv_controller = new WeatherVane();
-			}
-		}
-
-		// activate the weathervane controller if required. If activated a flighttask can use it to implement a yaw-rate control strategy
-		// that turns the nose of the vehicle into the wind
-		if (_wv_controller != nullptr) {
-
-			// in manual mode we just want to use weathervane if position is controlled as well
-			// in mission, enabling wv is done in flight task
-			if (_vehicle_control_mode_sub.get().flag_control_manual_enabled) {
-				if (_vehicle_control_mode_sub.get().flag_control_position_enabled && _wv_controller->weathervane_enabled()) {
-					_wv_controller->activate();
-
-				} else {
-					_wv_controller->deactivate();
-				}
-			}
-
-			vehicle_attitude_setpoint_s vehicle_attitude_setpoint;
-			_vehicle_attitude_setpoint_sub.copy(&vehicle_attitude_setpoint);
-			_wv_controller->update(matrix::Quatf(vehicle_attitude_setpoint.q_d).dcm_z(), vehicle_local_position.heading);
-		}
+		_vehicle_status_sub.update();
 
 		start_flight_task();
 
@@ -156,10 +129,6 @@ void FlightModeManager::updateParams()
 
 	if (isAnyTaskActive()) {
 		_current_task.task->handleParameterUpdate();
-	}
-
-	if (_wv_controller != nullptr) {
-		_wv_controller->update_parameters();
 	}
 }
 
@@ -461,8 +430,6 @@ void FlightModeManager::handleCommand()
 void FlightModeManager::generateTrajectorySetpoint(const float dt,
 		const vehicle_local_position_s &vehicle_local_position)
 {
-	_current_task.task->setYawHandler(_wv_controller);
-
 	// If the task fails sned out empty NAN setpoints and the controller will emergency failsafe
 	trajectory_setpoint_s setpoint = FlightTask::empty_setpoint;
 	vehicle_constraints_s constraints = FlightTask::empty_constraints;
