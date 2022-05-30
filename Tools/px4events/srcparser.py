@@ -126,7 +126,7 @@ class SourceParser(object):
                         descr = descr[:i] + ' ' + descr[i+1:]
                 event.description = descr
             elif tag == "group":
-                known_groups = ["calibration", "health", "arming_check", "normal"]
+                known_groups = ["calibration", "health", "arming_check", "default"]
                 event.group = value.strip()
                 if not event.group in known_groups:
                     raise Exception("Unknown event group: '{}'\nKnown groups: {}\n" \
