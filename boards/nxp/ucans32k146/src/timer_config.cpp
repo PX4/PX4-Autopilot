@@ -110,6 +110,7 @@ constexpr io_timers_t io_timers[MAX_IO_TIMERS] = {
 
 constexpr timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 	initIOTimerChannel(io_timers, {Timer::FTM2, Timer::Channel1}, {GPIO::PortA, GPIO::Pin0}),
+	initIOTimerChannel(io_timers, {Timer::FTM2, Timer::Channel2}, {GPIO::PortA, GPIO::Pin1}),
 };
 
 constexpr io_timers_channel_mapping_t io_timers_channel_mapping =

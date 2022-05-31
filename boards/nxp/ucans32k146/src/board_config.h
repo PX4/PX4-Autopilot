@@ -106,7 +106,7 @@ __BEGIN_DECLS
  *      Defined in board.h
  */
 
-#define DIRECT_PWM_OUTPUT_CHANNELS  1
+#define DIRECT_PWM_OUTPUT_CHANNELS  2
 
 
 #define BOARD_HAS_LED_PWM              1
