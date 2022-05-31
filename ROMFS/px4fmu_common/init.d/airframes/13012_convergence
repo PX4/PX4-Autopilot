@@ -17,7 +17,6 @@
 # @output MAIN8 Elevon left
 #
 # @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.vtol_defaults
@@ -74,4 +73,4 @@ then
 	set PWM_OUT 1234
 else
 	set PWM_OUT 3456
-fi	
+fi

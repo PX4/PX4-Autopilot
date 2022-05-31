@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,58 +31,51 @@
  *
  ****************************************************************************/
 
-#include "BMI088.hpp"
+#include <nuttx/spi/spi.h>
+#include <px4_platform_common/px4_manifest.h>
+//                                                                      KiB BS    nB
+static const px4_mft_device_t i2c1 = {             // 24AA64FT on Base  8K 32 X 256
+	.bus_type = px4_mft_device_t::I2C,
+	.devid    = PX4_MK_I2C_DEVID(1, 0x50)
+};
 
-#include "BMI088_Accelerometer.hpp"
-#include "BMI088_Gyroscope.hpp"
 
-I2CSPIDriverBase *BMI088::instantiate(const I2CSPIDriverConfig &config, int runtime_instance)
-{
-	BMI088 *instance = nullptr;
+static const px4_mtd_entry_t fmu_eeprom = {
+	.device = &i2c1,
+	.npart = 2,
+	.partd = {
+		{
+			.type = MTD_PARAMETERS,
+			.path = "/fs/mtd_params",
+			.nblocks = 128
+		},
+		{
+			.type = MTD_WAYPOINTS,
+			.path = "/fs/mtd_waypoints",
+			.nblocks = 128
 
-	if (config.devid_driver_index == DRV_ACC_DEVTYPE_BMI088) {
-		instance = new Bosch::BMI088::Accelerometer::BMI088_Accelerometer(config);
+		}
+	},
+};
 
-	} else if (config.devid_driver_index == DRV_GYR_DEVTYPE_BMI088) {
-		instance = new Bosch::BMI088::Gyroscope::BMI088_Gyroscope(config);
+static const px4_mtd_manifest_t board_mtd_config = {
+	.nconfigs   = 1,
+	.entries = {
+		&fmu_eeprom,
 	}
+};
 
-	if (!instance) {
-		PX4_ERR("alloc failed");
-		return nullptr;
-	}
+static const px4_mft_entry_s mtd_mft = {
+	.type = MTD,
+	.pmft = (void *) &board_mtd_config,
+};
 
-	if (OK != instance->init()) {
-		delete instance;
-		return nullptr;
-	}
+static const px4_mft_s mft = {
+	.nmft = 1,
+	.mfts = &mtd_mft
+};
 
-	return instance;
-}
-
-BMI088::BMI088(const I2CSPIDriverConfig &config) :
-	I2C(config),
-	I2CSPIDriver(config),
-	_drdy_gpio(config.drdy_gpio)
+const px4_mft_s *board_get_manifest(void)
 {
-}
-
-int BMI088::init()
-{
-	int ret = I2C::init();
-
-	if (ret != PX4_OK) {
-		DEVICE_DEBUG("I2C::init failed (%i)", ret);
-		return ret;
-	}
-
-	return Reset() ? 0 : -1;
-}
-
-bool BMI088::Reset()
-{
-	_state = STATE::RESET;
-	ScheduleClear();
-	ScheduleNow();
-	return true;
+	return &mft;
 }

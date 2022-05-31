@@ -17,7 +17,6 @@
 # @output MAIN8 Pusher reverse channel
 #
 # @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.vtol_defaults

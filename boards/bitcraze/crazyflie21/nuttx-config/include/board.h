@@ -173,45 +173,33 @@
  *
  */
 /* E_TX2 / E_RX2 */
-#define GPIO_USART2_RX	GPIO_USART2_RX_1
-#define GPIO_USART2_TX	GPIO_USART2_TX_1
+#define GPIO_USART2_RX	GPIO_USART2_RX_1 /* PA3 */
+#define GPIO_USART2_TX	GPIO_USART2_TX_1 /* PA2 */
 
 /* E_TX1 / E_RX1 */
-#define GPIO_USART3_RX	GPIO_USART3_RX_2
-#define GPIO_USART3_TX	GPIO_USART3_TX_2
+#define GPIO_USART3_RX	GPIO_USART3_RX_2 /* PC11 */
+#define GPIO_USART3_TX	GPIO_USART3_TX_2 /* PC10 */
 
 /* NRF51 via syslink */
-#define GPIO_USART6_RX	GPIO_USART6_RX_1
-#define GPIO_USART6_TX	GPIO_USART6_TX_1
+#define GPIO_USART6_RX	GPIO_USART6_RX_1 /* PC7 */
+#define GPIO_USART6_TX	GPIO_USART6_TX_1 /* PC6 */
+#define GPIO_USART6_TX	GPIO_USART6_TX_1 /* PA4 */
+
 
 /* UART DMA configuration for USART6 */
 #define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
 
-/*
- * I2C
- *
- * The optional _GPIO configurations allow the I2C driver to manually
- * reset the bus to clear stuck slaves.  They match the pin configuration,
- * but are normally-high GPIOs.
- */
-#define GPIO_I2C1_SCL		GPIO_I2C1_SCL_1
-#define GPIO_I2C1_SDA		GPIO_I2C1_SDA_1
-#define GPIO_I2C1_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN6)
-#define GPIO_I2C1_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN7)
+/* I2C */
+#define GPIO_I2C1_SCL		GPIO_I2C1_SCL_1 /* PB6 */
+#define GPIO_I2C1_SDA		GPIO_I2C1_SDA_1 /* PB7 */
 
-#define GPIO_I2C3_SCL		GPIO_I2C3_SCL_1
-#define GPIO_I2C3_SDA		GPIO_I2C3_SDA_1
-#define GPIO_I2C3_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN8)
-#define GPIO_I2C3_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN9)
+#define GPIO_I2C3_SCL		GPIO_I2C3_SCL_1 /* PA8 */
+#define GPIO_I2C3_SDA		GPIO_I2C3_SDA_1 /* PC9 */
 
-/*
- * SPI
- *
- * E_MISO, E_MOSI, E_SCK exposed on headers
- */
-#define GPIO_SPI1_MISO	(GPIO_SPI1_MISO_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI1_MOSI	(GPIO_SPI1_MOSI_1|GPIO_SPEED_50MHz)
-#define GPIO_SPI1_SCK	(GPIO_SPI1_SCK_1|GPIO_SPEED_50MHz)
+/* SPI */
+#define GPIO_SPI1_MISO	GPIO_SPI1_MISO_1 /* PA6 */
+#define GPIO_SPI1_MOSI	GPIO_SPI1_MOSI_1 /* PA7 */
+#define GPIO_SPI1_SCK	GPIO_SPI1_SCK_1  /* PA5 */
 
 /* XXX since we allocate the HP work stack from CCM RAM on normal system startup,
    SPI1 will never run in DMA mode - so we can just give it a random config here.

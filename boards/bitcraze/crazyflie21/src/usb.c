@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,14 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file crazyflie_usb.c
+ * @file usb.c
  *
  * Board-specific USB functions.
  */
-
-/************************************************************************************
- * Included Files
- ************************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -56,22 +52,10 @@
 #include "board_config.h"
 
 /************************************************************************************
- * Definitions
- ************************************************************************************/
-
-/************************************************************************************
- * Private Functions
- ************************************************************************************/
-
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
-
-/************************************************************************************
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called to setup USB-related GPIO pins for the PX4-STM32F4Discovery board.
+ *   Called to setup USB-related GPIO pins for the board.
  *
  ************************************************************************************/
 
@@ -81,12 +65,8 @@ __EXPORT void stm32_usbinitialize(void)
 
 	/* Configure the OTG FS VBUS sensing GPIO, Power On, and Overcurrent GPIOs */
 
-#ifdef CONFIG_STM32_OTGFS
+#if defined(CONFIG_STM32_OTGFS) && defined(GPIO_OTGFS_VBUS)
 	stm32_configgpio(GPIO_OTGFS_VBUS);
-	/* XXX We only support device mode
-	stm32_configgpio(GPIO_OTGFS_PWRON);
-	stm32_configgpio(GPIO_OTGFS_OVER);
-	*/
 #endif
 }
 

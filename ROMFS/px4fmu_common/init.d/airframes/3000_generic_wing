@@ -15,7 +15,6 @@
 #
 # @maintainer
 #
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.fw_defaults

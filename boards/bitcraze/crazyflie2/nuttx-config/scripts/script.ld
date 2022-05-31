@@ -64,7 +64,6 @@ EXTERN(_vectors)	/* force the vectors to be included in the output */
  * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
  */
 EXTERN(abort)
-EXTERN(board_get_manifest)
 
 SECTIONS
 {

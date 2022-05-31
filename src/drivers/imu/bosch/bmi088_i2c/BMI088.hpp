@@ -65,23 +65,16 @@ protected:
 	hrt_abstime _last_config_check_timestamp{0};
 	hrt_abstime _temperature_update_timestamp{0};
 	int _failure_count{0};
-	int _overflow_data_size_count{0};
-	int _overflow_fifo_max_samples_count{0};
-	int _fifo_read_error_count{0};
-	int _empty_count{0};
-	int _total_failure_count{0};
-
 
 	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
 	bool _data_ready_interrupt_enabled{false};
 
 	enum class STATE : uint8_t {
-		SELFTEST,
 		RESET,
 		WAIT_FOR_RESET,
 		CONFIGURE,
 		FIFO_READ,
-	} _state{STATE::SELFTEST};
+	} _state{STATE::RESET};
 
 	uint16_t _fifo_empty_interval_us{2500}; // 2500 us / 400 Hz transfer interval
 

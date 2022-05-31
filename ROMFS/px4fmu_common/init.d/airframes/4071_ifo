@@ -17,7 +17,6 @@
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
 # @board px4_fmu-v5x exclude
-# @board bitcraze_crazyflie exclude
 # @board cuav_x7pro exclude
 #
 

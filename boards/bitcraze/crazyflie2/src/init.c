@@ -87,14 +87,6 @@ extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
 
-/****************************************************************************
- * Protected Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
@@ -109,11 +101,9 @@ __EXPORT void
 stm32_boardinitialize(void)
 {
 	/* configure LEDs */
-
 	board_autoled_initialize();
 
 	/* configure SPI interfaces */
-
 	stm32_spiinitialize();
 
 	stm32_usbinitialize();
@@ -154,7 +144,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 #endif
 
 	/* Configure the HW based on the manifest */
-
 	px4_platform_configure();
 
 	return OK;

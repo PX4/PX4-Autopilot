@@ -22,7 +22,6 @@
 # @maintainer Ian McNanie <ianmcnanie@gmail.com>
 # @maintainer William Peale <develop707@gmail.com>
 #
-# @board bitcraze_crazyflie exclude
 # @board px4_fmu-v2 exclude
 #
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -61,8 +61,8 @@
 #define LED_TX 4
 #define LED_RX 5
 
-#define GPIO_BMI088_INT_ACC		(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN13)
-#define GPIO_BMI088_INT_GYR		(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN14)
+#define GPIO_FSYNC_MPU9250		(GPIO_OUTPUT|GPIO_PORTC|GPIO_PIN14) // Needs to be set low
+#define GPIO_DRDY_MPU9250		(GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTC|GPIO_PIN13)
 
 #define GPIO_NRF_TXEN			(GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTA|GPIO_PIN4) /* NRF_FLOW_CTRL */
 
@@ -128,8 +128,6 @@ __BEGIN_DECLS
 #ifndef __ASSEMBLY__
 
 #define board_peripheral_reset(ms)
-
-static inline int board_read_VBUS_state(void) { return -1; }
 
 extern void stm32_usbinitialize(void);
 extern void stm32_spiinitialize(void);

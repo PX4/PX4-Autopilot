@@ -17,7 +17,6 @@
 # @maintainer Thies Lennart Alff <thies.lennart.alff@tuhh.de>
 #
 # @board px4_fmu-v2 exclude
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.uuv_defaults

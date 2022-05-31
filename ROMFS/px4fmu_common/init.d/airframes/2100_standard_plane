@@ -18,7 +18,6 @@
 #
 # @maintainer Lorenz Meier <lorenz@px4.io>
 #
-# @board bitcraze_crazyflie exclude
 #
 
 . ${R}etc/init.d/rc.fw_defaults
