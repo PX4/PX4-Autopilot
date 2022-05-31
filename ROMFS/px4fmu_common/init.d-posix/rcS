@@ -95,10 +95,9 @@ fi
 
 if param compare SYS_AUTOCONFIG 1
 then
+	# Reset params except Airframe, RC calibration, sensor calibration, flight modes, total flight time, and next flight UUID.
+	param reset_all SYS_AUTOSTART RC* CAL_* COM_FLTMODE* LND_FLIGHT* TC_* COM_FLIGHT*
 	set AUTOCNF yes
-
-	# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal, next flight UUID
-	param reset_all SYS_AUTO* RC* COM_FLTMODE* LND_FLIGHT* TC_* CAL_ACC* CAL_GYRO* COM_FLIGHT*
 fi
 
 # multi-instance setup
@@ -195,14 +194,6 @@ if [ ! -e "$autostart_file" ]; then
 fi
 
 . "$autostart_file"
-
-#
-# If autoconfig parameter was set, reset it and save parameters.
-#
-if [ $AUTOCNF = yes ]
-then
-	param set SYS_AUTOCONFIG 0
-fi
 
 # Simulator IMU data provided at 250 Hz
 param set IMU_INTEG_RATE 250

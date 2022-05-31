@@ -1032,6 +1032,8 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 {
 	int res = 0;
 
+	enabledInterfaces_ = enabledInterfaces;
+
 	UAVCAN_STM32H7_LOG("Bitrate %lu mode %d", static_cast<unsigned long>(bitrate), static_cast<int>(mode));
 
 	static bool initialized_once = false;
@@ -1045,7 +1047,8 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 	/*
 	 * FDCAN1
 	 */
-	if (enabledInterfaces & 1) {
+	if (enabledInterfaces_ & 1) {
+		num_ifaces_ = 1;
 		UAVCAN_STM32H7_LOG("Initing iface 0...");
 		ifaces[0] = &if0_;                          // This link must be initialized first,
 		res = if0_.init(bitrate, mode);             // otherwise an IRQ may fire while the interface is not linked yet;
@@ -1062,7 +1065,8 @@ int CanDriver::init(const uavcan::uint32_t bitrate, const CanIface::OperatingMod
 	 */
 #if UAVCAN_STM32H7_NUM_IFACES > 1
 
-	if (enabledInterfaces & 2) {
+	if (enabledInterfaces_ & 2) {
+		num_ifaces_ = 2;
 		UAVCAN_STM32H7_LOG("Initing iface 1...");
 		ifaces[1] = &if1_;                          // Same thing here.
 		res = if1_.init(bitrate, mode);

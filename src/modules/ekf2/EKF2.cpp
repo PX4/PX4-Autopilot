@@ -308,7 +308,7 @@ void EKF2::Run()
 		}
 
 		// if using mag ensure sensor interval minimum is sufficient to accommodate system averaged mag output
-		if (_params->mag_fusion_type != MAG_FUSE_TYPE_NONE) {
+		if (_params->mag_fusion_type != MagFuseType::NONE) {
 			float sens_mag_rate = 0.f;
 
 			if (param_get(param_find("SENS_MAG_RATE"), &sens_mag_rate) == PX4_OK) {
@@ -614,6 +614,8 @@ void EKF2::Run()
 			UpdateMagCalibration(now);
 			PublishSensorBias(now);
 
+			PublishAidSourceStatus(now);
+
 		} else {
 			// ekf no update
 			perf_set_elapsed(_ecl_ekf_update_perf, hrt_elapsed_time(&ekf_update_start));
@@ -630,6 +632,23 @@ void EKF2::Run()
 
 	// re-schedule as backup timeout
 	ScheduleDelayed(100_ms);
+}
+
+void EKF2::PublishAidSourceStatus(const hrt_abstime &timestamp)
+{
+	// baro height
+	PublishAidSourceStatus(_ekf.aid_src_baro_hgt(), _status_baro_hgt_pub_last, _estimator_aid_src_baro_hgt_pub);
+
+	// RNG height
+	PublishAidSourceStatus(_ekf.aid_src_rng_hgt(), _status_rng_hgt_pub_last, _estimator_aid_src_rng_hgt_pub);
+
+	// fake position
+	PublishAidSourceStatus(_ekf.aid_src_fake_pos(), _status_fake_pos_pub_last, _estimator_aid_src_fake_pos_pub);
+
+	// GNSS velocity & position
+	PublishAidSourceStatus(_ekf.aid_src_gnss_vel(), _status_gnss_vel_pub_last, _estimator_aid_src_gnss_vel_pub);
+	PublishAidSourceStatus(_ekf.aid_src_gnss_pos(), _status_gnss_pos_pub_last, _estimator_aid_src_gnss_pos_pub);
+
 }
 
 void EKF2::PublishAttitude(const hrt_abstime &timestamp)
@@ -713,6 +732,10 @@ void EKF2::PublishEventFlags(const hrt_abstime &timestamp)
 		event_flags.starting_vision_vel_fusion          = _ekf.information_event_flags().starting_vision_vel_fusion;
 		event_flags.starting_vision_yaw_fusion          = _ekf.information_event_flags().starting_vision_yaw_fusion;
 		event_flags.yaw_aligned_to_imu_gps              = _ekf.information_event_flags().yaw_aligned_to_imu_gps;
+		event_flags.reset_hgt_to_baro                   = _ekf.information_event_flags().reset_hgt_to_baro;
+		event_flags.reset_hgt_to_gps                    = _ekf.information_event_flags().reset_hgt_to_gps;
+		event_flags.reset_hgt_to_rng                    = _ekf.information_event_flags().reset_hgt_to_rng;
+		event_flags.reset_hgt_to_ev                     = _ekf.information_event_flags().reset_hgt_to_ev;
 
 		event_flags.warning_event_changes               = _filter_warning_event_changes;
 		event_flags.gps_quality_poor                    = _ekf.warning_event_flags().gps_quality_poor;
@@ -1153,7 +1176,7 @@ void EKF2::PublishSensorBias(const hrt_abstime &timestamp)
 			_last_gyro_bias_published = gyro_bias;
 		}
 
-		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS)) {
+		if ((_device_id_accel != 0) && !(_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS)) {
 			bias.accel_device_id = _device_id_accel;
 			accel_bias.copyTo(bias.accel_bias);
 			bias.accel_bias_limit = _params->acc_bias_lim;
@@ -1596,10 +1619,10 @@ bool EKF2::UpdateExtVisionSample(ekf2_timestamps_s &ekf2_timestamps, vehicle_odo
 			ev_data.vel(2) = ev_odom.vz;
 
 			if (ev_odom.velocity_frame == vehicle_odometry_s::BODY_FRAME_FRD) {
-				ev_data.vel_frame = velocity_frame_t::BODY_FRAME_FRD;
+				ev_data.vel_frame = VelocityFrame::BODY_FRAME_FRD;
 
 			} else {
-				ev_data.vel_frame = velocity_frame_t::LOCAL_FRAME_FRD;
+				ev_data.vel_frame = VelocityFrame::LOCAL_FRAME_FRD;
 			}
 
 			// velocity measurement error from ev_data or parameters
@@ -1735,7 +1758,7 @@ void EKF2::UpdateGpsSample(ekf2_timestamps_s &ekf2_timestamps)
 			perf_count(_msg_missed_gps_perf);
 		}
 
-		gps_message gps_msg{
+		gpsMessage gps_msg{
 			.time_usec = vehicle_gps_position.timestamp,
 			.lat = vehicle_gps_position.lat,
 			.lon = vehicle_gps_position.lon,
@@ -1878,7 +1901,7 @@ void EKF2::UpdateRangeSample(ekf2_timestamps_s &ekf2_timestamps)
 
 void EKF2::UpdateAccelCalibration(const hrt_abstime &timestamp)
 {
-	if (_param_ekf2_aid_mask.get() & MASK_INHIBIT_ACC_BIAS) {
+	if (_param_ekf2_aid_mask.get() & SensorFusionMask::INHIBIT_ACC_BIAS) {
 		_accel_cal.cal_available = false;
 		return;
 	}

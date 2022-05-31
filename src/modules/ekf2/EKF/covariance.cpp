@@ -142,7 +142,7 @@ void Ekf::predictCovariance()
 	const bool is_manoeuvre_level_high = _ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
 					     || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim;
 
-	const bool do_inhibit_all_axes = (_params.fusion_mode & MASK_INHIBIT_ACC_BIAS)
+	const bool do_inhibit_all_axes = (_params.fusion_mode & SensorFusionMask::INHIBIT_ACC_BIAS)
 					 || is_manoeuvre_level_high
 					 || _fault_status.flags.bad_acc_vertical;
 
@@ -984,13 +984,24 @@ void Ekf::fixCovarianceErrors(bool force_symmetry)
 		const float down_dvel_bias = _state.delta_vel_bias.dot(Vector3f(_R_to_earth.row(2)));
 
 		// check that the vertical component of accel bias is consistent with both the vertical position and velocity innovation
-		bool bad_acc_bias = (fabsf(down_dvel_bias) > dVel_bias_lim
-				     && ((down_dvel_bias * _gps_vel_innov(2) < 0.0f && _control_status.flags.gps)
-					 || (down_dvel_bias * _ev_vel_innov(2) < 0.0f && _control_status.flags.ev_vel))
-				     && ((down_dvel_bias * _gps_pos_innov(2) < 0.0f && _control_status.flags.gps_hgt)
-					 || (down_dvel_bias * _baro_hgt_innov < 0.0f && _control_status.flags.baro_hgt)
-					 || (down_dvel_bias * _rng_hgt_innov < 0.0f && _control_status.flags.rng_hgt)
-					 || (down_dvel_bias * _ev_pos_innov(2) < 0.0f && _control_status.flags.ev_hgt)));
+		bool bad_acc_bias = false;
+		if (fabsf(down_dvel_bias) > dVel_bias_lim) {
+
+			bool bad_vz_gps = _control_status.flags.gps    && (down_dvel_bias * _aid_src_gnss_vel.innovation[2] < 0.0f);
+			bool bad_vz_ev  = _control_status.flags.ev_vel && (down_dvel_bias * _ev_vel_innov(2) < 0.0f);
+
+			if (bad_vz_gps || bad_vz_ev) {
+				bool bad_z_baro = _control_status.flags.baro_hgt && (down_dvel_bias * _aid_src_baro_hgt.innovation    < 0.0f);
+				bool bad_z_gps  = _control_status.flags.gps_hgt  && (down_dvel_bias * _aid_src_gnss_pos.innovation[2] < 0.0f);
+				bool bad_z_rng  = _control_status.flags.rng_hgt  && (down_dvel_bias * _aid_src_rng_hgt.innovation     < 0.0f);
+				bool bad_z_ev   = _control_status.flags.ev_hgt   && (down_dvel_bias * _ev_pos_innov(2) < 0.0f);
+
+
+				if (bad_z_baro || bad_z_gps || bad_z_rng || bad_z_ev) {
+					bad_acc_bias = true;
+				}
+			}
+		}
 
 		// record the pass/fail
 		if (!bad_acc_bias) {

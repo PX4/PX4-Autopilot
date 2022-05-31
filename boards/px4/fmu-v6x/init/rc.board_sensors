@@ -2,40 +2,68 @@
 #
 # PX4 FMUv6X specific board sensors init
 #------------------------------------------------------------------------------
-board_adc start
+set HAVE_PM2 yes
+
+if ver hwtypecmp V6X50 V6X51 V6X53 V6X54
+then
+	set HAVE_PM2 no
+fi
+if param compare -s ADC_ADS1115_EN 1
+then
+	ads1115 start -X
+else
+	board_adc start
+fi
+
 
 if param compare SENS_EN_INA226 1
 then
 	# Start Digital power monitors
 	ina226 -X -b 1 -t 1 -k start
-	ina226 -X -b 2 -t 2 -k start
+
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina226 -X -b 2 -t 2 -k start
+	fi
 fi
 
 if param compare SENS_EN_INA228 1
 then
 	# Start Digital power monitors
 	ina228 -X -b 1 -t 1 -k start
-	ina228 -X -b 2 -t 2 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina228 -X -b 2 -t 2 -k start
+	fi
 fi
 
 if param compare SENS_EN_INA238 1
 then
 	# Start Digital power monitors
 	ina238 -X -b 1 -t 1 -k start
-	ina238 -X -b 2 -t 2 -k start
+	if [ $HAVE_PM2 = yes ]
+	then
+		ina238 -X -b 2 -t 2 -k start
+	fi
 fi
 
+if ver hwtypecmp V6X04 V6X14
+then
+	# Internal SPI bus ICM20649
+	icm20649 -s -R 6 start
+else
 # Internal SPI BMI088
-bmi088 -A -R 4 -s start
-bmi088 -G -R 4 -s start
+	bmi088 -A -R 4 -s start
+	bmi088 -G -R 4 -s start
+fi
 
 # Internal SPI bus ICM42688p
 icm42688p -R 6 -s start
 
-if ver hwtypecmp V6X03 V6X13
+if ver hwtypecmp V6X03 V6X13 V6X04 V6X14
 then
 	# Internal SPI bus ICM-42670-P (hard-mounted)
-	icm42670p -R 14 -s start
+	icm42670p -R 10 -s start
 else
 	# Internal SPI bus ICM-20649 (hard-mounted)
 	icm20649 -R 14 -s start
@@ -59,3 +87,5 @@ fi
 
 # Baro on I2C3
 ms5611 -X start
+
+unset HAVE_PM2

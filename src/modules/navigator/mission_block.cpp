@@ -74,6 +74,8 @@ MissionBlock::is_mission_item_reached()
 {
 	/* handle non-navigation or indefinite waypoints */
 
+	hrt_abstime now = hrt_absolute_time();
+
 	switch (_mission_item.nav_cmd) {
 	case NAV_CMD_DO_SET_SERVO:
 		return true;
@@ -108,6 +110,8 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_SET_CAMERA_MODE:
 	case NAV_CMD_SET_CAMERA_ZOOM:
 	case NAV_CMD_SET_CAMERA_FOCUS:
+	case NAV_CMD_DO_CHANGE_SPEED:
+	case NAV_CMD_DO_SET_HOME:
 		return true;
 
 	case NAV_CMD_DO_VTOL_TRANSITION:
@@ -125,16 +129,20 @@ MissionBlock::is_mission_item_reached()
 			return false;
 		}
 
-	case NAV_CMD_DO_CHANGE_SPEED:
-	case NAV_CMD_DO_SET_HOME:
-		return true;
+	case NAV_CMD_DELAY:
+		// Set reached flags directly such that only the delay time is considered
+		_waypoint_position_reached = true;
+		_waypoint_yaw_reached = true;
+
+		// Set timestamp when entering only (it's reset to 0 for every waypoint)
+		if (_time_wp_reached == 0) {
+			_time_wp_reached = now;
+		}
 
 	default:
 		/* do nothing, this is a 3D waypoint */
 		break;
 	}
-
-	hrt_abstime now = hrt_absolute_time();
 
 	if (!_navigator->get_land_detected()->landed && !_waypoint_position_reached) {
 
@@ -267,11 +275,6 @@ MissionBlock::is_mission_item_reached()
 					_time_wp_reached = now;
 				}
 			}
-
-		} else if (_mission_item.nav_cmd == NAV_CMD_DELAY) {
-			_waypoint_position_reached = true;
-			_waypoint_yaw_reached = true;
-			_time_wp_reached = now;
 
 		} else {
 

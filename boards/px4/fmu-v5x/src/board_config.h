@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -185,18 +185,23 @@
 #define HW_INFO_INIT           {'V','5','X','x', 'x',0}
 #define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
 #define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 3
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 6
 // Base                   FMUM
-#define V5X00   HW_VER_REV(0x0,0x0) // FMUV5X,                 Rev 0
-#define V5X10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0
-#define V5X01   HW_VER_REV(0x0,0x1) // FMUV5X I2C2 BMP388,     Rev 1
-#define V5X02   HW_VER_REV(0x0,0x2) // FMUV5X,                 Rev 2
-#define V5X90   HW_VER_REV(0x9,0x0) // NO USB,                 Rev 0
-#define V5X91   HW_VER_REV(0x9,0x1) // NO USB I2C2 BMP388,     Rev 1
-#define V5X92   HW_VER_REV(0x9,0x2) // NO USB I2C2 BMP388,     Rev 2
-#define V5Xa0   HW_VER_REV(0xa,0x0) // NO USB (Q),             Rev 0
-#define V5Xa1   HW_VER_REV(0xa,0x1) // NO USB (Q) I2C2 BMP388, Rev 1
-#define V5Xa2   HW_VER_REV(0xa,0x2) // NO USB (Q) I2C2 BMP388, Rev 2
+#define V5X00   HW_VER_REV(0x0,0x0) // FMUV5X,                         Rev 0
+#define V5X10   HW_VER_REV(0x1,0x0) // NO PX4IO,                       Rev 0
+#define V5X01   HW_VER_REV(0x0,0x1) // FMUV5X I2C2 BMP388,             Rev 1
+#define V5X02   HW_VER_REV(0x0,0x2) // FMUV5X,                         Rev 2
+#define V5X50   HW_VER_REV(0x5,0x0) // FMUV5X, HB Mini                 Rev 0
+#define V5X51   HW_VER_REV(0x5,0x1) // FMUV5X I2C2 BMP388, HB Mini     Rev 1
+#define V5X52   HW_VER_REV(0x5,0x2) // FMUV5X, HB Mini                 Rev 2
+#define V5X90   HW_VER_REV(0x9,0x0) // NO USB,                         Rev 0
+#define V5X91   HW_VER_REV(0x9,0x1) // NO USB I2C2 BMP388,             Rev 1
+#define V5X92   HW_VER_REV(0x9,0x2) // NO USB I2C2 BMP388,             Rev 2
+#define V5Xa0   HW_VER_REV(0xa,0x0) // NO USB (Q),                     Rev 0
+#define V5Xa1   HW_VER_REV(0xa,0x1) // NO USB (Q) I2C2 BMP388,         Rev 1
+#define V5Xa2   HW_VER_REV(0xa,0x2) // NO USB (Q) I2C2 BMP388,         Rev 2
+
+#define UAVCAN_NUM_IFACES_RUNTIME 1
 
 /* HEATER
  * PWM in future
@@ -423,7 +428,15 @@
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_PG6,                         \
-		GPIO_nARMED_INIT                  \
+		GPIO_nARMED_INIT,                  \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C1_SCL), \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C1_SDA), \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C2_SCL), \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C2_SDA), \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C3_SCL), \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C3_SDA), \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C4_SCL), \
+		PX4_MAKE_GPIO_OUTPUT_CLEAR(GPIO_I2C4_SDA), \
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER

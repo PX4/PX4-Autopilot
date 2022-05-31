@@ -77,6 +77,9 @@ set(msg_files
 	estimator_states.msg
 	estimator_status.msg
 	estimator_status_flags.msg
+	estimator_aid_source_1d.msg
+	estimator_aid_source_2d.msg
+	estimator_aid_source_3d.msg
 	event.msg
 	follow_target.msg
 	failure_detector_status.msg
@@ -137,7 +140,6 @@ set(msg_files
 	rc_parameter_map.msg
 	rpm.msg
 	rtl_time_estimate.msg
-	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
 	sensor_accel_fifo.msg

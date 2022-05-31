@@ -48,36 +48,35 @@ Safety::Safety()
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
 }
 
-void Safety::safetyButtonHandler()
+bool Safety::safetyButtonHandler()
 {
 	if (_safety_disabled) {
-		_safety.safety_switch_available = true;
-		_safety.safety_off = true;
+		_button_available = true;
+		_safety_off = true;
 
 	} else {
 
-		if (!_safety.safety_switch_available && _safety_button_sub.advertised()) {
-			_safety.safety_switch_available = true;
+		if (!_button_available && _safety_button_sub.advertised()) {
+			_button_available = true;
 		}
 
 		button_event_s button_event;
 
 		while (_safety_button_sub.update(&button_event)) {
-			_safety.safety_off |= button_event.triggered; // triggered safety button activates safety off
+			_safety_off |= button_event.triggered; // triggered safety button activates safety off
 		}
 	}
 
-	// publish immediately on change, otherwise at 1 Hz for logging
-	if ((hrt_elapsed_time(&_safety.timestamp) >= 1_s) ||
-	    (_safety.safety_off != _previous_safety_off)) {
-		_safety.timestamp = hrt_absolute_time();
-		_safety_pub.publish(_safety);
-	}
+	bool safety_changed = _previous_safety_off != _safety_off;
 
-	_previous_safety_off = _safety.safety_off;
+	_previous_safety_off = _safety_off;
+
+	return safety_changed;
 }
 
-void Safety::enableSafety()
+void Safety::activateSafety()
 {
-	_safety.safety_off = false;
+	if (!_safety_disabled) {
+		_safety_off = false;
+	}
 }

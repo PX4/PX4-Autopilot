@@ -30,7 +30,7 @@ void Gps::send(const uint64_t time)
 	_ekf->setGpsData(_gps_data);
 }
 
-void Gps::setData(const gps_message &gps)
+void Gps::setData(const gpsMessage &gps)
 {
 	_gps_data = gps;
 }
@@ -108,9 +108,9 @@ void Gps::stepHorizontalPositionByMeters(const Vector2f hpos_change)
 	_gps_data.lat = static_cast<int32_t>(lat_new * 1e7);
 }
 
-gps_message Gps::getDefaultGpsData()
+gpsMessage Gps::getDefaultGpsData()
 {
-	gps_message gps_data{};
+	gpsMessage gps_data{};
 	gps_data.time_usec = 0;
 	gps_data.lat = 473566094;
 	gps_data.lon = 85190237;

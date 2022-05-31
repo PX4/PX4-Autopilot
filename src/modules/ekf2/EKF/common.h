@@ -56,26 +56,81 @@ using matrix::Vector2f;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-enum class velocity_frame_t : uint8_t {
-	LOCAL_FRAME_FRD,
-	BODY_FRAME_FRD
+// maximum sensor intervals in usec
+#define BARO_MAX_INTERVAL (uint64_t)2e5 ///< Maximum allowable time interval between pressure altitude measurements (uSec)
+#define EV_MAX_INTERVAL   (uint64_t)2e5 ///< Maximum allowable time interval between external vision system measurements (uSec)
+#define GPS_MAX_INTERVAL  (uint64_t)5e5 ///< Maximum allowable time interval between GPS measurements (uSec)
+#define RNG_MAX_INTERVAL  (uint64_t)2e5 ///< Maximum allowable time interval between range finder  measurements (uSec)
+
+// bad accelerometer detection and mitigation
+#define BADACC_PROBATION  (uint64_t)10e6        ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
+#define BADACC_BIAS_PNOISE      4.9f    ///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
+
+// ground effect compensation
+#define GNDEFFECT_TIMEOUT       10E6    ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
+
+enum class VelocityFrame : uint8_t {
+	LOCAL_FRAME_FRD = 0,
+	BODY_FRAME_FRD  = 1
 };
 
-struct gps_message {
+enum GeoDeclinationMask : uint8_t {
+	// Bit locations for mag_declination_source
+	USE_GEO_DECL  = (1<<0), ///< set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
+	SAVE_GEO_DECL = (1<<1), ///< set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
+	FUSE_DECL     = (1<<2)  ///< set to true if the declination is always fused as an observation to constrain drift when 3-axis fusion is performed
+};
+
+enum MagFuseType : uint8_t {
+	// Integer definitions for mag_fusion_type
+	AUTO    = 0,   	///< The selection of either heading or 3D magnetometer fusion will be automatic
+	HEADING = 1,   	///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
+	MAG_3D  = 2,   	///< Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
+	INDOOR  = 3,   	///< The same as option 0, but magnetometer or yaw fusion will not be used unless earth frame external aiding (GPS or External Vision) is being used. This prevents inconsistent magnetic fields associated with indoor operation degrading state estimates.
+	NONE    = 4    	///< Do not use magnetometer under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
+};
+
+enum TerrainFusionMask : uint8_t {
+	TerrainFuseRangeFinder = (1 << 0),
+	TerrainFuseOpticalFlow = (1 << 1)
+};
+
+enum VerticalHeightSensor : uint8_t {
+	// Integer definitions for vdist_sensor_type
+	BARO  = 0,   	///< Use baro height
+	GPS   = 1,   	///< Use GPS height
+	RANGE = 2,   	///< Use range finder height
+	EV    = 3    	///< Use external vision
+};
+
+enum SensorFusionMask : uint16_t {
+	// Bit locations for fusion_mode
+	USE_GPS          = (1<<0),      ///< set to true to use GPS data
+	USE_OPT_FLOW     = (1<<1),      ///< set to true to use optical flow data
+	INHIBIT_ACC_BIAS = (1<<2),      ///< set to true to inhibit estimation of accelerometer delta velocity bias
+	USE_EXT_VIS_POS  = (1<<3),      ///< set to true to use external vision position data
+	USE_EXT_VIS_YAW  = (1<<4),      ///< set to true to use external vision quaternion data for yaw
+	USE_DRAG         = (1<<5),      ///< set to true to use the multi-rotor drag model to estimate wind
+	ROTATE_EXT_VIS   = (1<<6),      ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
+	USE_GPS_YAW      = (1<<7),      ///< set to true to use GPS yaw data if available
+	USE_EXT_VIS_VEL  = (1<<8)       ///< set to true to use external vision velocity data
+};
+
+struct gpsMessage {
 	uint64_t    time_usec{};
-	int32_t     lat{};                 ///< Latitude in 1E-7 degrees
-	int32_t     lon{};                 ///< Longitude in 1E-7 degrees
-	int32_t     alt{};                 ///< Altitude in 1E-3 meters (millimeters) above MSL
-	float       yaw{};                 ///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
-	float       yaw_offset{};          ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
-	uint8_t     fix_type{};            ///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time Kinematic
-	float       eph{};                 ///< GPS horizontal position accuracy in m
-	float       epv{};                 ///< GPS vertical position accuracy in m
-	float       sacc{};                ///< GPS speed accuracy in m/s
-	float       vel_m_s{};             ///< GPS ground speed (m/sec)
-	Vector3f    vel_ned{};             ///< GPS ground speed NED
-	bool        vel_ned_valid{};       ///< GPS ground speed is valid
-	uint8_t     nsats{};               ///< number of satellites used
+	int32_t     lat{};              ///< Latitude in 1E-7 degrees
+	int32_t     lon{};              ///< Longitude in 1E-7 degrees
+	int32_t     alt{};              ///< Altitude in 1E-3 meters (millimeters) above MSL
+	float       yaw{};              ///< yaw angle. NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
+	float       yaw_offset{};       ///< Heading/Yaw offset for dual antenna GPS - refer to description for GPS_YAW_OFFSET
+	uint8_t     fix_type{};         ///< 0-1: no fix, 2: 2D fix, 3: 3D fix, 4: RTCM code differential, 5: Real-Time Kinematic
+	float       eph{};              ///< GPS horizontal position accuracy in m
+	float       epv{};              ///< GPS vertical position accuracy in m
+	float       sacc{};             ///< GPS speed accuracy in m/s
+	float       vel_m_s{};          ///< GPS ground speed (m/sec)
+	Vector3f    vel_ned{};          ///< GPS ground speed NED
+	bool        vel_ned_valid{};    ///< GPS ground speed is valid
+	uint8_t     nsats{};            ///< number of satellites used
 	float       pdop{};             ///< position dilution of precision
 };
 
@@ -151,7 +206,7 @@ struct extVisionSample {
 	Vector3f    posVar{};      ///< XYZ position variances (m**2)
 	Matrix3f    velCov{};      ///< XYZ velocity covariances ((m/sec)**2)
 	float       angVar{};      ///< angular heading variance (rad**2)
-	velocity_frame_t vel_frame = velocity_frame_t::BODY_FRAME_FRD;
+	VelocityFrame vel_frame = VelocityFrame::BODY_FRAME_FRD;
 	uint8_t     reset_counter{};
 };
 
@@ -177,61 +232,13 @@ struct stateSample {
 	Vector2f wind_vel{};            ///< horizontal wind velocity in earth frame in m/s
 };
 
-// Integer definitions for vdist_sensor_type
-#define VDIST_SENSOR_BARO  0    ///< Use baro height
-#define VDIST_SENSOR_GPS   1    ///< Use GPS height
-#define VDIST_SENSOR_RANGE 2    ///< Use range finder height
-#define VDIST_SENSOR_EV    3    ///< Use external vision
-
-// Bit locations for mag_declination_source
-#define MASK_USE_GEO_DECL     (1<<0)    ///< set to true to use the declination from the geo library when the GPS position becomes available, set to false to always use the EKF2_MAG_DECL value
-#define MASK_SAVE_GEO_DECL    (1<<1)    ///< set to true to set the EKF2_MAG_DECL parameter to the value returned by the geo library
-#define MASK_FUSE_DECL        (1<<2)    ///< set to true if the declination is always fused as an observation to constrain drift when 3-axis fusion is performed
-
-// Bit locations for fusion_mode
-#define MASK_USE_GPS          (1<<0)    ///< set to true to use GPS data
-#define MASK_USE_OF           (1<<1)    ///< set to true to use optical flow data
-#define MASK_INHIBIT_ACC_BIAS (1<<2)    ///< set to true to inhibit estimation of accelerometer delta velocity bias
-#define MASK_USE_EVPOS        (1<<3)    ///< set to true to use external vision position data
-#define MASK_USE_EVYAW        (1<<4)    ///< set to true to use external vision quaternion data for yaw
-#define MASK_USE_DRAG         (1<<5)    ///< set to true to use the multi-rotor drag model to estimate wind
-#define MASK_ROTATE_EV        (1<<6)    ///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
-#define MASK_USE_GPSYAW       (1<<7)    ///< set to true to use GPS yaw data if available
-#define MASK_USE_EVVEL        (1<<8)    ///< set to true to use external vision velocity data
-
-enum TerrainFusionMask : int32_t {
-	TerrainFuseRangeFinder = (1 << 0),
-	TerrainFuseOpticalFlow = (1 << 1)
-};
-
-// Integer definitions for mag_fusion_type
-#define MAG_FUSE_TYPE_AUTO    0         ///< The selection of either heading or 3D magnetometer fusion will be automatic
-#define MAG_FUSE_TYPE_HEADING 1         ///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
-#define MAG_FUSE_TYPE_3D      2         ///< Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
-#define MAG_FUSE_TYPE_UNUSED  3         ///< Not implemented
-#define MAG_FUSE_TYPE_INDOOR  4         ///< The same as option 0, but magnetometer or yaw fusion will not be used unless earth frame external aiding (GPS or External Vision) is being used. This prevents inconsistent magnetic fields associated with indoor operation degrading state estimates.
-#define MAG_FUSE_TYPE_NONE    5         ///< Do not use magnetometer under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
-
-// Maximum sensor intervals in usec
-#define GPS_MAX_INTERVAL  (uint64_t)5e5 ///< Maximum allowable time interval between GPS measurements (uSec)
-#define BARO_MAX_INTERVAL (uint64_t)2e5 ///< Maximum allowable time interval between pressure altitude measurements (uSec)
-#define RNG_MAX_INTERVAL  (uint64_t)2e5 ///< Maximum allowable time interval between range finder  measurements (uSec)
-#define EV_MAX_INTERVAL   (uint64_t)2e5 ///< Maximum allowable time interval between external vision system measurements (uSec)
-
-// bad accelerometer detection and mitigation
-#define BADACC_PROBATION  (uint64_t)10e6        ///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
-#define BADACC_BIAS_PNOISE      4.9f    ///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
-
-// ground effect compensation
-#define GNDEFFECT_TIMEOUT       10E6    ///< Maximum period of time that ground effect protection will be active after it was last turned on (uSec)
-
 struct parameters {
 
 	int32_t filter_update_interval_us{10000}; ///< filter update interval in microseconds
 
 	// measurement source control
-	int32_t fusion_mode{MASK_USE_GPS};              ///< bitmasked integer that selects which aiding sources will be used
-	int32_t vdist_sensor_type{VDIST_SENSOR_BARO};   ///< selects the primary source for height data
+	int32_t fusion_mode{SensorFusionMask::USE_GPS};         ///< bitmasked integer that selects which aiding sources will be used
+	int32_t vdist_sensor_type{VerticalHeightSensor::BARO};  ///< selects the primary source for height data
 	int32_t terrain_fusion_mode{TerrainFusionMask::TerrainFuseRangeFinder |
 				    TerrainFusionMask::TerrainFuseOpticalFlow}; ///< aiding source(s) selection bitmask for the terrain estimator
 
@@ -501,7 +508,7 @@ union filter_control_status_u {
 };
 
 // Mavlink bitmask containing state of estimator solution
-union ekf_solution_status {
+union ekf_solution_status_u {
 	struct {
 		uint16_t attitude           : 1; ///< 0 - True if the attitude estimate is good
 		uint16_t velocity_horiz     : 1; ///< 1 - True if the horizontal velocity estimate is good
@@ -543,6 +550,10 @@ union information_event_status_u {
 		bool starting_vision_vel_fusion : 1; ///< 10 - true when the filter starts using vision system velocity measurements to correct the state estimates
 		bool starting_vision_yaw_fusion : 1; ///< 11 - true when the filter starts using vision system yaw  measurements to correct the state estimates
 		bool yaw_aligned_to_imu_gps     : 1; ///< 12 - true when the filter resets the yaw to an estimate derived from IMU and GPS data
+		bool reset_hgt_to_baro          : 1; ///< 13 - true when the vertical position state is reset to the baro measurement
+		bool reset_hgt_to_gps           : 1; ///< 14 - true when the vertical position state is reset to the gps measurement
+		bool reset_hgt_to_rng           : 1; ///< 15 - true when the vertical position state is reset to the rng measurement
+		bool reset_hgt_to_ev            : 1; ///< 16 - true when the vertical position state is reset to the ev measurement
 	} flags;
 	uint32_t value;
 };

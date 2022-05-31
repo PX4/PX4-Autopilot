@@ -44,7 +44,6 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 	typedef struct {
 		arming_state_t  arming_state;   // vehicle_status_s.arming_state
 		bool            armed;          // actuator_armed_s.armed
-		bool            ready_to_arm;   // actuator_armed_s.ready_to_arm
 	} ArmingTransitionVolatileState_t;
 
 	// This structure represents a test case for arming_state_transition. It contains the machine
@@ -56,7 +55,7 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		hil_state_t                     hil_state;                              // Current vehicle_status_s.hil_state
 		bool
 		system_sensors_initialized;   // Current vehicle_status_s.system_sensors_initialized
-		bool                            safety_switch_available;                // Current safety_s.safety_switch_available
+		bool                            safety_button_available;                // Current safety_s.safety_button_available
 		bool                            safety_off;                             // Current safety_s.safety_off
 		arming_state_t                  requested_state;                        // Requested arming state to transition to
 		ArmingTransitionVolatileState_t expected_state;                         // Expected machine state after transition
@@ -66,8 +65,6 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 	// We use these defines so that our test cases are more readable
 #define ATT_ARMED true
 #define ATT_DISARMED false
-#define ATT_READY_TO_ARM true
-#define ATT_NOT_READY_TO_ARM false
 #define ATT_SENSORS_INITIALIZED true
 #define ATT_SENSORS_NOT_INITIALIZED false
 #define ATT_SAFETY_AVAILABLE true
@@ -81,9 +78,9 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 
 		{
 			"no transition: identical states",
-			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_INIT,
-			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_NOT_CHANGED
+			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED}, TRANSITION_NOT_CHANGED
 		},
 
 		// TRANSITION_CHANGED tests
@@ -92,97 +89,97 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 
 		{
 			"transition: init to standby",
-			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_STANDBY,
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: init to standby error",
-			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_STANDBY_ERROR,
-			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: init to reboot",
-			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
-			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: standby to init",
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_INIT,
-			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: standby to standby error",
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_STANDBY_ERROR,
-			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: standby to reboot",
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
-			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: armed to standby",
-			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_STANDBY,
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: standby error to reboot",
-			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
-			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: in air restore to armed",
-			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_ARMED,
-			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, TRANSITION_CHANGED
 		},
 
 		{
 			"transition: in air restore to reboot",
-			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
-			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
 		// hil on tests, standby error to standby not normally allowed
 
 		{
 			"transition: standby error to standby, hil on",
-			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED}, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_STANDBY,
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, TRANSITION_CHANGED
 		},
 
-		// Safety switch arming tests
+		// Safety button arming tests
 
 		{
-			"transition: standby to armed, no safety switch",
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_NOT_AVAILABLE, ATT_SAFETY_OFF,
+			"transition: standby to armed, no safety button",
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_NOT_AVAILABLE, ATT_SAFETY_OFF,
 			vehicle_status_s::ARMING_STATE_ARMED,
-			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, TRANSITION_CHANGED
 		},
 
 		{
-			"transition: standby to armed, safety switch off",
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_OFF,
+			"transition: standby to armed, safety button off",
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, vehicle_status_s::HIL_STATE_ON, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_OFF,
 			vehicle_status_s::ARMING_STATE_ARMED,
-			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_CHANGED
+			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, TRANSITION_CHANGED
 		},
 
 		// TRANSITION_DENIED tests
@@ -191,51 +188,51 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 
 		{
 			"no transition: init to armed",
-			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_ARMED,
-			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED}, TRANSITION_DENIED
 		},
 
 		{
 			"no transition: armed to init",
-			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_INIT,
-			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, TRANSITION_DENIED
 		},
 
 		{
 			"no transition: armed to reboot",
-			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
-			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED}, TRANSITION_DENIED
 		},
 
 		{
 			"no transition: standby error to armed",
-			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_ARMED,
-			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED}, TRANSITION_DENIED
 		},
 
 		{
 			"no transition: standby error to standby",
-			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_STANDBY,
-			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED}, TRANSITION_DENIED
 		},
 
 		{
 			"no transition: reboot to armed",
-			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_ARMED,
-			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED}, TRANSITION_DENIED
 		},
 
 		{
 			"no transition: in air restore to standby",
-			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_STANDBY,
-			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED}, TRANSITION_DENIED
 		},
 
 		// Sensor tests
@@ -245,19 +242,18 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		//    vehicle_status_s::ARMING_STATE_STANDBY,
 		//    { vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED },
 
-		// Safety switch arming tests
+		// safety button arming tests
 
 		{
-			"no transition: init to armed, safety switch on",
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			"no transition: init to armed, safety button on",
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_ARMED,
-			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED}, TRANSITION_DENIED
 		},
 	};
 
 	struct vehicle_status_s status {};
 	struct vehicle_status_flags_s status_flags {};
-	struct safety_s safety {};
 	struct actuator_armed_s armed {};
 
 	size_t cArmingTransitionTests = sizeof(rgArmingTransitionTests) / sizeof(rgArmingTransitionTests[0]);
@@ -268,16 +264,11 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		PreFlightCheck::arm_requirements_t arm_req{};
 
 		// Setup initial machine state
-		status.arming_state = test->current_state.arming_state;
+		arm_state_machine.forceArmState(test->current_state.arming_state);
 		status_flags.system_sensors_initialized = test->system_sensors_initialized;
 		status.hil_state = test->hil_state;
 		// The power status of the test unit is not relevant for the unit test
 		status_flags.circuit_breaker_engaged_power_check = true;
-		safety.safety_switch_available = test->safety_switch_available;
-		safety.safety_off = test->safety_off;
-
-		armed.armed = test->current_state.armed;
-		armed.ready_to_arm = test->current_state.ready_to_arm;
 
 		vehicle_control_mode_s control_mode{};
 
@@ -285,7 +276,8 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		transition_result_t result = arm_state_machine.arming_state_transition(
 						     status,
 						     control_mode,
-						     safety,
+						     test->safety_button_available,
+						     test->safety_off,
 						     test->requested_state,
 						     armed,
 						     true /* enable pre-arm checks */,
@@ -297,8 +289,7 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 
 		// Validate result of transition
 		EXPECT_EQ(result, test->expected_transition_result) << test->assertMsg;
-		EXPECT_EQ(status.arming_state, test->expected_state.arming_state) << test->assertMsg;
-		EXPECT_EQ(armed.armed, test->expected_state.armed) << test->assertMsg;
-		EXPECT_EQ(armed.ready_to_arm, test->expected_state.ready_to_arm) << test->assertMsg;
+		EXPECT_EQ(arm_state_machine.getArmState(), test->expected_state.arming_state) << test->assertMsg;
+		EXPECT_EQ(arm_state_machine.isArmed(), test->expected_state.armed) << test->assertMsg;
 	}
 }
