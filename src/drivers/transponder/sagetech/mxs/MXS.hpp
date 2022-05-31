@@ -70,7 +70,7 @@ using namespace time_literals;
  * Defines
  *********************************************************************************/
 
-#define SAGETECH_MXS_POLL_RATE     						10_ms
+#define SAGETECH_MXS_POLL_RATE     						20_ms
 #define SAGETECH_SCALE_FEET_TO_M 						0.3048f
 #define SAGETECH_SCALE_KNOTS_TO_M_PER_SEC 				0.514444f
 #define SAGETECH_SCALE_M_PER_SEC_TO_KNOTS				1.94384F
@@ -83,6 +83,10 @@ using namespace time_literals;
 #define SAGETECH_USEC_PER_HOUR							3600000000
 #define SAGETECH_USEC_PER_MIN							60000000
 #define SAGETECH_USEC_PER_SEC							1000000
+
+#define SAGETECH_HFOM_UNKNOWN 							19000.0f
+#define SAGETECH_VFOM_UNKNOWN 							151.0f
+#define SAGETECH_HPL_UNKNOWN 							38000.0f
 
 /*********************************************************************************
  * Enum definitions
@@ -121,7 +125,7 @@ public:
 	MXS(const char *serial_port,unsigned baudrate);
 	~MXS() override;
 
-	//int init();
+	int init();
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -139,6 +143,7 @@ public:
 	void stop();
 
 private:
+
 
 
 	void Run() override;
@@ -165,10 +170,14 @@ private:
 
 	void send_target_req_msg();
 
+	void buff_to_hex(char*out,const uint8_t *buff, int len);
+
+	sg_nacv_t determine_nacv(float velAcc);
+
 	speed_t convert_baudrate(unsigned baud);
 
 	char 				*_serial_port{nullptr};
-	unsigned			_baudrate{0};
+	unsigned			_baudrate{57600};
 
 	int 				_file_descriptor{-1};
 

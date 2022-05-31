@@ -47,7 +47,6 @@ _sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
 _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 
 {
-	PX4_INFO("Saving serial port %d",baudrate );
 	_baudrate = baudrate;
 	//Save the serial port
 	if(serial_port == nullptr)
@@ -56,7 +55,6 @@ _comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
 	}
 	else
 	{
-		PX4_INFO("Saving serial port %s",serial_port );
 		_serial_port = strdup(serial_port);
 		set_device_bus_type(device::Device::DeviceBusType::DeviceBusType_SERIAL);
 		set_device_type(DRV_TRNS_DEVTYPE_MXS);
@@ -78,6 +76,7 @@ MXS::~MXS()
 
 int MXS::open_serial_port()
 {
+	_baudrate = 230400;
 	speed_t baud = convert_baudrate(_baudrate);
 	// File descriptor already initialized?
 	if (_file_descriptor > 0) {
@@ -89,7 +88,7 @@ int MXS::open_serial_port()
 	int flags = (O_RDWR | O_NOCTTY | O_NONBLOCK);
 
 	// Open the serial port.
-	PX4_INFO("Atempting to open port %s with baudrate %d",_serial_port, _baudrate);
+	//PX4_INFO("Atempting to open port %s with baudrate %d",_serial_port, _baudrate);
 	_file_descriptor = ::open(_serial_port, flags);
 
 	if (_file_descriptor < 0) {
@@ -119,6 +118,12 @@ int MXS::open_serial_port()
 	// Clear ONLCR flag (which appends a CR for every LF).
 	uart_config.c_oflag &= ~ONLCR;
 
+	// One input byte is enough to return from read()
+	// Inter-character timer off
+	//
+	uart_config.c_cc[VMIN]  = 1;
+	uart_config.c_cc[VTIME] = 0;
+
 	// Set the input baud rate in the uart_config struct.
 	int termios_state = cfsetispeed(&uart_config, baud);
 
@@ -147,22 +152,24 @@ int MXS::open_serial_port()
 	}
 
 	// Flush the hardware buffers.
-	tcflush(_file_descriptor, TCIOFLUSH);
+	//tcflush(_file_descriptor, TCIOFLUSH);
 
-	PX4_DEBUG("opened UART port %s", _serial_port);
+	//PX4_INFO("opened UART port %s", _serial_port);
 
 	return PX4_OK;
 }
 
 void MXS::parse_byte(uint8_t data)
 {
+	//PX4_INFO("Current state: %d", _msgIn.state);
+	PX4_INFO("Data in %x", data);
 	switch(_msgIn.state)
 	{
 		case startByte:
 			if(data == START_BYTE)
 			{
 				_msgIn.start = START_BYTE;
-				_msgIn.checksum += data;
+				_msgIn.checksum = data;
 				_msgIn.state = msgByte;
 			}
 			break;
@@ -180,13 +187,12 @@ void MXS::parse_byte(uint8_t data)
 			_msgIn.checksum += data;
 			_msgIn.length = data;
 			_msgIn.index = 0;
-			_msgIn.state = payload;
+			_msgIn.state = (data ==0) ? checksumByte : payload;
 			break;
 		case payload:
 			_msgIn.checksum += data;
-			_msgIn.payload[_msgIn.index] = data;
-			_msgIn.index ++;
-			if (_msgIn.index > _msgIn.length)
+			_msgIn.payload[_msgIn.index ++] = data;
+			if (_msgIn.index >= _msgIn.length)
 			{
 				_msgIn.state = checksumByte;
 			}
@@ -195,7 +201,12 @@ void MXS::parse_byte(uint8_t data)
 			if (_msgIn.checksum == data)
 			{
 				//handle/build message
+				PX4_INFO("Handling message");
 				handle_msg(_msgIn);
+			}
+			else
+			{
+				PX4_INFO("Checksum does not match, internal: %d Read: %d",_msgIn.checksum,  data);
 			}
 			_msgIn.state = startByte;
 			break;
@@ -204,7 +215,7 @@ void MXS::parse_byte(uint8_t data)
 
 int MXS::collect()
 {
-	perf_begin(_sample_perf);
+
 
 	// the buffer for read chars is buflen minus null termination
 	//unsigned _buffer_len = sizeof(_buffer) - 1;
@@ -215,17 +226,26 @@ int MXS::collect()
 	int bytes_available = 0;
 	::ioctl(_file_descriptor, FIONREAD, (unsigned long)&bytes_available);
 
+
 	if (!bytes_available) {
-		perf_end(_sample_perf);
+		//::close(_file_descriptor);
+		//_file_descriptor = -1;
 		return 0;
+	}
+	else
+	{
+		//PX4_INFO("Bytes on port: %d ", bytes_available);
+		perf_begin(_sample_perf);
 	}
 
 	// parse entire buffer
 	//const hrt_abstime timestamp_sample = hrt_absolute_time();
+	memset(_buffer,0, sizeof(_buffer));
 
 	do {
 		// read from the sensor (uart buffer)
 		uint8_t data;
+		tcflush(_file_descriptor, TCOFLUSH);
 		ret = ::read(_file_descriptor, &data, sizeof(data));
 
 		if (ret < 0) {
@@ -234,7 +254,8 @@ int MXS::collect()
 			perf_end(_sample_perf);
 			break;
 		}
-		parse_byte(data);
+		PX4_INFO("Current buffer: %X",data);
+		//parse_byte(data);
 
 
 		// parse buffer
@@ -252,8 +273,11 @@ int MXS::collect()
 
 void MXS::handle_msg(const sagetech_packet_t packet)
 {
+	PX4_INFO("In handle message");
 	uint8_t msgIn[255];
 	memcpy(msgIn, &packet.start, (5 + packet.index)* sizeof(uint8_t));
+	char out[255] = "";
+	buff_to_hex(out,msgIn, (5 + packet.index)* sizeof(uint8_t));
 	PX4_INFO("Current MXS Message: %s",msgIn );
 	switch(packet.type)
 	{
@@ -383,6 +407,7 @@ speed_t MXS::convert_baudrate(unsigned baud)
 
 void MXS::handle_svr(sg_svr_t svr)
 {
+	PX4_INFO("Updating SVR transponder message");
 	transponder_report_s t{};
 
 	t.timestamp = hrt_absolute_time();
@@ -435,11 +460,12 @@ void MXS::handle_svr(sg_svr_t svr)
 		}
 	}
 
-	_transponder_pub.publish(t);
+	//_transponder_pub.publish(t);
 }
 
 void MXS::handle_msr(sg_msr_t msr)
 {
+	PX4_INFO("Updating MSR transponder message");
 	transponder_report_s t{};
 
 	t.timestamp = hrt_absolute_time();
@@ -452,7 +478,7 @@ void MXS::handle_msr(sg_msr_t msr)
 		memcpy(&t.callsign, &msr.callsign, 8);
 	}
 	t.emitter_type = determine_emitter(msr.emitter);
-	_transponder_pub.publish(t);
+	//_transponder_pub.publish(t);
 }
 
 void MXS::send_gps_msg()
@@ -463,10 +489,12 @@ void MXS::send_gps_msg()
 
 	//Fill gps object for MXS
 	//TODO: These are realistic values that are hard coded for now
-	gpsOut.hpl = 12.0;
-	gpsOut.hfom = 23.0;
-	gpsOut.vfom = 33.0;
-	gpsOut.nacv = nacv3dot0;
+	gpsOut.hpl = 0; //I think we can find this but it's going to take a lot of digging
+
+	gpsOut.hfom = _gps.eph;
+	gpsOut.vfom = _gps.epv;
+	float velAcc = _gps.s_variance_m_s;
+	gpsOut.nacv = determine_nacv(velAcc);
 
 	//Convert Longitude and Latitude to strings
 	const int32_t lon = _gps.lon;
@@ -534,31 +562,84 @@ void MXS::send_gps_msg()
 
 	//Write to serial
 	int ret = 0;
+
+#ifdef DEBUG_MXS
 	char out[255] = "";
-	for ( int i = 0; i  < SG_MSG_LEN_GPS + 1; i ++)
+	buff_to_hex(out,_buffer,int(SG_MSG_LEN_GPS +1));
+	PX4_INFO("Atempting to write GPS %s",out);
+#endif
+	//PX4_INFO("Atempting to write GPS\n");
+	//tcflush(_file_descriptor, TCIFLUSH);
+
+	ret = ::write(_file_descriptor, _buffer, sizeof(gpsOut)); //Could use SG_MSG_LEN_GPS + 1
+
+	if(ret < 0)
+	{
+		PX4_INFO("Error in writing GPS");
+	}
+#ifdef DEBUG_MXS
+	else
+	{
+		PX4_INFO("GPS Write was sucessful\n");
+
+	}
+#endif
+
+}
+
+void MXS::buff_to_hex(char*out,const uint8_t *buff, int len)
+{
+
+	for ( int i = 0; i  < len; i ++)
 	{
 		char str[3];
 		sprintf(str,"%X",_buffer[i]);
 		strcat(out, str);
 	}
-	PX4_INFO("Writing GPS %s\n",out);
 
-	ret = ::write(_file_descriptor, &_buffer, sizeof(_buffer)); //Could use SG_MSG_LEN_GPS + 1
+}
 
-	if(ret < 0)
-	{
-		PX4_ERR("Error in writing GPS: %d", ret);
-	}
-	//Update gps send time
-	_last_gps_send = hrt_absolute_time();
-
-
+sg_nacv_t MXS::determine_nacv(float velAcc)
+{
+	sg_nacv_t ret;
+    if (velAcc >= (float)10.0) {
+    	ret = nacvUnknown;
+    }
+    else if (velAcc >= (float)3.0) {
+    	ret =  nacv10dot0;
+    }
+    else if (velAcc >= (float)1.0) {
+    	ret =  nacv3dot0;
+    }
+    else if (velAcc >= (float)0.3) {
+    	ret =  nacv1dot0;
+    }
+    else if (velAcc >= (float)0.0) {
+    	ret =  nacv0dot3;
+    }
+    else
+    {
+    	ret = nacvUnknown;
+    }
+    return ret;
 }
 
 void MXS::print_info()
 {
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sample_perf);
+}
+
+int MXS::init()
+{
+	_msgIn.checksum = 0;
+	_msgIn.id = 0;
+	_msgIn.length = 0;
+	_msgIn.start = 0;
+	_msgIn.state = 0;
+	_msgIn.type = 0;
+
+	return PX4_OK;
 }
 
 void MXS::Run()
@@ -574,18 +655,27 @@ void MXS::Run()
 	open_serial_port();
 	collect();
 
-	 const hrt_abstime currentTime = hrt_absolute_time();
+	 /*const hrt_abstime currentTime = hrt_absolute_time();
 
-	 if (currentTime - _last_gps_send >= 200)
+	 if (currentTime - _last_gps_send >= 1000000)
 	 {
 		send_gps_msg();
-	 }
+
+		_last_gps_send = currentTime;
+
+	 }*/
+
+	::close(_file_descriptor);
+	_file_descriptor = -1;
+
+
 }
 
 void MXS::start()
 {
 	// Schedule the driver at regular intervals.
-	ScheduleOnInterval(SAGETECH_MXS_POLL_RATE,SAGETECH_MXS_POLL_RATE);
+	ScheduleOnInterval(SAGETECH_MXS_POLL_RATE, SAGETECH_MXS_POLL_RATE);
+
 }
 
 void MXS::stop()

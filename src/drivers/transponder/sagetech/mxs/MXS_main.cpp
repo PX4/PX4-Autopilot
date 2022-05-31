@@ -63,7 +63,7 @@ static int start(const char *port, unsigned baudrate)
 		return PX4_OK;
 	}
 
-	if (OK != g_dev->init()) {
+	if (PX4_OK != g_dev->init()) {
 		PX4_ERR("MXS driver start failed");
 		delete g_dev;
 		g_dev = nullptr;
@@ -126,7 +126,7 @@ $ mxs stop
 	PRINT_MODULE_USAGE_SUBCATEGORY("transponder");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS1", "<file:dev>", "Sagetech MXS device", true);
-	PRINT_MODULE_USAGE_PARAM_INT('b', 600, 0, 921600, "Baudrate", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 57600, 600, 921600, "Baudrate", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Current status of the Driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	return PX4_OK;
