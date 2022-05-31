@@ -391,7 +391,7 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 	if (_parameter_update_sub.updated() || force) {
 		// clear update
 		parameter_update_s pupdate;
-		_parameter_update_sub.update(&pupdate);
+		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
 		updateParams();
