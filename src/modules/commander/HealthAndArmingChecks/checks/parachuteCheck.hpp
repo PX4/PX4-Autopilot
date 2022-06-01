@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,20 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
+#pragma once
 
-#include <lib/parameters/param.h>
-#include <lib/systemlib/mavlink_log.h>
+#include "../Common.hpp"
 
-using namespace time_literals;
-
-bool PreFlightCheck::parachuteCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
-				    const vehicle_status_flags_s &status_flags)
+class ParachuteChecks : public HealthAndArmingCheckBase
 {
-	bool success = true;
+public:
+	ParachuteChecks() = default;
+	~ParachuteChecks() = default;
 
-	int32_t param_com_parachute = false;
-	param_get(param_find("COM_PARACHUTE"), &param_com_parachute);
-	const bool parachute_required = param_com_parachute != 0;
+	void checkAndReport(const Context &context, Report &reporter) override;
 
-	if (parachute_required) {
-		if (!status_flags.parachute_system_present) {
-			success = false;
-
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Fail: Parachute system missing");
-			}
-
-		} else if (!status_flags.parachute_system_healthy) {
-			success = false;
-
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Fail: Parachute system not ready");
-			}
-		}
-	}
-
-	return success;
-}
+private:
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamBool<px4::params::COM_PARACHUTE>) _param_com_parachute
+				       )
+};

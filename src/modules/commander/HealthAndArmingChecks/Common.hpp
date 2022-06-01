@@ -316,6 +316,7 @@ private:
 	 * - report() (which can be called independently as well)
 	 */
 	void reset();
+	void prepare(uint8_t vehicle_type);
 	void finalize();
 
 	bool report(bool is_armed, bool force);

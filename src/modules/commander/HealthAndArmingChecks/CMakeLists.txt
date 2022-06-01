@@ -34,7 +34,26 @@
 px4_add_library(health_and_arming_checks
 	Common.cpp
 	HealthAndArmingChecks.cpp
+	checks/systemCheck.cpp
+	checks/magnetometerCheck.cpp
+	checks/accelerometerCheck.cpp
+	checks/gyroCheck.cpp
+	checks/baroCheck.cpp
+	checks/imuConsistencyCheck.cpp
+	checks/airspeedCheck.cpp
+	checks/distanceSensorChecks.cpp
+	checks/rcCalibrationCheck.cpp
+	checks/powerCheck.cpp
+	checks/estimatorCheck.cpp
+	checks/failureDetectorCheck.cpp
+	checks/manualControlCheck.cpp
+	checks/modeCheck.cpp
+	checks/cpuResourceCheck.cpp
+	checks/sdcardCheck.cpp
+	checks/parachuteCheck.cpp
+	checks/batteryCheck.cpp
 )
+add_dependencies(health_and_arming_checks mode_util)
 
 px4_add_functional_gtest(SRC HealthAndArmingChecksTest.cpp
 	LINKLIBS health_and_arming_checks mode_util

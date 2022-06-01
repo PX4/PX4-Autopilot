@@ -31,73 +31,56 @@
  *
  ****************************************************************************/
 
-#include "HealthAndArmingChecks.hpp"
+#include "manualControlCheck.hpp"
 
-HealthAndArmingChecks::HealthAndArmingChecks(ModuleParams *parent, vehicle_status_flags_s &status_flags,
-		vehicle_status_s &status)
-	: ModuleParams(parent),
-	  _context(status),
-	  _reporter(status_flags)
+using namespace time_literals;
+
+void ManualControlChecks::checkAndReport(const Context &context, Report &reporter)
 {
-}
-
-bool HealthAndArmingChecks::update(bool force_reporting)
-{
-	_reporter.reset();
-
-	_reporter.prepare(_context.status().vehicle_type);
-
-	for (unsigned i = 0; i < sizeof(_checks) / sizeof(_checks[0]); ++i) {
-		if (!_checks[i]) {
-			break;
-		}
-
-		_checks[i]->checkAndReport(_context, _reporter);
+	if (context.isArmed()) {
+		return;
 	}
 
-	_reporter.finalize();
+	manual_control_switches_s manual_control_switches;
 
-	if (_reporter.report(_context.isArmed(), force_reporting)) {
+	if (_manual_control_switches_sub.copy(&manual_control_switches)) {
 
-		// LEGACY start
-		// Run the checks again, this time with the mavlink publication set.
-		// We don't expect any change, and rate limitation would prevent the events from being reported again,
-		// so we only report mavlink_log_*.
-		_reporter._mavlink_log_pub = &_mavlink_log_pub;
-		_reporter.reset();
+		// check action switches
+		if (manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
+			/* EVENT
+			 */
+			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
+						    events::ID("check_man_control_rtl_engaged"),
+						    events::Log::Error, "RTL switch engaged");
 
-		_reporter.prepare(_context.status().vehicle_type);
-
-		for (unsigned i = 0; i < sizeof(_checks) / sizeof(_checks[0]); ++i) {
-			if (!_checks[i]) {
-				break;
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: RTL switch engaged");
 			}
-
-			_checks[i]->checkAndReport(_context, _reporter);
 		}
 
-		_reporter.finalize();
-		_reporter.report(_context.isArmed(), false);
-		_reporter._mavlink_log_pub = nullptr;
-		// LEGACY end
+		if (manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
+			/* EVENT
+			 */
+			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
+						    events::ID("check_man_control_kill_engaged"),
+						    events::Log::Error, "Kill switch engaged");
 
-		health_report_s health_report;
-		_reporter.getHealthReport(health_report);
-		health_report.timestamp = hrt_absolute_time();
-		_health_report_pub.publish(health_report);
-		return true;
-	}
-
-	return false;
-}
-
-void HealthAndArmingChecks::updateParams()
-{
-	for (unsigned i = 0; i < sizeof(_checks) / sizeof(_checks[0]); ++i) {
-		if (!_checks[i]) {
-			break;
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Kill switch engaged");
+			}
 		}
 
-		_checks[i]->updateParams();
+		if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
+			/* EVENT
+			 */
+			reporter.armingCheckFailure(NavModes::All, health_component_t::remote_control,
+						    events::ID("check_man_control_landing_gear_up"),
+						    events::Log::Error, "Landing gear switch set in UP position");
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: Landing gear switch set in UP position");
+			}
+		}
+
 	}
 }

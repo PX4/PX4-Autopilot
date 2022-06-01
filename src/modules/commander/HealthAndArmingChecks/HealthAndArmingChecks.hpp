@@ -39,6 +39,26 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/health_report.h>
 
+#include "checks/accelerometerCheck.hpp"
+#include "checks/airspeedCheck.hpp"
+#include "checks/baroCheck.hpp"
+#include "checks/cpuResourceCheck.hpp"
+#include "checks/distanceSensorChecks.hpp"
+#include "checks/estimatorCheck.hpp"
+#include "checks/failureDetectorCheck.hpp"
+#include "checks/gyroCheck.hpp"
+#include "checks/imuConsistencyCheck.hpp"
+#include "checks/magnetometerCheck.hpp"
+#include "checks/manualControlCheck.hpp"
+#include "checks/modeCheck.hpp"
+#include "checks/parachuteCheck.hpp"
+#include "checks/powerCheck.hpp"
+#include "checks/rcCalibrationCheck.hpp"
+#include "checks/sdcardCheck.hpp"
+#include "checks/systemCheck.hpp"
+#include "checks/batteryCheck.hpp"
+
+
 class HealthAndArmingChecks : public ModuleParams
 {
 public:
@@ -58,6 +78,11 @@ public:
 	 */
 	bool canArm(uint8_t nav_state) const { return _reporter.canArm(nav_state); }
 
+	/**
+	 * Whether switching into a given navigation mode is possible
+	 */
+	bool canRun(uint8_t nav_state) const { return _reporter.canRun(nav_state); }
+
 protected:
 	void updateParams() override;
 private:
@@ -68,7 +93,44 @@ private:
 	uORB::Publication<health_report_s> _health_report_pub{ORB_ID(health_report)};
 
 	// all checks
-	HealthAndArmingCheckBase *_checks[10] = {
+	AccelerometerChecks _accelerometer_checks;
+	AirspeedChecks _airspeed_checks;
+	BaroChecks _baro_checks;
+	CpuResourceChecks _cpu_resource_checks;
+	DistanceSensorChecks _distance_sensor_checks;
+	EstimatorChecks _estimator_checks;
+	FailureDetectorChecks _failure_detector_checks;
+	GyroChecks _gyro_checks;
+	ImuConsistencyChecks _imu_consistency_checks;
+	MagnetometerChecks _magnetometer_checks;
+	ManualControlChecks _manual_control_checks;
+	ModeChecks _mode_checks;
+	ParachuteChecks _parachute_checks;
+	PowerChecks _power_checks;
+	RcCalibrationChecks _rc_calibration_checks;
+	SdCardChecks _sd_card_checks;
+	SystemChecks _system_checks;
+	BatteryChecks _battery_checks;
+
+	HealthAndArmingCheckBase *_checks[30] = {
+		&_accelerometer_checks,
+		&_airspeed_checks,
+		&_baro_checks,
+		&_cpu_resource_checks,
+		&_distance_sensor_checks,
+		&_estimator_checks,
+		&_failure_detector_checks,
+		&_gyro_checks,
+		&_imu_consistency_checks,
+		&_magnetometer_checks,
+		&_manual_control_checks,
+		&_mode_checks,
+		&_parachute_checks,
+		&_power_checks,
+		&_rc_calibration_checks,
+		&_sd_card_checks,
+		&_system_checks,
+		&_battery_checks,
 	};
 };
 
