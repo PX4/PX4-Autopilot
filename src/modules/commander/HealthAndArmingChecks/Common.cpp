@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "Common.hpp"
+#include "../ModeUtil/mode_requirements.hpp"
 
 void Report::getHealthReport(health_report_s &report) const
 {
@@ -157,7 +158,12 @@ void Report::reset()
 	_results[_current_result].reset();
 	_next_buffer_idx = 0;
 	_buffer_overflowed = false;
-	_failing_checks_prevent_mode_switch = 0;
+}
+
+void Report::prepare(uint8_t vehicle_type)
+{
+	// Get mode requirements before running any checks (in particular the mode checks require them)
+	getModeRequirements(vehicle_type, _status_flags);
 }
 
 NavModes Report::getModeGroup(uint8_t nav_state) const

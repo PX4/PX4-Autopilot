@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,19 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
+#pragma once
 
-#include <systemlib/mavlink_log.h>
+#include "../Common.hpp"
 
-bool PreFlightCheck::failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
-		const bool report_fail)
+#include <uORB/Subscription.hpp>
+
+class BatteryChecks : public HealthAndArmingCheckBase
 {
-	if (status.failure_detector_status != vehicle_status_s::FAILURE_NONE) {
-		if (report_fail) {
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Roll failure detected");
-			}
+public:
+	BatteryChecks() = default;
+	~BatteryChecks() = default;
 
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_PITCH) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Pitch failure detected");
-			}
+	void checkAndReport(const Context &context, Report &reporter) override;
 
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_ALT) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Altitude failure detected");
-			}
-
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_EXT) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Parachute failure detected");
-			}
-
-			if (status.failure_detector_status & vehicle_status_s::FAILURE_ARM_ESC) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: ESC failure detected");
-			}
-		}
-
-		return false;
-	}
-
-	return true;
-}
+private:
+};

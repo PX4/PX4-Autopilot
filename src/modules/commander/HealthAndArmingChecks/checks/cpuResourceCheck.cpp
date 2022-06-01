@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,46 +31,54 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-
-#include <drivers/drv_hrt.h>
-#include <systemlib/mavlink_log.h>
-#include <lib/parameters/param.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/cpuload.h>
+#include "cpuResourceCheck.hpp"
 
 using namespace time_literals;
 
-bool PreFlightCheck::cpuResourceCheck(orb_advert_t *mavlink_log_pub, const bool report_fail)
+void CpuResourceChecks::checkAndReport(const Context &context, Report &reporter)
 {
-	bool success = true;
+	if (_param_com_cpu_max.get() < FLT_EPSILON) {
+		return;
+	}
 
-	uORB::SubscriptionData<cpuload_s> cpuload_sub{ORB_ID(cpuload)};
-	cpuload_sub.update();
+	cpuload_s cpuload;
 
-	float cpuload_percent_max;
-	param_get(param_find("COM_CPU_MAX"), &cpuload_percent_max);
+	if (!_cpuload_sub.copy(&cpuload) || hrt_elapsed_time(&cpuload.timestamp) > 2_s) {
 
-	if (cpuload_percent_max > 0.f) {
+		/* EVENT
+		 * @description
+		 * <profile name="dev">
+		 * If the system does not provide any CPU load information, use the parameter <param>COM_CPU_MAX</param>
+		 * to disable the check.
+		 * </profile>
+		 */
+		reporter.healthFailure(NavModes::All, health_component_t::system, events::ID("check_missing_cpuload"),
+				       events::Log::Error, "No CPU load information");
 
-		if (hrt_elapsed_time(&cpuload_sub.get().timestamp) > 2_s) {
-			success = false;
-
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Fail: No CPU load information");
-			}
+		if (reporter.mavlink_log_pub()) {
+			mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: No CPU load information");
 		}
 
-		const float cpuload_percent = cpuload_sub.get().load * 100.f;
+	} else {
+		const float cpuload_percent = cpuload.load * 100.f;
 
-		if (cpuload_percent > cpuload_percent_max) {
-			success = false;
+		if (cpuload_percent > _param_com_cpu_max.get()) {
 
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Fail: CPU load too high: %3.1f%%", (double)cpuload_percent);
+			/* EVENT
+			 * @description
+			 * The CPU load can be reduced for example by disabling unused modules (e.g. mavlink instances) or reducing the gyro update
+			 * rate via <param>IMU_GYRO_RATEMAX</param>.
+			 *
+			 * <profile name="dev">
+			 * The threshold can be adjusted via <param>COM_CPU_MAX</param> parameter.
+			 * </profile>
+			 */
+			reporter.healthFailure<float>(NavModes::All, health_component_t::system, events::ID("check_cpuload_too_high"),
+						      events::Log::Error, "CPU load too high: {1:.1}%", cpuload_percent);
+
+			if (reporter.mavlink_log_pub()) {
+				mavlink_log_critical(reporter.mavlink_log_pub(), "Preflight Fail: CPU load too high: %3.1f%%", (double)cpuload_percent);
 			}
 		}
 	}
-
-	return success;
 }

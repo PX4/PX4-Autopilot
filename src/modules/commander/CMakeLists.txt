@@ -34,6 +34,7 @@
 add_subdirectory(failure_detector)
 add_subdirectory(HealthAndArmingChecks)
 add_subdirectory(Arming)
+add_subdirectory(ModeUtil)
 
 px4_add_module(
 	MODULE modules__commander
@@ -62,12 +63,12 @@ px4_add_module(
 		geo
 		health_and_arming_checks
 		hysteresis
-		PreFlightCheck
 		ArmAuthorization
 		ArmStateMachine
 		HealthFlags
 		sensor_calibration
 		world_magnetic_model
+		mode_util
 	)
 
 if(PX4_TESTING)

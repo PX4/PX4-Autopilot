@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,43 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
+#pragma once
 
-#include <systemlib/mavlink_log.h>
+#include "../Common.hpp"
+
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/manual_control_switches.h>
+#include <uORB/topics/estimator_selector_status.h>
+#include <uORB/topics/estimator_sensor_bias.h>
+#include <uORB/topics/estimator_status.h>
+#include <uORB/topics/estimator_sensor_bias.h>
 
-using namespace time_literals;
 
-bool PreFlightCheck::manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail)
+class EstimatorChecks : public HealthAndArmingCheckBase
 {
-	bool success = true;
+public:
+	EstimatorChecks() = default;
+	~EstimatorChecks() = default;
 
-	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
-	const manual_control_switches_s &manual_control_switches = manual_control_switches_sub.get();
+	void checkAndReport(const Context &context, Report &reporter) override;
 
-	if (manual_control_switches.timestamp != 0) {
+private:
+	void checkEstimatorStatus(const Context &context, Report &reporter, const estimator_status_s &estimator_status,
+				  NavModes required_groups);
+	void checkSensorBias(const Context &context, Report &reporter, NavModes required_groups);
 
-		// check action switches
-		if (manual_control_switches.return_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			success = false;
+	uORB::Subscription _estimator_selector_status_sub{ORB_ID(estimator_selector_status)};
+	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
+	uORB::Subscription _estimator_sensor_bias_sub{ORB_ID(estimator_sensor_bias)};
 
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Failure: RTL switch engaged");
-			}
-		}
-
-		if (manual_control_switches.kill_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			success = false;
-
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Failure: Kill switch engaged");
-			}
-		}
-
-		if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
-			success = false;
-
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Failure: Landing gear switch set in UP position");
-			}
-		}
-
-	}
-
-	return success;
-}
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamInt<px4::params::SYS_MC_EST_GROUP>) _param_sys_mc_est_group,
+					(ParamInt<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode,
+					(ParamInt<px4::params::COM_ARM_MAG_STR>) _param_com_arm_mag_str,
+					(ParamFloat<px4::params::COM_ARM_EKF_HGT>) _param_com_arm_ekf_hgt,
+					(ParamFloat<px4::params::COM_ARM_EKF_VEL>) _param_com_arm_ekf_vel,
+					(ParamFloat<px4::params::COM_ARM_EKF_POS>) _param_com_arm_ekf_pos,
+					(ParamFloat<px4::params::COM_ARM_EKF_YAW>) _param_com_arm_ekf_yaw,
+					(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_com_arm_wo_gps,
+					(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps
+				       )
+};
