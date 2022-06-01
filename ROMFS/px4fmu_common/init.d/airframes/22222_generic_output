@@ -1,0 +1,21 @@
+#!/bin/sh
+#
+# @name Generic Output
+#
+# @maintainer
+#
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.output_defaults
+
+
+# Provide ESC a constant 1500 us pulse
+param set-default PWM_MAIN_DISARM 1500
+param set-default PWM_MAIN_MAX 2000
+param set-default PWM_MAIN_MIN 1000
+
+# Set mixer
+set MIXER IO_pass
+
+set PWM_OUT 12

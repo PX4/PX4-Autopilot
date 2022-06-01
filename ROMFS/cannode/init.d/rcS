@@ -65,8 +65,8 @@ unset BOARD_RC_DEFAULTS
 #
 # Start system state indicator.
 #
-rgbled start -X -q
-rgbled_ncp5623c start -X -q
+#rgbled start -X -q
+#rgbled_ncp5623c start -X -q
 
 #
 # board sensors: rc.sensors
@@ -86,10 +86,10 @@ unset BOARD_RC_SENSORS
 . ${R}etc/init.d/rc.serial
 
 # Check for flow sensor
-if param compare SENS_EN_PX4FLOW 1
-then
-	px4flow start -X &
-fi
+#if param compare SENS_EN_PX4FLOW 1
+#then
+#	px4flow start -X &
+#fi
 
-uavcannode start
+#uavcannode start
 unset R

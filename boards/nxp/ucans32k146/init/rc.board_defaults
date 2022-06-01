@@ -3,7 +3,12 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-pwm_out mode_pwm1 start
+# pre-arm stuff
+param set-default SYS_CTRL_ALLOC 1
+
+pwm_out start
+
+control_allocator start
 
 ifup can0
 cyphal start
