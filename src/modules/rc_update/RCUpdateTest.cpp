@@ -86,48 +86,45 @@ TEST(RCUpdateTest, ModeSlotSwitchAllValues)
 	checkModeSlotSwitch(1.f, 6); // manual_control_switches_s::MODE_SLOT_6
 }
 
-void checkModeSlotButton(uint8_t button_configuration, uint8_t channel, float channel_value, uint8_t expected_slot)
+void checkTriggerAction(uint8_t button_mask, uint8_t channel, float channel_value, uint8_t action, bool expected_state)
 {
 	RCUpdate rc_update;
+	hrt_abstime time_elapsed {0};
 
 	// GIVEN: Buttons are configured
-	rc_update._param_rc_map_fltm_btn.set(button_configuration);
-	EXPECT_EQ(rc_update._param_rc_map_fltm_btn.get(), button_configuration);
-	// GIVEN: buttons are mapped
-	rc_update.update_rc_functions();
-	// GIVEN: First channel has some value
+	rc_update._param_rc_trig_btn_mask.set(button_mask);
+	EXPECT_EQ(rc_update._param_rc_trig_btn_mask.get(), button_mask);
+	// GIVEN: Trigger Channel is configured (We use trigger slot 1, which is index 0)
+	rc_update._parameters.generic_trigger_chan[0] = channel;
+	// GIVEN: Trigger action is configured
+	rc_update._parameters.generic_trigger_action[0] = action;
+	// GIVEN: Trigger Action to Channel is mapped
+	rc_update._trigger_action_to_channel_mapping[action] = channel;
+	// GIVEN: Give channel some value
 	rc_update._rc.channels[channel - 1] = channel_value;
 
-	// WHEN: we update the switches 4 times:
-	// - initiate the button press
-	// - keep the same button pressed
-	// - hold the button for 50ms
-	// - pass the simple outlier protection
-	rc_update.UpdateManualSwitches(0);
-	rc_update.UpdateManualSwitches(0);
-	rc_update.UpdateManualSwitches(51_ms);
+	// WHEN
+	// - Initiate the manual switch state
+	rc_update.UpdateManualSwitches(time_elapsed);
+	time_elapsed += 51_ms;
+	// - simulate a 51 ms elapsing since the last input
+	rc_update.UpdateManualSwitches(time_elapsed);
+	time_elapsed += 20_ms;
+	// - Hold the RC signal for extra 20 ms
 	rc_update.UpdateManualSwitches(51_ms);
 
-	// THEN: we receive the expected mode slot
-	uORB::SubscriptionData<manual_control_switches_s> manual_control_switches_sub{ORB_ID(manual_control_switches)};
-	manual_control_switches_sub.update();
-
-	EXPECT_EQ(manual_control_switches_sub.get().mode_slot, expected_slot);
+	// THEN: The internal action state equals the expected state
+	EXPECT_EQ(rc_update._trigger_action_states[action], expected_state);
 }
 
-TEST(RCUpdateTest, ModeSlotButtonAllValues)
+TEST(RCUpdateTest, TriggerAction)
 {
-	checkModeSlotButton(1, 1, -1.f, 0); // button not pressed -> manual_control_switches_s::MODE_SLOT_NONE
-	checkModeSlotButton(1, 1, 0.f, 0); // button not pressed over threshold -> manual_control_switches_s::MODE_SLOT_NONE
-	checkModeSlotButton(1, 1, 1.f, 1); // button 1 pressed -> manual_control_switches_s::MODE_SLOT_1
-	checkModeSlotButton(1, 2, 1.f, 0); // button 2 pressed but not configured -> manual_control_switches_s::MODE_SLOT_NONE
-	checkModeSlotButton(3, 2, 1.f, 2); // button 2 pressed -> manual_control_switches_s::MODE_SLOT_2
-	checkModeSlotButton(3, 3, 1.f, 0); // button 3 pressed but not configured -> manual_control_switches_s::MODE_SLOT_NONE
-	checkModeSlotButton(7, 3, 1.f, 3); // button 3 pressed -> manual_control_switches_s::MODE_SLOT_3
-	checkModeSlotButton(7, 4, 1.f, 0); // button 4 pressed but not configured -> manual_control_switches_s::MODE_SLOT_NONE
-	checkModeSlotButton(15, 4, 1.f, 4); // button 4 pressed -> manual_control_switches_s::MODE_SLOT_4
-	checkModeSlotButton(15, 5, 1.f, 0); // button 5 pressed but not configured -> manual_control_switches_s::MODE_SLOT_NONE
-	checkModeSlotButton(31, 5, 1.f, 5); // button 5 pressed -> manual_control_switches_s::MODE_SLOT_5
-	checkModeSlotButton(31, 6, 1.f, 0); // button 6 pressed but not configured -> manual_control_switches_s::MODE_SLOT_NONE
-	checkModeSlotButton(63, 6, 1.f, 6); // button 6 pressed -> manual_control_switches_s::MODE_SLOT_6
+	const uint8_t no_buttons_mask = 0;
+	const uint8_t action = RC_TRIGGER_ACTIONS::RC_TRIGGER_ACTION_GEAR;
+	// Giving 1.0 (max, pressed) value for the channel should trigger the action
+	checkTriggerAction(no_buttons_mask, 6, 1.0f, action, true);
+	// Giving 0.0 (neutral) value for the channel should not trigger the action
+	checkTriggerAction(no_buttons_mask, 6, 0.0f, action, false);
+	// Giving -1.0 (default) value for the channel should not trigger the action
+	checkTriggerAction(no_buttons_mask, 6, -1.0f, action, false);
 }

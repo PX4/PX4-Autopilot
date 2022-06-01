@@ -67,11 +67,8 @@ RCUpdate::RCUpdate() :
 	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_trigger_slots_hysteresis{
 	systemlib::Hysteresis{false},
-	systemlib::Hysteresis{false},
-	systemlib::Hysteresis{false},
-	systemlib::Hysteresis{false},
 	systemlib::Hysteresis{false}
-}
+	}
 {
 	// initialize parameter handles
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
@@ -722,12 +719,6 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		default:
 			// For other actions, do nothing (for now)
 			break;
-		}
-
-		_button_pressed_hysteresis.set_state_and_update(is_consistent_button_press, timestamp_sample);
-
-		if (_button_pressed_hysteresis.get_state()) {
-			switches.mode_slot = _potential_button_press_slot;
 		}
 	}
 

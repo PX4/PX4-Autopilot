@@ -1711,7 +1711,6 @@ PARAM_DEFINE_INT32(RC_TRIG2_CHAN, 0);
  */
 PARAM_DEFINE_INT32(RC_TRIG2_ACTION, 0);
 
-
 /**
  * AUX1 Passthrough RC channel
  *
