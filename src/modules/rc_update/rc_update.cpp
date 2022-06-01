@@ -612,7 +612,6 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 {
 	manual_control_switches_s switches{};
 	switches.timestamp_sample = timestamp_sample;
-	const hrt_abstime now = hrt_absolute_time();
 
 	// check mode slot (RC_MAP_FLTMODE)
 	if (_param_rc_map_fltmode.get() > 0) {
@@ -656,6 +655,10 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		switches.trig_channel_values[trig_slot - 1] = channel_value;
 		switches.trig_actions[trig_slot - 1] = action;
 		switches.trig_states[trig_slot - 1] = _trigger_action_states[action];
+		switches.hysteresis_internal_time[trig_slot - 1] = _trigger_slots_hysteresis[trig_slot -
+				1].get_last_state_change_time();
+		switches.channel_states[trig_slot - 1] =
+			channel_state; // Log RAW channel state, to check if it is the right boolean value
 
 		if (_trigger_action_to_channel_mapping[action] != channel_idx) {
 			// Trigger Action is not mapped to this current channel, this can happen
@@ -667,7 +670,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		if (channel_is_btn) {
 			// Handle Button Hysterisis
 			const bool pre_update_state = _trigger_slots_hysteresis[trig_slot - 1].get_state();
-			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(channel_state, now);
+			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(channel_state, timestamp_sample);
 			const bool post_update_state = _trigger_slots_hysteresis[trig_slot - 1].get_state();
 
 			// Button was pressed (Low -> High transition)
@@ -678,7 +681,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 
 		} else {
 			// Handle Switch Hysterisis
-			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(channel_state, now);
+			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(channel_state, timestamp_sample);
 			_trigger_action_states[action] = _trigger_slots_hysteresis[trig_slot - 1].get_state();
 		}
 

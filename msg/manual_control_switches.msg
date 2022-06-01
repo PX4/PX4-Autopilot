@@ -36,3 +36,5 @@ uint8[5] trig_channels
 float32[5] trig_channel_values
 uint8[5] trig_actions
 uint8[5] trig_states
+uint32[5] hysteresis_internal_time
+uint8[5] channel_states
