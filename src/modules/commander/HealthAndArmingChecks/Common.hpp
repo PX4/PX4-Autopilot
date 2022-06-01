@@ -39,6 +39,7 @@
 #include <uORB/topics/health_report.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
+#include <systemlib/mavlink_log.h>
 
 #include <stdint.h>
 #include <limits.h>
@@ -195,6 +196,8 @@ public:
 
 	vehicle_status_flags_s &failsafeFlags() { return _status_flags; }
 
+	orb_advert_t *mavlink_log_pub() { return _mavlink_log_pub; }
+
 	/**
 	 * Whether arming is possible for a given navigation mode
 	 */
@@ -333,6 +336,8 @@ private:
 	int _current_result{0};
 
 	vehicle_status_flags_s &_status_flags;
+
+	orb_advert_t *_mavlink_log_pub{nullptr}; ///< mavlink log publication for legacy reporting
 };
 
 template<typename... Args>

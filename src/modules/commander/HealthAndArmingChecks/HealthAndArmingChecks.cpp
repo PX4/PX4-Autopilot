@@ -57,6 +57,26 @@ bool HealthAndArmingChecks::update(bool force_reporting)
 
 	if (_reporter.report(_context.isArmed(), force_reporting)) {
 
+		// LEGACY start
+		// Run the checks again, this time with the mavlink publication set.
+		// We don't expect any change, and rate limitation would prevent the events from being reported again,
+		// so we only report mavlink_log_*.
+		_reporter._mavlink_log_pub = &_mavlink_log_pub;
+		_reporter.reset();
+
+		for (unsigned i = 0; i < sizeof(_checks) / sizeof(_checks[0]); ++i) {
+			if (!_checks[i]) {
+				break;
+			}
+
+			_checks[i]->checkAndReport(_context, _reporter);
+		}
+
+		_reporter.finalize();
+		_reporter.report(_context.isArmed(), false);
+		_reporter._mavlink_log_pub = nullptr;
+		// LEGACY end
+
 		health_report_s health_report;
 		_reporter.getHealthReport(health_report);
 		health_report.timestamp = hrt_absolute_time();
