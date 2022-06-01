@@ -824,6 +824,24 @@ void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 	_actuator_group_3_pub.publish(actuator_group_3);
 }
 
+switch_pos_t RCUpdate::get_rc_sw2pos_position(uint8_t func, float on_th) const
+{
+	if (_rc.function[func] >= 0) {
+		const bool on_inv = (on_th < 0.f);
+
+		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
+
+		if (on_inv ? value < on_th : value > on_th) {
+			return manual_control_switches_s::SWITCH_POS_ON;
+
+		} else {
+			return manual_control_switches_s::SWITCH_POS_OFF;
+		}
+	}
+
+	return manual_control_switches_s::SWITCH_POS_NONE;
+}
+
 int RCUpdate::task_spawn(int argc, char *argv[])
 {
 	RCUpdate *instance = new RCUpdate();

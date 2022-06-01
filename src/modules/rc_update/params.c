@@ -1647,7 +1647,7 @@ PARAM_DEFINE_INT32(RC_TRIG1_CHAN, 0);
  * @value 20 Photo
  * @value 21 Video
  */
-PARAM_DEFINE_INT32(RC_TRIG1_ACTION, 0);
+PARAM_DEFINE_INT32(RC_TRIG1_ACTION, -1);
 
 /**
  * RC Channel for trigger slot 2
@@ -1709,7 +1709,7 @@ PARAM_DEFINE_INT32(RC_TRIG2_CHAN, 0);
  * @value 20 Photo
  * @value 21 Video
  */
-PARAM_DEFINE_INT32(RC_TRIG2_ACTION, 0);
+PARAM_DEFINE_INT32(RC_TRIG2_ACTION, -1);
 
 /**
  * AUX1 Passthrough RC channel
