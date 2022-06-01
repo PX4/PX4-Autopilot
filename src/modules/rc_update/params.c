@@ -1622,7 +1622,7 @@ PARAM_DEFINE_INT32(RC_TRIG1_CHAN, 0);
  * Everything else (16 ~ ) is a non-flight-mode actions
  *
  * @min -1
- * @max 20
+ * @max 21
  * @group Radio Trigger
  * @value -1 Unassigned
  * @value 0 Manual
@@ -1648,6 +1648,68 @@ PARAM_DEFINE_INT32(RC_TRIG1_CHAN, 0);
  * @value 21 Video
  */
 PARAM_DEFINE_INT32(RC_TRIG1_ACTION, 0);
+
+/**
+ * RC Channel for trigger slot 2
+ *
+ * @min 0
+ * @max 18
+ * @group Radio Trigger
+ * @value 0 Unassigned
+ * @value 1 Channel 1
+ * @value 2 Channel 2
+ * @value 3 Channel 3
+ * @value 4 Channel 4
+ * @value 5 Channel 5
+ * @value 6 Channel 6
+ * @value 7 Channel 7
+ * @value 8 Channel 8
+ * @value 9 Channel 9
+ * @value 10 Channel 10
+ * @value 11 Channel 11
+ * @value 12 Channel 12
+ * @value 13 Channel 13
+ * @value 14 Channel 14
+ * @value 15 Channel 15
+ * @value 16 Channel 16
+ * @value 17 Channel 17
+ * @value 18 Channel 18
+ */
+PARAM_DEFINE_INT32(RC_TRIG2_CHAN, 0);
+
+/**
+ * Which action the Trigger slot 2 trigger
+ *
+ * The flight mode enums follow the convention defined in the commander_state.msg uORB message.
+ * Everything else (16 ~ ) is a non-flight-mode actions
+ *
+ * @min -1
+ * @max 21
+ * @group Radio Trigger
+ * @value -1 Unassigned
+ * @value 0 Manual
+ * @value 1 Altitude
+ * @value 2 Position
+ * @value 3 Mission
+ * @value 4 Loiter
+ * @value 5 Return
+ * @value 6 Acro
+ * @value 7 Offboard
+ * @value 8 Stabilized
+ * @value 10 Takeoff
+ * @value 11 Land
+ * @value 12 Follow Me
+ * @value 13 Precision Land
+ * @value 14 Orbit
+ * @value 15 Auto VTOL Takeoff
+ * @value 16 Killswitch
+ * @value 17 Arm
+ * @value 18 VTOL Transition
+ * @value 19 Gear
+ * @value 20 Photo
+ * @value 21 Video
+ */
+PARAM_DEFINE_INT32(RC_TRIG2_ACTION, 0);
 
 
 /**

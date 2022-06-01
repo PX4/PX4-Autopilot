@@ -108,18 +108,29 @@ RCUpdate::RCUpdate() :
 	}
 
 	// Find param handles for Generic Trigger Channel & Actions for slot 1 ~ 6
+	// And setup Hysteresis objects
 	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
 		char param_name_buf[17] = {};
-		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG_%d_CHAN", trig_slot);
+		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG%d_CHAN", trig_slot);
 		_parameter_handles.generic_trigger_chan[trig_slot - 1] = param_find(param_name_buf);
-		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG_%d_ACTION", trig_slot);
+		snprintf(param_name_buf, sizeof(param_name_buf), "RC_TRIG%d_ACTION", trig_slot);
 		_parameter_handles.generic_trigger_action[trig_slot - 1] = param_find(param_name_buf);
+
+		// Set Hysteresis time from false state (false -> true)
+		_trigger_slots_hysteresis[trig_slot - 1].set_hysteresis_time_from(false, RC_TRIGGER_HYSTERESIS_TIME);
+		// Set Hysteresis time from true state (true -> false)
+		_trigger_slots_hysteresis[trig_slot - 1].set_hysteresis_time_from(true, RC_TRIGGER_HYSTERESIS_TIME);
+	}
+
+	// Reset each Action mapping & states
+	for (uint8_t action_idx = 0; action_idx < RC_TRIGGER_ACTION_COUNT; action_idx++) {
+		_trigger_action_to_channel_mapping[action_idx] = RC_TRIG_CHAN_UNASSIGNED;
+		_trigger_action_states[action_idx] = false;
 	}
 
 	rc_parameter_map_poll(true /* forced */);
-	parameters_updated();
 
-	//_button_pressed_hysteresis.set_hysteresis_time_from(false, 50_ms);
+	parameters_updated(); // Update parameters and configure generic trigger action setup
 }
 
 RCUpdate::~RCUpdate()
@@ -178,6 +189,11 @@ void RCUpdate::parameters_updated()
 		param_get(_parameter_handles.generic_trigger_chan[trig_slot - 1], &new_channel);
 		param_get(_parameter_handles.generic_trigger_action[trig_slot - 1], &new_action);
 
+		// Channel Sanity check. If infeasible, don't handle this channel setting
+		if (new_channel <= RC_TRIG_CHAN_UNASSIGNED || new_channel >= RC_MAX_CHAN_COUNT) {
+			continue;
+		}
+
 		// If the trigger channel / action configuration has changed, reset Hysteresis state
 		if ((old_channel != new_channel) || old_action != new_action) {
 			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(false, hrt_absolute_time());
@@ -196,6 +212,10 @@ void RCUpdate::parameters_updated()
 				set_trigger_action_to_channel_mapping((RC_TRIGGER_ACTIONS)new_action, new_channel);
 			}
 		}
+
+		// Update the parameter values
+		_parameters.generic_trigger_chan[trig_slot - 1] = new_channel;
+		_parameters.generic_trigger_action[trig_slot - 1] = new_action;
 	}
 
 	// Update RC Function Mapping (Throttle, Roll, AUX1, etc.)
@@ -385,6 +405,16 @@ void RCUpdate::Run()
 		parameters_updated();
 	}
 
+	// Use the Generic RC Switch / Button only when the RC is in use
+	if (_manual_control_setpoint_sub.update()) {
+		if (_manual_control_setpoint_sub.get().data_source == manual_control_setpoint_s::SOURCE_RC) {
+			_manual_control_setpoint_source_is_rc = true;
+
+		} else {
+			_manual_control_setpoint_source_is_rc = false;
+		}
+	}
+
 	rc_parameter_map_poll();
 
 	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
@@ -450,9 +480,10 @@ void RCUpdate::Run()
 			signal_lost = false;
 
 			/* check failsafe */
-			int8_t fs_ch = _rc.function[_param_rc_map_failsafe.get()]; // get channel mapped to throttle
+			int8_t fs_ch = _rc.function[rc_channels_s::FUNCTION_THROTTLE]; // Use Throttle channel as default
 
-			if (_param_rc_map_failsafe.get() > 0) { // if not 0, use channel number instead of rc.function mapping
+			// If the failsafe channel is set, use that instead of the throttle channel
+			if (_param_rc_map_failsafe.get() > 0) {
 				fs_ch = _param_rc_map_failsafe.get() - 1;
 			}
 
@@ -582,6 +613,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 {
 	manual_control_switches_s switches{};
 	switches.timestamp_sample = timestamp_sample;
+	const hrt_abstime now = hrt_absolute_time();
 
 	// check mode slot (RC_MAP_FLTMODE)
 	if (_param_rc_map_fltmode.get() > 0) {
@@ -609,64 +641,78 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		}
 	}
 
-	// Use the Generic RC Switch / Button only when the RC is in use
-	if (_manual_control_setpoint_sub.update() &&
-	    _manual_control_setpoint_sub.get().data_source == manual_control_setpoint_s::SOURCE_RC) {
-		_manual_control_setpoint_source_is_rc = true;
-	}
-
 	// Go through the trigger slots and update the states
-	const uint32_t rc_trigger_is_button_mask = _param_rc_trig_btn_mask.get();
+	const uint32_t rc_trigger_button_mask = _param_rc_trig_btn_mask.get();
 
 	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
-		int channel{RC_TRIG_CHAN_UNASSIGNED};
-		param_get(_trigger_channel_param_handles[trig_slot - 1], &channel);
-		int action{RC_TRIGGER_ACTION_UNASSIGNED};
-		param_get(_trigger_action_param_handles[trig_slot - 1], &action);
+		// Channel Idx for _rc.channels[] starts from 0, whereas the Channel Parameter starts from 1
+		const int8_t channel_idx = _parameters.generic_trigger_chan[trig_slot - 1] - 1;
+		const float channel_value = _rc.channels[channel_idx];
+		const bool channel_state = (channel_value > RC_TRIG_CHAN_THRESHOLD);
+		const bool channel_is_btn = rc_trigger_button_mask & 1 << channel_idx;
+		const int8_t action = _parameters.generic_trigger_action[trig_slot - 1];
 
-		if (channel > RC_TRIG_CHAN_UNASSIGNED) {
-
+		if (_trigger_action_to_channel_mapping[action] != channel_idx) {
+			// Trigger Action is not mapped to this current channel, this can happen
+			// if multiple channels are mapped to the same action, and if this channel
+			// is not selected, don't take it into account
+			continue;
 		}
-	}
 
-	// Update the Generic Action states
-	const uint8_t trig1_chan = _param_rc_trig1_chan.get();
-	const uint8_t trig1_action = _param_rc_trig1_action.get();
+		if (channel_is_btn) {
+			// Handle Button Hysterisis
+			const bool pre_update_state = _trigger_slots_hysteresis[trig_slot - 1].get_state();
+			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(channel_state, now);
+			const bool post_update_state = _trigger_slots_hysteresis[trig_slot - 1].get_state();
 
-	// Trigger Channel is configured
-	if (trig1_chan > 0) {
-		const bool is_btn = _param_rc_trig_btn_mask.get() & (1 << 0);
-
-		if (is_btn) {
+			// Button was pressed (Low -> High transition)
+			if (pre_update_state == false && post_update_state == true) {
+				// Flip the state of the trigger
+				_trigger_action_states[action] = !_trigger_action_states[action];
+			}
 
 		} else {
-			// Is Switch
-
+			// Handle Switch Hysterisis
+			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(channel_state, now);
+			_trigger_action_states[action] = _trigger_slots_hysteresis[trig_slot - 1].get_state();
 		}
 	}
 
-	else if (_param_rc_map_flightmode_buttons.get() > 0) {
-		switches.mode_slot = manual_control_switches_s::MODE_SLOT_NONE;
-		bool is_consistent_button_press = false;
+	// Temporarily make use of the manual_control_switches to set the appropriate switch states
+	// Ultimately, this part should handle sending ActionRequests, as the manual_control_switches
+	// uORB message will get removed
+	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		const int8_t action = _parameters.generic_trigger_action[trig_slot - 1];
+		const bool action_state = _trigger_action_states[action];
 
-		for (uint8_t slot = 0; slot < manual_control_switches_s::MODE_SLOT_NUM; slot++) {
+		switch (action) {
+		case RC_TRIGGER_ACTION_KILLSWITCH:
+			switches.kill_switch = action_state;
+			break;
 
-			// If the slot is not in use (-1), get_rc_value() will return 0
-			float value = get_rc_value(rc_channels_s::FUNCTION_FLTBTN_SLOT_1 + slot, -1.0, 1.0);
+		case RC_TRIGGER_ACTION_ARM:
+			switches.arm_switch = action_state;
+			break;
 
-			// The range goes from -1 to 1, checking that value is greater than 0.5f
-			// corresponds to check that the signal is above 75% of the overall range.
-			if (value > 0.5f) {
-				const uint8_t current_button_press_slot = slot + 1;
+		case RC_TRIGGER_ACTION_GEAR:
+			switches.gear_switch = action_state;
+			break;
 
-				// The same button stays pressed consistently
-				if (current_button_press_slot == _potential_button_press_slot) {
-					is_consistent_button_press = true;
-				}
+		case RC_TRIGGER_ACTION_RETURN_FLIGHTMODE:
+			switches.return_switch = action_state;
+			break;
 
-				_potential_button_press_slot = current_button_press_slot;
-				break;
-			}
+		case RC_TRIGGER_ACTION_HOLD_FLIGHTMODE:
+			switches.loiter_switch = action_state;
+			break;
+
+		case RC_TRIGGER_ACTION_OFFBOARD_FLIGHTMODE:
+			switches.offboard_switch = action_state;
+			break;
+
+		default:
+			// For other actions, do nothing (for now)
+			break;
 		}
 
 		_button_pressed_hysteresis.set_state_and_update(is_consistent_button_press, timestamp_sample);
@@ -675,14 +721,6 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 			switches.mode_slot = _potential_button_press_slot;
 		}
 	}
-
-	switches.return_switch     = get_rc_sw2pos_position(rc_channels_s::FUNCTION_RETURN,     _param_rc_return_th.get());
-	switches.loiter_switch     = get_rc_sw2pos_position(rc_channels_s::FUNCTION_LOITER,     _param_rc_loiter_th.get());
-	switches.offboard_switch   = get_rc_sw2pos_position(rc_channels_s::FUNCTION_OFFBOARD,   _param_rc_offb_th.get());
-	switches.kill_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_KILLSWITCH, _param_rc_killswitch_th.get());
-	switches.arm_switch        = get_rc_sw2pos_position(rc_channels_s::FUNCTION_ARMSWITCH,  _param_rc_armswitch_th.get());
-	switches.transition_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_TRANSITION, _param_rc_trans_th.get());
-	switches.gear_switch       = get_rc_sw2pos_position(rc_channels_s::FUNCTION_GEAR,       _param_rc_gear_th.get());
 
 #if defined(ATL_MANTIS_RC_INPUT_HACKS)
 	switches.photo_switch = get_rc_sw2pos_position(rc_channels_s::FUNCTION_AUX_3, 0.5f);
@@ -716,6 +754,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 
 void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 {
+	PX4_INFO("Manual Control input update");
 	manual_control_setpoint_s manual_control_input{};
 	manual_control_input.timestamp_sample = timestamp_sample;
 	manual_control_input.data_source = manual_control_setpoint_s::SOURCE_RC;

@@ -66,12 +66,20 @@ using namespace time_literals;
 
 namespace rc_update
 {
+// maximum number of r/c channels we handle
+static constexpr uint8_t RC_MAX_CHAN_COUNT{input_rc_s::RC_INPUT_MAX_CHANNELS};
 
 // Number of Generic Trigger slots that can be configured
 static constexpr uint8_t RC_TRIG_SLOT_COUNT = 6;
 
 // Value of the RC_TRIG#_CHAN when the channel is unassigned
 static constexpr uint8_t RC_TRIG_CHAN_UNASSIGNED = 0;
+
+// [us] Hysteresis time for the Switch / Button Trigger Slots
+static constexpr hrt_abstime RC_TRIGGER_HYSTERESIS_TIME = 50_ms;
+
+// If the RC Channel [-1, 1] value is above this , consider a switch / button to be 'active'
+static constexpr float RC_TRIG_CHAN_THRESHOLD = 0.75f;
 
 // Enum class translation of the RC_TRIG#_ACTION values
 enum RC_TRIGGER_ACTIONS {
@@ -174,8 +182,6 @@ public:
 	 */
 	bool set_trigger_action_to_channel_mapping(const RC_TRIGGER_ACTIONS action, const int8_t channel);
 
-	static constexpr uint8_t RC_MAX_CHAN_COUNT{input_rc_s::RC_INPUT_MAX_CHANNELS}; /**< maximum number of r/c channels we handle */
-
 	struct Parameters {
 		uint16_t min[RC_MAX_CHAN_COUNT];
 		uint16_t trim[RC_MAX_CHAN_COUNT];
@@ -185,7 +191,7 @@ public:
 
 		int32_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 
-		int8_t generic_trigger_chan[RC_TRIG_SLOT_COUNT];
+		int8_t generic_trigger_chan[RC_TRIG_SLOT_COUNT]; // Trigger channel (1, 2, ...)
 		int8_t generic_trigger_action[RC_TRIG_SLOT_COUNT];
 	} _parameters{};
 
@@ -237,8 +243,9 @@ public:
 	// Flag to indicate that RC input is being used for manual control (whether we can use generic action)
 	bool _manual_control_setpoint_source_is_rc{false};
 	systemlib::Hysteresis _trigger_slots_hysteresis[RC_TRIG_SLOT_COUNT];
-	// State to keep track of which trigger action is controlled by which channel
+	// State to keep track of which trigger action is controlled by which channel and the state of each actions
 	uint8_t _trigger_action_to_channel_mapping[RC_TRIGGER_ACTION_COUNT] {RC_TRIG_CHAN_UNASSIGNED};
+	bool _trigger_action_states[RC_TRIGGER_ACTION_COUNT] {false};
 
 	systemlib::Hysteresis _rc_signal_lost_hysteresis{true};
 
@@ -260,11 +267,12 @@ public:
 		(ParamInt<px4::params::RC_MAP_AUX4>) _param_rc_map_aux4,
 		(ParamInt<px4::params::RC_MAP_AUX5>) _param_rc_map_aux5,
 		(ParamInt<px4::params::RC_MAP_AUX6>) _param_rc_map_aux6,
-
 		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
-		(ParamInt<px4::params::RC_TRIG_BTN_MASK>) _param_rc_trig_btn_mask,
 
+		(ParamInt<px4::params::RC_MAP_FAILSAFE>) _param_rc_map_failsafe,
 		(ParamInt<px4::params::RC_FAILS_THR>) _param_rc_fails_thr,
+
+		(ParamInt<px4::params::RC_TRIG_BTN_MASK>) _param_rc_trig_btn_mask,
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
 	)
 };
