@@ -45,7 +45,7 @@
 #pragma once
 __BEGIN_DECLS
 /* configuration limits */
-#define MAX_IO_TIMERS			1
+#define MAX_IO_TIMERS			2
 #define MAX_TIMER_IO_CHANNELS		2
 
 #define MAX_LED_TIMERS			1

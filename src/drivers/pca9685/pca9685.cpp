@@ -93,18 +93,21 @@
 
 #define ADDR 0x40	// I2C adress
 
-#define PCA9685_PWMFREQ 60.0f
+#define PCA9685_PWMFREQ 400
 #define PCA9685_NCHANS 16 // total amount of pwm outputs
 
-#define PCA9685_PWMMIN 150 // this is the 'minimum' pulse length count (out of 4096)
-#define PCA9685_PWMMAX 600 // this is the 'maximum' pulse length count (out of 4096)_PWMFREQ 60.0f
+//#define PCA9685_PWMINT (1.0f / PCA9685_PWMFREQ) * 1000000
 
-#define PCA9685_PWMCENTER ((PCA9685_PWMMAX + PCA9685_PWMMIN)/2)
+#define PCA9685_PWMMIN (1000 / PCA9685_PWMINT) * 4096.0f // this is the 'minimum' pulse length count (out of 4096)
+#define PCA9685_PWMMAX (2000 / PCA9685_PWMINT) * 4096.0f // this is the 'maximum' pulse length count (out of 4096)
+
+#define PCA9685_PWMCENTER 308 //(PCA9685_PWMMAX + PCA9685_PWMMIN)/2
 #define PCA9685_MAXSERVODEG 90.0f /* maximal servo deflection in degrees
 				     PCA9685_PWMMIN <--> -PCA9685_MAXSERVODEG
 				     PCA9685_PWMMAX <--> PCA9685_MAXSERVODEG
 				     */
-#define PCA9685_SCALE ((PCA9685_PWMMAX - PCA9685_PWMCENTER)/(M_DEG_TO_RAD_F * PCA9685_MAXSERVODEG)) // scales from rad to PWM
+#define PCA9685_SCALE (PCA9685_PWMMAX - PCA9685_PWMMIN) / 2 // scales from rad to PWM
+
 
 enum IOX_MODE {
 	IOX_MODE_ON,
@@ -232,7 +235,7 @@ PCA9685::RunImpl()
 			/* Subscribe to actuator control 2 (payload group for gimbal) */
 			_actuator_controls_sub = orb_subscribe(ORB_ID(actuator_controls_2));
 			/* set the uorb update interval lower than the driver pwm interval */
-			orb_set_interval(_actuator_controls_sub, 1000.0f / PCA9685_PWMFREQ - 5);
+			orb_set_interval(_actuator_controls_sub, 1.05f);
 
 			_mode_on_initialized = true;
 		}
@@ -243,18 +246,40 @@ PCA9685::RunImpl()
 
 		if (updated) {
 			orb_copy(ORB_ID(actuator_controls_2), _actuator_controls_sub, &_actuator_controls);
+			//PX4_INFO("freq: %.2f, int: %.2f, max: %d, min: %d, pwmcenter: %d, control: %.2f, scale: %d", (double)PCA9685_PWMFREQ, (double)PCA9685_PWMINT, PCA9685_PWMMAX, PCA9685_PWMMIN,
+			// 	PCA9685_PWMCENTER, (double)_actuator_controls.control[0], PCA9685_SCALE);
+
+			/*
+			#define PCA9685_PWMFREQ 50.0f
+			#define PCA9685_NCHANS 16 // total amount of pwm outputs
+
+			//#define PCA9685_PWMINT (1.0f / PCA9685_PWMFREQ) * 1000000
+
+			#define PCA9685_PWMMIN (1000 / PCA9685_PWMINT) * 4096.0f // this is the 'minimum' pulse length count (out of 4096)
+			#define PCA9685_PWMMAX (2000 / PCA9685_PWMINT) * 4096.0f // this is the 'maximum' pulse length count (out of 4096)
+
+			#define PCA9685_PWMCENTER 308 //(PCA9685_PWMMAX + PCA9685_PWMMIN)/2
+
+			#define PCA9685_SCALE (PCA9685_PWMMAX - PCA9685_PWMMIN) / 2 // scales from rad to PWM
+			*/
+
+			float pwm_int = (1.0f / PCA9685_PWMFREQ) * 1000000;
+			float pwm_min = (1000 / pwm_int) * 4096;
+			float pwm_max = (2000 / pwm_int) * 4096;
+			float pwm_center = (pwm_max + pwm_min) / 2;
+			float pwm_scale = (pwm_max - pwm_min) / 2;
 
 			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
 				/* Scale the controls to PWM, first multiply by pi to get rad,
 				 * the control[i] values are on the range -1 ... 1 */
-				uint16_t new_value = PCA9685_PWMCENTER +
-						     (_actuator_controls.control[i] * M_PI_F * PCA9685_SCALE);
-				DEVICE_DEBUG("%d: current: %u, new %u, control %.2f", i, _current_values[i], new_value,
-					     (double)_actuator_controls.control[i]);
+				uint16_t new_value = pwm_center +
+						     (_actuator_controls.control[i] * pwm_scale);
+				//PX4_INFO("%d: current: %u, new %u, control %.2f", i, _current_values[i], new_value,
+				//	     (double)_actuator_controls.control[i]);
 
 				if (new_value != _current_values[i] &&
-				    new_value >= PCA9685_PWMMIN &&
-				    new_value <= PCA9685_PWMMAX) {
+				    new_value >= pwm_min &&
+				    new_value <= pwm_max) {
 					/* This value was updated, send the command to adjust the PWM value */
 					setPin(i, new_value);
 					_current_values[i] = new_value;
@@ -330,8 +355,8 @@ int
 PCA9685::setPWMFreq(float freq)
 {
 	int ret  = OK;
-	freq *= 0.9f;  /* Correct for overshoot in the frequency setting (see issue
-		https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/issues/11). */
+	//freq *= 0.9f;  /* Correct for overshoot in the frequency setting (see issue
+		//https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library/issues/11). */
 	float prescaleval = 25000000;
 	prescaleval /= 4096;
 	prescaleval /= freq;

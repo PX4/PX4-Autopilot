@@ -4,12 +4,14 @@
 #------------------------------------------------------------------------------
 
 # pre-arm stuff
-param set-default SYS_CTRL_ALLOC 1
+#param set-default SYS_CTRL_ALLOC 1
 
-pwm_out start
+#pwm_out start
 
-control_allocator start
+#control_allocator start
 
 ifup can0
 cyphal start
 lighting_state_converter start
+actuator_controls_driver start
+pca9685 start -X

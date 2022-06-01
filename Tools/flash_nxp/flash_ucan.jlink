@@ -1,0 +1,7 @@
+if SWD
+speed 1000
+r
+loadbin /Users/landon/git/px4/build/nxp_ucans32k146_nxp_demo/deploy/34.bin,0x6000
+r
+g
+q
