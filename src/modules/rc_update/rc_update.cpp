@@ -68,7 +68,7 @@ RCUpdate::RCUpdate() :
 	_trigger_slots_hysteresis{
 	systemlib::Hysteresis{false},
 	systemlib::Hysteresis{false}
-	}
+}
 {
 	// initialize parameter handles
 	for (unsigned i = 0; i < RC_MAX_CHAN_COUNT; i++) {
@@ -657,7 +657,8 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		switches.channel_states[trig_slot - 1] =
 			channel_state; // Log RAW channel state, to check if it is the right boolean value
 
-		if (_trigger_action_to_channel_mapping[action] != channel_idx) {
+		// Compare Action:Channel mapping (channel_idx starts from 0, so we need to add offset of 1)
+		if (_trigger_action_to_channel_mapping[action] != (channel_idx + 1)) {
 			// Trigger Action is not mapped to this current channel, this can happen
 			// if multiple channels are mapped to the same action, and if this channel
 			// is not selected, don't take it into account
