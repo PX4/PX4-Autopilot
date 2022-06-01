@@ -164,7 +164,12 @@ param set-default RC_MAP_AUX2       5
 param set-default RC_MAP_AUX3       10
 param set-default RC_MAP_AUX4       8
 param set-default RC_MAP_FLTMODE    6
-param set-default RC_MAP_RETURN_SW  7
+
+param set-default RC_TRIG_BTN_MASK  64 # Configure Channel 7 (Bit 6 == 64) as a button
+param set-default RC_TRIG1_CHAN     7
+param set-default RC_TRIG1_ACTION   5 # Triggers Return flight mode
+
+param set-default RC1_TRIM          1000
 
 param set-default RC1_TRIM          1000
 
