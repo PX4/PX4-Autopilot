@@ -35,11 +35,11 @@
 
 /*   Helper classes  */
 #include "Arming/ArmStateMachine/ArmStateMachine.hpp"
-#include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
 #include "Safety.hpp"
 #include "state_machine_helper.h"
 #include "worker_thread.hpp"
+#include "HealthAndArmingChecks/HealthAndArmingChecks.hpp"
 
 #include <containers/Bitset.hpp>
 #include <lib/controllib/blocks.hpp>
@@ -264,7 +264,6 @@ private:
 	)
 
 	// optional parameters
-	param_t _param_cp_dist{PARAM_INVALID};
 	param_t _param_mav_comp_id{PARAM_INVALID};
 	param_t _param_mav_sys_id{PARAM_INVALID};
 	param_t _param_mav_type{PARAM_INVALID};
@@ -317,7 +316,6 @@ private:
 	bool		_geofence_warning_action_on{false};
 	bool		_geofence_violated_prev{false};
 
-	bool            _collision_prevention_enabled{false};
 
 	bool		_rtl_time_actions_done{false};
 
@@ -425,7 +423,6 @@ private:
 	uORB::SubscriptionInterval				_parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::SubscriptionMultiArray<battery_status_s, battery_status_s::MAX_INSTANCES> _battery_status_subs{ORB_ID::battery_status};
-	uORB::SubscriptionMultiArray<distance_sensor_s>         _distance_sensor_subs{ORB_ID::distance_sensor};
 	uORB::SubscriptionMultiArray<telemetry_status_s>        _telemetry_status_subs{ORB_ID::telemetry_status};
 
 #if defined(BOARD_HAS_POWER_CONTROL)
@@ -456,4 +453,5 @@ private:
 
 	perf_counter_t _loop_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t _preflight_check_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": preflight check")};
+	HealthAndArmingChecks _health_and_arming_checks;
 };

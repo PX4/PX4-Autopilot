@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <ArmStateMachine.hpp>
+#include "ArmStateMachine.hpp"
 
 TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 {
@@ -61,12 +61,12 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 	} ArmingTransitionTest_t;
 
 	// We use these defines so that our test cases are more readable
-#define ATT_ARMED true
-#define ATT_DISARMED false
-#define ATT_SAFETY_AVAILABLE true
-#define ATT_SAFETY_NOT_AVAILABLE true
-#define ATT_SAFETY_OFF true
-#define ATT_SAFETY_ON false
+	static constexpr bool ATT_ARMED = true;
+	static constexpr bool ATT_DISARMED = false;
+	static constexpr bool ATT_SAFETY_AVAILABLE = true;
+	static constexpr bool ATT_SAFETY_NOT_AVAILABLE = true;
+	static constexpr bool ATT_SAFETY_OFF = true;
+	static constexpr bool ATT_SAFETY_ON = false;
 
 	// These are test cases for arming_state_transition
 	static const ArmingTransitionTest_t rgArmingTransitionTests[] = {
@@ -253,22 +253,17 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 		// Setup initial machine state
 		arm_state_machine.forceArmState(test->current_state.arming_state);
 		status.hil_state = test->hil_state;
-		// The power status of the test unit is not relevant for the unit test
-		status_flags.circuit_breaker_engaged_power_check = true;
 
-		vehicle_control_mode_s control_mode{};
+		HealthAndArmingChecks health_and_arming_checks(nullptr, status_flags, status);
 
 		// Attempt transition
 		transition_result_t result = arm_state_machine.arming_state_transition(
 						     status,
-						     control_mode,
-						     test->safety_button_available,
-						     test->safety_off,
 						     test->requested_state,
 						     armed,
+						     health_and_arming_checks,
 						     true /* enable pre-arm checks */,
 						     nullptr /* no mavlink_log_pub */,
-						     status_flags,
 						     arm_disarm_reason_t::unit_test);
 
 		// Validate result of transition

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,44 +31,28 @@
  *
  ****************************************************************************/
 
-#include "../PreFlightCheck.hpp"
-#include <lib/parameters/param.h>
-#include <systemlib/mavlink_log.h>
+#pragma once
 
-#ifdef __PX4_DARWIN
-#include <sys/param.h>
-#include <sys/mount.h>
-#else
-#include <sys/statfs.h>
-#endif
+#include "../Common.hpp"
 
-bool PreFlightCheck::sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_detected_once,
-				 const bool report_fail)
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/airspeed_validated.h>
+
+class AirspeedChecks : public HealthAndArmingCheckBase
 {
-	bool success = true;
+public:
+	AirspeedChecks();
+	~AirspeedChecks() = default;
 
-	int32_t param_com_arm_sdcard{0};
-	param_get(param_find("COM_ARM_SDCARD"), &param_com_arm_sdcard);
+	void checkAndReport(const Context &context, Report &reporter) override;
 
-	if (param_com_arm_sdcard > 0) {
-		struct statfs statfs_buf;
+private:
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
-		if (!sd_card_detected_once && statfs(PX4_STORAGEDIR, &statfs_buf) == 0) {
-			// on NuttX we get a data block count f_blocks and byte count per block f_bsize if an SD card is inserted
-			sd_card_detected_once = (statfs_buf.f_blocks > 0) && (statfs_buf.f_bsize > 0);
-		}
+	const param_t _param_fw_arsp_mode_handle;
+	const param_t _param_fw_airspd_trim_handle;
 
-		if (!sd_card_detected_once) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Warning! Missing FMU SD Card.");
-			}
-
-			if (param_com_arm_sdcard == 2) {
-				// disallow arming without sd card
-				success = false;
-			}
-		}
-	}
-
-	return success;
-}
+	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
+					(ParamBool<px4::params::COM_ARM_ARSP_EN>) _param_com_arm_arsp_en
+				       )
+};

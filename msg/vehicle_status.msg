@@ -113,3 +113,22 @@ uint64 onboard_control_sensors_health
 
 bool safety_button_available # Set to true if a safety button is connected
 bool safety_off # Set to true if safety is off
+bool auto_mission_available
+
+bool power_input_valid                            # set if input power is valid
+bool usb_connected                                # set to true (never cleared) once telemetry received from usb link
+
+bool parachute_system_present
+bool parachute_system_healthy
+
+bool avoidance_system_required                    # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
+bool avoidance_system_valid                       # Status of the obstacle avoidance system
+
+bool battery_healthy                	# set if battery is available and not low
+
+bool circuit_breaker_engaged_power_check
+bool circuit_breaker_engaged_airspd_check
+bool circuit_breaker_flight_termination_disabled
+bool circuit_breaker_engaged_usb_check
+bool circuit_breaker_vtol_fw_arming_check         # set to true if for VTOLs arming in fixed-wing mode should be allowed
+
