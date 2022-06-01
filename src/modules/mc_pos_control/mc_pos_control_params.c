@@ -846,6 +846,86 @@ PARAM_DEFINE_FLOAT(SYS_VEHICLE_RESP, -0.4f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_ALL, -10.0f);
 
 /**
+ * Speed limit given by law
+ *
+ * This parameter overwrites with its value the following parameters if the RC_MAP_LOWVEL_SW switch is activated (MPC_Z_VEL_MAX_UP
+ * MPC_Z_VEL_MAX_UP or MPC_LAND_SPEED).
+ *
+ *
+ * @unit m/s
+ * @min 0.1
+ * @max 10.0
+ * @increment 0.05
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_VEL_SLO, 3.0f);
+
+/**
+ * Parameter to store the old manual speed
+ *
+ * This parameter save the manual speed when the low speed swtich is triggered.
+ *
+ *
+ * @unit m/s
+ * @min -1.0
+ * @max 20.0
+ * @increment 1
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MANUAL_OLD, -1.0f);
+
+/**
+ * Parameter to store the old cruise speed
+ *
+ * This parameter save the cruise speed when the low speed swtich is triggered.
+ *
+ *
+ * @unit m/s
+ * @min -1.0
+ * @max 20.0
+ * @increment 2
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_CRUISE_OLD, -1.0f);
+
+/**
+ *  Parameter to store the old Horizonal Velocity Limit
+ *
+ * This parameter save the Horizonal Velocity Limit when the low speed swtich is triggered.
+ *
+ * @min -20
+ * @max 20
+ * @decimal 2
+ * @increment 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_VEL_ALL_OLD, -1.0f);
+
+/**
+ *  Parameter to store the old Horizonal Velocity Limit
+ *
+ * This parameter save the Horizonal Velocity Limit when the low speed swtich is triggered.
+ *
+ * @min -1
+ * @max 20
+ * @decimal 2
+ * @increment 1
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MAX_VEL_OLD, -1.0f);
+
+/**
+ * Status of speed limiting mode
+ *
+ * @group Multicopter Position Control
+ * @boolean
+ */
+PARAM_DEFINE_INT32(MPC_LOWVEL_STATE, 0);
+
+/**
  * Overall Vertical Velocity Limit
  *
  * If set to a value greater than zero, other parameters are automatically set (such as
