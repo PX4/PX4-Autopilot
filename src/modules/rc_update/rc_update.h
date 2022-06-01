@@ -70,7 +70,7 @@ namespace rc_update
 static constexpr uint8_t RC_MAX_CHAN_COUNT{input_rc_s::RC_INPUT_MAX_CHANNELS};
 
 // Number of Generic Trigger slots that can be configured
-static constexpr uint8_t RC_TRIG_SLOT_COUNT = 6;
+static constexpr uint8_t RC_TRIG_SLOT_COUNT = 5;
 
 // Value of the RC_TRIG#_CHAN when the channel is unassigned
 static constexpr uint8_t RC_TRIG_CHAN_UNASSIGNED = 0;

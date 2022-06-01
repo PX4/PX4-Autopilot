@@ -70,7 +70,6 @@ RCUpdate::RCUpdate() :
 	systemlib::Hysteresis{false},
 	systemlib::Hysteresis{false},
 	systemlib::Hysteresis{false},
-	systemlib::Hysteresis{false},
 	systemlib::Hysteresis{false}
 }
 {
@@ -195,7 +194,7 @@ void RCUpdate::parameters_updated()
 		}
 
 		// If the trigger channel / action configuration has changed, reset Hysteresis state
-		if ((old_channel != new_channel) || old_action != new_action) {
+		if ((old_channel != new_channel) || (old_action != new_action)) {
 			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(false, hrt_absolute_time());
 
 			if (old_action == new_action) {
@@ -652,6 +651,12 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 		const bool channel_is_btn = rc_trigger_button_mask & 1 << channel_idx;
 		const int8_t action = _parameters.generic_trigger_action[trig_slot - 1];
 
+		// DEBUG Logging
+		switches.trig_channels[trig_slot - 1] = channel_idx;
+		switches.trig_channel_values[trig_slot - 1] = channel_value;
+		switches.trig_actions[trig_slot - 1] = action;
+		switches.trig_states[trig_slot - 1] = _trigger_action_states[action];
+
 		if (_trigger_action_to_channel_mapping[action] != channel_idx) {
 			// Trigger Action is not mapped to this current channel, this can happen
 			// if multiple channels are mapped to the same action, and if this channel
@@ -676,6 +681,7 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(channel_state, now);
 			_trigger_action_states[action] = _trigger_slots_hysteresis[trig_slot - 1].get_state();
 		}
+
 	}
 
 	// Temporarily make use of the manual_control_switches to set the appropriate switch states
@@ -754,7 +760,6 @@ void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)
 
 void RCUpdate::UpdateManualControlInput(const hrt_abstime &timestamp_sample)
 {
-	PX4_INFO("Manual Control input update");
 	manual_control_setpoint_s manual_control_input{};
 	manual_control_input.timestamp_sample = timestamp_sample;
 	manual_control_input.data_source = manual_control_setpoint_s::SOURCE_RC;

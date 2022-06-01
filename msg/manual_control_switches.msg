@@ -30,3 +30,9 @@ uint8 photo_switch               # Photo trigger switch
 uint8 video_switch               # Photo trigger switch
 
 uint32 switch_changes            # number of switch changes
+
+## DEBUG for Junwoo
+uint8[5] trig_channels
+float32[5] trig_channel_values
+uint8[5] trig_actions
+uint8[5] trig_states
