@@ -39,7 +39,6 @@
 
 #include "PositionControl/PositionControl.hpp"
 #include "Takeoff/Takeoff.hpp"
-
 #include <drivers/drv_hrt.h>
 #include <lib/controllib/blocks.hpp>
 #include <lib/perf/perf_counter.h>
@@ -105,6 +104,7 @@ private:
 	uORB::Subscription _vehicle_constraints_sub{ORB_ID(vehicle_constraints)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _action_request_sub {ORB_ID(action_request)};
 
 	hrt_abstime _time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 	hrt_abstime _time_position_control_enabled{0};
@@ -173,6 +173,12 @@ private:
 		(ParamFloat<px4::params::MPC_MAN_Y_TAU>)    _param_mpc_man_y_tau,
 
 		(ParamFloat<px4::params::MPC_XY_VEL_ALL>)   _param_mpc_xy_vel_all,
+		(ParamFloat<px4::params::MPC_XY_VEL_SLO>)   _param_mpc_xy_vel_slo,
+		(ParamFloat<px4::params::MPC_VEL_ALL_OLD>)  _param_mpc_vel_all_old,
+		(ParamFloat<px4::params::MPC_MANUAL_OLD>)   _param_mpc_manual_old,
+		(ParamFloat<px4::params::MPC_CRUISE_OLD>)   _param_mpc_cruise_old,
+		(ParamFloat<px4::params::MPC_MAX_VEL_OLD>)  _param_mpc_max_vel_old,
+		(ParamInt<px4::params::MPC_LOWVEL_STATE>) _param_mpc_lowvel_state,
 		(ParamFloat<px4::params::MPC_Z_VEL_ALL>)    _param_mpc_z_vel_all
 	);
 
@@ -182,12 +188,27 @@ private:
 
 	PositionControl _control;  /**< class for core PID position control */
 
+	enum state_low_speed_mode {
+		IDLE = 0,
+		SWITCH_OFF = 1,
+		SWITCH_ON = 2,
+	}; /**< enum for the states for the low speed mode*/
+	enum low_speed_switch_postion{
+		UNKNOWN = 0,
+		ENGAGED = 1,
+		DISENGAGED = 2,
+	};
+
+	uint8_t _current_state{IDLE};
+
 	hrt_abstime _last_warn{0}; /**< timer when the last warn message was sent out */
 
 	bool _hover_thrust_initialized{false};
 
 	/** Timeout in us for trajectory data to get considered invalid */
 	static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
+	/** Epsilon value to compare to floats */
+	static constexpr float EPSILON = 0.01f;
 
 	/** During smooth-takeoff, below ALTITUDE_THRESHOLD the yaw-control is turned off and tilt is limited */
 	static constexpr float ALTITUDE_THRESHOLD = 0.3f;
@@ -211,6 +232,10 @@ private:
 	 */
 	void parameters_update(bool force);
 
+	/**
+	 * update the state machine to activate the speed limited mode
+	 */
+	void lowspeedmode__state_update();
 	/**
 	 * Check for validity of positon/velocity states.
 	 */

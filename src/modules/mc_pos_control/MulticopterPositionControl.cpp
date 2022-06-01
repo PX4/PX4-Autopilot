@@ -61,6 +61,123 @@ MulticopterPositionControl::~MulticopterPositionControl()
 	perf_free(_cycle_perf);
 }
 
+void MulticopterPositionControl::lowspeedmode__state_update()
+{
+	int num_changed = 0;
+	bool mav_event_engaged = false;
+	bool mav_event_disengaged = false;
+	float standar_value_store_param = -1.0f;
+	uint8_t current_state_low_speed_switch{UNKNOWN};
+
+	while (_action_request_sub.updated()) {
+		action_request_s action_request;
+
+		if (_action_request_sub.copy(&action_request)) {
+			switch (action_request.action) {
+			case action_request_s::ACTION_LOW_SPEED_MODE_ON:
+				current_state_low_speed_switch  = ENGAGED;
+				break;
+
+			case action_request_s::ACTION_LOW_SPEED_MODE_OFF:
+				current_state_low_speed_switch = DISENGAGED;
+				break;
+			}
+		}
+	}
+
+	switch (_current_state) {
+	case IDLE:
+
+		if (_param_mpc_lowvel_state.get() == true) {
+			num_changed += _param_mpc_xy_vel_all.commit_no_notification(_param_mpc_vel_all_old.get());
+			num_changed += _param_mpc_vel_manual.commit_no_notification(_param_mpc_manual_old.get());
+			num_changed += _param_mpc_xy_cruise.commit_no_notification(_param_mpc_cruise_old.get());
+			num_changed += _param_mpc_xy_vel_max.commit_no_notification(_param_mpc_max_vel_old.get());
+			num_changed += _param_mpc_manual_old.commit_no_notification(standar_value_store_param);
+			num_changed += _param_mpc_cruise_old.commit_no_notification(standar_value_store_param);
+			num_changed += _param_mpc_max_vel_old.commit_no_notification(standar_value_store_param);
+			num_changed += _param_mpc_vel_all_old.commit_no_notification(standar_value_store_param);
+			num_changed += _param_mpc_lowvel_state.commit_no_notification(false);
+
+		}
+
+		if (current_state_low_speed_switch == ENGAGED) {
+			num_changed += _param_mpc_manual_old.commit_no_notification(_param_mpc_vel_manual.get());
+			num_changed += _param_mpc_cruise_old.commit_no_notification(_param_mpc_xy_cruise.get());
+			num_changed += _param_mpc_max_vel_old.commit_no_notification(_param_mpc_xy_vel_max.get());
+			num_changed += _param_mpc_vel_all_old.commit_no_notification(_param_mpc_xy_vel_all.get());
+			mav_event_engaged = true;
+			num_changed += _param_mpc_lowvel_state.commit_no_notification(true);
+			_current_state = SWITCH_ON;
+
+		} else if (current_state_low_speed_switch == DISENGAGED) {
+			mav_event_disengaged = true;
+			_param_mpc_lowvel_state.set(false);
+			_current_state = SWITCH_OFF;
+
+		}
+
+		break;
+
+	case SWITCH_OFF:
+		if (current_state_low_speed_switch == ENGAGED) {
+			num_changed += _param_mpc_manual_old.commit_no_notification(_param_mpc_vel_manual.get());
+			num_changed += _param_mpc_cruise_old.commit_no_notification(_param_mpc_xy_cruise.get());
+			num_changed += _param_mpc_max_vel_old.commit_no_notification(_param_mpc_xy_vel_max.get());
+			num_changed += _param_mpc_vel_all_old.commit_no_notification(_param_mpc_xy_vel_all.get());
+			mav_event_engaged = true;
+			num_changed += _param_mpc_lowvel_state.commit_no_notification(true);
+			_current_state = SWITCH_ON;
+
+		}
+
+		break;
+
+	case SWITCH_ON:
+		if ( fabs(_param_mpc_xy_vel_all.get() - _param_mpc_xy_vel_slo.get()) > EPSILON) {
+			num_changed += _param_mpc_xy_vel_all.commit_no_notification(_param_mpc_xy_vel_slo.get());
+		}
+
+		if (current_state_low_speed_switch == DISENGAGED) {
+			num_changed += _param_mpc_vel_manual.commit_no_notification(_param_mpc_manual_old.get());
+			num_changed += _param_mpc_xy_cruise.commit_no_notification(_param_mpc_cruise_old.get());
+			num_changed += _param_mpc_xy_vel_max.commit_no_notification(_param_mpc_max_vel_old.get());
+			num_changed += _param_mpc_xy_vel_all.commit_no_notification(_param_mpc_vel_all_old.get());
+			num_changed += _param_mpc_manual_old.commit_no_notification(standar_value_store_param);
+			num_changed += _param_mpc_cruise_old.commit_no_notification(standar_value_store_param);
+			num_changed += _param_mpc_max_vel_old.commit_no_notification(standar_value_store_param);
+			num_changed += _param_mpc_vel_all_old.commit_no_notification(standar_value_store_param);
+			mav_event_disengaged = true;
+			num_changed += _param_mpc_lowvel_state.commit_no_notification(false);
+			_current_state = SWITCH_OFF;
+
+		}
+
+		break;
+	}
+
+	if (num_changed > 0) {
+		param_notify_changes();
+	}
+
+	if (mav_event_disengaged) {
+		mav_event_disengaged = false;
+		mavlink_log_info(&_mavlink_log_pub, "Low-Vel-Switch disengaged\t");
+		/* EVENT
+		 * @description Low speed mode deactivated.
+		 */
+		events::send(events::ID("mc_pos_ctrl_lowvel_sw_disengaged"), events::Log::Info, "Low-Vel-Switch disengaged");
+
+	} else if (mav_event_engaged) {
+		mav_event_engaged = false;
+		mavlink_log_info(&_mavlink_log_pub, "Low-Vel-Switch engaged\t");
+		/* EVENT
+		 * @description Low speed mode activated.
+		 */
+		events::send(events::ID("mc_pos_ctrl_lowvel_sw_engaged"), events::Log::Info, "Low-Vel-Switch engaged");
+	}
+}
+
 bool MulticopterPositionControl::init()
 {
 	if (!_local_pos_sub.registerCallback()) {
@@ -308,6 +425,8 @@ void MulticopterPositionControl::Run()
 
 	// reschedule backup
 	ScheduleDelayed(100_ms);
+
+	lowspeedmode__state_update();
 
 	parameters_update(false);
 
