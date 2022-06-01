@@ -169,17 +169,37 @@ void RCUpdate::parameters_updated()
 		param_get(_parameter_handles.rc_map_param[i], &(_parameters.rc_map_param[i]));
 	}
 
-	update_rc_functions();
-
-	// Update and check values of the generic action parameters
+	// Update and check the generic trigger parameters
 	for (uint8_t trig_slot = 1; trig_slot <= RC_TRIG_SLOT_COUNT; trig_slot++) {
+		const int8_t old_channel = _parameters.generic_trigger_chan[trig_slot - 1];
+		const int8_t old_action = _parameters.generic_trigger_action[trig_slot - 1];
 		int32_t new_channel{RC_TRIG_CHAN_UNASSIGNED};
-		int32_t new_action{RC_TRIG_ACTION_UNASSIGNED};
+		int32_t new_action{RC_TRIGGER_ACTION_UNASSIGNED};
 		param_get(_parameter_handles.generic_trigger_chan[trig_slot - 1], &new_channel);
 		param_get(_parameter_handles.generic_trigger_action[trig_slot - 1], &new_action);
 
+		// If the trigger channel / action configuration has changed, reset Hysteresis state
+		if ((old_channel != new_channel) || old_action != new_action) {
+			_trigger_slots_hysteresis[trig_slot - 1].set_state_and_update(false, hrt_absolute_time());
 
+			if (old_action == new_action) {
+				// If only the channel configuration changed, update the mapping
+				set_trigger_action_to_channel_mapping((RC_TRIGGER_ACTIONS)new_action, new_channel);
+
+			} else if (old_channel == new_channel) {
+				// If only the action changed, clear the previous action to channel mapping
+				set_trigger_action_to_channel_mapping((RC_TRIGGER_ACTIONS)old_action, RC_TRIG_CHAN_UNASSIGNED);
+
+			} else {
+				// If both channel and action mapping changed
+				set_trigger_action_to_channel_mapping((RC_TRIGGER_ACTIONS)old_action, RC_TRIG_CHAN_UNASSIGNED);
+				set_trigger_action_to_channel_mapping((RC_TRIGGER_ACTIONS)new_action, new_channel);
+			}
+		}
 	}
+
+	// Update RC Function Mapping (Throttle, Roll, AUX1, etc.)
+	update_rc_functions();
 
 	// deprecated parameters, will be removed post v1.12 once QGC is updated
 	{
@@ -229,6 +249,28 @@ void RCUpdate::parameters_updated()
 	}
 }
 
+bool RCUpdate::set_trigger_action_to_channel_mapping(const RC_TRIGGER_ACTIONS action, const int8_t channel)
+{
+	// Reject invalid action values as it will access illegal index of the mapping array
+	if (action < 0 || action >= RC_TRIGGER_ACTION_COUNT) {
+		return false;
+	}
+
+	// Reject unassigned trigger action
+	if (action == RC_TRIGGER_ACTION_UNASSIGNED) {
+		return false;
+	}
+
+	// Don't set the mapping if the channel is unassigned
+	if (channel == RC_TRIG_CHAN_UNASSIGNED) {
+		return false;
+	}
+
+	// Map the Action : Channel
+	_trigger_action_to_channel_mapping[action] = channel;
+	return true;
+}
+
 void RCUpdate::update_rc_functions()
 {
 	/* update RC function mappings */
@@ -236,17 +278,7 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::FUNCTION_ROLL] = _param_rc_map_roll.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_PITCH] = _param_rc_map_pitch.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_YAW] = _param_rc_map_yaw.get() - 1;
-
-	_rc.function[rc_channels_s::FUNCTION_RETURN] = _param_rc_map_return_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_LOITER] = _param_rc_map_loiter_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_OFFBOARD] = _param_rc_map_offb_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_KILLSWITCH] = _param_rc_map_kill_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_ARMSWITCH] = _param_rc_map_arm_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_TRANSITION] = _param_rc_map_trans_sw.get() - 1;
-	_rc.function[rc_channels_s::FUNCTION_GEAR] = _param_rc_map_gear_sw.get() - 1;
-
 	_rc.function[rc_channels_s::FUNCTION_FLAPS] = _param_rc_map_flaps.get() - 1;
-
 	_rc.function[rc_channels_s::FUNCTION_AUX_1] = _param_rc_map_aux1.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_AUX_2] = _param_rc_map_aux2.get() - 1;
 	_rc.function[rc_channels_s::FUNCTION_AUX_3] = _param_rc_map_aux3.get() - 1;
@@ -544,24 +576,6 @@ void RCUpdate::Run()
 	}
 
 	perf_end(_loop_perf);
-}
-
-switch_pos_t RCUpdate::get_rc_sw2pos_position(uint8_t func, float on_th) const
-{
-	if (_rc.function[func] >= 0) {
-		const bool on_inv = (on_th < 0.f);
-
-		const float value = 0.5f * _rc.channels[_rc.function[func]] + 0.5f;
-
-		if (on_inv ? value < on_th : value > on_th) {
-			return manual_control_switches_s::SWITCH_POS_ON;
-
-		} else {
-			return manual_control_switches_s::SWITCH_POS_OFF;
-		}
-	}
-
-	return manual_control_switches_s::SWITCH_POS_NONE;
 }
 
 void RCUpdate::UpdateManualSwitches(const hrt_abstime &timestamp_sample)

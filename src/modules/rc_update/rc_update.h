@@ -73,9 +73,6 @@ static constexpr uint8_t RC_TRIG_SLOT_COUNT = 6;
 // Value of the RC_TRIG#_CHAN when the channel is unassigned
 static constexpr uint8_t RC_TRIG_CHAN_UNASSIGNED = 0;
 
-// Value of the RC_TRIG#_ACTION when the action is unassigned
-static constexpr uint8_t RC_TRIG_ACTION_UNASSIGNED = -1;
-
 // Enum class translation of the RC_TRIG#_ACTION values
 enum RC_TRIGGER_ACTIONS {
 	RC_TRIGGER_ACTION_UNASSIGNED = -1,
@@ -101,7 +98,8 @@ enum RC_TRIGGER_ACTIONS {
 	RC_TRIGGER_ACTION_VTOL_TRANSITION = 18,
 	RC_TRIGGER_ACTION_GEAR = 19,
 	RC_TRIGGER_ACTION_PHOTO = 20,
-	RC_TRIGGER_ACTION_VIDEO = 21
+	RC_TRIGGER_ACTION_VIDEO = 21,
+	RC_TRIGGER_ACTION_COUNT // Leave this as last!!
 };
 
 /**
@@ -168,6 +166,14 @@ public:
 	 */
 	void		set_params_from_rc();
 
+	/**
+	 * @brief Set the generic trigger action to RC channel mapping
+	 *
+	 * Handles unassigned action / channel cases and prevents wrong index access of the
+	 * mapping array. Returns true if the mapping has been successful
+	 */
+	bool set_trigger_action_to_channel_mapping(const RC_TRIGGER_ACTIONS action, const int8_t channel);
+
 	static constexpr uint8_t RC_MAX_CHAN_COUNT{input_rc_s::RC_INPUT_MAX_CHANNELS}; /**< maximum number of r/c channels we handle */
 
 	struct Parameters {
@@ -179,8 +185,8 @@ public:
 
 		int32_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 
-		uint8_t generic_trigger_chan[RC_TRIG_SLOT_COUNT];
-		uint8_t generic_trigger_action[RC_TRIG_SLOT_COUNT];
+		int8_t generic_trigger_chan[RC_TRIG_SLOT_COUNT];
+		int8_t generic_trigger_action[RC_TRIG_SLOT_COUNT];
 	} _parameters{};
 
 	struct ParameterHandles {
@@ -231,8 +237,8 @@ public:
 	// Flag to indicate that RC input is being used for manual control (whether we can use generic action)
 	bool _manual_control_setpoint_source_is_rc{false};
 	systemlib::Hysteresis _trigger_slots_hysteresis[RC_TRIG_SLOT_COUNT];
-	param_t _trigger_channel_param_handles[RC_TRIG_SLOT_COUNT] {};
-	param_t _trigger_action_param_handles[RC_TRIG_SLOT_COUNT] {};
+	// State to keep track of which trigger action is controlled by which channel
+	uint8_t _trigger_action_to_channel_mapping[RC_TRIGGER_ACTION_COUNT] {RC_TRIG_CHAN_UNASSIGNED};
 
 	systemlib::Hysteresis _rc_signal_lost_hysteresis{true};
 
@@ -247,18 +253,7 @@ public:
 		(ParamInt<px4::params::RC_MAP_PITCH>) _param_rc_map_pitch,
 		(ParamInt<px4::params::RC_MAP_YAW>) _param_rc_map_yaw,
 		(ParamInt<px4::params::RC_MAP_THROTTLE>) _param_rc_map_throttle,
-		(ParamInt<px4::params::RC_MAP_FAILSAFE>) _param_rc_map_failsafe,
-		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
-		(ParamInt<px4::params::RC_TRIG_BTN_MASK>) _param_rc_trig_btn_mask,
 		(ParamInt<px4::params::RC_MAP_FLAPS>) _param_rc_map_flaps,
-		(ParamInt<px4::params::RC_MAP_RETURN_SW>) _param_rc_map_return_sw,
-		(ParamInt<px4::params::RC_MAP_LOITER_SW>) _param_rc_map_loiter_sw,
-		(ParamInt<px4::params::RC_MAP_OFFB_SW>) _param_rc_map_offb_sw,
-		(ParamInt<px4::params::RC_MAP_KILL_SW>) _param_rc_map_kill_sw,
-		(ParamInt<px4::params::RC_MAP_ARM_SW>) _param_rc_map_arm_sw,
-		(ParamInt<px4::params::RC_MAP_TRANS_SW>) _param_rc_map_trans_sw,
-		(ParamInt<px4::params::RC_MAP_GEAR_SW>) _param_rc_map_gear_sw,
-
 		(ParamInt<px4::params::RC_MAP_AUX1>) _param_rc_map_aux1,
 		(ParamInt<px4::params::RC_MAP_AUX2>) _param_rc_map_aux2,
 		(ParamInt<px4::params::RC_MAP_AUX3>) _param_rc_map_aux3,
@@ -266,16 +261,10 @@ public:
 		(ParamInt<px4::params::RC_MAP_AUX5>) _param_rc_map_aux5,
 		(ParamInt<px4::params::RC_MAP_AUX6>) _param_rc_map_aux6,
 
+		(ParamInt<px4::params::RC_MAP_FLTMODE>) _param_rc_map_fltmode,
+		(ParamInt<px4::params::RC_TRIG_BTN_MASK>) _param_rc_trig_btn_mask,
+
 		(ParamInt<px4::params::RC_FAILS_THR>) _param_rc_fails_thr,
-
-		(ParamFloat<px4::params::RC_LOITER_TH>) _param_rc_loiter_th,
-		(ParamFloat<px4::params::RC_OFFB_TH>) _param_rc_offb_th,
-		(ParamFloat<px4::params::RC_KILLSWITCH_TH>) _param_rc_killswitch_th,
-		(ParamFloat<px4::params::RC_ARMSWITCH_TH>) _param_rc_armswitch_th,
-		(ParamFloat<px4::params::RC_TRANS_TH>) _param_rc_trans_th,
-		(ParamFloat<px4::params::RC_GEAR_TH>) _param_rc_gear_th,
-		(ParamFloat<px4::params::RC_RETURN_TH>) _param_rc_return_th,
-
 		(ParamInt<px4::params::RC_CHAN_CNT>) _param_rc_chan_cnt
 	)
 };
