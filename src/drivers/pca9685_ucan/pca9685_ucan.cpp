@@ -71,6 +71,7 @@
 #include <systemlib/err.h>
 
 #include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/pca_pwm.h>
 
 #include <board_config.h>
@@ -127,11 +128,8 @@ private:
 	int			_pca_pwm_sub;
 	struct pca_pwm_s	_pca_pwm;
 	uint16_t		_pwm_period_us = 20000;
-	float			_pwm_freq = 50;
-	uint16_t		_pwm_center = 1500;
-	uint16_t		_pwm_min = 900;
-	uint16_t		_test_pwm = _pwm_min;
-	uint16_t		_pwm_max = 2200;
+	float			_pwm_freq = 50.0f;
+	uint16_t		_test_pwm = 0;
 	uint16_t		_current_values[NUMBER_PWM_CHANNELS]; /**< stores the current pwm output values as sent to the setPin() */
 
 	bool _mode_on_initialized;  /** Set to true after the first call of i2cpwm in mode IOX_MODE_ON */
@@ -169,7 +167,7 @@ PCA9685::PCA9685(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config),
 	_mode(IOX_MODE_ON),
-	_i2cpwm_interval(float(_pwm_period_us)),
+	_i2cpwm_interval((float)_pwm_period_us),
 	_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err")),
 	_pca_pwm_sub(-1),
 	_pca_pwm(),
@@ -215,15 +213,15 @@ void
 PCA9685::RunImpl()
 {
 	if (_mode == IOX_MODE_TEST_OUT) {
-		if (_test_pwm > _pwm_max) {
-			_test_pwm = _pwm_min;
+		if (_test_pwm > 4096) {
+			_test_pwm = 0;
 		}
 
 		for (int i = 0; i < NUMBER_PWM_CHANNELS; i++) {
 				setPin(i, _test_pwm);
 		}
 
-		_test_pwm += (_pwm_max-_pwm_min)/10;
+		_test_pwm += 4096/10;
 
 	} else {
 		if (!_mode_on_initialized) {
@@ -241,26 +239,21 @@ PCA9685::RunImpl()
 			    _pca_pwm.pwm_period >= PWM_PERIOD_MIN_US &&
 			    _pca_pwm.pwm_period <= PWM_PERIOD_MAX_US) {
 				_pwm_period_us = _pca_pwm.pwm_period;
-				_pwm_freq = 1000000.0f / float(_pwm_period_us);
-				_pwm_center; //TODO calculate.
-				_pwm_min; //TODO calculate.
-				_pwm_max; //TODO calculate.
-				DEVICE_DEBUG("freq: %.2f, period: %u, min: %u, center: %u, max: %u",
-						_pwm_freq, _pwm_period_us, _pwm_min, _pwm_center, _pwm_max);
+				_pwm_freq = 1000000.0f / (float)_pwm_period_us;
+				DEVICE_DEBUG("freq: %.2f, period: %u", (double)_pwm_freq, _pwm_period_us);
 			}
 			for (int i = 0; i < NUMBER_PWM_CHANNELS; i++) {
-				uint16_t new_value = // TODO: _pca_pwm.pulse_width[i] math
-				DEVICE_DEBUG("%d: current: %u, new: %u, pulse width: u%", i, _current_values[i], new_value, _pca_pwm.pulse_width[i]);
+				uint16_t new_value = (uint16_t)(((float)_pwm_period_us/(float)_pca_pwm.pulse_width[i])*4096.0f);
+				DEVICE_DEBUG("%d: current: %u, new: %u, pulse width: %u", i, _current_values[i], new_value, _pca_pwm.pulse_width[i]);
 
-				if (new_value != _current_values[i] &&
-				    new_value >= _pwm_min &&
-				    new_value <= _pwm_max) {
+				if (new_value != _current_values[i] && new_value < 4096) {
 					setPin(i, new_value);
 					_current_values[i] = new_value;
 				} else {
-					if (new_value >= _pwm_min && new_value <= _pwm_max) {
-						DEVICE_DEBUG("pwm new value: %u is out of range [%u, %u]", new_value, _pwm_min, _pwm_max);
+					if (new_value < 4096) {
+						DEVICE_DEBUG("pwm new value: %u is out of range [0, 4096]", new_value);
 					}
+				}
 			}
 		}
 	}
@@ -434,7 +427,7 @@ void PCA9685::custom_method(const BusCLIArguments &cli)
 	}
 }
 
-extern "C" int pca9685_main(int argc, char *argv[])
+extern "C" int pca9685_ucan_main(int argc, char *argv[])
 {
 	using ThisDriver = PCA9685;
 	BusCLIArguments cli{true, false};
