@@ -1,0 +1,5 @@
+menuconfig DRIVERS_PCA9685_UCAN
+	bool "pca9685_ucan"
+	default n
+	---help---
+		Enable support for pca9685_ucan
