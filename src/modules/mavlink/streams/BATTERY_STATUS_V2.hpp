@@ -71,7 +71,7 @@ private:
 
 				// TODO: Determine how to better map between battery ID within the firmware and in MAVLink
 				bat_msg.id = battery_status.id - 1;
-				bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : UINT32_MAX;
+				bat_msg.capacity_consumed = (battery_status.connected) ? battery_status.discharged_mah : UINT32_MAX;
                 bat_msg.current = (battery_status.connected) ? battery_status.current_filtered_a * 1000 : UINT32_MAX; // mA
 				bat_msg.percent_remaining = (battery_status.connected) ? roundf(battery_status.remaining * 100.f) : UINT32_MAX;
 				bat_msg.status_flags = battery_status.status_flags;
@@ -79,10 +79,10 @@ private:
 				
 				// get remaining charge in mAH
 				if (battery_status.connected && PX4_ISFINITE(battery_status.remaining_capacity_wh) && (battery_status.voltage_filtered_v > 0.f) ) {
-					bat_msg.current_remaining = (battery_status.remaining_capacity_wh / battery_status.voltage_filtered_v) * 1000.f; // mAH
+					bat_msg.capacity_remaining = (battery_status.remaining_capacity_wh / battery_status.voltage_filtered_v) * 1000.f; // mAH
 
 				} else {
-					bat_msg.current_remaining = UINT32_MAX;
+					bat_msg.capacity_remaining = UINT32_MAX;
 				}
 
 				// check if temperature valid
