@@ -2684,7 +2684,7 @@ Commander::run()
 			 * just a tablet. Since the RC will force its mode switch setting on connecting
 			 * we can as well just wait in a hold mode which enables tablet control.
 			 */
-			if (_vehicle_status.rc_signal_lost && (_commander_state.main_state == commander_state_s::MAIN_STATE_MANUAL)
+			if (_vehicle_status.rc_signal_lost && (_commander_state.main_state_changes == 0)
 			    && _vehicle_status_flags.global_position_valid) {
 
 				main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LOITER, _vehicle_status_flags,
@@ -2900,21 +2900,26 @@ Commander::run()
 			}
 		}
 
-		// check for arming state change
+		// check for arming state changes
 		if (_was_armed != _arm_state_machine.isArmed()) {
 			_status_changed = true;
+		}
 
-			if (_arm_state_machine.isArmed()) {
-				if (!_vehicle_land_detected.landed) { // check if takeoff already detected upon arming
-					_have_taken_off_since_arming = true;
-				}
+		if (!_was_armed && _arm_state_machine.isArmed() && !_vehicle_land_detected.landed) {
+			_have_taken_off_since_arming = true;
+		}
 
-			} else { // increase the flight uuid upon disarming
-				const int32_t flight_uuid = _param_flight_uuid.get() + 1;
-				_param_flight_uuid.set(flight_uuid);
-				_param_flight_uuid.commit_no_notification();
+		if (_was_armed && !_arm_state_machine.isArmed()) {
+			const int32_t flight_uuid = _param_flight_uuid.get() + 1;
+			_param_flight_uuid.set(flight_uuid);
+			_param_flight_uuid.commit_no_notification();
 
-				_last_disarmed_timestamp = hrt_absolute_time();
+			_last_disarmed_timestamp = hrt_absolute_time();
+
+			// Switch back to Hold mode after autonomous landing
+			if (_vehicle_control_mode.flag_control_auto_enabled) {
+				main_state_transition(_vehicle_status, commander_state_s::MAIN_STATE_AUTO_LOITER,
+						      _vehicle_status_flags, _commander_state);
 			}
 		}
 
