@@ -152,7 +152,7 @@ int MXS::open_serial_port()
 	}
 
 	// Flush the hardware buffers.
-	//tcflush(_file_descriptor, TCIOFLUSH);
+	tcflush(_file_descriptor, TCIOFLUSH);
 
 	//PX4_INFO("opened UART port %s", _serial_port);
 
@@ -162,13 +162,12 @@ int MXS::open_serial_port()
 void MXS::parse_byte(uint8_t data)
 {
 	//PX4_INFO("Current state: %d", _msgIn.state);
-	PX4_INFO("Data in %x", data);
 	switch(_msgIn.state)
 	{
 		case startByte:
 			if(data == START_BYTE)
 			{
-				_msgIn.start = START_BYTE;
+				_msgIn.start = data;
 				_msgIn.checksum = data;
 				_msgIn.state = msgByte;
 			}
@@ -201,15 +200,20 @@ void MXS::parse_byte(uint8_t data)
 			if (_msgIn.checksum == data)
 			{
 				//handle/build message
-				PX4_INFO("Handling message");
-				handle_msg(_msgIn);
+				handle_msg();
 			}
-			else
+#ifdef MXS_DEBUG
+			/*else
 			{
 				PX4_INFO("Checksum does not match, internal: %d Read: %d",_msgIn.checksum,  data);
-			}
+			}*/
+#endif
 			_msgIn.state = startByte;
 			break;
+		default:
+			_msgIn.state = startByte;
+			break;
+
 	}
 }
 
@@ -254,8 +258,7 @@ int MXS::collect()
 			perf_end(_sample_perf);
 			break;
 		}
-		PX4_INFO("Current buffer: %X",data);
-		//parse_byte(data);
+		parse_byte(data);
 
 
 		// parse buffer
@@ -271,24 +274,37 @@ int MXS::collect()
 	return PX4_OK;
 }
 
-void MXS::handle_msg(const sagetech_packet_t packet)
+void MXS::handle_msg()
 {
-	PX4_INFO("In handle message");
-	uint8_t msgIn[255];
-	memcpy(msgIn, &packet.start, (5 + packet.index)* sizeof(uint8_t));
-	char out[255] = "";
-	buff_to_hex(out,msgIn, (5 + packet.index)* sizeof(uint8_t));
-	PX4_INFO("Current MXS Message: %s",msgIn );
-	switch(packet.type)
+	//uint8_t msgIn[255];
+	memset(_buffer,0, sizeof(_buffer));
+	//manual copy
+	_buffer[0] = _msgIn.start;
+	_buffer[1] = _msgIn.type;
+	_buffer[2] = _msgIn.id;
+	_buffer[3] = _msgIn.length;
+	for(int i  = 0; i < _msgIn.length ; i ++)
+	{
+		_buffer[4 + i] = _msgIn.payload[i];
+	}
+	_buffer[4 + _msgIn.length] = _msgIn.checksum;
+	_buffer_len = 5 + _msgIn.length;
+#ifdef MXS_DEBUG
+	for(int i = 0; i < _buffer_len; i ++)
+	{
+		PX4_INFO("Buffer at %d: %X", i , _buffer[i]);
+	}
+#endif
+	switch(_msgIn.type)
 	{
 		case SG_MSG_TYPE_ADSB_MSR:
 			sg_msr_t msr;
-			sgDecodeMSR(msgIn, &msr);
+			sgDecodeMSR(_buffer, &msr);
 			handle_msr(msr);
 			break;
 		case SG_MSG_TYPE_ADSB_SVR:
 			sg_svr_t svr;
-			sgDecodeSVR(msgIn, &svr);
+			sgDecodeSVR(_buffer, &svr);
 			handle_svr(svr);
 			break;
 
@@ -407,10 +423,13 @@ speed_t MXS::convert_baudrate(unsigned baud)
 
 void MXS::handle_svr(sg_svr_t svr)
 {
+#ifdef MXS_DEBUG
 	PX4_INFO("Updating SVR transponder message");
+#endif
 	transponder_report_s t{};
 
 	t.timestamp = hrt_absolute_time();
+	t.flags |= transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;
 	//Set data from svr message
 	//TODO: Should we always set this? It might not be an ICAO
 	t.icao_address = svr.addr;
@@ -460,15 +479,18 @@ void MXS::handle_svr(sg_svr_t svr)
 		}
 	}
 
-	//_transponder_pub.publish(t);
+	_transponder_pub.publish(t);
 }
 
 void MXS::handle_msr(sg_msr_t msr)
 {
+#ifdef MXS_DEBUG
 	PX4_INFO("Updating MSR transponder message");
+#endif
 	transponder_report_s t{};
 
 	t.timestamp = hrt_absolute_time();
+	t.flags |= transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;
 	//Set data from svr message
 	//TODO: Should we always set this? It might not be an ICAO
 	t.icao_address = msr.addr;
@@ -476,9 +498,10 @@ void MXS::handle_msr(sg_msr_t msr)
 	if(msr.callsign[0] != 0)
 	{
 		memcpy(&t.callsign, &msr.callsign, 8);
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 	}
 	t.emitter_type = determine_emitter(msr.emitter);
-	//_transponder_pub.publish(t);
+	_transponder_pub.publish(t);
 }
 
 void MXS::send_gps_msg()
@@ -655,18 +678,17 @@ void MXS::Run()
 	open_serial_port();
 	collect();
 
-	 /*const hrt_abstime currentTime = hrt_absolute_time();
+	 const hrt_abstime currentTime = hrt_absolute_time();
 
 	 if (currentTime - _last_gps_send >= 1000000)
 	 {
 		send_gps_msg();
+		::close(_file_descriptor);
+		_file_descriptor = -1;
 
 		_last_gps_send = currentTime;
 
-	 }*/
-
-	::close(_file_descriptor);
-	_file_descriptor = -1;
+	 }
 
 
 }

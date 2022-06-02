@@ -152,7 +152,7 @@ private:
 
 	int open_serial_port();
 
-	void handle_msg(const sagetech_packet_t packet);
+	void handle_msg();
 
 	void parse_byte(uint8_t data);
 
@@ -181,12 +181,12 @@ private:
 
 	int 				_file_descriptor{-1};
 
-	sagetech_packet_t	_msgIn;
-
 	uint8_t 			_msgId{0};
 
 	uint8_t 			_buffer[128];
 	uint8_t 			_buffer_len{0};
+
+	sagetech_packet_t	_msgIn;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;

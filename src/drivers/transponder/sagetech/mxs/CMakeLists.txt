@@ -73,6 +73,8 @@ px4_add_module(
 		MXS.cpp
 		MXS.hpp
 		MXS_main.cpp
+	DEPENDS
+		px4_work_queue
 	MODULE_CONFIG
 		module.yaml
 	)
