@@ -41,6 +41,7 @@ TEST_CASE("Failure Injection - Reject mid-air when it is disabled", "[multicopte
 	AutopilotTesterFailure tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
+	tester.set_param_int("SYS_FAILURE_EN", 0);
 	tester.arm();
 	tester.takeoff();
 	tester.wait_until_hovering();
