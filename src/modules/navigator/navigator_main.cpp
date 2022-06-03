@@ -303,12 +303,18 @@ void Navigator::run()
 							rep->current.alt = get_global_position()->alt;
 						}
 
-					} else if (PX4_ISFINITE(cmd.param7)) {
-						// Received only a request to change altitude, thus we keep the setpoint
+					} else if (PX4_ISFINITE(cmd.param7) || PX4_ISFINITE(cmd.param4)) {
+						// Position is not changing, thus we keep the setpoint
 						rep->current.lat = PX4_ISFINITE(curr->current.lat) ? curr->current.lat : get_global_position()->lat;
 						rep->current.lon = PX4_ISFINITE(curr->current.lon) ? curr->current.lon : get_global_position()->lon;
-						rep->current.alt = cmd.param7;
-						only_alt_change_requested = true;
+
+						if (PX4_ISFINITE(cmd.param7)) {
+							rep->current.alt = cmd.param7;
+							only_alt_change_requested = true;
+
+						} else {
+							rep->current.alt = get_global_position()->alt;
+						}
 
 					} else {
 						// All three set to NaN - pause vehicle
