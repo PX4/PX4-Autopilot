@@ -129,6 +129,7 @@ private:
 	uint8_t _motor_failure_esc_valid_current_mask{};  // ESC 1-8, true if ESC telemetry was valid at some point
 	uint8_t _motor_failure_esc_timed_out_mask{};      // ESC telemetry no longer available -> failure
 	uint8_t _motor_failure_esc_under_current_mask{};  // ESC drawing too little current -> failure
+	bool _motor_failure_escs_have_current{false}; // true if some ESC had non-zero current (some don't support it)
 	hrt_abstime _motor_failure_undercurrent_start_time[actuator_motors_s::NUM_CONTROLS] {};
 
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
