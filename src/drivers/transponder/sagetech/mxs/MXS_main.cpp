@@ -41,6 +41,7 @@
 #include "MXS.hpp"
 
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/cli.h>
 #include <px4_platform_common/module.h>
 
 namespace mxs
@@ -143,7 +144,7 @@ int mxs_main(int argc, char *argv[])
 	int myoptind = 1;
 
 	const char *port = nullptr;
-	unsigned baud = 0;
+	int baud = 0;
 
 	while ((ch = px4_getopt(argc, argv, "d:b", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -152,7 +153,9 @@ int mxs_main(int argc, char *argv[])
 			break;
 
 		case 'b':
-			baud = (unsigned)atoi(myoptarg);
+			if (px4_get_parameter_value(myoptarg, baud) != 0) {
+				PX4_ERR("baudrate parsing failed");
+			}
 			break;
 
 		default:

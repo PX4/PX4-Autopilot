@@ -3,4 +3,4 @@ serial_config:
     - command: mxs start -d ${SERIAL_DEV} -b p:${BAUD_PARAM}
       port_config_param:
         name: TRANS_MXS_CFG
-        group: Transponders
+        group: Sagetech MXS

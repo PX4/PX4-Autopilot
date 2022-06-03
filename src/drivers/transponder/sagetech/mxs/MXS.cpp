@@ -36,6 +36,7 @@
  *
  * Sagetech MXS transponder driver
  * @author Megan McCormick megan.mccormick@sagetech.com
+ * @author Check Faber chuck.faber@sagetech.com
  */
 
 #include "MXS.hpp"
@@ -43,8 +44,7 @@
 
 MXS::MXS(const char *serial_port, unsigned baudrate):ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)),
 Device(MODULE_NAME),
-_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-_comms_errors(perf_alloc(PC_COUNT, MODULE_NAME": com_err"))
+ModuleParams(nullptr)
 
 {
 	_baudrate = baudrate;
@@ -70,13 +70,16 @@ MXS::~MXS()
 	stop();
 
 	free((char *)_serial_port);
+	perf_free(_loop_elapsed_perf);
+	perf_free(_loop_count_perf);
+	perf_free(_loop_interval_perf);
 	perf_free(_comms_errors);
 	perf_free(_sample_perf);
 }
 
 int MXS::open_serial_port()
 {
-	_baudrate = 230400;
+	//_baudrate = 230400;
 	speed_t baud = convert_baudrate(_baudrate);
 	// File descriptor already initialized?
 	if (_file_descriptor > 0) {
@@ -121,8 +124,8 @@ int MXS::open_serial_port()
 	// One input byte is enough to return from read()
 	// Inter-character timer off
 	//
-	uart_config.c_cc[VMIN]  = 1;
-	uart_config.c_cc[VTIME] = 0;
+	//uart_config.c_cc[VMIN]  = 0;
+	//uart_config.c_cc[VTIME] = 20;
 
 	// Set the input baud rate in the uart_config struct.
 	int termios_state = cfsetispeed(&uart_config, baud);
@@ -157,6 +160,18 @@ int MXS::open_serial_port()
 	//PX4_INFO("opened UART port %s", _serial_port);
 
 	return PX4_OK;
+}
+
+void MXS::parameters_update()
+{
+	if (_parameter_update_sub.updated()) {
+		parameter_update_s param_update;
+		_parameter_update_sub.copy(&param_update);
+
+		// If any parameter updated, call updateParams() to check if
+		// this class attributes need updating (and do so).
+		updateParams();
+	}
 }
 
 void MXS::parse_byte(uint8_t data)
@@ -232,8 +247,6 @@ int MXS::collect()
 
 
 	if (!bytes_available) {
-		//::close(_file_descriptor);
-		//_file_descriptor = -1;
 		return 0;
 	}
 	else
@@ -426,13 +439,23 @@ void MXS::handle_svr(sg_svr_t svr)
 #ifdef MXS_DEBUG
 	PX4_INFO("Updating SVR transponder message");
 #endif
+
+	if (svr.addrType != svrAdrIcaoUnknown && svr.addrType != svrAdrIcao && svr.addrType != svrAdrIcaoSurface) {
+		return; // invalid icao
+	}
+
 	transponder_report_s t{};
+
+	// Check if vehicle already exist in buffer
+	if(!get_vehicle_by_ICAO(svr.addr, t)) {
+		memset(&t, 0, sizeof(t));
+		t.icao_address = svr.addr;
+	}
+
 
 	t.timestamp = hrt_absolute_time();
 	t.flags |= transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;
-	//Set data from svr message
-	//TODO: Should we always set this? It might not be an ICAO
-	t.icao_address = svr.addr;
+	t.flags &= ~transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK;
 
 	if (svr.validity.position)
 	{
@@ -479,7 +502,7 @@ void MXS::handle_svr(sg_svr_t svr)
 		}
 	}
 
-	_transponder_pub.publish(t);
+	handle_vehicle(t);
 }
 
 void MXS::handle_msr(sg_msr_t msr)
@@ -489,19 +512,23 @@ void MXS::handle_msr(sg_msr_t msr)
 #endif
 	transponder_report_s t{};
 
+
+	if (!get_vehicle_by_ICAO(msr.addr, t)) {
+		// new vehicle creation isn't allowed here since position isn't provided
+		return;
+	}
+
 	t.timestamp = hrt_absolute_time();
 	t.flags |= transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;
-	//Set data from svr message
-	//TODO: Should we always set this? It might not be an ICAO
-	t.icao_address = msr.addr;
 
-	if(msr.callsign[0] != 0)
-	{
-		memcpy(&t.callsign, &msr.callsign, 8);
+	if(strlen(msr.callsign)) {
+		snprintf(t.callsign, sizeof(t.callsign), "%-8s", msr.callsign);
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
+	} else {
+		t.flags &= ~transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 	}
 	t.emitter_type = determine_emitter(msr.emitter);
-	_transponder_pub.publish(t);
+	handle_vehicle(t);
 }
 
 void MXS::send_gps_msg()
@@ -594,7 +621,7 @@ void MXS::send_gps_msg()
 	//PX4_INFO("Atempting to write GPS\n");
 	//tcflush(_file_descriptor, TCIFLUSH);
 
-	ret = ::write(_file_descriptor, _buffer, sizeof(gpsOut)); //Could use SG_MSG_LEN_GPS + 1
+	ret = ::write(_file_descriptor, _buffer, SG_MSG_LEN_GPS); //Could use SG_MSG_LEN_GPS + 1
 
 	if(ret < 0)
 	{
@@ -612,7 +639,6 @@ void MXS::send_gps_msg()
 
 void MXS::buff_to_hex(char*out,const uint8_t *buff, int len)
 {
-
 	for ( int i = 0; i  < len; i ++)
 	{
 		char str[3];
@@ -655,6 +681,10 @@ void MXS::print_info()
 
 int MXS::init()
 {
+	if (_baudrate == 0)
+	{
+		_baudrate = 230400;
+	}
 	_msgIn.checksum = 0;
 	_msgIn.id = 0;
 	_msgIn.length = 0;
@@ -670,17 +700,80 @@ void MXS::Run()
 #ifdef DEBUG_MXS
 	PX4_INFO("MXS Driver running");
 #endif
+
+	// Thread Stop
+	if (should_exit()) {
+		ScheduleClear();
+		exit_and_cleanup();
+		return;
+	}
+
+	perf_begin(_loop_elapsed_perf);
+	perf_count(_loop_interval_perf);
+
+	// Count the number of times the loop has executed
+	perf_count(_loop_count_perf);
+	_loop_count = perf_event_count(_loop_count_perf);
+
 	//Subscribe to GPS uORB
-	int gps_sub_fd = orb_subscribe(ORB_ID(sensor_gps));
-	orb_set_interval(gps_sub_fd, 200);
-	orb_copy(ORB_ID(sensor_gps), gps_sub_fd, &_gps);
+	//int gps_sub_fd = orb_subscribe(ORB_ID(sensor_gps));
+	//orb_set_interval(gps_sub_fd, 200);
+	//orb_copy(ORB_ID(sensor_gps), gps_sub_fd, &_gps);
 	// Ensure the serial port is open.
 	open_serial_port();
 	collect();
 
-	 const hrt_abstime currentTime = hrt_absolute_time();
+	/******************
+	 * 5 Hz Timer
+	 * ****************/
 
-	 if (currentTime - _last_gps_send >= 1000000)
+	if (!(_loop_count % FIVE_HZ_MOD)) {		// 5Hz Timer (GPS Flight)
+			/* Get Subscription Data */
+			if (_vehicle_land_detected_sub.updated()) {
+				_vehicle_land_detected_sub.copy(&_landed);
+			}
+			if (_sensor_gps_sub.updated()) {
+				_sensor_gps_sub.copy(&_gps);
+			}
+
+			if (!_landed.landed) {
+				send_gps_msg();
+			}
+	}
+
+	/***********************
+	 * 1 Hz Timer
+	 * *********************/
+
+	if (!(_loop_count % ONE_HZ_MOD)) {		// 1Hz Timer (Operating Message/GPS Ground)
+		if (_landed.landed) {
+			send_gps_msg();
+		}
+
+	}
+
+	/************************
+	 * 2 Hz Timer
+	 * **********************/
+
+	if(!(_loop_count % TWO_HZ_MOD)) {
+		// PX4_INFO("2 Hz Callback");
+	}
+
+	/************************
+	 * 8.2 Second Timer
+	 * **********************/
+
+	if (!(_loop_count % EIGHT_TWO_SEC_MOD)) {	// 8.2 second timer (Flight ID)
+		// PX4_INFO("8.2 second callback");
+	}
+
+	perf_end(_loop_elapsed_perf);
+
+
+	 /*const hrt_abstime currentTime = hrt_absolute_time();
+
+	 if (currentTime - _last_gps_send >= (1000000))
 	 {
 		send_gps_msg();
 		::close(_file_descriptor);
@@ -688,15 +781,127 @@ void MXS::Run()
 
 		_last_gps_send = currentTime;
 
-	 }
+	 }*/
 
 
+}
+
+/***************************
+ * ADSB Vehicle List Functions
+****************************/
+
+bool MXS::get_vehicle_by_ICAO(const uint32_t icao, transponder_report_s &vehicle) const
+{
+	transponder_report_s temp_vehicle;
+	temp_vehicle.icao_address = icao;
+
+	uint16_t i;
+	if (find_index(temp_vehicle, &i)) {
+		memcpy(&vehicle, &vehicle_list[i], sizeof(transponder_report_s));
+		return true;
+	}
+	return false;
+}
+
+bool MXS::find_index(const transponder_report_s &vehicle, uint16_t *index) const
+{
+	for (uint16_t i = 0; i < vehicle_count; i++) {
+		if (vehicle_list[i].icao_address == vehicle.icao_address) {
+			*index = i;
+			return true;
+		}
+	}
+	return false;
+}
+
+void MXS::set_vehicle(const uint16_t index, const transponder_report_s &vehicle)
+{
+	if (index >= MAX_VEHICLES_TRACKED) {
+		return; // out of range
+	}
+	vehicle_list[index] = vehicle;
+}
+
+void MXS::determine_furthest_aircraft(void)
+{
+	float max_distance = 0;
+	uint16_t max_distance_index = 0;
+
+	for (uint16_t index = 0; index < vehicle_count; index++) {
+		const float distance = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle_list[index].lat, vehicle_list[index].lon);
+		if (max_distance < distance || index == 0) {
+			max_distance = distance;
+			max_distance_index = index;
+		}
+	}
+	furthest_vehicle_index = max_distance_index;
+	furthest_vehicle_distance = max_distance;
+}
+
+void MXS::delete_vehicle(const uint16_t index)
+{
+	if (index >= vehicle_count) {
+		return;
+	}
+
+	if (index == furthest_vehicle_index && furthest_vehicle_distance > 0) {
+		furthest_vehicle_distance = 0;
+		furthest_vehicle_index = 0;
+	}
+	if (index != vehicle_count-1) {
+		vehicle_list[index] = vehicle_list[vehicle_count-1];
+	}
+	vehicle_count--;
+}
+
+void MXS::handle_vehicle(const transponder_report_s &vehicle)
+{
+	// needs to handle updating the vehicle list, keeping track of which vehicles to drop
+	// and which to keep, allocating new vehicles, and publishing to the transponder_report topic
+	uint16_t index = MAX_VEHICLES_TRACKED + 1; // Make invalid to start with.
+	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle.lat, vehicle.lon);
+	const bool is_tracked_in_list = find_index(vehicle, &index);
+	const uint16_t required_flags_position = transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+		transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
+	if (!(vehicle.flags & required_flags_position)) {
+		if (is_tracked_in_list) {
+			delete_vehicle(index);	// If the vehicle is tracked in our list but doesn't have the right flags remove it
+		}
+	return;
+	} else if (is_tracked_in_list) {	// If the vehicle is in the list update it with the index found
+		set_vehicle(index, vehicle);
+	} else if (vehicle_count < MAX_VEHICLES_TRACKED) {	// If the vehicle is not in the list, and the vehicle count is less than the max count
+								// then add it to the vehicle_count index (after the last vehicle) and increment vehicle_count
+		set_vehicle(vehicle_count, vehicle);
+		vehicle_count++;
+	} else {	// Buffer is full. If new vehicle is closer, replace furthest with new vehicle
+		if (_gps.fix_type == 0) {	// Invalid GPS fix
+			furthest_vehicle_distance = 0;
+			furthest_vehicle_index = 0;
+		} else {
+			if (furthest_vehicle_distance <= 0) {
+				determine_furthest_aircraft();
+			}
+
+			if (my_loc_distance_to_vehicle < furthest_vehicle_distance) {
+				set_vehicle(furthest_vehicle_index, vehicle);
+				furthest_vehicle_distance = 0;
+				furthest_vehicle_index = 0;
+			}
+		}
+	}
+
+	const uint16_t required_flags_avoidance = required_flags_position | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+		transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+	if (vehicle.flags & required_flags_avoidance) {
+		_transponder_pub.publish(vehicle);
+	}
 }
 
 void MXS::start()
 {
 	// Schedule the driver at regular intervals.
-	ScheduleOnInterval(SAGETECH_MXS_POLL_RATE, SAGETECH_MXS_POLL_RATE);
+	ScheduleOnInterval(SAGETECH_MXS_POLL_RATE);
 
 }
 
