@@ -3,7 +3,9 @@
 # board specific defaults
 #------------------------------------------------------------------------------
 
-pwm_out mode_pwm1 start
+set UCAN146 1
+
+pca9685_ucan start -X
 
 ifup can0
 cyphal start

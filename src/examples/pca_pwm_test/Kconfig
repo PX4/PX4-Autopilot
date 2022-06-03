@@ -1,0 +1,5 @@
+menuconfig EXAMPLES_PCA_PWM_TEST
+	bool "pca_pwm_test"
+	default n
+	---help---
+		Enable support for pca_pwm_test

@@ -240,19 +240,15 @@ PCA9685::RunImpl()
 			    _pca_pwm.pwm_period <= PWM_PERIOD_MAX_US) {
 				_pwm_period_us = _pca_pwm.pwm_period;
 				_pwm_freq = 1000000.0f / (float)_pwm_period_us;
-				DEVICE_DEBUG("freq: %.2f, period: %u", (double)_pwm_freq, _pwm_period_us);
 			}
 			for (int i = 0; i < NUMBER_PWM_CHANNELS; i++) {
-				uint16_t new_value = (uint16_t)(((float)_pwm_period_us/(float)_pca_pwm.pulse_width[i])*4096.0f);
-				DEVICE_DEBUG("%d: current: %u, new: %u, pulse width: %u", i, _current_values[i], new_value, _pca_pwm.pulse_width[i]);
-
-				if (new_value != _current_values[i] && new_value < 4096) {
+				uint16_t new_value = (uint16_t)(4096.0f*(float)_pca_pwm.pulse_width[i]/
+							(float)_pwm_period_us);
+				/*PX4_INFO("PWM_%d: pulse_width: %u, new_value: %u, pwm_period: %u",
+						i, _pca_pwm.pulse_width[i], new_value, _pwm_period_us);*/
+				if (new_value != _current_values[i] && new_value <= 4096) {
 					setPin(i, new_value);
 					_current_values[i] = new_value;
-				} else {
-					if (new_value < 4096) {
-						DEVICE_DEBUG("pwm new value: %u is out of range [0, 4096]", new_value);
-					}
 				}
 			}
 		}
