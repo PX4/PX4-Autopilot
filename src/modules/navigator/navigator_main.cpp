@@ -98,6 +98,9 @@ Navigator::Navigator() :
 	_mission_sub = orb_subscribe(ORB_ID(mission));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
+	// Update the timeout used in mission_block (which can't hold it's own parameters)
+	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
+
 	reset_triplets();
 }
 
@@ -128,6 +131,8 @@ void Navigator::params_update()
 	if (_handle_mpc_acc_hor != PARAM_INVALID) {
 		param_get(_handle_mpc_acc_hor, &_param_mpc_acc_hor);
 	}
+
+	_mission.set_payload_deployment_timeout(_param_mis_payload_delivery_timeout.get());
 }
 
 void Navigator::run()
@@ -203,7 +208,7 @@ void Navigator::run()
 			}
 		}
 
-		// check for parameter updates
+		/* check for parameter updates */
 		if (_parameter_update_sub.updated()) {
 			// clear update
 			parameter_update_s pupdate;
@@ -217,8 +222,10 @@ void Navigator::run()
 		_position_controller_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
 
+		// Handle Vehicle commands
 		while (_vehicle_command_sub.updated()) {
 			const unsigned last_generation = _vehicle_command_sub.get_last_generation();
+
 			vehicle_command_s cmd{};
 			_vehicle_command_sub.copy(&cmd);
 

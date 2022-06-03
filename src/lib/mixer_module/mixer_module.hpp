@@ -39,6 +39,7 @@
 #include "functions/FunctionConstantMax.hpp"
 #include "functions/FunctionConstantMin.hpp"
 #include "functions/FunctionGimbal.hpp"
+#include "functions/FunctionGripper.hpp"
 #include "functions/FunctionLandingGear.hpp"
 #include "functions/FunctionManualRC.hpp"
 #include "functions/FunctionMotors.hpp"

@@ -262,6 +262,12 @@ then
 	gyro_calibration start
 fi
 
+# Payload deliverer module if gripper is enabled
+if param compare -s PD_GRIPPER_EN 1
+then
+	payload_deliverer start
+fi
+
 #user defined mavlink streams for instances can be in PATH
 . px4-rc.mavlink
 

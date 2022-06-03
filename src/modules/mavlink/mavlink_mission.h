@@ -245,4 +245,19 @@ private:
 	 * set _state to idle (and do necessary cleanup)
 	 */
 	void switch_to_idle_state();
+
+	/**
+	 * Copies the specified range [1, 7] of param of MAVLink mission to params[] array of
+	 * the Mission item struct (Very useful for mission items for non-navigation
+	 * like MAV_CMD_DO*, as they use a parameter mapping 1 ~ 7, which directly
+	 * gets the value from MAVlink's Mission Item parameters.
+	 *
+	 * @param start_idx [1, 7] Start index of Param to copy from Mavlink Mission Item
+	 * @param end_idx [1, 7] End index of Param to copy from Mavlink Mission Item
+	 *
+	 * Note: The Index is in range [1, 7], so if you want to copy param2 ~ param5 into
+	 * params[1] and params[4], you need to call with 'start_idx = 2' and 'end_idx = 5'!
+	 */
+	void copy_params_from_mavlink_to_mission_item(struct mission_item_s *mission_item,
+			const mavlink_mission_item_t *mavlink_mission_item, int8_t start_idx = 1, int8_t end_idx = 7);
 };

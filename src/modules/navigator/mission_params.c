@@ -156,3 +156,14 @@ PARAM_DEFINE_FLOAT(MIS_YAW_TMT, -1.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(MIS_YAW_ERR, 12.0f);
+
+/**
+ * Timeout for a successful payload deployment acknowledgement
+ *
+ * @unit s
+ * @min 0
+ * @decimal 1
+ * @increment 1
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(MIS_PD_TO, 5.0f);

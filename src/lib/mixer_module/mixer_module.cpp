@@ -62,6 +62,7 @@ static const FunctionProvider all_function_providers[] = {
 	{OutputFunction::Offboard_Actuator_Set1, OutputFunction::Offboard_Actuator_Set6, &FunctionActuatorSet::allocate},
 	{OutputFunction::Landing_Gear, &FunctionLandingGear::allocate},
 	{OutputFunction::Parachute, &FunctionParachute::allocate},
+	{OutputFunction::Gripper, &FunctionGripper::allocate},
 	{OutputFunction::RC_Roll, OutputFunction::RC_AUXMax, &FunctionManualRC::allocate},
 	{OutputFunction::Gimbal_Roll, OutputFunction::Gimbal_Yaw, &FunctionGimbal::allocate},
 };

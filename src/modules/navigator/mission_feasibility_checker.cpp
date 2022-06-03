@@ -250,6 +250,8 @@ MissionFeasibilityChecker::checkMissionItemValidity(const mission_s &mission)
 		    missionitem.nav_cmd != NAV_CMD_VTOL_LAND &&
 		    missionitem.nav_cmd != NAV_CMD_DELAY &&
 		    missionitem.nav_cmd != NAV_CMD_CONDITION_GATE &&
+		    missionitem.nav_cmd != NAV_CMD_DO_WINCH &&
+		    missionitem.nav_cmd != NAV_CMD_DO_GRIPPER &&
 		    missionitem.nav_cmd != NAV_CMD_DO_JUMP &&
 		    missionitem.nav_cmd != NAV_CMD_DO_CHANGE_SPEED &&
 		    missionitem.nav_cmd != NAV_CMD_DO_SET_HOME &&

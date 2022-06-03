@@ -298,7 +298,7 @@ void RTL::on_activation()
 
 void RTL::on_active()
 {
-	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
+	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached_or_completed()) {
 		advance_rtl();
 		set_rtl_item();
 	}

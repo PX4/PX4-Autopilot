@@ -57,6 +57,7 @@ uint16 VEHICLE_CMD_DO_FENCE_ENABLE=207			# Mission command to enable the geofenc
 uint16 VEHICLE_CMD_DO_PARACHUTE=208			# Mission command to trigger a parachute |action (0=disable, 1=enable, 2=release, for some systems see PARACHUTE_ACTION enum, not in general message set.)| Empty| Empty| Empty| Empty| Empty| Empty|
 uint16 VEHICLE_CMD_DO_MOTOR_TEST=209			# motor test command |Instance (1, ...)| throttle type| throttle| timeout [s]| Motor count | Test order| Empty|
 uint16 VEHICLE_CMD_DO_INVERTED_FLIGHT=210		# Change to/from inverted flight |inverted (0=normal, 1=inverted)| Empty| Empty| Empty| Empty| Empty| Empty|
+uint16 VEHICLE_CMD_DO_GRIPPER = 211			# Command to operate a gripper
 uint16 VEHICLE_CMD_DO_SET_CAM_TRIGG_INTERVAL=214	# Mission command to set TRIG_INTERVAL for this flight |Camera trigger distance (meters)| Shutter integration time (ms)| Empty| Empty| Empty| Empty| Empty|
 uint16 VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT=220		# Mission command to control a camera or antenna mount, using a quaternion as reference. |q1 - quaternion param #1, w (1 in null-rotation)| q2 - quaternion param #2, x (0 in null-rotation)| q3 - quaternion param #3, y (0 in null-rotation)| q4 - quaternion param #4, z (0 in null-rotation)| Empty| Empty| Empty|
 uint16 VEHICLE_CMD_DO_GUIDED_MASTER=221			# set id of master controller |System ID| Component ID| Empty| Empty| Empty| Empty| Empty|
@@ -96,7 +97,7 @@ uint16 VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST = 3001	# Request arm authorization
 uint16 VEHICLE_CMD_PAYLOAD_PREPARE_DEPLOY = 30001	# Prepare a payload deployment in the flight plan
 uint16 VEHICLE_CMD_PAYLOAD_CONTROL_DEPLOY = 30002	# Control a pre-programmed payload deployment
 uint16 VEHICLE_CMD_FIXED_MAG_CAL_YAW = 42006            # Magnetometer calibration based on provided known yaw. This allows for fast calibration using WMM field tables in the vehicle, given only the known yaw of the vehicle. If Latitude and longitude are both zero then use the current vehicle location.
-
+uint16 VEHICLE_CMD_DO_WINCH = 42600			# Command to operate winch.
 
 # PX4 vehicle commands (beyond 16 bit mavlink commands)
 uint32 VEHICLE_CMD_PX4_INTERNAL_START    = 65537        # start of PX4 internal only vehicle commands (> UINT16_MAX)
@@ -159,6 +160,10 @@ uint8 SPEED_TYPE_DESCEND_SPEED = 3
 # used as param1 in ARM_DISARM command
 int8 ARMING_ACTION_DISARM = 0
 int8 ARMING_ACTION_ARM = 1
+
+# param2 in VEHICLE_CMD_DO_GRIPPER
+uint8 GRIPPER_ACTION_RELEASE = 0
+uint8 GRIPPER_ACTION_GRAB = 1
 
 uint8 ORB_QUEUE_LENGTH = 8
 

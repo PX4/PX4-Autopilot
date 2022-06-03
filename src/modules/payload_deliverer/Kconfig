@@ -1,0 +1,5 @@
+menuconfig MODULES_PAYLOAD_DELIVERER
+	bool "payload_deliverer"
+	default n
+	---help---
+		Enable payload_deliverer module
