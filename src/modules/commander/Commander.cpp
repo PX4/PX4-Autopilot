@@ -829,9 +829,6 @@ Commander::Commander() :
 	_vehicle_status.system_type = 0;
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNKNOWN;
 
-	// XXX for now just set sensors as initialized
-	_vehicle_status_flags.system_sensors_initialized = true;
-
 	// We want to accept RC inputs as default
 	_vehicle_status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	_vehicle_status.nav_state_timestamp = hrt_absolute_time();
@@ -2201,7 +2198,6 @@ Commander::run()
 		perf_begin(_loop_perf);
 
 		const actuator_armed_s actuator_armed_prev{_actuator_armed};
-		const vehicle_status_flags_s vehicle_status_flags_prev{_vehicle_status_flags};
 
 		/* update parameters */
 		const bool params_updated = _parameter_update_sub.updated();
@@ -3007,9 +3003,6 @@ Commander::run()
 
 			// Evaluate current prearm status (skip during arm -> disarm transition)
 			if (!actuator_armed_prev.armed && !_arm_state_machine.isArmed() && !_vehicle_status_flags.calibration_enabled) {
-
-				_vehicle_status_flags.system_hotplug_timeout = (hrt_elapsed_time(&_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
-
 				perf_begin(_preflight_check_perf);
 				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _vehicle_status, _vehicle_status_flags,
 							   _vehicle_control_mode,
@@ -3023,8 +3016,9 @@ Commander::run()
 							_safety.isButtonAvailable(), _safety.isSafetyOff(),
 							arm_req, _vehicle_status, false);
 
-				const bool prearm_check_ok = preflight_check_res && prearm_check_res;
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, prearm_check_ok, _vehicle_status);
+				_vehicle_status_flags.pre_flight_checks_pass = preflight_check_res && prearm_check_res;
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true,
+						 _vehicle_status_flags.pre_flight_checks_pass, _vehicle_status);
 			}
 
 			// publish actuator_armed first (used by output modules)
@@ -3099,13 +3093,6 @@ Commander::run()
 			}
 
 			_arm_tune_played = false;
-		}
-
-		/* play sensor failure tunes if we already waited for hotplug sensors to come up and failed */
-		if (!_vehicle_status_flags.system_sensors_initialized &&
-		    !vehicle_status_flags_prev.system_hotplug_timeout && _vehicle_status_flags.system_hotplug_timeout) {
-
-			set_tune_override(tune_control_s::TUNE_ID_GPS_WARNING);
 		}
 
 		// check if the worker has finished
@@ -3229,15 +3216,11 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
-		} else if (!_vehicle_status_flags.system_sensors_initialized && _vehicle_status_flags.system_hotplug_timeout) {
+		} else if (!_vehicle_status_flags.pre_flight_checks_pass) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_RED;
 
 		} else if (_arm_state_machine.isStandby()) {
-			led_mode = led_control_s::MODE_BREATHE;
-			set_normal_color = true;
-
-		} else if (!_vehicle_status_flags.system_sensors_initialized && !_vehicle_status_flags.system_hotplug_timeout) {
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 

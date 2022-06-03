@@ -54,8 +54,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 				    vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
 				    bool report_failures, const bool prearm, const hrt_abstime &time_since_boot)
 {
-	report_failures = (report_failures && status_flags.system_hotplug_timeout
-			   && !status_flags.calibration_enabled);
+	report_failures = (report_failures && !status_flags.calibration_enabled);
 
 	bool failed = false;
 

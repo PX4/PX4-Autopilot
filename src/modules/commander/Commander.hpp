@@ -292,8 +292,6 @@ private:
 
 	/* Decouple update interval and hysteresis counters, all depends on intervals */
 	static constexpr uint64_t COMMANDER_MONITORING_INTERVAL{10_ms};
-
-	static constexpr uint64_t HOTPLUG_SENS_TIMEOUT{8_s};	/**< wait for hotplug sensors to come online for upto 8 seconds */
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
 	ArmStateMachine _arm_state_machine{};
