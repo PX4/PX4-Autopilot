@@ -255,10 +255,6 @@ int MXS::collect()
 		perf_begin(_sample_perf);
 	}
 
-	// parse entire buffer
-	//const hrt_abstime timestamp_sample = hrt_absolute_time();
-	memset(_buffer,0, sizeof(_buffer));
-
 	do {
 		// read from the sensor (uart buffer)
 		uint8_t data;
@@ -531,6 +527,135 @@ void MXS::handle_msr(sg_msr_t msr)
 	handle_vehicle(t);
 }
 
+/**************************************
+ * Message Sending Functions
+ **************************************/
+
+int MXS::msg_write(const uint8_t *data, const uint16_t len)
+{
+	int ret = 0;
+	if (_file_descriptor >= 0) {
+		ret = ::write(_file_descriptor, data, len);
+	}
+	if (ret != len) {
+		perf_count(_comms_errors);
+		PX4_INFO("write fail %d", ret);
+		return ret;
+	}
+	return PX4_OK;
+}
+
+void MXS::send_data_req(const sg_datatype_t dataReqType)
+{
+    sg_datareq_t dataReq {};
+    dataReq.reqType = dataReqType;
+    last.msg.type = SG_MSG_TYPE_HOST_DATAREQ;
+
+    uint8_t txComBuffer[SG_MSG_LEN_DATAREQ] {};
+    sgEncodeDataReq(txComBuffer, &dataReq, ++last.msg.id);
+    msg_write(txComBuffer, SG_MSG_LEN_DATAREQ);
+}
+
+void MXS::send_flight_id_msg()
+{
+	// TODO: Maybe have a way to set Flight ID in-flight?
+	// if (!strlen((char*) _frontend.out_state.ctrl.callsign)) {
+	// 	return;
+	// }
+	// snprintf(mxs_state.fid.flightId, sizeof(mxs_state.fid.flightId), "%-8s", (char*) _frontend.out_state.ctrl.callsign);
+
+	last.msg.type = SG_MSG_TYPE_HOST_FLIGHT;
+
+	uint8_t txComBuffer[SG_MSG_LEN_FLIGHT] {};
+	sgEncodeFlightId(txComBuffer, &mxs_state.fid, ++last.msg.id);
+	msg_write(txComBuffer, SG_MSG_LEN_FLIGHT);
+}
+
+void MXS::send_op_msg()
+{
+	// TODO: Need to convert this over somehow
+	// if (!_frontend.out_state.ctrl.modeAEnabled && !_frontend.out_state.ctrl.modeCEnabled &&
+	// 		!_frontend.out_state.ctrl.modeSEnabled && !_frontend.out_state.ctrl.es1090TxEnabled) {
+	// 	mxs_state.op.opMode = modeStby;
+	// }
+	// if (_frontend.out_state.ctrl.modeAEnabled && !_frontend.out_state.ctrl.modeCEnabled &&
+	// 		_frontend.out_state.ctrl.modeSEnabled && _frontend.out_state.ctrl.es1090TxEnabled) {
+	// 	mxs_state.op.opMode = modeOn;
+	// }
+	// if (_frontend.out_state.ctrl.modeAEnabled && _frontend.out_state.ctrl.modeCEnabled &&
+	// 		_frontend.out_state.ctrl.modeSEnabled && _frontend.out_state.ctrl.es1090TxEnabled) {
+	// 	mxs_state.op.opMode = modeAlt;
+	// }
+	// if ((_frontend.out_state.cfg.rfSelect & 1) == 0) {
+	// 	mxs_state.op.opMode = modeOff;
+	// }
+
+	// mxs_state.op.squawk = AP_ADSB::convert_base_to_decimal(8, last.operating_squawk);
+	// mxs_state.op.emergcType = (sg_emergc_t) _frontend.out_state.ctrl.emergencyState;
+
+	// int32_t height;
+	// if (_frontend._my_loc.initialised() && _frontend._my_loc.get_alt_cm(Location::AltFrame::ABSOLUTE, height)) {
+	//     mxs_state.op.altitude = height * SAGETECH_SCALE_CM_TO_FEET;         // Height above sealevel in feet
+	// } else {
+	//     mxs_state.op.altitude = 0;
+	// }
+
+	// float vertRate;
+	// if (AP::ahrs().get_vert_pos_rate(vertRate)) {
+	// 	mxs_state.op.climbRate = vertRate * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
+	// 	mxs_state.op.climbValid = true;
+	// } else {
+	// 	mxs_state.op.climbValid = false;
+	// 	mxs_state.op.climbRate = -CLIMB_RATE_LIMIT;
+	// }
+
+	// const Vector2f speed = AP::ahrs().groundspeed_vector();
+	// if (!speed.is_nan() && !speed.is_zero()) {
+	// 	mxs_state.op.headingValid = true;
+	// 	mxs_state.op.airspdValid = true;
+	// } else {
+	// 	mxs_state.op.headingValid = false;
+	// 	mxs_state.op.airspdValid = false;
+	// }
+	// const uint16_t speed_knots = (speed.length() * M_PER_SEC_TO_KNOTS);
+	// const double heading = wrap_360(degrees(speed.angle()));
+
+	// mxs_state.op.airspd = speed_knots;
+	// mxs_state.op.heading = heading;
+
+	// mxs_state.op.identOn = _frontend.out_state.ctrl.identActive;
+	// _frontend.out_state.ctrl.identActive = false;                           // only send identButtonActive once per request
+
+	last.msg.type = SG_MSG_TYPE_HOST_OPMSG;
+
+	uint8_t txComBuffer[SG_MSG_LEN_OPMSG] {};
+	sgEncodeOperating(txComBuffer, &mxs_state.op, ++last.msg.id);
+	msg_write(txComBuffer, SG_MSG_LEN_OPMSG);
+}
+
+void MXS::send_target_req_msg()
+{
+	mxs_state.treq.reqType = sg_reporttype_t::reportAuto;
+	mxs_state.treq.transmitPort = sg_transmitport_t::transmitCom1;
+	mxs_state.treq.maxTargets = MAX_VEHICLES_TRACKED;
+	// TODO: have way to track special target. will need to change up tracked list to do so.
+	// mxs_state.treq.icao = _frontend._special_ICAO_target.get();
+	mxs_state.treq.stateVector = true;
+	mxs_state.treq.modeStatus = true;
+	mxs_state.treq.targetState = false;
+	mxs_state.treq.airRefVel = false;
+	mxs_state.treq.tisb = false;
+	mxs_state.treq.military = false;
+	mxs_state.treq.commA = false;
+	mxs_state.treq.ownship = true;
+
+	last.msg.type = SG_MSG_TYPE_HOST_TARGETREQ;
+
+	uint8_t txComBuffer[SG_MSG_LEN_TARGETREQ] {};
+	sgEncodeTargetReq(txComBuffer, &mxs_state.treq, ++last.msg.id);
+	msg_write(txComBuffer, SG_MSG_LEN_TARGETREQ);
+}
+
 void MXS::send_gps_msg()
 {
 
@@ -607,8 +732,8 @@ void MXS::send_gps_msg()
 	gpsOut.height = _gps.alt_ellipsoid * 1.0e-3; //Convert to meters
 
 	//Encode GPS
-	memset(_buffer,0, sizeof(_buffer)); 	//Make sure buffer is clear
-	sgEncodeGPS(_buffer,&gpsOut, uint8_t(_msgId++));
+	uint8_t txComBuffer[SG_MSG_LEN_GPS] {};
+	sgEncodeGPS(txComBuffer,&gpsOut, uint8_t(_msgId++));
 
 	//Write to serial
 	int ret = 0;
@@ -621,7 +746,7 @@ void MXS::send_gps_msg()
 	//PX4_INFO("Atempting to write GPS\n");
 	//tcflush(_file_descriptor, TCIFLUSH);
 
-	ret = ::write(_file_descriptor, _buffer, SG_MSG_LEN_GPS); //Could use SG_MSG_LEN_GPS + 1
+	ret = msg_write( txComBuffer, SG_MSG_LEN_GPS);
 
 	if(ret < 0)
 	{
@@ -642,7 +767,7 @@ void MXS::buff_to_hex(char*out,const uint8_t *buff, int len)
 	for ( int i = 0; i  < len; i ++)
 	{
 		char str[3];
-		sprintf(str,"%X",_buffer[i]);
+		sprintf(str,"%X",buff[i]);
 		strcat(out, str);
 	}
 
@@ -692,6 +817,14 @@ int MXS::init()
 	_msgIn.state = 0;
 	_msgIn.type = 0;
 
+	//Initilize MXS logging
+	open_serial_port();
+	send_target_req_msg();
+	// Close serial port after first write
+	::close(_file_descriptor);
+	_file_descriptor = -1;
+
+
 	return PX4_OK;
 }
 
@@ -715,10 +848,6 @@ void MXS::Run()
 	perf_count(_loop_count_perf);
 	_loop_count = perf_event_count(_loop_count_perf);
 
-	//Subscribe to GPS uORB
-	//int gps_sub_fd = orb_subscribe(ORB_ID(sensor_gps));
-	//orb_set_interval(gps_sub_fd, 200);
-	//orb_copy(ORB_ID(sensor_gps), gps_sub_fd, &_gps);
 	// Ensure the serial port is open.
 	open_serial_port();
 	collect();
@@ -769,19 +898,6 @@ void MXS::Run()
 	}
 
 	perf_end(_loop_elapsed_perf);
-
-
-	 /*const hrt_abstime currentTime = hrt_absolute_time();
-
-	 if (currentTime - _last_gps_send >= (1000000))
-	 {
-		send_gps_msg();
-		::close(_file_descriptor);
-		_file_descriptor = -1;
-
-		_last_gps_send = currentTime;
-
-	 }*/
 
 
 }
@@ -918,3 +1034,8 @@ void MXS::stop()
 	perf_free(_sample_perf);
 }
 
+
+void MXS:: handle_flight_id(const char *flightId)
+{
+
+}

@@ -103,6 +103,14 @@ static int stop()
 	return PX4_OK;
 }
 
+static int flightID(const char *flightId)
+{
+	PX4_INFO("Sending flight ID: %s", flightId);
+	g_dev->handle_flight_id(flightId);
+
+	return PX4_OK;
+}
+
 static int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
@@ -142,6 +150,8 @@ int mxs_main(int argc, char *argv[])
 
 	int ch = 0;
 	int myoptind = 1;
+	char ID[9] = "";
+
 
 	const char *port = nullptr;
 	int baud = 0;
@@ -174,6 +184,11 @@ int mxs_main(int argc, char *argv[])
 	}
 	else if (!strcmp(argv[myoptind], "status")) {
 		return mxs::status();
+
+	}
+	else if (!strcmp(argv[myoptind], "flightId") && (argc == 3)) {
+		strcpy(ID,argv[2]);
+		return mxs::flightID(ID);
 
 	}
 	else if (!strcmp(argv[myoptind], "stop")) {

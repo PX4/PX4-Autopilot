@@ -70,6 +70,7 @@ px4_add_module(
 		SagetechSDK/uint162Buf.c
 		SagetechSDK/uint242Buf.c
 		SagetechSDK/uint322Buf.c
+		SagetechSDK/sgEncodeTargetReq.c
 		MXS.cpp
 		MXS.hpp
 		MXS_main.cpp

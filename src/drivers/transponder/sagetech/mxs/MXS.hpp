@@ -51,6 +51,7 @@ extern "C"
 #include <termios.h>
 #include <stdint.h>
 #include <lib/geo/geo.h>
+#include <string.h>
 
 #include <drivers/drv_sensor.h>
 #include <lib/drivers/device/Device.hpp>
@@ -137,18 +138,28 @@ typedef struct
 	uint8_t checksum;
 }sagetech_packet_t;
 
-typedef struct
-{
-	transponder_report_s targetInfo;
-	bool matched;
-}targets_t;
+typedef struct {
+	uint8_t     id;
+	uint8_t     type;
+} msg_t ;
 
-typedef struct
-{
-	uint16_t listCount;
-	targets_t list[60];
+typedef struct {
+	// cached variables to compare against params so we can send msg on param change.
+	uint16_t        operating_squawk;
+	int32_t         operating_alt;
+	bool            failXpdr;
+	bool            failSystem;
+	msg_t			msg;
+} last_data_t;
 
-}target_list_t;
+typedef struct {
+	sg_operating_t op;
+	sg_install_t inst;
+	sg_gps_t gps;
+	sg_targetreq_t treq;
+	sg_flightid_t fid;
+	sg_ack_t ack;
+} state_t;
 
 
 /*********************************************************************************
@@ -187,6 +198,8 @@ public:
 	 */
 	void stop();
 
+	void handle_flight_id(const char *flightId);
+
 private:
 
 	//Functions
@@ -217,6 +230,10 @@ private:
 
 	void send_target_req_msg();
 
+	void send_data_req(const sg_datatype_t dataReqType);
+
+	int msg_write(const uint8_t *data, const uint16_t len);
+
 	void buff_to_hex(char*out,const uint8_t *buff, int len);
 
 	sg_nacv_t determine_nacv(float velAcc);
@@ -242,8 +259,8 @@ private:
 
 	uint8_t 			_msgId{0};
 
-	uint8_t 			_buffer[128];
-	uint8_t 			_buffer_len{0};
+	uint8_t				_buffer[255];
+	uint16_t			_buffer_len{0};
 
 	sagetech_packet_t	_msgIn;
 
@@ -261,17 +278,9 @@ private:
 	uint16_t furthest_vehicle_index{0};
 	float furthest_vehicle_distance{0.0};
 
-	struct {
-			// cached variables to compare against params so we can send msg on param change.
-			uint16_t        operating_squawk;
-			int32_t         operating_alt;
-			bool            failXpdr;
-			bool            failSystem;
-			struct {
-				uint8_t     id;
-				uint8_t     type;
-			} msg;
-		} last;
+	//
+	last_data_t last;
+	state_t mxs_state;
 
 
 
