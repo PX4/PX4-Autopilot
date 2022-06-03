@@ -137,6 +137,14 @@ private:
 
 	void manual_control_check();
 
+	/**
+	 * @brief Handle incoming vehicle command relavant to Commander
+	 *
+	 * It ignores irrelevant vehicle commands defined inside the switch case statement
+	 * in the function.
+	 *
+	 * @param cmd 		Vehicle command to handle
+	 */
 	bool handle_command(const vehicle_command_s &cmd);
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);

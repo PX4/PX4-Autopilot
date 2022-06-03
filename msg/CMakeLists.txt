@@ -96,6 +96,7 @@ set(msg_files
 	gps_dump.msg
 	gps_inject_data.msg
 	health_report.msg
+	gripper.msg
 	heater_status.msg
 	home_position.msg
 	hover_thrust_estimate.msg

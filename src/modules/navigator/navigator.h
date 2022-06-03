@@ -118,6 +118,14 @@ public:
 	 */
 	void load_fence_from_file(const char *filename);
 
+	/**
+	 * @brief Publish a given specified vehicle command
+	 *
+	 * Sets the target_component of the vehicle command accordingly depending on the
+	 * vehicle command value (e.g. For Camera control, sets target system component id)
+	 *
+	 * @param vcmd Vehicle command to execute
+	 */
 	void publish_vehicle_cmd(vehicle_command_s *vcmd);
 
 	/**
@@ -373,9 +381,7 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	Geofence	_geofence;			/**< class that handles the geofence */
-
 	GeofenceBreachAvoidance _gf_breach_avoidance;
-
 	hrt_abstime _last_geofence_check = 0;
 
 	bool		_geofence_violation_warning_sent{false};	/**< prevents spaming to mavlink */
@@ -430,6 +436,7 @@ private:
 	void publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t result);
 
 	bool geofence_allows_position(const vehicle_global_position_s &pos);
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_LOITER_RAD>)   _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
 		(ParamFloat<px4::params::NAV_ACC_RAD>)      _param_nav_acc_rad,		/**< acceptance for takeoff */
@@ -442,14 +449,13 @@ private:
 		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
 		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
 
-		// non-navigator parameters
-		// Mission (MIS_*)
+		// non-navigator parameters: Mission (MIS_*)
 		(ParamFloat<px4::params::MIS_LTRMIN_ALT>)  _param_mis_ltrmin_alt,
 		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt,
 		(ParamBool<px4::params::MIS_TAKEOFF_REQ>)  _param_mis_takeoff_req,
 		(ParamFloat<px4::params::MIS_YAW_TMT>)     _param_mis_yaw_tmt,
 		(ParamFloat<px4::params::MIS_YAW_ERR>)     _param_mis_yaw_err,
+		(ParamFloat<px4::params::MIS_PD_TO>)       _param_mis_payload_delivery_timeout,
 		(ParamFloat<px4::params::LNDMC_ALT_MAX>)   _param_lndmc_alt_max
-
 	)
 };

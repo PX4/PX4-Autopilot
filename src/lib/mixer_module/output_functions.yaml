@@ -34,6 +34,8 @@ functions:
     Gimbal_Pitch: 421
     Gimbal_Yaw: 422
 
+    Gripper: 430
+
     # Add your own here:
     #MyCustomFunction: 10000
 
