@@ -194,11 +194,11 @@ private:
 		SWITCH_OFF = 1,
 		SWITCH_ON = 2,
 	}; /**< enum for the states for the low speed mode*/
-	enum low_speed_switch_postion{
+	enum low_speed_switch_postion {
 		UNKNOWN = 0,
 		ENGAGED = 1,
 		DISENGAGED = 2,
-	};
+	}; /**< enum for the low speed switch position*/
 
 	uint8_t _current_state{IDLE};
 
