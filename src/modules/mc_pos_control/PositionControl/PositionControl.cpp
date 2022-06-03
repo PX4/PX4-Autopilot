@@ -252,28 +252,33 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 
 void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint, bool landed)
 {
-	// ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
-
 
 	manual_control_setpoint_s manual_control_setpoint;
 	_manual_control_setpoint_sub.copy(&manual_control_setpoint);
 
-	if (landed) {
+	if (manual_control_setpoint.aux2 > 0.3f) {
+		ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
 		_roll_angle = 0.f;
 		_pitch_angle = 0.f;
 
 	} else {
-		_roll_angle += _dt * manual_control_setpoint.aux1 * 2.f * M_PI_F / 2.f;
-		// _pitch_angle += _dt * powf(manual_control_setpoint.aux1, 2.f) * 2.f * M_PI_F / 2.f; // TODO: aux2
+
+		if (landed) {
+			_roll_angle = 0.f;
+			_pitch_angle = 0.f;
+
+		} else {
+			_roll_angle += _dt * manual_control_setpoint.aux1 * 2.f * M_PI_F / 2.f;
+			// _pitch_angle += _dt * powf(manual_control_setpoint.aux1, 2.f) * 2.f * M_PI_F / 2.f; // TODO: aux2
+		}
+
+		Quatf q_sp = Eulerf(_roll_angle, _pitch_angle, _yaw_sp);
+		q_sp.copyTo(attitude_setpoint.q_d);
+		attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
+
+		// Rotate thrust by negative attitude
+		Dcmf att_sp_dcm{q_sp};
+		Vector3f thrust_sp_body = att_sp_dcm.transpose() * _thr_sp;
+		thrust_sp_body.copyTo(attitude_setpoint.thrust_body);
 	}
-
-	Quatf q_sp = Eulerf(_roll_angle, _pitch_angle, _yaw_sp);
-	q_sp.copyTo(attitude_setpoint.q_d);
-	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
-
-	// Rotate thrust by negative attitude
-	Dcmf att_sp_dcm{q_sp};
-	Vector3f thrust_sp_body = att_sp_dcm.transpose() * _thr_sp;
-	thrust_sp_body.copyTo(attitude_setpoint.thrust_body);
-
 }
