@@ -88,7 +88,7 @@ void MulticopterPositionControl::lowspeedmode__state_update()
 	switch (_current_state) {
 	case IDLE:
 
-		if (_param_mpc_lowvel_state.get() == true) {
+		if (_param_mpc_lowvel_state.get()) {
 			num_changed += _param_mpc_xy_vel_all.commit_no_notification(_param_mpc_vel_all_old.get());
 			num_changed += _param_mpc_vel_manual.commit_no_notification(_param_mpc_manual_old.get());
 			num_changed += _param_mpc_xy_cruise.commit_no_notification(_param_mpc_cruise_old.get());
@@ -134,7 +134,7 @@ void MulticopterPositionControl::lowspeedmode__state_update()
 		break;
 
 	case SWITCH_ON:
-		if ( fabs(_param_mpc_xy_vel_all.get() - _param_mpc_xy_vel_slo.get()) > EPSILON) {
+		if (fabs(_param_mpc_xy_vel_all.get() - _param_mpc_xy_vel_slo.get()) > EPSILON) {
 			num_changed += _param_mpc_xy_vel_all.commit_no_notification(_param_mpc_xy_vel_slo.get());
 		}
 
