@@ -216,8 +216,8 @@ Mission::on_active()
 {
 	check_mission_valid(false);
 
-	/* check if anything has changed */
-	bool mission_sub_updated = _mission_sub.updated();
+	/* Check if stored mission plan has changed */
+	const bool mission_sub_updated = _mission_sub.updated();
 
 	if (mission_sub_updated) {
 		_navigator->reset_triplets();
@@ -245,7 +245,7 @@ Mission::on_active()
 	}
 
 	/* lets check if we reached the current mission item */
-	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached()) {
+	if (_mission_type != MISSION_TYPE_NONE && is_mission_item_reached_or_completed()) {
 		/* If we just completed a takeoff which was inserted before the right waypoint,
 		   there is no need to report that we reached it because we didn't. */
 		if (_work_item_type != WORK_ITEM_TYPE_TAKEOFF) {
@@ -668,7 +668,6 @@ Mission::set_mission_items()
 		_mission_type = MISSION_TYPE_MISSION;
 
 	} else {
-		/* no mission available or mission finished, switch to loiter */
 		if (_mission_type != MISSION_TYPE_NONE) {
 
 			if (_navigator->get_land_detected()->landed) {
@@ -1114,9 +1113,6 @@ Mission::set_mission_items()
 	}
 
 	/*********************************** set setpoints and check next *********************************************/
-
-	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
-
 	// The logic in this section establishes the tracking between the current waypoint
 	// which we are approaching and the next waypoint, which will tell us in which direction
 	// we will change our trajectory right after reaching it.
@@ -1125,8 +1121,9 @@ Mission::set_mission_items()
 	// we are searching around the current mission item in the list to find the closest
 	// gate and the closest waypoint. We then store them separately.
 
-	// Check if the mission item is a gate
-	// along the current trajectory
+	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+
+	// Check if the mission item is a gate along the current trajectory
 	if (item_contains_gate(_mission_item)) {
 
 		// The mission item is a gate, let's check if the next item in the list provides
@@ -1179,10 +1176,8 @@ Mission::set_mission_items()
 		set_current_mission_item();
 	}
 
-	// If the mission item under evaluation contains a gate,
-	// then we need to check if we have a next position item so
-	// the controller can fly the correct line between the
-	// current and next setpoint
+	// If the mission item under evaluation contains a gate, we need to check if we have a next position item so
+	// the controller can fly the correct line between the current and next setpoint
 	if (item_contains_gate(_mission_item)) {
 		if (has_after_next_position_item) {
 			/* got next mission item, update setpoint triplet */
@@ -1194,9 +1189,13 @@ Mission::set_mission_items()
 		}
 
 	} else {
-		/* allow the vehicle to decelerate before reaching a wp with a hold time */
+		// Allow a rotary wing vehicle to decelerate before reaching a wp with a hold time or a timeout
+		// This is done by setting the position triplet's next position's valid flag to false,
+		// which makes the FlightTask disregard the next position
+		// TODO: Setting the next waypoint's validity flag to handle braking / correct waypoint behavior
+		// seems hacky, handle this more properly.
 		const bool brake_for_hold = _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
-					    && get_time_inside(_mission_item) > FLT_EPSILON;
+					    && (get_time_inside(_mission_item) > FLT_EPSILON || item_has_timeout(_mission_item));
 
 		if (_mission_item.autocontinue && !brake_for_hold) {
 			/* try to process next mission item */
