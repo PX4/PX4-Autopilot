@@ -75,7 +75,6 @@ private:
 	static inline events::px4::enums::arming_state_t getArmStateEvent(uint8_t arming_state);
 
 	uint8_t _arm_state{vehicle_status_s::ARMING_STATE_INIT};
-	hrt_abstime _last_preflight_check = 0; ///< initialize so it gets checked immediately
 
 	// This array defines the arming state transitions. The rows are the new state, and the columns
 	// are the current state. Using new state and current state you can index into the array which
