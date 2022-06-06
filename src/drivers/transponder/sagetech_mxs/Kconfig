@@ -1,0 +1,5 @@
+menuconfig DRIVERS_TRANSPONDER_SAGETECH_MXS
+	bool "sagetech_mxs"
+	default n
+	---help---
+		Enable support for my_work_item
