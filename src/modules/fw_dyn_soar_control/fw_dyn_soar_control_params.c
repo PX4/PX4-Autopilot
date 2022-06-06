@@ -467,7 +467,7 @@ PARAM_DEFINE_FLOAT(K_ACT_PITCH, 0.03f);
 PARAM_DEFINE_FLOAT(K_ACT_YAW, 0.02f);
 
 /**
- * roll gain of K_ACT (actuator deflection gain)
+ * roll gain of K_ACT_DAMPING (actuator damping gain)
  * 
  * @unit 
  * @min 0
@@ -479,7 +479,7 @@ PARAM_DEFINE_FLOAT(K_ACT_YAW, 0.02f);
 PARAM_DEFINE_FLOAT(K_DAMPING_ROLL, 0.02f);
 
 /**
- * pitch gain of K_ACT (actuator deflection gain)
+ * pitch gain of K_ACT_DAMPING (actuator damping gain)
  * 
  * @unit 
  * @min 0
@@ -491,7 +491,7 @@ PARAM_DEFINE_FLOAT(K_DAMPING_ROLL, 0.02f);
 PARAM_DEFINE_FLOAT(K_DAMPING_PITCH, 0.01f);
 
 /**
- * yaw gain of K_ACT (actuator deflection gain)
+ * yaw gain of K_ACT_DAMPING (actuator damping gain)
  * 
  * @unit 
  * @min 0
@@ -541,3 +541,20 @@ PARAM_DEFINE_FLOAT(ORIGIN_LON, 8.54554f);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(ORIGIN_ALT, 488.0f);
+
+
+// ======================================================
+// ==============  loiter circle number =================
+// ======================================================
+
+/**
+ * integer in {0,1,2,3} defining the loiter trajectory
+ * 
+ * @unit 
+ * @min 0
+ * @max 3
+ * @decimal 1
+ * @increment 1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_INT32(LOITER, 0);

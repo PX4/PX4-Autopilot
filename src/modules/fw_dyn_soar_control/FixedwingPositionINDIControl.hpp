@@ -63,6 +63,7 @@
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/soaring_controller_heartbeat.h>
+#include <uORB/topics/soaring_controller_position_setpoint.h>
 #include <uORB/topics/soaring_controller_status.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/wind.h>
@@ -128,6 +129,7 @@ private:
 	uORB::Publication<vehicle_angular_acceleration_setpoint_s>		_angular_accel_sp_pub{ORB_ID(vehicle_angular_acceleration_setpoint)};
 	uORB::PublicationMulti<rate_ctrl_status_s>						_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
 	uORB::Publication<soaring_controller_heartbeat_s>				_soaring_controller_heartbeat_pub{ORB_ID(soaring_controller_status)};
+	uORB::Publication<soaring_controller_position_setpoint_s>		_soaring_controller_position_setpoint_pub{ORB_ID(soaring_controller_position_setpoint)};
 	uORB::Publication<offboard_control_mode_s>						_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 
     // Message structs
@@ -147,6 +149,7 @@ private:
 	vehicle_status_s		    _vehicle_status {};		///< vehicle status
 	soaring_controller_status_s	_soaring_controller_status {};	///< soaring controller status
 	soaring_controller_heartbeat_s	_soaring_controller_heartbeat{};	///< soaring controller hrt
+	soaring_controller_position_setpoint_s	_soaring_controller_position_setpoint{};	///< soaring controller pos setpoint
 
 	// parameter struct
 	DEFINE_PARAMETERS(
@@ -196,7 +199,9 @@ private:
 		// location params
 		(ParamFloat<px4::params::ORIGIN_LAT>) _param_origin_lat,
 		(ParamFloat<px4::params::ORIGIN_LON>) _param_origin_lon,
-		(ParamFloat<px4::params::ORIGIN_ALT>) _param_origin_alt
+		(ParamFloat<px4::params::ORIGIN_ALT>) _param_origin_alt,
+		// loiter params
+		(ParamInt<px4::params::LOITER>) _param_loiter
 
 	)
 
@@ -326,6 +331,8 @@ private:
 	float _origin_N;
 	float _origin_E;
 	float _origin_D;
+	// loiter circle
+	int _loiter;
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.

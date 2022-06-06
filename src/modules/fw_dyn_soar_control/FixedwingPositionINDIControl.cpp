@@ -77,9 +77,6 @@ FixedwingPositionINDIControl::init()
 		return false;
 	}
     _read_trajectory_coeffs_csv("trajectory0.csv");
-    _read_trajectory_coeffs_csv("trajectory1.csv");
-    _read_trajectory_coeffs_csv("trajectory2.csv");
-    //_read_trajectory_coeffs_csv("trajectory3.csv");
 
     // initialize transformations
     _R_ned_to_enu *= 0.f;
@@ -153,6 +150,9 @@ FixedwingPositionINDIControl::parameters_update()
     if (map_projection_project(&_global_local_proj_ref, _origin_lat, _origin_lon, &_origin_E, &_origin_N)) {
         // TODO: do stuff
     }
+
+    _loiter = _param_loiter.get();
+    _select_trajectory(0.0f);
 
 
 	// sanity check parameters
@@ -339,7 +339,19 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
 void
 FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
 {
-    
+    // select loiter trajectory for loiter test
+    if (_loiter==0) {
+        _read_trajectory_coeffs_csv("trajectory0.csv");
+    }
+    else if (_loiter==1)  {
+        _read_trajectory_coeffs_csv("trajectory1.csv");
+    }
+    else if (_loiter==2)  {
+        _read_trajectory_coeffs_csv("trajectory2.csv");
+    }
+    else{
+        _read_trajectory_coeffs_csv("trajectory3.csv");
+    }
 }
 
 void
@@ -526,7 +538,7 @@ FixedwingPositionINDIControl::Run()
         float t_ref = _get_closest_t(_pos);
         // downscale velocity to match current one, 
         // terminal time is determined such that current velocity is met
-        Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.f);
+        Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.0f);
         float T = sqrtf((v_ref_*v_ref_)/(_vel*_vel+0.001f));
         //PX4_INFO("local velocity:\t%.4f\t%.4f\t%.4f", (double)v_ref_(0),(double)v_ref_(1),(double)v_ref_(2));
         //PX4_INFO("T= \t%.1f", (double)T);
@@ -563,6 +575,17 @@ FixedwingPositionINDIControl::Run()
 
         // Publish actuator controls only once in OFFBOARD
 		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
+
+            // ====================================
+            // publish high level control variables
+            // ====================================
+            _soaring_controller_position_setpoint.timestamp = hrt_absolute_time();
+            for (int i=0; i<3; i++){
+                _soaring_controller_position_setpoint.pos[i] = pos_ref(i);
+                _soaring_controller_position_setpoint.vel[i] = vel_ref(i);
+                _soaring_controller_position_setpoint.acc[i] = acc_ref(i);
+            }
+            _soaring_controller_position_setpoint_pub.publish(_soaring_controller_position_setpoint);
 
             // =====================
             // publish control input
@@ -1046,6 +1069,10 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     deflection(0) = (moment_command(0) + k_d_roll*q*omega_filtered(0))/(k_ail*q);
     deflection(1) = (moment_command(1) + k_d_pitch*q*omega_filtered(1))/(k_ele*q);
     deflection(2) = (moment_command(2) + k_d_yaw*q*omega_filtered(2))/(k_rud*q);
+
+    // TODO: tune feedback turn coordination
+    float turn_coordination = 0.f*vel_body(1)/powf(vel_body(0),2);
+    deflection(2) += turn_coordination;
 
     return deflection;
 }

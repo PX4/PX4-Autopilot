@@ -141,6 +141,7 @@ set(msg_files
 	sensor_selection.msg
 	sensors_status_imu.msg
 	soaring_controller_heartbeat.msg
+	soaring_controller_position_setpoint.msg
 	soaring_controller_status.msg
 	system_power.msg
 	takeoff_status.msg
