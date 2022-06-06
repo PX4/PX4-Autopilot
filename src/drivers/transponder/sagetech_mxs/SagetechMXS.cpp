@@ -94,8 +94,13 @@ void SagetechMXS::Run()
 	struct termios uart_config;
 	int termios_state = -1;
 	tcgetattr(_fd, &uart_config);
+	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
+	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
+	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
 	uart_config.c_oflag &= ~ONLCR;
-	uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+	// uart_config.c_oflag &= ~ONLCR;
+	// uart_config.c_cflag &= ~(CSTOPB | PARENB);
 	unsigned baud = B230400;
 	if (cfsetispeed(&uart_config, baud) < 0 || cfsetospeed(&uart_config, baud) < 0) {
 		PX4_ERR("ERR SET BAUD %s: %d\n", _port, termios_state);
@@ -404,6 +409,7 @@ int SagetechMXS::msg_write(const uint8_t *data, const uint16_t len) const
 {
 	int ret = 0;
 	if (_fd >= 0) {
+		tcflush(_fd, TCIFLUSH);
 		ret = write(_fd, data, len);
 		// PX4_INFO("WRITING DATA OF LEN %d OUT", len);
 	}
@@ -412,6 +418,7 @@ int SagetechMXS::msg_write(const uint8_t *data, const uint16_t len) const
 		PX4_INFO("write fail. Expected %d Got %d", len, ret);
 		return ret;
 	}
+	PX4_INFO("Wrote out data");
 	return PX4_OK;
 }
 
@@ -501,13 +508,143 @@ void SagetechMXS::send_operating_msg()
 	msg_write(txComBuffer, SG_MSG_LEN_OPMSG);
 }
 
+#define SG_PAYLOAD_LEN_GPS  SG_MSG_LEN_GPS - 5  /// the payload length.
+
+#define PBASE                    4   /// the payload offset.
+#define OFFSET_LONGITUDE         0   /// the longitude offset in the payload.
+#define OFFSET_LATITUDE         11   /// the latitude offset in the payload.
+#define OFFSET_SPEED            21   /// the ground speed offset in the payload.
+#define OFFSET_TRACK            27   /// the ground track offset in the payload.
+#define OFFSET_STATUS           35   /// the hemisphere/data status offset in the payload.
+#define OFFSET_TIME             36   /// the time of fix offset in the payload.
+#define OFFSET_HEIGHT           46   /// the GNSS height offset in the payload.
+#define OFFSET_HPL              50   /// the horizontal protection limit offset in the payload.
+#define OFFSET_HFOM             54   /// the horizontal figure of merit offset in the payload.
+#define OFFSET_VFOM             58   /// the vertical figure of merit offset in the payload.
+#define OFFSET_NACV             62   /// the navigation accuracy for velocity offset in the payload.
+
+#define LEN_LNG                 11   /// bytes in the longitude field
+#define LEN_LAT                 10   /// bytes in the latitude field
+#define LEN_SPD                  6   /// bytes in the speed over ground field
+#define LEN_TRK                  8   /// bytes in the ground track field
+#define LEN_TIME                10   /// bytes in the time of fix field
+
+static void checkGPSInputs(sg_gps_t *gps)
+{
+	// Validate longitude
+	for (int i = 0; i < LEN_LNG; ++i) {
+		if (i == 5) {
+			if (!(gps->longitude[i] == 0x2E)){
+				PX4_ERR("A period is expected to separate minutes from fractions of minutes.");
+			}
+		} else {
+			if (!(0x30 <= gps->longitude[i] && gps->longitude[i] <= 0x39)) {
+				PX4_ERR("Longitude contains an invalid character");
+			}
+		}
+	}
+
+	// Validate latitude
+	for (int i = 0; i < LEN_LAT; ++i) {
+		if (i == 4) {
+			if (!(gps->latitude[i] == 0x2E)) {
+				PX4_ERR("A period is expected to separate minutes from fractions of minutes.");
+			}
+		} else {
+			if(!(0x30 <= gps->latitude[i] && gps->latitude[i] <= 0x39)) {
+				PX4_ERR("Latitude contains an invalid character");
+			}
+		}
+	}
+
+	// Validate speed over ground
+	bool spdDecimal = false;
+	(void) spdDecimal;
+	for (int i = 0; i < LEN_SPD; ++i) {
+		if (gps->grdSpeed[i] == 0x2E) {
+			if (!(spdDecimal == false)) {
+				PX4_ERR("Only one period should be used in speed over ground.");
+			}
+			spdDecimal = true;
+		} else {
+			if (!(0x30 <= gps->grdSpeed[i] && gps->grdSpeed[i] <= 0x39)) {
+				PX4_ERR("Ground speed contains an invalid character");
+			}
+		}
+	}
+
+	if (!(spdDecimal == true)) {
+		PX4_ERR("Use a period in ground speed to signify the start of fractional knots.");
+	}
+
+	// Validate ground track
+	for (int i = 0; i < LEN_TRK; ++i) {
+		if (i == 3) {
+			if (!(gps->grdTrack[i] == 0x2E)) {
+				PX4_ERR("A period is expected to signify the start of fractional degrees.");
+			}
+		} else {
+			if(!(0x30 <= gps->grdTrack[i] && gps->grdTrack[i] <= 0x39)) {
+				PX4_ERR("Ground track contains an invalid character");
+			}
+		}
+	}
+
+	// Validate time of fix
+	bool tofSpaces = false;
+	for (int i = 0; i < LEN_TIME; ++i) {
+		if (i == 6) {
+			if(!(gps->timeOfFix[i] == 0x2E)) {
+				PX4_ERR("A period is expected to signify the start of fractional seconds.");
+			}
+		} else if (i == 0 && gps->timeOfFix[i] == 0x20) {
+			tofSpaces = true;
+		} else {
+			if (tofSpaces) {
+				if(!(gps->timeOfFix[i] == 0x20)) {
+					PX4_ERR("All characters must be filled with spaces.");
+				}
+			} else {
+				if(!(0x30 <= gps->timeOfFix[i] && gps->timeOfFix[i] <= 0x39)) {
+					PX4_ERR("Time of Fix contains an invalid character");
+				}
+			}
+		}
+	}
+
+	// Validate height
+	if(!((float)-1200.0 <= gps->height && gps->height <= (float)160000.0)) {
+		PX4_ERR("GPS height is not within the troposphere");
+	}
+
+	// Validate hpl
+	if(!(0 <= gps->hpl)) {
+		PX4_ERR("HPL cannot be negative");
+	}
+
+	// Validate hfom
+	if(!(0 <= gps->hfom)) {
+		PX4_ERR("HFOM cannot be negative");
+	}
+
+	// Validate vfom
+	if(!(0 <= gps->vfom)) {
+		PX4_ERR("VFOM cannot be negative");
+	}
+
+	// Validate status
+	if(!(nacvUnknown <= gps->nacv && gps->nacv <= nacv0dot3)) {
+		PX4_ERR("NACv is not an enumerated value");
+	}
+}
+
 void SagetechMXS::send_gps_msg()
 {
 	sg_gps_t gps {};
 
 	gps.hpl = SAGETECH_HPL_UNKNOWN;                                                     // HPL over 37,040m means unknown
-	gps.hfom = _gps.eph;
-	gps.vfom = _gps.epv;
+	gps.hfom = _gps.eph >= 0 ? _gps.eph : 0;
+	gps.vfom = _gps.epv >= 0 ? _gps.epv : 0;
 	gps.nacv = sg_nacv_t::nacvUnknown;
 	if (_gps.s_variance_m_s >= (float)10.0 || _gps.s_variance_m_s < 0) {
 		gps.nacv = sg_nacv_t::nacvUnknown;
@@ -526,8 +663,8 @@ void SagetechMXS::send_gps_msg()
 	}
 
 	// Get Vehicle Longitude and Latitude and Convert to string
-	const int32_t longitude = _gps.lon;
-	const int32_t latitude =  _gps.lat;
+	const int32_t longitude = _gps.lon * 1E-7;
+	const int32_t latitude =  _gps.lat * 1E-7;
 	const double lon_deg = longitude * (longitude < 0 ? -1 : 1);
 	const double lon_minutes = (lon_deg - int(lon_deg)) * 60;
 	snprintf((char*)&gps.longitude, 12, "%03u%02u.%05u", (unsigned)lon_deg, (unsigned)lon_minutes, unsigned((lon_minutes - (int)lon_minutes) * 1.0E5));
@@ -552,14 +689,18 @@ void SagetechMXS::send_gps_msg()
 	const time_t time_sec = _gps.time_utc_usec * 1E-6;
 	struct tm* tm = gmtime(&time_sec);
 	snprintf((char*)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min, tm->tm_sec + (_gps.time_utc_usec % 1000000) * 1.0e-6);
+	// PX4_INFO("ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
 
 	gps.height = _gps.alt * 1E-3;
 
+	checkGPSInputs(&gps);
 	last.msg.type = SG_MSG_TYPE_HOST_GPS;
 	uint8_t txComBuffer[SG_MSG_LEN_GPS] {};
 	sgEncodeGPS(txComBuffer, &gps, ++last.msg.id);
 	msg_write(txComBuffer, SG_MSG_LEN_GPS);
 }
+
+
 
 void SagetechMXS::send_targetreq_msg()
 {
@@ -669,12 +810,9 @@ bool SagetechMXS::parse_byte(const uint8_t data)
 			break;
 		case ParseState::WaitingFor_PayloadLen:
 			_message_in.checksum += data;
-			// if (data > 48) {
-			// 	PX4_INFO("Invalid payload length. Waiting for new start byte.");
-			// 	_message_in.state = ParseState::WaitingFor_Start;
-			// }
 			_message_in.packet.payload_length = data;
-			// FIXME: Adding a check for length here to avoid missing messages because of wrong payload length
+			// PX4_INFO("Packet Payload Length: %d", _message_in.packet.payload_length);
+			// maybe useful to add a length check here. Very few errors are due to length though...
 			_message_in.index = 0;
 			_message_in.state = (data == 0) ? ParseState::WaitingFor_Checksum : ParseState::WaitingFor_PayloadContents;
 			break;
@@ -686,6 +824,7 @@ bool SagetechMXS::parse_byte(const uint8_t data)
 			}
 			break;
 		case ParseState::WaitingFor_Checksum:
+			// PX4_INFO("Payload Bytes Got: %d", _message_in.index);
 			_message_in.state = ParseState::WaitingFor_Start;
 			if (_message_in.checksum == data) {
 				// append the checksum to the payload and zero out the payload index
