@@ -77,6 +77,9 @@ FixedwingPositionINDIControl::init()
 		return false;
 	}
     _read_trajectory_coeffs_csv("trajectory0.csv");
+    _read_trajectory_coeffs_csv("trajectory1.csv");
+    _read_trajectory_coeffs_csv("trajectory2.csv");
+    //_read_trajectory_coeffs_csv("trajectory3.csv");
 
     // initialize transformations
     _R_ned_to_enu *= 0.f;
@@ -646,7 +649,7 @@ FixedwingPositionINDIControl::_get_basis_funs(float t)
 {
     Vector<float, _num_basis_funs> vec;
     vec(0) = 1.0f;
-    float sigma = 1.0f/float(_num_basis_funs);
+    float sigma = 1.0f/_num_basis_funs;
     for(uint i=1; i<_num_basis_funs; i++){
         float fun1 = sinf(M_PI_F*t);
         float fun2 = exp(-powf((t-float(i)/float(_num_basis_funs)),2)/sigma);
@@ -1138,7 +1141,7 @@ int FixedwingPositionINDIControl::print_usage(const char *reason)
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 ### Description
-fw_dyn_soar_control is the fixed wing controller for soaring tasks.
+fw_dyn_soar_control is the fixed wing controller for dynamic soaring tasks.
 
 )DESCR_STR");
 
