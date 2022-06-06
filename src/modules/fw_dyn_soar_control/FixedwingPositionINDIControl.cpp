@@ -334,13 +334,20 @@ FixedwingPositionINDIControl::_set_wind_estimate(Vector3f wind)
 }
 
 void
+FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
+{
+    
+}
+
+void
 FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(string filename)
 {
     // File pointer
     std::ifstream fin;
   
-    // Open an existing file
+    // Open an existing file for testing
     fin.open("/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/"+filename, ios::in);
+    // Open an existing file from SD card
     //fin.open("/fs/microsd/trajectories/"+filename);
   
     // Read the Data from the file
@@ -821,6 +828,49 @@ FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
     //PX4_INFO("closest point: \t%.2f\t%.2f\t%.2f", (double)_get_position_ref(t)(0), (double)_get_position_ref(t)(1), (double)_get_position_ref(t)(2));
     //PX4_INFO("closest t: %.2f", (double)t);
     //PX4_INFO("closest distance:%.2f", (double)sqrtf(min_dist));
+
+
+    /*
+    const uint n_multistage = 10;
+    Vector<float, n_multistage+1> distances_multistage;
+    float t_multistage = 0;
+    float t_ref_next = 0;   // stage 2
+    // compute all distances
+    for(uint stage=1; stage<=2; stage++){
+        for(uint i=0; i<=n_multistage; i++){
+            t_ref = t_ref_next + float(i-n_multistage/2.f)/(powf(float(n_multistage),stage));
+            // check that t_ref is always in [0,1]:
+            if(t_ref<0.f){
+                t_ref += 1.f;
+            }
+            else if (t_ref>1.f){
+                t_ref -= 1.f;
+            }
+            Vector3f pos_ref = _get_position_ref(t_ref);
+            //PX4_INFO("trajectory time + point: \t%.2f\t%.2f\t%.2f\t%.2f", (double)t_ref, (double)pos_ref(0), (double)pos_ref(1), (double)pos_ref(2));
+            distances_multistage(i) = (pos_ref - pos)*(pos_ref - pos);
+        }
+        // get index of smallest distance
+        float min_dist_multistage = distances_multistage(0);
+        for(uint i=1; i<=n_multistage; i++){
+            if(distances_multistage(i)<min_dist_multistage){
+                min_dist_multistage = distances_multistage(i);
+                t_multistage = t_ref_next + float(i-n_multistage/2.f)/(powf(float(n_multistage),stage));
+                // check that t_ref is always in [0,1]:
+                if(t_multistage<0.f){
+                    t_multistage += 1.f;
+                }
+                else if (t_multistage>1.f){
+                    t_multistage -= 1.f;
+                }
+            }
+        }
+        // next starting point is previous closest point
+        t_ref_next = t_multistage;
+    }
+    PX4_INFO("different t: \t%.3f\t%.3f\t%.3f", (double)t, (double)t_multistage, (double)(t-t_multistage));
+    */
+
     return t;
 }
 
@@ -931,7 +981,21 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     omega_filtered(1) = _lp_filter_omega[1].apply(_omega(1));
     omega_filtered(2) = _lp_filter_omega[2].apply(_omega(2));
     Vector3f rot_acc_command = _K_q*w_err + _K_w*(omega_ref-omega_filtered) + alpha_ref;
-    //rot_acc_command = Vector3f{-1.0f,0.f,0.f};
+
+    // ==========================================
+    // input meant for tuning the INDI controller
+    // ==========================================
+    /*
+    if(hrt_absolute_time()%2000000>1000000){
+        rot_acc_command = Vector3f{2.0f,1.f,0.f};
+        //rot_acc_command = Vector3f{0.f,0.f,0.5f};
+    }
+    else{
+        rot_acc_command = Vector3f{-2.0f,-1.f,0.f};
+        //rot_acc_command = Vector3f{0.f,0.f,-0.5f};
+    }
+    */
+
     //PX4_INFO("force command: \t%.2f\t%.2f\t%.2f", (double)f_command(0), (double)f_command(1), (double)f_command(2));
     //PX4_INFO("FRD body frame rotation vec: \t%.2f\t%.2f\t%.2f", (double)w_err(0), (double)w_err(1), (double)w_err(2));
 
@@ -942,10 +1006,12 @@ Vector3f
 FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
 {
     // compute the expected actuator efficiencies
-    float c_ail = _param_k_act_roll.get();
-    float c_ele = _param_k_act_pitch.get();
-    float c_rud = _param_k_act_yaw.get();
-    float c_damping = 0.0f;
+    float k_ail = _param_k_act_roll.get();
+    float k_ele = _param_k_act_pitch.get();
+    float k_rud = _param_k_act_yaw.get();
+    float k_d_roll = _param_k_damping_roll.get();
+    float k_d_pitch = _param_k_damping_pitch.get();
+    float k_d_yaw = _param_k_damping_yaw.get();
     // compute velocity in body frame
     Dcmf R_ib(_att);
     Vector3f vel_body = R_ib.transpose()*_vel;
@@ -953,11 +1019,16 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     //Vector3f vel_body_2 = Dcmf(Quatf(_attitude.q)).transpose()*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
     //PX4_INFO("ENU body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body_2(0), (double)vel_body_2(1), (double)vel_body_2(2));
     //PX4_INFO("FRD body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body(0), (double)vel_body(1), (double)vel_body(2));
+    // filter omega at the same rate as the moments
+    Vector3f omega_filtered;
+    omega_filtered(0) = _lp_filter_omega_2[0].apply(_omega(0));
+    omega_filtered(1) = _lp_filter_omega_2[1].apply(_omega(1));
+    omega_filtered(2) = _lp_filter_omega_2[2].apply(_omega(2));
     // compute moments
     Vector3f moment;
-    moment(0) = c_ail*q*_actuators.control[actuator_controls_s::INDEX_ROLL] - c_damping*q*_omega(0);
-    moment(1) = c_ele*q*_actuators.control[actuator_controls_s::INDEX_PITCH];
-    moment(2) = c_rud*q*_actuators.control[actuator_controls_s::INDEX_YAW];
+    moment(0) = k_ail*q*_actuators.control[actuator_controls_s::INDEX_ROLL] - k_d_roll*q*omega_filtered(0);
+    moment(1) = k_ele*q*_actuators.control[actuator_controls_s::INDEX_PITCH] - k_d_pitch*q*omega_filtered(1);
+    moment(2) = k_rud*q*_actuators.control[actuator_controls_s::INDEX_YAW] - k_d_yaw*q*omega_filtered(2);
     // introduce artificial time delay that is also present in acceleration
     Vector3f moment_filtered;
     moment_filtered(0) = _lp_filter_delay[0].apply(moment(0));
@@ -969,10 +1040,9 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     Vector3f moment_command = _inertia * (ctrl - alpha_filtered) + moment_filtered;
     // perform dynamic inversion
     Vector3f deflection;
-    deflection(0) = (moment_command(0)+c_damping*q*_omega(0))/(c_ail*q);
-    deflection(1) = moment_command(1)/(c_ele*q);
-    deflection(2) = moment_command(2)/(c_rud*q);
-    //PX4_INFO("filtered alpha: \t%.2f\t%.2f", (double)(_l_list(0))(1), (double)(_l_lpf_list(0))(1));
+    deflection(0) = (moment_command(0) + k_d_roll*q*omega_filtered(0))/(k_ail*q);
+    deflection(1) = (moment_command(1) + k_d_pitch*q*omega_filtered(1))/(k_ele*q);
+    deflection(2) = (moment_command(2) + k_d_yaw*q*omega_filtered(2))/(k_rud*q);
 
     return deflection;
 }

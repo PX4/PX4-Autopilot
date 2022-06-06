@@ -186,9 +186,13 @@ private:
 		(ParamFloat<px4::params::K_W_ROLL>) _param_k_w_roll,
 		(ParamFloat<px4::params::K_W_PITCH>) _param_k_w_pitch,
 		(ParamFloat<px4::params::K_W_YAW>) _param_k_w_yaw,
+		// low-level controller params
 		(ParamFloat<px4::params::K_ACT_ROLL>) _param_k_act_roll,
 		(ParamFloat<px4::params::K_ACT_PITCH>) _param_k_act_pitch,
 		(ParamFloat<px4::params::K_ACT_YAW>) _param_k_act_yaw,
+		(ParamFloat<px4::params::K_DAMPING_ROLL>) _param_k_damping_roll,
+		(ParamFloat<px4::params::K_DAMPING_PITCH>) _param_k_damping_pitch,
+		(ParamFloat<px4::params::K_DAMPING_YAW>) _param_k_damping_yaw,
 		// location params
 		(ParamFloat<px4::params::ORIGIN_LAT>) _param_origin_lat,
 		(ParamFloat<px4::params::ORIGIN_LON>) _param_origin_lon,
@@ -233,7 +237,7 @@ private:
 	const static size_t _num_basis_funs = 16;			// number of basis functions used for the trajectory approximation
 
 	// controller methods
-	
+	void _select_trajectory(float initial_energy);				// select the correct trajectory based on available energy
 	void _read_trajectory_coeffs_csv(std::string filename);				// read in the correct coefficients of the appropriate trajectory
 	void _set_wind_estimate(Vector3f wind);
 	float _get_closest_t(Vector3f pos);				// get the normalized time, at which the reference path is closest to the current position
@@ -287,13 +291,14 @@ private:
 	// controller frequency
 	const float _sample_frequency = 250.f;
 	// Low-Pass filters stage 1
-	const float _cutoff_frequency_1 = 2.f;
+	const float _cutoff_frequency_1 = 5.f;
 	math::LowPassFilter2p _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// linear acceleration
-	math::LowPassFilter2p _lp_filter_force[3] {{_sample_frequency, 2}, {_sample_frequency, 2}, {_sample_frequency, 2}};	// force command
-	math::LowPassFilter2p _lp_filter_omega[3] {{_sample_frequency, 2}, {_sample_frequency, 2}, {_sample_frequency, 2}};	// body rates
+	math::LowPassFilter2p _lp_filter_force[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// force command
+	math::LowPassFilter2p _lp_filter_omega[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// body rates
 	// Low-Pass filters stage 2
-	const float _cutoff_frequency_2 = 15.f;
+	const float _cutoff_frequency_2 = 5.f; // MUST MATCH PARAM "IMU_DGYRO_CUTOFF"
 	math::LowPassFilter2p _lp_filter_delay[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// filter to match acceleration processing delay
+	math::LowPassFilter2p _lp_filter_omega_2[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// body rates
 	uint _counter = 0;
 	hrt_abstime _last_time{0};
 
@@ -333,6 +338,12 @@ private:
 	bool _slip_valid{false};				///< flag if a valid AoA estimate exists
 	hrt_abstime _slip_last_valid{0};			///< last time Aoa was received. Used to detect timeouts.
 	float _slip{0.0f};
+
+	// vectors defining the initial velocities, wind speed and shear strength
+	Vector<float, 10> _initial_velocities_trajectory = {};	
+	Vector<float, 10> _wind_speed_trajectory = {};	
+	Vector<float, 10> _shear_param_trajectory = {};	
+
 
 	// helper variables
 	Dcmf _R_ned_to_enu;	// rotation matrix from NED to ENU frame

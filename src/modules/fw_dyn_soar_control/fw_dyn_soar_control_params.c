@@ -426,6 +426,10 @@ PARAM_DEFINE_FLOAT(K_W_PITCH, 5.0f);
  */
 PARAM_DEFINE_FLOAT(K_W_YAW, 1.0f);
 
+// =============================
+// low level INDI control params
+// =============================
+
 /**
  * roll gain of K_ACT (actuator deflection gain)
  * 
@@ -436,7 +440,7 @@ PARAM_DEFINE_FLOAT(K_W_YAW, 1.0f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_ROLL, 0.3f);
+PARAM_DEFINE_FLOAT(K_ACT_ROLL, 0.1f);
 
 /**
  * pitch gain of K_ACT (actuator deflection gain)
@@ -448,7 +452,7 @@ PARAM_DEFINE_FLOAT(K_ACT_ROLL, 0.3f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_PITCH, 0.2f);
+PARAM_DEFINE_FLOAT(K_ACT_PITCH, 0.03f);
 
 /**
  * yaw gain of K_ACT (actuator deflection gain)
@@ -460,7 +464,43 @@ PARAM_DEFINE_FLOAT(K_ACT_PITCH, 0.2f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_YAW, 1.f);
+PARAM_DEFINE_FLOAT(K_ACT_YAW, 0.02f);
+
+/**
+ * roll gain of K_ACT (actuator deflection gain)
+ * 
+ * @unit 
+ * @min 0
+ * @max 100
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(K_DAMPING_ROLL, 0.02f);
+
+/**
+ * pitch gain of K_ACT (actuator deflection gain)
+ * 
+ * @unit 
+ * @min 0
+ * @max 100
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(K_DAMPING_PITCH, 0.01f);
+
+/**
+ * yaw gain of K_ACT (actuator deflection gain)
+ * 
+ * @unit 
+ * @min 0
+ * @max 100
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(K_DAMPING_YAW, 0.0f);
 
 // ===================================================
 // ==============  trajectory center =================

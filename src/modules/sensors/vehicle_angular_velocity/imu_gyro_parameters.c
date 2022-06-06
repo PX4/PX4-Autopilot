@@ -121,7 +121,7 @@ PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 400);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 15.0f);
+PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 5.0f);
 
 /**
 * IMU gyro dynamic notch filtering
