@@ -151,6 +151,15 @@ PARAM_DEFINE_INT32(UCAN1_UORB_GPS, -1);
  */
 PARAM_DEFINE_INT32(UCAN1_UORB_GPS_P, -1);
 
+/**
+ * pca_pwm uORB over Cyphal subscription port ID.
+ *
+ * @min -1
+ * @max 6143
+ * @group Cyphal
+ */
+PARAM_DEFINE_INT32(UCAN1_PCA_PWM_S, -1);
+
 // Publication Port IDs
 
 /**

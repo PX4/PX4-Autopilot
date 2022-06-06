@@ -116,7 +116,7 @@ public:
 private:
 
 
-	const UavcanParamBinder _uavcan_params[13] {
+	const UavcanParamBinder _uavcan_params[14] {
 		{"uavcan.pub.esc.0.id",                "UCAN1_ESC_PUB",		    px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.servo.0.id",              "UCAN1_SERVO_PUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.gps.0.id",                "UCAN1_GPS_PUB",		    px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
@@ -130,6 +130,7 @@ private:
 		{"uavcan.sub.legacy_bms.0.id",         "UCAN1_LG_BMS_SUB",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.sub.uorb.sensor_gps.0.id",    "UCAN1_UORB_GPS",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.uorb.sensor_gps.0.id",    "UCAN1_UORB_GPS_P",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.uorb.pca_pwm.0.id",       "UCAN1_PCA_PWM_S",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_SUB"}, //FIXME instancing
 		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_SUB"},
 	};

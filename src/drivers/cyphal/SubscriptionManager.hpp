@@ -61,13 +61,18 @@
 #define CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER 0
 #endif
 
+#ifndef CONFIG_CYPHAL_UORB_PCA_PWM_SUBSCRIBER
+#define CONFIG_CYPHAL_UORB_PCA_PWM_SUBSCRIBER 0
+#endif
+
 /* Preprocessor calculation of Subscribers count */
 
 #define UAVCAN_SUB_COUNT CONFIG_CYPHAL_ESC_SUBSCRIBER + \
 	CONFIG_CYPHAL_GNSS_SUBSCRIBER_0 + \
 	CONFIG_CYPHAL_GNSS_SUBSCRIBER_1 + \
 	CONFIG_CYPHAL_BMS_SUBSCRIBER + \
-	CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
+	CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER + \
+	CONFIG_CYPHAL_UORB_PCA_PWM_SUBSCRIBER
 
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
@@ -177,6 +182,16 @@ private:
 				return new uORB_over_UAVCAN_Subscriber<sensor_gps_s>(handle, pmgr, ORB_ID(sensor_gps));
 			},
 			"uorb.sensor_gps",
+			0
+		},
+#endif
+#if CONFIG_CYPHAL_UORB_PCA_PWM_SUBSCRIBER
+		{
+			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
+			{
+				return new uORB_over_UAVCAN_Subscriber<pca_pwm_s>(handle, pmgr, ORB_ID(pca_pwm));
+			},
+			"uorb.pca_pwm",
 			0
 		},
 #endif
