@@ -877,6 +877,11 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingEvPosAiding(_ekf.control_status_flags().ev_pos);
 		_preflt_checker.setUsingEvVelAiding(_ekf.control_status_flags().ev_vel);
 
+		_preflt_checker.setUsingBaroHgtAiding(_ekf.control_status_flags().baro_hgt);
+		_preflt_checker.setUsingGpsHgtAiding(_ekf.control_status_flags().gps_hgt);
+		_preflt_checker.setUsingRngHgtAiding(_ekf.control_status_flags().rng_hgt);
+		_preflt_checker.setUsingEvHgtAiding(_ekf.control_status_flags().ev_hgt);
+
 		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
 
 	} else if (_ekf.control_status_flags().in_air != _ekf.control_status_prev_flags().in_air) {
