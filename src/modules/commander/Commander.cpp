@@ -3806,7 +3806,7 @@ void Commander::avoidance_check()
 
 void Commander::battery_status_check()
 {
-	int battery_required_count{0};
+	size_t battery_required_count = 0;
 	bool battery_has_fault = false;
 	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
 	// option is to check if ANY of them have a warning, and specifically find which one has the most
@@ -3831,7 +3831,7 @@ void Commander::battery_status_check()
 
 		if (_arm_state_machine.isArmed()) {
 
-			if ((_last_connected_batteries & (1 << index)) && !battery.connected) {
+			if (_last_connected_batteries[index] && !battery.connected) {
 				mavlink_log_critical(&_mavlink_log_pub, "Battery %d disconnected. Land now! \t", index + 1);
 				events::send<uint8_t>(events::ID("commander_battery_disconnected"), {events::Log::Emergency, events::LogInternal::Warning},
 						      "Battery {1} disconnected. Land now!", index + 1);
@@ -3848,13 +3848,7 @@ void Commander::battery_status_check()
 			}
 		}
 
-		if (battery.connected) {
-			_last_connected_batteries |= 1 << index;
-
-		} else {
-			_last_connected_batteries &= ~(1 << index);
-		}
-
+		_last_connected_batteries.set(index, battery.connected);
 		_last_battery_mode[index] = battery.mode;
 
 		if (battery.connected) {
@@ -3959,7 +3953,7 @@ void Commander::battery_status_check()
 		// All connected batteries are regularly being published
 		(hrt_elapsed_time(&oldest_update) < 5_s)
 		// There is at least one connected battery (in any slot)
-		&& (math::countSetBits(_last_connected_batteries) >= battery_required_count)
+		&& (_last_connected_batteries.count() >= battery_required_count)
 		// No currently-connected batteries have any warning
 		&& (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)
 		// No currently-connected batteries have any fault
