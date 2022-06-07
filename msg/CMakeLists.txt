@@ -50,6 +50,7 @@ set(msg_files
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
+	apa102_control.msg
 	autotune_attitude_control_status.msg
 	battery_status.msg
 	button_event.msg

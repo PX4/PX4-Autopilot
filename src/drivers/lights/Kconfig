@@ -2,6 +2,7 @@ menu "Lights"
     menuconfig COMMON_LIGHT
         bool "Common Light's"
         default n
+        select DRIVERS_LIGHT_APA102
         select DRIVERS_LIGHTS_RGBLED
         select DRIVERS_LIGHTS_RGBLED_NCP5623C
         ---help---
