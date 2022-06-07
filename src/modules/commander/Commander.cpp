@@ -2298,12 +2298,11 @@ Commander::run()
 		}
 
 		/* safety button */
-		bool safety_updated = _safety.safetyButtonHandler();
+		const bool safety_changed = _safety.safetyButtonHandler();
 		_vehicle_status.safety_button_available = _safety.isButtonAvailable();
 		_vehicle_status.safety_off = _safety.isSafetyOff();
 
-		if (safety_updated) {
-
+		if (safety_changed) {
 			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, _safety.isButtonAvailable(), _safety.isSafetyOff(),
 					 _safety.isButtonAvailable(), _vehicle_status);
 
