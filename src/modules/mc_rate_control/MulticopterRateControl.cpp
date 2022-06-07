@@ -202,9 +202,7 @@ MulticopterRateControl::Run()
 				_rates_setpoint(0) = PX4_ISFINITE(vehicle_rates_setpoint.roll)  ? vehicle_rates_setpoint.roll  : rates(0);
 				_rates_setpoint(1) = PX4_ISFINITE(vehicle_rates_setpoint.pitch) ? vehicle_rates_setpoint.pitch : rates(1);
 				_rates_setpoint(2) = PX4_ISFINITE(vehicle_rates_setpoint.yaw)   ? vehicle_rates_setpoint.yaw   : rates(2);
-				_thrust_setpoint(0) = vehicle_rates_setpoint.thrust_body[0];
-				_thrust_setpoint(1) = vehicle_rates_setpoint.thrust_body[1];
-				_thrust_setpoint(2) = vehicle_rates_setpoint.thrust_body[2];
+				_thrust_setpoint = Vector3f(vehicle_rates_setpoint.thrust_body);
 			}
 		}
 
