@@ -122,6 +122,7 @@ void LoggedTopics::add_default_topics()
 	add_topic("vehicle_thrust_setpoint", 20);
 	add_topic("vehicle_torque_setpoint", 20);
 	add_topic("vehicle_actuator_setpoint", 20);
+	add_topic("soaring_controller_position", 50);
 	add_topic("soaring_controller_position_setpoint", 50);
 
 	// multi topics

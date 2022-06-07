@@ -576,8 +576,19 @@ FixedwingPositionINDIControl::Run()
         // Publish actuator controls only once in OFFBOARD
 		if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
 
+            // ========================================
+            // publish controller position in ENU frame
+            // ========================================
+            _soaring_controller_position.timestamp = hrt_absolute_time();
+            for (int i=0; i<3; i++){
+                _soaring_controller_position.pos[i] = _pos(i);
+                _soaring_controller_position.vel[i] = _vel(i);
+                _soaring_controller_position.acc[i] = _acc(i);
+            }
+            _soaring_controller_position_pub.publish(_soaring_controller_position);
+
             // ====================================
-            // publish high level control variables
+            // publish controller position setpoint
             // ====================================
             _soaring_controller_position_setpoint.timestamp = hrt_absolute_time();
             for (int i=0; i<3; i++){
@@ -636,7 +647,7 @@ FixedwingPositionINDIControl::Run()
 
             if (_counter==100) {
                 _counter = 0;
-                PX4_INFO("frequency: \t%.3f", (double)(1000000*100)/(hrt_absolute_time()-_last_time));
+                //PX4_INFO("frequency: \t%.3f", (double)(1000000*100)/(hrt_absolute_time()-_last_time));
                 _last_time = hrt_absolute_time();
             }
             else {
@@ -997,7 +1008,19 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     Dcmf R_ref_true(R_ref.transpose()*R_ib);
     // get required rotation vector (in body frame)
     AxisAnglef q_err(R_ref_true);
-    Vector3f w_err = -q_err.angle()*q_err.axis();
+    Vector3f w_err;
+    if (abs(q_err.angle())<M_PI_F){
+        w_err = -q_err.angle()*q_err.axis();
+    }
+    else{
+        if (q_err.angle()>0.f){
+            w_err = (2*M_PI_F-q_err.angle())*q_err.axis();
+        }
+        else{
+            w_err = (-2*M_PI_F-q_err.angle())*q_err.axis();
+        }
+    }
+    
 
     // =========================================
     // apply PD control law on the body attitude
@@ -1024,6 +1047,9 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
 
     //PX4_INFO("force command: \t%.2f\t%.2f\t%.2f", (double)f_command(0), (double)f_command(1), (double)f_command(2));
     //PX4_INFO("FRD body frame rotation vec: \t%.2f\t%.2f\t%.2f", (double)w_err(0), (double)w_err(1), (double)w_err(2));
+    if (sqrtf(w_err(0)*w_err(0) + w_err(1)*w_err(1) + w_err(2)*w_err(2))>M_PI_F){
+        PX4_ERR("rotation angle larger than pi: \t%.2f", (double)sqrtf(w_err(0)*w_err(0) + w_err(1)*w_err(1) + w_err(2)*w_err(2)));
+    }
 
     return rot_acc_command;
 }

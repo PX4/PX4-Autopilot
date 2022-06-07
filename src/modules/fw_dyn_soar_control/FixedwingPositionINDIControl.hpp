@@ -64,6 +64,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/soaring_controller_heartbeat.h>
 #include <uORB/topics/soaring_controller_position_setpoint.h>
+#include <uORB/topics/soaring_controller_position.h>
 #include <uORB/topics/soaring_controller_status.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/wind.h>
@@ -130,6 +131,7 @@ private:
 	uORB::PublicationMulti<rate_ctrl_status_s>						_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
 	uORB::Publication<soaring_controller_heartbeat_s>				_soaring_controller_heartbeat_pub{ORB_ID(soaring_controller_status)};
 	uORB::Publication<soaring_controller_position_setpoint_s>		_soaring_controller_position_setpoint_pub{ORB_ID(soaring_controller_position_setpoint)};
+	uORB::Publication<soaring_controller_position_s>				_soaring_controller_position_pub{ORB_ID(soaring_controller_position)};
 	uORB::Publication<offboard_control_mode_s>						_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 
     // Message structs
@@ -150,6 +152,7 @@ private:
 	soaring_controller_status_s	_soaring_controller_status {};	///< soaring controller status
 	soaring_controller_heartbeat_s	_soaring_controller_heartbeat{};	///< soaring controller hrt
 	soaring_controller_position_setpoint_s	_soaring_controller_position_setpoint{};	///< soaring controller pos setpoint
+	soaring_controller_position_s	_soaring_controller_position{};	///< soaring controller pos 
 
 	// parameter struct
 	DEFINE_PARAMETERS(
