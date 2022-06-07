@@ -40,12 +40,15 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 #define TOPIC_NAME_SIZE 128
 
 static bool generate_topic_name(char* topic, const char* client_namespace, const char* direction, const char* name) {
+	int ret;
 	if(client_namespace == nullptr) {
-		return snprintf(topic, TOPIC_NAME_SIZE, "rt/fmu/%s/%s",
-						direction, name) > 0;
+		ret = snprintf(topic, TOPIC_NAME_SIZE, "rt/fmu/%s/%s",
+						direction, name);
+		return (ret > 0 && ret < TOPIC_NAME_SIZE);
 	} else {
-		return snprintf(topic, TOPIC_NAME_SIZE, "rt/%s/fmu/%s/%s",
-						client_namespace, direction, name) > 0;
+		ret = snprintf(topic, TOPIC_NAME_SIZE, "rt/%s/fmu/%s/%s",
+						client_namespace, direction, name);
+		return (ret > 0 && ret < TOPIC_NAME_SIZE);
 	}
 }
 
