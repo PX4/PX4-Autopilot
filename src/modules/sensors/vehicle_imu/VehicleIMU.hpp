@@ -109,7 +109,8 @@ private:
 	uORB::Subscription _sensor_accel_sub;
 	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub;
 
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::SubscriptionSelection<&vehicle_control_mode_s::flag_armed>
+	_vehicle_control_mode_armed_sub{ORB_ID(vehicle_control_mode)};
 
 	calibration::Accelerometer _accel_calibration{};
 	calibration::Gyroscope _gyro_calibration{};

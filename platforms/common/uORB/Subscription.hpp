@@ -245,4 +245,71 @@ private:
 	T _data{};
 };
 
+template<auto member>
+class SubscriptionSelection;
+
+template <class T, class R, R T::*member>
+class SubscriptionSelection<member>: public Subscription
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param id The uORB metadata ORB_ID enum for the topic.
+	 * @param instance The instance for multi sub.
+	 */
+	SubscriptionSelection(ORB_ID id, uint8_t instance = 0) :
+		Subscription(id, instance)
+	{
+		_copySelection();
+	}
+
+	/**
+	 * Constructor
+	 *
+	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param instance The instance for multi sub.
+	 */
+	SubscriptionSelection(const orb_metadata *meta, uint8_t instance = 0) :
+		Subscription(meta, instance)
+	{
+		_copySelection();
+	}
+
+	~SubscriptionSelection() = default;
+
+	// no copy, assignment, move, move assignment
+	SubscriptionSelection(const SubscriptionSelection &) = delete;
+	SubscriptionSelection &operator=(const SubscriptionSelection &) = delete;
+	SubscriptionSelection(SubscriptionSelection &&) = delete;
+	SubscriptionSelection &operator=(SubscriptionSelection &&) = delete;
+
+	// update the embedded struct.
+	bool update()
+	{
+		bool updated = Subscription::updated();
+
+		if (updated) {
+			_copySelection();
+		}
+
+		return updated;
+	}
+
+	const R &get() const { return _data; }
+
+private:
+	void _copySelection()
+	{
+		T full_data;
+
+		if (copy(&full_data)) {
+			_data = full_data.*member;
+		}
+	}
+
+	R _data{};
+};
+
+
 } // namespace uORB

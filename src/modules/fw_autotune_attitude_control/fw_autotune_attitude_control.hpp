@@ -114,7 +114,8 @@ private:
 	uORB::Subscription _actuator_controls_status_sub;
 	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionSelection<&vehicle_status_s::arming_state> _vehicle_status_armed_state_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionSelection<&vehicle_status_s::nav_state> _vehicle_status_nav_state_sub{ORB_ID(vehicle_status)};
 
 	uORB::PublicationData<autotune_attitude_control_status_s> _autotune_attitude_control_status_pub{ORB_ID(autotune_attitude_control_status)};
 
@@ -142,8 +143,6 @@ private:
 	uint8_t _max_steps{5};
 	int8_t _signal_sign{0};
 
-	bool _armed{false};
-	uint8_t _nav_state{0};
 	uint8_t _start_flight_mode{0};
 	bool _aux_switch_en{false};
 

@@ -181,13 +181,7 @@ void VehicleIMU::Run()
 	ScheduleDelayed(_backup_schedule_timeout_us);
 
 	// check vehicle status for changes to armed state
-	if (_vehicle_control_mode_sub.updated()) {
-		vehicle_control_mode_s vehicle_control_mode;
-
-		if (_vehicle_control_mode_sub.copy(&vehicle_control_mode)) {
-			_armed = vehicle_control_mode.flag_armed;
-		}
-	}
+	_vehicle_control_mode_armed_sub.update();
 
 	// reset data gap monitor
 	_data_gap = false;
@@ -254,7 +248,7 @@ void VehicleIMU::Run()
 	}
 
 	if (_param_sens_imu_autocal.get() && !parameters_updated) {
-		if ((_armed || !_accel_calibration.calibrated() || !_gyro_calibration.calibrated())
+		if ((_vehicle_control_mode_armed_sub.get() || !_accel_calibration.calibrated() || !_gyro_calibration.calibrated())
 		    && (now_us > _in_flight_calibration_check_timestamp_last + 1_s)) {
 
 			SensorCalibrationUpdate();

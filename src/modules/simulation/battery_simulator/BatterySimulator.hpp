@@ -77,7 +77,7 @@ private:
 	uORB::Publication<battery_status_s> _battery_pub{ORB_ID(battery_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionSelection<&vehicle_status_s::arming_state> _vehicle_status_arming_state_sub{ORB_ID(vehicle_status)};
 
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};
 	uORB::Publication<vehicle_command_ack_s> _command_ack_pub{ORB_ID(vehicle_command_ack)};
@@ -86,7 +86,6 @@ private:
 
 	uint64_t _last_integration_us{0};
 	float _battery_percentage{1.f};
-	bool _armed{false};
 
 	bool _force_empty_battery{false};
 

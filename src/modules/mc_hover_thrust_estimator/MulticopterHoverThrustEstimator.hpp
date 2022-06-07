@@ -102,12 +102,11 @@ private:
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
 
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionSelection<&vehicle_status_s::arming_state> _vehicle_status_arming_state_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
 	hrt_abstime _timestamp_last{0};
 
-	bool _armed{false};
 	bool _landed{false};
 	bool _in_air{false};
 

@@ -151,18 +151,13 @@ void MulticopterHoverThrustEstimator::Run()
 
 	perf_begin(_cycle_perf);
 
-	if (_vehicle_status_sub.updated()) {
-		vehicle_status_s vehicle_status;
-
-		if (_vehicle_status_sub.copy(&vehicle_status)) {
-			_armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
-		}
-	}
+	_vehicle_status_arming_state_sub.update();
 
 	const float dt = (local_pos.timestamp - _timestamp_last) * 1e-6f;
 	_timestamp_last = local_pos.timestamp;
 
-	if (_armed && _in_air && (dt > 0.001f) && (dt < 1.f) && PX4_ISFINITE(local_pos.az)) {
+	if ((_vehicle_status_arming_state_sub.get() == vehicle_status_s::ARMING_STATE_ARMED) && _in_air && (dt > 0.001f)
+	    && (dt < 1.f) && PX4_ISFINITE(local_pos.az)) {
 
 		_hover_thrust_ekf.predict(dt);
 
@@ -198,7 +193,7 @@ void MulticopterHoverThrustEstimator::Run()
 	} else {
 		_valid_hysteresis.set_state_and_update(false, hrt_absolute_time());
 
-		if (!_armed) {
+		if (!(_vehicle_status_arming_state_sub.get() == vehicle_status_s::ARMING_STATE_ARMED)) {
 			reset();
 		}
 
