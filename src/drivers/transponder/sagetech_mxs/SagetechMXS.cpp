@@ -58,7 +58,6 @@ SagetechMXS::~SagetechMXS()
 bool SagetechMXS::init()
 {
 	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
-
 	return PX4_OK;
 }
 
@@ -80,37 +79,7 @@ void SagetechMXS::Run()
 	/*************************
 	 * 20 Hz Timer
 	 * ***********************/
-	if (_fd < 0) {	// Open port if not open
-		_fd = open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
-		if (_fd < 0) {
-			PX4_ERR("Opening port %s failed %i", _port, errno);
-			return;
-		} else {
-			PX4_INFO("Opened port %s", _port);
-		}
-	}
-
-	// UART Configuration
-	struct termios uart_config;
-	int termios_state = -1;
-	tcgetattr(_fd, &uart_config);
-	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
-	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
-	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
-	uart_config.c_oflag &= ~ONLCR;
-
-	// uart_config.c_oflag &= ~ONLCR;
-	// uart_config.c_cflag &= ~(CSTOPB | PARENB);
-	unsigned baud = B230400;
-	if (cfsetispeed(&uart_config, baud) < 0 || cfsetospeed(&uart_config, baud) < 0) {
-		PX4_ERR("ERR SET BAUD %s: %d\n", _port, termios_state);
-		px4_close(_fd);
-		return;
-	}
-
-	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_ERR("baud %d ATTR", termios_state);
-	}
+	open_serial_port();
 
 	// Parse Bytes
 	int bytes_available {};
@@ -119,7 +88,7 @@ void SagetechMXS::Run()
 	// PX4_INFO("Bytes in buffer: %d. Ret code: %d", bytes_available, ret);
 	if (bytes_available > 0) {
 		while (bytes_available > 0) {
-			int16_t data;
+			uint16_t data;
 			ret = read(_fd, &data, 1);
 			// PX4_INFO("GOT BYTE: %02x", (uint8_t)data);
 			parse_byte((uint8_t)data);
@@ -340,40 +309,51 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 	t.timestamp = hrt_absolute_time();
 	t.flags &= ~transponder_report_s::PX4_ADSB_FLAGS_VALID_SQUAWK;
 	t.flags |= transponder_report_s::PX4_ADSB_FLAGS_RETRANSLATE;
-	//Set data from svr message
 
+	//Set data from svr message
 	if (svr.validity.position) {
 		t.lat = svr.lat;
 		t.lon = svr.lon;
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
 	}
 
-	if (svr.type == svrAirborne) {
-		if (svr.validity.geoAlt || svr.validity.baroAlt) {
-			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
-			if (svr.validity.geoAlt) {
-				t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
-				t.altitude = (svr.airborne.geoAlt * SAGETECH_SCALE_FEET_TO_M); //Convert from Feet to Meters
-			}
-			else {
-				t.altitude_type = ADSB_ALTITUDE_TYPE_PRESSURE_QNH;
-				t.altitude = (svr.airborne.baroAlt * SAGETECH_SCALE_FEET_TO_M);	//Convert from Feet to Meters
-			}
-
+	if (svr.validity.geoAlt || svr.validity.baroAlt) {
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+		if (svr.validity.geoAlt) {
+			t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
+			t.altitude = (svr.airborne.geoAlt * SAGETECH_SCALE_FEET_TO_M); //Convert from Feet to Meters
+		} else {
+			t.altitude_type = ADSB_ALTITUDE_TYPE_PRESSURE_QNH;
+			t.altitude = (svr.airborne.baroAlt * SAGETECH_SCALE_FEET_TO_M);	//Convert from Feet to Meters
 		}
+	}
+
+	if (svr.validity.baroVRate || svr.validity.geoVRate) {
+		t.ver_velocity = (svr.airborne.vrate * SAGETECH_SCALE_FT_PER_MIN_TO_M_PER_SEC); //Convert from feet/min to meters/second
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+	}
+
+	if (svr.type == svrSurface) {
+		if (svr.validity.surfSpeed) {
+			t.hor_velocity = svr.surface.speed * SAGETECH_SCALE_KNOTS_TO_M_PER_SEC;
+			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+		}
+		if (svr.validity.surfHeading) {
+			float heading = matrix::wrap_pi(math::radians(svr.surface.heading));
+			t.heading = heading;
+			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
+		}
+	}
+
+	if (svr.type == svrAirborne) {
 		if (svr.validity.airSpeed) {
 			t.hor_velocity = (svr.airborne.speed * SAGETECH_SCALE_KNOTS_TO_M_PER_SEC);	//Convert from knots to meters/second
-			t.heading = svr.airborne.heading;
-			t.flags |= transponder_report_s::transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
+			float heading = matrix::wrap_pi(math::radians(svr.airborne.heading));
+			t.heading = heading;
+			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
+			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 		}
-		if (svr.validity.baroVRate || svr.validity.geoVRate)
-		{
-			t.ver_velocity = (svr.airborne.vrate * SAGETECH_SCALE_FT_PER_MIN_TO_M_PER_SEC); //Convert from feet/min to meters/second
-			if (svr.validity.airSpeed)
-			{
-				t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
-			}
-		}
+
 	}
 
 	handle_vehicle(t);
@@ -408,17 +388,18 @@ void SagetechMXS::handle_msr(sg_msr_t msr)
 int SagetechMXS::msg_write(const uint8_t *data, const uint16_t len) const
 {
 	int ret = 0;
-	if (_fd >= 0) {
+	if (!(_fd < 0)) {
 		tcflush(_fd, TCIFLUSH);
 		ret = write(_fd, data, len);
 		// PX4_INFO("WRITING DATA OF LEN %d OUT", len);
+	} else {
+		return PX4_ERROR;
 	}
 	if (ret != len) {
 		perf_count(_comms_errors);
 		PX4_INFO("write fail. Expected %d Got %d", len, ret);
-		return ret;
+		return PX4_ERROR;
 	}
-	PX4_INFO("Wrote out data");
 	return PX4_OK;
 }
 
@@ -468,8 +449,10 @@ void SagetechMXS::send_flight_id_msg()
 void SagetechMXS::send_operating_msg()
 {
 #ifdef SG_HW_TEST
+	// TODO: Parameterize Squawk
 	mxs_state.op.squawk = convert_base_to_decimal(8, 1200);
-	mxs_state.op.opMode = sg_op_mode_t::modeStby;                                     // MXS needs to start in OFF mode to accept installation message
+	mxs_state.op.opMode = modeStby;
+
 	mxs_state.op.savePowerUp = true;                                                  // Save power-up state in non-volatile
 	mxs_state.op.enableSqt = true;                                                    // Enable extended squitters
 	mxs_state.op.enableXBit = false;                                                  // Enable the x-bit
@@ -490,6 +473,7 @@ void SagetechMXS::send_operating_msg()
 		mxs_state.op.airspdValid = true;
 		mxs_state.op.headingValid = true;
 	} else {
+		PX4_WARN("send_operating_msg: Invalid NED");
 		mxs_state.op.climbValid = false;
 		mxs_state.op.climbRate = -CLIMB_RATE_LIMIT;
 		mxs_state.op.airspdValid = false;
@@ -663,22 +647,22 @@ void SagetechMXS::send_gps_msg()
 	}
 
 	// Get Vehicle Longitude and Latitude and Convert to string
-	const int32_t longitude = _gps.lon * 1E-7;
-	const int32_t latitude =  _gps.lat * 1E-7;
-	const double lon_deg = longitude * (longitude < 0 ? -1 : 1);
+	const int32_t longitude = _gps.lon;
+	const int32_t latitude =  _gps.lat;
+	const double lon_deg = longitude * 1.0E-7 * (longitude < 0 ? -1 : 1);
 	const double lon_minutes = (lon_deg - int(lon_deg)) * 60;
 	snprintf((char*)&gps.longitude, 12, "%03u%02u.%05u", (unsigned)lon_deg, (unsigned)lon_minutes, unsigned((lon_minutes - (int)lon_minutes) * 1.0E5));
 
-	const double lat_deg = latitude * (latitude < 0 ? -1 : 1);
+	const double lat_deg = latitude *  1.0E-7 * (latitude < 0 ? -1 : 1);
 	const double lat_minutes = (lat_deg - int(lat_deg)) * 60;
 	snprintf((char*)&gps.latitude, 11, "%02u%02u.%05u", (unsigned)lat_deg, (unsigned)lat_minutes, unsigned((lat_minutes - (int)lat_minutes) * 1.0E5));
 
 	const float speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
 	snprintf((char*)&gps.grdSpeed, 7, "%03u.%02u", (unsigned)speed_knots, unsigned((speed_knots - (int)speed_knots) * (float)1.0E2));
 
-	// TODO: Convert from radians to degrees
 	const float heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
-;
+	// const float heading = math::degrees(matrix::wrap_2pi(_gps.heading));
+
 	snprintf((char*)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * (float)1.0E4));
 
 	gps.latNorth = (latitude >= 0 ? true: false);
@@ -689,9 +673,9 @@ void SagetechMXS::send_gps_msg()
 	const time_t time_sec = _gps.time_utc_usec * 1E-6;
 	struct tm* tm = gmtime(&time_sec);
 	snprintf((char*)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min, tm->tm_sec + (_gps.time_utc_usec % 1000000) * 1.0e-6);
-	// PX4_INFO("ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
+	PX4_INFO("send_gps_msg: ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
 
-	gps.height = _gps.alt * 1E-3;
+	gps.height = _gps.alt_ellipsoid * 1E-3;
 
 	checkGPSInputs(&gps);
 	last.msg.type = SG_MSG_TYPE_HOST_GPS;
@@ -732,7 +716,7 @@ void SagetechMXS::handle_packet(const Packet &msg)
 {
 	switch(msg.type) {
 		case MsgType::ACK:
-			PX4_INFO("GOT ACK PACKET");
+			// PX4_INFO("GOT ACK PACKET");
 			if(sgDecodeAck((uint8_t*) &msg, &mxs_state.ack)) {
 				handle_ack(mxs_state.ack);
 			}
@@ -740,7 +724,7 @@ void SagetechMXS::handle_packet(const Packet &msg)
 		case MsgType::Installation_Response:
 			// TODO: set up installation data here
 		case MsgType::FlightID_Response: {
-			PX4_INFO("GOT FID RESP PACKET");
+			// PX4_INFO("GOT FID RESP PACKET");
 			sg_flightid_t fid{};
 			if (sgDecodeFlightId((uint8_t*) &msg, &fid)) {
 				// TODO: Do something with this?
@@ -756,7 +740,7 @@ void SagetechMXS::handle_packet(const Packet &msg)
 			break;
 		}
 		case MsgType::ADSB_ModeStatus_Report: {
-			PX4_INFO("GOT MSR PACKET");
+			// PX4_INFO("GOT MSR PACKET");
 			sg_msr_t msr{};
 			if (sgDecodeMSR((uint8_t*) &msg, &msr)) {
 				handle_msr(msr);
@@ -764,7 +748,7 @@ void SagetechMXS::handle_packet(const Packet &msg)
 			break;
 		}
 		case MsgType::FlightID:
-			PX4_INFO("GOT FID PACKET");
+			// PX4_INFO("GOT FID PACKET");
 			break;
 		case MsgType::Installation:
 		case MsgType::Operating:
@@ -861,4 +845,51 @@ uint32_t SagetechMXS::convert_base_to_decimal(const uint8_t baseIn, uint32_t inp
 	if (inputNumber == 0) break;
     }
     return outputNumber;
+}
+
+int SagetechMXS::open_serial_port() {
+
+	if (_fd < 0) {	// Open port if not open
+		_fd = open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+		if (_fd < 0) {
+			PX4_ERR("Opening port %s failed %i", _port, errno);
+			return PX4_ERROR;
+		} else {
+			PX4_INFO("Opened port %s", _port);
+		}
+	} else {
+		return PX4_OK;
+	}
+
+	// UART Configuration
+	struct termios uart_config;
+	int termios_state = -1;
+
+	if(tcgetattr(_fd, &uart_config)) {
+		PX4_ERR("Unable to get UART Configuration");
+		close(_fd);
+		_fd = -1;
+		return PX4_ERROR;
+	}
+
+	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
+	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
+	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+	uart_config.c_oflag &= ~ONLCR;
+
+	unsigned baud = B57600;
+	if ((cfsetispeed(&uart_config, baud) < 0) || (cfsetospeed(&uart_config, baud) < 0)) {
+		PX4_ERR("ERR SET BAUD %s: %d\n", _port, termios_state);
+		px4_close(_fd);
+		return PX4_ERROR;
+	}
+
+	if (tcsetattr(_fd, TCSANOW, &uart_config) < 0) {
+		PX4_ERR("baud %d ATTR", termios_state);
+		return PX4_ERROR;
+	}
+
+	tcflush(_fd, TCIOFLUSH);
+	return PX4_OK;
+
 }

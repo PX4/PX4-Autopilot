@@ -209,6 +209,10 @@ private:
 		} msg;
 	} last;
 
+	struct {
+		bool ack = false;
+	} initialized;
+
 	bool _armed{false};
 
 	// External Vehicle List
@@ -240,4 +244,5 @@ private:
 	void send_gps_msg();
 	void send_targetreq_msg();
 	uint32_t convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber);
+	int open_serial_port();
 };
