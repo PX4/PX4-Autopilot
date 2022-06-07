@@ -2307,11 +2307,13 @@ Commander::run()
 					 _safety.isButtonAvailable(), _vehicle_status);
 
 			// Notify the user if the status of the safety button changes
-			if (_safety.isSafetyOff()) {
-				set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
+			if (!_safety.isSafetyDisabled()) {
+				if (_safety.isSafetyOff()) {
+					set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
 
-			} else {
-				tune_neutral(true);
+				} else {
+					tune_neutral(true);
+				}
 			}
 
 			_status_changed = true;
