@@ -473,7 +473,7 @@ void SagetechMXS::send_operating_msg()
 		mxs_state.op.airspdValid = true;
 		mxs_state.op.headingValid = true;
 	} else {
-		PX4_WARN("send_operating_msg: Invalid NED");
+		// PX4_WARN("send_operating_msg: Invalid NED");
 		mxs_state.op.climbValid = false;
 		mxs_state.op.climbRate = -CLIMB_RATE_LIMIT;
 		mxs_state.op.airspdValid = false;
@@ -673,7 +673,7 @@ void SagetechMXS::send_gps_msg()
 	const time_t time_sec = _gps.time_utc_usec * 1E-6;
 	struct tm* tm = gmtime(&time_sec);
 	snprintf((char*)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min, tm->tm_sec + (_gps.time_utc_usec % 1000000) * 1.0e-6);
-	PX4_INFO("send_gps_msg: ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
+	// PX4_INFO("send_gps_msg: ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
 
 	gps.height = _gps.alt_ellipsoid * 1E-3;
 
