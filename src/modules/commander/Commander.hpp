@@ -402,7 +402,7 @@ private:
 	vehicle_status_s        _vehicle_status{};
 	vehicle_status_flags_s  _vehicle_status_flags{};
 
-	Safety _safety{};
+	Safety _safety;
 
 	WorkerThread _worker_thread;
 
