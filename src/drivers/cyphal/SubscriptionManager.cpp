@@ -71,6 +71,8 @@ void SubscriptionManager::subscribe()
 
 void SubscriptionManager::updateDynamicSubscriptions()
 {
+	PX4_INFO("Cyphal sub count: %d", UAVCAN_SUB_COUNT);
+
 	for (auto &sub : _uavcan_subs) {
 
 		bool found_subscriber = false;

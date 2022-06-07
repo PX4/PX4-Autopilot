@@ -41,6 +41,9 @@ if DRIVERS_CYPHAL
         help
             When the board uses the UAVCANv0 bootloader functionality you need a AppImageDescriptor defined
 
+    config CYPHAL_CANFD_SUPPORT
+        bool "Enable CANFD Support in Cyphal"
+        default n
 
     menu "Publisher support"
 
@@ -87,6 +90,11 @@ if DRIVERS_CYPHAL
         config CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER
             bool "uORB sensor_gps Subscriber"
             default n
+
+        config CYPHAL_UORB_PCA_PWM_SUBSCRIBER
+            bool "uORB pca_pwm Subscriber"
+            default n
+
     endmenu
 
     menu "Advertised Services"
