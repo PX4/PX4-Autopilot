@@ -94,6 +94,12 @@ namespace sagetech_mxs
 		return 0;
 	}
 
+	// static int flight_id(const char* fid)
+	// {
+	// 	g_dev->handle_fid(fid);
+	// 	return 0;
+	// }
+
 	static int usage()
 	{
 		PRINT_MODULE_DESCRIPTION(
@@ -108,6 +114,8 @@ namespace sagetech_mxs
 	$ sagetech_mxs start -d /dev/ttyS1
 	Stop driver
 	$ sagetech_mxs stop
+	Set Flight ID (8 char max)
+	$ sagetech_mxs flight_id MXS12345
 	)DESCR_STR");
 
 		PRINT_MODULE_USAGE_NAME("sagetech_mxs", "driver");
@@ -115,6 +123,7 @@ namespace sagetech_mxs
 		PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 		PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 		PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+		// PRINT_MODULE_USAGE_COMMAND_DESCR("flight_id", "Set Flight ID (8 char max)");
 		return PX4_OK;
 	}
 
@@ -152,6 +161,14 @@ extern "C" __EXPORT int sagetech_mxs_main(int argc, char *argv[])
 	} else if (!strcmp(argv[myoptind], "status")) {
 		return sagetech_mxs::status();
 	}
+	// else if (!strcmp(argv[myoptind], "flight_id")) {
+	// 	if (argv[myoptind+1] == nullptr){
+	// 		sagetech_mxs::usage();
+	// 		return -1;
+	// 	} else {
+	// 		return sagetech_mxs::flight_id(argv[myoptind+1]);
+	// 	}
+	// }
 
 	sagetech_mxs::usage();
 	return -1;

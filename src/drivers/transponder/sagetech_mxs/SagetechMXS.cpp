@@ -945,16 +945,21 @@ void SagetechMXS::handle_params()
 	ModuleParams::updateParams();
 }
 
+
+// void SagetechMXS::handle_fid(const char* fid)
+// {
+// 	snprintf(mxs_state.fid.flightId, sizeof(mxs_state.fid.flightID), "%-8s", fid);
+// }
+
 // int SagetechMXS::custom_command(int argc, char *argv[])
 // {
 // 	const char *verb = argv[0];
 
 // 	if (!strcmp(verb, "flight_id")) {
-// 		uORB::Publication<vehicle_command_s> vehicle_command_pub{ORB_ID(vehicle_command)};
-// 		vehicle_command_s vcmd{};
-// 		vcmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
-// 		vcmd.timestamp = hrt_absolute_time();
-// 		vehicle_command_pub.publish(vcmd);
+// 		const char *fid = argv[1];
+// 		if (strlen(fid)) {
+// 			strncpy(mxs_state.fid.flightId, fid, sizeof(mxs_state.fid.flightId));
+// 		}
 // 		return 0;
 // 	}
 

@@ -256,6 +256,7 @@ private:
 	void send_targetreq_msg();
 	uint32_t convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber);
 	int open_serial_port();
-	void handle_params();
 	sg_emitter_t convert_emitter_type_to_sg (int emitType);
+	void handle_fid(const char* fid);
+	void handle_params();
 };
