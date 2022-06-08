@@ -75,7 +75,7 @@ px4_add_module(
 		sg_sdk/sgUtil.h
 		SagetechMXS.cpp
 		SagetechMXS.hpp
-		SagetechMXSMain.cpp
+		# SagetechMXSMain.cpp
 	DEPENDS
 		px4_work_queue
 	MODULE_CONFIG

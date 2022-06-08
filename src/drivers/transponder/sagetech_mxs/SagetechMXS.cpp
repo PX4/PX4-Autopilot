@@ -36,6 +36,111 @@
 #define ADSB_PUB_TEST 0
 #define SG_HW_TEST
 
+/***************************************
+ * Workqueue Functions
+ * *************************************/
+
+extern "C" __EXPORT int sagetech_mxs_main(int argc, char *argv[])
+{
+	return SagetechMXS::main(argc, argv);
+}
+
+int SagetechMXS::custom_command(int argc, char *argv[])
+{
+	// const char *verb = argv[0];
+
+	// if (!strcmp(verb, "flight_id")) {
+	// 	const char *fid = argv[1];
+	// 	if (strlen(fid)) {
+	// 		strncpy(mxs_state.fid.flightId, fid, sizeof(mxs_state.fid.flightId));
+	// 	}
+	// 	return 0;
+	// }
+
+	if (!is_running()) {
+		int ret = SagetechMXS::task_spawn(argc, argv);
+		if (ret) {
+			return ret;
+		}
+	}
+
+	return print_usage("Unknown Command");
+}
+
+int SagetechMXS::print_usage(const char *reason)
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+	### Description
+
+	THIS IS A DESCRIPTION.
+
+	### Examples
+
+	Attempt to start driver on a specified serial device.
+	$ sagetech_mxs start -d /dev/ttyS1
+	Stop driver
+	$ sagetech_mxs stop
+	Set Flight ID (8 char max)
+	$ sagetech_mxs flight_id MXS12345
+	)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("sagetech_mxs", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("transponder");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	// PRINT_MODULE_USAGE_COMMAND_DESCR("flight_id", "Set Flight ID (8 char max)");
+	return PX4_OK;
+}
+
+
+int SagetechMXS::print_status()
+{
+	perf_print_counter(_loop_elapsed_perf);
+	perf_print_counter(_loop_interval_perf);
+	return 0;
+}
+
+int SagetechMXS::task_spawn(int argc, char *argv[])
+{
+	const char *device_path = nullptr;
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device_path = myoptarg;
+			break;
+		default:
+			PX4_WARN("unrecognized flag");
+			return PX4_ERROR;
+			break;
+		}
+	}
+
+	SagetechMXS *instance = new SagetechMXS(device_path);
+
+	if (instance == nullptr) {
+		PX4_ERR("Allocation Failed.");
+	}
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+	return PX4_ERROR;
+}
 
 SagetechMXS::SagetechMXS(const char *port) :
 	ModuleParams(nullptr),
@@ -58,8 +163,13 @@ SagetechMXS::~SagetechMXS()
 bool SagetechMXS::init()
 {
 	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
-	return PX4_OK;
+	return true;
 }
+
+
+/******************************
+ * Main Run Thread
+ * ****************************/
 
 void SagetechMXS::Run()
 {
@@ -163,18 +273,6 @@ void SagetechMXS::Run()
 	perf_end(_loop_elapsed_perf);
 }
 
-int SagetechMXS::print_status()
-{
-	perf_print_counter(_loop_elapsed_perf);
-	perf_print_counter(_loop_interval_perf);
-	return 0;
-}
-
-void SagetechMXS::print_info()
-{
-	perf_print_counter(_loop_elapsed_perf);
-	perf_print_counter(_loop_interval_perf);
-}
 
 /***************************
  * ADSB Vehicle List Functions
@@ -505,135 +603,6 @@ void SagetechMXS::send_operating_msg()
 	msg_write(txComBuffer, SG_MSG_LEN_OPMSG);
 }
 
-// #define SG_PAYLOAD_LEN_GPS  SG_MSG_LEN_GPS - 5  /// the payload length.
-
-// #define PBASE                    4   /// the payload offset.
-// #define OFFSET_LONGITUDE         0   /// the longitude offset in the payload.
-// #define OFFSET_LATITUDE         11   /// the latitude offset in the payload.
-// #define OFFSET_SPEED            21   /// the ground speed offset in the payload.
-// #define OFFSET_TRACK            27   /// the ground track offset in the payload.
-// #define OFFSET_STATUS           35   /// the hemisphere/data status offset in the payload.
-// #define OFFSET_TIME             36   /// the time of fix offset in the payload.
-// #define OFFSET_HEIGHT           46   /// the GNSS height offset in the payload.
-// #define OFFSET_HPL              50   /// the horizontal protection limit offset in the payload.
-// #define OFFSET_HFOM             54   /// the horizontal figure of merit offset in the payload.
-// #define OFFSET_VFOM             58   /// the vertical figure of merit offset in the payload.
-// #define OFFSET_NACV             62   /// the navigation accuracy for velocity offset in the payload.
-
-// #define LEN_LNG                 11   /// bytes in the longitude field
-// #define LEN_LAT                 10   /// bytes in the latitude field
-// #define LEN_SPD                  6   /// bytes in the speed over ground field
-// #define LEN_TRK                  8   /// bytes in the ground track field
-// #define LEN_TIME                10   /// bytes in the time of fix field
-
-// static void checkGPSInputs(sg_gps_t *gps)
-// {
-// 	// Validate longitude
-// 	for (int i = 0; i < LEN_LNG; ++i) {
-// 		if (i == 5) {
-// 			if (!(gps->longitude[i] == 0x2E)){
-// 				PX4_ERR("A period is expected to separate minutes from fractions of minutes.");
-// 			}
-// 		} else {
-// 			if (!(0x30 <= gps->longitude[i] && gps->longitude[i] <= 0x39)) {
-// 				PX4_ERR("Longitude contains an invalid character");
-// 			}
-// 		}
-// 	}
-
-// 	// Validate latitude
-// 	for (int i = 0; i < LEN_LAT; ++i) {
-// 		if (i == 4) {
-// 			if (!(gps->latitude[i] == 0x2E)) {
-// 				PX4_ERR("A period is expected to separate minutes from fractions of minutes.");
-// 			}
-// 		} else {
-// 			if(!(0x30 <= gps->latitude[i] && gps->latitude[i] <= 0x39)) {
-// 				PX4_ERR("Latitude contains an invalid character");
-// 			}
-// 		}
-// 	}
-
-// 	// Validate speed over ground
-// 	bool spdDecimal = false;
-// 	(void) spdDecimal;
-// 	for (int i = 0; i < LEN_SPD; ++i) {
-// 		if (gps->grdSpeed[i] == 0x2E) {
-// 			if (!(spdDecimal == false)) {
-// 				PX4_ERR("Only one period should be used in speed over ground.");
-// 			}
-// 			spdDecimal = true;
-// 		} else {
-// 			if (!(0x30 <= gps->grdSpeed[i] && gps->grdSpeed[i] <= 0x39)) {
-// 				PX4_ERR("Ground speed contains an invalid character");
-// 			}
-// 		}
-// 	}
-
-// 	if (!(spdDecimal == true)) {
-// 		PX4_ERR("Use a period in ground speed to signify the start of fractional knots.");
-// 	}
-
-// 	// Validate ground track
-// 	for (int i = 0; i < LEN_TRK; ++i) {
-// 		if (i == 3) {
-// 			if (!(gps->grdTrack[i] == 0x2E)) {
-// 				PX4_ERR("A period is expected to signify the start of fractional degrees.");
-// 			}
-// 		} else {
-// 			if(!(0x30 <= gps->grdTrack[i] && gps->grdTrack[i] <= 0x39)) {
-// 				PX4_ERR("Ground track contains an invalid character");
-// 			}
-// 		}
-// 	}
-
-// 	// Validate time of fix
-// 	bool tofSpaces = false;
-// 	for (int i = 0; i < LEN_TIME; ++i) {
-// 		if (i == 6) {
-// 			if(!(gps->timeOfFix[i] == 0x2E)) {
-// 				PX4_ERR("A period is expected to signify the start of fractional seconds.");
-// 			}
-// 		} else if (i == 0 && gps->timeOfFix[i] == 0x20) {
-// 			tofSpaces = true;
-// 		} else {
-// 			if (tofSpaces) {
-// 				if(!(gps->timeOfFix[i] == 0x20)) {
-// 					PX4_ERR("All characters must be filled with spaces.");
-// 				}
-// 			} else {
-// 				if(!(0x30 <= gps->timeOfFix[i] && gps->timeOfFix[i] <= 0x39)) {
-// 					PX4_ERR("Time of Fix contains an invalid character");
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	// Validate height
-// 	if(!((float)-1200.0 <= gps->height && gps->height <= (float)160000.0)) {
-// 		PX4_ERR("GPS height is not within the troposphere");
-// 	}
-
-// 	// Validate hpl
-// 	if(!(0 <= gps->hpl)) {
-// 		PX4_ERR("HPL cannot be negative");
-// 	}
-
-// 	// Validate hfom
-// 	if(!(0 <= gps->hfom)) {
-// 		PX4_ERR("HFOM cannot be negative");
-// 	}
-
-// 	// Validate vfom
-// 	if(!(0 <= gps->vfom)) {
-// 		PX4_ERR("VFOM cannot be negative");
-// 	}
-
-// 	// Validate status
-// 	if(!(nacvUnknown <= gps->nacv && gps->nacv <= nacv0dot3)) {
-// 		PX4_ERR("NACv is not an enumerated value");
-// 	}
-// }
 
 void SagetechMXS::send_gps_msg()
 {
@@ -934,40 +903,133 @@ sg_emitter_t SagetechMXS::convert_emitter_type_to_sg (int emitType) {
 	}
 }
 
-/*****************************************
- * Parameter and Custom Command Handling
- * ***************************************/
 
-void SagetechMXS::handle_params()
-{
-	parameter_update_s param_update;
-	_parameter_update_sub.copy(&param_update);
-	ModuleParams::updateParams();
-}
+// #define SG_PAYLOAD_LEN_GPS  SG_MSG_LEN_GPS - 5  /// the payload length.
 
+// #define PBASE                    4   /// the payload offset.
+// #define OFFSET_LONGITUDE         0   /// the longitude offset in the payload.
+// #define OFFSET_LATITUDE         11   /// the latitude offset in the payload.
+// #define OFFSET_SPEED            21   /// the ground speed offset in the payload.
+// #define OFFSET_TRACK            27   /// the ground track offset in the payload.
+// #define OFFSET_STATUS           35   /// the hemisphere/data status offset in the payload.
+// #define OFFSET_TIME             36   /// the time of fix offset in the payload.
+// #define OFFSET_HEIGHT           46   /// the GNSS height offset in the payload.
+// #define OFFSET_HPL              50   /// the horizontal protection limit offset in the payload.
+// #define OFFSET_HFOM             54   /// the horizontal figure of merit offset in the payload.
+// #define OFFSET_VFOM             58   /// the vertical figure of merit offset in the payload.
+// #define OFFSET_NACV             62   /// the navigation accuracy for velocity offset in the payload.
 
-// void SagetechMXS::handle_fid(const char* fid)
+// #define LEN_LNG                 11   /// bytes in the longitude field
+// #define LEN_LAT                 10   /// bytes in the latitude field
+// #define LEN_SPD                  6   /// bytes in the speed over ground field
+// #define LEN_TRK                  8   /// bytes in the ground track field
+// #define LEN_TIME                10   /// bytes in the time of fix field
+
+// static void checkGPSInputs(sg_gps_t *gps)
 // {
-// 	snprintf(mxs_state.fid.flightId, sizeof(mxs_state.fid.flightID), "%-8s", fid);
-// }
-
-// int SagetechMXS::custom_command(int argc, char *argv[])
-// {
-// 	const char *verb = argv[0];
-
-// 	if (!strcmp(verb, "flight_id")) {
-// 		const char *fid = argv[1];
-// 		if (strlen(fid)) {
-// 			strncpy(mxs_state.fid.flightId, fid, sizeof(mxs_state.fid.flightId));
+// 	// Validate longitude
+// 	for (int i = 0; i < LEN_LNG; ++i) {
+// 		if (i == 5) {
+// 			if (!(gps->longitude[i] == 0x2E)){
+// 				PX4_ERR("A period is expected to separate minutes from fractions of minutes.");
+// 			}
+// 		} else {
+// 			if (!(0x30 <= gps->longitude[i] && gps->longitude[i] <= 0x39)) {
+// 				PX4_ERR("Longitude contains an invalid character");
+// 			}
 // 		}
-// 		return 0;
 // 	}
 
-// 	if (!is_running()) {
-// 		int ret = RCInput::task_spawn(argc, argv);
-
-// 		if (ret) {
-// 			return ret;
+// 	// Validate latitude
+// 	for (int i = 0; i < LEN_LAT; ++i) {
+// 		if (i == 4) {
+// 			if (!(gps->latitude[i] == 0x2E)) {
+// 				PX4_ERR("A period is expected to separate minutes from fractions of minutes.");
+// 			}
+// 		} else {
+// 			if(!(0x30 <= gps->latitude[i] && gps->latitude[i] <= 0x39)) {
+// 				PX4_ERR("Latitude contains an invalid character");
+// 			}
 // 		}
+// 	}
+
+// 	// Validate speed over ground
+// 	bool spdDecimal = false;
+// 	(void) spdDecimal;
+// 	for (int i = 0; i < LEN_SPD; ++i) {
+// 		if (gps->grdSpeed[i] == 0x2E) {
+// 			if (!(spdDecimal == false)) {
+// 				PX4_ERR("Only one period should be used in speed over ground.");
+// 			}
+// 			spdDecimal = true;
+// 		} else {
+// 			if (!(0x30 <= gps->grdSpeed[i] && gps->grdSpeed[i] <= 0x39)) {
+// 				PX4_ERR("Ground speed contains an invalid character");
+// 			}
+// 		}
+// 	}
+
+// 	if (!(spdDecimal == true)) {
+// 		PX4_ERR("Use a period in ground speed to signify the start of fractional knots.");
+// 	}
+
+// 	// Validate ground track
+// 	for (int i = 0; i < LEN_TRK; ++i) {
+// 		if (i == 3) {
+// 			if (!(gps->grdTrack[i] == 0x2E)) {
+// 				PX4_ERR("A period is expected to signify the start of fractional degrees.");
+// 			}
+// 		} else {
+// 			if(!(0x30 <= gps->grdTrack[i] && gps->grdTrack[i] <= 0x39)) {
+// 				PX4_ERR("Ground track contains an invalid character");
+// 			}
+// 		}
+// 	}
+
+// 	// Validate time of fix
+// 	bool tofSpaces = false;
+// 	for (int i = 0; i < LEN_TIME; ++i) {
+// 		if (i == 6) {
+// 			if(!(gps->timeOfFix[i] == 0x2E)) {
+// 				PX4_ERR("A period is expected to signify the start of fractional seconds.");
+// 			}
+// 		} else if (i == 0 && gps->timeOfFix[i] == 0x20) {
+// 			tofSpaces = true;
+// 		} else {
+// 			if (tofSpaces) {
+// 				if(!(gps->timeOfFix[i] == 0x20)) {
+// 					PX4_ERR("All characters must be filled with spaces.");
+// 				}
+// 			} else {
+// 				if(!(0x30 <= gps->timeOfFix[i] && gps->timeOfFix[i] <= 0x39)) {
+// 					PX4_ERR("Time of Fix contains an invalid character");
+// 				}
+// 			}
+// 		}
+// 	}
+
+// 	// Validate height
+// 	if(!((float)-1200.0 <= gps->height && gps->height <= (float)160000.0)) {
+// 		PX4_ERR("GPS height is not within the troposphere");
+// 	}
+
+// 	// Validate hpl
+// 	if(!(0 <= gps->hpl)) {
+// 		PX4_ERR("HPL cannot be negative");
+// 	}
+
+// 	// Validate hfom
+// 	if(!(0 <= gps->hfom)) {
+// 		PX4_ERR("HFOM cannot be negative");
+// 	}
+
+// 	// Validate vfom
+// 	if(!(0 <= gps->vfom)) {
+// 		PX4_ERR("VFOM cannot be negative");
+// 	}
+
+// 	// Validate status
+// 	if(!(nacvUnknown <= gps->nacv && gps->nacv <= nacv0dot3)) {
+// 		PX4_ERR("NACv is not an enumerated value");
 // 	}
 // }
