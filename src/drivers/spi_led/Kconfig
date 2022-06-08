@@ -1,0 +1,5 @@
+menuconfig DRIVERS_SPI_LED
+	bool "spi_led"
+	default n
+	---help---
+		Enable support for spi_led
