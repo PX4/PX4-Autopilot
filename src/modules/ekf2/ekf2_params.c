@@ -320,15 +320,17 @@ PARAM_DEFINE_FLOAT(EKF2_MAG_B_NOISE, 1.0e-4f);
 PARAM_DEFINE_FLOAT(EKF2_MAG_E_NOISE, 1.0e-3f);
 
 /**
- * Process noise for wind velocity prediction.
+ * Process noise spectral density for wind velocity prediction.
+ *
+ * When unaided, the wind estimate uncertainty (1-sigma, in m/s) increases by this amount every second.
  *
  * @group EKF2
  * @min 0.0
  * @max 1.0
- * @unit m/s^2
+ * @unit m/s^2/sqrt(Hz)
  * @decimal 3
  */
-PARAM_DEFINE_FLOAT(EKF2_WIND_NOISE, 1.0e-1f);
+PARAM_DEFINE_FLOAT(EKF2_WIND_NSD, 1.0e-2f);
 
 /**
  * Measurement noise for gps horizontal velocity.
