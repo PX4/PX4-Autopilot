@@ -78,8 +78,10 @@ public:
 	matrix::Vector2f  get_wind_var() { return matrix::Vector2f{_P(0, 0), _P(1, 1)}; }
 	bool get_wind_estimator_reset() { return _wind_estimator_reset; }
 
-	void set_wind_p_noise(float wind_sigma) { _wind_p_var = wind_sigma * wind_sigma; }
-	void set_tas_scale_p_noise(float tas_scale_sigma) { _tas_scale_p_var = tas_scale_sigma * tas_scale_sigma; }
+	// unaided, the state uncertainty (diagonal of sqrt(P)) grows by the process noise spectral density every second
+	void set_wind_process_noise_spectral_density(float wind_nsd) { _wind_psd = wind_nsd * wind_nsd; }
+	void set_tas_scale_process_noise_spectral_density(float tas_scale_nsd) { _tas_scale_psd = tas_scale_nsd * tas_scale_nsd; }
+
 	void set_tas_noise(float tas_sigma) { _tas_var = tas_sigma * tas_sigma; }
 	void set_beta_noise(float beta_var) { _beta_var = beta_var * beta_var; }
 	void set_tas_gate(uint8_t gate_size) {_tas_gate = gate_size; }
@@ -104,8 +106,8 @@ private:
 
 	bool _initialised{false};	///< True: filter has been initialised
 
-	float _wind_p_var{0.1f};	///< wind process noise variance
-	float _tas_scale_p_var{0.0001f};	///< true airspeed scale process noise variance
+	float _wind_psd{0.1f};	///< wind process noise power spectral density (m^2/s^4/Hz)
+	float _tas_scale_psd{0.0001f};	///< true airspeed process noise power spectral density (1/s^2/Hz)
 	float _tas_var{1.4f};		///< true airspeed measurement noise variance
 	float _beta_var{0.5f};	///< sideslip measurement noise variance
 	uint8_t _tas_gate{3};	///< airspeed fusion gate size
