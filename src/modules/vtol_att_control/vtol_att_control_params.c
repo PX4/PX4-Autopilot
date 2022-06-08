@@ -302,6 +302,9 @@ PARAM_DEFINE_INT32(VT_FW_MOT_OFFID, 0);
 PARAM_DEFINE_INT32(VT_MOT_ID, 0);
 
 /**
+ *
+ * TODO: Note: changed from DIFTHR -> DFTHR bcz of max parameter char limit being 16 for VT_FW_DFTHR_Y_SC...
+ *
  * Differential thrust in forwards flight.
  *
  * Set to 1 to enable differential thrust in fixed-wing flight.
@@ -311,7 +314,7 @@ PARAM_DEFINE_INT32(VT_MOT_ID, 0);
  * @decimal 0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_DIFTHR_EN, 0);
+PARAM_DEFINE_INT32(VT_FW_DFTHR_EN, 0);
 
 /**
  * Differential thrust in forwards flight for pitch.
@@ -323,7 +326,7 @@ PARAM_DEFINE_INT32(VT_FW_DIFTHR_EN, 0);
  * @decimal 0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_DIFTHR_P, 1);
+PARAM_DEFINE_INT32(VT_FW_DFTHR_P, 1);
 
 /**
  * Differential thrust in forwards flight for roll.
@@ -335,10 +338,10 @@ PARAM_DEFINE_INT32(VT_FW_DIFTHR_P, 1);
  * @decimal 0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_INT32(VT_FW_DIFTHR_R, 1);
+PARAM_DEFINE_INT32(VT_FW_DFTHR_R, 1);
 
 /**
- * Differential thrust scaling factor
+ * Differential thrust scaling factor for yaw
  *
  * This factor specifies how the yaw input gets mapped to differential thrust in forwards flight.
  *
@@ -348,7 +351,34 @@ PARAM_DEFINE_INT32(VT_FW_DIFTHR_R, 1);
  * @increment 0.1
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_FW_DIFTHR_SC, 0.1f);
+PARAM_DEFINE_FLOAT(VT_FW_DFTHR_Y_SC, 0.1f);
+
+/**
+ * Differential thrust scaling factor for pitch
+ *
+ * This factor specifies how the pitch input gets mapped to differential thrust in forwards flight.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_DFTHR_P_SC, 0.1f);
+
+/**
+ * Differential thrust scaling factor for roll
+ *
+ * This factor specifies how the roll input gets mapped to differential thrust in forwards flight.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.1
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_FW_DFTHR_R_SC, 0.1f);
+
 
 /**
  * Backtransition deceleration setpoint to pitch feedforward gain.

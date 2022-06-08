@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# @name DJI Matrice 100
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer James Goppert <james.goppert@gmail.com>
+#
+# @board px4_fmu-v2 exclude
+# @board bitcraze_crazyflie exclude
+#
+
+. ${R}etc/init.d/rc.mc_defaults
+
+param set-default BAT1_N_CELLS 6
+
+param set-default MC_ROLLRATE_P 0.05
+param set-default MC_ROLLRATE_I 0.05
+param set-default MC_ROLLRATE_D 0.001
+param set-default MC_PITCHRATE_P 0.05
+param set-default MC_PITCHRATE_I 0.05
+param set-default MC_PITCHRATE_D 0.001
+
+param set-default MC_YAWRATE_I 0
+
+param set-default PWM_MAIN_MIN 1200

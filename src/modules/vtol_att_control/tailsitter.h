@@ -82,8 +82,8 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(VtolType,
 					(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
-					(ParamInt<px4::params::VT_FW_DIFTHR_P>) _param_vt_fw_difthr_p,
-					(ParamInt<px4::params::VT_FW_DIFTHR_R>) _param_vt_fw_difthr_r,
+					(ParamInt<px4::params::VT_FW_DFTHR_P>) _param_vt_fw_difthr_p,
+					(ParamInt<px4::params::VT_FW_DFTHR_R>) _param_vt_fw_difthr_r,
 					(ParamInt<px4::params::VT_ELEV_LOCK>) _param_vt_elev_lock,
 					(ParamInt<px4::params::VT_AIL_FW_LOCK>) _param_vt_ail_fw_lock
 				       )
