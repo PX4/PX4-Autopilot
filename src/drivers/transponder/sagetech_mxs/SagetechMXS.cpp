@@ -342,7 +342,7 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 		}
 		if (svr.validity.surfHeading) {
-			t.heading = matrix::wrap_pi(((float)svr.surface.heading*-M_PI_F)/180.0f);
+			t.heading = matrix::wrap_pi((float)svr.surface.heading*(M_PI_F/180.0f));
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
 		}
 	}
@@ -350,7 +350,7 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 	if (svr.type == svrAirborne) {
 		if (svr.validity.airSpeed) {
 			t.hor_velocity = (svr.airborne.speed * SAGETECH_SCALE_KNOTS_TO_M_PER_SEC);	//Convert from knots to meters/second
-			t.heading = matrix::wrap_pi(((float)svr.airborne.heading*-M_PI_F)/180.0f);
+			t.heading = matrix::wrap_pi((float)svr.airborne.heading*(M_PI_F/180.0f));
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 		}
@@ -900,7 +900,7 @@ int SagetechMXS::open_serial_port() {
  * Parameter and Custom Command Handling
  * ***************************************/
 
-void SagetechMXS::handle_params()
+void SagetechMXS::parameters_update()
 {
 	// if (_parameter_update_sub.updated()) {
 	// 	parameter_update_s param_update;

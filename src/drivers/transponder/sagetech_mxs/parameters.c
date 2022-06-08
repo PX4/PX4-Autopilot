@@ -65,7 +65,7 @@ PARAM_DEFINE_INT32(ADSB_IDENT, 0);
 
 /**
  * ADSB Vehicle List Size
- * 
+ *
  * Adjust the number of participants in the target request message
  * Adjustment to this value will send a new target request
  *
@@ -81,7 +81,7 @@ PARAM_DEFINE_INT32(ADSB_LIST_MAX, 25);
  *
  * Defines the ICAO ID of the vehicle
  *
- * @reboot_required false
+ * @reboot_required true
  * @min -1
  * @max 16777215
  * @group Transponder
@@ -92,31 +92,64 @@ PARAM_DEFINE_INT32(ADSB_ICAO_ID, 0);
 /**
  * ADSB Vehicle Size Configuration
  *
- * This vehicle is always tracked. Use 0 to disable.
+ * Configure the size of the vehicle.
  *
- * @reboot_required false
+ * @reboot_required true
  * @min 0
  * @max 15
  * @group Transponder
  *
  * @value 0 SizeUnknown
- * @value 1 sizeL15W23
- * @value 2 sizeL25W28
- * @value 3 sizeL25W34
- * @value 4 sizeL35W33
- * @value 5 sizeL35W38
- * @value 6 sizeL45W39
- * @value 7 sizeL45W45
- * @value 8 sizeL55W45
- * @value 9 sizeL55W52
- * @value 10 sizeL65W59
- * @value 11 sizeL65W67
- * @value 12 sizeL75W72
- * @value 13 sizeL75W80
- * @value 14 sizeL85W80
- * @value 15 sizeL85W90
+ * @value 1 Len15_Wid23
+ * @value 2 Len25_Wid28
+ * @value 3 Len25_Wid34
+ * @value 4 Len35_Wid33
+ * @value 5 Len35_Wid38
+ * @value 6 Len45_Wid39
+ * @value 7 Len45_Wid45
+ * @value 8 Len55_Wid45
+ * @value 9 Len55_Wid52
+ * @value 10 Len65_Wid59
+ * @value 11 Len65_Wid67
+ * @value 12 Len75_Wid72
+ * @value 13 Len75_Wid80
+ * @value 14 Len85_Wid80
+ * @value 15 Len85_Wid90
  */
 PARAM_DEFINE_INT32(ADSB_LEN_WIDTH, 1);
+
+/**
+ * ADSB Vehicle Emitter Type
+ *
+ * Configure the emitter type of the vehicle.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 15
+ * @group Transponder
+ *
+ * @value 0 Unknown
+ * @value 1 Light
+ * @value 2 Small
+ * @value 3 Large
+ * @value 4 HighVortex
+ * @value 5 Heavy
+ * @value 6 Performance
+ * @value 7 Rotorcraft
+ * @value 8 RESERVED
+ * @value 9 Glider
+ * @value 10 LightAir
+ * @value 11 Parachute
+ * @value 12 UltraLight
+ * @value 13 RESERVED
+ * @value 14 UAV
+ * @value 15 Space
+ * @value 16 RESERVED
+ * @value 17 EmergencySurf
+ * @value 18 ServiceSurf
+ * @value 19 PointObstacle
+ */
+PARAM_DEFINE_INT32(ADSB_EMIT_TYPE, 14);
 
 /**
  * ADSB Special ICAO configuration
@@ -152,9 +185,7 @@ PARAM_DEFINE_INT32(MXS_MODE, 0);
 /**
  * Sagetech MXS Participant Configuration
  *
- * This parameters defines what port to send the target data to
- * Adjustment to this value will send a new target request
- * Note: Auto is the port where the target request is received.
+ * The MXS communication port to receive Target data from
  *
  * @min 0
  * @max 2
@@ -165,19 +196,53 @@ PARAM_DEFINE_INT32(MXS_MODE, 0);
  * @value 1 COM0
  * @value 2 COM1
  */
-PARAM_DEFINE_INT32(MXS_TARG_OUT, 1);
+PARAM_DEFINE_INT32(MXS_TARG_PORT, 1);
 
 /**
- * Sagetech MXS Baud configuration
+ * Sagetech MXS COM0 Baud configuration
  *
- * This parameter defines the baud rate for the MXS
+ * This parameter defines the baud rate for the MXS COM 1 Port
  *
- * @reboot_required false
+ * @reboot_required true
  * @min 0
- * @max 230400
+ * @max 10
+ * @value 0 38400
+ * @value 1 600
+ * @value 2 4800
+ * @value 3 9600
+ * @value 4 28800
+ * @value 5 57600
+ * @value 6 115200
+ * @value 7 230400
+ * @value 8 19200
+ * @value 9 460800
+ * @value 10 921600
  * @group Transponder
  */
-PARAM_DEFINE_INT32(MXS_BAUD, 0);
+PARAM_DEFINE_INT32(MXS_COM0_BAUD, 7);
+
+/**
+ * Sagetech MXS COM1 Baud configuration
+ *
+ * This parameter defines the baud rate for the MXS COM 0 Port
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 10
+ * @value 0 38400
+ * @value 1 600
+ * @value 2 4800
+ * @value 3 9600
+ * @value 4 28800
+ * @value 5 57600
+ * @value 6 115200
+ * @value 7 230400
+ * @value 8 19200
+ * @value 9 460800
+ * @value 10 921600
+ * @group Transponder
+ */
+PARAM_DEFINE_INT32(MXS_COM1_BAUD, 5);
 
 
 /**
@@ -189,4 +254,4 @@ PARAM_DEFINE_INT32(MXS_BAUD, 0);
  * @boolean
  * @group Transponder
  */
-PARAM_DEFINE_INT32(MXS_EXT_CONFIG, 0);
+PARAM_DEFINE_INT32(MXS_EXT_CFG, 0);

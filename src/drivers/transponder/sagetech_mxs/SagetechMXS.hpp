@@ -102,12 +102,6 @@ private:
 	perf_counter_t  _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 	perf_counter_t  _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
 
-	// Parameters
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
-		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
-	)
-
 	// Constants
 	static constexpr uint32_t UPDATE_INTERVAL_US{1000000 / 50}; 	// 20ms = 50 Hz
 	static constexpr uint8_t FIVE_HZ_MOD{10};			// 0.2s = 5 Hz
@@ -221,6 +215,22 @@ private:
 	uint16_t furthest_vehicle_index;
 	float furthest_vehicle_distance;
 
+	// Parameters
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::ADSB_SQUAWK>)		_adsb_squawk,
+		(ParamInt<px4::params::ADSB_IDENT>)		_adsb_ident,
+		(ParamInt<px4::params::ADSB_LIST_MAX>)		_adsb_list_max,
+		(ParamInt<px4::params::ADSB_ICAO_ID>)		_adsb_icao,
+		(ParamInt<px4::params::ADSB_LEN_WIDTH>)		_adsb_len_width,
+		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_adsb_emit_type,
+		(ParamInt<px4::params::ADSB_ICAO_SPECL>)	_adsb_icao_specl,
+		(ParamInt<px4::params::MXS_MODE>)		_mxs_mode,
+		(ParamInt<px4::params::MXS_TARG_PORT>)		_mxs_targ_port,
+		(ParamInt<px4::params::MXS_COM0_BAUD>)		_mxs_com0_baud,
+		(ParamInt<px4::params::MXS_COM1_BAUD>)		_mxs_com1_baud,
+		(ParamInt<px4::params::MXS_EXT_CFG>)		_mxs_ext_cfg
+	);
+
 	// Functions
 	// void start();
 	// void stop();
@@ -245,5 +255,5 @@ private:
 	void send_targetreq_msg();
 	uint32_t convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber);
 	int open_serial_port();
-    void handle_params();
+	void parameters_update();
 };
