@@ -464,7 +464,7 @@ PARAM_DEFINE_FLOAT(K_ACT_PITCH, 0.03f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(K_ACT_YAW, 0.02f);
+PARAM_DEFINE_FLOAT(K_ACT_YAW, 0.1f);
 
 /**
  * roll gain of K_ACT_DAMPING (actuator damping gain)
@@ -552,9 +552,24 @@ PARAM_DEFINE_FLOAT(ORIGIN_ALT, 488.0f);
  * 
  * @unit 
  * @min 0
- * @max 3
+ * @max 5
  * @decimal 1
  * @increment 1
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_INT32(LOITER, 0);
+
+// ==============================================
+// ============== engine thrust =================
+// ==============================================
+/**
+ * float in [0,1] corresponding to the engine thrust
+ * 
+ * @unit 
+ * @min 0
+ * @max 1
+ * @decimal 1
+ * @increment 0.1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(THRUST, 0);

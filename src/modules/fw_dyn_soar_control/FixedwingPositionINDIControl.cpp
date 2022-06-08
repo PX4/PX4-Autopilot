@@ -154,6 +154,8 @@ FixedwingPositionINDIControl::parameters_update()
     _loiter = _param_loiter.get();
     _select_trajectory(0.0f);
 
+    _thrust = _param_thrust.get();
+
 
 	// sanity check parameters
     // TODO: include sanity check
@@ -349,8 +351,14 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
     else if (_loiter==2)  {
         _read_trajectory_coeffs_csv("trajectory2.csv");
     }
-    else{
+    else if (_loiter==3)  {
         _read_trajectory_coeffs_csv("trajectory3.csv");
+    }
+    else if (_loiter==4)  {
+        _read_trajectory_coeffs_csv("trajectory4.csv");
+    }
+    else{
+        _read_trajectory_coeffs_csv("trajectory5.csv");
     }
 }
 
@@ -501,8 +509,11 @@ FixedwingPositionINDIControl::Run()
 		//_last_run = _local_pos.timestamp;
 
         // check if local NED reference frame origin has changed:
+        // || (_local_pos.vxy_reset_counter != _pos_reset_counter
         if (!map_projection_initialized(&_global_local_proj_ref)
-            || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)) {
+            || (_global_local_proj_ref.timestamp != _local_pos.ref_timestamp)
+		    || (_local_pos.xy_reset_counter != _pos_reset_counter)
+            || (_local_pos.z_reset_counter != _alt_reset_counter)) {
             // initialize projection
             map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
                             _local_pos.ref_timestamp);
@@ -511,6 +522,9 @@ FixedwingPositionINDIControl::Run()
             _origin_D =  _local_pos.ref_alt - _origin_alt;
             PX4_INFO("local reference frame updated");
         }
+        // update reset counters
+        _pos_reset_counter = _local_pos.xy_reset_counter;
+        _alt_reset_counter = _local_pos.z_reset_counter;
 
         // run polls
         _set_wind_estimate(Vector3f(0.f,0.f,0.f));
@@ -530,7 +544,6 @@ FixedwingPositionINDIControl::Run()
             actuator_controls_poll();
         }
 
-
         // ============================
         // compute reference kinematics
         // ============================
@@ -540,8 +553,6 @@ FixedwingPositionINDIControl::Run()
         // terminal time is determined such that current velocity is met
         Vector3f v_ref_ = _get_velocity_ref(t_ref, 1.0f);
         float T = sqrtf((v_ref_*v_ref_)/(_vel*_vel+0.001f));
-        //PX4_INFO("local velocity:\t%.4f\t%.4f\t%.4f", (double)v_ref_(0),(double)v_ref_(1),(double)v_ref_(2));
-        //PX4_INFO("T= \t%.1f", (double)T);
         Vector3f pos_ref = _get_position_ref(t_ref);                    // in inertial ENU
         Vector3f vel_ref = _get_velocity_ref(t_ref,T);                  // in inertial ENU
         Vector3f acc_ref = _get_acceleration_ref(t_ref,T);              // gravity-corrected acceleration (ENU)
@@ -552,7 +563,6 @@ FixedwingPositionINDIControl::Run()
         //PX4_INFO("alpha ref:\t%.4f\t%.4f\t%.4f", (double)alpha_ref(0),(double)alpha_ref(1),(double)alpha_ref(2));
         //PX4_INFO("vel ref:\t%.4f\t%.4f\t%.4f", (double)vel_ref(0),(double)vel_ref(1),(double)vel_ref(2));
         //PX4_INFO("vel:\t%.4f\t%.4f\t%.4f", (double)_vel(0),(double)_vel(1),(double)_vel(2));
-
 
         // =====================
         // compute control input
@@ -641,7 +651,7 @@ FixedwingPositionINDIControl::Run()
             _actuators.control[actuator_controls_s::INDEX_ROLL] = ctrl2(0);
             _actuators.control[actuator_controls_s::INDEX_PITCH] = ctrl2(1);
             _actuators.control[actuator_controls_s::INDEX_YAW] = ctrl2(2);
-            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = 0.8f;
+            _actuators.control[actuator_controls_s::INDEX_THROTTLE] = _thrust;
             _actuators_0_pub.publish(_actuators);
             //print_message(_actuators);
 
@@ -841,6 +851,7 @@ FixedwingPositionINDIControl::_get_angular_acceleration_ref(float t, float T)
 float
 FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
 {
+    /*
     const uint n = 100;
     Vector<float, n> distances;
     float t_ref;
@@ -862,53 +873,62 @@ FixedwingPositionINDIControl::_get_closest_t(Vector3f pos)
         }
     }
     t = t/float(n);
+    */
+
     //PX4_INFO("closest point: \t%.2f\t%.2f\t%.2f", (double)_get_position_ref(t)(0), (double)_get_position_ref(t)(1), (double)_get_position_ref(t)(2));
     //PX4_INFO("closest t: %.2f", (double)t);
     //PX4_INFO("closest distance:%.2f", (double)sqrtf(min_dist));
 
-
-    /*
-    const uint n_multistage = 10;
-    Vector<float, n_multistage+1> distances_multistage;
-    float t_multistage = 0;
-    float t_ref_next = 0;   // stage 2
-    // compute all distances
-    for(uint stage=1; stage<=2; stage++){
-        for(uint i=0; i<=n_multistage; i++){
-            t_ref = t_ref_next + float(i-n_multistage/2.f)/(powf(float(n_multistage),stage));
-            // check that t_ref is always in [0,1]:
-            if(t_ref<0.f){
-                t_ref += 1.f;
-            }
-            else if (t_ref>1.f){
-                t_ref -= 1.f;
-            }
-            Vector3f pos_ref = _get_position_ref(t_ref);
-            //PX4_INFO("trajectory time + point: \t%.2f\t%.2f\t%.2f\t%.2f", (double)t_ref, (double)pos_ref(0), (double)pos_ref(1), (double)pos_ref(2));
-            distances_multistage(i) = (pos_ref - pos)*(pos_ref - pos);
-        }
-        // get index of smallest distance
-        float min_dist_multistage = distances_multistage(0);
-        for(uint i=1; i<=n_multistage; i++){
-            if(distances_multistage(i)<min_dist_multistage){
-                min_dist_multistage = distances_multistage(i);
-                t_multistage = t_ref_next + float(i-n_multistage/2.f)/(powf(float(n_multistage),stage));
-                // check that t_ref is always in [0,1]:
-                if(t_multistage<0.f){
-                    t_multistage += 1.f;
-                }
-                else if (t_multistage>1.f){
-                    t_multistage -= 1.f;
-                }
-            }
-        }
-        // next starting point is previous closest point
-        t_ref_next = t_multistage;
+    
+    const uint n_1 = 20;
+    Vector<float, n_1> distances;
+    float t_ref;
+    // =======
+    // STAGE 1
+    // =======
+    // STAGE 1: compute all distances
+    for(uint i=0; i<n_1; i++){
+        t_ref = float(i)/float(n_1);
+        Vector3f pos_ref = _get_position_ref(t_ref);
+        distances(i) = (pos_ref - pos)*(pos_ref - pos);
     }
-    PX4_INFO("different t: \t%.3f\t%.3f\t%.3f", (double)t, (double)t_multistage, (double)(t-t_multistage));
-    */
 
-    return t;
+    // STAGE 1: get index of smallest distance
+    float t_1 = 0.f;
+    float min_dist = distances(0);
+    for(uint i=1; i<n_1; i++){
+        if(distances(i)<min_dist){
+            min_dist = distances(i);
+            t_1 = float(i);
+        }
+    }
+    t_1 = t_1/float(n_1);
+
+    // =======
+    // STAGE 2
+    // =======
+    const uint n_2 = 2*n_1-1;
+    Vector<float, n_2+1> distances_2;
+    float t_lower = fmod(t_1 - 1.0f/n_1,1.0f);
+    // STAGE 2: compute all distances
+    for(uint i=0; i<=n_2; i++){
+        t_ref = fmod(t_lower + float(i)*2.f/float(n_1*n_2),1.0f);
+        Vector3f pos_ref = _get_position_ref(t_ref);
+        distances_2(i) = (pos_ref - pos)*(pos_ref - pos);
+    }
+
+    // STAGE 2: get index of smallest distance
+    float t_2 = 0.f;
+    min_dist = distances_2(0);
+    for(uint i=1; i<=n_2; i++){
+        if(distances_2(i)<min_dist){
+            min_dist = distances_2(i);
+            t_2 = float(i);
+        }
+    }
+    t_2 = fmod(t_lower + float(t_2)*2.f/(float(n_2)*float(n_1)),1.0f);
+
+    return t_2;
 }
 
 Quatf
@@ -970,6 +990,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     acc_filtered(0) = _lp_filter_accel[0].apply(_acc(0));
     acc_filtered(1) = _lp_filter_accel[1].apply(_acc(1));
     acc_filtered(2) = _lp_filter_accel[2].apply(_acc(2));
+
     // =========================================
     // apply PD control law on the body position
     // =========================================
@@ -1021,7 +1042,6 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
         }
     }
     
-
     // =========================================
     // apply PD control law on the body attitude
     // =========================================
@@ -1044,7 +1064,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
         //rot_acc_command = Vector3f{0.f,0.f,-0.5f};
     }
     */
-
+    //PX4_INFO("force command: \t%.2f", (double)(f_command*f_command));
     //PX4_INFO("force command: \t%.2f\t%.2f\t%.2f", (double)f_command(0), (double)f_command(1), (double)f_command(2));
     //PX4_INFO("FRD body frame rotation vec: \t%.2f\t%.2f\t%.2f", (double)w_err(0), (double)w_err(1), (double)w_err(2));
     if (sqrtf(w_err(0)*w_err(0) + w_err(1)*w_err(1) + w_err(2)*w_err(2))>M_PI_F){

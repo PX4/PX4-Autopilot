@@ -204,7 +204,9 @@ private:
 		(ParamFloat<px4::params::ORIGIN_LON>) _param_origin_lon,
 		(ParamFloat<px4::params::ORIGIN_ALT>) _param_origin_alt,
 		// loiter params
-		(ParamInt<px4::params::LOITER>) _param_loiter
+		(ParamInt<px4::params::LOITER>) _param_loiter,
+		// thrust params
+		(ParamFloat<px4::params::THRUST>) _param_thrust
 
 	)
 
@@ -336,6 +338,8 @@ private:
 	float _origin_D;
 	// loiter circle
 	int _loiter;
+	// thrust
+	float _thrust;
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.
