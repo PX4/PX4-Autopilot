@@ -44,6 +44,8 @@ spi_led::~spi_led()
 {
 	perf_free(_loop_perf);
 	perf_free(_loop_interval_perf);
+	delete _buf;
+	delete _rbuf;
 }
 
 int spi_led::init()
@@ -55,22 +57,23 @@ int spi_led::init()
 	}
 
 	// execute Run() on every spi_led publication
+	/*
 	if (!_spi_led_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
-
+	*/
 	// alternatively, Run on fixed interval
-	// ScheduleOnInterval(5000_us); // 2000 us interval, 200 Hz rate
+	ScheduleOnInterval(100_ms); // 2000 us interval, 200 Hz rate
 
 	return true;
 }
 
 void spi_led::Run()
 {
+	//printf("made it into run()\n");
+
 	if (should_exit()) {
-		delete _buf;
-		delete _rbuf;
 		ScheduleClear();
 		exit_and_cleanup();
 		return;
@@ -80,26 +83,41 @@ void spi_led::Run()
 	perf_count(_loop_interval_perf);
 
 	if (_spi_led_sub.updated()) {
-		spi_led_s led_struct;
+		//printf("spi led sub updated\n");
+		struct spi_led_s led_struct;
 
 		if (_spi_led_sub.copy(&led_struct)) {
+			//printf("copied\n");
 			// DO WORK
-			uint32_t size = led_struct.number_leds + 2;
+			uint32_t size = led_struct.number_leds + (led_struct.number_leds % 10) + 2;
 			if(size != _size) {
 				_size = size;
 				delete _buf;
 				delete _rbuf;
 				_buf = new uint32_t[size];
 				_rbuf = new uint32_t[size];
+				printf("created buffers\n");
 				for(uint32_t i = 0; i < size; i++) {
 					_buf[i] = 0x00000000;
 				}
 				_buf[size-1] = 0xFFFFFFFF;
 			}
 
-			memcpy(_buf + (led_struct.offset_group*13)+1, &led_struct.led_values, 13);
+			for(uint32_t i = 0; i < 10; i++) {
+				_buf[i + (led_struct.offset_group*10) + 1] = led_struct.led_values[i];
+			}
+
+			printf("%p \n", _buf);
+			//memcpy(_buf + (led_struct.offset_group*10)+1, &led_struct.led_values, 10);
+			//printf("buf: ");
+			for(uint32_t i = 0; i < size; i++) {
+				//printf("0x%08" PRIx32 " ", _buf[i]);
+			}
+			//printf("\n");
+			//printf("copied data\n");
 
 			transfer((uint8_t *)_buf, (uint8_t *)_rbuf, _size*4);
+			printf("transferred\n");
 		}
 	}
 

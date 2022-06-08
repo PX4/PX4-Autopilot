@@ -31,6 +31,10 @@
  *
  ****************************************************************************/
 
+/* Authors: Landon Haugh (landon.haugh@nxp.com)
+ *	    Benjamin Perseghetti (benjamin.perseghetti@nxp.com)
+ */
+
 #pragma once
 
 #include <px4_platform_common/defines.h>
@@ -84,7 +88,7 @@ private:
 		(ParamInt<px4::params::SYS_AUTOCONFIG>) _param_sys_autoconfig  /**< another parameter */
 	)
 
-	uint32_t *_buf;
-	uint32_t *_rbuf;
-	uint32_t _size;
+	uint32_t *_buf = new uint32_t[10];
+	uint32_t *_rbuf = new uint32_t[10];
+	uint32_t _size = 0;
 };
