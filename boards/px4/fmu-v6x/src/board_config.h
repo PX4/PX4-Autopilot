@@ -129,6 +129,8 @@
 
 /* I2C busses */
 
+#define BOARD_MTD_NUM_EEPROM        2 /* MTD: base_eeprom, imu_eeprom*/
+
 /* Devices on the onboard buses.
  *
  * Note that these are unshifted addresses.
@@ -213,7 +215,8 @@
 #define GPIO_HW_VER_SENSE      /* PH3 */  GPIO_ADC3_INP14
 #define HW_INFO_INIT_PREFIX    "V6X"
 
-#define BOARD_NUM_SPI_CFG_HW_VERSIONS 8 // Rev 0 and Rev 3,4 Sensor sets
+#define BOARD_NUM_SPI_CFG_HW_VERSIONS 9 // Rev 0 and Rev 3,4 Sensor sets
+
 //                 Base/FMUM
 #define V6X00   HW_VER_REV(0x0,0x0) // FMUV6X,                 Rev 0
 #define V6X01   HW_VER_REV(0x0,0x1) // FMUV6X,     BMI388 I2C2 Rev 1
@@ -222,6 +225,7 @@
 #define V6X10   HW_VER_REV(0x1,0x0) // NO PX4IO,               Rev 0
 #define V6X13   HW_VER_REV(0x1,0x3) // NO PX4IO,   Sensor Set  Rev 3
 #define V6X14   HW_VER_REV(0x1,0x4) // NO PX4IO,   Sensor Set  Rev 4
+#define V6X21   HW_VER_REV(0x2,0x1) // FMUV6X,     CUAV Sensor Set
 #define V6X40   HW_VER_REV(0x4,0x0) // FMUV6X,                    HB CM4 base Rev 0
 #define V6X41   HW_VER_REV(0x4,0x1) // FMUV6X,     BMI388 I2C2    HB CM4 base Rev 1
 #define V6X43   HW_VER_REV(0x4,0x3) // FMUV6X,     Sensor Set     HB CM4 base Rev 3
