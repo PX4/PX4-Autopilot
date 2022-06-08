@@ -158,6 +158,7 @@ set(models
 	iris_rplidar
 	iris_vision
 	nxp_cupcar
+	omnicopter
 	plane
 	plane_cam
 	plane_catapult
@@ -176,7 +177,6 @@ set(models
 	typhoon_h480_ctrlalloc
 	uuv_bluerov2_heavy
 	uuv_hippocampus
-	omnicopter
 )
 
 set(worlds
