@@ -126,7 +126,9 @@ void SagetechMXS::Run()
 			send_gps_msg();
 		}
 		send_operating_msg();
-
+	}
+	if (_parameter_update_sub.updated()) {
+		// TODO: Handle params here
 	}
 
 	/************************
@@ -892,4 +894,26 @@ int SagetechMXS::open_serial_port() {
 	tcflush(_fd, TCIOFLUSH);
 	PX4_INFO("Opened port %s", _port);
 	return PX4_OK;
+}
+
+/*****************************************
+ * Parameter and Custom Command Handling
+ * ***************************************/
+
+void SagetechMXS::handle_params()
+{
+	// if (_parameter_update_sub.updated()) {
+	// 	parameter_update_s param_update;
+	// 	_parameter_update_sub.copy(&param_update);
+
+	// 	// // If any parameter updated, call updateParams() to check if
+	// 	// // this class attributes need updating (and do so).
+	// 	// updateParams();
+	// 	// if((_mxs_targ_num.get() != mxs_state.treq.maxTargets )|| (_mxs_targ_out.get() != mxs_state.treq.transmitPort))
+	// 	// {
+	// 	// 	mxs_state.treq.maxTargets = _mxs_targ_num.get();
+	// 	// 	mxs_state.treq.transmitPort = (sg_transmitport_t)_mxs_targ_out.get();
+	// 	// 	send_target_req_msg();
+	// 	// }
+	// }
 }
