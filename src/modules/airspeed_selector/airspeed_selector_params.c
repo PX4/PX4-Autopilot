@@ -11,7 +11,7 @@
  * @decimal 2
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_WIND_NSD, 0.1f);
+PARAM_DEFINE_FLOAT(ASPD_WIND_NSD, 1.e-2f);
 
 /**
  * Airspeed Selector: Wind estimator true airspeed scale process noise spectral density
