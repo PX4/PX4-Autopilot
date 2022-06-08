@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2022 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,14 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__barometer__invensense__icp10111
-	MAIN icp10111
+	MODULE drivers__invensense__icp201xx
+	MAIN icp201xx
 	COMPILE_FLAGS
 	SRCS
-		Inven_Sense_ICP10111_registers.hpp
-		ICP10111.cpp
-		ICP10111.hpp
-		icp10111_main.cpp
+		Inven_Sense_ICP201XX_registers.hpp
+		ICP201XX.cpp
+		ICP201XX.hpp
+		icp201xx_main.cpp
 	DEPENDS
 		px4_work_queue
 	)
