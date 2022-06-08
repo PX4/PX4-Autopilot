@@ -57,14 +57,14 @@ int spi_led::init()
 	}
 
 	// execute Run() on every spi_led publication
-	/*
+
 	if (!_spi_led_sub.registerCallback()) {
 		PX4_ERR("callback registration failed");
 		return false;
 	}
-	*/
+
 	// alternatively, Run on fixed interval
-	ScheduleOnInterval(100_ms); // 2000 us interval, 200 Hz rate
+	//ScheduleOnInterval(100_ms); // 2000 us interval, 200 Hz rate
 
 	return true;
 }
@@ -96,18 +96,19 @@ void spi_led::Run()
 				delete _rbuf;
 				_buf = new uint32_t[size];
 				_rbuf = new uint32_t[size];
-				printf("created buffers\n");
+				//printf("created buffers\n");
 				for(uint32_t i = 0; i < size; i++) {
 					_buf[i] = 0x00000000;
 				}
 				_buf[size-1] = 0xFFFFFFFF;
 			}
 
+			//printf("offset: %d\n", (led_struct.offset_group*10)+1);
 			for(uint32_t i = 0; i < 10; i++) {
 				_buf[i + (led_struct.offset_group*10) + 1] = led_struct.led_values[i];
 			}
 
-			printf("%p \n", _buf);
+			//printf("%p \n", _buf);
 			//memcpy(_buf + (led_struct.offset_group*10)+1, &led_struct.led_values, 10);
 			//printf("buf: ");
 			for(uint32_t i = 0; i < size; i++) {
@@ -117,7 +118,7 @@ void spi_led::Run()
 			//printf("copied data\n");
 
 			transfer((uint8_t *)_buf, (uint8_t *)_rbuf, _size*4);
-			printf("transferred\n");
+			//printf("transferred\n");
 		}
 	}
 
