@@ -81,7 +81,6 @@ public:
 	 * Must be called at 50Hz or greater
 	 */
 	void update_vehicle_state_estimates(float equivalent_airspeed, const float speed_deriv_forward, bool altitude_lock,
-					    bool in_air,
 					    float altitude, float vz);
 
 	/**
@@ -98,6 +97,23 @@ public:
 	float get_throttle_trim() { return _throttle_trim; }
 
 	void reset_state() { _states_initialized = false; }
+
+	void resetIntegrals()
+	{
+		_throttle_integ_state =  0.0f;
+		_pitch_integ_state = 0.0f;
+	}
+
+	/**
+	 * @brief Resets the altitude and height rate control trajectory generators to the input altitude
+	 *
+	 * @param altitude Vehicle altitude (AMSL) [m]
+	 */
+	void resetTrajectoryGenerators(const float altitude)
+	{
+		_alt_control_traj_generator.reset(0, 0, altitude);
+		_velocity_control_traj_generator.reset(0.0f, 0.0f, altitude);
+	}
 
 	enum ECL_TECS_MODE {
 		ECL_TECS_MODE_NORMAL = 0,
@@ -307,8 +323,7 @@ private:
 	bool _uncommanded_descent_recovery{false};			///< true when a continuous descent caused by an unachievable airspeed demand has been detected
 	bool _climbout_mode_active{false};				///< true when in climbout mode
 	bool _airspeed_enabled{false};					///< true when airspeed use has been enabled
-	bool _states_initialized{false};					///< true when TECS states have been iniitalized
-	bool _in_air{false};						///< true when the vehicle is flying
+	bool _states_initialized{false};				///< true when TECS states have been iniitalized
 
 	/**
 	 * Update the airspeed internal state using a second order complementary filter

@@ -56,7 +56,7 @@ static constexpr float DT_MAX = 1.0f;	///< max value of _dt allowed before a fil
  * which is used by the airspeed complimentary filter.
  */
 void TECS::update_vehicle_state_estimates(float equivalent_airspeed, const float speed_deriv_forward,
-		bool altitude_lock, bool in_air, float altitude, float vz)
+		bool altitude_lock, float altitude, float vz)
 {
 	// calculate the time lapsed since the last update
 	uint64_t now = hrt_absolute_time();
@@ -69,7 +69,7 @@ void TECS::update_vehicle_state_estimates(float equivalent_airspeed, const float
 		reset_altitude = true;
 	}
 
-	if (!altitude_lock || !in_air) {
+	if (!altitude_lock) {
 		reset_altitude = true;
 	}
 
@@ -79,8 +79,6 @@ void TECS::update_vehicle_state_estimates(float equivalent_airspeed, const float
 
 	_state_update_timestamp = now;
 	_EAS = equivalent_airspeed;
-
-	_in_air = in_air;
 
 	// Set the velocity and position state to the the INS data
 	_vert_vel_state = -vz;
@@ -97,11 +95,6 @@ void TECS::update_vehicle_state_estimates(float equivalent_airspeed, const float
 		_tas_rate_raw = 0.0f;
 		_tas_rate_filtered = 0.0f;
 	}
-
-	if (!_in_air) {
-		_states_initialized = false;
-	}
-
 }
 
 void TECS::_update_speed_states(float equivalent_airspeed_setpoint, float equivalent_airspeed, float EAS2TAS)
@@ -124,8 +117,8 @@ void TECS::_update_speed_states(float equivalent_airspeed_setpoint, float equiva
 		_EAS = equivalent_airspeed;
 	}
 
-	// If first time through or not flying, reset airspeed states
-	if (_speed_update_timestamp == 0 || !_in_air) {
+	// If first time through reset airspeed states
+	if (_speed_update_timestamp == 0) {
 		_tas_rate_state = 0.0f;
 		_tas_state = (_EAS * EAS2TAS);
 	}
@@ -493,16 +486,14 @@ void TECS::_calculateHeightRateSetpoint(float altitude_sp_amsl, float height_rat
 void TECS::_initialize_states(float pitch, float throttle_trim, float baro_altitude, float pitch_min_climbout,
 			      float EAS2TAS)
 {
-	if (_pitch_update_timestamp == 0 || _dt > DT_MAX || !_in_air || !_states_initialized) {
+	if (_pitch_update_timestamp == 0 || _dt > DT_MAX || !_states_initialized) {
 		// On first time through or when not using TECS of if there has been a large time slip,
 		// states must be reset to allow filters to a clean start
 		_vert_vel_state = 0.0f;
 		_vert_pos_state = baro_altitude;
 		_tas_rate_state = 0.0f;
 		_tas_state = _EAS * EAS2TAS;
-		_throttle_integ_state =  0.0f;
-		_pitch_integ_state = 0.0f;
-		_last_throttle_setpoint = (_in_air ? throttle_trim : 0.0f);;
+		_last_throttle_setpoint = throttle_trim;
 		_last_pitch_setpoint = constrain(pitch, _pitch_setpoint_min, _pitch_setpoint_max);
 		_pitch_setpoint_unc = _last_pitch_setpoint;
 		_TAS_setpoint_last = _EAS * EAS2TAS;
@@ -512,13 +503,13 @@ void TECS::_initialize_states(float pitch, float throttle_trim, float baro_altit
 		_STE_rate_error = 0.0f;
 		_hgt_setpoint = baro_altitude;
 
+		resetIntegrals();
+
 		if (_dt > DT_MAX || _dt < DT_MIN) {
 			_dt = DT_DEFAULT;
 		}
 
-		_alt_control_traj_generator.reset(0, 0, baro_altitude);
-		_velocity_control_traj_generator.reset(0.0f, 0.0f, baro_altitude);
-
+		resetTrajectoryGenerators(baro_altitude);
 
 	} else if (_climbout_mode_active) {
 		// During climbout use the lower pitch angle limit specified by the
@@ -579,11 +570,6 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 
 	// Initialize selected states and variables as required
 	_initialize_states(pitch, throttle_trim, baro_altitude, pitch_min_climbout, eas_to_tas);
-
-	// Don't run TECS control algorithms when not in flight
-	if (!_in_air) {
-		return;
-	}
 
 	_updateTrajectoryGenerationConstraints();
 
