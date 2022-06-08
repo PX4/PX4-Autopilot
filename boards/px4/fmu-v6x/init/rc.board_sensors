@@ -70,19 +70,34 @@ else
 fi
 
 # Internal magnetometer on I2c
-bmm150 -I start
+if ver hwtypecmp V6X21
+then
+	rm3100 -I -b 4 start
+else
+	bmm150 -I start
+fi
 
 # External compass on GPS1/I2C1 (the 3rd external bus): standard Holybro Pixhawk 4 or CUAV V5 GPS/compass puck (with lights, safety button, and buzzer)
 ist8310 -X -b 1 -R 10 start
 
 # Possible internal Baro
-bmp388 -I -a 0x77 start
+if ver hwtypecmp V6X21
+then
+	icp201xx -I -a 0x64 start
+else
+	bmp388 -I -a 0x77 start
+fi
 
 if ver hwtypecmp V6X000000 V6X001000
 then
 	bmp388 -I start
 else
-	bmp388 -X start
+	if ver hwtypecmp V6X21
+	then
+		icp201xx -X start
+	else
+		bmp388 -X start
+	fi
 fi
 
 # Baro on I2C3
