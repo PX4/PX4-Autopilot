@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,7 +72,12 @@ public:
 	void run_pxh();
 
 	/**
-	 * Can be called to stop pxh.
+	 * Run the remote mavlink pxh shell.
+	 */
+	void run_remote_pxh(int remote_in_fd, int remote_out_fd);
+
+	/**
+	 * Can be called to stop all pxh shells.
 	 */
 	static void stop();
 
@@ -80,16 +85,18 @@ private:
 	void _print_prompt();
 	void _move_cursor(int position);
 	void _clear_line();
+	void _tab_completion(std::string &prefix);
 
 	void _setup_term();
 	static void _restore_term();
 
 	bool _should_exit{false};
+	bool _local_terminal{false};
 	History _history;
 	struct termios _orig_term {};
 
 	static apps_map_type _apps;
-	static Pxh *_instance;
+	static std::vector<Pxh *> _instances;
 };
 
 
