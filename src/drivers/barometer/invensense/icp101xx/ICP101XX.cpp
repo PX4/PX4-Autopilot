@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,17 +31,17 @@
  *
  ****************************************************************************/
 
-#include "ICP10111.hpp"
+#include "ICP101XX.hpp"
 
 using namespace time_literals;
 
-ICP10111::ICP10111(const I2CSPIDriverConfig &config) :
+ICP101XX::ICP101XX(const I2CSPIDriverConfig &config) :
 	I2C(config),
 	I2CSPIDriver(config)
 {
 }
 
-ICP10111::~ICP10111()
+ICP101XX::~ICP101XX()
 {
 	perf_free(_reset_perf);
 	perf_free(_sample_perf);
@@ -49,7 +49,7 @@ ICP10111::~ICP10111()
 }
 
 int
-ICP10111::init()
+ICP101XX::init()
 {
 	int ret = I2C::init();
 
@@ -62,7 +62,7 @@ ICP10111::init()
 }
 
 bool
-ICP10111::Reset()
+ICP101XX::Reset()
 {
 	_state = STATE::RESET;
 	ScheduleClear();
@@ -71,7 +71,7 @@ ICP10111::Reset()
 }
 
 void
-ICP10111::print_status()
+ICP101XX::print_status()
 {
 	I2CSPIDriverBase::print_status();
 	perf_print_counter(_reset_perf);
@@ -80,7 +80,7 @@ ICP10111::print_status()
 }
 
 int
-ICP10111::probe()
+ICP101XX::probe()
 {
 	uint16_t ID = 0;
 	read_response(Cmd::READ_ID, (uint8_t *)&ID, 2);
@@ -95,7 +95,7 @@ ICP10111::probe()
 }
 
 void
-ICP10111::RunImpl()
+ICP101XX::RunImpl()
 {
 	const hrt_abstime now = hrt_absolute_time();
 
@@ -234,7 +234,7 @@ ICP10111::RunImpl()
 				float _pressure_Pa = a + b / (c + _raw_p);
 
 				float temperature = _temperature_C;
-				float pressure = _pressure_Pa; // to Pascal
+				float pressure = _pressure_Pa;
 
 				// publish
 				sensor_baro_s sensor_baro{};
@@ -276,7 +276,7 @@ ICP10111::RunImpl()
 }
 
 bool
-ICP10111::Measure()
+ICP101XX::Measure()
 {
 	/*
 	  From ds-000186-icp-101xx-v1.0.pdf, page 6, table 1
@@ -321,7 +321,7 @@ ICP10111::Measure()
 }
 
 int8_t
-ICP10111::cal_crc(uint8_t seed, uint8_t data)
+ICP101XX::cal_crc(uint8_t seed, uint8_t data)
 {
 	int8_t poly = 0x31;
 	int8_t var2;
@@ -344,13 +344,13 @@ ICP10111::cal_crc(uint8_t seed, uint8_t data)
 }
 
 int
-ICP10111::read_measure_results(uint8_t *buf, uint8_t len)
+ICP101XX::read_measure_results(uint8_t *buf, uint8_t len)
 {
 	return transfer(nullptr, 0, buf, len);
 }
 
 int
-ICP10111::read_response(Cmd cmd, uint8_t *buf, uint8_t len)
+ICP101XX::read_response(Cmd cmd, uint8_t *buf, uint8_t len)
 {
 	uint8_t buff[2];
 	buff[0] = ((uint16_t)cmd >> 8) & 0xff;
@@ -359,7 +359,7 @@ ICP10111::read_response(Cmd cmd, uint8_t *buf, uint8_t len)
 }
 
 int
-ICP10111::send_command(Cmd cmd)
+ICP101XX::send_command(Cmd cmd)
 {
 	uint8_t buf[2];
 	buf[0] = ((uint16_t)cmd >> 8) & 0xff;
@@ -368,7 +368,7 @@ ICP10111::send_command(Cmd cmd)
 }
 
 int
-ICP10111::send_command(Cmd cmd, uint8_t *data, uint8_t len)
+ICP101XX::send_command(Cmd cmd, uint8_t *data, uint8_t len)
 {
 	uint8_t buf[5];
 	buf[0] = ((uint16_t)cmd >> 8) & 0xff;

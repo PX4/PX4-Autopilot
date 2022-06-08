@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2021-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,69 +31,32 @@
  *
  ****************************************************************************/
 
+/**
+ * @file icp101xx_registers.hpp
+ *
+ * icp101xx registers.
+ *
+ */
+
 #pragma once
 
-#include "Inven_Sense_ICP10111_registers.hpp"
+#include <cstdint>
 
-#include <drivers/drv_hrt.h>
-#include <lib/drivers/device/i2c.h>
-#include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/sensor_baro.h>
-#include <lib/perf/perf_counter.h>
-#include <px4_platform_common/i2c_spi_buses.h>
-
-using namespace Inven_Sense_ICP10111;
-
-class ICP10111 : public device::I2C, public I2CSPIDriver<ICP10111>
+namespace Inven_Sense_ICP101XX
 {
-public:
-	ICP10111(const I2CSPIDriverConfig &config);
-	~ICP10111() override;
+static constexpr uint32_t I2C_SPEED = 100 * 1000; // 100 kHz I2C serial interface
+static constexpr uint8_t I2C_ADDRESS_DEFAULT = 0x63;
 
-	static void print_usage();
+static constexpr uint8_t Product_ID = 0x08;
 
-	void RunImpl();
-
-	int init() override;
-	void print_status() override;
-
-private:
-	int probe() override;
-
-	bool Reset();
-
-	bool Measure();
-
-	int8_t cal_crc(uint8_t seed, uint8_t data);
-	int read_measure_results(uint8_t *buf, uint8_t len);
-	int read_response(Cmd cmd, uint8_t *buf, uint8_t len);
-	int send_command(Cmd cmd);
-	int send_command(Cmd cmd, uint8_t *data, uint8_t len);
-
-	uORB::PublicationMulti<sensor_baro_s> _sensor_baro_pub{ORB_ID(sensor_baro)};
-
-	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
-	perf_counter_t _bad_transfer_perf{perf_alloc(PC_COUNT, MODULE_NAME": bad transfer")};
-
-	hrt_abstime _reset_timestamp{0};
-	int _failure_count{0};
-
-	unsigned _measure_interval{0};
-	int16_t _scal[4];
-
-	enum class STATE : uint8_t {
-		RESET,
-		WAIT_FOR_RESET,
-		READ_OTP,
-		MEASURE,
-		READ
-	} _state{STATE::RESET};
-
-	enum class MODE : uint8_t {
-		FAST,
-		NORMAL,
-		ACCURATE,
-		VERY_ACCURATE
-	} _mode{MODE::VERY_ACCURATE};
+enum class Cmd : uint16_t {
+	READ_ID		= 0xefc8,
+	SET_ADDR 	= 0xc595,
+	READ_OTP 	= 0xc7f7,
+	MEAS_LP 	= 0x609c,
+	MEAS_N 		= 0x6825,
+	MEAS_LN 	= 0x70df,
+	MEAS_ULN  	= 0x7866,
+	SOFT_RESET 	= 0x805d
 };
+} // namespace Inven_Sense_ICP101XX
