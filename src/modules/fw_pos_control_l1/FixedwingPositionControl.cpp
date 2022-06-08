@@ -855,11 +855,17 @@ FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 		_was_in_air = true;
 		_time_went_in_air = now;
 		_takeoff_ground_alt = _current_altitude; // XXX: is this really a good idea?
+
+		_tecs.resetIntegrals();
+		_tecs.resetTrajectoryGenerators(_current_altitude);
 	}
 
 	/* reset flag when airplane landed */
 	if (_landed) {
 		_was_in_air = false;
+
+		_tecs.resetIntegrals();
+		_tecs.resetTrajectoryGenerators(_current_altitude);
 	}
 }
 
@@ -2176,7 +2182,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 float
 FixedwingPositionControl::get_tecs_pitch()
 {
-	if (_is_tecs_running) {
+	if (_tecs_is_running) {
 		return _tecs.get_pitch_setpoint() + radians(_param_fw_psp_off.get());
 	}
 
@@ -2187,7 +2193,7 @@ FixedwingPositionControl::get_tecs_pitch()
 float
 FixedwingPositionControl::get_tecs_thrust()
 {
-	if (_is_tecs_running) {
+	if (_tecs_is_running) {
 		return min(_tecs.get_throttle_setpoint(), 1.f);
 	}
 
@@ -2567,14 +2573,13 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		bool climbout_mode, float climbout_pitch_min_rad,
 		bool disable_underspeed_detection, float hgt_rate_sp)
 {
-	// do not run TECS if we are not in air
-	bool run_tecs = !_landed;
+	_tecs_is_running = true;
 
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
-			run_tecs = false;
+			_tecs_is_running = false;
 		}
 
 		if (_vehicle_status.in_transition_mode) {
@@ -2607,9 +2612,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 		}
 	}
 
-	_is_tecs_running = run_tecs;
-
-	if (!run_tecs) {
+	if (!_tecs_is_running) {
 		// next time we run TECS we should reinitialize states
 		_reinitialize_tecs = true;
 		return;
@@ -2623,16 +2626,14 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 	/* No underspeed protection in landing mode */
 	_tecs.set_detect_underspeed_enabled(!disable_underspeed_detection);
 
-	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
-	bool in_air_alt_control = (!_landed &&
-				   (_control_mode.flag_control_auto_enabled ||
-				    _control_mode.flag_control_velocity_enabled ||
-				    _control_mode.flag_control_altitude_enabled ||
-				    _control_mode.flag_control_climb_rate_enabled));
+	if (_landed) {
+		_tecs.resetIntegrals();
+		_tecs.resetTrajectoryGenerators(_current_altitude);
+	}
 
 	/* update TECS vehicle state estimates */
-	_tecs.update_vehicle_state_estimates(_airspeed, _body_acceleration(0), (_local_pos.timestamp > 0), in_air_alt_control,
-					     _current_altitude, _local_pos.vz);
+	_tecs.update_vehicle_state_estimates(_airspeed, _body_acceleration(0), (_local_pos.timestamp > 0), _current_altitude,
+					     _local_pos.vz);
 
 	const float throttle_trim_comp = compensateTrimThrottleForDensityAndWeight(_param_fw_thr_trim.get(), throttle_min,
 					 throttle_max);

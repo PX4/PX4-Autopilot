@@ -302,7 +302,7 @@ private:
 	matrix::Vector3f _body_velocity{};
 
 	bool _reinitialize_tecs{true};
-	bool _is_tecs_running{false};
+	bool _tecs_is_running{false};
 
 	hrt_abstime _time_last_tecs_update{0}; // [us]
 
