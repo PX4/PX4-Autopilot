@@ -95,6 +95,9 @@ if DRIVERS_CYPHAL
             bool "uORB pca_pwm Subscriber"
             default n
 
+	config CYPHAL_UORB_APA102_CONTROL_SUBSCRIBER
+            bool "uORB apa102_control Subscriber"
+            default n
     endmenu
 
     menu "Advertised Services"
