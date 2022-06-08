@@ -90,6 +90,9 @@ public:
 	float getMaxPitch(float max);
 	const matrix::Vector2d &getStartWP() const { return _start_wp; };
 
+	// NOTE: this is only to be used for mistaken mode transitions to takeoff while already in air
+	void forceSetFlyState() { _state = RunwayTakeoffState::FLY; }
+
 	void reset();
 
 private:
