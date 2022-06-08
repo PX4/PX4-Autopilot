@@ -72,7 +72,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_acc_b_noise(_params->accel_bias_p_noise),
 	_param_ekf2_mag_e_noise(_params->mage_p_noise),
 	_param_ekf2_mag_b_noise(_params->magb_p_noise),
-	_param_ekf2_wind_noise(_params->wind_vel_p_noise),
+	_param_ekf2_wind_nsd(_params->wind_vel_nsd),
 	_param_ekf2_terr_noise(_params->terrain_p_noise),
 	_param_ekf2_terr_grad(_params->terrain_gradient),
 	_param_ekf2_gps_v_noise(_params->gps_vel_noise),

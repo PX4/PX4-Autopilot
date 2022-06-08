@@ -263,8 +263,8 @@ struct parameters {
 	float accel_bias_p_noise{1.0e-2f};      ///< process noise for IMU accelerometer bias prediction (m/sec**3)
 	float mage_p_noise{1.0e-3f};            ///< process noise for earth magnetic field prediction (Gauss/sec)
 	float magb_p_noise{1.0e-4f};            ///< process noise for body magnetic field prediction (Gauss/sec)
-	float wind_vel_p_noise{1.0e-1f};        ///< process noise for wind velocity prediction (m/sec**2)
-	const float wind_vel_p_noise_scaler{0.5f};      ///< scaling of wind process noise with vertical velocity
+	float wind_vel_nsd{1.0e-2f};        ///< process noise spectral density for wind velocity prediction (m/sec**2/sqrt(Hz))
+	const float wind_vel_nsd_scaler{0.5f};      ///< scaling of wind process noise with vertical velocity
 
 	float terrain_p_noise{5.0f};            ///< process noise for terrain offset (m/sec)
 	float terrain_gradient{0.5f};           ///< gradient of terrain used to estimate process noise due to changing position (m/m)
