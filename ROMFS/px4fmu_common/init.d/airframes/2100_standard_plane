@@ -42,3 +42,6 @@ set MIXER AETRFG
 
 # Rate must be set by group (see pwm info).
 # Throttle is in the same group as servos.
+
+# use PWM parameters for throttle channe
+set PWM_OUT 3
