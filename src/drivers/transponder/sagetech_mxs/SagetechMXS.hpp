@@ -36,6 +36,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
+#include <px4_platform_common/cli.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -258,6 +259,6 @@ private:
 	uint32_t convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber);
 	int open_serial_port();
 	sg_emitter_t convert_emitter_type_to_sg (int emitType);
-	// void handle_fid(const char* fid);
+	int handle_fid(const char* fid);
 	// void handle_params();
 };

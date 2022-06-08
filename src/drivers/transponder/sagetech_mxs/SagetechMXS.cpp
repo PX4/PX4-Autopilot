@@ -45,74 +45,44 @@ extern "C" __EXPORT int sagetech_mxs_main(int argc, char *argv[])
 	return SagetechMXS::main(argc, argv);
 }
 
-int SagetechMXS::custom_command(int argc, char *argv[])
+SagetechMXS::SagetechMXS(const char *port) :
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port))
 {
-	// const char *verb = argv[0];
-
-	// if (!strcmp(verb, "flight_id")) {
-	// 	const char *fid = argv[1];
-	// 	if (strlen(fid)) {
-	// 		strncpy(mxs_state.fid.flightId, fid, sizeof(mxs_state.fid.flightId));
-	// 	}
-	// 	return 0;
-	// }
-
-	if (!is_running()) {
-		int ret = SagetechMXS::task_spawn(argc, argv);
-		if (ret) {
-			return ret;
-		}
-	}
-
-	return print_usage("Unknown Command");
+	strncpy(_port, port, sizeof(_port) -1);
+	_port[sizeof(_port)-1] = '\0';
 }
 
-int SagetechMXS::print_usage(const char *reason)
+SagetechMXS::~SagetechMXS()
 {
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-	### Description
-
-	THIS IS A DESCRIPTION.
-
-	### Examples
-
-	Attempt to start driver on a specified serial device.
-	$ sagetech_mxs start -d /dev/ttyS1
-	Stop driver
-	$ sagetech_mxs stop
-	Set Flight ID (8 char max)
-	$ sagetech_mxs flight_id MXS12345
-	)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("sagetech_mxs", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("transponder");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
-	// PRINT_MODULE_USAGE_COMMAND_DESCR("flight_id", "Set Flight ID (8 char max)");
-	return PX4_OK;
-}
-
-
-int SagetechMXS::print_status()
-{
-	perf_print_counter(_loop_elapsed_perf);
-	perf_print_counter(_loop_interval_perf);
-	return 0;
+	// stop();
+	perf_free(_loop_elapsed_perf);
+	perf_free(_loop_count_perf);
+	perf_free(_loop_interval_perf);
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
 }
 
 int SagetechMXS::task_spawn(int argc, char *argv[])
 {
 	const char *device_path = nullptr;
+	int baud = 0;
 	int ch;
 	int myoptind = 1;
+	// bool err_flag;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:b", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
+			break;
+		case 'b':
+			if(px4_get_parameter_value(myoptarg, baud) != 0) {
+				PX4_ERR("baudrate parsing failed");
+				return PX4_ERROR;
+				// err_flag = true;
+			}
 			break;
 		default:
 			PX4_WARN("unrecognized flag");
@@ -142,29 +112,74 @@ int SagetechMXS::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-SagetechMXS::SagetechMXS(const char *port) :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port))
-{
-	strncpy(_port, port, sizeof(_port) -1);
-	_port[sizeof(_port)-1] = '\0';
-}
 
-SagetechMXS::~SagetechMXS()
-{
-	// stop();
-	perf_free(_loop_elapsed_perf);
-	perf_free(_loop_count_perf);
-	perf_free(_loop_interval_perf);
-	perf_free(_sample_perf);
-	perf_free(_comms_errors);
-}
 
 bool SagetechMXS::init()
 {
 	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
 	return true;
 }
+
+int SagetechMXS::custom_command(int argc, char *argv[])
+{
+	const char *verb = argv[0];
+
+	if (!is_running()) {
+		int ret = SagetechMXS::task_spawn(argc, argv);
+		if (ret) {
+			return ret;
+		}
+	} else {
+		PX4_INFO("Verb: %s", verb);
+		if (!strcmp(verb, "flight_id")) {
+			const char *fid = argv[1];
+			if (fid == nullptr) {
+				print_usage("Missing Flight ID");
+				return PX4_ERROR;
+			}
+			return get_instance()->handle_fid(fid);
+		}
+	}
+
+	print_usage("Unknown Command");
+	return PX4_ERROR;
+}
+
+int SagetechMXS::print_usage(const char *reason)
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+	### Description
+
+	THIS IS A DESCRIPTION.
+
+	### Examples
+
+	Attempt to start driver on a specified serial device.
+	$ sagetech_mxs start -d /dev/ttyS1
+	Stop driver
+	$ sagetech_mxs stop
+	Set Flight ID (8 char max)
+	$ sagetech_mxs flight_id MXS12345
+	)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("sagetech_mxs", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("transponder");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("flight_id", "Set Flight ID (8 char max)");
+	return PX4_OK;
+}
+
+int SagetechMXS::print_status()
+{
+	perf_print_counter(_loop_elapsed_perf);
+	perf_print_counter(_loop_interval_perf);
+	return 0;
+}
+
+
 
 
 /******************************
@@ -466,7 +481,7 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 		}
 	}
 
-	PX4_INFO("SVR ICAO %x, SVR Air Heading %f", (int) t.icao_address, (double) t.heading);
+	// PX4_INFO("SVR ICAO %x, SVR Air Heading %f", (int) t.icao_address, (double) t.heading);
 	handle_vehicle(t);
 }
 
@@ -547,7 +562,7 @@ void SagetechMXS::send_install_msg()
 void SagetechMXS::send_flight_id_msg()
 {
 #ifdef SG_HW_TEST
-	snprintf(mxs_state.fid.flightId, sizeof(mxs_state.fid.flightId), "%-8s", "MXSTEST0");
+	// snprintf(mxs_state.fid.flightId, sizeof(mxs_state.fid.flightId), "%-8s", "MXSTEST0");
 #endif
 
 	last.msg.type = SG_MSG_TYPE_HOST_FLIGHT;
@@ -654,7 +669,7 @@ void SagetechMXS::send_gps_msg()
 	const time_t time_sec = _gps.time_utc_usec * 1E-6;
 	struct tm* tm = gmtime(&time_sec);
 	snprintf((char*)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min, tm->tm_sec + (_gps.time_utc_usec % 1000000) * 1.0e-6);
-	PX4_INFO("send_gps_msg: ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
+	// PX4_INFO("send_gps_msg: ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
 
 	gps.height = _gps.alt_ellipsoid * 1E-3;
 
@@ -713,7 +728,7 @@ void SagetechMXS::handle_packet(const Packet &msg)
 			break;
 		}
 		case MsgType::ADSB_StateVector_Report: {
-			PX4_INFO("GOT SVR PACKET");
+			// PX4_INFO("GOT SVR PACKET");
 			sg_svr_t svr{};
 			if (sgDecodeSVR((uint8_t*) &msg, &svr)) {
 				handle_svr(svr);
@@ -901,6 +916,16 @@ sg_emitter_t SagetechMXS::convert_emitter_type_to_sg (int emitType) {
 		case 19: return sg_emitter_t::cPoint;
 		default: return sg_emitter_t::dUnknown;
 	}
+}
+
+int SagetechMXS::handle_fid(const char* fid)
+{
+	if(snprintf(mxs_state.fid.flightId, sizeof(mxs_state.fid.flightId), "%-8s", fid) != 8) {
+		PX4_ERR("Failed to write Flight ID");
+		return PX4_ERROR;
+	}
+	PX4_INFO("Changed Flight ID to %s", mxs_state.fid.flightId);
+	return PX4_OK;
 }
 
 
