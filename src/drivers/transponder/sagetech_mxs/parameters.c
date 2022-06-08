@@ -40,7 +40,7 @@
  */
 
 /**
- * ADSB squawk code configuration
+ * ADSB-Out squawk code configuration
  *
  * This parameter defines the squawk code. Value should be between 0000 and 7777.
  *
@@ -53,7 +53,7 @@
 PARAM_DEFINE_INT32(ADSB_SQUAWK, 1200);
 
 /**
- * ADSB Ident Configuration
+ * ADSB-Out Ident Configuration
  *
  * Enable Identification of Position feature
  *
@@ -64,7 +64,7 @@ PARAM_DEFINE_INT32(ADSB_SQUAWK, 1200);
 PARAM_DEFINE_INT32(ADSB_IDENT, 0);
 
 /**
- * ADSB Vehicle List Size
+ * ADSB-In Vehicle List Size
  *
  * Adjust the number of participants in the target request message
  * Adjustment to this value will send a new target request
@@ -77,7 +77,7 @@ PARAM_DEFINE_INT32(ADSB_IDENT, 0);
 PARAM_DEFINE_INT32(ADSB_LIST_MAX, 25);
 
 /**
- * ADSB ICAO configuration
+ * ADSB-Out ICAO configuration
  *
  * Defines the ICAO ID of the vehicle
  *
@@ -90,7 +90,7 @@ PARAM_DEFINE_INT32(ADSB_LIST_MAX, 25);
 PARAM_DEFINE_INT32(ADSB_ICAO_ID, 0);
 
 /**
- * ADSB Vehicle Size Configuration
+ * ADSB-Out Vehicle Size Configuration
  *
  * Configure the size of the vehicle.
  *
@@ -119,7 +119,7 @@ PARAM_DEFINE_INT32(ADSB_ICAO_ID, 0);
 PARAM_DEFINE_INT32(ADSB_LEN_WIDTH, 1);
 
 /**
- * ADSB Vehicle Emitter Type
+ * ADSB-Out Vehicle Emitter Type
  *
  * Configure the emitter type of the vehicle.
  *
@@ -152,7 +152,26 @@ PARAM_DEFINE_INT32(ADSB_LEN_WIDTH, 1);
 PARAM_DEFINE_INT32(ADSB_EMIT_TYPE, 14);
 
 /**
- * ADSB Special ICAO configuration
+ * ADSB-Out Vehicle Max Speed
+ *
+ * Informs ADSB vehicles of this vehicle's max speed capability
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 6
+ * @value 0 UnknownMaxSpeed
+ * @value 1 75Kts
+ * @value 2 150Kts
+ * @value 3 300Kts
+ * @value 4 600Kts
+ * @value 5 1200Kts
+ * @value 6 Over1200Kts
+ * @group Transponder
+ */
+PARAM_DEFINE_INT32(ADSB_MAX_SPEED, 0);
+
+/**
+ * ADSB-In Special ICAO configuration
  *
  * This vehicle is always tracked. Use 0 to disable.
  *
@@ -180,7 +199,7 @@ PARAM_DEFINE_INT32(ADSB_ICAO_SPECL, 0);
  * @value 2 Standby
  * @value 3 Alt
  */
-PARAM_DEFINE_INT32(MXS_MODE, 0);
+PARAM_DEFINE_INT32(MXS_OP_MODE, 0);
 
 /**
  * Sagetech MXS Participant Configuration
@@ -255,3 +274,4 @@ PARAM_DEFINE_INT32(MXS_COM1_BAUD, 5);
  * @group Transponder
  */
 PARAM_DEFINE_INT32(MXS_EXT_CFG, 0);
+

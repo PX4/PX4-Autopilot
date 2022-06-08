@@ -223,8 +223,9 @@ private:
 		(ParamInt<px4::params::ADSB_ICAO_ID>)		_adsb_icao,
 		(ParamInt<px4::params::ADSB_LEN_WIDTH>)		_adsb_len_width,
 		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_adsb_emit_type,
+		(ParamInt<px4::params::ADSB_MAX_SPEED>)		_adsb_max_speed,
 		(ParamInt<px4::params::ADSB_ICAO_SPECL>)	_adsb_icao_specl,
-		(ParamInt<px4::params::MXS_MODE>)		_mxs_mode,
+		(ParamInt<px4::params::MXS_OP_MODE>)		_mxs_op_mode,
 		(ParamInt<px4::params::MXS_TARG_PORT>)		_mxs_targ_port,
 		(ParamInt<px4::params::MXS_COM0_BAUD>)		_mxs_com0_baud,
 		(ParamInt<px4::params::MXS_COM1_BAUD>)		_mxs_com1_baud,
@@ -255,5 +256,6 @@ private:
 	void send_targetreq_msg();
 	uint32_t convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber);
 	int open_serial_port();
-	void parameters_update();
+	void handle_params();
+	sg_emitter_t convert_emitter_type_to_sg (int emitType);
 };
