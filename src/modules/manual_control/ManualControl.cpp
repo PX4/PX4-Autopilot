@@ -240,14 +240,6 @@ void ManualControl::Run()
 							sendActionRequest(action_request_s::ACTION_UNKILL, action_request_s::SOURCE_RC_SWITCH);
 						}
 					}
-					if (switches.lowspeed_switch != _previous_switches.lowspeed_switch) {
-						if (switches.lowspeed_switch == manual_control_switches_s::SWITCH_POS_ON) {
-							sendActionRequest(action_request_s::ACTION_LOW_SPEED_MODE_ON, action_request_s::SOURCE_RC_SWITCH);
-
-						} else if (switches.lowspeed_switch == manual_control_switches_s::SWITCH_POS_OFF) {
-							sendActionRequest(action_request_s::ACTION_LOW_SPEED_MODE_OFF, action_request_s::SOURCE_RC_SWITCH);
-						}
-					}
 
 					if (switches.lowspeed_switch != _previous_switches.lowspeed_switch) {
 						if (switches.lowspeed_switch == manual_control_switches_s::SWITCH_POS_ON) {
