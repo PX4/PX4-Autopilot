@@ -272,8 +272,7 @@ private:
 
 	RunwayTakeoff _runway_takeoff;
 
-	// true if the last iteration was in manual mode (used to determine when a reset is needed)
-	bool _last_manual{false};
+	bool _skipping_takeoff_detection{false};
 
 	/* throttle and airspeed states */
 
@@ -578,7 +577,7 @@ private:
 	float get_auto_airspeed_setpoint(const float control_interval, const float pos_sp_cru_airspeed,
 					 const Vector2f &ground_speed);
 
-	void reset_takeoff_state(bool force = false);
+	void reset_takeoff_state();
 	void reset_landing_state();
 
 	bool using_npfg_with_wind_estimate() const;

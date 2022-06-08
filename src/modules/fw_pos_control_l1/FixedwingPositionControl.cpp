@@ -228,7 +228,7 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 
 			// reset state when arming
 			if (!was_armed && _control_mode.flag_armed) {
-				reset_takeoff_state(true);
+				reset_takeoff_state();
 				reset_landing_state();
 			}
 		}
@@ -753,6 +753,10 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 		return; // do not publish the setpoint
 	}
 
+	FW_POSCTRL_MODE last_position_control_mode = _control_mode_current;
+
+	_skipping_takeoff_detection = false;
+
 	if (((_control_mode.flag_control_auto_enabled && _control_mode.flag_control_position_enabled) ||
 	     _control_mode.flag_control_offboard_enabled) && pos_sp_curr_valid) {
 
@@ -766,6 +770,13 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 
 			} else {
 				_control_mode_current = FW_POSCTRL_MODE_AUTO_TAKEOFF;
+
+				if (last_position_control_mode != FW_POSCTRL_MODE_AUTO_TAKEOFF && !_landed) {
+					// skip takeoff detection when switching from any other mode, auto or manual,
+					// while already in air.
+					// TODO: find a better place for / way of doing this
+					_skipping_takeoff_detection = true;
+				}
 			}
 
 		} else if (_pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
@@ -786,13 +797,14 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 		   && pos_sp_curr_valid) {
 
 		// reset timer the first time we switch into this mode
-		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_ALTITUDE && _control_mode_current != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
+		if (last_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE
+		    && last_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE) {
 			_time_in_fixed_bank_loiter = now;
 		}
 
 		if (hrt_elapsed_time(&_time_in_fixed_bank_loiter) < (_param_nav_gpsf_lt.get() * 1_s)
 		    && !_vehicle_status.in_transition_mode) {
-			if (_control_mode_current != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
+			if (last_position_control_mode != FW_POSCTRL_MODE_AUTO_ALTITUDE) {
 				// Need to init because last loop iteration was in a different mode
 				mavlink_log_critical(&_mavlink_log_pub, "Start loiter with fixed bank angle.\t");
 				events::send(events::ID("fixedwing_position_control_fb_loiter"), events::Log::Critical,
@@ -802,7 +814,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 			_control_mode_current = FW_POSCTRL_MODE_AUTO_ALTITUDE;
 
 		} else {
-			if (_control_mode_current != FW_POSCTRL_MODE_AUTO_CLIMBRATE && !_vehicle_status.in_transition_mode) {
+			if (last_position_control_mode != FW_POSCTRL_MODE_AUTO_CLIMBRATE && !_vehicle_status.in_transition_mode) {
 				mavlink_log_critical(&_mavlink_log_pub, "Start descending.\t");
 				events::send(events::ID("fixedwing_position_control_descend"), events::Log::Critical, "Start descending");
 			}
@@ -812,7 +824,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now, bool 
 
 
 	} else if (_control_mode.flag_control_manual_enabled && _control_mode.flag_control_position_enabled) {
-		if (_control_mode_current != FW_POSCTRL_MODE_MANUAL_POSITION) {
+		if (last_position_control_mode != FW_POSCTRL_MODE_MANUAL_POSITION) {
 			/* Need to init because last loop iteration was in a different mode */
 			_hdg_hold_yaw = _yaw; // yaw is not controlled, so set setpoint to current yaw
 			_hdg_hold_enabled = false; // this makes sure the waypoints are reset below
@@ -1388,8 +1400,12 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		prev_wp(1) = pos_sp_curr.lon;
 	}
 
-	// continuously reset launch detection and runway takeoff until armed
+	if (_skipping_takeoff_detection) {
+		_launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
+	}
+
 	if (!_control_mode.flag_armed) {
+		_runway_takeoff.reset();
 		_launchDetector.reset();
 		_launch_detection_state = LAUNCHDETECTION_RES_NONE;
 		_launch_detection_notify = 0;
@@ -1405,6 +1421,10 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			mavlink_log_info(&_mavlink_log_pub, "Takeoff on runway\t");
 			events::send(events::ID("fixedwing_position_control_takeoff"), events::Log::Info, "Takeoff on runway");
+		}
+
+		if (_skipping_takeoff_detection) {
+			_runway_takeoff.forceSetFlyState();
 		}
 
 		float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
@@ -2361,6 +2381,14 @@ FixedwingPositionControl::Run()
 		// by default we don't want yaw to be contoller directly with rudder
 		_att_sp.fw_control_yaw = false;
 
+		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING) {
+			reset_landing_state();
+		}
+
+		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF) {
+			reset_takeoff_state();
+		}
+
 		switch (_control_mode_current) {
 		case FW_POSCTRL_MODE_AUTO: {
 				control_auto(control_interval, curr_pos, ground_speed, _pos_sp_triplet.previous, _pos_sp_triplet.current,
@@ -2401,12 +2429,6 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_OTHER: {
-				/* reset landing and takeoff state */
-				if (!_last_manual) {
-					reset_landing_state();
-					reset_takeoff_state();
-				}
-
 				_att_sp.thrust_body[0] = min(_att_sp.thrust_body[0], _param_fw_thr_max.get());
 
 				_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
@@ -2417,14 +2439,6 @@ FixedwingPositionControl::Run()
 				break;
 			}
 
-		}
-
-		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_LANDING) {
-			reset_landing_state();
-		}
-
-		if (_control_mode_current != FW_POSCTRL_MODE_AUTO_TAKEOFF) {
-			reset_takeoff_state();
 		}
 
 		if (_control_mode_current != FW_POSCTRL_MODE_OTHER) {
@@ -2457,7 +2471,6 @@ FixedwingPositionControl::Run()
 			}
 
 			_l1_control.reset_has_guidance_updated();
-			_last_manual = !_control_mode.flag_control_position_enabled;
 		}
 
 		perf_end(_loop_perf);
@@ -2465,20 +2478,13 @@ FixedwingPositionControl::Run()
 }
 
 void
-FixedwingPositionControl::reset_takeoff_state(bool force)
+FixedwingPositionControl::reset_takeoff_state()
 {
-	// only reset takeoff if !armed or just landed
-	if (!_control_mode.flag_armed || (_was_in_air && _landed) || force) {
+	_runway_takeoff.reset();
 
-		_runway_takeoff.reset();
-
-		_launchDetector.reset();
-		_launch_detection_state = LAUNCHDETECTION_RES_NONE;
-		_launch_detection_notify = 0;
-
-	} else {
-		_launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
-	}
+	_launchDetector.reset();
+	_launch_detection_state = LAUNCHDETECTION_RES_NONE;
+	_launch_detection_notify = 0;
 }
 
 void
