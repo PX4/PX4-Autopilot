@@ -5,7 +5,7 @@
 
 set UCAN146 1
 param set-default UCAN1_PCA_PWM_S 500
-param set-default UCAN1_APA102_SUB 501
+param set-default UCAN1_SPI_LED_S 501
 
 pca9685_ucan start -X
 

@@ -65,8 +65,8 @@
 #define CONFIG_CYPHAL_UORB_PCA_PWM_SUBSCRIBER 0
 #endif
 
-#ifndef CONFIG_CYPHAL_UORB_AP102_CONTROL_SUBSCRIBER
-#define CONFIG_CYPHAL_UORB_AP102_CONTROL_SUBSCRIBER 0
+#ifndef CONFIG_CYPHAL_UORB_SPI_LED_SUBSCRIBER
+#define CONFIG_CYPHAL_UORB_SPI_LED_SUBSCRIBER 0
 #endif
 
 /* Preprocessor calculation of Subscribers count */
@@ -77,7 +77,7 @@
 	CONFIG_CYPHAL_BMS_SUBSCRIBER + \
 	CONFIG_CYPHAL_UORB_SENSOR_GPS_SUBSCRIBER + \
 	CONFIG_CYPHAL_UORB_PCA_PWM_SUBSCRIBER + \
-	CONFIG_CYPHAL_UORB_AP102_CONTROL_SUBSCRIBER
+	CONFIG_CYPHAL_UORB_SPI_LED_SUBSCRIBER
 
 #include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
@@ -200,13 +200,13 @@ private:
 			0
 		},
 #endif
-#if CONFIG_CYPHAL_UORB_APA102_CONTROL_SUBSCRIBER
+#if CONFIG_CYPHAL_UORB_SPI_LED_SUBSCRIBER
 		{
 			[](CanardHandle & handle, UavcanParamManager & pmgr) -> UavcanDynamicPortSubscriber *
 			{
-				return new uORB_over_UAVCAN_Subscriber<apa102_control_s>(handle, pmgr, ORB_ID(apa102_control));
+				return new uORB_over_UAVCAN_Subscriber<spi_led_s>(handle, pmgr, ORB_ID(spi_led));
 			},
-			"uorb.apa102_control",
+			"uorb.spi_led",
 			0
 		},
 #endif

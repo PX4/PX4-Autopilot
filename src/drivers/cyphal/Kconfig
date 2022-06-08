@@ -95,8 +95,8 @@ if DRIVERS_CYPHAL
             bool "uORB pca_pwm Subscriber"
             default n
 
-	config CYPHAL_UORB_APA102_CONTROL_SUBSCRIBER
-            bool "uORB apa102_control Subscriber"
+	config CYPHAL_UORB_SPI_LED_SUBSCRIBER
+            bool "uORB spi_led Subscriber"
             default n
     endmenu
 

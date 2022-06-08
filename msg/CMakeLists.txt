@@ -50,7 +50,6 @@ set(msg_files
 	airspeed.msg
 	airspeed_validated.msg
 	airspeed_wind.msg
-	apa102_control.msg
 	autotune_attitude_control_status.msg
 	battery_status.msg
 	button_event.msg
@@ -159,6 +158,7 @@ set(msg_files
 	sensor_selection.msg
 	sensors_status_imu.msg
 	sensors_status.msg
+	spi_led.msg
 	system_power.msg
 	takeoff_status.msg
 	task_stack_info.msg

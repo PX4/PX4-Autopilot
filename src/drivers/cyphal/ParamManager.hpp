@@ -131,7 +131,7 @@ private:
 		{"uavcan.sub.uorb.sensor_gps.0.id",	"UCAN1_UORB_GPS",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.pub.uorb.sensor_gps.0.id",	"UCAN1_UORB_GPS_P",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		{"uavcan.sub.uorb.pca_pwm.0.id",	"UCAN1_PCA_PWM_S",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
-		{"uavcan.sub.uorb.apa102_control.0.id",	"UCAN1_APA102_SUB",	px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
+		{"uavcan.sub.uorb.spi_led.0.id",	"UCAN1_SPI_LED_S",		px4_param_to_uavcan_port_id, uavcan_port_id_to_px4_param},
 		//{"uavcan.sub.bms.0.id",   "UCAN1_BMS0_SUB"}, //FIXME instancing
 		//{"uavcan.sub.bms.1.id",   "UCAN1_BMS1_SUB"},
 	};

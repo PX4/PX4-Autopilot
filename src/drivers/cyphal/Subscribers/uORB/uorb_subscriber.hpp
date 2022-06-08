@@ -48,7 +48,7 @@
 
 #include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/pca_pwm.h>
-#include <uORB/topics/apa102_control.h>
+#include <uORB/topics/spi_led.h>
 
 template <class T>
 class uORB_over_UAVCAN_Subscriber : public UavcanDynamicPortSubscriber
