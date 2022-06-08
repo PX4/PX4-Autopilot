@@ -89,6 +89,7 @@ void SagetechMXS::Run()
 	if (bytes_available > 0) {
 		while (bytes_available > 0) {
 			uint16_t data;
+			// tcflush(_fd, TCOFLUSH);
 			ret = read(_fd, &data, 1);
 			// PX4_INFO("GOT BYTE: %02x", (uint8_t)data);
 			parse_byte((uint8_t)data);
@@ -339,8 +340,7 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 		}
 		if (svr.validity.surfHeading) {
-			float heading = matrix::wrap_pi(math::radians(svr.surface.heading));
-			t.heading = heading;
+			t.heading = matrix::wrap_pi(((float)svr.surface.heading*M_PI_F)/180.0f);
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
 		}
 	}
@@ -348,14 +348,13 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 	if (svr.type == svrAirborne) {
 		if (svr.validity.airSpeed) {
 			t.hor_velocity = (svr.airborne.speed * SAGETECH_SCALE_KNOTS_TO_M_PER_SEC);	//Convert from knots to meters/second
-			float heading = matrix::wrap_pi(math::radians(svr.airborne.heading));
-			t.heading = heading;
+			t.heading = matrix::wrap_pi(((float)svr.airborne.heading*M_PI_F)/180.0f);
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
 			t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 		}
-
 	}
 
+	PX4_INFO("SVR ICAO %x, SVR Air Heading %f", (int) t.icao_address, (double) t.heading);
 	handle_vehicle(t);
 }
 
@@ -388,7 +387,7 @@ void SagetechMXS::handle_msr(sg_msr_t msr)
 int SagetechMXS::msg_write(const uint8_t *data, const uint16_t len) const
 {
 	int ret = 0;
-	if (!(_fd < 0)) {
+	if (_fd >= 0) {
 		tcflush(_fd, TCIFLUSH);
 		ret = write(_fd, data, len);
 		// PX4_INFO("WRITING DATA OF LEN %d OUT", len);
@@ -661,7 +660,6 @@ void SagetechMXS::send_gps_msg()
 	snprintf((char*)&gps.grdSpeed, 7, "%03u.%02u", (unsigned)speed_knots, unsigned((speed_knots - (int)speed_knots) * (float)1.0E2));
 
 	const float heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
-	// const float heading = math::degrees(matrix::wrap_2pi(_gps.heading));
 
 	snprintf((char*)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * (float)1.0E4));
 
@@ -673,7 +671,7 @@ void SagetechMXS::send_gps_msg()
 	const time_t time_sec = _gps.time_utc_usec * 1E-6;
 	struct tm* tm = gmtime(&time_sec);
 	snprintf((char*)&gps.timeOfFix, 11, "%02u%02u%06.3f", tm->tm_hour, tm->tm_min, tm->tm_sec + (_gps.time_utc_usec % 1000000) * 1.0e-6);
-	// PX4_INFO("send_gps_msg: ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
+	PX4_INFO("send_gps_msg: ToF %s, Longitude %s, Latitude %s, Grd Speed %s, Grd Track %s", gps.timeOfFix, gps.longitude, gps.latitude, gps.grdSpeed, gps.grdTrack);
 
 	gps.height = _gps.alt_ellipsoid * 1E-3;
 
@@ -854,15 +852,13 @@ int SagetechMXS::open_serial_port() {
 		if (_fd < 0) {
 			PX4_ERR("Opening port %s failed %i", _port, errno);
 			return PX4_ERROR;
-		} else {
-			PX4_INFO("Opened port %s", _port);
 		}
 	} else {
 		return PX4_OK;
 	}
 
 	// UART Configuration
-	struct termios uart_config;
+	struct termios uart_config {};
 	int termios_state = -1;
 
 	if(tcgetattr(_fd, &uart_config)) {
@@ -872,10 +868,14 @@ int SagetechMXS::open_serial_port() {
 		return PX4_ERROR;
 	}
 
-	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
-	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
-	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
 	uart_config.c_oflag &= ~ONLCR;
+	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+	// uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
+	// uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
+	// uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+	// uart_config.c_oflag &= ~ONLCR;
+	// uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
 	unsigned baud = B57600;
 	if ((cfsetispeed(&uart_config, baud) < 0) || (cfsetospeed(&uart_config, baud) < 0)) {
@@ -890,6 +890,6 @@ int SagetechMXS::open_serial_port() {
 	}
 
 	tcflush(_fd, TCIOFLUSH);
+	PX4_INFO("Opened port %s", _port);
 	return PX4_OK;
-
 }
