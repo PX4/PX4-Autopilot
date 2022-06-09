@@ -293,3 +293,25 @@ PARAM_DEFINE_INT32(MXS_COM1_BAUD, 5);
  */
 PARAM_DEFINE_INT32(MXS_EXT_CFG, 0);
 
+/**
+ * MXS Serial Communication Baud rate
+ *
+ * Baudrate for the Serial Port connected to the MXS Transponder
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 10
+ * @value 0 38400
+ * @value 1 600
+ * @value 2 4800
+ * @value 3 9600
+ * @value 4 RESERVED
+ * @value 5 57600
+ * @value 6 115200
+ * @value 7 230400
+ * @value 8 19200
+ * @value 9 460800
+ * @value 10 921600
+ * @group Serial
+ */
+PARAM_DEFINE_INT32(SER_MXS_BAUD, 5);

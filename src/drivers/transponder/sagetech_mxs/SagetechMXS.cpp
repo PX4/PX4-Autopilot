@@ -118,6 +118,7 @@ bool SagetechMXS::init()
 {
 	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
 	mxs_state.initialized = false;
+	mxs_state.init_failed = false;
 	return true;
 }
 
@@ -139,6 +140,10 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 				return PX4_ERROR;
 			}
 			return get_instance()->handle_fid(fid);
+		}
+		if (!strcmp(verb, "ident")) {
+			get_instance()->_adsb_ident.set(1);
+			return get_instance()->_adsb_ident.commit();
 		}
 	}
 
@@ -170,6 +175,7 @@ int SagetechMXS::print_usage(const char *reason)
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("flight_id", "Set Flight ID (8 char max)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("ident", "Set the IDENT bit in ADSB-Out messages");
 	return PX4_OK;
 }
 
@@ -190,7 +196,7 @@ int SagetechMXS::print_status()
 void SagetechMXS::Run()
 {
 	// Thread Stop
-	if (should_exit()) {
+	if (should_exit() || mxs_state.init_failed) {
 		ScheduleClear();
 		exit_and_cleanup();
 		return;
@@ -203,12 +209,16 @@ void SagetechMXS::Run()
 	_loop_count = perf_event_count(_loop_count_perf);
 
 	/*************************
-	 * 20 Hz Timer
+	 * 50 Hz Timer
 	 * ***********************/
 	open_serial_port();
 
 	// Initialization
 	if (!mxs_state.initialized) {
+		if ((_loop_count > MXS_INIT_TIMEOUT_COUNT) && !mxs_state.init_failed) {	// Initialization timeout
+			PX4_ERR("Timeout: Failed to Initialize.");
+			mxs_state.init_failed = true;
+		}
 		// TODO: Use elapsed performance counter to track timeout
 		if (!_mxs_ext_cfg.get()) {
 			// Auto configuration
@@ -283,6 +293,10 @@ void SagetechMXS::Run()
 			parameter_update_s param_update;
 			_parameter_update_sub.copy(&param_update);
 			ModuleParams::updateParams();
+
+			if (mxs_state.treq.transmitPort != (sg_transmitport_t)_mxs_targ_port.get()) {
+				send_targetreq_msg();
+			}
 		}
 	}
 
@@ -909,7 +923,8 @@ int SagetechMXS::open_serial_port() {
 	// uart_config.c_oflag &= ~ONLCR;
 	// uart_config.c_cflag &= ~(CSTOPB | PARENB);
 
-	unsigned baud = B57600;
+	unsigned baud = convert_to_px4_baud(_ser_mxs_baud.get());
+	// unsigned baud = B57600;
 	if ((cfsetispeed(&uart_config, baud) < 0) || (cfsetospeed(&uart_config, baud) < 0)) {
 		PX4_ERR("ERR SET BAUD %s: %d\n", _port, termios_state);
 		px4_close(_fd);
@@ -925,6 +940,24 @@ int SagetechMXS::open_serial_port() {
 	PX4_INFO("Opened port %s", _port);
 	return PX4_OK;
 }
+
+unsigned SagetechMXS::convert_to_px4_baud (int baudType) {
+	switch (baudType) {
+		case 0: return B38400;
+		case 1: return B600;
+		case 2: return B4800;
+		case 3: return B9600;
+		// case 4: Reserved
+		case 5: return B57600;
+		case 6: return B115200;
+		case 7: return B230400;
+		case 8: return B19200;
+		case 9: return B460800;
+		case 10: return B921600;
+		default: return B0;
+	}
+}
+
 
 sg_emitter_t SagetechMXS::convert_emitter_type_to_sg (int emitType) {
 	switch (emitType) {

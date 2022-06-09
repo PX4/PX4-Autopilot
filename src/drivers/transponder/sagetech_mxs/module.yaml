@@ -4,6 +4,6 @@ serial_config:
     - command: sagetech_mxs start -d ${SERIAL_DEV}
       port_config_param:
         name: MXS_SER_PORT
-        group: Transponders
+        group: Transponder
         default: TEL2
       label: Sagetech MXS Serial Port

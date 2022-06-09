@@ -123,7 +123,7 @@ private:
 	static constexpr uint16_t MAX_VEHICLES_TRACKED{25};
 	static constexpr float SAGETECH_HPL_UNKNOWN{38000.0f};
 	static constexpr float CLIMB_RATE_LIMIT{16448};
-	static constexpr uint16_t MXS_INIT_TIMEOUT{20000};
+	static constexpr uint16_t MXS_INIT_TIMEOUT_COUNT{1000};		// 1000 loop cycles = 20 seconds
 
 
 	// Stored variables
@@ -235,7 +235,8 @@ private:
 		(ParamInt<px4::params::MXS_TARG_PORT>)		_mxs_targ_port,
 		(ParamInt<px4::params::MXS_COM0_BAUD>)		_mxs_com0_baud,
 		(ParamInt<px4::params::MXS_COM1_BAUD>)		_mxs_com1_baud,
-		(ParamInt<px4::params::MXS_EXT_CFG>)		_mxs_ext_cfg
+		(ParamInt<px4::params::MXS_EXT_CFG>)		_mxs_ext_cfg,
+		(ParamInt<px4::params::SER_MXS_BAUD>)		_ser_mxs_baud
 	);
 
 	// Functions
@@ -270,5 +271,6 @@ private:
 	void auto_config_operating();
 	void auto_config_installation();
 	void auto_config_flightid();
+	unsigned convert_to_px4_baud(int baudType);
 	// void handle_params();
 };
