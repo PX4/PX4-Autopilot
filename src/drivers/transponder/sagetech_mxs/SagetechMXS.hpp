@@ -97,8 +97,8 @@ private:
 		(ParamInt<px4::params::ADSB_EMERGC>)		_adsb_emergc,
 		(ParamInt<px4::params::MXS_OP_MODE>)		_mxs_op_mode,
 		(ParamInt<px4::params::MXS_TARG_PORT>)		_mxs_targ_port,
-		(ParamInt<px4::params::MXS_COM0_BAUD>)		_mxs_com0_baud,
-		(ParamInt<px4::params::MXS_COM1_BAUD>)		_mxs_com1_baud,
+		// (ParamInt<px4::params::MXS_COM0_BAUD>)		_mxs_com0_baud,
+		// (ParamInt<px4::params::MXS_COM1_BAUD>)		_mxs_com1_baud,
 		(ParamInt<px4::params::MXS_EXT_CFG>)		_mxs_ext_cfg,
 		(ParamInt<px4::params::SER_MXS_BAUD>)		_ser_mxs_baud
 	);
@@ -140,7 +140,7 @@ private:
 	static constexpr float SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN{196.85f};
 	static constexpr uint8_t ADSB_ALTITUDE_TYPE_PRESSURE_QNH{0};
 	static constexpr uint8_t ADSB_ALTITUDE_TYPE_GEOMETRIC{1};
-	// static constexpr uint16_t MAX_VEHICLES_TRACKED{25};
+	static constexpr uint16_t MAX_VEHICLES_LIMIT{50};
 	static constexpr float SAGETECH_HPL_UNKNOWN{38000.0f};
 	static constexpr float CLIMB_RATE_LIMIT{16448};
 	static constexpr uint16_t MXS_INIT_TIMEOUT_COUNT{1000};		// 1000 loop cycles = 20 seconds

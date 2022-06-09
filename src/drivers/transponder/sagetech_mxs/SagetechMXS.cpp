@@ -120,6 +120,9 @@ bool SagetechMXS::init()
 	mxs_state.initialized = false;
 	mxs_state.init_failed = false;
 	if (vehicle_list == nullptr) {
+		if (_adsb_list_max.get() > MAX_VEHICLES_LIMIT) {	// Safety Check
+			_adsb_list_max.set(MAX_VEHICLES_LIMIT);
+		}
 		vehicle_list = new transponder_report_s[_adsb_list_max.get()];
 		if (vehicle_list == nullptr) {
 			mxs_state.init_failed = true;
@@ -1089,11 +1092,16 @@ void SagetechMXS::auto_config_operating()
 
 void SagetechMXS::auto_config_installation()
 {
+	if (mxs_state.ack.opMode != modeOff) {
+		PX4_ERR("MXS not put in OFF Mode before installation.");
+		return;
+	}
 	mxs_state.inst.icao = (uint32_t) _adsb_icao.get();
 	snprintf(mxs_state.inst.reg, 8, "%-7s", "PX4TEST");
 
-	mxs_state.inst.com0 = (sg_baud_t)_mxs_com0_baud.get();
-	mxs_state.inst.com1 = (sg_baud_t)_mxs_com1_baud.get();
+	mxs_state.inst.com0 = sg_baud_t::baud230400;
+	mxs_state.inst.com1 = sg_baud_t::baud57600;
+	PX4_INFO("Set Com0 to %d and Com1 to %d", mxs_state.inst.com0, mxs_state.inst.com1);
 
 	mxs_state.inst.eth.ipAddress = 0;
 	mxs_state.inst.eth.subnetMask = 0;
