@@ -263,6 +263,7 @@ private:
 	static constexpr int MAX_GPS = 3;
 	uORB::PublicationMulti<sensor_gps_s>	*_sensor_gps_pubs[MAX_GPS] {};
 	uint8_t _gps_ids[MAX_GPS] {};
+	uint32_t _gps_dev_ids[MAX_GPS] {};
 	std::default_random_engine _gen{};
 
 	// uORB subscription handlers
