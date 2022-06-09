@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019-2020 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -54,8 +54,16 @@ using namespace matrix;
 using namespace time_literals;
 
 Sih::Sih() :
-	ModuleParams(nullptr),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
+	ModuleParams(nullptr)
+{}
+
+Sih::~Sih()
+{
+	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
+}
+
+void Sih::run()
 {
 	_px4_accel.set_temperature(T1_C);
 	_px4_gyro.set_temperature(T1_C);
@@ -77,15 +85,86 @@ Sih::Sih() :
 	if (_sys_ctrl_alloc.get()) {
 		_actuator_out_sub = uORB::Subscription{ORB_ID(actuator_outputs_sim)};
 	}
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	lockstep_loop();
+#else
+	realtime_loop();
+#endif
+	exit_and_cleanup();
 }
 
-Sih::~Sih()
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+// Get current timestamp in microseconds
+uint64_t micros()
 {
-	perf_free(_loop_perf);
-	perf_free(_loop_interval_perf);
+	struct timeval t;
+	gettimeofday(&t, nullptr);
+	return t.tv_sec * ((uint64_t)1000000) + t.tv_usec;
 }
 
-bool Sih::init()
+void Sih::lockstep_loop()
+{
+
+	int rate = math::min(_imu_gyro_ratemax.get(), _imu_integration_rate.get());
+
+	// default to 400Hz (2500 us interval)
+	if (rate <= 0) {
+		rate = 400;
+	}
+
+	// 200 - 2000 Hz
+	int sim_interval_us = math::constrain(int(roundf(1e6f / rate)), 500, 5000);
+
+	float speed_factor = 1.f;
+	const char *speedup = getenv("PX4_SIM_SPEED_FACTOR");
+
+	if (speedup) {
+		speed_factor = atof(speedup);
+	}
+
+	int rt_interval_us = int(roundf(sim_interval_us / speed_factor));
+
+	PX4_INFO("Simulation loop with %d Hz (%d us sim time interval)", rate, sim_interval_us);
+	PX4_INFO("Simulation with %.1fx speedup. Loop with (%d us wall time interval)", (double)speed_factor, rt_interval_us);
+	uint64_t pre_compute_wall_time_us;
+
+	while (!should_exit()) {
+		pre_compute_wall_time_us = micros();
+		perf_count(_loop_interval_perf);
+
+		_current_simulation_time_us += sim_interval_us;
+		struct timespec ts;
+		abstime_to_ts(&ts, _current_simulation_time_us);
+		px4_clock_settime(CLOCK_MONOTONIC, &ts);
+
+		perf_begin(_loop_perf);
+		sensor_step();
+		perf_end(_loop_perf);
+
+		// Only do lock-step once we received the first actuator output
+		int sleep_time;
+		uint64_t current_wall_time_us;
+
+		if (_last_actuator_output_time <= 0) {
+			PX4_DEBUG("SIH starting up - no lockstep yet");
+			current_wall_time_us = micros();
+			sleep_time = math::max(0, sim_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
+
+		} else {
+			px4_lockstep_wait_for_components();
+			current_wall_time_us = micros();
+			sleep_time = math::max(0, rt_interval_us - (int)(current_wall_time_us - pre_compute_wall_time_us));
+		}
+
+		_achieved_speedup = 0.99f * _achieved_speedup + 0.01f * ((float)sim_interval_us / (float)(
+					    current_wall_time_us - pre_compute_wall_time_us + sleep_time));
+		usleep(sleep_time);
+	}
+}
+#endif
+
+void Sih::realtime_loop()
 {
 	int rate = _imu_gyro_ratemax.get();
 
@@ -96,20 +175,29 @@ bool Sih::init()
 
 	// 200 - 2000 Hz
 	int interval_us = math::constrain(int(roundf(1e6f / rate)), 500, 5000);
-	ScheduleOnInterval(interval_us);
 
-	return true;
-}
+	px4_sem_init(&_data_semaphore, 0, 0);
+	hrt_call_every(&_timer_call, interval_us, interval_us, timer_callback, &_data_semaphore);
 
-void Sih::Run()
-{
-	if (should_exit()) {
-		exit_and_cleanup();
-		return;
+	while (!should_exit()) {
+		px4_sem_wait(&_data_semaphore);     // periodic real time wakeup
+		perf_begin(_loop_perf);
+		sensor_step();
+		perf_end(_loop_perf);
 	}
 
-	perf_count(_loop_interval_perf);
+	hrt_cancel(&_timer_call);
+	px4_sem_destroy(&_data_semaphore);
+}
 
+
+void Sih::timer_callback(void *sem)
+{
+	px4_sem_post((px4_sem_t *)sem);
+}
+
+void Sih::sensor_step()
+{
 	// check for parameter updates
 	if (_parameter_update_sub.updated()) {
 		// clear update
@@ -170,7 +258,7 @@ void Sih::Run()
 		send_gps();
 	}
 
-	if (_vehicle == VehicleType::FW && _now - _airspeed_time >= 50_ms) {
+	if ((_vehicle == VehicleType::FW || _vehicle == VehicleType::TS) && _now - _airspeed_time >= 50_ms) {
 		_airspeed_time = _now;
 		send_airspeed();
 	}
@@ -284,6 +372,7 @@ void Sih::read_motors()
 	float pwm_middle = 0.5f * (PWM_DEFAULT_MIN + PWM_DEFAULT_MAX);
 
 	if (_actuator_out_sub.update(&actuators_out)) {
+		_last_actuator_output_time = actuators_out.timestamp;
 
 		if (_sys_ctrl_alloc.get()) {
 			for (int i = 0; i < NB_MOTORS; i++) { // saturate the motor signals
@@ -598,8 +687,8 @@ float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
 
 	if (phase) {
 		do {
-			float U1 = (float)rand() / RAND_MAX;
-			float U2 = (float)rand() / RAND_MAX;
+			float U1 = (float)rand() / (float)RAND_MAX;
+			float U2 = (float)rand() / (float)RAND_MAX;
 			V1 = 2.0f * U1 - 1.0f;
 			V2 = 2.0f * U2 - 1.0f;
 			S = V1 * V1 + V2 * V2;
@@ -623,6 +712,11 @@ Vector3f Sih::noiseGauss3f(float stdx, float stdy, float stdz)
 
 int Sih::print_status()
 {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	PX4_INFO("Running in lockstep mode");
+	PX4_INFO("Achieved speedup: %.2fX", (double)_achieved_speedup);
+#endif
+
 	if (_vehicle == VehicleType::MC) {
 		PX4_INFO("Running MultiCopter");
 
@@ -658,27 +752,33 @@ int Sih::print_status()
 	return 0;
 }
 
+
 int Sih::task_spawn(int argc, char *argv[])
+{
+	_task_id = px4_task_spawn_cmd("sih",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_MAX,
+				      1250,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
+
+	if (_task_id < 0) {
+		_task_id = -1;
+		return -errno;
+	}
+
+	return 0;
+}
+
+Sih *Sih::instantiate(int argc, char *argv[])
 {
 	Sih *instance = new Sih();
 
-	if (instance) {
-		_object.store(instance);
-		_task_id = task_id_is_work_queue;
-
-		if (instance->init()) {
-			return PX4_OK;
-		}
-
-	} else {
+	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
 	}
 
-	delete instance;
-	_object.store(nullptr);
-	_task_id = -1;
-
-	return PX4_ERROR;
+	return instance;
 }
 
 int Sih::custom_command(int argc, char *argv[])
