@@ -240,9 +240,6 @@ void SagetechMXS::Run()
 			_mxs_op_mode.commit();
 			send_targetreq_msg();
 			mxs_state.initialized = true;
-		} else {
-			// External Configuration
-			send_data_req(dataInstall);
 		}
 	}
 
@@ -291,6 +288,11 @@ void SagetechMXS::Run()
 
 	if (!(_loop_count % ONE_HZ_MOD)) {		// 1Hz Timer (Operating Message/GPS Ground)
 		// PX4_INFO("1 Hz callback");
+
+		if (!mxs_state.initialized && _mxs_ext_cfg.get()) {
+			// External Configuration
+			send_data_req(dataInstall);
+		}
 
 		// If Vehicle is grounded send GPS message at 1 Hz
 		if (_landed.landed) {
@@ -773,6 +775,7 @@ void SagetechMXS::handle_packet(const Packet &msg)
 			break;
 		case MsgType::Installation_Response:
 			// TODO: set up installation data here
+			// PX4_INFO("GOT INSTALLATION RESPONSE PACKET");
 			if(!mxs_state.initialized && sgDecodeInstall((uint8_t*)&msg, &mxs_state.inst)) {
 				store_inst_resp();
 				mxs_state.initialized = true;
