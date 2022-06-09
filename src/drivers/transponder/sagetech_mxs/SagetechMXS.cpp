@@ -714,6 +714,7 @@ void SagetechMXS::send_gps_msg()
 	snprintf((char*)&gps.grdSpeed, 7, "%03u.%02u", (unsigned)speed_knots, unsigned((speed_knots - (int)speed_knots) * (float)1.0E2));
 
 	const float heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	// PX4_INFO("CoG: %f. Heading: %f", (double) _gps.cog_rad, (double) _gps.heading);
 
 	snprintf((char*)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * (float)1.0E4));
 
@@ -825,7 +826,7 @@ void SagetechMXS::handle_packet(const Packet &msg)
 		case MsgType::ADSB_Target_State_Report:
 		case MsgType::ADSB_Air_Ref_Vel_Report:
 			// Not handling the rest of these.
-			PX4_INFO("GOT DIFFERENT PACKET");
+			// PX4_INFO("GOT DIFFERENT PACKET");
 			break;
 	}
 }
