@@ -81,8 +81,8 @@ FixedwingPositionINDIControl::init()
     //_read_trajectory_coeffs_csv("trajectory3.csv");
     //_read_trajectory_coeffs_csv("trajectory2.csv");
     //_read_trajectory_coeffs_csv("trajectory1.csv");
-    char filename[] = "trajectory0.csv";
-    _read_trajectory_coeffs_csv(filename);
+    //char filename[] = "trajectory0.csv";
+    //_read_trajectory_coeffs_csv(filename);
 
     // initialize transformations
     _R_ned_to_enu *= 0.f;
@@ -441,18 +441,20 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
 
-    if (!fp) {
+    if (fp == nullptr) {
         PX4_ERR("Can't open file");
         error = true;
     }
     else {
         // Here we have taken size of
         // array 1024 you can modify it
-        const uint buffersize = 64*_num_basis_funs;
+        const uint buffersize = _num_basis_funs*32;
         char buffer[buffersize];
 
         int row = 0;
@@ -465,7 +467,7 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
  
             // Splitting the data
             char* value = strtok(buffer, ",");
- 
+            
             // loop over columns
             while (value) {
 
@@ -483,6 +485,7 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
                     default:
                         break;
                 }
+                PX4_INFO("row: %d, col: %d, read value: %.3f", row, column, (double)atof(value));
                 value = strtok(NULL, ",");
                 column++;
                 

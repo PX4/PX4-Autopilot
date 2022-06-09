@@ -12,13 +12,6 @@
 #define FIXEDWINGPOSITIONINDICONTROL_HPP_
 
 #include <float.h>
-/*
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <array>
-*/
 
 #include <stdio.h>
 #include <string.h>
