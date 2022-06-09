@@ -84,6 +84,26 @@ public:
 	int print_status() override;
 
 private:
+	// Parameters
+	DEFINE_PARAMETERS(
+		(ParamInt<px4::params::ADSB_SQUAWK>)		_adsb_squawk,
+		(ParamInt<px4::params::ADSB_IDENT>)		_adsb_ident,
+		(ParamInt<px4::params::ADSB_LIST_MAX>)		_adsb_list_max,
+		(ParamInt<px4::params::ADSB_ICAO_ID>)		_adsb_icao,
+		(ParamInt<px4::params::ADSB_LEN_WIDTH>)		_adsb_len_width,
+		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_adsb_emit_type,
+		(ParamInt<px4::params::ADSB_MAX_SPEED>)		_adsb_max_speed,
+		(ParamInt<px4::params::ADSB_ICAO_SPECL>)	_adsb_icao_specl,
+		(ParamInt<px4::params::ADSB_EMERGC>)		_adsb_emergc,
+		(ParamInt<px4::params::MXS_OP_MODE>)		_mxs_op_mode,
+		(ParamInt<px4::params::MXS_TARG_PORT>)		_mxs_targ_port,
+		(ParamInt<px4::params::MXS_COM0_BAUD>)		_mxs_com0_baud,
+		(ParamInt<px4::params::MXS_COM1_BAUD>)		_mxs_com1_baud,
+		(ParamInt<px4::params::MXS_EXT_CFG>)		_mxs_ext_cfg,
+		(ParamInt<px4::params::SER_MXS_BAUD>)		_ser_mxs_baud
+	);
+
+	// Serial Port Variables
 	char _port[20] {};
 	int  _fd{-1};
 
@@ -120,11 +140,10 @@ private:
 	static constexpr float SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN{196.85f};
 	static constexpr uint8_t ADSB_ALTITUDE_TYPE_PRESSURE_QNH{0};
 	static constexpr uint8_t ADSB_ALTITUDE_TYPE_GEOMETRIC{1};
-	static constexpr uint16_t MAX_VEHICLES_TRACKED{25};
+	// static constexpr uint16_t MAX_VEHICLES_TRACKED{25};
 	static constexpr float SAGETECH_HPL_UNKNOWN{38000.0f};
 	static constexpr float CLIMB_RATE_LIMIT{16448};
 	static constexpr uint16_t MXS_INIT_TIMEOUT_COUNT{1000};		// 1000 loop cycles = 20 seconds
-
 
 	// Stored variables
 	uint64_t _loop_count;
@@ -215,29 +234,13 @@ private:
 	bool _armed{false};
 
 	// External Vehicle List
-	transponder_report_s vehicle_list[MAX_VEHICLES_TRACKED];
+	transponder_report_s *vehicle_list;
+	// transponder_report_s vehicle_list[_adsb_list_max.get()];
 	uint16_t vehicle_count;
 	uint16_t furthest_vehicle_index;
 	float furthest_vehicle_distance;
 
-	// Parameters
-	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::ADSB_SQUAWK>)		_adsb_squawk,
-		(ParamInt<px4::params::ADSB_IDENT>)		_adsb_ident,
-		(ParamInt<px4::params::ADSB_LIST_MAX>)		_adsb_list_max,
-		(ParamInt<px4::params::ADSB_ICAO_ID>)		_adsb_icao,
-		(ParamInt<px4::params::ADSB_LEN_WIDTH>)		_adsb_len_width,
-		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_adsb_emit_type,
-		(ParamInt<px4::params::ADSB_MAX_SPEED>)		_adsb_max_speed,
-		(ParamInt<px4::params::ADSB_ICAO_SPECL>)	_adsb_icao_specl,
-		(ParamInt<px4::params::ADSB_EMERGC>)		_adsb_emergc,
-		(ParamInt<px4::params::MXS_OP_MODE>)		_mxs_op_mode,
-		(ParamInt<px4::params::MXS_TARG_PORT>)		_mxs_targ_port,
-		(ParamInt<px4::params::MXS_COM0_BAUD>)		_mxs_com0_baud,
-		(ParamInt<px4::params::MXS_COM1_BAUD>)		_mxs_com1_baud,
-		(ParamInt<px4::params::MXS_EXT_CFG>)		_mxs_ext_cfg,
-		(ParamInt<px4::params::SER_MXS_BAUD>)		_ser_mxs_baud
-	);
+
 
 	// Functions
 	// void start();

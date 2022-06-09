@@ -66,8 +66,7 @@ PARAM_DEFINE_INT32(ADSB_IDENT, 0);
 /**
  * ADSB-In Vehicle List Size
  *
- * Adjust the number of participants in the target request message
- * Adjustment to this value will send a new target request
+ * Change number of targets to track
  *
  * @min 0
  * @max 50
@@ -238,7 +237,7 @@ PARAM_DEFINE_INT32(MXS_TARG_PORT, 1);
 /**
  * Sagetech MXS COM0 Baud configuration
  *
- * This parameter defines the baud rate for the MXS COM 1 Port
+ * This parameter defines the baud rate for the MXS COM 0 Port
  *
  * @reboot_required true
  * @min 0
@@ -261,7 +260,7 @@ PARAM_DEFINE_INT32(MXS_COM0_BAUD, 7);
 /**
  * Sagetech MXS COM1 Baud configuration
  *
- * This parameter defines the baud rate for the MXS COM 0 Port
+ * This parameter defines the baud rate for the MXS COM 1 Port
  *
  * @reboot_required true
  * @min 0
@@ -285,7 +284,7 @@ PARAM_DEFINE_INT32(MXS_COM1_BAUD, 5);
 /**
  * Sagetech External Configuration Mode
  *
- * This parameter defines the baud rate for the MXS
+ * Disables auto-configuration mode enabling MXS config through external software.
  *
  * @reboot_required false
  * @boolean

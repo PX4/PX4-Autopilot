@@ -119,6 +119,14 @@ bool SagetechMXS::init()
 	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
 	mxs_state.initialized = false;
 	mxs_state.init_failed = false;
+	if (vehicle_list == nullptr) {
+		vehicle_list = new transponder_report_s[_adsb_list_max.get()];
+		if (vehicle_list == nullptr) {
+			mxs_state.init_failed = true;
+			PX4_ERR("Unable to initialize vehicle list.");
+			return false;
+		}
+	}
 	return true;
 }
 
@@ -352,7 +360,7 @@ bool SagetechMXS::find_index(const transponder_report_s &vehicle, uint16_t *inde
 
 void SagetechMXS::set_vehicle(const uint16_t index, const transponder_report_s &vehicle)
 {
-	if (index >= MAX_VEHICLES_TRACKED) {
+	if (index >= _adsb_list_max.get()) {
 		return; // out of range
 	}
 	vehicle_list[index] = vehicle;
@@ -397,7 +405,7 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 {
 	// needs to handle updating the vehicle list, keeping track of which vehicles to drop
 	// and which to keep, allocating new vehicles, and publishing to the transponder_report topic
-	uint16_t index = MAX_VEHICLES_TRACKED + 1; // Make invalid to start with.
+	uint16_t index = _adsb_list_max.get() + 1; // Make invalid to start with.
 	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle.lat, vehicle.lon);
 	const bool is_tracked_in_list = find_index(vehicle, &index);
 	// const bool is_special = is_special_vehicle(vehicle.icao_address);
@@ -410,7 +418,7 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 	return;
 	} else if (is_tracked_in_list) {	// If the vehicle is in the list update it with the index found
 		set_vehicle(index, vehicle);
-	} else if (vehicle_count < MAX_VEHICLES_TRACKED) {	// If the vehicle is not in the list, and the vehicle count is less than the max count
+	} else if (vehicle_count < _adsb_list_max.get()) {	// If the vehicle is not in the list, and the vehicle count is less than the max count
 								// then add it to the vehicle_count index (after the last vehicle) and increment vehicle_count
 		set_vehicle(vehicle_count, vehicle);
 		vehicle_count++;
