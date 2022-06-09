@@ -185,6 +185,8 @@ private:
 	} _message_in;
 
 	struct {
+		bool initialized;
+		bool init_failed;
 		sg_operating_t op;
 		sg_install_t inst;
 		sg_gps_t gps;
@@ -227,6 +229,7 @@ private:
 		(ParamInt<px4::params::ADSB_EMIT_TYPE>)		_adsb_emit_type,
 		(ParamInt<px4::params::ADSB_MAX_SPEED>)		_adsb_max_speed,
 		(ParamInt<px4::params::ADSB_ICAO_SPECL>)	_adsb_icao_specl,
+		(ParamInt<px4::params::ADSB_EMERGC>)		_adsb_emergc,
 		(ParamInt<px4::params::MXS_OP_MODE>)		_mxs_op_mode,
 		(ParamInt<px4::params::MXS_TARG_PORT>)		_mxs_targ_port,
 		(ParamInt<px4::params::MXS_COM0_BAUD>)		_mxs_com0_baud,
@@ -259,6 +262,11 @@ private:
 	uint32_t convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber);
 	int open_serial_port();
 	sg_emitter_t convert_emitter_type_to_sg (int emitType);
+	int convert_sg_to_emitter_type (sg_emitter_t sg_emit);
 	int handle_fid(const char* fid);
+	int store_inst_resp();
+	void auto_config_operating();
+	void auto_config_installation();
+	void auto_config_flightid();
 	// void handle_params();
 };

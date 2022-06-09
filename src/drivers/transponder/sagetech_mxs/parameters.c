@@ -183,6 +183,24 @@ PARAM_DEFINE_INT32(ADSB_MAX_SPEED, 0);
  */
 PARAM_DEFINE_INT32(ADSB_ICAO_SPECL, 0);
 
+/**
+ * ADSB-Out Emergency State
+ *
+ * Sets the vehicle emergency state
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 6
+ * @value 0 NoEmergency
+ * @value 1 General
+ * @value 2 Medical
+ * @value 3 LowFuel
+ * @value 4 NoCommunications
+ * @value 5 Interference
+ * @value 6 Downed
+ * @group Transponder
+ */
+PARAM_DEFINE_INT32(ADSB_EMERGC, 0);
 
 /**
  * Sagetech MXS mode configuration

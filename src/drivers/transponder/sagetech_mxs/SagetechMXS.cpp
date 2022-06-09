@@ -117,6 +117,7 @@ int SagetechMXS::task_spawn(int argc, char *argv[])
 bool SagetechMXS::init()
 {
 	ScheduleOnInterval(UPDATE_INTERVAL_US);	// 50Hz
+	mxs_state.initialized = false;
 	return true;
 }
 
@@ -205,6 +206,24 @@ void SagetechMXS::Run()
 	 * 20 Hz Timer
 	 * ***********************/
 	open_serial_port();
+
+	// Initialization
+	if (!mxs_state.initialized) {
+		// TODO: Use elapsed performance counter to track timeout
+		if (!_mxs_ext_cfg.get()) {
+			// Auto configuration
+			auto_config_operating();
+			auto_config_installation();
+			auto_config_flightid();
+			_mxs_op_mode.set(sg_op_mode_t::modeStby);
+			_mxs_op_mode.commit();
+			send_targetreq_msg();
+			mxs_state.initialized = true;
+		} else {
+			// External Configuration
+			send_data_req(dataInstall);
+		}
+	}
 
 	// Parse Bytes
 	int bytes_available {};
@@ -574,7 +593,6 @@ void SagetechMXS::send_flight_id_msg()
 void SagetechMXS::send_operating_msg()
 {
 #ifdef SG_HW_TEST
-	// TODO: Parameterize Squawk
 	mxs_state.op.squawk = convert_base_to_decimal(8, _adsb_squawk.get());
 	mxs_state.op.opMode = (sg_op_mode_t)_mxs_op_mode.get();
 	// sg_op_mode_t::modeStby;
@@ -591,7 +609,14 @@ void SagetechMXS::send_operating_msg()
 
 	mxs_state.op.altitude = _gps.alt * SAGETECH_SCALE_MM_TO_FT;                       // Height above sealevel in feet
 
-	mxs_state.op.identOn = false;
+	if(_adsb_ident.get()) {
+		mxs_state.op.identOn = true;
+		_adsb_ident.set(0);
+		_adsb_ident.commit();
+	} else {
+		mxs_state.op.identOn = false;
+	}
+
 
 	if (_gps.vel_ned_valid) {
 		mxs_state.op.climbValid = true;
@@ -685,8 +710,8 @@ void SagetechMXS::send_gps_msg()
 void SagetechMXS::send_targetreq_msg()
 {
 	mxs_state.treq.reqType = sg_reporttype_t::reportAuto;
-	mxs_state.treq.transmitPort = sg_transmitport_t::transmitCom1;
-	mxs_state.treq.maxTargets = MAX_VEHICLES_TRACKED;
+	mxs_state.treq.transmitPort = (sg_transmitport_t)_mxs_targ_port.get();
+	mxs_state.treq.maxTargets = _adsb_list_max.get();
 	// TODO: have way to track special target. will need to change up tracked list to do so.
 	// mxs_state.treq.icao = _frontend._special_ICAO_target.get();
 	mxs_state.treq.stateVector = true;
@@ -719,6 +744,11 @@ void SagetechMXS::handle_packet(const Packet &msg)
 			break;
 		case MsgType::Installation_Response:
 			// TODO: set up installation data here
+			if(!mxs_state.initialized && sgDecodeInstall((uint8_t*)&msg, &mxs_state.inst)) {
+				store_inst_resp();
+				mxs_state.initialized = true;
+			}
+			break;
 		case MsgType::FlightID_Response: {
 			// PX4_INFO("GOT FID RESP PACKET");
 			sg_flightid_t fid{};
@@ -894,16 +924,16 @@ int SagetechMXS::open_serial_port() {
 
 sg_emitter_t SagetechMXS::convert_emitter_type_to_sg (int emitType) {
 	switch (emitType) {
-		case 0: return sg_emitter_t::aUnknown;
-		case 1: return sg_emitter_t::aLight;
-		case 2: return sg_emitter_t::aSmall;
-		case 3: return sg_emitter_t::aLarge;
-		case 4: return sg_emitter_t::aHighVortex;
-		case 5: return sg_emitter_t::aHeavy;
-		case 6: return sg_emitter_t::aPerformance;
-		case 7: return sg_emitter_t::aRotorCraft;
-		case 8: return sg_emitter_t::bUnknown;
-		case 9: return sg_emitter_t::bGlider;
+		case 0: return  sg_emitter_t::aUnknown;
+		case 1: return  sg_emitter_t::aLight;
+		case 2: return  sg_emitter_t::aSmall;
+		case 3: return  sg_emitter_t::aLarge;
+		case 4: return  sg_emitter_t::aHighVortex;
+		case 5: return  sg_emitter_t::aHeavy;
+		case 6: return  sg_emitter_t::aPerformance;
+		case 7: return  sg_emitter_t::aRotorCraft;
+		case 8: return  sg_emitter_t::bUnknown;
+		case 9: return  sg_emitter_t::bGlider;
 		case 10: return sg_emitter_t::bAir;
 		case 11: return sg_emitter_t::bParachutist;
 		case 12: return sg_emitter_t::bUltralight;
@@ -918,6 +948,31 @@ sg_emitter_t SagetechMXS::convert_emitter_type_to_sg (int emitType) {
 	}
 }
 
+int SagetechMXS::convert_sg_to_emitter_type (sg_emitter_t sg_emit) {
+	switch (sg_emit) {
+		case sg_emitter_t::aUnknown:		return 0;
+		case sg_emitter_t::aLight:		return 1;
+		case sg_emitter_t::aSmall:		return 2;
+		case sg_emitter_t::aLarge:		return 3;
+		case sg_emitter_t::aHighVortex:		return 4;
+		case sg_emitter_t::aHeavy:		return 5;
+		case sg_emitter_t::aPerformance:	return 6;
+		case sg_emitter_t::aRotorCraft:		return 7;
+		case sg_emitter_t::bUnknown:		return 8;
+		case sg_emitter_t::bGlider:		return 9;
+		case sg_emitter_t::bAir:		return 10;
+		case sg_emitter_t::bParachutist:	return 11;
+		case sg_emitter_t::bUltralight:		return 12;
+		case sg_emitter_t::bUAV:		return 14;
+		case sg_emitter_t::bSpace:		return 15;
+		case sg_emitter_t::cUnknown:		return 16;
+		case sg_emitter_t::cEmergency:		return 17;
+		case sg_emitter_t::cService:		return 18;
+		case sg_emitter_t::cPoint:		return 19;
+		default:				return 20;
+	}
+}
+
 int SagetechMXS::handle_fid(const char* fid)
 {
 	if(snprintf(mxs_state.fid.flightId, sizeof(mxs_state.fid.flightId), "%-8s", fid) != 8) {
@@ -927,6 +982,110 @@ int SagetechMXS::handle_fid(const char* fid)
 	PX4_INFO("Changed Flight ID to %s", mxs_state.fid.flightId);
 	return PX4_OK;
 }
+
+int SagetechMXS::store_inst_resp()
+{
+	_mxs_op_mode.set(mxs_state.ack.opMode);
+	_mxs_op_mode.commit();
+	_adsb_icao.set(mxs_state.inst.icao);
+	_adsb_icao.commit();
+	_adsb_len_width.set(mxs_state.inst.size);
+	_adsb_len_width.commit();
+	_adsb_emit_type.set(convert_sg_to_emitter_type(mxs_state.inst.emitter));
+	_adsb_emit_type.commit();
+	return PX4_OK;
+}
+
+
+void SagetechMXS::auto_config_operating()
+{
+	mxs_state.op.squawk = convert_base_to_decimal(8, _adsb_squawk.get());
+	mxs_state.op.opMode = sg_op_mode_t::modeOff;
+	_mxs_op_mode.set(sg_op_mode_t::modeOff);
+	_mxs_op_mode.commit();
+
+	mxs_state.op.savePowerUp = true;                                                  // Save power-up state in non-volatile
+	mxs_state.op.enableSqt = true;                                                    // Enable extended squitters
+	mxs_state.op.enableXBit = false;                                                  // Enable the x-bit
+	mxs_state.op.milEmergency = false;                                                // Broadcast a military emergency
+	mxs_state.op.emergcType = (sg_emergc_t)_adsb_emergc.get();                                // Enumerated civilian emergency type
+
+	mxs_state.op.altUseIntrnl = true;                                                 // True = Report altitude from internal pressure sensor (will ignore other bits in the field)
+	mxs_state.op.altHostAvlbl = false;
+	mxs_state.op.altRes25 = true;                                // Host Altitude Resolution from install
+
+	mxs_state.op.altitude = _gps.alt * SAGETECH_SCALE_MM_TO_FT;                       // Height above sealevel in feet
+
+	mxs_state.op.identOn = false;
+
+	if (_gps.vel_ned_valid) {
+		mxs_state.op.climbValid = true;
+		mxs_state.op.climbRate = _gps.vel_d_m_s * SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN;
+		mxs_state.op.airspdValid = true;
+		mxs_state.op.headingValid = true;
+	} else {
+		// PX4_WARN("send_operating_msg: Invalid NED");
+		mxs_state.op.climbValid = false;
+		mxs_state.op.climbRate = -CLIMB_RATE_LIMIT;
+		mxs_state.op.airspdValid = false;
+		mxs_state.op.headingValid = false;
+	}
+
+	const uint16_t speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
+	double heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	mxs_state.op.airspd = speed_knots;
+	mxs_state.op.heading = heading;
+
+	last.msg.type = SG_MSG_TYPE_HOST_OPMSG;
+	uint8_t txComBuffer[SG_MSG_LEN_OPMSG] {};
+	sgEncodeOperating(txComBuffer, &mxs_state.op, ++last.msg.id);
+	msg_write(txComBuffer, SG_MSG_LEN_OPMSG);
+}
+
+void SagetechMXS::auto_config_installation()
+{
+	mxs_state.inst.icao = (uint32_t) _adsb_icao.get();
+	snprintf(mxs_state.inst.reg, 8, "%-7s", "PX4TEST");
+
+	mxs_state.inst.com0 = (sg_baud_t)_mxs_com0_baud.get();
+	mxs_state.inst.com1 = (sg_baud_t)_mxs_com1_baud.get();
+
+	mxs_state.inst.eth.ipAddress = 0;
+	mxs_state.inst.eth.subnetMask = 0;
+	mxs_state.inst.eth.portNumber = 0;
+
+	mxs_state.inst.sil = sg_sil_t::silUnknown;
+	mxs_state.inst.sda = sg_sda_t::sdaUnknown;
+	mxs_state.inst.emitter = convert_emitter_type_to_sg(_adsb_emit_type.get());
+	mxs_state.inst.size = (sg_size_t)_adsb_len_width.get();
+	mxs_state.inst.maxSpeed = (sg_airspeed_t) _adsb_max_speed.get();
+	mxs_state.inst.altOffset = 0;         // Alt encoder offset is legacy field that should always be 0.
+	mxs_state.inst.antenna = sg_antenna_t::antBottom;
+
+	mxs_state.inst.altRes100 = true;
+	mxs_state.inst.hdgTrueNorth = false;
+	mxs_state.inst.airspeedTrue = false;
+	mxs_state.inst.heater = true;         // Heater should always be connected.
+	mxs_state.inst.wowConnected = true;
+
+	last.msg.type = SG_MSG_TYPE_HOST_INSTALL;
+
+	uint8_t txComBuffer[SG_MSG_LEN_INSTALL] {};
+	sgEncodeInstall(txComBuffer, &mxs_state.inst, ++last.msg.id);
+	msg_write(txComBuffer, SG_MSG_LEN_INSTALL);
+}
+
+void SagetechMXS::auto_config_flightid()
+{
+	snprintf(mxs_state.fid.flightId, sizeof(mxs_state.fid.flightId), "%-8s", mxs_state.inst.reg);
+
+	last.msg.type = SG_MSG_TYPE_HOST_FLIGHT;
+
+	uint8_t txComBuffer[SG_MSG_LEN_FLIGHT] {};
+	sgEncodeFlightId(txComBuffer, &mxs_state.fid, ++last.msg.id);
+	msg_write(txComBuffer, SG_MSG_LEN_FLIGHT);
+}
+
 
 
 // #define SG_PAYLOAD_LEN_GPS  SG_MSG_LEN_GPS - 5  /// the payload length.
