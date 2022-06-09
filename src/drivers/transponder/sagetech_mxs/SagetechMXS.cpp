@@ -350,6 +350,9 @@ void SagetechMXS::determine_furthest_aircraft(void)
 	uint16_t max_distance_index = 0;
 
 	for (uint16_t index = 0; index < vehicle_count; index++) {
+		if (is_special_vehicle(vehicle_list[index].icao_address)) {
+			continue;
+		}
 		const float distance = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle_list[index].lat, vehicle_list[index].lon);
 		if (max_distance < distance || index == 0) {
 			max_distance = distance;
@@ -383,6 +386,7 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 	uint16_t index = MAX_VEHICLES_TRACKED + 1; // Make invalid to start with.
 	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle.lat, vehicle.lon);
 	const bool is_tracked_in_list = find_index(vehicle, &index);
+	// const bool is_special = is_special_vehicle(vehicle.icao_address);
 	const uint16_t required_flags_position = transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
 		transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
 	if (!(vehicle.flags & required_flags_position)) {
@@ -713,7 +717,7 @@ void SagetechMXS::send_targetreq_msg()
 	mxs_state.treq.transmitPort = (sg_transmitport_t)_mxs_targ_port.get();
 	mxs_state.treq.maxTargets = _adsb_list_max.get();
 	// TODO: have way to track special target. will need to change up tracked list to do so.
-	// mxs_state.treq.icao = _frontend._special_ICAO_target.get();
+	mxs_state.treq.icao = _adsb_icao_specl.get();
 	mxs_state.treq.stateVector = true;
 	mxs_state.treq.modeStatus = true;
 	mxs_state.treq.targetState = false;

@@ -123,6 +123,7 @@ private:
 	static constexpr uint16_t MAX_VEHICLES_TRACKED{25};
 	static constexpr float SAGETECH_HPL_UNKNOWN{38000.0f};
 	static constexpr float CLIMB_RATE_LIMIT{16448};
+	static constexpr uint16_t MXS_INIT_TIMEOUT{20000};
 
 
 	// Stored variables
@@ -251,6 +252,7 @@ private:
 	bool find_index(const transponder_report_s &vehicle, uint16_t *index) const;
 	void set_vehicle(const uint16_t index, const transponder_report_s &vehicle);
 	void delete_vehicle(const uint16_t index);
+	bool is_special_vehicle(uint32_t icao) const {return _adsb_icao_specl.get() != 0 && (_adsb_icao_specl.get() == (int32_t) icao);}
 	void handle_vehicle(const transponder_report_s &vehicle);
 	void determine_furthest_aircraft(void);
 	void send_data_req(const sg_datatype_t dataReqType);
