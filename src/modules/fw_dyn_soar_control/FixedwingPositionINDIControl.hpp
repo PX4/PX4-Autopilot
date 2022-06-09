@@ -12,10 +12,17 @@
 #define FIXEDWINGPOSITIONINDICONTROL_HPP_
 
 #include <float.h>
-
+/*
+#include <iostream>
+#include <fstream>
 #include <sstream>
 #include <vector>
 #include <array>
+*/
+
+#include <stdio.h>
+#include <string.h>
+
 #include <drivers/drv_hrt.h>
 #include "fw_att_control/ecl_pitch_controller.h"
 #include "fw_att_control/ecl_roll_controller.h"
@@ -69,8 +76,7 @@
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/wind.h>
 #include <uORB/uORB.h>
-#include <iostream>
-#include <fstream>
+
 
 
 using namespace time_literals;
@@ -248,7 +254,7 @@ private:
 
 	// controller methods
 	void _select_trajectory(float initial_energy);				// select the correct trajectory based on available energy
-	void _read_trajectory_coeffs_csv(std::string filename);				// read in the correct coefficients of the appropriate trajectory
+	void _read_trajectory_coeffs_csv(char *filename);				// read in the correct coefficients of the appropriate trajectory
 	void _set_wind_estimate(Vector3f wind);
 	float _get_closest_t(Vector3f pos);				// get the normalized time, at which the reference path is closest to the current position
 	Vector<float, _num_basis_funs> _get_basis_funs(float t=0);			// compute the vector of basis functions at normalized time t in [0,1]

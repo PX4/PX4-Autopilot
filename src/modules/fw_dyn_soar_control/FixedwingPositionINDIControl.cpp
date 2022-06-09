@@ -76,7 +76,13 @@ FixedwingPositionINDIControl::init()
 		PX4_ERR("vehicle position callback registration failed!");
 		return false;
 	}
-    _read_trajectory_coeffs_csv("trajectory0.csv");
+    //_read_trajectory_coeffs_csv("trajectory5.csv");
+    //_read_trajectory_coeffs_csv("trajectory4.csv");
+    //_read_trajectory_coeffs_csv("trajectory3.csv");
+    //_read_trajectory_coeffs_csv("trajectory2.csv");
+    //_read_trajectory_coeffs_csv("trajectory1.csv");
+    char filename[] = "trajectory0.csv";
+    _read_trajectory_coeffs_csv(filename);
 
     // initialize transformations
     _R_ned_to_enu *= 0.f;
@@ -342,36 +348,47 @@ void
 FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
 {
     // select loiter trajectory for loiter test
-    if (_loiter==0) {
-        _read_trajectory_coeffs_csv("trajectory0.csv");
+    char filename[16];
+    switch (_loiter)
+    {
+    case 0:
+        strcpy(filename,"trajectory0.csv");
+        break;
+    case 1:
+        strcpy(filename,"trajectory1.csv");
+        break;
+    case 2:
+        strcpy(filename,"trajectory2.csv");
+        break;
+    case 3:
+        strcpy(filename,"trajectory3.csv");
+        break;
+    case 4:
+        strcpy(filename,"trajectory4.csv");
+        break;
+    case 5:
+        strcpy(filename,"trajectory5.csv");
+        break;
+
+    default:
+        strcpy(filename,"trajectory0.csv");
     }
-    else if (_loiter==1)  {
-        _read_trajectory_coeffs_csv("trajectory1.csv");
-    }
-    else if (_loiter==2)  {
-        _read_trajectory_coeffs_csv("trajectory2.csv");
-    }
-    else if (_loiter==3)  {
-        _read_trajectory_coeffs_csv("trajectory3.csv");
-    }
-    else if (_loiter==4)  {
-        _read_trajectory_coeffs_csv("trajectory4.csv");
-    }
-    else{
-        _read_trajectory_coeffs_csv("trajectory5.csv");
-    }
+    
+
+    _read_trajectory_coeffs_csv(filename);
 }
 
 void
-FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(string filename)
+FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
 {
+    /*
     // File pointer
     std::ifstream fin;
   
     // Open an existing file for testing
-    fin.open("/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/"+filename, ios::in);
+    //fin.open("/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/"+filename, ios::in);
     // Open an existing file from SD card
-    //fin.open("/fs/microsd/trajectories/"+filename);
+    fin.open(PX4_ROOTFSDIR"/fs/microsd/trajectories/"+filename);
   
     // Read the Data from the file
     // as String Vector
@@ -419,6 +436,63 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(string filename)
         }      
     }
     fin.close();
+    */
+
+    // =======================================================================
+    bool error = false;
+
+    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    strcat(home_dir,filename);
+    FILE* fp = fopen(home_dir, "r");
+
+    if (!fp) {
+        PX4_ERR("Can't open file");
+        error = true;
+    }
+    else {
+        // Here we have taken size of
+        // array 1024 you can modify it
+        const uint buffersize = 64*_num_basis_funs;
+        char buffer[buffersize];
+
+        int row = 0;
+        int column = 0;
+
+        // loop over rows
+        while (fgets(buffer,
+                     buffersize, fp)) {
+            column = 0;
+ 
+            // Splitting the data
+            char* value = strtok(buffer, ",");
+ 
+            // loop over columns
+            while (value) {
+
+                switch(row){
+                    case 0:
+                        _basis_coeffs_x(column) = (float)atof(value);
+                        break;
+                    case 1:
+                        _basis_coeffs_y(column) = (float)atof(value);
+                        break;
+                    case 2:
+                        _basis_coeffs_z(column) = (float)atof(value);
+                        break;
+
+                    default:
+                        break;
+                }
+                value = strtok(NULL, ",");
+                column++;
+                
+            }
+            row++;
+        }
+    }
+    fclose(fp);
+    // =======================================================================
+
 
     // go back to safety mode loiter circle
     if(error){
