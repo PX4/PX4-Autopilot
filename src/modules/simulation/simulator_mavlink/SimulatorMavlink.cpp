@@ -444,6 +444,7 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 		// New publishers will be created based on the HIL_GPS ID's being different or not
 		for (size_t i = 0; i < sizeof(_gps_ids) / sizeof(_gps_ids[0]); i++) {
 			if (_sensor_gps_pubs[i] && _gps_ids[i] == hil_gps.id) {
+				gps.device_id = _gps_dev_ids[i];
 				_sensor_gps_pubs[i]->publish(gps);
 				break;
 			}
@@ -458,6 +459,7 @@ void SimulatorMavlink::handle_message_hil_gps(const mavlink_message_t *msg)
 				device_id.devid_s.address = i;
 				device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
 				gps.device_id = device_id.devid;
+				_gps_dev_ids[i] = device_id.devid;
 
 				_sensor_gps_pubs[i]->publish(gps);
 				break;
