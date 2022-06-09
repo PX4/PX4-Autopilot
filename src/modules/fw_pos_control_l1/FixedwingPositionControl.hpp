@@ -437,7 +437,7 @@ private:
 	/* automatic control methods */
 
 	/**
-	 * @brief Position control for all automatic modes except takeoff and landing
+	 * @brief Automatic position control for waypoints, orbits, and velocity control
 	 *
 	 * @param control_interval Time since last position control call [s]
 	 * @param curr_pos Current 2D local position vector of vehicle [m]
@@ -452,12 +452,16 @@ private:
 	/**
 	 * @brief Controls altitude and airspeed for a fixed-bank loiter.
 	 *
+	 * Used as a failsafe mode after a lateral position estimate failure.
+	 *
 	 * @param control_interval Time since last position control call [s]
 	 */
 	void control_auto_fixed_bank_alt_hold(const float control_interval);
 
 	/**
 	 * @brief Control airspeed with a fixed descent rate and roll angle.
+	 *
+	 * Used as a failsafe mode after a lateral position estimate failure.
 	 *
 	 * @param control_interval Time since last position control call [s]
 	 */
@@ -604,7 +608,7 @@ private:
 	 * @param pitch_max_rad Nominal pitch angle command maximum [rad]
 	 * @param throttle_min Minimum throttle command [0,1]
 	 * @param throttle_max Maximum throttle command [0,1]
-	 * @param throttle_cruise Cruise throttle command [0,1]
+	 * @param throttle_cruise Throttle required for level flight at cruising airspeed [0,1]
 	 * @param climbout_mode True if TECS should engage climbout mode
 	 * @param climbout_pitch_min_rad Minimum pitch angle command in climbout mode [rad]
 	 * @param disable_underspeed_detection True if underspeed detection should be disabled
