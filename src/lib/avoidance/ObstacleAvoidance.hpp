@@ -136,7 +136,7 @@ protected:
 	float _prev_pos_to_target_z = -1.f; /**< z distance to the goal */
 
 	bool _ext_yaw_active = false; /**< true, if external yaw handling is active */
-
+	bool _avoidance_failure_mode_change_flag = false; /**< true, when mode changes to loiter when avoidance goes to invalid state. prevent lock of manaual mode change */
 	/**
 	 * Publishes vehicle command.
 	 */
