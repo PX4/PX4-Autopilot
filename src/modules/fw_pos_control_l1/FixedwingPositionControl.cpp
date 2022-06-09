@@ -731,17 +731,16 @@ FixedwingPositionControl::getManualHeightRateSetpoint()
 	return height_rate_setpoint;
 }
 
-bool
-FixedwingPositionControl::in_takeoff_situation()
+void
+FixedwingPositionControl::updateManualTakeoffStatus()
 {
-	// a VTOL does not need special takeoff handling
-	if (_vehicle_status.is_vtol) {
-		return false;
+	if (!_completed_manual_takeoff) {
+		const bool at_controllable_airspeed = _airspeed > _param_fw_airspd_min.get()
+						      || !_airspeed_valid;
+		_completed_manual_takeoff = !_landed
+					    && at_controllable_airspeed
+					    && !_vehicle_status.is_vtol;
 	}
-
-	// in air for < 10s
-	return (hrt_elapsed_time(&_time_went_in_air) < 10_s)
-	       && (_current_altitude <= _takeoff_ground_alt + _param_fw_clmbout_diff.get());
 }
 
 void
@@ -863,6 +862,7 @@ FixedwingPositionControl::update_in_air_states(const hrt_abstime now)
 	/* reset flag when airplane landed */
 	if (_landed) {
 		_was_in_air = false;
+		_completed_manual_takeoff = false;
 
 		_tecs.resetIntegrals();
 		_tecs.resetTrajectoryGenerators(_current_altitude);
@@ -1352,11 +1352,6 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	float alt_sp = pos_sp_curr.alt;
-
-	if (in_takeoff_situation()) {
-		alt_sp = max(alt_sp, _takeoff_ground_alt + _param_fw_clmbout_diff.get());
-		_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-5.0f), radians(5.0f));
-	}
 
 	if (_land_abort) {
 		if (pos_sp_curr.alt - _current_altitude  < _param_fw_clmbout_diff.get()) {
@@ -1972,60 +1967,39 @@ void
 FixedwingPositionControl::control_manual_altitude(const float control_interval, const Vector2d &curr_pos,
 		const Vector2f &ground_speed)
 {
-	/* ALTITUDE CONTROL: pitch stick moves altitude setpoint, throttle stick sets airspeed */
+	updateManualTakeoffStatus();
 
-	/* Get demanded airspeed */
-	float altctrl_airspeed = get_manual_airspeed_setpoint();
+	const float calibrated_airspeed_sp = get_manual_airspeed_setpoint();
+	const float height_rate_sp = getManualHeightRateSetpoint();
 
-	// if we assume that user is taking off then help by demanding altitude setpoint well above ground
-	// and set limit to pitch angle to prevent steering into ground
-	// this will only affect planes and not VTOL
-	float pitch_limit_min = _param_fw_p_lim_min.get();
-	float height_rate_sp = NAN;
-	float altitude_sp_amsl = _current_altitude;
+	// TECS may try to pitch down to gain airspeed if we underspeed, constrain the pitch when underspeeding if we are
+	// just passed launch
+	const float min_pitch = (_completed_manual_takeoff) ? radians(_param_fw_p_lim_min.get()) :
+				MIN_PITCH_DURING_MANUAL_TAKEOFF;
 
-	if (in_takeoff_situation()) {
-		// if we assume that user is taking off then help by demanding altitude setpoint well above ground
-		// and set limit to pitch angle to prevent steering into ground
-		// this will only affect planes and not VTOL
-		altitude_sp_amsl = _takeoff_ground_alt + _param_fw_clmbout_diff.get();
-		pitch_limit_min = radians(10.0f);
-
-	} else {
-		height_rate_sp = getManualHeightRateSetpoint();
-	}
-
-	/* throttle limiting */
 	float throttle_max = _param_fw_thr_max.get();
 
+	// enable the operator to kill the throttle on ground
 	if (_landed && (fabsf(_manual_control_setpoint_for_airspeed) < THROTTLE_THRESH)) {
 		throttle_max = 0.0f;
 	}
 
 	tecs_update_pitch_throttle(control_interval,
-				   altitude_sp_amsl,
-				   altctrl_airspeed,
-				   radians(_param_fw_p_lim_min.get()),
+				   _current_altitude,
+				   calibrated_airspeed_sp,
+				   min_pitch,
 				   radians(_param_fw_p_lim_max.get()),
 				   _param_fw_thr_min.get(),
 				   throttle_max,
 				   false,
-				   pitch_limit_min,
+				   min_pitch,
 				   false,
 				   height_rate_sp);
 
 	_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_r_lim.get());
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
-	/* Copy thrust and pitch values from tecs */
-	if (_landed) {
-		// when we are landed state we want the motor to spin at idle speed
-		_att_sp.thrust_body[0] = min(_param_fw_thr_idle.get(), throttle_max);
-
-	} else {
-		_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
-	}
-
+	_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
 	_att_sp.pitch_body = get_tecs_pitch();
 
 	// In Manual modes flaps and spoilers are directly controlled in FW Attitude controller and not passed
@@ -2038,32 +2012,22 @@ void
 FixedwingPositionControl::control_manual_position(const float control_interval, const Vector2d &curr_pos,
 		const Vector2f &ground_speed)
 {
-	// if we assume that user is taking off then help by demanding altitude setpoint well above ground
-	// and set limit to pitch angle to prevent steering into ground
-	// this will only affect planes and not VTOL
-	float pitch_limit_min = _param_fw_p_lim_min.get();
-	float height_rate_sp = NAN;
-	float altitude_sp_amsl = _current_altitude;
+	updateManualTakeoffStatus();
 
-	if (in_takeoff_situation()) {
-		// if we assume that user is taking off then help by demanding altitude setpoint well above ground
-		// and set limit to pitch angle to prevent steering into ground
-		// this will only affect planes and not VTOL
-		altitude_sp_amsl = _takeoff_ground_alt + _param_fw_clmbout_diff.get();
-		pitch_limit_min = radians(10.0f);
+	float calibrated_airspeed_sp = get_manual_airspeed_setpoint();
+	const float height_rate_sp = getManualHeightRateSetpoint();
 
-	} else {
-		height_rate_sp = getManualHeightRateSetpoint();
-	}
+	// TECS may try to pitch down to gain airspeed if we underspeed, constrain the pitch when underspeeding if we are
+	// just passed launch
+	const float min_pitch = (_completed_manual_takeoff) ? radians(_param_fw_p_lim_min.get()) :
+				MIN_PITCH_DURING_MANUAL_TAKEOFF;
 
-	/* throttle limiting */
 	float throttle_max = _param_fw_thr_max.get();
 
+	// enable the operator to kill the throttle on ground
 	if (_landed && (fabsf(_manual_control_setpoint_for_airspeed) < THROTTLE_THRESH)) {
 		throttle_max = 0.0f;
 	}
-
-	float target_airspeed = get_manual_airspeed_setpoint();
 
 	/* heading control */
 	if (fabsf(_manual_control_setpoint.y) < HDG_HOLD_MAN_INPUT_THRESH &&
@@ -2078,7 +2042,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 		/* user tries to do a takeoff in heading hold mode, reset the yaw setpoint on every iteration
 			to make sure the plane does not start rolling
 		*/
-		if (in_takeoff_situation()) {
+		if (!_completed_manual_takeoff) {
 			_hdg_hold_enabled = false;
 			_yaw_lock_engaged = true;
 		}
@@ -2110,11 +2074,11 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 						 prev_wp(1));
 
 			if (_param_fw_use_npfg.get()) {
-				_npfg.setAirspeedNom(target_airspeed * _eas2tas);
+				_npfg.setAirspeedNom(calibrated_airspeed_sp * _eas2tas);
 				_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
 				_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
 				_att_sp.roll_body = _npfg.getRollSetpoint();
-				target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
+				calibrated_airspeed_sp = _npfg.getAirspeedRef() / _eas2tas;
 
 			} else {
 				/* populate l1 control setpoint */
@@ -2123,23 +2087,18 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 			}
 
 			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
-
-			if (in_takeoff_situation()) {
-				/* limit roll motion to ensure enough lift */
-				_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-15.0f), radians(15.0f));
-			}
 		}
 	}
 
 	tecs_update_pitch_throttle(control_interval,
-				   altitude_sp_amsl,
-				   target_airspeed,
-				   radians(_param_fw_p_lim_min.get()),
+				   _current_altitude,
+				   calibrated_airspeed_sp,
+				   min_pitch,
 				   radians(_param_fw_p_lim_max.get()),
 				   _param_fw_thr_min.get(),
 				   throttle_max,
 				   false,
-				   pitch_limit_min,
+				   min_pitch,
 				   false,
 				   height_rate_sp);
 
@@ -2162,15 +2121,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 		_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 	}
 
-	/* Copy thrust and pitch values from tecs */
-	if (_landed) {
-		// when we are landed state we want the motor to spin at idle speed
-		_att_sp.thrust_body[0] = min(_param_fw_thr_idle.get(), throttle_max);
-
-	} else {
-		_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
-	}
-
+	_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
 	_att_sp.pitch_body = get_tecs_pitch();
 
 	// In Manual modes flaps and spoilers are directly controlled in FW Attitude controller and not passed
