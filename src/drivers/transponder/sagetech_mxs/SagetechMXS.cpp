@@ -956,22 +956,13 @@ int SagetechMXS::open_serial_port() {
 	 * ***************************/
 
 	// Set Raw Input
-	// uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
 	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
-
-	/*****************************
-	 * UART Input Options
-	 * ***************************/
-
-	// Disable Software flow control
-	// uart_config.c_iflag &= ~(IXON | IXOFF | IXANY);
 
 	/*****************************
 	 * UART Output Options
 	 * ***************************/
 
 	// Set raw output and map NL to CR-LF
-	// uart_config.c_oflag &= ~(ONLCR | OPOST);
 	uart_config.c_oflag &= ~ONLCR;
 
 	/*********************************
