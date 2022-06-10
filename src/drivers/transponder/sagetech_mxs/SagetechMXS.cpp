@@ -56,6 +56,7 @@ SagetechMXS::SagetechMXS(const char *port) :
 SagetechMXS::~SagetechMXS()
 {
 	// stop();
+	// free((char*)_port);
 	perf_free(_loop_elapsed_perf);
 	perf_free(_loop_count_perf);
 	perf_free(_loop_interval_perf);
@@ -77,6 +78,7 @@ int SagetechMXS::task_spawn(int argc, char *argv[])
 		case 'd':
 			device_path = myoptarg;
 			break;
+		// FIXME: Remove baud stuff
 		case 'b':
 			if(px4_get_parameter_value(myoptarg, baud) != 0) {
 				PX4_ERR("baudrate parsing failed");
@@ -192,6 +194,7 @@ int SagetechMXS::print_usage(const char *reason)
 
 int SagetechMXS::print_status()
 {
+	// FIXME: Put something actually useful in here (put all perf counters)
 	perf_print_counter(_loop_elapsed_perf);
 	perf_print_counter(_loop_interval_perf);
 	return 0;
@@ -253,6 +256,11 @@ void SagetechMXS::Run()
 			uint16_t data;
 			// tcflush(_fd, TCOFLUSH);
 			ret = read(_fd, &data, 1);
+			if (ret < 0) {
+				PX4_ERR("Read Err.");
+				perf_count(_comms_errors);
+				continue;
+			}
 			// PX4_INFO("GOT BYTE: %02x", (uint8_t)data);
 			parse_byte((uint8_t)data);
 			bytes_available -= 1;
@@ -311,15 +319,6 @@ void SagetechMXS::Run()
 				send_targetreq_msg();
 			}
 		}
-	}
-
-
-	/************************
-	 * 2 Hz Timer
-	 * **********************/
-
-	if(!(_loop_count % TWO_HZ_MOD)) {
-		// PX4_INFO("2 Hz Callback");
 	}
 
 	/************************
@@ -459,6 +458,8 @@ void SagetechMXS::handle_ack(const sg_ack_t ack)
 {
 	if ((ack.ackId != last.msg.id) || (ack.ackType != last.msg.type)) {
 		// The message id doesn't match the last message sent.
+		// FIXME: Add messages here
+		// mavlink_log_critical(); <-- prints out to box
 	}
 	// System health
 	if (ack.failXpdr && !last.failXpdr) {
@@ -467,8 +468,8 @@ void SagetechMXS::handle_ack(const sg_ack_t ack)
 	if (ack.failSystem && !last.failSystem) {
 		// System Failure Indicator
 	}
-    last.failXpdr = ack.failXpdr;
-    last.failSystem = ack.failSystem;
+	last.failXpdr = ack.failXpdr;
+	last.failSystem = ack.failSystem;
 }
 
 void SagetechMXS::handle_svr(sg_svr_t svr)
@@ -565,7 +566,7 @@ int SagetechMXS::msg_write(const uint8_t *data, const uint16_t len) const
 {
 	int ret = 0;
 	if (_fd >= 0) {
-		tcflush(_fd, TCIFLUSH);
+		// tcflush(_fd, TCIFLUSH);
 		ret = write(_fd, data, len);
 		// PX4_INFO("WRITING DATA OF LEN %d OUT", len);
 	} else {
@@ -713,8 +714,10 @@ void SagetechMXS::send_gps_msg()
 	const float speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
 	snprintf((char*)&gps.grdSpeed, 7, "%03u.%02u", (unsigned)speed_knots, unsigned((speed_knots - (int)speed_knots) * (float)1.0E2));
 
-	const float heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	// const float heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	const float heading = matrix::wrap_2pi(_gps.cog_rad)*(180.0f/M_PI_F);
 	// PX4_INFO("CoG: %f. Heading: %f", (double) _gps.cog_rad, (double) _gps.heading);
+	PX4_INFO("Heading: %f", (double)heading);
 
 	snprintf((char*)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * (float)1.0E4));
 
@@ -744,7 +747,6 @@ void SagetechMXS::send_targetreq_msg()
 	mxs_state.treq.reqType = sg_reporttype_t::reportAuto;
 	mxs_state.treq.transmitPort = (sg_transmitport_t)_mxs_targ_port.get();
 	mxs_state.treq.maxTargets = _adsb_list_max.get();
-	// TODO: have way to track special target. will need to change up tracked list to do so.
 	mxs_state.treq.icao = _adsb_icao_specl.get();
 	mxs_state.treq.stateVector = true;
 	mxs_state.treq.modeStatus = true;
@@ -775,8 +777,6 @@ void SagetechMXS::handle_packet(const Packet &msg)
 			}
 			break;
 		case MsgType::Installation_Response:
-			// TODO: set up installation data here
-			// PX4_INFO("GOT INSTALLATION RESPONSE PACKET");
 			if(!mxs_state.initialized && sgDecodeInstall((uint8_t*)&msg, &mxs_state.inst)) {
 				store_inst_resp();
 				mxs_state.initialized = true;
@@ -872,14 +872,17 @@ bool SagetechMXS::parse_byte(const uint8_t data)
 			if (_message_in.checksum == data) {
 				// append the checksum to the payload and zero out the payload index
 				_message_in.packet.payload[_message_in.index] = data;
-				_message_in.index = 0;
-				// TODO: handle_packet
 				handle_packet(_message_in.packet);
 			} else if (data == SG_MSG_START_BYTE) {
-				PX4_INFO("ERROR: Byte dropped. Tossing Packet.");
+				PX4_INFO("ERROR: One byte dropped.");
 				_message_in.state = ParseState::WaitingFor_MsgType;
 				_message_in.checksum = data;
-			} else {
+			} /*else if (_message_in.packet.payload[_message_in.index-1] == SG_MSG_START_BYTE) {
+				PX4_INFO("ERROR: Two bytes dropped.");
+				_message_in.state = ParseState::WaitingFor_MsgId;
+				_message_in.checksum = SG_MSG_START_BYTE + data;
+				_message_in.packet.type = static_cast<MsgType>(data);
+			}*/ else {
 				PX4_INFO("ERROR: Checksum Mismatch. Expected %02x. Received %02x.", _message_in.checksum, data);
 			}
 			break;
@@ -929,7 +932,9 @@ int SagetechMXS::open_serial_port() {
 		return PX4_ERROR;
 	}
 
-	uart_config.c_cflag &= ~(CSTOPB | PARENB | CRTSCTS);
+	// cfmakeraw(&uart_config);
+	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
+	uart_config.c_cflag |= (CS8 | CREAD);
 	uart_config.c_oflag &= ~ONLCR;
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 	// uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
@@ -1105,7 +1110,6 @@ void SagetechMXS::auto_config_installation()
 
 	mxs_state.inst.com0 = sg_baud_t::baud230400;
 	mxs_state.inst.com1 = sg_baud_t::baud57600;
-	PX4_INFO("Set Com0 to %d and Com1 to %d", mxs_state.inst.com0, mxs_state.inst.com1);
 
 	mxs_state.inst.eth.ipAddress = 0;
 	mxs_state.inst.eth.subnetMask = 0;

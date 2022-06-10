@@ -209,7 +209,7 @@ private:
 		bool init_failed;
 		sg_operating_t op;
 		sg_install_t inst;
-		sg_gps_t gps;
+		// sg_gps_t gps;
 		sg_targetreq_t treq;
 		sg_flightid_t fid;
 		sg_ack_t ack;
@@ -217,6 +217,7 @@ private:
 
 	struct {
 		// cached variables to compare against params so we can send msg on param change.
+		// FIXME: Maybe not used.
 		uint16_t        operating_squawk;
 		int32_t         operating_alt;
 		bool            failXpdr;
@@ -227,24 +228,21 @@ private:
 		} msg;
 	} last;
 
+	// FIXME: Remove
 	struct {
 		bool ack = false;
 	} initialized;
 
+	// FIXME: Remove
 	bool _armed{false};
 
 	// External Vehicle List
 	transponder_report_s *vehicle_list;
-	// transponder_report_s vehicle_list[_adsb_list_max.get()];
 	uint16_t vehicle_count;
 	uint16_t furthest_vehicle_index;
 	float furthest_vehicle_distance;
 
-
-
 	// Functions
-	// void start();
-	// void stop();
 	void Run() override;
 	void handle_packet(const Packet &msg);
 	int msg_write(const uint8_t *data, const uint16_t len) const;
@@ -275,5 +273,4 @@ private:
 	void auto_config_installation();
 	void auto_config_flightid();
 	unsigned convert_to_px4_baud(int baudType);
-	// void handle_params();
 };
