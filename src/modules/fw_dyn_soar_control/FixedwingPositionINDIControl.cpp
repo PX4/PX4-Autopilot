@@ -57,8 +57,9 @@ FixedwingPositionINDIControl::FixedwingPositionINDIControl() :
     _attitude_sp_pub(ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
-	// limit to 50 Hz
-	//_vehicle_angular_velocity_sub.set_interval_ms(20);
+	// limit to 100 Hz
+	_vehicle_angular_velocity_sub.set_interval_ms(1000/_sample_frequency);
+
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -381,68 +382,12 @@ FixedwingPositionINDIControl::_select_trajectory(float initial_energy)
 void
 FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
 {
-    /*
-    // File pointer
-    std::ifstream fin;
-  
-    // Open an existing file for testing
-    //fin.open("/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/"+filename, ios::in);
-    // Open an existing file from SD card
-    fin.open(PX4_ROOTFSDIR"/fs/microsd/trajectories/"+filename);
-  
-    // Read the Data from the file
-    // as String Vector
-    string line, word;
-
-    bool error = false;
-    
-    // loop over x, y, z
-    for (int l=0; l<3; l++) {
-        getline(fin, line, '\n');
-
-        // used for breaking words
-        stringstream s(line);
-
-        // read every column data of a row and
-        // store it in a string variable, 'word'
-        uint i = 0;
-        while (getline(s, word, ',')) {
-            // catch error
-            if(i>=_num_basis_funs){
-                PX4_ERR("number of coefficients is too large.");
-                error = true;
-            }
-            else{
-                switch(l){
-                    case 0:
-                        _basis_coeffs_x(i) = stof(word);
-                        break;
-                    case 1:
-                        _basis_coeffs_y(i) = stof(word);
-                        break;
-                    case 2:
-                        _basis_coeffs_z(i) = stof(word);
-                        break;
-                }
-            
-            }
-            //PX4_INFO("coefficient value: %.6f", (double)stof(word));
-            i += 1;
-        }
-        // catch error
-        if(_num_basis_funs-i>1){
-            PX4_ERR("number of coefficients is too small: %.f", (double)(i));
-            error = true;
-        }      
-    }
-    fin.close();
-    */
 
     // =======================================================================
     bool error = false;
 
-    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -485,7 +430,7 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
                     default:
                         break;
                 }
-                PX4_INFO("row: %d, col: %d, read value: %.3f", row, column, (double)atof(value));
+                //PX4_INFO("row: %d, col: %d, read value: %.3f", row, column, (double)atof(value));
                 value = strtok(NULL, ",");
                 column++;
                 
@@ -695,7 +640,6 @@ FixedwingPositionINDIControl::Run()
             _angular_accel_sp.xyz[1] = ctrl(1);
             _angular_accel_sp.xyz[2] = ctrl(2);
             _angular_accel_sp_pub.publish(_angular_accel_sp);
-            //print_message(_angular_accel_sp);
 
             // =========================
             // publish attitude setpoint
@@ -1131,7 +1075,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     // ==========================================
     // input meant for tuning the INDI controller
     // ==========================================
-    /*
+    
     if(hrt_absolute_time()%2000000>1000000){
         rot_acc_command = Vector3f{2.0f,1.f,0.f};
         //rot_acc_command = Vector3f{0.f,0.f,0.5f};
@@ -1140,7 +1084,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
         rot_acc_command = Vector3f{-2.0f,-1.f,0.f};
         //rot_acc_command = Vector3f{0.f,0.f,-0.5f};
     }
-    */
+    
     //PX4_INFO("force command: \t%.2f", (double)(f_command*f_command));
     //PX4_INFO("force command: \t%.2f\t%.2f\t%.2f", (double)f_command(0), (double)f_command(1), (double)f_command(2));
     //PX4_INFO("FRD body frame rotation vec: \t%.2f\t%.2f\t%.2f", (double)w_err(0), (double)w_err(1), (double)w_err(2));

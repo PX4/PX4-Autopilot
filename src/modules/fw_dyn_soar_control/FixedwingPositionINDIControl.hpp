@@ -156,56 +156,56 @@ private:
 	// parameter struct
 	DEFINE_PARAMETERS(
 		// aircraft params
-		(ParamFloat<px4::params::FW_INERTIA_ROLL>) _param_fw_inertia_roll,
-		(ParamFloat<px4::params::FW_INERTIA_PITCH>) _param_fw_inertia_pitch,
-		(ParamFloat<px4::params::FW_INERTIA_YAW>) _param_fw_inertia_yaw,
-		(ParamFloat<px4::params::FW_MASS>) _param_fw_mass,
-		(ParamFloat<px4::params::FW_WING_AREA>) _param_fw_wing_area,
-		(ParamFloat<px4::params::RHO>) _param_rho,
+		(ParamFloat<px4::params::DS_INERTIA_ROLL>) _param_fw_inertia_roll,
+		(ParamFloat<px4::params::DS_INERTIA_PITCH>) _param_fw_inertia_pitch,
+		(ParamFloat<px4::params::DS_INERTIA_YAW>) _param_fw_inertia_yaw,
+		(ParamFloat<px4::params::DS_MASS>) _param_fw_mass,
+		(ParamFloat<px4::params::DS_WING_AREA>) _param_fw_wing_area,
+		(ParamFloat<px4::params::DS_RHO>) _param_rho,
 		// aerodynamic params
-		(ParamFloat<px4::params::C_L0>) _param_fw_c_l0,
-		(ParamFloat<px4::params::C_L1>) _param_fw_c_l1,
-		(ParamFloat<px4::params::C_D0>) _param_fw_c_d0,
-		(ParamFloat<px4::params::C_D1>) _param_fw_c_d1,
-		(ParamFloat<px4::params::C_D2>) _param_fw_c_d2,
-		(ParamFloat<px4::params::AOA_OFFSET>) _param_aoa_offset,
+		(ParamFloat<px4::params::DS_C_L0>) _param_fw_c_l0,
+		(ParamFloat<px4::params::DS_C_L1>) _param_fw_c_l1,
+		(ParamFloat<px4::params::DS_C_D0>) _param_fw_c_d0,
+		(ParamFloat<px4::params::DS_C_D1>) _param_fw_c_d1,
+		(ParamFloat<px4::params::DS_C_D2>) _param_fw_c_d2,
+		(ParamFloat<px4::params::DS_AOA_OFFSET>) _param_aoa_offset,
 		// filter params
-		(ParamFloat<px4::params::FILTER_A1>) _param_filter_a1,
-		(ParamFloat<px4::params::FILTER_A2>) _param_filter_a2,
-		(ParamFloat<px4::params::FILTER_B1>) _param_filter_b1,
-		(ParamFloat<px4::params::FILTER_B2>) _param_filter_b2,
-		(ParamFloat<px4::params::FILTER_B3>) _param_filter_b3,
+		(ParamFloat<px4::params::DS_FILTER_A1>) _param_filter_a1,
+		(ParamFloat<px4::params::DS_FILTER_A2>) _param_filter_a2,
+		(ParamFloat<px4::params::DS_FILTER_B1>) _param_filter_b1,
+		(ParamFloat<px4::params::DS_FILTER_B2>) _param_filter_b2,
+		(ParamFloat<px4::params::DS_FILTER_B3>) _param_filter_b3,
 		// controller params
-		(ParamFloat<px4::params::K_X_ROLL>) _param_k_x_roll,
-		(ParamFloat<px4::params::K_X_PITCH>) _param_k_x_pitch,
-		(ParamFloat<px4::params::K_X_YAW>) _param_k_x_yaw,
-		(ParamFloat<px4::params::K_V_ROLL>) _param_k_v_roll,
-		(ParamFloat<px4::params::K_V_PITCH>) _param_k_v_pitch,
-		(ParamFloat<px4::params::K_V_YAW>) _param_k_v_yaw,
-		(ParamFloat<px4::params::K_A_ROLL>) _param_k_a_roll,
-		(ParamFloat<px4::params::K_A_PITCH>) _param_k_a_pitch,
-		(ParamFloat<px4::params::K_A_YAW>) _param_k_a_yaw,
-		(ParamFloat<px4::params::K_Q_ROLL>) _param_k_q_roll,
-		(ParamFloat<px4::params::K_Q_PITCH>) _param_k_q_pitch,
-		(ParamFloat<px4::params::K_Q_YAW>) _param_k_q_yaw,
-		(ParamFloat<px4::params::K_W_ROLL>) _param_k_w_roll,
-		(ParamFloat<px4::params::K_W_PITCH>) _param_k_w_pitch,
-		(ParamFloat<px4::params::K_W_YAW>) _param_k_w_yaw,
+		(ParamFloat<px4::params::DS_K_X_ROLL>) _param_k_x_roll,
+		(ParamFloat<px4::params::DS_K_X_PITCH>) _param_k_x_pitch,
+		(ParamFloat<px4::params::DS_K_X_YAW>) _param_k_x_yaw,
+		(ParamFloat<px4::params::DS_K_V_ROLL>) _param_k_v_roll,
+		(ParamFloat<px4::params::DS_K_V_PITCH>) _param_k_v_pitch,
+		(ParamFloat<px4::params::DS_K_V_YAW>) _param_k_v_yaw,
+		(ParamFloat<px4::params::DS_K_A_ROLL>) _param_k_a_roll,
+		(ParamFloat<px4::params::DS_K_A_PITCH>) _param_k_a_pitch,
+		(ParamFloat<px4::params::DS_K_A_YAW>) _param_k_a_yaw,
+		(ParamFloat<px4::params::DS_K_Q_ROLL>) _param_k_q_roll,
+		(ParamFloat<px4::params::DS_K_Q_PITCH>) _param_k_q_pitch,
+		(ParamFloat<px4::params::DS_K_Q_YAW>) _param_k_q_yaw,
+		(ParamFloat<px4::params::DS_K_W_ROLL>) _param_k_w_roll,
+		(ParamFloat<px4::params::DS_K_W_PITCH>) _param_k_w_pitch,
+		(ParamFloat<px4::params::DS_K_W_YAW>) _param_k_w_yaw,
 		// low-level controller params
-		(ParamFloat<px4::params::K_ACT_ROLL>) _param_k_act_roll,
-		(ParamFloat<px4::params::K_ACT_PITCH>) _param_k_act_pitch,
-		(ParamFloat<px4::params::K_ACT_YAW>) _param_k_act_yaw,
-		(ParamFloat<px4::params::K_DAMPING_ROLL>) _param_k_damping_roll,
-		(ParamFloat<px4::params::K_DAMPING_PITCH>) _param_k_damping_pitch,
-		(ParamFloat<px4::params::K_DAMPING_YAW>) _param_k_damping_yaw,
+		(ParamFloat<px4::params::DS_K_ACT_ROLL>) _param_k_act_roll,
+		(ParamFloat<px4::params::DS_K_ACT_PITCH>) _param_k_act_pitch,
+		(ParamFloat<px4::params::DS_K_ACT_YAW>) _param_k_act_yaw,
+		(ParamFloat<px4::params::DS_K_DAMP_ROLL>) _param_k_damping_roll,
+		(ParamFloat<px4::params::DS_K_DAMP_PITCH>) _param_k_damping_pitch,
+		(ParamFloat<px4::params::DS_K_DAMP_YAW>) _param_k_damping_yaw,
 		// location params
-		(ParamFloat<px4::params::ORIGIN_LAT>) _param_origin_lat,
-		(ParamFloat<px4::params::ORIGIN_LON>) _param_origin_lon,
-		(ParamFloat<px4::params::ORIGIN_ALT>) _param_origin_alt,
+		(ParamFloat<px4::params::DS_ORIGIN_LAT>) _param_origin_lat,
+		(ParamFloat<px4::params::DS_ORIGIN_LON>) _param_origin_lon,
+		(ParamFloat<px4::params::DS_ORIGIN_ALT>) _param_origin_alt,
 		// loiter params
-		(ParamInt<px4::params::LOITER>) _param_loiter,
+		(ParamInt<px4::params::DS_LOITER>) _param_loiter,
 		// thrust params
-		(ParamFloat<px4::params::THRUST>) _param_thrust
+		(ParamFloat<px4::params::DS_THRUST>) _param_thrust
 
 	)
 
@@ -298,7 +298,7 @@ private:
 	Vector<Vector3f, 2> _a_lpf_list;
 	Vector<Vector3f, 2> _l_lpf_list;
 	// controller frequency
-	const float _sample_frequency = 250.f;
+	const float _sample_frequency = 100.f;
 	// Low-Pass filters stage 1
 	const float _cutoff_frequency_1 = 5.f;
 	math::LowPassFilter2p _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// linear acceleration
