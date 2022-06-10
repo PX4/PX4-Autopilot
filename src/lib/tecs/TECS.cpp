@@ -129,18 +129,21 @@ void TECS::_update_speed_states(float equivalent_airspeed_setpoint, float equiva
 	_tas_innov = (_EAS * EAS2TAS) - _tas_state;
 	float tas_rate_state_input = _tas_innov * _tas_estimate_freq * _tas_estimate_freq;
 
-	// limit integrator input to prevent windup
-	if (_tas_state < 3.1f) {
-		tas_rate_state_input = max(tas_rate_state_input, 0.0f);
-	}
-
 	// Update TAS state
 	_tas_rate_state = _tas_rate_state + tas_rate_state_input * dt;
 	float tas_state_input = _tas_rate_state + _tas_rate_raw + _tas_innov * _tas_estimate_freq * 1.4142f;
-	_tas_state = _tas_state + tas_state_input * dt;
+	const float new_tas_state = _tas_state + tas_state_input * dt;
 
-	// Limit the TAS state to a minimum of 3 m/s
-	_tas_state = max(_tas_state, 3.0f);
+	if (new_tas_state < 0.0f) {
+		// clip TAS at zero, back calculate rate
+		tas_state_input = -_tas_state / dt;
+		_tas_rate_state = tas_state_input - _tas_rate_raw - _tas_innov * _tas_estimate_freq * 1.4142f;
+		_tas_state = 0.0f;
+
+	} else {
+		_tas_state = new_tas_state;
+	}
+
 	_speed_update_timestamp = now;
 
 }
@@ -149,23 +152,33 @@ void TECS::_update_speed_setpoint()
 {
 	// Set the TAS demand to the minimum value if an underspeed or
 	// or a uncontrolled descent condition exists to maximise climb rate
-	if ((_uncommanded_descent_recovery) || (_underspeed_detected)) {
+	if (_uncommanded_descent_recovery) {
 		_TAS_setpoint = _TAS_min;
+
+	} else if (_percent_undersped > FLT_EPSILON) {
+		// TAS setpoint is reset from external setpoint every time tecs is called, so the interpolation is still
+		// between current setpoint and mininimum airspeed here (it's not feeding the newly adjusted setpoint
+		// from this line back into this method each time).
+		// TODO: WOULD BE GOOD to "functionalize" this library a bit and remove many of these internal states to
+		// avoid the fear of side effects in simple operations like this.
+		_TAS_setpoint = _TAS_min * _percent_undersped + (1.0f - _percent_undersped) * _TAS_setpoint;
 	}
 
 	_TAS_setpoint = constrain(_TAS_setpoint, _TAS_min, _TAS_max);
 
 	// Calculate limits for the demanded rate of change of speed based on physical performance limits
 	// with a 50% margin to allow the total energy controller to correct for errors.
-	float velRateMax = 0.5f * _STE_rate_max / _tas_state;
-	float velRateMin = 0.5f * _STE_rate_min / _tas_state;
+	// NOTE: at zero airspeed, the true airspeed rate setpoint is unbounded
+	const float max_tas_rate_sp = 0.5f * _STE_rate_max / _tas_state;
+	const float min_tas_rate_sp = 0.5f * _STE_rate_min / _tas_state;
 
 	_TAS_setpoint_adj = constrain(_TAS_setpoint, _TAS_min, _TAS_max);
 
 	// calculate the demanded true airspeed rate of change based on first order response of true airspeed error
 	// if airspeed measurement is not enabled then always set the rate setpoint to zero in order to avoid constant rate setpoints
 	if (airspeed_sensor_enabled()) {
-		_TAS_rate_setpoint = constrain((_TAS_setpoint_adj - _tas_state) * _airspeed_error_gain, velRateMin, velRateMax);
+		_TAS_rate_setpoint = constrain((_TAS_setpoint_adj - _tas_state) * _airspeed_error_gain, min_tas_rate_sp,
+					       max_tas_rate_sp);
 
 	} else {
 		_TAS_rate_setpoint = 0.0f;
@@ -200,18 +213,15 @@ void TECS::runAltitudeControllerSmoothVelocity(float alt_sp_amsl_m, float target
 void TECS::_detect_underspeed()
 {
 	if (!_detect_underspeed_enabled) {
-		_underspeed_detected = false;
+		_percent_undersped = 0.0f;
 		return;
 	}
 
-	if (((_tas_state < _TAS_min * 0.9f) && (_last_throttle_setpoint >= _throttle_setpoint_max * 0.95f))
-	    || ((_vert_pos_state < _hgt_setpoint) && _underspeed_detected)) {
+	const float tas_fully_undersped = math::max(_TAS_min - TAS_ERROR_BOUND - TAS_UNDERSPEED_SOFT_BOUND, 0.0f);
+	const float tas_starting_to_underspeed = math::max(_TAS_min - TAS_ERROR_BOUND, tas_fully_undersped);
 
-		_underspeed_detected = true;
-
-	} else {
-		_underspeed_detected = false;
-	}
+	_percent_undersped = 1.0f - math::constrain((_tas_state - tas_fully_undersped) /
+			     math::max(tas_starting_to_underspeed - tas_fully_undersped, FLT_EPSILON), 0.0f, 1.0f);
 }
 
 void TECS::_update_energy_estimates()
@@ -252,89 +262,83 @@ void TECS::_update_throttle_setpoint()
 	_STE_rate_error_filter.update(-_SPE_rate - _SKE_rate + _SPE_rate_setpoint + _SKE_rate_setpoint);
 	_STE_rate_error = _STE_rate_error_filter.getState();
 
-	float throttle_setpoint;
+	// Adjust the demanded total energy rate to compensate for induced drag rise in turns.
+	// Assume induced drag scales linearly with normal load factor.
+	// The additional normal load factor is given by (1/cos(bank angle) - 1)
+	_STE_rate_setpoint += _load_factor_correction * (_load_factor - 1.f);
 
-	// Calculate the throttle demand
-	if (_underspeed_detected) {
-		// always use full throttle to recover from an underspeed condition
-		throttle_setpoint = _throttle_setpoint_max;
+	_STE_rate_setpoint = constrain(_STE_rate_setpoint, _STE_rate_min, _STE_rate_max);
+
+	// Calculate a predicted throttle from the demanded rate of change of energy, using the cruise throttle
+	// as the starting point. Assume:
+	// Specific total energy rate = _STE_rate_max is achieved when throttle is set to _throttle_setpoint_max
+	// Specific total energy rate = 0 at cruise throttle
+	// Specific total energy rate = _STE_rate_min is achieved when throttle is set to _throttle_setpoint_min
+	float throttle_predicted = 0.0f;
+
+	if (_STE_rate_setpoint >= 0) {
+		// throttle is between trim and maximum
+		throttle_predicted = _throttle_trim + _STE_rate_setpoint / _STE_rate_max * (_throttle_setpoint_max - _throttle_trim);
 
 	} else {
-		// Adjust the demanded total energy rate to compensate for induced drag rise in turns.
-		// Assume induced drag scales linearly with normal load factor.
-		// The additional normal load factor is given by (1/cos(bank angle) - 1)
-		_STE_rate_setpoint += _load_factor_correction * (_load_factor - 1.f);
+		// throttle is between trim and minimum
+		throttle_predicted = _throttle_trim + _STE_rate_setpoint / _STE_rate_min * (_throttle_setpoint_min - _throttle_trim);
 
-		_STE_rate_setpoint = constrain(_STE_rate_setpoint, _STE_rate_min, _STE_rate_max);
+	}
 
-		// Calculate a predicted throttle from the demanded rate of change of energy, using the trim throttle
-		// as the starting point. Assume:
-		// Specific total energy rate = _STE_rate_max is achieved when throttle is set to _throttle_setpoint_max
-		// Specific total energy rate = 0 at trim throttle
-		// Specific total energy rate = _STE_rate_min is achieved when throttle is set to _throttle_setpoint_min
-		float throttle_predicted = 0.0f;
+	// Calculate gain scaler from specific energy rate error to throttle
+	const float STE_rate_to_throttle = 1.0f / (_STE_rate_max - _STE_rate_min);
 
-		if (_STE_rate_setpoint >= 0) {
-			// throttle is between trim and maximum
-			throttle_predicted = _throttle_trim + _STE_rate_setpoint / _STE_rate_max * (_throttle_setpoint_max -
-					     _throttle_trim);
+	// Add proportional and derivative control feedback to the predicted throttle and constrain to throttle limits
+	float throttle_setpoint = (_STE_rate_error * _throttle_damping_gain) * STE_rate_to_throttle + throttle_predicted;
+	throttle_setpoint = constrain(throttle_setpoint, _throttle_setpoint_min, _throttle_setpoint_max);
 
-		} else {
-			// throttle is between trim and minimum
-			throttle_predicted = _throttle_trim + _STE_rate_setpoint / _STE_rate_min * (_throttle_setpoint_min -
-					     _throttle_trim);
+	// Integral handling
+	if (airspeed_sensor_enabled()) {
+		if (_integrator_gain_throttle > 0.0f) {
+			float integ_state_max = _throttle_setpoint_max - throttle_setpoint;
+			float integ_state_min = _throttle_setpoint_min - throttle_setpoint;
 
-		}
+			// underspeed conditions zero out integration
+			float throttle_integ_input = (_STE_rate_error * _integrator_gain_throttle) * _dt *
+						     STE_rate_to_throttle * (1.0f - _percent_undersped);
 
-		// Calculate gain scaler from specific energy rate error to throttle
-		const float STE_rate_to_throttle = 1.0f / (_STE_rate_max - _STE_rate_min);
+			// only allow integrator propagation into direction which unsaturates throttle
+			if (_throttle_integ_state > integ_state_max) {
+				throttle_integ_input = math::min(0.f, throttle_integ_input);
 
-		// Add proportional and derivative control feedback to the predicted throttle and constrain to throttle limits
-		throttle_setpoint = (_STE_rate_error * _throttle_damping_gain) * STE_rate_to_throttle + throttle_predicted;
-		throttle_setpoint = constrain(throttle_setpoint, _throttle_setpoint_min, _throttle_setpoint_max);
-
-		if (airspeed_sensor_enabled()) {
-			if (_integrator_gain_throttle > 0.0f) {
-				float integ_state_max = _throttle_setpoint_max - throttle_setpoint;
-				float integ_state_min = _throttle_setpoint_min - throttle_setpoint;
-
-				float throttle_integ_input = (_STE_rate_error * _integrator_gain_throttle) * _dt *
-							     STE_rate_to_throttle;
-
-				// only allow integrator propagation into direction which unsaturates throttle
-				if (_throttle_integ_state > integ_state_max) {
-					throttle_integ_input = math::min(0.f, throttle_integ_input);
-
-				} else if (_throttle_integ_state < integ_state_min) {
-					throttle_integ_input = math::max(0.f, throttle_integ_input);
-				}
-
-				// Calculate a throttle demand from the integrated total energy rate error
-				// This will be added to the total throttle demand to compensate for steady state errors
-				_throttle_integ_state = _throttle_integ_state + throttle_integ_input;
-
-				if (_climbout_mode_active) {
-					// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
-					// at end of climbout when we transition to closed loop throttle control
-					_throttle_integ_state = integ_state_max;
-				}
-
-			} else {
-				_throttle_integ_state = 0.0f;
+			} else if (_throttle_integ_state < integ_state_min) {
+				throttle_integ_input = math::max(0.f, throttle_integ_input);
 			}
 
-		}
+			// Calculate a throttle demand from the integrated total energy rate error
+			// This will be added to the total throttle demand to compensate for steady state errors
+			_throttle_integ_state = _throttle_integ_state + throttle_integ_input;
 
-		if (airspeed_sensor_enabled()) {
-			// Add the integrator feedback during closed loop operation with an airspeed sensor
-			throttle_setpoint += _throttle_integ_state;
+			if (_climbout_mode_active) {
+				// During climbout, set the integrator to maximum throttle to prevent transient throttle drop
+				// at end of climbout when we transition to closed loop throttle control
+				_throttle_integ_state = integ_state_max;
+			}
 
 		} else {
-			// when flying without an airspeed sensor, use the predicted throttle only
-			throttle_setpoint = throttle_predicted;
-
+			_throttle_integ_state = 0.0f;
 		}
+
 	}
+
+	if (airspeed_sensor_enabled()) {
+		// Add the integrator feedback during closed loop operation with an airspeed sensor
+		throttle_setpoint += _throttle_integ_state;
+
+	} else {
+		// when flying without an airspeed sensor, use the predicted throttle only
+		throttle_setpoint = throttle_predicted;
+
+	}
+
+	// ramp in max throttle setting with underspeediness value
+	throttle_setpoint = _percent_undersped * _throttle_setpoint_max + (1.0f - _percent_undersped) * throttle_setpoint;
 
 	// Rate limit the throttle demand
 	if (fabsf(_throttle_slewrate) > 0.01f) {
@@ -357,13 +361,15 @@ void TECS::_detect_uncommanded_descent()
 	// Calculate rate of change of total specific energy
 	const float STE_rate = _SPE_rate + _SKE_rate;
 
+	const bool underspeed_detected = _percent_undersped > FLT_EPSILON;
+
 	// If total energy is very low and reducing, throttle is high, and we are not in an underspeed condition, then enter uncommanded descent recovery mode
-	const bool enter_mode = !_uncommanded_descent_recovery && !_underspeed_detected && (_STE_error > 200.0f)
+	const bool enter_mode = !_uncommanded_descent_recovery && !underspeed_detected && (_STE_error > 200.0f)
 				&& (STE_rate < 0.0f)
 				&& (_last_throttle_setpoint >= _throttle_setpoint_max * 0.9f);
 
 	// If we enter an underspeed condition or recover the required total energy, then exit uncommanded descent recovery mode
-	const bool exit_mode = _uncommanded_descent_recovery && (_underspeed_detected || (_STE_error < 0.0f));
+	const bool exit_mode = _uncommanded_descent_recovery && (underspeed_detected || (_STE_error < 0.0f));
 
 	if (enter_mode) {
 		_uncommanded_descent_recovery = true;
@@ -435,9 +441,10 @@ void TECS::_update_pitch_setpoint()
 	float pitch_setpoint = constrain(_pitch_setpoint_unc, _pitch_setpoint_min, _pitch_setpoint_max);
 
 	// Comply with the specified vertical acceleration limit by applying a pitch rate limit
-	const float ptchRateIncr = _dt * _vert_accel_limit / _tas_state;
-	_last_pitch_setpoint = constrain(pitch_setpoint, _last_pitch_setpoint - ptchRateIncr,
-					 _last_pitch_setpoint + ptchRateIncr);
+	// NOTE: at zero airspeed, the pitch increment is unbounded
+	const float pitch_increment = _dt * _vert_accel_limit / _tas_state;
+	_last_pitch_setpoint = constrain(pitch_setpoint, _last_pitch_setpoint - pitch_increment,
+					 _last_pitch_setpoint + pitch_increment);
 }
 
 void TECS::_updateTrajectoryGenerationConstraints()
@@ -498,7 +505,6 @@ void TECS::_initialize_states(float pitch, float throttle_trim, float baro_altit
 		_pitch_setpoint_unc = _last_pitch_setpoint;
 		_TAS_setpoint_last = _EAS * EAS2TAS;
 		_TAS_setpoint_adj = _TAS_setpoint_last;
-		_underspeed_detected = false;
 		_uncommanded_descent_recovery = false;
 		_STE_rate_error = 0.0f;
 		_hgt_setpoint = baro_altitude;
@@ -525,8 +531,6 @@ void TECS::_initialize_states(float pitch, float throttle_trim, float baro_altit
 
 		_hgt_setpoint = baro_altitude;
 
-		// disable speed and decent error condition checks
-		_underspeed_detected = false;
 		_uncommanded_descent_recovery = false;
 	}
 
@@ -605,7 +609,7 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 	_pitch_update_timestamp = now;
 
 	// Set TECS mode for next frame
-	if (_underspeed_detected) {
+	if (_percent_undersped > FLT_EPSILON) {
 		_tecs_mode = ECL_TECS_MODE_UNDERSPEED;
 
 	} else if (_uncommanded_descent_recovery) {
@@ -624,17 +628,21 @@ void TECS::update_pitch_throttle(float pitch, float baro_altitude, float hgt_set
 void TECS::_update_speed_height_weights()
 {
 	// Calculate the weight applied to control of specific kinetic energy error
-	_SKE_weighting = constrain(_pitch_speed_weight, 0.0f, 2.0f);
+	float pitch_speed_weight = constrain(_pitch_speed_weight, 0.0f, 2.0f);
 
-	if ((_underspeed_detected || _climbout_mode_active) && airspeed_sensor_enabled()) {
-		_SKE_weighting = 2.0f;
+	if (_climbout_mode_active && airspeed_sensor_enabled()) {
+		pitch_speed_weight = 2.0f;
+
+	} else if (_percent_undersped > FLT_EPSILON && airspeed_sensor_enabled()) {
+		pitch_speed_weight = 2.0f * _percent_undersped + (1.0f - _percent_undersped) * pitch_speed_weight;
 
 	} else if (!airspeed_sensor_enabled()) {
-		_SKE_weighting = 0.0f;
+		pitch_speed_weight = 0.0f;
+
 	}
 
 	// don't allow any weight to be larger than one, as it has the same effect as reducing the control
 	// loop time constant and therefore can lead to a destabilization of that control loop
-	_SPE_weighting = constrain(2.0f - _SKE_weighting, 0.f, 1.f);
-	_SKE_weighting = constrain(_SKE_weighting, 0.f, 1.f);
+	_SPE_weighting = constrain(2.0f - pitch_speed_weight, 0.f, 1.f);
+	_SKE_weighting = constrain(pitch_speed_weight, 0.f, 1.f);
 }
