@@ -86,7 +86,7 @@ PARAM_DEFINE_INT32(ADSB_LIST_MAX, 25);
  * @group Transponder
  *
  */
-PARAM_DEFINE_INT32(ADSB_ICAO_ID, 0);
+PARAM_DEFINE_INT32(ADSB_ICAO_ID, 1194684);
 
 /**
  * ADSB-Out Vehicle Size Configuration

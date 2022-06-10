@@ -933,15 +933,19 @@ int SagetechMXS::open_serial_port() {
 	}
 
 	// cfmakeraw(&uart_config);
-	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
-	uart_config.c_cflag |= (CS8 | CREAD);
-	uart_config.c_oflag &= ~ONLCR;
-	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-	// uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
-	// uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
-	// uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
-	// uart_config.c_oflag &= ~ONLCR;
+
+	// CFLAG
 	// uart_config.c_cflag &= ~(CSTOPB | PARENB);
+	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
+	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
+	// uart_config.c_cflag |= (CS8 | CREAD);
+
+	// LFLAG
+	// uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+
+	// OFLAG
+	uart_config.c_oflag &= ~ONLCR;
 
 	unsigned baud = convert_to_px4_baud(_ser_mxs_baud.get());
 	// unsigned baud = B57600;
