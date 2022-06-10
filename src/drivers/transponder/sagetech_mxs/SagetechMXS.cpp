@@ -291,6 +291,7 @@ void SagetechMXS::Run()
 
 	if (!(_loop_count % ONE_HZ_MOD)) {		// 1Hz Timer (Operating Message/GPS Ground)
 		// PX4_INFO("1 Hz callback");
+		PX4_INFO("Vehicle Count: %d, Furthest Vehicle Index: %d", vehicle_count, furthest_vehicle_index);
 
 		if (!mxs_state.initialized && _mxs_ext_cfg.get()) {
 			// External Configuration
@@ -375,7 +376,7 @@ void SagetechMXS::determine_furthest_aircraft(void)
 			continue;
 		}
 		const float distance = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle_list[index].lat, vehicle_list[index].lon);
-		if (max_distance < distance || index == 0) {
+		if ((max_distance < distance) || (index == 0)) {
 			max_distance = distance;
 			max_distance_index = index;
 		}
@@ -405,6 +406,7 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 	// needs to handle updating the vehicle list, keeping track of which vehicles to drop
 	// and which to keep, allocating new vehicles, and publishing to the transponder_report topic
 	uint16_t index = _adsb_list_max.get() + 1; // Make invalid to start with.
+	const bool my_loc_is_zero = (_gps.lat == 0) && (_gps.lon == 0);
 	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle.lat, vehicle.lon);
 	const bool is_tracked_in_list = find_index(vehicle, &index);
 	// const bool is_special = is_special_vehicle(vehicle.icao_address);
@@ -414,7 +416,7 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 		if (is_tracked_in_list) {
 			delete_vehicle(index);	// If the vehicle is tracked in our list but doesn't have the right flags remove it
 		}
-	return;
+		return;
 	} else if (is_tracked_in_list) {	// If the vehicle is in the list update it with the index found
 		set_vehicle(index, vehicle);
 	} else if (vehicle_count < _adsb_list_max.get()) {	// If the vehicle is not in the list, and the vehicle count is less than the max count
@@ -422,7 +424,7 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 		set_vehicle(vehicle_count, vehicle);
 		vehicle_count++;
 	} else {	// Buffer is full. If new vehicle is closer, replace furthest with new vehicle
-		if (_gps.fix_type == 0) {	// Invalid GPS fix
+		if (my_loc_is_zero) {	// Invalid GPS
 			furthest_vehicle_distance = 0;
 			furthest_vehicle_index = 0;
 		} else {
@@ -549,6 +551,7 @@ void SagetechMXS::handle_msr(sg_msr_t msr)
 	} else {
 		t.flags &= ~transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 	}
+	PX4_INFO("Got MSR for ICAO: %x with callsign: %s", (int) t.icao_address, t.callsign);
 
 	handle_vehicle(t);
 }
@@ -906,7 +909,7 @@ uint32_t SagetechMXS::convert_base_to_decimal(const uint8_t baseIn, uint32_t inp
 int SagetechMXS::open_serial_port() {
 
 	if (_fd < 0) {	// Open port if not open
-		_fd = open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+		_fd = open(_port, (O_RDWR | O_NOCTTY | O_NONBLOCK));
 		if (_fd < 0) {
 			PX4_ERR("Opening port %s failed %i", _port, errno);
 			return PX4_ERROR;
@@ -916,7 +919,7 @@ int SagetechMXS::open_serial_port() {
 	}
 
 	// UART Configuration
-	struct termios uart_config {};
+	termios uart_config {};
 	int termios_state = -1;
 
 	if(tcgetattr(_fd, &uart_config)) {
@@ -944,12 +947,7 @@ int SagetechMXS::open_serial_port() {
 	unsigned baud = convert_to_px4_baud(_ser_mxs_baud.get());
 	if ((cfsetispeed(&uart_config, baud) < 0) || (cfsetospeed(&uart_config, baud) < 0)) {
 		PX4_ERR("ERR SET BAUD %s: %d\n", _port, termios_state);
-		px4_close(_fd);
-		return PX4_ERROR;
-	}
-
-	if (tcsetattr(_fd, TCSANOW, &uart_config) < 0) {
-		PX4_ERR("baud %d ATTR", termios_state);
+		close(_fd);
 		return PX4_ERROR;
 	}
 
@@ -958,23 +956,31 @@ int SagetechMXS::open_serial_port() {
 	 * ***************************/
 
 	// Set Raw Input
-	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG);
-	// uart_config.c_lflag &= (ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+	// uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
 
 	/*****************************
 	 * UART Input Options
 	 * ***************************/
 
 	// Disable Software flow control
-	uart_config.c_iflag &= ~(IXON | IXOFF | IXANY);
+	// uart_config.c_iflag &= ~(IXON | IXOFF | IXANY);
 
 	/*****************************
 	 * UART Output Options
 	 * ***************************/
 
 	// Set raw output and map NL to CR-LF
-	uart_config.c_oflag &= ~(ONLCR | OPOST);
+	// uart_config.c_oflag &= ~(ONLCR | OPOST);
+	uart_config.c_oflag &= ~ONLCR;
 
+	/*********************************
+	 * Apply Modified Port Attributes
+	 * *******************************/
+	if (tcsetattr(_fd, TCSANOW, &uart_config) < 0) {
+		PX4_ERR("baud %d ATTR", termios_state);
+		return PX4_ERROR;
+	}
 
 	tcflush(_fd, TCIOFLUSH);
 	PX4_INFO("Opened port %s", _port);
