@@ -1051,15 +1051,16 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     // get required rotation vector (in body frame)
     AxisAnglef q_err(R_ref_true);
     Vector3f w_err;
-    if (abs(q_err.angle())<M_PI_F){
+    // project rotation angle to [-pi,pi]
+    if (q_err.angle()*q_err.angle()<M_PI_F*M_PI_F){
         w_err = -q_err.angle()*q_err.axis();
     }
     else{
         if (q_err.angle()>0.f){
-            w_err = (2*M_PI_F-q_err.angle())*q_err.axis();
+            w_err = (2.f*M_PI_F-(float)fmod(q_err.angle(),2.f*M_PI_F))*q_err.axis();
         }
         else{
-            w_err = (-2*M_PI_F-q_err.angle())*q_err.axis();
+            w_err = (-2.f*M_PI_F-(float)fmod(q_err.angle(),2.f*M_PI_F))*q_err.axis();
         }
     }
     
@@ -1075,7 +1076,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     // ==========================================
     // input meant for tuning the INDI controller
     // ==========================================
-    
+    /*
     if(hrt_absolute_time()%2000000>1000000){
         rot_acc_command = Vector3f{2.0f,1.f,0.f};
         //rot_acc_command = Vector3f{0.f,0.f,0.5f};
@@ -1084,12 +1085,12 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
         rot_acc_command = Vector3f{-2.0f,-1.f,0.f};
         //rot_acc_command = Vector3f{0.f,0.f,-0.5f};
     }
-    
+    */
     //PX4_INFO("force command: \t%.2f", (double)(f_command*f_command));
     //PX4_INFO("force command: \t%.2f\t%.2f\t%.2f", (double)f_command(0), (double)f_command(1), (double)f_command(2));
     //PX4_INFO("FRD body frame rotation vec: \t%.2f\t%.2f\t%.2f", (double)w_err(0), (double)w_err(1), (double)w_err(2));
-    if (sqrtf(w_err(0)*w_err(0) + w_err(1)*w_err(1) + w_err(2)*w_err(2))>M_PI_F){
-        PX4_ERR("rotation angle larger than pi: \t%.2f", (double)sqrtf(w_err(0)*w_err(0) + w_err(1)*w_err(1) + w_err(2)*w_err(2)));
+    if (sqrtf(w_err*w_err)>M_PI_F){
+        PX4_ERR("rotation angle larger than pi: \t%.2f, \t%.2f, \t%.2f", (double)sqrtf(w_err*w_err), (double)q_err.angle(), (double)(q_err.axis()*q_err.axis()));
     }
 
     return rot_acc_command;

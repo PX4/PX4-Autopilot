@@ -370,7 +370,7 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 1.0f);
  *
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
+PARAM_DEFINE_INT32(COM_OBL_ACT, 2);
 
 /**
  * Set offboard loss failsafe mode when RC is available
@@ -389,7 +389,7 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * @value  7 Lockdown
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
+PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 3);
 
 /**
  * Time-out to wait when onboard computer connection is lost before warning about loss connection.
