@@ -662,10 +662,14 @@ void SagetechMXS::send_flight_id_msg()
 
 void SagetechMXS::send_operating_msg()
 {
-#ifdef SG_HW_TEST
-	mxs_state.op.squawk = convert_base_to_decimal(8, _adsb_squawk.get());
+
 	mxs_state.op.opMode = (sg_op_mode_t)_mxs_op_mode.get();
-	// sg_op_mode_t::modeStby;
+
+	if (check_valid_squawk(_adsb_squawk.get())) {
+		mxs_state.op.squawk = convert_base_to_decimal(8, _adsb_squawk.get());
+	} else {
+		mxs_state.op.squawk = convert_base_to_decimal(8, 7777);
+	}
 
 	mxs_state.op.savePowerUp = true;                                                  // Save power-up state in non-volatile
 	mxs_state.op.enableSqt = true;                                                    // Enable extended squitters
@@ -705,7 +709,6 @@ void SagetechMXS::send_operating_msg()
 	double heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
 	mxs_state.op.airspd = speed_knots;
 	mxs_state.op.heading = heading;
-#endif
 
 	last.msg.type = SG_MSG_TYPE_HOST_OPMSG;
 	uint8_t txComBuffer[SG_MSG_LEN_OPMSG] {};
@@ -1112,10 +1115,15 @@ int SagetechMXS::store_inst_resp()
 
 void SagetechMXS::auto_config_operating()
 {
-	mxs_state.op.squawk = convert_base_to_decimal(8, _adsb_squawk.get());
 	mxs_state.op.opMode = sg_op_mode_t::modeOff;
 	_mxs_op_mode.set(sg_op_mode_t::modeOff);
 	_mxs_op_mode.commit();
+
+	if (check_valid_squawk(_adsb_squawk.get())) {
+		mxs_state.op.squawk = convert_base_to_decimal(8, _adsb_squawk.get());
+	} else {
+		mxs_state.op.squawk = convert_base_to_decimal(8, 7777);
+	}
 
 	mxs_state.op.savePowerUp = true;                                                  // Save power-up state in non-volatile
 	mxs_state.op.enableSqt = true;                                                    // Enable extended squitters
