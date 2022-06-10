@@ -138,7 +138,7 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 		}
 	} else {
 		PX4_INFO("Verb: %s", verb);
-		if (!strcmp(verb, "flight_id")) {
+		if (!strcmp(verb, "flightid")) {
 			const char *fid = argv[1];
 			if (fid == nullptr) {
 				print_usage("Missing Flight ID");
@@ -149,6 +149,44 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 		if (!strcmp(verb, "ident")) {
 			get_instance()->_adsb_ident.set(1);
 			return get_instance()->_adsb_ident.commit();
+		}
+		if (!strcmp(verb, "opmode")) {
+			const char *opmode = argv[1];
+			if (opmode == nullptr) {
+				print_usage("Missing Op Mode");
+				return PX4_ERROR;
+			} else if (!strcmp(opmode, "off") || !strcmp(opmode, "0")) {
+				get_instance()->_mxs_op_mode.set(0);
+				return get_instance()->_mxs_op_mode.commit();
+			} else if (!strcmp(opmode, "on") || !strcmp(opmode, "1")) {
+				get_instance()->_mxs_op_mode.set(1);
+				return get_instance()->_mxs_op_mode.commit();
+			} else if (!strcmp(opmode, "stby") || !strcmp(opmode, "2")) {
+				get_instance()->_mxs_op_mode.set(2);
+				return get_instance()->_mxs_op_mode.commit();
+			} else if (!strcmp(opmode, "alt") || !strcmp(opmode, "3")) {
+				get_instance()->_mxs_op_mode.set(3);
+				return get_instance()->_mxs_op_mode.commit();
+			} else {
+				print_usage("Invalid Op Mode");
+				return PX4_ERROR;
+			}
+		}
+		if (!strcmp(verb, "squawk")) {
+			const char *squawk = argv[1];
+			int sqk = 0;
+			if (squawk == nullptr) {
+				print_usage("Missing Squawk Code");
+				return PX4_ERROR;
+			}
+			sqk = atoi(squawk);
+			if (!get_instance()->check_valid_squawk(sqk)) {
+				print_usage("Invalid Squawk");
+				return PX4_ERROR;
+			} else {
+				get_instance()->_adsb_squawk.set(sqk);
+				return get_instance()->_adsb_squawk.commit();
+			}
 		}
 	}
 
@@ -179,8 +217,10 @@ int SagetechMXS::print_usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("flight_id", "Set Flight ID (8 char max)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("flightid", "Set Flight ID (8 char max)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("ident", "Set the IDENT bit in ADSB-Out messages");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("opmode", "Set the MXS operating mode. ('off', 'on', 'stby', 'alt', or numerical [0-3])");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("squawk", "Set the Squawk Code. [0-7777] Octal (no digit larger than 7)");
 	return PX4_OK;
 }
 
@@ -1163,7 +1203,19 @@ void SagetechMXS::auto_config_flightid()
 	msg_write(txComBuffer, SG_MSG_LEN_FLIGHT);
 }
 
-
+bool SagetechMXS::check_valid_squawk(int squawk)
+{
+	if (squawk > 7777) {
+		return false;
+	}
+	for (int i = 4; i > 0; i--) {
+		squawk = squawk - ((int)(squawk / powf(10,i)) * (int)powf(10,i));
+		if ((int)(squawk / powf(10, i-1)) > 7) {
+			return false;
+		}
+	}
+	return true;
+}
 
 // #define SG_PAYLOAD_LEN_GPS  SG_MSG_LEN_GPS - 5  /// the payload length.
 

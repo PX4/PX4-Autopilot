@@ -262,4 +262,5 @@ private:
 	void auto_config_installation();
 	void auto_config_flightid();
 	unsigned convert_to_px4_baud(int baudType);
+	bool check_valid_squawk(int squawk);
 };
