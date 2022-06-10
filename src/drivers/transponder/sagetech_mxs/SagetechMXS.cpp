@@ -717,7 +717,7 @@ void SagetechMXS::send_gps_msg()
 	// const float heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
 	const float heading = matrix::wrap_2pi(_gps.cog_rad)*(180.0f/M_PI_F);
 	// PX4_INFO("CoG: %f. Heading: %f", (double) _gps.cog_rad, (double) _gps.heading);
-	PX4_INFO("Heading: %f", (double)heading);
+	// PX4_INFO("Heading: %f", (double)heading);
 
 	snprintf((char*)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * (float)1.0E4));
 
