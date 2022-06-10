@@ -200,7 +200,7 @@ int SagetechMXS::print_usage(const char *reason)
 		R"DESCR_STR(
 	### Description
 
-	THIS IS A DESCRIPTION.
+	This driver integrates the Sagetech MXS Certified Transponder to send and receive ADSB messages and traffic.
 
 	### Examples
 
@@ -210,6 +210,11 @@ int SagetechMXS::print_usage(const char *reason)
 	$ sagetech_mxs stop
 	Set Flight ID (8 char max)
 	$ sagetech_mxs flight_id MXS12345
+	Set MXS Operating Mode
+	$ sagetech_mxs opmode off/on/stby/alt
+	$ sagetech_mxs opmode 0/1/2/3
+	Set the Squawk Code
+	$ sagetech_mxs squawk 1200
 	)DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("sagetech_mxs", "driver");
