@@ -227,6 +227,7 @@ private:
 
 	// External Vehicle List
 	transponder_report_s *vehicle_list;
+	uint16_t list_size_allocated;
 	uint16_t vehicle_count = 0;
 	uint16_t furthest_vehicle_index = 0;
 	float furthest_vehicle_distance = 0;

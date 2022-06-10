@@ -116,13 +116,17 @@ bool SagetechMXS::init()
 	if (vehicle_list == nullptr) {
 		if (_adsb_list_max.get() > MAX_VEHICLES_LIMIT) {	// Safety Check
 			_adsb_list_max.set(MAX_VEHICLES_LIMIT);
+			_adsb_list_max.commit();
+			list_size_allocated = MAX_VEHICLES_LIMIT;
 		}
+
 		vehicle_list = new transponder_report_s[_adsb_list_max.get()];
 		if (vehicle_list == nullptr) {
 			mxs_state.init_failed = true;
 			PX4_ERR("Unable to initialize vehicle list.");
 			return false;
 		}
+		list_size_allocated = _adsb_list_max.get();
 	}
 	return true;
 }
@@ -405,7 +409,7 @@ bool SagetechMXS::find_index(const transponder_report_s &vehicle, uint16_t *inde
 
 void SagetechMXS::set_vehicle(const uint16_t index, const transponder_report_s &vehicle)
 {
-	if (index >= _adsb_list_max.get()) {
+	if (index >= list_size_allocated) {
 		return; // out of range
 	}
 	vehicle_list[index] = vehicle;
@@ -450,7 +454,7 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 {
 	// needs to handle updating the vehicle list, keeping track of which vehicles to drop
 	// and which to keep, allocating new vehicles, and publishing to the transponder_report topic
-	uint16_t index = _adsb_list_max.get() + 1; // Make invalid to start with.
+	uint16_t index = list_size_allocated + 1; // Make invalid to start with.
 	const bool my_loc_is_zero = (_gps.lat == 0) && (_gps.lon == 0);
 	const float my_loc_distance_to_vehicle = get_distance_to_next_waypoint(_gps.lat, _gps.lon, vehicle.lat, vehicle.lon);
 	const bool is_tracked_in_list = find_index(vehicle, &index);
@@ -464,7 +468,7 @@ void SagetechMXS::handle_vehicle(const transponder_report_s &vehicle)
 		return;
 	} else if (is_tracked_in_list) {	// If the vehicle is in the list update it with the index found
 		set_vehicle(index, vehicle);
-	} else if (vehicle_count < _adsb_list_max.get()) {	// If the vehicle is not in the list, and the vehicle count is less than the max count
+	} else if (vehicle_count < list_size_allocated) {	// If the vehicle is not in the list, and the vehicle count is less than the max count
 								// then add it to the vehicle_count index (after the last vehicle) and increment vehicle_count
 		set_vehicle(vehicle_count, vehicle);
 		vehicle_count++;
@@ -792,7 +796,7 @@ void SagetechMXS::send_targetreq_msg()
 {
 	mxs_state.treq.reqType = sg_reporttype_t::reportAuto;
 	mxs_state.treq.transmitPort = (sg_transmitport_t)_mxs_targ_port.get();
-	mxs_state.treq.maxTargets = _adsb_list_max.get();
+	mxs_state.treq.maxTargets = list_size_allocated;
 	mxs_state.treq.icao = _adsb_icao_specl.get();
 	mxs_state.treq.stateVector = true;
 	mxs_state.treq.modeStatus = true;

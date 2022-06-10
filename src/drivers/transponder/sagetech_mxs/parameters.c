@@ -70,7 +70,7 @@ PARAM_DEFINE_INT32(ADSB_IDENT, 0);
  *
  * @min 0
  * @max 50
- * @reboot_required false
+ * @reboot_required true
  * @group Transponder
  */
 PARAM_DEFINE_INT32(ADSB_LIST_MAX, 25);
@@ -187,7 +187,7 @@ PARAM_DEFINE_INT32(ADSB_ICAO_SPECL, 0);
  *
  * Sets the vehicle emergency state
  *
- * @reboot_required true
+ * @reboot_required false
  * @min 0
  * @max 6
  * @value 0 NoEmergency
@@ -235,58 +235,11 @@ PARAM_DEFINE_INT32(MXS_OP_MODE, 0);
 PARAM_DEFINE_INT32(MXS_TARG_PORT, 1);
 
 /**
- * Sagetech MXS COM0 Baud configuration
- *
- * This parameter defines the baud rate for the MXS COM 0 Port
- *
- * @reboot_required true
- * @min 0
- * @max 10
- * @value 0 38400
- * @value 1 600
- * @value 2 4800
- * @value 3 9600
- * @value 4 28800
- * @value 5 57600
- * @value 6 115200
- * @value 7 230400
- * @value 8 19200
- * @value 9 460800
- * @value 10 921600
- * @group Transponder
- */
-PARAM_DEFINE_INT32(MXS_COM0_BAUD, 7);
-
-/**
- * Sagetech MXS COM1 Baud configuration
- *
- * This parameter defines the baud rate for the MXS COM 1 Port
- *
- * @reboot_required true
- * @min 0
- * @max 10
- * @value 0 38400
- * @value 1 600
- * @value 2 4800
- * @value 3 9600
- * @value 4 28800
- * @value 5 57600
- * @value 6 115200
- * @value 7 230400
- * @value 8 19200
- * @value 9 460800
- * @value 10 921600
- * @group Transponder
- */
-PARAM_DEFINE_INT32(MXS_COM1_BAUD, 5);
-
-
-/**
  * Sagetech External Configuration Mode
  *
  * Disables auto-configuration mode enabling MXS config through external software.
  *
- * @reboot_required false
+ * @reboot_required true
  * @boolean
  * @group Transponder
  */
