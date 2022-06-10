@@ -932,23 +932,22 @@ int SagetechMXS::open_serial_port() {
 		return PX4_ERROR;
 	}
 
-	// cfmakeraw(&uart_config);
+	/*****************************
+	 * UART Control Options
+	 * ***************************/
 
-	// CFLAG
-	// uart_config.c_cflag &= ~(CSTOPB | PARENB);
-	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
-	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
-	// uart_config.c_cflag |= (CS8 | CREAD);
+	// Enable Receiver and Set Local Mode
+	uart_config.c_cflag |= (CREAD | CLOCAL);
 
-	// LFLAG
-	// uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+	// Send 8N1 No Parity
+	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB);
+	uart_config.c_cflag |= CS8;
 
-	// OFLAG
-	uart_config.c_oflag &= ~ONLCR;
+	// Disable hardware flow control
+	uart_config.c_cflag &= ~CRTSCTS;
 
+	// Set Baud Rate
 	unsigned baud = convert_to_px4_baud(_ser_mxs_baud.get());
-	// unsigned baud = B57600;
 	if ((cfsetispeed(&uart_config, baud) < 0) || (cfsetospeed(&uart_config, baud) < 0)) {
 		PX4_ERR("ERR SET BAUD %s: %d\n", _port, termios_state);
 		px4_close(_fd);
@@ -959,6 +958,29 @@ int SagetechMXS::open_serial_port() {
 		PX4_ERR("baud %d ATTR", termios_state);
 		return PX4_ERROR;
 	}
+
+	/*****************************
+	 * UART Local Options
+	 * ***************************/
+
+	// Set Raw Input
+	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG);
+	// uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+
+	/*****************************
+	 * UART Input Options
+	 * ***************************/
+
+	// Disable Software flow control
+	uart_config.c_iflag &= ~(IXON | IXOFF | IXANY);
+
+	/*****************************
+	 * UART Output Options
+	 * ***************************/
+
+	// Set raw output and map NL to CR-LF
+	uart_config.c_oflag &= ~(ONLCR | OPOST);
+
 
 	tcflush(_fd, TCIOFLUSH);
 	PX4_INFO("Opened port %s", _port);
@@ -981,7 +1003,6 @@ unsigned SagetechMXS::convert_to_px4_baud (int baudType) {
 		default: return B0;
 	}
 }
-
 
 sg_emitter_t SagetechMXS::convert_emitter_type_to_sg (int emitType) {
 	switch (emitType) {
