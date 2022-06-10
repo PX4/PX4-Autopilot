@@ -32,9 +32,6 @@
  ****************************************************************************/
 
 #include "SagetechMXS.hpp"
-#define GPS_SUB_TEST 0
-#define ADSB_PUB_TEST 0
-#define SG_HW_TEST
 
 /***************************************
  * Workqueue Functions
@@ -657,10 +654,6 @@ void SagetechMXS::send_install_msg()
 
 void SagetechMXS::send_flight_id_msg()
 {
-#ifdef SG_HW_TEST
-	// snprintf(mxs_state.fid.flightId, sizeof(mxs_state.fid.flightId), "%-8s", "MXSTEST0");
-#endif
-
 	last.msg.type = SG_MSG_TYPE_HOST_FLIGHT;
 	uint8_t txComBuffer[SG_MSG_LEN_FLIGHT] {};
 	sgEncodeFlightId(txComBuffer, &mxs_state.fid, ++last.msg.id);
