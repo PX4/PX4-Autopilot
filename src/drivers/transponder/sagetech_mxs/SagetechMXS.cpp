@@ -141,7 +141,7 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 			return ret;
 		}
 	} else {
-		PX4_INFO("Verb: %s", verb);
+		// PX4_INFO("Verb: %s", verb);
 		if (!strcmp(verb, "flightid")) {
 			const char *fid = argv[1];
 			if (fid == nullptr) {
@@ -340,7 +340,6 @@ void SagetechMXS::Run()
 
 	if (!(_loop_count % ONE_HZ_MOD)) {		// 1Hz Timer (Operating Message/GPS Ground)
 		// PX4_INFO("1 Hz callback");
-		PX4_INFO("Vehicle Count: %d, Furthest Vehicle Index: %d", vehicle_count, furthest_vehicle_index);
 
 		if (!mxs_state.initialized && _mxs_ext_cfg.get()) {
 			// External Configuration
@@ -600,7 +599,7 @@ void SagetechMXS::handle_msr(sg_msr_t msr)
 	} else {
 		t.flags &= ~transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN;
 	}
-	PX4_INFO("Got MSR for ICAO: %x with callsign: %s", (int) t.icao_address, t.callsign);
+	// PX4_INFO("Got MSR for ICAO: %x with callsign: %s", (int) t.icao_address, t.callsign);
 
 	handle_vehicle(t);
 }
@@ -621,7 +620,6 @@ int SagetechMXS::msg_write(const uint8_t *data, const uint16_t len) const
 	}
 	if (ret != len) {
 		perf_count(_comms_errors);
-		PX4_INFO("write fail. Expected %d Got %d", len, ret);
 		return PX4_ERROR;
 	}
 	return PX4_OK;
@@ -923,15 +921,10 @@ bool SagetechMXS::parse_byte(const uint8_t data)
 				_message_in.packet.payload[_message_in.index] = data;
 				handle_packet(_message_in.packet);
 			} else if (data == SG_MSG_START_BYTE) {
-				PX4_INFO("ERROR: One byte dropped.");
+				PX4_INFO("ERROR: Byte Lost. Catching new packet.");
 				_message_in.state = ParseState::WaitingFor_MsgType;
 				_message_in.checksum = data;
-			} /*else if (_message_in.packet.payload[_message_in.index-1] == SG_MSG_START_BYTE) {
-				PX4_INFO("ERROR: Two bytes dropped.");
-				_message_in.state = ParseState::WaitingFor_MsgId;
-				_message_in.checksum = SG_MSG_START_BYTE + data;
-				_message_in.packet.type = static_cast<MsgType>(data);
-			}*/ else {
+			} else {
 				PX4_INFO("ERROR: Checksum Mismatch. Expected %02x. Received %02x.", _message_in.checksum, data);
 			}
 			break;
