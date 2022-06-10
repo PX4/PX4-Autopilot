@@ -118,7 +118,7 @@ private:
 	uORB::Subscription                 _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
 	// Performance (perf) counters
-	perf_counter_t	_loop_count_perf{perf_alloc(PC_COUNT, MODULE_NAME": count")};
+	perf_counter_t	_loop_count_perf{perf_alloc(PC_COUNT, MODULE_NAME": run_loop")};
 	perf_counter_t	_loop_elapsed_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
 	perf_counter_t	_loop_interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
 	perf_counter_t  _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
@@ -217,9 +217,6 @@ private:
 
 	struct {
 		// cached variables to compare against params so we can send msg on param change.
-		// FIXME: Maybe not used.
-		uint16_t        operating_squawk;
-		int32_t         operating_alt;
 		bool            failXpdr;
 		bool            failSystem;
 		struct {
@@ -228,19 +225,11 @@ private:
 		} msg;
 	} last;
 
-	// FIXME: Remove
-	struct {
-		bool ack = false;
-	} initialized;
-
-	// FIXME: Remove
-	bool _armed{false};
-
 	// External Vehicle List
 	transponder_report_s *vehicle_list;
-	uint16_t vehicle_count;
-	uint16_t furthest_vehicle_index;
-	float furthest_vehicle_distance;
+	uint16_t vehicle_count = 0;
+	uint16_t furthest_vehicle_index = 0;
+	float furthest_vehicle_distance = 0;
 
 	// Functions
 	void Run() override;

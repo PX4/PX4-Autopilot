@@ -55,8 +55,10 @@ SagetechMXS::SagetechMXS(const char *port) :
 
 SagetechMXS::~SagetechMXS()
 {
-	// stop();
-	// free((char*)_port);
+	free((char*)_port);
+	if (!(_fd < 0)) {
+		close(_fd);
+	}
 	perf_free(_loop_elapsed_perf);
 	perf_free(_loop_count_perf);
 	perf_free(_loop_interval_perf);
@@ -67,24 +69,14 @@ SagetechMXS::~SagetechMXS()
 int SagetechMXS::task_spawn(int argc, char *argv[])
 {
 	const char *device_path = nullptr;
-	int baud = 0;
 	int ch;
 	int myoptind = 1;
-	// bool err_flag;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "d:b", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
 			device_path = myoptarg;
-			break;
-		// FIXME: Remove baud stuff
-		case 'b':
-			if(px4_get_parameter_value(myoptarg, baud) != 0) {
-				PX4_ERR("baudrate parsing failed");
-				return PX4_ERROR;
-				// err_flag = true;
-			}
 			break;
 		default:
 			PX4_WARN("unrecognized flag");
@@ -194,9 +186,12 @@ int SagetechMXS::print_usage(const char *reason)
 
 int SagetechMXS::print_status()
 {
-	// FIXME: Put something actually useful in here (put all perf counters)
+	perf_print_counter(_loop_count_perf);
 	perf_print_counter(_loop_elapsed_perf);
 	perf_print_counter(_loop_interval_perf);
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+
 	return 0;
 }
 
@@ -786,7 +781,6 @@ void SagetechMXS::handle_packet(const Packet &msg)
 			// PX4_INFO("GOT FID RESP PACKET");
 			sg_flightid_t fid{};
 			if (sgDecodeFlightId((uint8_t*) &msg, &fid)) {
-				// TODO: Do something with this?
 			}
 			break;
 		}
@@ -965,7 +959,7 @@ int SagetechMXS::open_serial_port() {
 
 	// Set Raw Input
 	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG);
-	// uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+	// uart_config.c_lflag &= (ECHO | ECHONL | ICANON | ISIG | IEXTEN);
 
 	/*****************************
 	 * UART Input Options
