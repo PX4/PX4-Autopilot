@@ -47,7 +47,7 @@ then
 	fi
 fi
 
-if ver hwtypecmp V6X04 V6X14
+if ver hwtypecmp V6X04 V6X14 V6X54
 then
 	# Internal SPI bus ICM20649
 	icm20649 -s -R 6 start
@@ -60,7 +60,7 @@ fi
 # Internal SPI bus ICM42688p
 icm42688p -R 6 -s start
 
-if ver hwtypecmp V6X03 V6X13 V6X04 V6X14
+if ver hwtypecmp V6X03 V6X13 V6X04 V6X14 V6X53 V6X54
 then
 	# Internal SPI bus ICM-42670-P (hard-mounted)
 	icm42670p -R 10 -s start
