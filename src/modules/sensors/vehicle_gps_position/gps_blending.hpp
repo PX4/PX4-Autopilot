@@ -91,6 +91,7 @@ public:
 			return _gps_blended_state;
 		}
 	}
+	const sensor_gps_s &getOutputBlendedGpsData() const { return _gps_blended_state; }
 	int getSelectedGps() const { return _selected_gps; }
 
 private:

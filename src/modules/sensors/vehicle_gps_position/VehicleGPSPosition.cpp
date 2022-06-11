@@ -129,7 +129,19 @@ void VehicleGPSPosition::Run()
 		_gps_blending.update(hrt_absolute_time());
 
 		if (_gps_blending.isNewOutputDataAvailable()) {
-			Publish(_gps_blending.getOutputGpsData(), _gps_blending.getSelectedGps());
+			sensor_gps_s gps_data = _gps_blending.getOutputGpsData();
+
+			if (!PX4_ISFINITE(gps_data.heading)) {
+				sensor_gps_s blended_gps_data = _gps_blending.getOutputBlendedGpsData();
+
+				if (PX4_ISFINITE(blended_gps_data.heading)) {
+					gps_data.heading = blended_gps_data.heading;
+					gps_data.heading_offset = blended_gps_data.heading_offset;
+					gps_data.heading_accuracy = blended_gps_data.heading_accuracy;
+				}
+			}
+
+			Publish(gps_data, _gps_blending.getSelectedGps());
 		}
 	}
 
@@ -165,6 +177,7 @@ void VehicleGPSPosition::Publish(const sensor_gps_s &gps, uint8_t selected)
 	gps_output.timestamp_time_relative = gps.timestamp_time_relative;
 	gps_output.heading = gps.heading;
 	gps_output.heading_offset = gps.heading_offset;
+	gps_output.heading_accuracy = gps.heading_accuracy;
 	gps_output.fix_type = gps.fix_type;
 	gps_output.vel_ned_valid = gps.vel_ned_valid;
 	gps_output.satellites_used = gps.satellites_used;
