@@ -253,11 +253,6 @@ hrt_call_enter(struct hrt_call *entry)
 			next = (struct hrt_call *)sq_next(&call->link);
 
 			if ((next == nullptr) || (entry->deadline < next->deadline)) {
-				if (&call->link == &entry->link) {
-					PX4_ERR("Warning: cycle apear!");
-
-					while (1);
-				}
 				//lldbg("call enter after head\n");
 				sq_addafter(&call->link, &entry->link, &callout_queue);
 				break;
