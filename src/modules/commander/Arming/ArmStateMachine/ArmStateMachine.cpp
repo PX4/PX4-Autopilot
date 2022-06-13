@@ -68,9 +68,12 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		    && !(status.hil_state == vehicle_status_s::HIL_STATE_ON)
 		    && (_arm_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE)) {
 
-			if (!PreFlightCheck::preflightCheck(mavlink_log_pub, status, status_flags, control_mode, true, true, time_since_boot)
-			    || !PreFlightCheck::preArmCheck(mavlink_log_pub, status_flags, control_mode, safety_button_available, safety_off,
-							    arm_requirements, status)) {
+			if (!PreFlightCheck::preflightCheck(mavlink_log_pub, status, status_flags, control_mode,
+							    true, // report_failures
+							    true, // prearm
+							    time_since_boot,
+							    safety_button_available, safety_off,
+							    arm_requirements)) {
 				feedback_provided = true; // Preflight checks report error messages
 				valid_transition = false;
 			}
