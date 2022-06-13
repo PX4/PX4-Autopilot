@@ -52,7 +52,9 @@ static constexpr unsigned max_mandatory_baro_count = 1;
 
 bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 				    vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
-				    bool report_failures, const bool prearm, const hrt_abstime &time_since_boot)
+				    bool report_failures, const bool prearm, const hrt_abstime &time_since_boot,
+				    const bool safety_button_available, const bool safety_off,
+				    const arm_requirements_t &arm_requirements)
 {
 	report_failures = (report_failures && !status_flags.calibration_enabled);
 
@@ -226,6 +228,8 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	failed = failed || !modeCheck(mavlink_log_pub, report_failures, status);
 	failed = failed || !cpuResourceCheck(mavlink_log_pub, report_failures);
 	failed = failed || !parachuteCheck(mavlink_log_pub, report_failures, status_flags);
+	failed = failed || !preArmCheck(mavlink_log_pub, status_flags, control_mode,
+					safety_button_available, safety_off, arm_requirements, status, report_failures);
 
 	/* Report status */
 	return !failed;
