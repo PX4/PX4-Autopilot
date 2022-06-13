@@ -56,6 +56,14 @@ public:
 	PreFlightCheck() = default;
 	~PreFlightCheck() = default;
 
+	struct arm_requirements_t {
+		bool arm_authorization = false;
+		bool esc_check = false;
+		bool global_position = false;
+		bool mission = false;
+		bool geofence = false;
+	};
+
 	/**
 	* Runs a preflight check on all sensors to see if they are properly calibrated and healthy
 	*
@@ -83,20 +91,9 @@ public:
 	**/
 	static bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 				   vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
-				   bool reportFailures, const bool prearm, const hrt_abstime &time_since_boot);
-
-	struct arm_requirements_t {
-		bool arm_authorization = false;
-		bool esc_check = false;
-		bool global_position = false;
-		bool mission = false;
-		bool geofence = false;
-	};
-
-	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-				const vehicle_control_mode_s &control_mode, const bool safety_button_available, const bool safety_off,
-				const arm_requirements_t &arm_requirements, vehicle_status_s &status,
-				bool report_fail = true);
+				   bool reportFailures, const bool prearm, const hrt_abstime &time_since_boot,
+				   const bool safety_button_available, const bool safety_off,
+				   const arm_requirements_t &arm_requirements);
 
 private:
 	static bool sensorAvailabilityCheck(const bool report_failure,
@@ -138,4 +135,8 @@ private:
 	static bool sdcardCheck(orb_advert_t *mavlink_log_pub, bool &sd_card_detected_once, const bool report_fail);
 	static bool parachuteCheck(orb_advert_t *mavlink_log_pub, const bool report_fail,
 				   const vehicle_status_flags_s &status_flags);
+	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
+				const vehicle_control_mode_s &control_mode, const bool safety_button_available, const bool safety_off,
+				const arm_requirements_t &arm_requirements, vehicle_status_s &status,
+				const bool report_fail);
 };
