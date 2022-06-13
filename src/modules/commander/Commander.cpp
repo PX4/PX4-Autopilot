@@ -298,15 +298,13 @@ int Commander::custom_command(int argc, char *argv[])
 
 		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, vehicle_status, vehicle_status_flags,
 					   vehicle_control_mode,
-					   true, true, 30_s);
+					   true, // report_failures
+					   true, // prearm
+					   30_s,
+					   false, // safety_buttton_available not known
+					   false, // safety_off not known
+					   PreFlightCheck::arm_requirements_t{});
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
-
-		bool dummy_safety_button{false};
-		bool dummy_safety_off{false};
-		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, vehicle_status_flags, vehicle_control_mode,
-					dummy_safety_button, dummy_safety_off,
-					PreFlightCheck::arm_requirements_t{}, vehicle_status);
-		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
 		print_health_flags(vehicle_status);
 
@@ -856,7 +854,12 @@ Commander::Commander() :
 
 	// run preflight immediately to find all relevant parameters, but don't report
 	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _vehicle_status, _vehicle_status_flags, _vehicle_control_mode,
-				       false, true, hrt_elapsed_time(&_boot_timestamp));
+				       false, // report_failures
+				       true, // prearm
+				       hrt_elapsed_time(&_boot_timestamp),
+				       false, // safety_buttton_available not known
+				       false, // safety_off not known,
+				       PreFlightCheck::arm_requirements_t{});
 }
 
 Commander::~Commander()
@@ -3004,19 +3007,19 @@ Commander::run()
 			// Evaluate current prearm status (skip during arm -> disarm transition)
 			if (!actuator_armed_prev.armed && !_arm_state_machine.isArmed() && !_vehicle_status_flags.calibration_enabled) {
 				perf_begin(_preflight_check_perf);
-				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _vehicle_status, _vehicle_status_flags,
-							   _vehicle_control_mode,
-							   false, true, hrt_elapsed_time(&_boot_timestamp));
-				perf_end(_preflight_check_perf);
-
 				// skip arm authorization check until actual arming attempt
 				PreFlightCheck::arm_requirements_t arm_req = _arm_requirements;
 				arm_req.arm_authorization = false;
-				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, _vehicle_status_flags, _vehicle_control_mode,
-							_safety.isButtonAvailable(), _safety.isSafetyOff(),
-							arm_req, _vehicle_status, false);
+				_vehicle_status_flags.pre_flight_checks_pass = PreFlightCheck::preflightCheck(nullptr, _vehicle_status,
+						_vehicle_status_flags,
+						_vehicle_control_mode,
+						false, // report_failures
+						true, // prearm
+						hrt_elapsed_time(&_boot_timestamp),
+						_safety.isButtonAvailable(), _safety.isSafetyOff(),
+						arm_req);
+				perf_end(_preflight_check_perf);
 
-				_vehicle_status_flags.pre_flight_checks_pass = preflight_check_res && prearm_check_res;
 				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true,
 						 _vehicle_status_flags.pre_flight_checks_pass, _vehicle_status);
 			}
@@ -3638,8 +3641,14 @@ void Commander::data_link_check()
 
 					if (!_arm_state_machine.isArmed() && !_vehicle_status_flags.calibration_enabled) {
 						// make sure to report preflight check failures to a connecting GCS
+						// skip arm authorization check until actual arming attempt
+						PreFlightCheck::arm_requirements_t arm_req = _arm_requirements;
+						arm_req.arm_authorization = false;
 						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _vehicle_status, _vehicle_status_flags, _vehicle_control_mode,
-									       true, false, hrt_elapsed_time(&_boot_timestamp));
+									       true, // report_failures
+									       false, // prearm
+									       hrt_elapsed_time(&_boot_timestamp),
+									       _safety.isButtonAvailable(), _safety.isSafetyOff(), arm_req);
 					}
 				}
 
