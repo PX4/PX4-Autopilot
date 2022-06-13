@@ -276,7 +276,7 @@ int SagetechMXS::print_status()
 void SagetechMXS::Run()
 {
 	// Thread Stop
-	if (should_exit() || mxs_state.init_failed) {
+	if (should_exit()) {
 		ScheduleClear();
 		exit_and_cleanup();
 		return;
@@ -1104,7 +1104,7 @@ int SagetechMXS::open_serial_port()
 	 * ***************************/
 
 	// Set Raw Input
-	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN);
 
 	/*****************************
 	 * UART Output Options
@@ -1112,6 +1112,10 @@ int SagetechMXS::open_serial_port()
 
 	// Set raw output and map NL to CR-LF
 	uart_config.c_oflag &= ~ONLCR;
+
+	// Flush the buffer
+	tcflush(_fd, TCIOFLUSH);
+
 
 	/*********************************
 	 * Apply Modified Port Attributes
@@ -1121,7 +1125,6 @@ int SagetechMXS::open_serial_port()
 		return PX4_ERROR;
 	}
 
-	tcflush(_fd, TCIOFLUSH);
 	PX4_INFO("Opened port %s", _port);
 	return PX4_OK;
 }
