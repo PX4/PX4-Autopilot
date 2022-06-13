@@ -2429,10 +2429,8 @@ Commander::run()
 			bool auto_disarm = _actuator_armed.manual_lockdown;
 
 			// auto disarm if locked down to avoid user confusion
-			//  skipped in HITL where lockdown is enabled for safety
-			if (_vehicle_status.hil_state != vehicle_status_s::HIL_STATE_ON) {
-				auto_disarm |= _actuator_armed.lockdown;
-			}
+			// Enable actuators in HITL
+			auto_disarm |= _armed.lockdown;
 
 			_auto_disarm_killed.set_state_and_update(auto_disarm, hrt_absolute_time());
 

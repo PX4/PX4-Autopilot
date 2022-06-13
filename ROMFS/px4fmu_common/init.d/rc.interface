@@ -188,16 +188,7 @@ then
 
 	if [ $MIXER_AUX_FILE != none ]
 	then
-		# Append aux mixer to main device.
-		if param greater SYS_HITL 0
-		then
-			if mixer append ${OUTPUT_DEV} ${MIXER_AUX_FILE}
-			then
-				echo "INFO  [init] Mixer: ${MIXER_AUX_FILE} appended to ${OUTPUT_DEV}"
-			else
-				echo "ERROR  [init] Failed appending mixer: ${MIXER_AUX_FILE}"
-			fi
-		fi
+		# Enable actuators in HITL
 		if [ -e $OUTPUT_AUX_DEV -a $OUTPUT_MODE != hil ]
 		then
 			if mixer load ${OUTPUT_AUX_DEV} ${MIXER_AUX_FILE}
