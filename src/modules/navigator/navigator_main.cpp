@@ -234,7 +234,10 @@ void Navigator::run()
 				// TODO: move DO_GO_AROUND handling to navigator
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 
-			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
+			} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION
+				   && _vstatus.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+				// only update the reposition setpoint if armed, as it otherwise won't get executed until the vehicle switches to loiter,
+				// which can lead to dangerous and unexpected behaviors (see loiter.cpp, there is an if(armed) in there too)
 
 				bool reposition_valid = true;
 

@@ -83,7 +83,7 @@ PARAM_DEFINE_INT32(ASPD_BETA_GATE, 1);
  * @value 2 Apply the estimated scale in air
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_SCALE_APPLY, 1);
+PARAM_DEFINE_INT32(ASPD_SCALE_APPLY, 2);
 
 /**
  * Scale of airspeed sensor 1
