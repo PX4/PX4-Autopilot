@@ -17,8 +17,8 @@
  */
 double toAlt(const uint8_t bytes[])
 {
-    double value = toInt32(bytes);
-    value *= SV_RES_ALT;
+	double value = toInt32(bytes);
+	value *= SV_RES_ALT;
 
-    return value;
+	return value;
 }

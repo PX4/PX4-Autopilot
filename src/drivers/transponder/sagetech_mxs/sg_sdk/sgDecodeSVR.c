@@ -49,194 +49,161 @@
  */
 bool sgDecodeSVR(uint8_t *buffer, sg_svr_t *svr)
 {
-    //   memset(svr, 0, sizeof(sg_svr_t));
+	//   memset(svr, 0, sizeof(sg_svr_t));
 
-    uint8_t fields[3];
-    memcpy(&fields, &buffer[PBASE + 0], 3);
+	uint8_t fields[3];
+	memcpy(&fields, &buffer[PBASE + 0], 3);
 
-    svr->type = buffer[PBASE + 0] == 0x1F ? svrAirborne : svrSurface;
-    svr->flags = buffer[PBASE + 3];
-    svr->eflags = buffer[PBASE + 4];
-    svr->addr = toInt32(&buffer[PBASE + 5]) & 0xFFFFFF;
-    svr->addrType = buffer[PBASE + 8] & 0xFF;
+	svr->type = buffer[PBASE + 0] == 0x1F ? svrAirborne : svrSurface;
+	svr->flags = buffer[PBASE + 3];
+	svr->eflags = buffer[PBASE + 4];
+	svr->addr = toInt32(&buffer[PBASE + 5]) & 0xFFFFFF;
+	svr->addrType = buffer[PBASE + 8] & 0xFF;
 
-    uint8_t ofs = 9;
+	uint8_t ofs = 9;
 
-    if (fields[0] & SV_PARAM_TOA_EPOS)
-    {
-        svr->toaEst = toTOA(&buffer[PBASE + ofs]);
-        ofs += 2;
-    }
-    if (fields[0] & SV_PARAM_TOA_POS)
-    {
-        svr->toaPosition = toTOA(&buffer[PBASE + ofs]);
-        ofs += 2;
-    }
-    if (fields[0] & SV_PARAM_TOA_VEL)
-    {
-        svr->toaSpeed = toTOA(&buffer[PBASE + ofs]);
-        ofs += 2;
-    }
+	if (fields[0] & SV_PARAM_TOA_EPOS) {
+		svr->toaEst = toTOA(&buffer[PBASE + ofs]);
+		ofs += 2;
+	}
 
-    if (fields[0] & SV_PARAM_LATLON)
-    {
-        if (svr->validity.position)
-        {
-            svr->lat = toLatLon(&buffer[PBASE + ofs + 0]);
-            svr->lon = toLatLon(&buffer[PBASE + ofs + 3]);
-        }
-        else
-        {
-            svr->lat = 0.0;
-            svr->lon = 0.0;
-        }
+	if (fields[0] & SV_PARAM_TOA_POS) {
+		svr->toaPosition = toTOA(&buffer[PBASE + ofs]);
+		ofs += 2;
+	}
 
-        ofs += 6;
-    }
+	if (fields[0] & SV_PARAM_TOA_VEL) {
+		svr->toaSpeed = toTOA(&buffer[PBASE + ofs]);
+		ofs += 2;
+	}
 
-    if (svr->type == svrAirborne)
-    {
-        if (fields[1] & SV_PARAM_GEOALT)
-        {
-            if (svr->validity.geoAlt)
-            {
-                svr->airborne.geoAlt = toAlt(&buffer[PBASE + ofs]);
-            }
-            else
-            {
-                svr->airborne.geoAlt = 0;
-            }
+	if (fields[0] & SV_PARAM_LATLON) {
+		if (svr->validity.position) {
+			svr->lat = toLatLon(&buffer[PBASE + ofs + 0]);
+			svr->lon = toLatLon(&buffer[PBASE + ofs + 3]);
 
-            ofs += 3;
-        }
+		} else {
+			svr->lat = 0.0;
+			svr->lon = 0.0;
+		}
 
-        if (fields[1] & SV_PARAM_VEL)
-        {
-            if (svr->validity.airSpeed)
-            {
-                int16_t nvel = toVel(&buffer[PBASE + ofs + 0]);
-                int16_t evel = toVel(&buffer[PBASE + ofs + 2]);
+		ofs += 6;
+	}
 
-                svr->airborne.heading = toHeading2((double)nvel, (double)evel);
-                svr->airborne.speed = sqrt(nvel * nvel + evel * evel);
-                svr->airborne.velEW = evel;
-                svr->airborne.velNS = nvel;
-            }
-            else
-            {
-                svr->airborne.heading = 0;
-                svr->airborne.speed = 0;
-                svr->airborne.velEW = 0;
-                svr->airborne.velNS = 0;
-            }
+	if (svr->type == svrAirborne) {
+		if (fields[1] & SV_PARAM_GEOALT) {
+			if (svr->validity.geoAlt) {
+				svr->airborne.geoAlt = toAlt(&buffer[PBASE + ofs]);
 
-            ofs += 4;
-        }
+			} else {
+				svr->airborne.geoAlt = 0;
+			}
 
-        if (fields[1] & SV_PARAM_BAROALT)
-        {
-            if (svr->validity.baroAlt)
-            {
-                svr->airborne.baroAlt = toAlt(&buffer[PBASE + ofs]);
-            }
-            else
-            {
-                svr->airborne.baroAlt = 0;
-            }
+			ofs += 3;
+		}
 
-            ofs += 3;
-        }
+		if (fields[1] & SV_PARAM_VEL) {
+			if (svr->validity.airSpeed) {
+				int16_t nvel = toVel(&buffer[PBASE + ofs + 0]);
+				int16_t evel = toVel(&buffer[PBASE + ofs + 2]);
 
-        if (fields[1] & SV_PARAM_VRATE)
-        {
-            if (svr->validity.baroVRate || svr->validity.geoVRate)
-            {
-                svr->airborne.vrate = toInt16(&buffer[PBASE + ofs]);
-            }
-            else
-            {
-                svr->airborne.vrate = 0;
-            }
+				svr->airborne.heading = toHeading2((double)nvel, (double)evel);
+				svr->airborne.speed = sqrt(nvel * nvel + evel * evel);
+				svr->airborne.velEW = evel;
+				svr->airborne.velNS = nvel;
 
-            ofs += 2;
-        }
-    }
-    else
-    {
-        if (fields[1] & SV_PARAM_SURF_GS)
-        {
-            if (svr->validity.surfSpeed)
-            {
-                svr->surface.speed = toGS(&buffer[PBASE + ofs]);
-            }
-            else
-            {
-                svr->surface.speed = 0;
-            }
+			} else {
+				svr->airborne.heading = 0;
+				svr->airborne.speed = 0;
+				svr->airborne.velEW = 0;
+				svr->airborne.velNS = 0;
+			}
 
-            ofs += 1;
-        }
+			ofs += 4;
+		}
 
-        if (fields[1] & SV_PARAM_SURF_HEAD)
-        {
-            if (svr->validity.surfHeading)
-            {
-                svr->surface.heading = toHeading(&buffer[PBASE + ofs]);
-            }
-            else
-            {
-                svr->surface.heading = 0;
-            }
+		if (fields[1] & SV_PARAM_BAROALT) {
+			if (svr->validity.baroAlt) {
+				svr->airborne.baroAlt = toAlt(&buffer[PBASE + ofs]);
 
-            ofs += 1;
-        }
-    }
+			} else {
+				svr->airborne.baroAlt = 0;
+			}
 
-    if (fields[1] & SV_PARAM_NIC)
-    {
-        svr->nic = buffer[PBASE + ofs];
+			ofs += 3;
+		}
 
-        ofs += 1;
-    }
+		if (fields[1] & SV_PARAM_VRATE) {
+			if (svr->validity.baroVRate || svr->validity.geoVRate) {
+				svr->airborne.vrate = toInt16(&buffer[PBASE + ofs]);
 
-    if (fields[1] & SV_PARAM_ESTLAT)
-    {
-        if (svr->evalidity.estPosition)
-        {
-            svr->airborne.estLat = toLatLon(&buffer[PBASE + ofs]);
-        }
-        else
-        {
-            svr->airborne.estLat = 0;
-        }
+			} else {
+				svr->airborne.vrate = 0;
+			}
 
-        ofs += 3;
-    }
+			ofs += 2;
+		}
 
-    if (fields[2] & SV_PARAM_ESTLON)
-    {
-        if (svr->evalidity.estPosition)
-        {
-            svr->airborne.estLon = toLatLon(&buffer[PBASE + ofs]);
-        }
-        else
-        {
-            svr->airborne.estLon = 0;
-        }
+	} else {
+		if (fields[1] & SV_PARAM_SURF_GS) {
+			if (svr->validity.surfSpeed) {
+				svr->surface.speed = toGS(&buffer[PBASE + ofs]);
 
-        ofs += 3;
-    }
+			} else {
+				svr->surface.speed = 0;
+			}
 
-    if (fields[2] & SV_PARAM_SURV)
-    {
-        svr->survStatus = buffer[PBASE + ofs];
-        ofs += 1;
-    }
+			ofs += 1;
+		}
 
-    if (fields[2] & SV_PARAM_REPORT)
-    {
-        svr->mode = buffer[PBASE + ofs];
-    }
+		if (fields[1] & SV_PARAM_SURF_HEAD) {
+			if (svr->validity.surfHeading) {
+				svr->surface.heading = toHeading(&buffer[PBASE + ofs]);
 
-    return true;
+			} else {
+				svr->surface.heading = 0;
+			}
+
+			ofs += 1;
+		}
+	}
+
+	if (fields[1] & SV_PARAM_NIC) {
+		svr->nic = buffer[PBASE + ofs];
+
+		ofs += 1;
+	}
+
+	if (fields[1] & SV_PARAM_ESTLAT) {
+		if (svr->evalidity.estPosition) {
+			svr->airborne.estLat = toLatLon(&buffer[PBASE + ofs]);
+
+		} else {
+			svr->airborne.estLat = 0;
+		}
+
+		ofs += 3;
+	}
+
+	if (fields[2] & SV_PARAM_ESTLON) {
+		if (svr->evalidity.estPosition) {
+			svr->airborne.estLon = toLatLon(&buffer[PBASE + ofs]);
+
+		} else {
+			svr->airborne.estLon = 0;
+		}
+
+		ofs += 3;
+	}
+
+	if (fields[2] & SV_PARAM_SURV) {
+		svr->survStatus = buffer[PBASE + ofs];
+		ofs += 1;
+	}
+
+	if (fields[2] & SV_PARAM_REPORT) {
+		svr->mode = buffer[PBASE + ofs];
+	}
+
+	return true;
 }

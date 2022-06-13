@@ -32,74 +32,76 @@
  */
 bool sgEncodeOperating(uint8_t *buffer, sg_operating_t *op, uint8_t msgId)
 {
-    // populate header
-    buffer[0] = SG_MSG_START_BYTE;
-    buffer[1] = SG_MSG_TYPE_HOST_OPMSG;
-    buffer[2] = msgId;
-    buffer[3] = SG_PAYLOAD_LEN_OPMSG;
+	// populate header
+	buffer[0] = SG_MSG_START_BYTE;
+	buffer[1] = SG_MSG_TYPE_HOST_OPMSG;
+	buffer[2] = msgId;
+	buffer[3] = SG_PAYLOAD_LEN_OPMSG;
 
-    // populate Squawk code
-    uint162Buf(&buffer[PBASE + OFFSET_SQUAWK], op->squawk);
+	// populate Squawk code
+	uint162Buf(&buffer[PBASE + OFFSET_SQUAWK], op->squawk);
 
-    // populate Mode/Config
-    buffer[PBASE + OFFSET_CONFIG] = op->milEmergency << 5 |
-                                    op->enableXBit << 4 |
-                                    op->enableSqt << 3 |
-                                    op->savePowerUp << 2 |
-                                    op->opMode;
+	// populate Mode/Config
+	buffer[PBASE + OFFSET_CONFIG] = op->milEmergency << 5 |
+					op->enableXBit << 4 |
+					op->enableSqt << 3 |
+					op->savePowerUp << 2 |
+					op->opMode;
 
-    // populate Emergency/Ident
-    buffer[PBASE + OFFSET_EMRG_ID] = op->identOn << 3 |
-                                     op->emergcType;
+	// populate Emergency/Ident
+	buffer[PBASE + OFFSET_EMRG_ID] = op->identOn << 3 |
+					 op->emergcType;
 
-    // populate Altitude
-    uint16_t altCode = 0;
-    if (op->altUseIntrnl)
-    {
-        altCode = 0x8000;
-    }
-    else if (op->altHostAvlbl)
-    {
-        // 100 foot encoding conversion
-        altCode = (op->altitude + 1200) / 100;
+	// populate Altitude
+	uint16_t altCode = 0;
 
-        if (op->altRes25)
-        {
-            altCode *= 4;
-        }
+	if (op->altUseIntrnl) {
+		altCode = 0x8000;
 
-        // 'Host altitude available' flag
-        altCode += 0x4000;
-    }
-    uint162Buf(&buffer[PBASE + OFFSET_ALT], altCode);
+	} else if (op->altHostAvlbl) {
+		// 100 foot encoding conversion
+		altCode = (op->altitude + 1200) / 100;
 
-    // populate Altitude Rate
-    int16_t rate = op->climbRate / 64;
-    if (!op->climbValid)
-    {
-        rate = 0x8000;
-    }
-    uint162Buf(&buffer[PBASE + OFFSET_RATE], rate);
+		if (op->altRes25) {
+			altCode *= 4;
+		}
 
-    // populate Heading
-    //    conversion: heading * ( pow(2, 15) / 360 )
-    uint16_t heading = op->heading * 32768 / 360;
-    if (op->headingValid)
-    {
-        heading += 0x8000;
-    }
-    uint162Buf(&buffer[PBASE + OFFSET_HEADING], heading);
+		// 'Host altitude available' flag
+		altCode += 0x4000;
+	}
 
-    // populate Airspeed
-    uint16_t airspeed = op->airspd;
-    if (op->airspdValid)
-    {
-        airspeed += 0x8000;
-    }
-    uint162Buf(&buffer[PBASE + OFFSET_AIRSPEED], airspeed);
+	uint162Buf(&buffer[PBASE + OFFSET_ALT], altCode);
 
-    // populate checksum
-    appendChecksum(buffer, SG_MSG_LEN_OPMSG);
+	// populate Altitude Rate
+	int16_t rate = op->climbRate / 64;
 
-    return true;
+	if (!op->climbValid) {
+		rate = 0x8000;
+	}
+
+	uint162Buf(&buffer[PBASE + OFFSET_RATE], rate);
+
+	// populate Heading
+	//    conversion: heading * ( pow(2, 15) / 360 )
+	uint16_t heading = op->heading * 32768 / 360;
+
+	if (op->headingValid) {
+		heading += 0x8000;
+	}
+
+	uint162Buf(&buffer[PBASE + OFFSET_HEADING], heading);
+
+	// populate Airspeed
+	uint16_t airspeed = op->airspd;
+
+	if (op->airspdValid) {
+		airspeed += 0x8000;
+	}
+
+	uint162Buf(&buffer[PBASE + OFFSET_AIRSPEED], airspeed);
+
+	// populate checksum
+	appendChecksum(buffer, SG_MSG_LEN_OPMSG);
+
+	return true;
 }

@@ -17,8 +17,8 @@
  */
 double toHeading(const uint8_t bytes[])
 {
-    double value = bytes[0];
-    value *= SV_RES_HEAD;
+	double value = bytes[0];
+	value *= SV_RES_HEAD;
 
-    return value;
+	return value;
 }

@@ -15,7 +15,7 @@
  */
 void icao2Buf(uint8_t *bufferPos, uint32_t icao)
 {
-    bufferPos[0] = (icao & 0x00FF0000) >> 16;
-    bufferPos[1] = (icao & 0x0000FF00) >> 8;
-    bufferPos[2] = (icao & 0x000000FF);
+	bufferPos[0] = (icao & 0x00FF0000) >> 16;
+	bufferPos[1] = (icao & 0x0000FF00) >> 8;
+	bufferPos[2] = (icao & 0x000000FF);
 }

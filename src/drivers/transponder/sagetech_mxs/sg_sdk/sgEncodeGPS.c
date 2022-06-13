@@ -43,50 +43,50 @@
  */
 bool sgEncodeGPS(uint8_t *buffer, sg_gps_t *gps, uint8_t msgId)
 {
-    // populate header
-    buffer[0] = SG_MSG_START_BYTE;
-    buffer[1] = SG_MSG_TYPE_HOST_GPS;
-    buffer[2] = msgId;
-    buffer[3] = SG_PAYLOAD_LEN_GPS;
+	// populate header
+	buffer[0] = SG_MSG_START_BYTE;
+	buffer[1] = SG_MSG_TYPE_HOST_GPS;
+	buffer[2] = msgId;
+	buffer[3] = SG_PAYLOAD_LEN_GPS;
 
-    // populate longitude
-    charArray2Buf(&buffer[PBASE + OFFSET_LONGITUDE], gps->longitude, LEN_LNG);
+	// populate longitude
+	charArray2Buf(&buffer[PBASE + OFFSET_LONGITUDE], gps->longitude, LEN_LNG);
 
-    // populate latitude
-    charArray2Buf(&buffer[PBASE + OFFSET_LATITUDE], gps->latitude, LEN_LAT);
+	// populate latitude
+	charArray2Buf(&buffer[PBASE + OFFSET_LATITUDE], gps->latitude, LEN_LAT);
 
-    // populate ground speed
-    charArray2Buf(&buffer[PBASE + OFFSET_SPEED], gps->grdSpeed, LEN_SPD);
+	// populate ground speed
+	charArray2Buf(&buffer[PBASE + OFFSET_SPEED], gps->grdSpeed, LEN_SPD);
 
-    // populate ground track
-    charArray2Buf(&buffer[PBASE + OFFSET_TRACK], gps->grdTrack, LEN_TRK);
+	// populate ground track
+	charArray2Buf(&buffer[PBASE + OFFSET_TRACK], gps->grdTrack, LEN_TRK);
 
-    // populate hemisphere/data status
-    buffer[PBASE + OFFSET_STATUS] = !gps->gpsValid << 7 |
-                                    gps->fdeFail << 6 |
-                                    gps->lngEast << 1 |
-                                    gps->latNorth;
+	// populate hemisphere/data status
+	buffer[PBASE + OFFSET_STATUS] = !gps->gpsValid << 7 |
+					gps->fdeFail << 6 |
+					gps->lngEast << 1 |
+					gps->latNorth;
 
-    // populate time of fix
-    charArray2Buf(&buffer[PBASE + OFFSET_TIME], gps->timeOfFix, LEN_TIME);
+	// populate time of fix
+	charArray2Buf(&buffer[PBASE + OFFSET_TIME], gps->timeOfFix, LEN_TIME);
 
-    // populate gnss height
-    float2Buf(&buffer[PBASE + OFFSET_HEIGHT], gps->height);
+	// populate gnss height
+	float2Buf(&buffer[PBASE + OFFSET_HEIGHT], gps->height);
 
-    // populate HPL
-    float2Buf(&buffer[PBASE + OFFSET_HPL], gps->hpl);
+	// populate HPL
+	float2Buf(&buffer[PBASE + OFFSET_HPL], gps->hpl);
 
-    // populate HFOM
-    float2Buf(&buffer[PBASE + OFFSET_HFOM], gps->hfom);
+	// populate HFOM
+	float2Buf(&buffer[PBASE + OFFSET_HFOM], gps->hfom);
 
-    // populate VFOM
-    float2Buf(&buffer[PBASE + OFFSET_VFOM], gps->vfom);
+	// populate VFOM
+	float2Buf(&buffer[PBASE + OFFSET_VFOM], gps->vfom);
 
-    // populate NACv
-    buffer[PBASE + OFFSET_NACV] = gps->nacv << 4;
+	// populate NACv
+	buffer[PBASE + OFFSET_NACV] = gps->nacv << 4;
 
-    // populate checksum
-    appendChecksum(buffer, SG_MSG_LEN_GPS);
+	// populate checksum
+	appendChecksum(buffer, SG_MSG_LEN_GPS);
 
-    return true;
+	return true;
 }

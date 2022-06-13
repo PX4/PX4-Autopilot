@@ -15,8 +15,8 @@
  */
 void uint322Buf(uint8_t *bufferPos, uint32_t value)
 {
-    bufferPos[0] = (value & 0xFF000000) >> 24;
-    bufferPos[1] = (value & 0x00FF0000) >> 16;
-    bufferPos[2] = (value & 0x0000FF00) >> 8;
-    bufferPos[3] = (value & 0x000000FF);
+	bufferPos[0] = (value & 0xFF000000) >> 24;
+	bufferPos[1] = (value & 0x00FF0000) >> 16;
+	bufferPos[2] = (value & 0x0000FF00) >> 8;
+	bufferPos[3] = (value & 0x000000FF);
 }

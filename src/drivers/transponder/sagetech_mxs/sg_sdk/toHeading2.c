@@ -17,20 +17,17 @@
  */
 int16_t toHeading2(double y, double x)
 {
-    int16_t heading = (toDeg(atan2(y, x)) + 0.5);
-    heading = 360 - heading + 90; // atan is ccw 0 degrees at x = 1 and y = 0.
+	int16_t heading = (toDeg(atan2(y, x)) + 0.5);
+	heading = 360 - heading + 90; // atan is ccw 0 degrees at x = 1 and y = 0.
 
-    if (heading > 360)
-    {
-        heading -= 360;
-    }
-    else
-    {
-        while (heading < 0)
-        {
-            heading += 360;
-        }
-    }
+	if (heading > 360) {
+		heading -= 360;
 
-    return heading;
+	} else {
+		while (heading < 0) {
+			heading += 360;
+		}
+	}
+
+	return heading;
 }

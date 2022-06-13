@@ -17,8 +17,8 @@
  */
 double toLatLon(const uint8_t bytes[])
 {
-    double value = toInt32(bytes);
-    value *= SV_RES_LATLON;
+	double value = toInt32(bytes);
+	value *= SV_RES_LATLON;
 
-    return value;
+	return value;
 }

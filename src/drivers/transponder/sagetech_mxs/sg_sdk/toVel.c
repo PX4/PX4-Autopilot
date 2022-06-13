@@ -17,8 +17,8 @@
  */
 double toVel(const uint8_t bytes[])
 {
-    double value = toInt16(bytes);
-    value *= SV_RES_VEL;
+	double value = toInt16(bytes);
+	value *= SV_RES_VEL;
 
-    return value;
+	return value;
 }

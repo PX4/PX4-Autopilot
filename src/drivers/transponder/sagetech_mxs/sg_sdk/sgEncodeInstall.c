@@ -44,91 +44,89 @@
  */
 bool sgEncodeInstall(uint8_t *buffer, sg_install_t *stl, uint8_t msgId)
 {
-    // populate header
-    buffer[0] = SG_MSG_START_BYTE;
-    buffer[1] = SG_MSG_TYPE_HOST_INSTALL;
-    buffer[2] = msgId;
-    buffer[3] = SG_PAYLOAD_LEN_INSTALL;
+	// populate header
+	buffer[0] = SG_MSG_START_BYTE;
+	buffer[1] = SG_MSG_TYPE_HOST_INSTALL;
+	buffer[2] = msgId;
+	buffer[3] = SG_PAYLOAD_LEN_INSTALL;
 
-    // populate icao address
-    icao2Buf(&buffer[PBASE + OFFSET_ICAO], stl->icao);
+	// populate icao address
+	icao2Buf(&buffer[PBASE + OFFSET_ICAO], stl->icao);
 
-    // populate aircraft registration
-    charArray2Buf(&buffer[PBASE + OFFSET_REG], stl->reg, REG_LEN);
+	// populate aircraft registration
+	charArray2Buf(&buffer[PBASE + OFFSET_REG], stl->reg, REG_LEN);
 
-    // populate reserved fields
-    uint162Buf(&buffer[PBASE + OFFSET_RSVD1], 0);
+	// populate reserved fields
+	uint162Buf(&buffer[PBASE + OFFSET_RSVD1], 0);
 
-    // populate COM port 0, correct enum offset
-    buffer[PBASE + OFFSET_COM0] = stl->com0;
+	// populate COM port 0, correct enum offset
+	buffer[PBASE + OFFSET_COM0] = stl->com0;
 
-    // populate COM port 1, correct enum offset
-    buffer[PBASE + OFFSET_COM1] = stl->com1;
+	// populate COM port 1, correct enum offset
+	buffer[PBASE + OFFSET_COM1] = stl->com1;
 
-    // populate IP address
-    uint322Buf(&buffer[PBASE + OFFSET_IP], stl->eth.ipAddress);
+	// populate IP address
+	uint322Buf(&buffer[PBASE + OFFSET_IP], stl->eth.ipAddress);
 
-    // populate net mask
-    uint322Buf(&buffer[PBASE + OFFSET_MASK], stl->eth.subnetMask);
+	// populate net mask
+	uint322Buf(&buffer[PBASE + OFFSET_MASK], stl->eth.subnetMask);
 
-    // populate port number
-    uint162Buf(&buffer[PBASE + OFFSET_PORT], stl->eth.portNumber);
+	// populate port number
+	uint162Buf(&buffer[PBASE + OFFSET_PORT], stl->eth.portNumber);
 
-    // populate gps integrity
-    buffer[PBASE + OFFSET_GPS] = stl->sil << 4 |
-                                 stl->sda;
+	// populate gps integrity
+	buffer[PBASE + OFFSET_GPS] = stl->sil << 4 |
+				     stl->sda;
 
-    // populate emitter category set and type
-    uint8_t emitSet;
-    uint8_t emitType;
-    if (stl->emitter < SG_EMIT_OFFSET_B) // group A
-    {
-        emitSet = SG_EMIT_GROUP_A;
-        emitType = stl->emitter - SG_EMIT_OFFSET_A;
-    }
-    else if (stl->emitter < SG_EMIT_OFFSET_C) // group B
-    {
-        emitSet = SG_EMIT_GROUP_B;
-        emitType = stl->emitter - SG_EMIT_OFFSET_B;
-    }
-    else if (stl->emitter < SG_EMIT_OFFSET_D) // group C
-    {
-        emitSet = SG_EMIT_GROUP_C;
-        emitType = stl->emitter - SG_EMIT_OFFSET_C;
-    }
-    else // group D
-    {
-        emitSet = SG_EMIT_GROUP_D;
-        emitType = stl->emitter - SG_EMIT_OFFSET_D;
-    }
-    buffer[PBASE + OFFSET_EMIT_SET] = emitSet;
-    buffer[PBASE + OFFSET_EMIT_TYPE] = emitType;
+	// populate emitter category set and type
+	uint8_t emitSet;
+	uint8_t emitType;
 
-    // populate aircraft size
-    buffer[PBASE + OFFSET_SIZE] = stl->size;
+	if (stl->emitter < SG_EMIT_OFFSET_B) { // group A
+		emitSet = SG_EMIT_GROUP_A;
+		emitType = stl->emitter - SG_EMIT_OFFSET_A;
 
-    // populate max airspeed
-    buffer[PBASE + OFFSET_SPEED] = stl->maxSpeed;
+	} else if (stl->emitter < SG_EMIT_OFFSET_C) { // group B
+		emitSet = SG_EMIT_GROUP_B;
+		emitType = stl->emitter - SG_EMIT_OFFSET_B;
 
-    // populate altitude encoder offset
-    uint162Buf(&buffer[PBASE + OFFSET_ENCODER], stl->altOffset);
+	} else if (stl->emitter < SG_EMIT_OFFSET_D) { // group C
+		emitSet = SG_EMIT_GROUP_C;
+		emitType = stl->emitter - SG_EMIT_OFFSET_C;
 
-    // populate reserved fields
-    uint162Buf(&buffer[PBASE + OFFSET_RSVD2], 0);
+	} else { // group D
+		emitSet = SG_EMIT_GROUP_D;
+		emitType = stl->emitter - SG_EMIT_OFFSET_D;
+	}
 
-    // populate install configuration
-    buffer[PBASE + OFFSET_CONFIG] = stl->wowConnected << 7 |
-                                    stl->heater << 6 |
-                                    stl->airspeedTrue << 5 |
-                                    stl->hdgTrueNorth << 4 |
-                                    stl->altRes100 << 3 |
-                                    stl->antenna;
+	buffer[PBASE + OFFSET_EMIT_SET] = emitSet;
+	buffer[PBASE + OFFSET_EMIT_TYPE] = emitType;
 
-    // populate reserved fields
-    uint162Buf(&buffer[PBASE + OFFSET_RSVD3], 0);
+	// populate aircraft size
+	buffer[PBASE + OFFSET_SIZE] = stl->size;
 
-    // populate checksum
-    appendChecksum(buffer, SG_MSG_LEN_INSTALL);
+	// populate max airspeed
+	buffer[PBASE + OFFSET_SPEED] = stl->maxSpeed;
 
-    return true;
+	// populate altitude encoder offset
+	uint162Buf(&buffer[PBASE + OFFSET_ENCODER], stl->altOffset);
+
+	// populate reserved fields
+	uint162Buf(&buffer[PBASE + OFFSET_RSVD2], 0);
+
+	// populate install configuration
+	buffer[PBASE + OFFSET_CONFIG] = stl->wowConnected << 7 |
+					stl->heater << 6 |
+					stl->airspeedTrue << 5 |
+					stl->hdgTrueNorth << 4 |
+					stl->altRes100 << 3 |
+					stl->antenna;
+
+	// populate reserved fields
+	uint162Buf(&buffer[PBASE + OFFSET_RSVD3], 0);
+
+	// populate checksum
+	appendChecksum(buffer, SG_MSG_LEN_INSTALL);
+
+	return true;
 }

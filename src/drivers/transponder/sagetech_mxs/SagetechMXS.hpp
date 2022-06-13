@@ -176,7 +176,7 @@ private:
 
 		ADSB_StateVector_Report = SG_MSG_TYPE_ADSB_SVR,
 		ADSB_ModeStatus_Report  = SG_MSG_TYPE_ADSB_MSR,
-		ADSB_Target_State_Report= SG_MSG_TYPE_ADSB_TSTATE,
+		ADSB_Target_State_Report = SG_MSG_TYPE_ADSB_TSTATE,
 		ADSB_Air_Ref_Vel_Report = SG_MSG_TYPE_ADSB_ARVR,
 	};
 
@@ -255,9 +255,9 @@ private:
 	void send_targetreq_msg();
 	uint32_t convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber);
 	int open_serial_port();
-	sg_emitter_t convert_emitter_type_to_sg (int emitType);
-	int convert_sg_to_emitter_type (sg_emitter_t sg_emit);
-	int handle_fid(const char* fid);
+	sg_emitter_t convert_emitter_type_to_sg(int emitType);
+	int convert_sg_to_emitter_type(sg_emitter_t sg_emit);
+	int handle_fid(const char *fid);
 	int store_inst_resp();
 	void auto_config_operating();
 	void auto_config_installation();

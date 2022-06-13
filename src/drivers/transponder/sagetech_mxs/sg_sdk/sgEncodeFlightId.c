@@ -28,20 +28,20 @@
  */
 bool sgEncodeFlightId(uint8_t *buffer, sg_flightid_t *id, uint8_t msgId)
 {
-    // populate header
-    buffer[0] = SG_MSG_START_BYTE;
-    buffer[1] = SG_MSG_TYPE_HOST_FLIGHT;
-    buffer[2] = msgId;
-    buffer[3] = SG_PAYLOAD_LEN_FLIGHT;
+	// populate header
+	buffer[0] = SG_MSG_START_BYTE;
+	buffer[1] = SG_MSG_TYPE_HOST_FLIGHT;
+	buffer[2] = msgId;
+	buffer[3] = SG_PAYLOAD_LEN_FLIGHT;
 
-    // populate flight identification
-    charArray2Buf(&buffer[PBASE + OFFSET_ID], id->flightId, ID_LEN);
+	// populate flight identification
+	charArray2Buf(&buffer[PBASE + OFFSET_ID], id->flightId, ID_LEN);
 
-    // populate reserved field
-    uint322Buf(&buffer[PBASE + OFFSET_RSVD], 0);
+	// populate reserved field
+	uint322Buf(&buffer[PBASE + OFFSET_RSVD], 0);
 
-    // populate checksum
-    appendChecksum(buffer, SG_MSG_LEN_FLIGHT);
+	// populate checksum
+	appendChecksum(buffer, SG_MSG_LEN_FLIGHT);
 
-    return true;
+	return true;
 }

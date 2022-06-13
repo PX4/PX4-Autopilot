@@ -12,9 +12,9 @@
 
 static ownship_t ownship;
 static target_t targets[XPNDR_ADSB_TARGETS] = {
-    {
-        0,
-    },
+	{
+		0,
+	},
 };
 
 /*
@@ -22,7 +22,7 @@ static target_t targets[XPNDR_ADSB_TARGETS] = {
  */
 target_t *targetList(void)
 {
-    return targets;
+	return targets;
 }
 
 /*
@@ -30,7 +30,7 @@ target_t *targetList(void)
  */
 ownship_t *targetOwnship(void)
 {
-    return &ownship;
+	return &ownship;
 }
 
 /*
@@ -38,17 +38,15 @@ ownship_t *targetOwnship(void)
  */
 target_t *targetFind(uint32_t icao)
 {
-    for (uint16_t i = 0; i < XPNDR_ADSB_TARGETS; i++)
-    {
-        if (icao == targets[i].icao)
-        {
-            // clear strike counter and set find flag while preserving the used bit.
-            targets[i].flag = TARGET_FLAG_FOUND | TARGET_FLAG_USED;
-            return &targets[i];
-        }
-    }
+	for (uint16_t i = 0; i < XPNDR_ADSB_TARGETS; i++) {
+		if (icao == targets[i].icao) {
+			// clear strike counter and set find flag while preserving the used bit.
+			targets[i].flag = TARGET_FLAG_FOUND | TARGET_FLAG_USED;
+			return &targets[i];
+		}
+	}
 
-    return 0;
+	return 0;
 }
 
 /*
@@ -56,31 +54,26 @@ target_t *targetFind(uint32_t icao)
  */
 void targetPurge(void)
 {
-    for (uint16_t i = 0; i < XPNDR_ADSB_TARGETS; i++)
-    {
-        // the the found flag was not set increment the strike counter.
-        if ((targets[i].flag & TARGET_FLAG_USED) && ((targets[i].flag & TARGET_FLAG_FOUND) == 0))
-        {
-            uint8_t strikes = (targets[i].flag & 0xFE) >> 2;
-            strikes++;
+	for (uint16_t i = 0; i < XPNDR_ADSB_TARGETS; i++) {
+		// the the found flag was not set increment the strike counter.
+		if ((targets[i].flag & TARGET_FLAG_USED) && ((targets[i].flag & TARGET_FLAG_FOUND) == 0)) {
+			uint8_t strikes = (targets[i].flag & 0xFE) >> 2;
+			strikes++;
 
-            if (strikes > 5)
-            {
-                memset(&targets[i], 0, sizeof(target_t));
-            }
-            else
-            {
-                // set the strike counter and clear the found flag.
-                targets[i].flag = strikes << 2 | TARGET_FLAG_USED;
-            }
-        }
-        else
-        {
-            // clear the found flag so the target find function can set it
-            // to signal that the icao address is still in range.
-            targets[i].flag = targets[i].flag & (TARGET_FLAG_STRIKE_MASK | TARGET_FLAG_USED);
-        }
-    }
+			if (strikes > 5) {
+				memset(&targets[i], 0, sizeof(target_t));
+
+			} else {
+				// set the strike counter and clear the found flag.
+				targets[i].flag = strikes << 2 | TARGET_FLAG_USED;
+			}
+
+		} else {
+			// clear the found flag so the target find function can set it
+			// to signal that the icao address is still in range.
+			targets[i].flag = targets[i].flag & (TARGET_FLAG_STRIKE_MASK | TARGET_FLAG_USED);
+		}
+	}
 }
 
 /*
@@ -88,15 +81,13 @@ void targetPurge(void)
  */
 void targetAdd(target_t *target)
 {
-    for (uint16_t i = 0; i < XPNDR_ADSB_TARGETS; i++)
-    {
-        if ((targets[i].flag & TARGET_FLAG_USED) == 0x0)
-        {
-            memcpy(&targets[i], target, sizeof(target_t));
-            targets[i].flag = TARGET_FLAG_USED;
-            break;
-        }
-    }
+	for (uint16_t i = 0; i < XPNDR_ADSB_TARGETS; i++) {
+		if ((targets[i].flag & TARGET_FLAG_USED) == 0x0) {
+			memcpy(&targets[i], target, sizeof(target_t));
+			targets[i].flag = TARGET_FLAG_USED;
+			break;
+		}
+	}
 }
 
 /*
@@ -104,39 +95,33 @@ void targetAdd(target_t *target)
  */
 targetclimb_t targetClimb(int16_t vrate)
 {
-    if (abs(vrate) < 500)
-    {
-        return trafLevel;
-    }
-    else if (vrate > 0)
-    {
-        return trafClimb;
-    }
-    else
-    {
-        return trafDescend;
-    }
+	if (abs(vrate) < 500) {
+		return trafLevel;
+
+	} else if (vrate > 0) {
+		return trafClimb;
+
+	} else {
+		return trafDescend;
+	}
 }
 
 /*
  * Documented in the header file.
  */
 targetalert_t targetAlert(double dist,
-                          uint16_t alt,
-                          int16_t nvel,
-                          int16_t evel)
+			  uint16_t alt,
+			  int16_t nvel,
+			  int16_t evel)
 {
-    if (alt <= 3000)
-    {
-        if (dist <= 3.0)
-        {
-            return trafResolution;
-        }
-        else if (dist <= 6.0)
-        {
-            return trafAdvisory;
-        }
-    }
+	if (alt <= 3000) {
+		if (dist <= 3.0) {
+			return trafResolution;
 
-    return trafTraffic;
+		} else if (dist <= 6.0) {
+			return trafAdvisory;
+		}
+	}
+
+	return trafTraffic;
 }

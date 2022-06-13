@@ -15,20 +15,18 @@
 #include <stdint.h>
 
 #define XPNDR_ADSB_TARGETS 400 // change this to the max number of
-                               // target supported in the system.
+// target supported in the system.
 
-typedef enum
-{
-    trafLevel,
-    trafClimb,
-    trafDescend
+typedef enum {
+	trafLevel,
+	trafClimb,
+	trafDescend
 } targetclimb_t;
 
-typedef enum
-{
-    trafTraffic,
-    trafAdvisory,
-    trafResolution
+typedef enum {
+	trafTraffic,
+	trafAdvisory,
+	trafResolution
 } targetalert_t;
 
 // bit 0    - target found flag.
@@ -40,30 +38,29 @@ typedef enum
 
 typedef struct __attribute__((packed))
 {
-    uint32_t icao;
-    bool airborne;
-    float bearing;
-    uint8_t distance;
-    int8_t altDiff;
-    int16_t nvel;
-    int16_t evel;
-    targetclimb_t climb;
-    targetalert_t alert;
+	uint32_t icao;
+	bool airborne;
+	float bearing;
+	uint8_t distance;
+	int8_t altDiff;
+	int16_t nvel;
+	int16_t evel;
+	targetclimb_t climb;
+	targetalert_t alert;
 #ifdef TARGET_SVR
-    msg_svr_t svr;
+	msg_svr_t svr;
 #endif
-    uint8_t flag; // used internally to purge stale targets.
+	uint8_t flag; // used internally to purge stale targets.
 } target_t;
 
-typedef struct
-{
-    uint32_t icao;
-    bool airborne;
-    float lat;
-    float lon;
-    int32_t alt;
-    int16_t heading;
-    uint16_t speed;
+typedef struct {
+	uint32_t icao;
+	bool airborne;
+	float lat;
+	float lon;
+	int32_t alt;
+	int16_t heading;
+	uint16_t speed;
 } ownship_t;
 
 /**
@@ -124,8 +121,8 @@ targetclimb_t targetClimb(int16_t vrate);
  * @return The traffic flag based on the parameters.
  */
 targetalert_t targetAlert(double dist,
-                          uint16_t alt,
-                          int16_t nvel,
-                          int16_t evel);
+			  uint16_t alt,
+			  int16_t nvel,
+			  int16_t evel);
 
 #endif /* TARGET_H */

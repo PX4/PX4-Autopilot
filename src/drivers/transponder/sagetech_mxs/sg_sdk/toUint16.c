@@ -5,7 +5,7 @@
  * @author Jacob.Garrison
  *
  * @date Mar 9, 2021
- *      
+ *
  */
 
 #include "sgUtil.h"
@@ -15,7 +15,7 @@
  */
 uint16_t toUint16(const uint8_t bytes[])
 {
-   uint16_t uint16 = ((uint16_t) bytes[0] << 8 | (uint16_t) bytes[1]);
+	uint16_t uint16 = ((uint16_t) bytes[0] << 8 | (uint16_t) bytes[1]);
 
-   return uint16;
+	return uint16;
 }

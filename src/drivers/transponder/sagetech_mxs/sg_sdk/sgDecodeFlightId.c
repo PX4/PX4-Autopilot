@@ -17,13 +17,13 @@
 
 typedef struct __attribute__((packed))
 {
-    uint8_t start;
-    uint8_t type;
-    uint8_t id;
-    uint8_t payloadLen;
-    char flightId[SG_ID_LEN];
-    uint8_t rsvd[4];
-    uint8_t checksum;
+	uint8_t start;
+	uint8_t type;
+	uint8_t id;
+	uint8_t payloadLen;
+	char flightId[SG_ID_LEN];
+	uint8_t rsvd[4];
+	uint8_t checksum;
 } flightid_t;
 
 /*
@@ -31,11 +31,11 @@ typedef struct __attribute__((packed))
  */
 bool sgDecodeFlightId(uint8_t *buffer, sg_flightid_t *id)
 {
-    flightid_t sgId;
-    memcpy(&sgId, buffer, sizeof(flightid_t));
+	flightid_t sgId;
+	memcpy(&sgId, buffer, sizeof(flightid_t));
 
-    strcpy(id->flightId, sgId.flightId);
-    memset(&id->flightId[SG_ID_LEN], '\0', 1); // Ensure flight id is null-terminated
+	strcpy(id->flightId, sgId.flightId);
+	memset(&id->flightId[SG_ID_LEN], '\0', 1); // Ensure flight id is null-terminated
 
-    return true;
+	return true;
 }

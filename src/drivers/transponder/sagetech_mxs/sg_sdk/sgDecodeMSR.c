@@ -53,151 +53,131 @@
  */
 bool sgDecodeMSR(uint8_t *buffer, sg_msr_t *msr)
 {
-    memset(msr, 0, sizeof(sg_msr_t));
+	memset(msr, 0, sizeof(sg_msr_t));
 
-    uint8_t fields[3];
-    memcpy(fields, &buffer[PBASE + 0], 3);
+	uint8_t fields[3];
+	memcpy(fields, &buffer[PBASE + 0], 3);
 
-    if (buffer[PBASE + 1] == 0x6E && buffer[PBASE + 2] == 0x60)
-    {
-        msr->type = msrTypeV0;
-    }
-    else if (buffer[PBASE + 1] == 0x7E && buffer[PBASE + 2] == 0xE0)
-    {
-        msr->type = msrTypeV1Airborne;
-    }
-    else if (buffer[PBASE + 1] == 0xFE && buffer[PBASE + 2] == 0xE0)
-    {
-        msr->type = msrTypeV1Surface;
-    }
-    else if (buffer[PBASE + 1] == 0x7F && buffer[PBASE + 2] == 0xE0)
-    {
-        msr->type = msrTypeV2Airborne;
-    }
-    else if (buffer[PBASE + 1] == 0xFF && buffer[PBASE + 2] == 0xE0)
-    {
-        msr->type = msrTypeV2Surface;
-    }
+	if (buffer[PBASE + 1] == 0x6E && buffer[PBASE + 2] == 0x60) {
+		msr->type = msrTypeV0;
 
-    msr->flags = buffer[PBASE + 3];
-    msr->addr = toInt32(&buffer[PBASE + 4]) & 0xFFFFFF;
-    msr->addrType = buffer[PBASE + 7] & 0xFF;
+	} else if (buffer[PBASE + 1] == 0x7E && buffer[PBASE + 2] == 0xE0) {
+		msr->type = msrTypeV1Airborne;
 
-    uint8_t ofs = 8;
+	} else if (buffer[PBASE + 1] == 0xFE && buffer[PBASE + 2] == 0xE0) {
+		msr->type = msrTypeV1Surface;
 
-    if (fields[0] & MS_PARAM_TOA)
-    {
-        msr->toa = toTOA(&buffer[PBASE + ofs]);
-        ofs += 2;
-    }
+	} else if (buffer[PBASE + 1] == 0x7F && buffer[PBASE + 2] == 0xE0) {
+		msr->type = msrTypeV2Airborne;
 
-    if (fields[0] & MS_PARAM_ADSBVER)
-    {
-        msr->version = buffer[PBASE + ofs];
-        ofs++;
-    }
+	} else if (buffer[PBASE + 1] == 0xFF && buffer[PBASE + 2] == 0xE0) {
+		msr->type = msrTypeV2Surface;
+	}
 
-    if (fields[0] & MS_PARAM_CALLSIGN)
-    {
-        memset(msr->callsign, 0, 9);
-        memcpy(msr->callsign, &buffer[PBASE + ofs], 8);
-        ofs += 8;
-    }
+	msr->flags = buffer[PBASE + 3];
+	msr->addr = toInt32(&buffer[PBASE + 4]) & 0xFFFFFF;
+	msr->addrType = buffer[PBASE + 7] & 0xFF;
 
-    if (fields[0] & MS_PARAM_CATEMITTER)
-    {
-        msr->emitter = buffer[PBASE + ofs];
-        ofs++;
-    }
+	uint8_t ofs = 8;
 
-    if (fields[1] & MS_PARAM_AVLEN)
-    {
-        msr->size = buffer[PBASE + ofs];
-        ofs++;
-    }
+	if (fields[0] & MS_PARAM_TOA) {
+		msr->toa = toTOA(&buffer[PBASE + ofs]);
+		ofs += 2;
+	}
 
-    if (fields[1] & MS_PARAM_PRIORITY)
-    {
-        msr->priority = buffer[PBASE + ofs];
-        ofs++;
-    }
+	if (fields[0] & MS_PARAM_ADSBVER) {
+		msr->version = buffer[PBASE + ofs];
+		ofs++;
+	}
 
-    if (fields[1] & MS_PARAM_CAPCODES)
-    {
-        uint8_t cap = buffer[PBASE + ofs + 0];
-        msr->capability.b2low = cap & MS_CAP_B2LOW;
+	if (fields[0] & MS_PARAM_CALLSIGN) {
+		memset(msr->callsign, 0, 9);
+		memcpy(msr->callsign, &buffer[PBASE + ofs], 8);
+		ofs += 8;
+	}
 
-        cap = buffer[PBASE + ofs + 1];
-        msr->capability.uat = cap & MS_CAP_UAT;
-        msr->capability.tcr = (cap & MS_CAP_TCR) >> 2;
-        msr->capability.tsr = cap & MS_CAP_TSR;
-        msr->capability.arv = cap & MS_CAP_ARV;
-        msr->capability.adsb = cap & MS_CAP_ADSB;
-        msr->capability.tcas = cap & MS_CAP_TCAS;
+	if (fields[0] & MS_PARAM_CATEMITTER) {
+		msr->emitter = buffer[PBASE + ofs];
+		ofs++;
+	}
 
-        ofs += 3;
-    }
+	if (fields[1] & MS_PARAM_AVLEN) {
+		msr->size = buffer[PBASE + ofs];
+		ofs++;
+	}
 
-    if (fields[1] & MS_PARAM_OPMODE)
-    {
-        uint8_t op = buffer[PBASE + ofs + 0];
-        msr->opMode.gpsLatFmt = (op & MS_OP_GPS_LATFMT) == 0;
-        msr->opMode.gpsLonFmt = (op & MS_OP_GPS_LONFMT) == 0;
-        msr->opMode.tcasRA = op & MS_OP_TCAS_RA;
-        msr->opMode.ident = op & MS_OP_IDENT;
-        msr->opMode.singleAnt = op & MS_OP_SINGLE_ANT;
+	if (fields[1] & MS_PARAM_PRIORITY) {
+		msr->priority = buffer[PBASE + ofs];
+		ofs++;
+	}
 
-        op = buffer[PBASE + ofs + 1];
-        msr->opMode.gpsLatOfs = op >> 5;
-        msr->opMode.gpsLonOfs = op & 0x17;
+	if (fields[1] & MS_PARAM_CAPCODES) {
+		uint8_t cap = buffer[PBASE + ofs + 0];
+		msr->capability.b2low = cap & MS_CAP_B2LOW;
 
-        ofs += 2;
-    }
+		cap = buffer[PBASE + ofs + 1];
+		msr->capability.uat = cap & MS_CAP_UAT;
+		msr->capability.tcr = (cap & MS_CAP_TCR) >> 2;
+		msr->capability.tsr = cap & MS_CAP_TSR;
+		msr->capability.arv = cap & MS_CAP_ARV;
+		msr->capability.adsb = cap & MS_CAP_ADSB;
+		msr->capability.tcas = cap & MS_CAP_TCAS;
 
-    if (fields[1] & MS_PARAM_NACP)
-    {
-        msr->svQuality.nacp = buffer[PBASE + ofs];
-        ofs++;
-    }
+		ofs += 3;
+	}
 
-    if (fields[1] & MS_PARAM_NACV)
-    {
-        msr->svQuality.nacv = buffer[PBASE + ofs];
-        ofs++;
-    }
+	if (fields[1] & MS_PARAM_OPMODE) {
+		uint8_t op = buffer[PBASE + ofs + 0];
+		msr->opMode.gpsLatFmt = (op & MS_OP_GPS_LATFMT) == 0;
+		msr->opMode.gpsLonFmt = (op & MS_OP_GPS_LONFMT) == 0;
+		msr->opMode.tcasRA = op & MS_OP_TCAS_RA;
+		msr->opMode.ident = op & MS_OP_IDENT;
+		msr->opMode.singleAnt = op & MS_OP_SINGLE_ANT;
 
-    if (fields[1] & MS_PARAM_SDA)
-    {
-        uint8_t sda = buffer[PBASE + ofs];
-        msr->svQuality.sda = (sda & 0x18) >> 3;
-        msr->svQuality.silSupp = (sda & 0x04);
-        msr->svQuality.sil = (sda & 0x03);
-        ofs++;
-    }
+		op = buffer[PBASE + ofs + 1];
+		msr->opMode.gpsLatOfs = op >> 5;
+		msr->opMode.gpsLonOfs = op & 0x17;
 
-    if (fields[1] & MS_PARAM_GVA)
-    {
-        msr->svQuality.gva = buffer[PBASE + ofs];
-        ofs++;
-    }
+		ofs += 2;
+	}
 
-    if (fields[2] & MS_PARAM_NIC)
-    {
-        msr->svQuality.nicBaro = buffer[PBASE + ofs];
-        ofs++;
-    }
+	if (fields[1] & MS_PARAM_NACP) {
+		msr->svQuality.nacp = buffer[PBASE + ofs];
+		ofs++;
+	}
 
-    if (fields[2] & MS_PARAM_HEADING)
-    {
-        msr->trackHeading = buffer[PBASE + ofs];
-        ofs++;
-    }
+	if (fields[1] & MS_PARAM_NACV) {
+		msr->svQuality.nacv = buffer[PBASE + ofs];
+		ofs++;
+	}
 
-    if (fields[2] & MS_PARAM_VRATE)
-    {
-        msr->vrateType = buffer[PBASE + ofs];
-        ofs++;
-    }
+	if (fields[1] & MS_PARAM_SDA) {
+		uint8_t sda = buffer[PBASE + ofs];
+		msr->svQuality.sda = (sda & 0x18) >> 3;
+		msr->svQuality.silSupp = (sda & 0x04);
+		msr->svQuality.sil = (sda & 0x03);
+		ofs++;
+	}
 
-    return true;
+	if (fields[1] & MS_PARAM_GVA) {
+		msr->svQuality.gva = buffer[PBASE + ofs];
+		ofs++;
+	}
+
+	if (fields[2] & MS_PARAM_NIC) {
+		msr->svQuality.nicBaro = buffer[PBASE + ofs];
+		ofs++;
+	}
+
+	if (fields[2] & MS_PARAM_HEADING) {
+		msr->trackHeading = buffer[PBASE + ofs];
+		ofs++;
+	}
+
+	if (fields[2] & MS_PARAM_VRATE) {
+		msr->vrateType = buffer[PBASE + ofs];
+		ofs++;
+	}
+
+	return true;
 }

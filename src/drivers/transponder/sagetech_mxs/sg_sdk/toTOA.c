@@ -15,6 +15,6 @@
  */
 float toTOA(const uint8_t bytes[])
 {
-    float toa = toInt16(bytes) & 0xFFFF;
-    return toa / (float) 128.0;
+	float toa = toInt16(bytes) & 0xFFFF;
+	return toa / (float) 128.0;
 }

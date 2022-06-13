@@ -15,13 +15,12 @@
  */
 uint8_t calcChecksum(uint8_t *buffer, uint8_t len)
 {
-    uint8_t sum = 0x00;
+	uint8_t sum = 0x00;
 
-    // Add all bytes excluding checksum
-    for (uint8_t i = 0; i < len - 1; ++i)
-    {
-        sum += buffer[i];
-    }
+	// Add all bytes excluding checksum
+	for (uint8_t i = 0; i < len - 1; ++i) {
+		sum += buffer[i];
+	}
 
-    return sum;
+	return sum;
 }
