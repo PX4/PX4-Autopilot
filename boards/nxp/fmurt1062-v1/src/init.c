@@ -70,8 +70,6 @@
 #include <chip.h>
 #include "board_config.h"
 
-#include <hardware/imxrt_lpuart.h>
-
 #include <arch/board/board.h>
 
 #include <drivers/drv_hrt.h>
@@ -275,12 +273,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	if (board_dma_alloc_init() < 0) {
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
-
-#if defined(SERIAL_HAVE_RXDMA)
-	// set up the serial DMA polling at 1ms intervals for received bytes that have not triggered a DMA event.
-	static struct hrt_call serial_dma_call;
-	hrt_call_every(&serial_dma_call, 1000, 1000, (hrt_callout)imxrt_serial_dma_poll, NULL);
-#endif
 
 	/* initial LED state */
 	drv_led_start();
