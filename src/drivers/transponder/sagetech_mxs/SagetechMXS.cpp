@@ -586,8 +586,8 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 
 	//Set data from svr message
 	if (svr.validity.position) {
-		t.lat = svr.lat;
-		t.lon = svr.lon;
+		t.lat = (double) svr.lat;
+		t.lon = (double) svr.lon;
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
 	}
 
@@ -605,7 +605,7 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 	}
 
 	if (svr.validity.baroVRate || svr.validity.geoVRate) {
-		t.ver_velocity = (svr.airborne.vrate * SAGETECH_SCALE_FT_PER_MIN_TO_M_PER_SEC); //Convert from feet/min to meters/second
+		t.ver_velocity = svr.airborne.vrate * SAGETECH_SCALE_FT_PER_MIN_TO_M_PER_SEC; //Convert from feet/min to meters/second
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 	}
 
