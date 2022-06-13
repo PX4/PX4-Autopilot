@@ -1007,3 +1007,32 @@ PARAM_DEFINE_FLOAT(WEIGHT_BASE, -1.0f);
  * @group Mission
  */
 PARAM_DEFINE_FLOAT(WEIGHT_GROSS, -1.0f);
+
+/**
+ * The aircraft's wing span (length from tip to tip).
+ *
+ * This is used for limiting the roll setpoint near the ground. (if multiple wings, take the longest span)
+ *
+ * @unit m
+ * @min 1.0
+ * @max 15.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW Geometry
+ */
+PARAM_DEFINE_FLOAT(FW_WING_SPAN, 6.0);
+
+/**
+ * Height (AGL) of the wings when the aircraft is on the ground.
+ *
+ * This is used to constrain a minimum altitude below which we keep wings level to avoid wing tip strike. It's prudent
+ * to give a slight margin here (> 0m)
+ *
+ * @unit m
+ * @min 0.0
+ * @max 5.0
+ * @decimal 1
+ * @increment 1
+ * @group FW Geometry
+ */
+PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);

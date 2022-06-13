@@ -646,6 +646,16 @@ private:
 					bool climbout_mode, float climbout_pitch_min_rad,
 					bool disable_underspeed_detection = false, float hgt_rate_sp = NAN);
 
+	/**
+	 * @brief Constrains the roll angle setpoint near ground to avoid wingtip strike.
+	 *
+	 * @param roll_setpoint Unconstrained roll angle setpoint [rad]
+	 * @param altitude Vehicle altitude (AMSL) [m]
+	 * @param terrain_altitude Terrain altitude (AMSL) [m]
+	 * @return Constrained roll angle setpoint [rad]
+	 */
+	float constrainRollNearGround(const float roll_setpoint, const float altitude, const float terrain_altitude) const;
+
 	DEFINE_PARAMETERS(
 
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
@@ -736,8 +746,10 @@ private:
 		(ParamFloat<px4::params::NAV_FW_ALT_RAD>) _param_nav_fw_alt_rad,
 
 		(ParamFloat<px4::params::WEIGHT_BASE>) _param_weight_base,
-		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross
+		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
 
+		(ParamFloat<px4::params::FW_WING_SPAN>) _param_fw_wing_span,
+		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height
 	)
 
 };
