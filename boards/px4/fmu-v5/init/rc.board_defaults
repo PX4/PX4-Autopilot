@@ -24,4 +24,5 @@ else
 fi
 
 rgbled_pwm start
+rgbled_lp55231 -X start
 safety_button start

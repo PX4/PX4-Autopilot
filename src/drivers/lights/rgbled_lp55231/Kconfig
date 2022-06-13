@@ -1,0 +1,5 @@
+menuconfig DRIVERS_LIGHTS_RGBLED_LP55231
+	bool "rgbled_lp55231"
+	default n
+	---help---
+		Enable support for rgbled_lp55231
