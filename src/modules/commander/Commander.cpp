@@ -853,6 +853,10 @@ Commander::Commander() :
 	_param_rc_map_fltmode = param_find("RC_MAP_FLTMODE");
 
 	updateParameters();
+
+	// run preflight immediately to find all relevant parameters, but don't report
+	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _vehicle_status, _vehicle_status_flags, _vehicle_control_mode,
+				       false, true, hrt_elapsed_time(&_boot_timestamp));
 }
 
 Commander::~Commander()
@@ -2188,10 +2192,6 @@ Commander::run()
 	_last_lvel_fail_time_us = _boot_timestamp;
 
 	arm_auth_init(&_mavlink_log_pub, &_vehicle_status.system_id);
-
-	// run preflight immediately to find all relevant parameters, but don't report
-	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _vehicle_status, _vehicle_status_flags, _vehicle_control_mode,
-				       false, true, hrt_elapsed_time(&_boot_timestamp));
 
 	while (!should_exit()) {
 
