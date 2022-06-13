@@ -40,6 +40,9 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/events.h>
+#include <systemlib/mavlink_log.h>
+
 
 #include <drivers/drv_hrt.h>
 #include <lib/perf/perf_counter.h>
@@ -109,6 +112,8 @@ private:
 
 	// Publications
 	uORB::Publication<transponder_report_s> _transponder_report_pub{ORB_ID(transponder_report)};
+	orb_advert_t _mavlink_log_pub{nullptr};
+
 
 	// Subscriptions
 	uORB::Subscription                 _sensor_gps_sub{ORB_ID(sensor_gps)};
@@ -116,6 +121,7 @@ private:
 	uORB::Subscription                 _vehicle_status_sub{ORB_ID(vehicle_status)};          // regular subscription for additional data
 	uORB::Subscription                 _transponder_report_sub{ORB_ID(transponder_report)};
 	uORB::Subscription                 _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+
 
 	// Performance (perf) counters
 	perf_counter_t	_loop_count_perf{perf_alloc(PC_COUNT, MODULE_NAME": run_loop")};

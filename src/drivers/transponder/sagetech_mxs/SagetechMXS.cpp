@@ -301,7 +301,6 @@ void SagetechMXS::Run()
 			mxs_state.init_failed = true;
 		}
 
-		// TODO: Use elapsed performance counter to track timeout
 		if (!_mxs_ext_cfg.get()) {
 			// Auto configuration
 			auto_config_operating();
@@ -549,17 +548,18 @@ void SagetechMXS::handle_ack(const sg_ack_t ack)
 {
 	if ((ack.ackId != last.msg.id) || (ack.ackType != last.msg.type)) {
 		// The message id doesn't match the last message sent.
-		// FIXME: Add messages here
-		// mavlink_log_critical(); <-- prints out to box
+		PX4_ERR("Message Id %d of type %d not Acked by MXS", last.msg.id, last.msg.type);
 	}
 
 	// System health
 	if (ack.failXpdr && !last.failXpdr) {
-		// The transponder failed.
+		mavlink_log_info(&_mavlink_log_pub, "Transponder Failure\t");
+		events::send(events::ID("mxs_xpdr_fail"), events::Log::Critical, "Transponder Failure");
 	}
 
 	if (ack.failSystem && !last.failSystem) {
-		// System Failure Indicator
+		mavlink_log_info(&_mavlink_log_pub, "Transponder System Failure\t");
+		events::send(events::ID("mxs_system_fail"), events::Log::Critical, "Transponder System Failure");
 	}
 
 	last.failXpdr = ack.failXpdr;
