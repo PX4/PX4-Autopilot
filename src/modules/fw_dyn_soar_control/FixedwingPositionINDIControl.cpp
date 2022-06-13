@@ -154,9 +154,17 @@ FixedwingPositionINDIControl::parameters_update()
     _origin_lat = _param_origin_lat.get();
     _origin_lon = _param_origin_lon.get();
     _origin_alt = _param_origin_alt.get();
-    if (map_projection_project(&_global_local_proj_ref, _origin_lat, _origin_lon, &_origin_E, &_origin_N)) {
-        // TODO: do stuff
-    }
+    // check if local NED reference frame origin has changed:
+    // || (_local_pos.vxy_reset_counter != _pos_reset_counter
+    // initialize projection
+    map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
+                    _local_pos.ref_timestamp);
+    // project the origin of the soaring ENU frame to the current NED frame
+    map_projection_project(&_global_local_proj_ref, _origin_lat, _origin_lon, &_origin_N, &_origin_E);
+    _origin_D =  _local_pos.ref_alt - _origin_alt;
+    PX4_INFO("local reference frame updated");
+    
+
 
     _loiter = _param_loiter.get();
     _select_trajectory(0.0f);
@@ -540,7 +548,7 @@ FixedwingPositionINDIControl::Run()
             map_projection_init_timestamped(&_global_local_proj_ref, _local_pos.ref_lat, _local_pos.ref_lon,
                             _local_pos.ref_timestamp);
             // project the origin of the soaring ENU frame to the current NED frame
-            map_projection_project(&_global_local_proj_ref, _origin_lat, _origin_lon, &_origin_E, &_origin_N);
+            map_projection_project(&_global_local_proj_ref, _origin_lat, _origin_lon, &_origin_N, &_origin_E);
             _origin_D =  _local_pos.ref_alt - _origin_alt;
             PX4_INFO("local reference frame updated");
         }

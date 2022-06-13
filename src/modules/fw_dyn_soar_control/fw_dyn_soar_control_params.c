@@ -510,25 +510,25 @@ PARAM_DEFINE_FLOAT(DS_K_DAMP_YAW, 0.0f);
  * latitude of trajectory start point (WGS84)
  * 
  * @unit 
- * @min -180
- * @max 180
- * @decimal 7
- * @increment 0.0000001
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.39797f);
-
-/**
- * longitude of trajectory start point (WGS84)
- * 
- * @unit 
  * @min -90
  * @max 90
  * @decimal 7
  * @increment 0.0000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.54554f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.3135000f);
+
+/**
+ * longitude of trajectory start point (WGS84)
+ * 
+ * @unit 
+ * @min -180
+ * @max 180
+ * @decimal 7
+ * @increment 0.0000001
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.8101000f);
 
 /**
  * altitude of trajectory start point (WGS84)
@@ -540,7 +540,7 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.54554f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 488.0f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 537.0f);
 
 
 // ======================================================
