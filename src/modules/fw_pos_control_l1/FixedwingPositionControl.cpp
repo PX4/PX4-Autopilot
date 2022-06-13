@@ -1412,6 +1412,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 		_launch_detection_notify = 0;
 	}
 
+	float terrain_alt = _takeoff_ground_alt;
+
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
 			_runway_takeoff.init(now, _yaw, _current_latitude, _current_longitude);
@@ -1428,7 +1430,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_runway_takeoff.forceSetFlyState();
 		}
 
-		float terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
+		terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
 
 		// update runway takeoff helper
 		_runway_takeoff.update(now, _airspeed, _current_altitude - terrain_alt,
@@ -1561,9 +1563,6 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 							   true,
 							   radians(_takeoff_pitch_min.get()));
 
-				/* limit roll motion to ensure enough lift */
-				_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-15.0f), radians(15.0f));
-
 			} else {
 				tecs_update_pitch_throttle(control_interval,
 							   pos_sp_curr.alt,
@@ -1613,6 +1612,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 	if (!(_launch_detection_state == LAUNCHDETECTION_RES_NONE || _runway_takeoff.runwayTakeoffEnabled())) {
 		_att_sp.pitch_body = get_tecs_pitch();
 	}
+
+	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
 
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);
@@ -1821,11 +1822,6 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
 		}
 
-		if (_land_noreturn_horizontal) {
-			/* limit roll motion to prevent wings from touching the ground first */
-			_att_sp.roll_body = constrain(_att_sp.roll_body, radians(-10.0f), radians(10.0f));
-		}
-
 		/* enable direct yaw control using rudder/wheel */
 		if (_land_noreturn_horizontal) {
 			_att_sp.yaw_body = _target_bearing;
@@ -1953,6 +1949,8 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	/* Copy thrust and pitch values from tecs */
 	// when we are landed state we want the motor to spin at idle speed
 	_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
+
+	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
 
 	// Apply flaps and spoilers for landing. Amount of deflection is handled in the FW attitdue controller
 	_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_LAND;
@@ -2607,6 +2605,23 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 				    hgt_rate_sp);
 
 	tecs_status_publish();
+}
+
+float
+FixedwingPositionControl::constrainRollNearGround(const float roll_setpoint, const float altitude,
+		const float terrain_altitude) const
+{
+	// we want the wings level when at the wing height above ground
+	const float height_above_ground = math::max(altitude - (terrain_altitude + _param_fw_wing_height.get()), 0.0f);
+
+	// this is a conservative (linear) approximation of the roll angle that would cause wing tip strike
+	// roll strike = arcsin( 2 * height / span )
+	// d(roll strike)/d(height) = 2 / span / cos(2 * height / span)
+	// d(roll strike)/d(height) (@height=0) = 2 / span
+	// roll strike ~= 2 * height / span
+	const float roll_wingtip_strike = 2.0f * height_above_ground / _param_fw_wing_span.get();
+
+	return math::constrain(roll_setpoint, -roll_wingtip_strike, roll_wingtip_strike);
 }
 
 void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint)
