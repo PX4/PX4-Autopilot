@@ -183,6 +183,13 @@ MissionBlock::is_mission_item_reached()
 			}
 
 		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
+			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			/* fixed-wing takeoff is reached once the vehicle has exceeded the takeoff altitude */
+			if (_navigator->get_global_position()->alt > mission_item_altitude_amsl) {
+				_waypoint_position_reached = true;
+			}
+
+		} else if (_mission_item.nav_cmd == NAV_CMD_TAKEOFF
 			   && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
 			/* for takeoff mission items use the parameter for the takeoff acceptance radius */
 			if (dist_xy >= 0.0f && dist_xy <= _navigator->get_acceptance_radius()) {

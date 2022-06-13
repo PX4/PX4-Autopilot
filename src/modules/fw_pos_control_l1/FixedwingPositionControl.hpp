@@ -216,6 +216,12 @@ private:
 	// [m] ground altitude where the plane was launched
 	float _takeoff_ground_alt{0.0f};
 
+	// true if a launch, specifically using the launch detector, has been detected
+	bool _launch_detected{false};
+
+	// [deg] global position of the vehicle at the time launch is detected (using launch detector)
+	Vector2d _launch_global_position{0, 0};
+
 	// [rad] yaw setpoint for manual position mode heading hold
 	float _hdg_hold_yaw{0.0f};
 
@@ -525,13 +531,12 @@ private:
 	 *
 	 * @param now Current system time [us]
 	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
+	 * @param global_position Vechile global position [deg]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
-	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &curr_pos,
-				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void control_auto_takeoff(const hrt_abstime &now, const float control_interval, const Vector2d &global_position,
+				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr);
 
 	/**
 	 * @brief Controls automatic landing.
@@ -656,6 +661,15 @@ private:
 	 */
 	float constrainRollNearGround(const float roll_setpoint, const float altitude, const float terrain_altitude) const;
 
+	/**
+	 * @brief Calculates the unit takeoff bearing vector from the launch position to takeoff waypont.
+	 *
+	 * @param launch_position Vehicle launch position in local coordinates (NE) [m]
+	 * @param takeoff_waypoint Takeoff waypoint position in local coordinates (NE) [m]
+	 * @return Unit takeoff bearing vector
+	 */
+	Vector2f calculateTakeoffBearingVector(const Vector2f &launch_position, const Vector2f &takeoff_waypoint) const;
+
 	DEFINE_PARAMETERS(
 
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
@@ -749,7 +763,9 @@ private:
 		(ParamFloat<px4::params::WEIGHT_GROSS>) _param_weight_gross,
 
 		(ParamFloat<px4::params::FW_WING_SPAN>) _param_fw_wing_span,
-		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height
+		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height,
+
+		(ParamFloat<px4::params::RWTO_L1_PERIOD>) _param_rwto_l1_period
 	)
 
 };

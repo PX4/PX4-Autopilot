@@ -1379,44 +1379,27 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 
 void
 FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const float control_interval,
-		const Vector2d &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
-		const position_setpoint_s &pos_sp_curr)
+		const Vector2d &global_position, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_curr)
 {
-	/* current waypoint (the one currently heading for) */
-	Vector2d curr_wp(pos_sp_curr.lat, pos_sp_curr.lon);
-	Vector2d prev_wp{0, 0}; /* previous waypoint */
-	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-	Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-
-	if (pos_sp_prev.valid) {
-		prev_wp(0) = pos_sp_prev.lat;
-		prev_wp(1) = pos_sp_prev.lon;
-
-	} else {
-		/*
-		 * No valid previous waypoint, go for the current wp.
-		 * This is automatically handled by the L1 library.
-		 */
-		prev_wp(0) = pos_sp_curr.lat;
-		prev_wp(1) = pos_sp_curr.lon;
-	}
-
-	if (_skipping_takeoff_detection) {
-		_launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
-	}
-
 	if (!_control_mode.flag_armed) {
-		_runway_takeoff.reset();
-		_launchDetector.reset();
-		_launch_detection_state = LAUNCHDETECTION_RES_NONE;
-		_launch_detection_notify = 0;
+		reset_takeoff_state();
 	}
+
+	// for now taking current position setpoint altitude as clearance altitude. this is the altitude we need to
+	// clear all occlusions in the takeoff path
+	const float clearance_altitude_amsl = pos_sp_curr.alt;
+
+	// set the altitude to something above the clearance altitude to ensure the vehicle climbs past the value
+	// (navigator will accept the takeoff as complete once crossing the clearance altitude)
+	const float altitude_setpoint_amsl = clearance_altitude_amsl + _param_nav_fw_alt_rad.get();
+
+	Vector2f local_2D_position{_local_pos.x, _local_pos.y};
 
 	float terrain_alt = _takeoff_ground_alt;
 
 	if (_runway_takeoff.runwayTakeoffEnabled()) {
 		if (!_runway_takeoff.isInitialized()) {
-			_runway_takeoff.init(now, _yaw, _current_latitude, _current_longitude);
+			_runway_takeoff.init(now, _yaw, global_position);
 
 			/* need this already before takeoff is detected
 			 * doesn't matter if it gets reset when takeoff is detected eventually */
@@ -1432,57 +1415,94 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		terrain_alt = get_terrain_altitude_takeoff(_takeoff_ground_alt);
 
-		// update runway takeoff helper
-		_runway_takeoff.update(now, _airspeed, _current_altitude - terrain_alt,
-				       _current_latitude, _current_longitude, &_mavlink_log_pub);
+		_runway_takeoff.update(now, _airspeed, _current_altitude - terrain_alt, clearance_altitude_amsl - _takeoff_ground_alt,
+				       &_mavlink_log_pub);
 
-		float target_airspeed = get_auto_airspeed_setpoint(control_interval,
-					_runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get(), ground_speed);
+		const float takeoff_airspeed = _runway_takeoff.getMinAirspeedScaling() * _param_fw_airspd_min.get();
+		float target_airspeed = get_auto_airspeed_setpoint(control_interval, takeoff_airspeed, ground_speed);
 
-		/*
-		 * Update navigation: _runway_takeoff returns the start WP according to mode and phase.
-		 * If we use the navigator heading or not is decided later.
-		 */
-		Vector2f prev_wp_local = _global_local_proj_ref.project(_runway_takeoff.getStartWP()(0),
-					 _runway_takeoff.getStartWP()(1));
+		// yaw control is disabled once in "taking off" state
+		_att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
+
+		// tune up the lateral position control guidance when on the ground
+		if (_att_sp.fw_control_yaw) {
+			_npfg.setPeriod(_param_rwto_l1_period.get());
+			_l1_control.set_l1_period(_param_rwto_l1_period.get());
+
+		}
+
+		const Vector2f start_pos_local = _global_local_proj_ref.project(_runway_takeoff.getStartPosition()(0),
+						 _runway_takeoff.getStartPosition()(1));
+		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+
+		// the bearing from runway start to the takeoff waypoint is followed until the clearance altitude is exceeded
+		const Vector2f takeoff_bearing_vector = calculateTakeoffBearingVector(start_pos_local, takeoff_waypoint_local);
 
 		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-			// NOTE: current waypoint is passed twice to trigger the "point following" logic -- TODO: create
-			// point following navigation interface instead of this hack.
-			_npfg.navigateWaypoints(curr_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+			_npfg.navigatePathTangent(local_2D_position, start_pos_local, takeoff_bearing_vector, ground_speed,
+						  _wind_vel, 0.0f);
+
 			_att_sp.roll_body = _runway_takeoff.getRoll(_npfg.getRollSetpoint());
+
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
+			// use npfg's bearing to commanded course, controlled via yaw angle while on runway
+			const float bearing = _npfg.getBearing();
+
+			// heading hold mode will override this bearing setpoint
+			_att_sp.yaw_body = _runway_takeoff.getYaw(bearing);
+
 		} else {
-			_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
-			_att_sp.roll_body = _runway_takeoff.getRoll(_l1_control.get_roll_setpoint());
+			// make a fake waypoint in the direction of the takeoff bearing
+			const Vector2f virtual_waypoint = start_pos_local + takeoff_bearing_vector * HDG_HOLD_DIST_NEXT;
+
+			_l1_control.navigate_waypoints(start_pos_local, virtual_waypoint, local_2D_position, ground_speed);
+
+			const float l1_roll_setpoint = _l1_control.get_roll_setpoint();
+			_att_sp.roll_body = _runway_takeoff.getRoll(l1_roll_setpoint);
+
+			// use l1's nav bearing to command course, controlled via yaw angle while on runway
+			const float bearing = _l1_control.nav_bearing();
+
+			// heading hold mode will override this bearing setpoint
+			_att_sp.yaw_body = _runway_takeoff.getYaw(bearing);
 		}
-
-		_att_sp.yaw_body = _runway_takeoff.getYaw(_yaw);
-
 
 		// update tecs
 		const float takeoff_pitch_max_deg = _runway_takeoff.getMaxPitch(_param_fw_p_lim_max.get());
+		const float takeoff_pitch_min_climbout_deg = _runway_takeoff.getMinPitch(_takeoff_pitch_min.get(),
+				_param_fw_p_lim_min.get());
+
+		if (_runway_takeoff.resetIntegrators()) {
+			// reset integrals except yaw (which also counts for the wheel controller)
+			_att_sp.roll_reset_integral = true;
+			_att_sp.pitch_reset_integral = true;
+
+			// throttle is open loop anyway during ground roll, no need to wind up the integrator
+			_tecs.resetIntegrals();
+		}
+
+		if (takeoff_airspeed < _param_fw_airspd_min.get()) {
+			// adjust underspeed detection bounds for takeoff airspeed
+			_tecs.set_equivalent_airspeed_min(takeoff_airspeed);
+		}
 
 		tecs_update_pitch_throttle(control_interval,
-					   pos_sp_curr.alt,
+					   altitude_setpoint_amsl,
 					   target_airspeed,
 					   radians(_param_fw_p_lim_min.get()),
 					   radians(takeoff_pitch_max_deg),
 					   _param_fw_thr_min.get(),
-					   _param_fw_thr_max.get(), // XXX should we also set runway_takeoff_throttle here?
+					   _param_fw_thr_max.get(),
 					   _runway_takeoff.climbout(),
-					   radians(_runway_takeoff.getMinPitch(_takeoff_pitch_min.get(), _param_fw_p_lim_min.get())));
+					   radians(takeoff_pitch_min_climbout_deg));
 
-		// assign values
-		_att_sp.fw_control_yaw = _runway_takeoff.controlYaw();
+		_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
+
 		_att_sp.pitch_body = _runway_takeoff.getPitch(get_tecs_pitch());
-
-		// reset integrals except yaw (which also counts for the wheel controller)
-		_att_sp.roll_reset_integral = _runway_takeoff.resetIntegrators();
-		_att_sp.pitch_reset_integral = _runway_takeoff.resetIntegrators();
+		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(now, get_tecs_thrust());
 
 		// apply flaps for takeoff according to the corresponding scale factor set via FW_FLAPS_TO_SCL
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_TAKEOFF;
@@ -1490,7 +1510,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 	} else {
 		/* Perform launch detection */
-		if (_launchDetector.launchDetectionEnabled() &&
+		if (!_skipping_takeoff_detection && _launchDetector.launchDetectionEnabled() &&
 		    _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
 
 			if (_control_mode.flag_armed) {
@@ -1515,23 +1535,36 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 			_launch_detection_state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
 		}
 
+		if (!_launch_detected && _launch_detection_state != LAUNCHDETECTION_RES_NONE) {
+			_launch_detected = true;
+			_launch_global_position = global_position;
+		}
+
+		const Vector2f launch_local_position = _global_local_proj_ref.project(_launch_global_position(0),
+						       _launch_global_position(1));
+		const Vector2f takeoff_waypoint_local = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
+
+		// the bearing from launch to the takeoff waypoint is followed until the clearance altitude is exceeded
+		const Vector2f takeoff_bearing_vector = calculateTakeoffBearingVector(launch_local_position, takeoff_waypoint_local);
+
 		/* Set control values depending on the detection state */
 		if (_launch_detection_state != LAUNCHDETECTION_RES_NONE) {
 			/* Launch has been detected, hence we have to control the plane. */
 
 			float target_airspeed = get_auto_airspeed_setpoint(control_interval, _param_fw_airspd_trim.get(), ground_speed);
 
-			Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0), prev_wp(1));
-
 			if (_param_fw_use_npfg.get()) {
 				_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 				_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-				_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
+				_npfg.navigatePathTangent(local_2D_position, launch_local_position, takeoff_bearing_vector, ground_speed, _wind_vel,
+							  0.0f);
 				_att_sp.roll_body = _npfg.getRollSetpoint();
 				target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 
 			} else {
-				_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
+				// make a fake waypoint in the direction of the takeoff bearing
+				const Vector2f virtual_waypoint = launch_local_position + takeoff_bearing_vector * HDG_HOLD_DIST_NEXT;
+				_l1_control.navigate_waypoints(launch_local_position, virtual_waypoint, local_2D_position, ground_speed);
 				_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			}
 
@@ -1545,16 +1578,13 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				takeoff_throttle = _param_fw_thr_idle.get();
 			}
 
-			/* select maximum pitch: the launchdetector may impose another limit for the pitch
-			 * depending on the state of the launch */
-			const float takeoff_pitch_max_deg = _launchDetector.getPitchMax(_param_fw_p_lim_max.get());
-			const float altitude_error = pos_sp_curr.alt - _current_altitude;
+			if (_current_altitude < clearance_altitude_amsl) {
+				// select maximum pitch: the launchdetector may impose another limit for the pitch
+				// depending on the state of the launch
+				const float takeoff_pitch_max_deg = _launchDetector.getPitchMax(_param_fw_p_lim_max.get());
 
-			/* apply minimum pitch and limit roll if target altitude is not within climbout_diff meters */
-			if (_param_fw_clmbout_diff.get() > 0.0f && altitude_error > _param_fw_clmbout_diff.get()) {
-				/* enforce a minimum of 10 degrees pitch up on takeoff, or take parameter */
 				tecs_update_pitch_throttle(control_interval,
-							   pos_sp_curr.alt,
+							   altitude_setpoint_amsl,
 							   target_airspeed,
 							   radians(_param_fw_p_lim_min.get()),
 							   radians(takeoff_pitch_max_deg),
@@ -1565,7 +1595,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			} else {
 				tecs_update_pitch_throttle(control_interval,
-							   pos_sp_curr.alt,
+							   altitude_setpoint_amsl,
 							   target_airspeed,
 							   radians(_param_fw_p_lim_min.get()),
 							   radians(_param_fw_p_lim_max.get()),
@@ -1574,6 +1604,16 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 							   false,
 							   radians(_param_fw_p_lim_min.get()));
 			}
+
+			if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
+				// explicitly set idle throttle until motors are enabled
+				_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
+
+			} else {
+				_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
+			}
+
+			_att_sp.pitch_body = get_tecs_pitch();
 
 		} else {
 			/* Tell the attitude controller to stop integrating while we are waiting
@@ -1584,33 +1624,12 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 			/* Set default roll and pitch setpoints during detection phase */
 			_att_sp.roll_body = 0.0f;
+			_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
 			_att_sp.pitch_body = radians(_takeoff_pitch_min.get());
 		}
 
 		_att_sp.apply_flaps = vehicle_attitude_setpoint_s::FLAPS_OFF;
 		_att_sp.apply_spoilers = vehicle_attitude_setpoint_s::SPOILERS_OFF;
-	}
-
-	if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS && !_runway_takeoff.runwayTakeoffEnabled()) {
-
-		/* making sure again that the correct thrust is used,
-		 * without depending on library calls for safety reasons.
-		   the pre-takeoff throttle and the idle throttle normally map to the same parameter. */
-		_att_sp.thrust_body[0] = _param_fw_thr_idle.get();
-
-	} else if (_runway_takeoff.runwayTakeoffEnabled()) {
-
-		_att_sp.thrust_body[0] = _runway_takeoff.getThrottle(now, get_tecs_thrust());
-
-	} else {
-		/* Copy thrust and pitch values from tecs */
-		// when we are landed state we want the motor to spin at idle speed
-		_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
-	}
-
-	// only use TECS pitch setpoint if launch has not been detected and runway takeoff is not enabled
-	if (!(_launch_detection_state == LAUNCHDETECTION_RES_NONE || _runway_takeoff.runwayTakeoffEnabled())) {
-		_att_sp.pitch_body = get_tecs_pitch();
 	}
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
@@ -2329,6 +2348,10 @@ FixedwingPositionControl::Run()
 		_tecs.set_speed_weight(_param_fw_t_spdweight.get());
 		_tecs.set_height_error_time_constant(_param_fw_t_h_error_tc.get());
 
+		// restore lateral-directional guidance parameters (changed in takeoff mode)
+		_npfg.setPeriod(_param_npfg_period.get());
+		_l1_control.set_l1_period(_param_fw_l1_period.get());
+
 		_att_sp.roll_reset_integral = false;
 		_att_sp.pitch_reset_integral = false;
 		_att_sp.yaw_reset_integral = false;
@@ -2368,8 +2391,7 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_AUTO_TAKEOFF: {
-				control_auto_takeoff(_local_pos.timestamp, control_interval, curr_pos, ground_speed, _pos_sp_triplet.previous,
-						     _pos_sp_triplet.current);
+				control_auto_takeoff(_local_pos.timestamp, control_interval, curr_pos, ground_speed, _pos_sp_triplet.current);
 				break;
 			}
 
@@ -2440,6 +2462,8 @@ FixedwingPositionControl::reset_takeoff_state()
 	_launchDetector.reset();
 	_launch_detection_state = LAUNCHDETECTION_RES_NONE;
 	_launch_detection_notify = 0;
+
+	_launch_detected = false;
 }
 
 void
@@ -2622,6 +2646,27 @@ FixedwingPositionControl::constrainRollNearGround(const float roll_setpoint, con
 	const float roll_wingtip_strike = 2.0f * height_above_ground / _param_fw_wing_span.get();
 
 	return math::constrain(roll_setpoint, -roll_wingtip_strike, roll_wingtip_strike);
+}
+
+Vector2f
+FixedwingPositionControl::calculateTakeoffBearingVector(const Vector2f &launch_position,
+		const Vector2f &takeoff_waypoint) const
+{
+	Vector2f takeoff_bearing_vector = takeoff_waypoint - launch_position;
+
+	if (takeoff_bearing_vector.norm_squared() > FLT_EPSILON) {
+		takeoff_bearing_vector.normalize();
+
+	} else {
+		// TODO: a new bearing only based fixed-wing takeoff command / mission item will get rid of the need
+		// for this check
+
+		// takeoff in the direction of the airframe
+		takeoff_bearing_vector(0) = cosf(_yaw);
+		takeoff_bearing_vector(0) = sinf(_yaw);
+	}
+
+	return takeoff_bearing_vector;
 }
 
 void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint)
