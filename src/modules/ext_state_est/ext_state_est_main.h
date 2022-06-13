@@ -52,6 +52,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ext_core_state.h>
+#include <uORB/topics/ext_core_state_lite.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -87,6 +88,7 @@ private:
   perf_counter_t _ext_state_perf;
 
   uORB::SubscriptionCallbackWorkItem _ext_state_sub;
+  uORB::SubscriptionCallbackWorkItem _ext_state_lite_sub;
   uORB::Publication<vehicle_attitude_s> _att_pub;
   uORB::PublicationData<vehicle_global_position_s> _vehicle_global_position_pub;
   uORB::PublicationData<vehicle_local_position_s> _vehicle_local_position_pub;

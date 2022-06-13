@@ -47,6 +47,7 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/ext_core_state.h>
+#include <uORB/topics/ext_core_state_lite.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -89,6 +90,9 @@ bool ExtStateEst::init() {
   if (!_ext_state_sub.registerCallback()) {
     callback_status = false;
   }
+  if (!_ext_state_lite_sub.registerCallback()) {
+    callback_status = false;
+  }
 
   if (callback_status) {
     PX4_INFO("Callbacks registered");
@@ -108,6 +112,7 @@ ExtStateEst::ExtStateEst()
                         px4::wq_configurations::navigation_and_controllers),
       _ext_state_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": update")),
       _ext_state_sub{this, ORB_ID(ext_core_state)},
+      _ext_state_lite_sub{this, ORB_ID(ext_core_state_lite)},
       _att_pub{ORB_ID(vehicle_attitude)},
       _vehicle_global_position_pub{ORB_ID(vehicle_global_position)},
       _vehicle_local_position_pub{ORB_ID(vehicle_local_position)},
@@ -121,6 +126,7 @@ void ExtStateEst::Run() {
 
   if (should_exit()) {
     _ext_state_sub.unregisterCallback();
+    _ext_state_lite_sub.unregisterCallback();
     exit_and_cleanup();
     return;
   }
@@ -133,6 +139,123 @@ void ExtStateEst::Run() {
   perf_begin(_ext_state_perf);
 
   //  vehicle_odometry_s odom{};
+
+
+  ext_core_state_lite_s ext_state_lite_in{};
+
+if (_ext_state_lite_sub.update(&ext_state_lite_in)) {
+
+    uint64_t timestamp = ext_state_lite_in.timestamp;
+    //    uint64_t timestamp_sample = ext_state_in.timestamp_sample;
+
+    //    // Odometry for PX4 -> MAVLINK -> MAVROS -> ROS
+    //    odom.timestamp = timestamp;
+    //    odom.timestamp_sample = timestamp_sample;
+    //    odom.x = ext_state_in.p_wi[0];
+    //    odom.y = ext_state_in.p_wi[1];
+    //    odom.z = ext_state_in.p_wi[2];
+
+    //    matrix::Quatf q_odom(ext_state_in.q_wi);
+    //    q_odom.copyTo(odom.q);
+
+    //    odom.local_frame = odom.LOCAL_FRAME_NED;
+
+    //    odom.vx = NAN;
+    //    odom.vy = NAN;
+    //    odom.vz = NAN;
+    //    odom.rollspeed = NAN;
+    //    odom.pitchspeed = NAN;
+    //    odom.yawspeed = NAN;
+
+    //    //TODO: add covariance
+    //    _vehicle_odometry_pub.publish(odom);
+
+    // Local position for control
+    vehicle_local_position_s &position = _vehicle_local_position_pub.get();
+    position.timestamp = timestamp;
+    position.x = ext_state_lite_in.p_wi[0];
+    position.y = ext_state_lite_in.p_wi[1];
+    position.z = ext_state_lite_in.p_wi[2];
+
+    position.epv = 0;
+    position.eph = 0;
+    position.xy_valid = true;
+    position.z_valid = true;
+
+    position.vx = ext_state_lite_in.v_wi[0];
+    position.vy = ext_state_lite_in.v_wi[1];
+    position.vz = ext_state_lite_in.v_wi[2];
+
+    position.evv = 0;
+    position.evh = 0;
+    position.v_xy_valid = true;
+    position.v_z_valid = true;
+
+    position.vxy_max = INFINITY;
+    position.vz_max = INFINITY;
+    position.hagl_min = INFINITY;
+    position.hagl_max = INFINITY;
+
+    position.ax = INFINITY;
+    position.ay = INFINITY;
+    position.az = INFINITY;
+
+    const matrix::Quatf q_att(ext_state_lite_in.q_wi);
+
+    position.heading = matrix::Eulerf(q_att).psi();
+    position.delta_heading = 0;
+    position.heading_reset_counter = 0;
+
+    // Attitude for control
+    vehicle_attitude_s attitude;
+    attitude.timestamp = timestamp;
+    attitude.quat_reset_counter = 0;
+    _unitq.copyTo(attitude.delta_q_reset);
+    q_att.copyTo(attitude.q);
+
+    _vehicle_local_position_pub.update();
+    _att_pub.publish(attitude);
+
+    // Estimator Status
+    // TODO: for now we only fullfill components needed by the commander
+    estimator_status_s status;
+    status.timestamp = hrt_absolute_time();
+
+    // status.states;
+    status.n_states = 0;
+    // status.covariances;
+    status.control_mode_flags = 0;
+    status.filter_fault_flags = 0;
+    status.innovation_check_flags = 0;
+    status.mag_test_ratio = 0.1f;
+    status.vel_test_ratio = 0.1f;
+    status.pos_test_ratio = 0.1f;
+    status.hgt_test_ratio = 0.1f;
+    status.tas_test_ratio = 0.1f;
+    status.hagl_test_ratio = 0.1f;
+    status.beta_test_ratio = 0.1f;
+
+    status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
+    status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
+    status.solution_status_flags = 0;
+
+    status.time_slip = 0;
+    status.pre_flt_fail_innov_heading = false;
+    status.pre_flt_fail_innov_vel_horiz = false;
+    status.pre_flt_fail_innov_vel_vert = false;
+    status.pre_flt_fail_innov_height = false;
+    status.pre_flt_fail_mag_field_disturbed = false;
+    _estimator_status_pub.publish(status);
+
+    perf_end(_ext_state_perf);
+
+   if (_lockstep_component == -1)
+   {
+      _lockstep_component = px4_lockstep_register_component();
+   }
+
+   px4_lockstep_progress(_lockstep_component);
+  }
 
   ext_core_state_s ext_state_in{};
 

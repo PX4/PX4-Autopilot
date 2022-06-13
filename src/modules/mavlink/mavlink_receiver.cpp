@@ -2815,6 +2815,23 @@ MavlinkReceiver::handle_message_ext_core_state(mavlink_message_t *msg)
   _ext_core_state_pub.publish(ecs);
 }
 
+void
+MavlinkReceiver::handle_message_ext_core_state_lite(mavlink_message_t *msg)
+{
+  mavlink_ext_core_state_lite_t ml_ecs;
+  mavlink_msg_ext_core_state_lite_decode(msg, &ml_ecs);
+
+  ext_core_state_lite_s ecs{};
+
+  ecs.timestamp = hrt_absolute_time();
+  ecs.timestamp_sample = _mavlink_timesync.sync_stamp(ml_ecs.usec);
+
+  memcpy(ecs.p_wi, ml_ecs.p_wi, sizeof(ml_ecs.p_wi));
+  memcpy(ecs.v_wi, ml_ecs.v_wi, sizeof(ml_ecs.v_wi));
+  memcpy(ecs.q_wi, ml_ecs.q_wi, sizeof(ml_ecs.q_wi));
+  _ext_core_state_lite_pub.publish(ecs);
+}
+
 /**
  * Receive data from UART/UDP
  */
