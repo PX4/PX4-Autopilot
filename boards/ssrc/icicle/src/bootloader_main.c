@@ -118,7 +118,15 @@ __EXPORT void mpfs_boardinitialize(void)
 
 void board_late_initialize(void)
 {
+#ifdef CONFIG_USBDEV
+	mpfs_usbinitialize();
 	sercon_main(0, NULL);
+#endif
+}
+
+int board_app_initialize(uintptr_t arg)
+{
+	return 0;
 }
 
 extern void sys_tick_handler(void);

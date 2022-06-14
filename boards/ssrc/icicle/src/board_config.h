@@ -141,6 +141,10 @@ extern void board_spidev_initialize(void);
 extern int board_spibus_initialize(void);
 extern int board_domains_init(void);
 
+#ifdef CONFIG_USBDEV
+extern void mpfs_usbinitialize(void);
+#endif
+
 #include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
