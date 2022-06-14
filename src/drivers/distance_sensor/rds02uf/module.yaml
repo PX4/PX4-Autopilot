@@ -1,0 +1,26 @@
+module_name: Benewake RDS02UF Rangefinder
+serial_config:
+    - command: rds02uf start -d ${SERIAL_DEV} -R SENS_RDS02UF_ROT
+      port_config_param:
+        name: SENS_RDS02UF_CFG
+        group: Sensors
+
+parameters:
+    - group: Sensors
+      definitions:
+        SENS_RDS02UF_ROT:
+            description:
+                short: Distance Sensor Rotation
+                long: |
+                    Distance Sensor Rotation as MAV_SENSOR_ORIENTATION enum
+
+            type: enum
+            values:
+                25: ROTATION_DOWNWARD_FACING
+                24: ROTATION_UPWARD_FACING
+                12: ROTATION_BACKWARD_FACING
+                0: ROTATION_FORWARD_FACING
+                6: ROTATION_LEFT_FACING
+                2: ROTATION_RIGHT_FACING
+            reboot_required: true
+            default: 25
