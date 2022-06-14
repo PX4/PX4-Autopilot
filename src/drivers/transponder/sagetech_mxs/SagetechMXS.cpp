@@ -68,7 +68,7 @@ SagetechMXS::~SagetechMXS()
 int SagetechMXS::task_spawn(int argc, char *argv[])
 {
 	const char *device_path = nullptr;
-	int ch;
+	int ch = '\0';
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
@@ -141,79 +141,77 @@ int SagetechMXS::custom_command(int argc, char *argv[])
 
 	if (!is_running()) {
 		int ret = SagetechMXS::task_spawn(argc, argv);
+		return ret;
 
-		if (ret) {
-			return ret;
+
+	}
+
+	if (!strcmp(verb, "flightid")) {
+		const char *fid = argv[1];
+
+		if (fid == nullptr) {
+			print_usage("Missing Flight ID");
+			return PX4_ERROR;
 		}
 
-	} else {
-		// PX4_INFO("Verb: %s", verb);
-		if (!strcmp(verb, "flightid")) {
-			const char *fid = argv[1];
+		return get_instance()->handle_fid(fid);
+	}
 
-			if (fid == nullptr) {
-				print_usage("Missing Flight ID");
-				return PX4_ERROR;
-			}
+	if (!strcmp(verb, "ident")) {
+		get_instance()->_adsb_ident.set(1);
+		return get_instance()->_adsb_ident.commit();
+	}
 
-			return get_instance()->handle_fid(fid);
-		}
+	if (!strcmp(verb, "opmode")) {
+		const char *opmode = argv[1];
 
-		if (!strcmp(verb, "ident")) {
-			get_instance()->_adsb_ident.set(1);
-			return get_instance()->_adsb_ident.commit();
-		}
+		if (opmode == nullptr) {
+			print_usage("Missing Op Mode");
+			return PX4_ERROR;
 
-		if (!strcmp(verb, "opmode")) {
-			const char *opmode = argv[1];
+		} else if (!strcmp(opmode, "off") || !strcmp(opmode, "0")) {
+			get_instance()->_mxs_op_mode.set(0);
+			return get_instance()->_mxs_op_mode.commit();
 
-			if (opmode == nullptr) {
-				print_usage("Missing Op Mode");
-				return PX4_ERROR;
+		} else if (!strcmp(opmode, "on") || !strcmp(opmode, "1")) {
+			get_instance()->_mxs_op_mode.set(1);
+			return get_instance()->_mxs_op_mode.commit();
 
-			} else if (!strcmp(opmode, "off") || !strcmp(opmode, "0")) {
-				get_instance()->_mxs_op_mode.set(0);
-				return get_instance()->_mxs_op_mode.commit();
+		} else if (!strcmp(opmode, "stby") || !strcmp(opmode, "2")) {
+			get_instance()->_mxs_op_mode.set(2);
+			return get_instance()->_mxs_op_mode.commit();
 
-			} else if (!strcmp(opmode, "on") || !strcmp(opmode, "1")) {
-				get_instance()->_mxs_op_mode.set(1);
-				return get_instance()->_mxs_op_mode.commit();
+		} else if (!strcmp(opmode, "alt") || !strcmp(opmode, "3")) {
+			get_instance()->_mxs_op_mode.set(3);
+			return get_instance()->_mxs_op_mode.commit();
 
-			} else if (!strcmp(opmode, "stby") || !strcmp(opmode, "2")) {
-				get_instance()->_mxs_op_mode.set(2);
-				return get_instance()->_mxs_op_mode.commit();
-
-			} else if (!strcmp(opmode, "alt") || !strcmp(opmode, "3")) {
-				get_instance()->_mxs_op_mode.set(3);
-				return get_instance()->_mxs_op_mode.commit();
-
-			} else {
-				print_usage("Invalid Op Mode");
-				return PX4_ERROR;
-			}
-		}
-
-		if (!strcmp(verb, "squawk")) {
-			const char *squawk = argv[1];
-			int sqk = 0;
-
-			if (squawk == nullptr) {
-				print_usage("Missing Squawk Code");
-				return PX4_ERROR;
-			}
-
-			sqk = atoi(squawk);
-
-			if (!get_instance()->check_valid_squawk(sqk)) {
-				print_usage("Invalid Squawk");
-				return PX4_ERROR;
-
-			} else {
-				get_instance()->_adsb_squawk.set(sqk);
-				return get_instance()->_adsb_squawk.commit();
-			}
+		} else {
+			print_usage("Invalid Op Mode");
+			return PX4_ERROR;
 		}
 	}
+
+	if (!strcmp(verb, "squawk")) {
+		const char *squawk = argv[1];
+		int sqk = 0;
+
+		if (squawk == nullptr) {
+			print_usage("Missing Squawk Code");
+			return PX4_ERROR;
+		}
+
+		sqk = atoi(squawk);
+
+		if (!get_instance()->check_valid_squawk(sqk)) {
+			print_usage("Invalid Squawk");
+			return PX4_ERROR;
+
+		} else {
+			get_instance()->_adsb_squawk.set(sqk);
+			return get_instance()->_adsb_squawk.commit();
+		}
+	}
+
 
 	print_usage("Unknown Command");
 	return PX4_ERROR;
@@ -315,13 +313,14 @@ void SagetechMXS::Run()
 
 	// Parse Bytes
 	int bytes_available {};
-	int ret = ioctl(_fd, FIONREAD, (unsigned long)&bytes_available);
+	int ret = -1;
+	ret = ioctl(_fd, FIONREAD, (unsigned long)&bytes_available);
 	(void) ret;
 
 	// PX4_INFO("Bytes in buffer: %d. Ret code: %d", bytes_available, ret);
 	if (bytes_available > 0) {
 		while (bytes_available > 0) {
-			uint16_t data;
+			uint16_t data = 0;
 			// tcflush(_fd, TCOFLUSH);
 			ret = read(_fd, &data, 1);
 
@@ -382,7 +381,7 @@ void SagetechMXS::Run()
 
 		// Update Parameters
 		if (_parameter_update_sub.updated()) {
-			parameter_update_s param_update;
+			parameter_update_s param_update{};
 			_parameter_update_sub.copy(&param_update);
 			ModuleParams::updateParams();
 
@@ -411,17 +410,18 @@ void SagetechMXS::Run()
 
 bool SagetechMXS::get_vehicle_by_ICAO(const uint32_t icao, transponder_report_s &vehicle) const
 {
-	transponder_report_s temp_vehicle;
+	transponder_report_s temp_vehicle{};
 	temp_vehicle.icao_address = icao;
 
-	uint16_t i;
+	uint16_t i = 0;
 
 	if (find_index(temp_vehicle, &i)) {
 		memcpy(&vehicle, &vehicle_list[i], sizeof(transponder_report_s));
 		return true;
-	}
 
-	return false;
+	} else {
+		return false;
+	}
 }
 
 bool SagetechMXS::find_index(const transponder_report_s &vehicle, uint16_t *index) const
@@ -445,7 +445,7 @@ void SagetechMXS::set_vehicle(const uint16_t index, const transponder_report_s &
 	vehicle_list[index] = vehicle;
 }
 
-void SagetechMXS::determine_furthest_aircraft(void)
+void SagetechMXS::determine_furthest_aircraft()
 {
 	float max_distance = 0;
 	uint16_t max_distance_index = 0;
@@ -591,17 +591,15 @@ void SagetechMXS::handle_svr(sg_svr_t svr)
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
 	}
 
-	if (svr.validity.geoAlt || svr.validity.baroAlt) {
+	if (svr.validity.geoAlt) {
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+		t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
+		t.altitude = (svr.airborne.geoAlt * SAGETECH_SCALE_FEET_TO_M); //Convert from Feet to Meters
 
-		if (svr.validity.geoAlt) {
-			t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
-			t.altitude = (svr.airborne.geoAlt * SAGETECH_SCALE_FEET_TO_M); //Convert from Feet to Meters
-
-		} else {
-			t.altitude_type = ADSB_ALTITUDE_TYPE_PRESSURE_QNH;
-			t.altitude = (svr.airborne.baroAlt * SAGETECH_SCALE_FEET_TO_M);	//Convert from Feet to Meters
-		}
+	} else if (svr.validity.baroAlt) {
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+		t.altitude_type = ADSB_ALTITUDE_TYPE_PRESSURE_QNH;
+		t.altitude = (svr.airborne.baroAlt * SAGETECH_SCALE_FEET_TO_M);	//Convert from Feet to Meters
 	}
 
 	if (svr.validity.baroVRate || svr.validity.geoVRate) {
@@ -669,9 +667,7 @@ int SagetechMXS::msg_write(const uint8_t *data, const uint16_t len) const
 	int ret = 0;
 
 	if (_fd >= 0) {
-		// tcflush(_fd, TCIFLUSH);
 		ret = write(_fd, data, len);
-		// PX4_INFO("WRITING DATA OF LEN %d OUT", len);
 
 	} else {
 		return PX4_ERROR;
@@ -729,10 +725,10 @@ void SagetechMXS::send_operating_msg()
 	mxs_state.op.opMode = (sg_op_mode_t)_mxs_op_mode.get();
 
 	if (check_valid_squawk(_adsb_squawk.get())) {
-		mxs_state.op.squawk = convert_base_to_decimal(8, _adsb_squawk.get());
+		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, _adsb_squawk.get());
 
 	} else {
-		mxs_state.op.squawk = convert_base_to_decimal(8, 7777);
+		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, INVALID_SQUAWK);
 	}
 
 	mxs_state.op.savePowerUp = true;                                                  // Save power-up state in non-volatile
@@ -749,15 +745,12 @@ void SagetechMXS::send_operating_msg()
 
 	mxs_state.op.altitude = _gps.alt * SAGETECH_SCALE_MM_TO_FT;                       // Height above sealevel in feet
 
-	if (_adsb_ident.get()) {
-		mxs_state.op.identOn = true;
+	mxs_state.op.identOn = _adsb_ident.get();
+
+	if (mxs_state.op.identOn) {
 		_adsb_ident.set(0);
 		_adsb_ident.commit();
-
-	} else {
-		mxs_state.op.identOn = false;
 	}
-
 
 	if (_gps.vel_ned_valid) {
 		mxs_state.op.climbValid = true;
@@ -774,7 +767,7 @@ void SagetechMXS::send_operating_msg()
 	}
 
 	const uint16_t speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
-	double heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	double heading = (double) math::degrees(matrix::wrap_2pi(_gps.cog_rad));
 	mxs_state.op.airspd = speed_knots;
 	mxs_state.op.heading = heading;
 
@@ -834,8 +827,8 @@ void SagetechMXS::send_gps_msg()
 
 	snprintf((char *)&gps.grdTrack, 9, "%03u.%04u", unsigned(heading), unsigned((heading - (int)heading) * (float)1.0E4));
 
-	gps.latNorth = (latitude >= 0 ? true : false);
-	gps.lngEast = (longitude >= 0 ? true : false);
+	gps.latNorth = latitude >= 0;
+	gps.lngEast = longitude >= 0;
 
 	gps.gpsValid = (_gps.fix_type < 2) ? false : true;  // If the status is not OK, gpsValid is false.
 
@@ -885,8 +878,6 @@ void SagetechMXS::handle_packet(const Packet &msg)
 {
 	switch (msg.type) {
 	case MsgType::ACK:
-
-		// PX4_INFO("GOT ACK PACKET");
 		if (sgDecodeAck((uint8_t *) &msg, &mxs_state.ack)) {
 			handle_ack(mxs_state.ack);
 		}
@@ -902,7 +893,6 @@ void SagetechMXS::handle_packet(const Packet &msg)
 		break;
 
 	case MsgType::FlightID_Response: {
-			// PX4_INFO("GOT FID RESP PACKET");
 			sg_flightid_t fid{};
 
 			if (sgDecodeFlightId((uint8_t *) &msg, &fid)) {
@@ -912,7 +902,6 @@ void SagetechMXS::handle_packet(const Packet &msg)
 		}
 
 	case MsgType::ADSB_StateVector_Report: {
-			// PX4_INFO("GOT SVR PACKET");
 			sg_svr_t svr{};
 
 			if (sgDecodeSVR((uint8_t *) &msg, &svr)) {
@@ -923,7 +912,6 @@ void SagetechMXS::handle_packet(const Packet &msg)
 		}
 
 	case MsgType::ADSB_ModeStatus_Report: {
-			// PX4_INFO("GOT MSR PACKET");
 			sg_msr_t msr{};
 
 			if (sgDecodeMSR((uint8_t *) &msg, &msr)) {
@@ -934,9 +922,6 @@ void SagetechMXS::handle_packet(const Packet &msg)
 		}
 
 	case MsgType::FlightID:
-		// PX4_INFO("GOT FID PACKET");
-		break;
-
 	case MsgType::Installation:
 	case MsgType::Operating:
 	case MsgType::GPS_Data:
@@ -954,7 +939,6 @@ void SagetechMXS::handle_packet(const Packet &msg)
 	case MsgType::ADSB_Target_State_Report:
 	case MsgType::ADSB_Air_Ref_Vel_Report:
 		// Not handling the rest of these.
-		// PX4_INFO("GOT DIFFERENT PACKET");
 		break;
 	}
 }
@@ -1034,15 +1018,15 @@ bool SagetechMXS::parse_byte(const uint8_t data)
 uint32_t SagetechMXS::convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber)
 {
 	// Our only sensible input bases are 16 and 8
-	if (baseIn != 8 && baseIn != 16) {
+	if (baseIn != BASE_OCTAL && baseIn != BASE_HEX) {
 		return inputNumber;
 	}
 
 	uint32_t outputNumber = 0;
 
-	for (uint8_t i = 0; i < 10; i++) {
-		outputNumber += (inputNumber % 10) * powf(baseIn, i);
-		inputNumber /= 10;
+	for (uint8_t i = 0; i < BASE_DEC; i++) {
+		outputNumber += (inputNumber % BASE_DEC) * powf(baseIn, i);
+		inputNumber /= BASE_DEC;
 
 		if (inputNumber == 0) { break; }
 	}
@@ -1140,7 +1124,8 @@ unsigned SagetechMXS::convert_to_px4_baud(int baudType)
 
 	case 3: return B9600;
 
-	// case 4: Reserved
+	case 4: return B0;
+
 	case 5: return B57600;
 
 	case 6: return B115200;
@@ -1281,10 +1266,10 @@ void SagetechMXS::auto_config_operating()
 	_mxs_op_mode.commit();
 
 	if (check_valid_squawk(_adsb_squawk.get())) {
-		mxs_state.op.squawk = convert_base_to_decimal(8, _adsb_squawk.get());
+		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, _adsb_squawk.get());
 
 	} else {
-		mxs_state.op.squawk = convert_base_to_decimal(8, 7777);
+		mxs_state.op.squawk = convert_base_to_decimal(BASE_OCTAL, INVALID_SQUAWK);
 	}
 
 	mxs_state.op.savePowerUp = true;                                                  // Save power-up state in non-volatile
@@ -1318,7 +1303,7 @@ void SagetechMXS::auto_config_operating()
 	}
 
 	const uint16_t speed_knots = _gps.vel_m_s * SAGETECH_SCALE_M_PER_SEC_TO_KNOTS;
-	double heading = math::degrees(matrix::wrap_2pi(_gps.cog_rad));
+	double heading = (double) math::degrees(matrix::wrap_2pi(_gps.cog_rad));
 	mxs_state.op.airspd = speed_knots;
 	mxs_state.op.heading = heading;
 
@@ -1379,7 +1364,7 @@ void SagetechMXS::auto_config_flightid()
 
 bool SagetechMXS::check_valid_squawk(int squawk)
 {
-	if (squawk > 7777) {
+	if (squawk > INVALID_SQUAWK) {
 		return false;
 	}
 
@@ -1393,133 +1378,3 @@ bool SagetechMXS::check_valid_squawk(int squawk)
 
 	return true;
 }
-
-// #define SG_PAYLOAD_LEN_GPS  SG_MSG_LEN_GPS - 5  /// the payload length.
-
-// #define PBASE                    4   /// the payload offset.
-// #define OFFSET_LONGITUDE         0   /// the longitude offset in the payload.
-// #define OFFSET_LATITUDE         11   /// the latitude offset in the payload.
-// #define OFFSET_SPEED            21   /// the ground speed offset in the payload.
-// #define OFFSET_TRACK            27   /// the ground track offset in the payload.
-// #define OFFSET_STATUS           35   /// the hemisphere/data status offset in the payload.
-// #define OFFSET_TIME             36   /// the time of fix offset in the payload.
-// #define OFFSET_HEIGHT           46   /// the GNSS height offset in the payload.
-// #define OFFSET_HPL              50   /// the horizontal protection limit offset in the payload.
-// #define OFFSET_HFOM             54   /// the horizontal figure of merit offset in the payload.
-// #define OFFSET_VFOM             58   /// the vertical figure of merit offset in the payload.
-// #define OFFSET_NACV             62   /// the navigation accuracy for velocity offset in the payload.
-
-// #define LEN_LNG                 11   /// bytes in the longitude field
-// #define LEN_LAT                 10   /// bytes in the latitude field
-// #define LEN_SPD                  6   /// bytes in the speed over ground field
-// #define LEN_TRK                  8   /// bytes in the ground track field
-// #define LEN_TIME                10   /// bytes in the time of fix field
-
-// static void checkGPSInputs(sg_gps_t *gps)
-// {
-// 	// Validate longitude
-// 	for (int i = 0; i < LEN_LNG; ++i) {
-// 		if (i == 5) {
-// 			if (!(gps->longitude[i] == 0x2E)){
-// 				PX4_ERR("A period is expected to separate minutes from fractions of minutes.");
-// 			}
-// 		} else {
-// 			if (!(0x30 <= gps->longitude[i] && gps->longitude[i] <= 0x39)) {
-// 				PX4_ERR("Longitude contains an invalid character");
-// 			}
-// 		}
-// 	}
-
-// 	// Validate latitude
-// 	for (int i = 0; i < LEN_LAT; ++i) {
-// 		if (i == 4) {
-// 			if (!(gps->latitude[i] == 0x2E)) {
-// 				PX4_ERR("A period is expected to separate minutes from fractions of minutes.");
-// 			}
-// 		} else {
-// 			if(!(0x30 <= gps->latitude[i] && gps->latitude[i] <= 0x39)) {
-// 				PX4_ERR("Latitude contains an invalid character");
-// 			}
-// 		}
-// 	}
-
-// 	// Validate speed over ground
-// 	bool spdDecimal = false;
-// 	(void) spdDecimal;
-// 	for (int i = 0; i < LEN_SPD; ++i) {
-// 		if (gps->grdSpeed[i] == 0x2E) {
-// 			if (!(spdDecimal == false)) {
-// 				PX4_ERR("Only one period should be used in speed over ground.");
-// 			}
-// 			spdDecimal = true;
-// 		} else {
-// 			if (!(0x30 <= gps->grdSpeed[i] && gps->grdSpeed[i] <= 0x39)) {
-// 				PX4_ERR("Ground speed contains an invalid character");
-// 			}
-// 		}
-// 	}
-
-// 	if (!(spdDecimal == true)) {
-// 		PX4_ERR("Use a period in ground speed to signify the start of fractional knots.");
-// 	}
-
-// 	// Validate ground track
-// 	for (int i = 0; i < LEN_TRK; ++i) {
-// 		if (i == 3) {
-// 			if (!(gps->grdTrack[i] == 0x2E)) {
-// 				PX4_ERR("A period is expected to signify the start of fractional degrees.");
-// 			}
-// 		} else {
-// 			if(!(0x30 <= gps->grdTrack[i] && gps->grdTrack[i] <= 0x39)) {
-// 				PX4_ERR("Ground track contains an invalid character");
-// 			}
-// 		}
-// 	}
-
-// 	// Validate time of fix
-// 	bool tofSpaces = false;
-// 	for (int i = 0; i < LEN_TIME; ++i) {
-// 		if (i == 6) {
-// 			if(!(gps->timeOfFix[i] == 0x2E)) {
-// 				PX4_ERR("A period is expected to signify the start of fractional seconds.");
-// 			}
-// 		} else if (i == 0 && gps->timeOfFix[i] == 0x20) {
-// 			tofSpaces = true;
-// 		} else {
-// 			if (tofSpaces) {
-// 				if(!(gps->timeOfFix[i] == 0x20)) {
-// 					PX4_ERR("All characters must be filled with spaces.");
-// 				}
-// 			} else {
-// 				if(!(0x30 <= gps->timeOfFix[i] && gps->timeOfFix[i] <= 0x39)) {
-// 					PX4_ERR("Time of Fix contains an invalid character");
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	// Validate height
-// 	if(!((float)-1200.0 <= gps->height && gps->height <= (float)160000.0)) {
-// 		PX4_ERR("GPS height is not within the troposphere");
-// 	}
-
-// 	// Validate hpl
-// 	if(!(0 <= gps->hpl)) {
-// 		PX4_ERR("HPL cannot be negative");
-// 	}
-
-// 	// Validate hfom
-// 	if(!(0 <= gps->hfom)) {
-// 		PX4_ERR("HFOM cannot be negative");
-// 	}
-
-// 	// Validate vfom
-// 	if(!(0 <= gps->vfom)) {
-// 		PX4_ERR("VFOM cannot be negative");
-// 	}
-
-// 	// Validate status
-// 	if(!(nacvUnknown <= gps->nacv && gps->nacv <= nacv0dot3)) {
-// 		PX4_ERR("NACv is not an enumerated value");
-// 	}
-// }

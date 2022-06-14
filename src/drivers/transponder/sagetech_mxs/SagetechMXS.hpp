@@ -138,18 +138,22 @@ private:
 	static constexpr uint16_t EIGHT_TWO_SEC_MOD{410};		// 8.2 seconds
 	// static constexpr uint8_t  SG_MSG_START_BYTE{0xAA};
 	static constexpr uint32_t PAYLOAD_MXS_MAX_SIZE{255};
-	static constexpr float SAGETECH_SCALE_FEET_TO_M{0.3048f};
-	static constexpr float SAGETECH_SCALE_KNOTS_TO_M_PER_SEC{0.514444f};
-	static constexpr float SAGETECH_SCALE_M_PER_SEC_TO_KNOTS{1.94384f};
-	static constexpr float SAGETECH_SCALE_FT_PER_MIN_TO_M_PER_SEC{0.00508f};
-	static constexpr float SAGETECH_SCALE_MM_TO_FT{0.00328084f};
-	static constexpr float SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN{196.85f};
+	static constexpr float SAGETECH_SCALE_FEET_TO_M{0.3048F};
+	static constexpr float SAGETECH_SCALE_KNOTS_TO_M_PER_SEC{0.514444F};
+	static constexpr float SAGETECH_SCALE_M_PER_SEC_TO_KNOTS{1.94384F};
+	static constexpr float SAGETECH_SCALE_FT_PER_MIN_TO_M_PER_SEC{0.00508F};
+	static constexpr float SAGETECH_SCALE_MM_TO_FT{0.00328084F};
+	static constexpr float SAGETECH_SCALE_M_PER_SEC_TO_FT_PER_MIN{196.85F};
 	static constexpr uint8_t ADSB_ALTITUDE_TYPE_PRESSURE_QNH{0};
 	static constexpr uint8_t ADSB_ALTITUDE_TYPE_GEOMETRIC{1};
 	static constexpr uint16_t MAX_VEHICLES_LIMIT{50};
-	static constexpr float SAGETECH_HPL_UNKNOWN{38000.0f};
+	static constexpr float SAGETECH_HPL_UNKNOWN{38000.0F};
 	static constexpr float CLIMB_RATE_LIMIT{16448};
 	static constexpr uint16_t MXS_INIT_TIMEOUT_COUNT{1000};		// 1000 loop cycles = 20 seconds
+	static constexpr uint8_t BASE_OCTAL{8};
+	static constexpr uint8_t BASE_HEX{16};
+	static constexpr uint8_t BASE_DEC{10};
+	static constexpr uint16_t INVALID_SQUAWK{7777};
 
 	// Stored variables
 	uint64_t _loop_count;
@@ -252,7 +256,7 @@ private:
 	void delete_vehicle(const uint16_t index);
 	bool is_special_vehicle(uint32_t icao) const {return _adsb_icao_specl.get() != 0 && (_adsb_icao_specl.get() == (int32_t) icao);}
 	void handle_vehicle(const transponder_report_s &vehicle);
-	void determine_furthest_aircraft(void);
+	void determine_furthest_aircraft();
 	void send_data_req(const sg_datatype_t dataReqType);
 	void send_install_msg();
 	void send_flight_id_msg();
