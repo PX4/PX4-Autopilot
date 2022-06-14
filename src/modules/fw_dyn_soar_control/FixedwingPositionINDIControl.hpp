@@ -242,7 +242,6 @@ private:
 	//
 	void		status_publish();
 
-	const int _num_points = 30;				// number of points on the precomputed trajectory
 	const static size_t _num_basis_funs = 16;			// number of basis functions used for the trajectory approximation
 
 	// controller methods
@@ -283,7 +282,12 @@ private:
 	Quatf _att;			// attitude quaternion
 	Vector3f _omega;	// angular rate vector
 	Vector3f _alpha;	// angular acceleration vector
-	Matrix3f _K_actuators;	// diagonal actuator control gain matrix
+	float _k_ail;
+    float _k_ele;
+    float _k_rud;
+    float _k_d_roll;
+    float _k_d_pitch;
+    float _k_d_yaw;
 	hrt_abstime _last_run{0};
 
 	// filter variables

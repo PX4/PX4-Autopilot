@@ -145,10 +145,12 @@ FixedwingPositionINDIControl::parameters_update()
     _b3 = _param_filter_b3.get();
 
     // actuator gains
-    _K_actuators *= 0.0f;
-    _K_actuators(0,0) = _param_k_act_roll.get();
-    _K_actuators(1,1) = _param_k_act_pitch.get();
-    _K_actuators(2,2) = _param_k_act_yaw.get();
+    _k_ail = _param_k_act_roll.get();
+    _k_ele = _param_k_act_pitch.get();
+    _k_rud = _param_k_act_yaw.get();
+    _k_d_roll = _param_k_damping_roll.get();
+    _k_d_pitch = _param_k_damping_pitch.get();
+    _k_d_yaw = _param_k_damping_yaw.get();
 
     // trajectory origin
     _origin_lat = _param_origin_lat.get();
@@ -826,12 +828,12 @@ FixedwingPositionINDIControl::_get_attitude_ref(float t, float T)
     Dcmf R_pitch(e);
     Dcmf Rotation(R_pitch*R_bi);
     // switch from FRD to ENU frame
-    Rotation(1,0) *= -1;
-    Rotation(1,1) *= -1;
-    Rotation(1,2) *= -1;
-    Rotation(2,0) *= -1;
-    Rotation(2,1) *= -1;
-    Rotation(2,2) *= -1;
+    Rotation(1,0) *= -1.f;
+    Rotation(1,1) *= -1.f;
+    Rotation(1,2) *= -1.f;
+    Rotation(2,0) *= -1.f;
+    Rotation(2,1) *= -1.f;
+    Rotation(2,2) *= -1.f;
     /*
     float determinant = Rotation(0,0)*(Rotation(1,1)*Rotation(2,2)-Rotation(2,1)*Rotation(1,2)) - 
                         Rotation(1,0)*(Rotation(0,1)*Rotation(2,2)-Rotation(2,1)*Rotation(0,2)) + 
@@ -998,12 +1000,12 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
     Dcmf R_pitch(e);
     Dcmf Rotation(R_pitch*R_bi);
     // switch from FRD to ENU frame
-    Rotation(1,0) *= -1;
-    Rotation(1,1) *= -1;
-    Rotation(1,2) *= -1;
-    Rotation(2,0) *= -1;
-    Rotation(2,1) *= -1;
-    Rotation(2,2) *= -1;
+    Rotation(1,0) *= -1.f;
+    Rotation(1,1) *= -1.f;
+    Rotation(1,2) *= -1.f;
+    Rotation(2,0) *= -1.f;
+    Rotation(2,1) *= -1.f;
+    Rotation(2,2) *= -1.f;
 
     Quatf q(Rotation.transpose());
     return q;
@@ -1107,13 +1109,6 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
 Vector3f 
 FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
 {
-    // compute the expected actuator efficiencies
-    float k_ail = _param_k_act_roll.get();
-    float k_ele = _param_k_act_pitch.get();
-    float k_rud = _param_k_act_yaw.get();
-    float k_d_roll = _param_k_damping_roll.get();
-    float k_d_pitch = _param_k_damping_pitch.get();
-    float k_d_yaw = _param_k_damping_yaw.get();
     // compute velocity in body frame
     Dcmf R_ib(_att);
     Vector3f vel_body = R_ib.transpose()*_vel;
@@ -1128,9 +1123,9 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     omega_filtered(2) = _lp_filter_omega_2[2].apply(_omega(2));
     // compute moments
     Vector3f moment;
-    moment(0) = k_ail*q*_actuators.control[actuator_controls_s::INDEX_ROLL] - k_d_roll*q*omega_filtered(0);
-    moment(1) = k_ele*q*_actuators.control[actuator_controls_s::INDEX_PITCH] - k_d_pitch*q*omega_filtered(1);
-    moment(2) = k_rud*q*_actuators.control[actuator_controls_s::INDEX_YAW] - k_d_yaw*q*omega_filtered(2);
+    moment(0) = _k_ail*q*_actuators.control[actuator_controls_s::INDEX_ROLL] - _k_d_roll*q*omega_filtered(0);
+    moment(1) = _k_ele*q*_actuators.control[actuator_controls_s::INDEX_PITCH] - _k_d_pitch*q*omega_filtered(1);
+    moment(2) = _k_rud*q*_actuators.control[actuator_controls_s::INDEX_YAW] - _k_d_yaw*q*omega_filtered(2);
     // introduce artificial time delay that is also present in acceleration
     Vector3f moment_filtered;
     moment_filtered(0) = _lp_filter_delay[0].apply(moment(0));
@@ -1142,12 +1137,12 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     Vector3f moment_command = _inertia * (ctrl - alpha_filtered) + moment_filtered;
     // perform dynamic inversion
     Vector3f deflection;
-    deflection(0) = (moment_command(0) + k_d_roll*q*omega_filtered(0))/(k_ail*q);
-    deflection(1) = (moment_command(1) + k_d_pitch*q*omega_filtered(1))/(k_ele*q);
-    deflection(2) = (moment_command(2) + k_d_yaw*q*omega_filtered(2))/(k_rud*q);
+    deflection(0) = (moment_command(0) + _k_d_roll*q*omega_filtered(0))/fmaxf((_k_ail*q),0.0001f);
+    deflection(1) = (moment_command(1) + _k_d_pitch*q*omega_filtered(1))/fmaxf((_k_ele*q),0.0001f);
+    deflection(2) = (moment_command(2) + _k_d_yaw*q*omega_filtered(2))/fmaxf((_k_rud*q),0.0001f);
 
     // TODO: tune feedback turn coordination
-    float turn_coordination = 0.f*vel_body(1)/powf(vel_body(0),2);
+    float turn_coordination = 0.f*vel_body(1)/(powf(vel_body(0),2)+0.0001f);
     deflection(2) += turn_coordination;
 
     return deflection;
