@@ -1112,7 +1112,7 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     // compute velocity in body frame
     Dcmf R_ib(_att);
     Vector3f vel_body = R_ib.transpose()*_vel;
-    float q = 0.5f*sqrtf(vel_body*vel_body)*vel_body(0);    // dynamic pressure
+    float q = fmaxf(0.5f*sqrtf(vel_body*vel_body)*vel_body(0), 0.5f*5.f*5.f);    // dynamic pressure, saturates at minimum 5m/s stall
     //Vector3f vel_body_2 = Dcmf(Quatf(_attitude.q)).transpose()*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
     //PX4_INFO("ENU body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body_2(0), (double)vel_body_2(1), (double)vel_body_2(2));
     //PX4_INFO("FRD body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body(0), (double)vel_body(1), (double)vel_body(2));
