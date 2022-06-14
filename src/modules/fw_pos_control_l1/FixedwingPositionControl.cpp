@@ -1518,10 +1518,10 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 				/* Perform launch detection */
 
 				/* Inform user that launchdetection is running every 4s */
-				if ((now - _launch_detection_notify) > 4_s) {
+				if ((now - _last_time_launch_detection_notified) > 4_s) {
 					mavlink_log_critical(&_mavlink_log_pub, "Launch detection running\t");
 					events::send(events::ID("fixedwing_position_control_launch_detection"), events::Log::Info, "Launch detection running");
-					_launch_detection_notify = now;
+					_last_time_launch_detection_notified = now;
 				}
 
 				/* Detect launch using body X (forward) acceleration */
@@ -2465,7 +2465,7 @@ FixedwingPositionControl::reset_takeoff_state()
 
 	_launchDetector.reset();
 	_launch_detection_state = LAUNCHDETECTION_RES_NONE;
-	_launch_detection_notify = 0;
+	_last_time_launch_detection_notified = 0;
 
 	_launch_detected = false;
 }
