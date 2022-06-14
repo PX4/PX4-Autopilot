@@ -830,7 +830,7 @@ void SagetechMXS::send_gps_msg()
 	gps.latNorth = latitude >= 0;
 	gps.lngEast = longitude >= 0;
 
-	gps.gpsValid = (_gps.fix_type < 2) ? false : true;  // If the status is not OK, gpsValid is false.
+	gps.gpsValid = !(_gps.fix_type < 2);  // If the status is not OK, gpsValid is false.
 
 	const time_t time_sec = _gps.time_utc_usec * 1E-6;
 	struct tm *tm = gmtime(&time_sec);
