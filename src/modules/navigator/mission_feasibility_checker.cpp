@@ -48,10 +48,8 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/landing_slope/Landingslope.hpp>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/position_controller_landing_status.h>
 #include <px4_platform_common/events.h>
 
 bool
@@ -498,63 +496,12 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 				}
 
 				if (MissionBlock::item_contains_position(missionitem_previous)) {
-
-					uORB::SubscriptionData<position_controller_landing_status_s> landing_status{ORB_ID(position_controller_landing_status)};
-
-					const bool landing_status_valid = (landing_status.get().timestamp > 0);
-					const float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat, missionitem_previous.lon,
-								  missionitem.lat, missionitem.lon);
-
-					if (landing_status_valid && (wp_distance > landing_status.get().flare_length)) {
-						/* Last wp is before flare region */
-
-						const float delta_altitude = missionitem.altitude - missionitem_previous.altitude;
-
-						if (delta_altitude < 0) {
-
-							const float horizontal_slope_displacement = landing_status.get().horizontal_slope_displacement;
-							const float slope_angle_rad = landing_status.get().slope_angle_rad;
-							const float slope_alt_req = Landingslope::getLandingSlopeAbsoluteAltitude(wp_distance, missionitem.altitude,
-										    horizontal_slope_displacement, slope_angle_rad);
-
-							if (missionitem_previous.altitude > slope_alt_req + 1.0f) {
-								/* Landing waypoint is above altitude of slope at the given waypoint distance (with small tolerance for floating point discrepancies) */
-								const float wp_distance_req = Landingslope::getLandingSlopeWPDistance(missionitem_previous.altitude,
-											      missionitem.altitude, horizontal_slope_displacement, slope_angle_rad);
-
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: adjust landing approach.\t");
-								mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Move down %d m or move further away by %d m.\t",
-										     (int)ceilf(slope_alt_req - missionitem_previous.altitude),
-										     (int)ceilf(wp_distance_req - wp_distance));
-								/* EVENT
-								 * @description
-								 * The landing waypoint must be above the altitude of slope at the given waypoint distance.
-								 * Move it down {1m_v} or move it further away by {2m}.
-								 */
-								events::send<int32_t, int32_t>(events::ID("navigator_mis_land_approach"), {events::Log::Error, events::LogInternal::Info},
-											       "Mission rejected: adjust landing approach",
-											       (int)ceilf(slope_alt_req - missionitem_previous.altitude),
-											       (int)ceilf(wp_distance_req - wp_distance));
-
-								return false;
-							}
-
-						} else {
-							/* Landing waypoint is above last waypoint */
-							mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: landing above last waypoint.\t");
-							events::send(events::ID("navigator_mis_land_too_high"), {events::Log::Error, events::LogInternal::Info},
-								     "Mission rejected: landing waypoint is above the last waypoint");
-							return false;
-						}
-
-					} else {
-						/* Last wp is in flare region */
-						mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: waypoint within landing flare.\t");
-						events::send(events::ID("navigator_mis_land_within_flare"), {events::Log::Error, events::LogInternal::Info},
-							     "Mission rejected: waypoint is within landing flare");
-						return false;
-					}
-
+					// exact handling of the previous waypoint is currently done in the fixed-wing
+					// position control module and primarily supports approach entrances from
+					// orbit-to-alt mission items. Behavior with other entrance waypoint types, e.g.
+					// plain position setpoints is not guaranteed. it is the user's responsibility to
+					// appropriately plan the entrance point if not using orbit-to-alt until extended
+					// functionality is implemented.
 					landing_valid = true;
 
 				} else {
