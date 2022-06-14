@@ -1092,15 +1092,13 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 	/* current waypoint (the one currently heading for) */
 	curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	if (pos_sp_prev.valid) {
+	if (pos_sp_prev.valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		prev_wp(0) = pos_sp_prev.lat;
 		prev_wp(1) = pos_sp_prev.lon;
 
 	} else {
-		/*
-			* No valid previous waypoint, go for the current wp.
-			* This is automatically handled by the L1 library.
-			*/
+		// No valid previous waypoint, go for the current wp.
+		// This is automatically handled by the L1/NPFG libraries.
 		prev_wp(0) = pos_sp_curr.lat;
 		prev_wp(1) = pos_sp_curr.lon;
 	}
@@ -1269,15 +1267,13 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 	/* current waypoint (the one currently heading for) */
 	curr_wp = Vector2d(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	if (pos_sp_prev.valid) {
+	if (pos_sp_prev.valid && pos_sp_prev.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		prev_wp(0) = pos_sp_prev.lat;
 		prev_wp(1) = pos_sp_prev.lon;
 
 	} else {
-		/*
-			* No valid previous waypoint, go for the current wp.
-			* This is automatically handled by the L1 library.
-			*/
+		// No valid previous waypoint, go for the current wp.
+		// This is automatically handled by the L1/NPFG libraries.
 		prev_wp(0) = pos_sp_curr.lat;
 		prev_wp(1) = pos_sp_curr.lon;
 	}
