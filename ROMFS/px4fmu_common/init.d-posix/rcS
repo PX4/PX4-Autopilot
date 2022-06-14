@@ -204,8 +204,11 @@ param set IMU_INTEG_RATE 250
 . px4-rc.params
 
 dataman start
+# start sih in sih_sim mode, otherwise simulator module
+if [ "$SIM_MODE" = "sihsim" ]; then
+	sih start
 # only start the simulator if not in replay mode, as both control the lockstep time
-if ! replay tryapplyparams
+elif ! replay tryapplyparams
 then
   . px4-rc.simulator
 fi

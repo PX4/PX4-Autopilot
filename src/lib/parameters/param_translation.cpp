@@ -212,5 +212,30 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-06-09: migrate EKF2_WIND_NOISE->EKF2_WIND_NSD
+	{
+		if (strcmp("EKF2_WIND_NOISE", node->name) == 0) {
+			node->d /= 10.0; // at 100Hz (EKF2 rate), NSD is sqrt(100) times smaller than std_dev
+			strcpy(node->name, "EKF2_WIND_NSD");
+			PX4_INFO("param migrating EKF2_WIND_NOISE (removed) -> EKF2_WIND_NSD: value=%.3f", node->d);
+			return true;
+		}
+	}
+
+	// 2022-06-09: translate ASPD_SC_P_NOISE->ASPD_SCALE_NSD and ASPD_W_P_NOISE->ASPD_WIND_NSD
+	{
+		if (strcmp("ASPD_SC_P_NOISE", node->name) == 0) {
+			strcpy(node->name, "ASPD_SCALE_NSD");
+			PX4_INFO("copying %s -> %s", "ASPD_SC_P_NOISE", "ASPD_SCALE_NSD");
+			return true;
+		}
+
+		if (strcmp("ASPD_W_P_NOISE", node->name) == 0) {
+			strcpy(node->name, "ASPD_WIND_NSD");
+			PX4_INFO("copying %s -> %s", "ASPD_W_P_NOISE", "ASPD_WIND_NSD");
+			return true;
+		}
+	}
+
 	return false;
 }
