@@ -204,23 +204,57 @@ private:
 	vehicle_local_position_s _local_pos{};
 	vehicle_status_s _vehicle_status{};
 
+	perf_counter_t _loop_perf; // loop performance counter
+
+	// [us] Last absolute time position control has been called
+	hrt_abstime _last_time_position_control_called{0};
+
+	uint8_t _position_sp_type{0};
+
+	enum FW_POSCTRL_MODE {
+		FW_POSCTRL_MODE_AUTO,
+		FW_POSCTRL_MODE_AUTO_ALTITUDE,
+		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
+		FW_POSCTRL_MODE_AUTO_TAKEOFF,
+		FW_POSCTRL_MODE_AUTO_LANDING,
+		FW_POSCTRL_MODE_MANUAL_POSITION,
+		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
+		FW_POSCTRL_MODE_OTHER
+	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
+
+	enum StickConfig {
+		STICK_CONFIG_SWAP_STICKS_BIT = (1 << 0),
+		STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT = (1 << 1)
+	};
+
+	// VEHICLE STATES
+
 	double _current_latitude{0};
 	double _current_longitude{0};
 	float _current_altitude{0.f};
 
-	perf_counter_t _loop_perf; // loop performance counter
+	float _pitch{0.0f};
+	float _yaw{0.0f};
+	float _yawrate{0.0f};
+
+	matrix::Vector3f _body_acceleration{};
+	matrix::Vector3f _body_velocity{};
 
 	MapProjection _global_local_proj_ref{};
 	float _global_local_alt0{NAN};
 
-	// [m] ground altitude where the plane was launched
-	float _takeoff_ground_alt{0.0f};
+	bool _landed{true};
 
-	// true if a launch, specifically using the launch detector, has been detected
-	bool _launch_detected{false};
+	// indicates whether the plane was in the air in the previous interation
+	bool _was_in_air{false};
 
-	// [deg] global position of the vehicle at the time launch is detected (using launch detector)
-	Vector2d _launch_global_position{0, 0};
+	// [us] time at which the plane went in the air
+	hrt_abstime _time_went_in_air{0};
+
+	// MANUAL MODES
+
+	// indicates whether we have completed a manual takeoff in a position control mode
+	bool _completed_manual_takeoff{false};
 
 	// [rad] yaw setpoint for manual position mode heading hold
 	float _hdg_hold_yaw{0.0f};
@@ -228,15 +262,43 @@ private:
 	bool _hdg_hold_enabled{false}; // heading hold enabled
 	bool _yaw_lock_engaged{false}; // yaw is locked for heading hold
 
-	float _min_current_sp_distance_xy{FLT_MAX};
-
 	position_setpoint_s _hdg_hold_prev_wp{}; // position where heading hold started
 	position_setpoint_s _hdg_hold_curr_wp{}; // position to which heading hold flies
 
-	// [us] Last absolute time position control has been called
-	hrt_abstime _last_time_position_control_called{0};
+	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
+	float _manual_control_setpoint_for_height_rate{0.0f};
 
-	bool _landed{true};
+	// [.] normalized setpoint for manual airspeed control [0,1]; 0,0.5,1 maps to min,cruise,max airspeed commands
+	float _manual_control_setpoint_for_airspeed{0.0f};
+
+	// [m/s] airspeed setpoint for manual modes commanded via MAV_CMD_DO_CHANGE_SPEED
+	float _commanded_manual_airspeed_setpoint{NAN};
+
+	// AUTO TAKEOFF
+
+	// [m] ground altitude where the plane was launched
+	float _takeoff_ground_alt{0.0f};
+
+	// class handling launch detection methods for fixed-wing takeoff
+	LaunchDetector _launchDetector;
+
+	LaunchDetectionResult _launch_detection_state{LAUNCHDETECTION_RES_NONE};
+
+	// [us] logs the last time the launch detection notification was sent (used not to spam notifications during launch detection)
+	hrt_abstime _last_time_launch_detection_notified{0};
+
+	// true if a launch, specifically using the launch detector, has been detected
+	bool _launch_detected{false};
+
+	// [deg] global position of the vehicle at the time launch is detected (using launch detector)
+	Vector2d _launch_global_position{0, 0};
+
+	// class handling runway takeoff for fixed-wing UAVs with steerable wheels
+	RunwayTakeoff _runway_takeoff;
+
+	bool _skipping_takeoff_detection{false};
+
+	// AUTO LANDING
 
 	/* Landing */
 	bool _land_noreturn_horizontal{false};
@@ -266,38 +328,17 @@ private:
 	// [m] estimated height to ground at which flare started
 	float _flare_curve_alt_rel_last{0.0f};
 
-	float _target_bearing{0.0f}; // [rad]
+	// AIRSPEED
 
-	// indicates whether the plane was in the air in the previous interation
-	bool _was_in_air{false};
-
-	// [us] time at which the plane went in the air
-	hrt_abstime _time_went_in_air{0};
-
-	// indicates whether we have completed a manual takeoff in a position control mode
-	bool _completed_manual_takeoff{false};
-
-	// Takeoff launch detection and runway
-	LaunchDetector _launchDetector;
-	LaunchDetectionResult _launch_detection_state{LAUNCHDETECTION_RES_NONE};
-	hrt_abstime _launch_detection_notify{0};
-
-	RunwayTakeoff _runway_takeoff;
-
-	bool _skipping_takeoff_detection{false};
-
-	/* throttle and airspeed states */
-
+	float _airspeed{0.0f};
+	float _eas2tas{1.0f};
 	bool _airspeed_valid{false};
+	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};
 
 	// [us] last time airspeed was received. used to detect timeouts.
 	hrt_abstime _time_airspeed_last_valid{0};
 
-	float _airspeed{0.0f};
-	float _eas2tas{1.0f};
-	float _air_density{CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C};
-
-	/* wind estimates */
+	// WIND
 
 	// [m/s] wind velocity vector
 	Vector2f _wind_vel{0.0f, 0.0f};
@@ -306,26 +347,25 @@ private:
 
 	hrt_abstime _time_wind_last_received{0}; // [us]
 
-	float _pitch{0.0f};
-	float _yaw{0.0f};
-	float _yawrate{0.0f};
+	// TECS
 
-	matrix::Vector3f _body_acceleration{};
-	matrix::Vector3f _body_velocity{};
+	// total energy control system - airspeed / altitude control
+	TECS _tecs;
 
 	bool _reinitialize_tecs{true};
 	bool _tecs_is_running{false};
-
 	hrt_abstime _time_last_tecs_update{0}; // [us]
+
+	// VTOL / TRANSITION
 
 	float _airspeed_after_transition{0.0f};
 	bool _was_in_transition{false};
-
 	bool _is_vtol_tailsitter{false};
-
 	matrix::Vector2d _transition_waypoint{(double)NAN, (double)NAN};
+	param_t _param_handle_airspeed_trans{PARAM_INVALID};
+	float _param_airspeed_trans{NAN}; // [m/s]
 
-	// estimator reset counters
+	// ESTIMATOR RESET COUNTERS
 
 	// captures the number of times the estimator has reset the horizontal position
 	uint8_t _pos_reset_counter{0};
@@ -333,16 +373,7 @@ private:
 	// captures the number of times the estimator has reset the altitude state
 	uint8_t _alt_reset_counter{0};
 
-	// [.] normalized setpoint for manual altitude control [-1,1]; -1,0,1 maps to min,zero,max height rate commands
-	float _manual_control_setpoint_for_height_rate{0.0f};
-
-	// [.] normalized setpoint for manual airspeed control [0,1]; 0,0.5,1 maps to min,cruise,max airspeed commands
-	float _manual_control_setpoint_for_airspeed{0.0f};
-
-	// [m/s] airspeed setpoint for manual modes commanded via MAV_CMD_DO_CHANGE_SPEED
-	float _commanded_manual_airspeed_setpoint{NAN};
-
-	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
+	// LATERAL-DIRECTIONAL GUIDANCE
 
 	// L1 guidance - lateral-directional position control
 	ECL_L1_Pos_Controller _l1_control;
@@ -350,30 +381,9 @@ private:
 	// nonlinear path following guidance - lateral-directional position control
 	NPFG _npfg;
 
-	// total energy control system - airspeed / altitude control
-	TECS _tecs;
-
-	uint8_t _position_sp_type{0};
-
-	enum FW_POSCTRL_MODE {
-		FW_POSCTRL_MODE_AUTO,
-		FW_POSCTRL_MODE_AUTO_ALTITUDE,
-		FW_POSCTRL_MODE_AUTO_CLIMBRATE,
-		FW_POSCTRL_MODE_AUTO_TAKEOFF,
-		FW_POSCTRL_MODE_AUTO_LANDING,
-		FW_POSCTRL_MODE_MANUAL_POSITION,
-		FW_POSCTRL_MODE_MANUAL_ALTITUDE,
-		FW_POSCTRL_MODE_OTHER
-	} _control_mode_current{FW_POSCTRL_MODE_OTHER}; // used to check if the mode has changed
-
-	param_t _param_handle_airspeed_trans{PARAM_INVALID};
-
-	float _param_airspeed_trans{NAN}; // [m/s]
-
-	enum StickConfig {
-		STICK_CONFIG_SWAP_STICKS_BIT = (1 << 0),
-		STICK_CONFIG_ENABLE_AIRSPEED_SP_MANUAL_BIT = (1 << 1)
-	};
+	hrt_abstime _time_in_fixed_bank_loiter{0}; // [us]
+	float _min_current_sp_distance_xy{FLT_MAX};
+	float _target_bearing{0.0f}; // [rad]
 
 	// Update our local parameter cache.
 	int parameters_update();
