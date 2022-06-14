@@ -351,21 +351,6 @@ PARAM_DEFINE_FLOAT(FW_THR_MIN, 0.0f);
 PARAM_DEFINE_FLOAT(FW_THR_IDLE, 0.15f);
 
 /**
- * Throttle limit during landing below throttle limit altitude
- *
- * During the flare of the autonomous landing process, this value will be set
- * as throttle limit when the aircraft altitude is below FW_LND_TLALT.
- *
- * @unit norm
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.01
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_THR_LND_MAX, 1.0f);
-
-/**
  * Climbout Altitude difference
  *
  * If the altitude error exceeds this parameter, the system will climb out
@@ -407,18 +392,6 @@ PARAM_DEFINE_FLOAT(FW_LND_ANG, 5.0f);
 PARAM_DEFINE_FLOAT(FW_TKO_PITCH_MIN, 10.0f);
 
 /**
- *
- *
- * @unit m
- * @min 1.0
- * @max 15.0
- * @decimal 1
- * @increment 0.5
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
-
-/**
  * Landing flare altitude (relative to landing altitude)
  *
  * @unit m
@@ -429,35 +402,6 @@ PARAM_DEFINE_FLOAT(FW_LND_HVIRT, 10.0f);
  * @group FW L1 Control
  */
 PARAM_DEFINE_FLOAT(FW_LND_FLALT, 3.0f);
-
-/**
- * Landing throttle limit altitude (relative landing altitude)
- *
- * Default of -1.0 lets the system default to applying throttle
- * limiting at 2/3 of the flare altitude.
- *
- * @unit m
- * @min -1.0
- * @max 30.0
- * @decimal 1
- * @increment 0.5
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_TLALT, -1.0f);
-
-/**
- * Landing heading hold horizontal distance.
- *
- * Set to 0 to disable heading hold.
- *
- * @unit m
- * @min 0
- * @max 30.0
- * @decimal 1
- * @increment 0.5
- * @group FW L1 Control
- */
-PARAM_DEFINE_FLOAT(FW_LND_HHDIST, 15.0f);
 
 /**
  * Use terrain estimate during landing.
@@ -1034,3 +978,59 @@ PARAM_DEFINE_FLOAT(FW_WING_SPAN, 3.0);
  * @group FW Geometry
  */
 PARAM_DEFINE_FLOAT(FW_WING_HEIGHT, 0.5);
+
+/**
+ * Landing flare time
+ *
+ * Multiplied by the descent rate to calculate a dynamic altitude at which
+ * to trigger the flare.
+ *
+ * @unit s
+ * @min 0.0
+ * @max 5.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_FL_TIME, 1.0f);
+
+/**
+ * Landing flare sink rate
+ *
+ * TECS will attempt to control the aircraft to this sink rate via pitch angle (throttle killed during flare)
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 1.0
+ * @decimal 1
+ * @increment 0.1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_FL_SINK, 0.25f);
+
+/**
+ * Maximum lateral position offset for the touchdown point
+ *
+ * @unit m
+ * @min 0.0
+ * @max 10.0
+ * @decimal 1
+ * @increment 1
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_FLOAT(FW_LND_TD_OFF, 3.0);
+
+/**
+ * Landing touchdown nudging option.
+ *
+ * Approach angle nudging: shifts the touchdown point laterally while keeping the approach entrance point constant
+ * Approach path nudging: shifts the touchdown point laterally along with the entire approach path
+ *
+ * @min 0
+ * @max 2
+ * @value 0 Disable nudging
+ * @value 1 Nudge approach angle
+ * @value 2 Nudge approach path
+ * @group FW L1 Control
+ */
+PARAM_DEFINE_INT32(FW_LND_NUDGE, 0);

@@ -7,12 +7,9 @@
 
 param set-default FW_LND_AIRSPD_SC 1.1
 param set-default FW_LND_ANG 5
-param set-default FW_THR_LND_MAX 0
-param set-default FW_LND_HHDIST 30
 param set-default FW_LND_FL_PMIN 9.5
 param set-default FW_LND_FL_PMAX 20
 param set-default FW_LND_FLALT 5
-param set-default FW_LND_TLALT 15
 
 param set-default FW_L1_PERIOD 25
 

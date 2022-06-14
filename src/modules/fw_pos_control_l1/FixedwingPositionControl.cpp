@@ -144,19 +144,6 @@ FixedwingPositionControl::parameters_update()
 	_tecs.set_speed_derivative_time_constant(_param_tas_rate_time_const.get());
 	_tecs.set_seb_rate_ff_gain(_param_seb_rate_ff.get());
 
-	// Landing slope
-	/* check if negative value for 2/3 of flare altitude is set for throttle cut */
-	float land_thrust_lim_alt_relative = _param_fw_lnd_tlalt.get();
-
-	if (land_thrust_lim_alt_relative < 0.0f) {
-		land_thrust_lim_alt_relative = 0.66f * _param_fw_lnd_flalt.get();
-	}
-
-	_landingslope.update(radians(_param_fw_lnd_ang.get()), _param_fw_lnd_flalt.get(), land_thrust_lim_alt_relative,
-			     _param_fw_lnd_hvirt.get());
-
-	landing_status_publish();
-
 	int check_ret = PX4_OK;
 
 	// sanity check parameters
@@ -617,12 +604,8 @@ FixedwingPositionControl::landing_status_publish()
 {
 	position_controller_landing_status_s pos_ctrl_landing_status = {};
 
-	pos_ctrl_landing_status.slope_angle_rad = _landingslope.landing_slope_angle_rad();
-	pos_ctrl_landing_status.horizontal_slope_displacement = _landingslope.horizontal_slope_displacement();
-	pos_ctrl_landing_status.flare_length = _landingslope.flare_length();
-
+	pos_ctrl_landing_status.lateral_touchdown_offset = _lateral_touchdown_position_offset;
 	pos_ctrl_landing_status.abort_landing = _land_abort;
-
 	pos_ctrl_landing_status.timestamp = hrt_absolute_time();
 
 	_pos_ctrl_landing_status_pub.publish(pos_ctrl_landing_status);
@@ -1625,320 +1608,148 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 void
 FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const float control_interval,
-		const Vector2d &curr_pos, const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev,
-		const position_setpoint_s &pos_sp_curr)
+		const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr)
 {
 	// Enable tighter altitude control for landings
 	_tecs.set_height_error_time_constant(_param_fw_thrtc_sc.get() * _param_fw_t_h_error_tc.get());
 
-	/* current waypoint (the one currently heading for) */
-	Vector2d curr_wp(pos_sp_curr.lat, pos_sp_curr.lon);
-	Vector2d prev_wp{0, 0}; /* previous waypoint */
+	const Vector2f local_position{_local_pos.x, _local_pos.y};
+	Vector2f local_land_point = _global_local_proj_ref.project(pos_sp_curr.lat, pos_sp_curr.lon);
 
-	if (pos_sp_prev.valid) {
-		prev_wp(0) = pos_sp_prev.lat;
-		prev_wp(1) = pos_sp_prev.lon;
+	initializeAutoLanding(now, pos_sp_prev, pos_sp_curr, local_position, local_land_point);
+
+	local_land_point = calculateTouchdownPosition(control_interval, local_land_point);
+	const Vector2f landing_approach_vector = calculateLandingApproachVector();
+
+	const float airspeed_land = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
+	float target_airspeed = get_auto_airspeed_setpoint(control_interval, airspeed_land, ground_speed);
+
+	// calculate the altitude setpoint based on the landing glide slope
+	const float along_track_dist_to_touchdown = -landing_approach_vector.unit_or_zero().dot(
+				local_position - local_land_point);
+	const float glide_slope_rel_alt = math::constrain(along_track_dist_to_touchdown * tanf(math::radians(
+			_param_fw_lnd_ang.get())),
+					  0.0f, _landing_approach_entrance_rel_alt);
+
+	const float terrain_alt = getLandingTerrainAltitudeEstimate(now, pos_sp_curr.alt);
+	float altitude_setpoint;
+
+	if (_current_altitude > terrain_alt + glide_slope_rel_alt) {
+		// descend to the glide slope
+		altitude_setpoint = terrain_alt + glide_slope_rel_alt;
 
 	} else {
-		/*
-		 * No valid previous waypoint, go for the current wp.
-		 * This is automatically handled by the L1 library.
-		 */
-		prev_wp(0) = pos_sp_curr.lat;
-		prev_wp(1) = pos_sp_curr.lon;
+		// continue horizontally
+		altitude_setpoint = _current_altitude;
 	}
 
-	// save time at which we started landing and reset abort_landing
-	if (_time_started_landing == 0) {
-		reset_landing_state();
-		_time_started_landing = now;
-	}
+	// flare at the maximum of the altitude determined by the time before touchdown and a minimum flare altitude
+	const float flare_rel_alt = math::max(_param_fw_lnd_fl_time.get() * _local_pos.vz, _param_fw_lnd_flalt.get());
 
-	const float bearing_airplane_currwp = get_bearing_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1),
-					      (double)curr_wp(0), (double)curr_wp(1));
+	if ((_current_altitude < terrain_alt + flare_rel_alt) || _flaring) {
+		// flare and land with minimal speed
 
-	float bearing_lastwp_currwp = bearing_airplane_currwp;
-
-	if (pos_sp_prev.valid) {
-		bearing_lastwp_currwp = get_bearing_to_next_waypoint((double)prev_wp(0), (double)prev_wp(1), (double)curr_wp(0),
-					(double)curr_wp(1));
-	}
-
-	/* Horizontal landing control */
-	/* switch to heading hold for the last meters, continue heading hold after */
-	float wp_distance = get_distance_to_next_waypoint((double)curr_pos(0), (double)curr_pos(1), (double)curr_wp(0),
-			    (double)curr_wp(1));
-
-	/* calculate a waypoint distance value which is 0 when the aircraft is behind the waypoint */
-	float wp_distance_save = wp_distance;
-
-	if (fabsf(wrap_pi(bearing_airplane_currwp - bearing_lastwp_currwp)) >= radians(90.0f)) {
-		wp_distance_save = 0.0f;
-	}
-
-	// create virtual waypoint which is on the desired flight path but
-	// some distance behind landing waypoint. This will make sure that the plane
-	// will always follow the desired flight path even if we get close or past
-	// the landing waypoint
-	if (pos_sp_prev.valid) {
-		double lat = pos_sp_curr.lat;
-		double lon = pos_sp_curr.lon;
-
-		create_waypoint_from_line_and_dist(pos_sp_curr.lat, pos_sp_curr.lon,
-						   pos_sp_prev.lat, pos_sp_prev.lon, -1000.0f, &lat, &lon);
-
-		curr_wp(0) = lat;
-		curr_wp(1) = lon;
-	}
-
-	Vector2f curr_pos_local{_local_pos.x, _local_pos.y};
-	Vector2f curr_wp_local = _global_local_proj_ref.project(curr_wp(0), curr_wp(1));
-	Vector2f prev_wp_local = _global_local_proj_ref.project(prev_wp(0),
-				 prev_wp(1));
-
-	// we want the plane to keep tracking the desired flight path until we start flaring
-	// if we go into heading hold mode earlier then we risk to be pushed away from the runway by cross winds
-	if ((_param_fw_lnd_hhdist.get() > 0.0f) && !_land_noreturn_horizontal &&
-	    ((wp_distance < _param_fw_lnd_hhdist.get()) || _land_noreturn_vertical)) {
-
-		if (pos_sp_prev.valid) {
-			/* heading hold, along the line connecting this and the last waypoint */
-			_target_bearing = bearing_lastwp_currwp;
-
-		} else {
-			_target_bearing = _yaw;
+		// flaring is a "point of no return"
+		if (!_flaring) {
+			_flaring = true;
+			_heightrate_setpoint_at_flare_start = _tecs.hgt_rate_setpoint();
+			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring\t");
+			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info, "Landing, flaring");
 		}
 
-		_land_noreturn_horizontal = true;
-		mavlink_log_info(&_mavlink_log_pub, "Landing, heading hold\t");
-		events::send(events::ID("fixedwing_position_control_landing"), events::Log::Info, "Landing, heading hold");
-	}
+		/* lateral guidance first, because npfg will adjust the airspeed setpoint if necessary */
 
-	/* Vertical landing control */
-	/* apply minimum pitch (flare) and limit roll if close to touch down, altitude error is negative (going down) */
+		// tune up the lateral position control guidance when on the ground
+		_npfg.setPeriod(_param_rwto_l1_period.get());
+		_l1_control.set_l1_period(_param_rwto_l1_period.get());
 
-	// default to no terrain estimation, just use landing waypoint altitude
-	float terrain_alt = pos_sp_curr.alt;
+		// align heading with the approach bearing
+		const float landing_approach_bearing = atan2f(landing_approach_vector(1), landing_approach_vector(0));
 
-	if (_param_fw_lnd_useter.get() == 1) {
-		if (_local_pos.dist_bottom_valid) {
-			// all good, have valid terrain altitude
-			float terrain_vpos = _local_pos.dist_bottom + _local_pos.z;
-			terrain_alt = (_local_pos.ref_alt - terrain_vpos);
-			_last_valid_terrain_alt_estimate = terrain_alt;
-			_last_time_terrain_alt_was_valid = now;
-
-		} else if (_last_time_terrain_alt_was_valid == 0) {
-			// we have started landing phase but don't have valid terrain
-			// wait for some time, maybe we will soon get a valid estimate
-			// until then just use the altitude of the landing waypoint
-			if ((now - _time_started_landing) < 10_s) {
-				terrain_alt = pos_sp_curr.alt;
-
-			} else {
-				// still no valid terrain, abort landing
-				terrain_alt = pos_sp_curr.alt;
-				abort_landing(true);
-			}
-
-		} else if ((!_local_pos.dist_bottom_valid && (now - _last_time_terrain_alt_was_valid) < TERRAIN_ALT_TIMEOUT)
-			   || _land_noreturn_vertical) {
-			// use previous terrain estimate for some time and hope to recover
-			// if we are already flaring (land_noreturn_vertical) then just
-			//  go with the old estimate
-			terrain_alt = _last_valid_terrain_alt_estimate;
-
-		} else {
-			// terrain alt was not valid for long time, abort landing
-			terrain_alt = _last_valid_terrain_alt_estimate;
-			abort_landing(true);
-		}
-	}
-
-	/* Check if we should start flaring with a vertical and a
-	 * horizontal limit (with some tolerance)
-	 * The horizontal limit is only applied when we are in front of the wp
-	 */
-	if ((_current_altitude < terrain_alt + _landingslope.flare_relative_alt()) ||
-	    _land_noreturn_vertical) {  //checking for land_noreturn to avoid unwanted climb out
-
-		/* land with minimal speed */
-
-		/* force TECS to only control speed with pitch, altitude is only implicitly controlled now */
-		// _tecs.set_speed_weight(2.0f);
-
-		/* kill the throttle if param requests it */
-		float throttle_max = _param_fw_thr_max.get();
-
-		if (((_current_altitude < terrain_alt + _landingslope.motor_lim_relative_alt()) &&
-		     (wp_distance_save < _landingslope.flare_length() + 5.0f)) || // Only kill throttle when close to WP
-		    _land_motor_lim) {
-			throttle_max = min(throttle_max, _param_fw_thr_lnd_max.get());
-
-			if (!_land_motor_lim) {
-				_land_motor_lim  = true;
-				mavlink_log_info(&_mavlink_log_pub, "Landing, limiting throttle\t");
-				events::send(events::ID("fixedwing_position_control_landing_limit_throttle"), events::Log::Info,
-					     "Landing, limiting throttle");
-			}
-		}
-
-		float flare_curve_alt_rel = _landingslope.getFlareCurveRelativeAltitudeSave(wp_distance, bearing_lastwp_currwp,
-					    bearing_airplane_currwp);
-
-		/* avoid climbout */
-		if ((_flare_curve_alt_rel_last < flare_curve_alt_rel && _land_noreturn_vertical) || _land_stayonground) {
-			flare_curve_alt_rel = 0.0f; // stay on ground
-			_land_stayonground = true;
-		}
-
-		const float airspeed_land = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
-		float target_airspeed = get_auto_airspeed_setpoint(control_interval, airspeed_land, ground_speed);
-
-		/* lateral guidance */
 		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-
-			if (_land_noreturn_horizontal) {
-				// heading hold
-				_npfg.navigateHeading(_target_bearing, ground_speed, _wind_vel);
-
-			} else {
-				// normal navigation
-				_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
-			}
-
+			_npfg.navigateHeading(landing_approach_bearing, ground_speed, _wind_vel);
 			target_airspeed = _npfg.getAirspeedRef() /  _eas2tas;
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 
 		} else {
-			if (_land_noreturn_horizontal) {
-				// heading hold
-				_l1_control.navigate_heading(_target_bearing, _yaw, ground_speed);
-
-			} else {
-				// normal navigation
-				_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
-			}
-
+			_l1_control.navigate_heading(landing_approach_bearing, _yaw, ground_speed);
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
 		}
 
-		/* enable direct yaw control using rudder/wheel */
-		if (_land_noreturn_horizontal) {
-			_att_sp.yaw_body = _target_bearing;
-			_att_sp.fw_control_yaw = true;
+		/* longitudinal guidance */
 
-		} else {
-			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
-		}
+		// ramp in flare limits and setpoints with the flare time, command a soft touchdown
+		const float seconds_since_flare_start = hrt_elapsed_time(&_time_started_flaring) * 1e-6;
+		const float flare_ramp_in_scaler = math::constrain(seconds_since_flare_start / _param_fw_lnd_fl_time.get(), 0.0f, 1.0f);
+
+		const float height_rate_setpoint = flare_ramp_in_scaler * (-_param_fw_lnd_fl_sink.get()) +
+						   (1.0f - flare_ramp_in_scaler) * _heightrate_setpoint_at_flare_start;
+
+		const float pitch_min_rad = flare_ramp_in_scaler * radians(_param_fw_lnd_fl_pmin.get()) +
+					    (1.0f - flare_ramp_in_scaler) * radians(_param_fw_p_lim_min.get());
+		const float pitch_max_rad = flare_ramp_in_scaler * radians(_param_fw_lnd_fl_pmax.get()) +
+					    (1.0f - flare_ramp_in_scaler) * radians(_param_fw_p_lim_max.get());
 
 		tecs_update_pitch_throttle(control_interval,
-					   terrain_alt + flare_curve_alt_rel,
+					   altitude_setpoint,
 					   target_airspeed,
-					   radians(_param_fw_lnd_fl_pmin.get()),
-					   radians(_param_fw_lnd_fl_pmax.get()),
+					   pitch_min_rad,
+					   pitch_max_rad,
 					   0.0f,
-					   throttle_max,
+					   0.0f,
 					   false,
-					   _land_motor_lim ? radians(_param_fw_lnd_fl_pmin.get()) : radians(_param_fw_p_lim_min.get()),
-					   true);
+					   pitch_min_rad,
+					   true,
+					   height_rate_setpoint);
 
-		if (!_land_noreturn_vertical) {
-			// just started with the flaring phase
-			_flare_pitch_sp = radians(_param_fw_psp_off.get());
-			_flare_height = _current_altitude - terrain_alt;
-			mavlink_log_info(&_mavlink_log_pub, "Landing, flaring\t");
-			events::send(events::ID("fixedwing_position_control_landing_flaring"), events::Log::Info, "Landing, flaring");
-			_land_noreturn_vertical = true;
+		/* set the attitude and throttle commands */
 
-		} else {
-			if (_local_pos.vz > 0.1f) {
-				_flare_pitch_sp = radians(_param_fw_lnd_fl_pmin.get()) *
-						  constrain((_flare_height - (_current_altitude - terrain_alt)) / _flare_height, 0.0f, 1.0f);
-			}
+		// TECS has authority (though constrained) over pitch during flare, throttle is killed
+		_att_sp.pitch_body = get_tecs_pitch();
 
-			// otherwise continue using previous _flare_pitch_sp
-		}
+		// flaring is just before touchdown, align the yaw as much as possible with the landing vector
+		_att_sp.yaw_body = landing_approach_bearing;
 
-		_att_sp.pitch_body = _flare_pitch_sp;
-		_flare_curve_alt_rel_last = flare_curve_alt_rel;
+		// enable direct yaw control using rudder/wheel
+		_att_sp.fw_control_yaw = true;
+
+		_att_sp.thrust_body[0] = 0.0f;
 
 	} else {
 
-		/* intersect glide slope:
-		 * minimize speed to approach speed
-		 * if current position is higher than the slope follow the glide slope (sink to the
-		 * glide slope)
-		 * also if the system captures the slope it should stay
-		 * on the slope (bool land_onslope)
-		 * if current position is below the slope continue at previous wp altitude
-		 * until the intersection with slope
-		 * */
-
-		float altitude_desired = terrain_alt;
-
-		const float landing_slope_alt_rel_desired = _landingslope.getLandingSlopeRelativeAltitudeSave(wp_distance,
-				bearing_lastwp_currwp, bearing_airplane_currwp);
-
-		if (_current_altitude > terrain_alt + landing_slope_alt_rel_desired || _land_onslope) {
-			/* stay on slope */
-			altitude_desired = terrain_alt + landing_slope_alt_rel_desired;
-
-			if (!_land_onslope) {
-				mavlink_log_info(&_mavlink_log_pub, "Landing, on slope\t");
-				events::send(events::ID("fixedwing_position_control_landing_on_slope"), events::Log::Info, "Landing, on slope");
-				_land_onslope = true;
-			}
-
-		} else {
-			/* continue horizontally */
-			if (pos_sp_prev.valid) {
-				altitude_desired = pos_sp_prev.alt;
-
-			} else {
-				altitude_desired = _current_altitude;
-			}
-		}
-
-		const float airspeed_approach = _param_fw_lnd_airspd_sc.get() * _param_fw_airspd_min.get();
-		float target_airspeed = get_auto_airspeed_setpoint(control_interval, airspeed_approach, ground_speed);
+		// follow the glide slope
 
 		/* lateral guidance */
+
+		const Vector2f local_approach_entrance = local_land_point - landing_approach_vector;
+
 		if (_param_fw_use_npfg.get()) {
 			_npfg.setAirspeedNom(target_airspeed * _eas2tas);
 			_npfg.setAirspeedMax(_param_fw_airspd_max.get() * _eas2tas);
-
-			if (_land_noreturn_horizontal) {
-				// heading hold
-				_npfg.navigateHeading(_target_bearing, ground_speed, _wind_vel);
-
-			} else {
-				// normal navigation
-				_npfg.navigateWaypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed, _wind_vel);
-			}
-
+			_npfg.navigateWaypoints(local_approach_entrance, local_land_point, local_position, ground_speed, _wind_vel);
 			target_airspeed = _npfg.getAirspeedRef() / _eas2tas;
 			_att_sp.roll_body = _npfg.getRollSetpoint();
 
 		} else {
-			if (_land_noreturn_horizontal) {
-				// heading hold
-				_l1_control.navigate_heading(_target_bearing, _yaw, ground_speed);
+			// make a fake waypoint beyond the land point in the direction of the landing approach bearing
+			// (always HDG_HOLD_DIST_NEXT meters in front of the aircraft's progress along the landing approach vector)
 
-			} else {
-				// normal navigation
-				_l1_control.navigate_waypoints(prev_wp_local, curr_wp_local, curr_pos_local, ground_speed);
-			}
+			const float along_track_distance_from_entrance = local_approach_entrance.unit_or_zero().dot(
+						local_position - local_approach_entrance);
 
+			const Vector2f virtual_waypoint = local_approach_entrance + (along_track_distance_from_entrance + HDG_HOLD_DIST_NEXT) *
+							  local_approach_entrance.unit_or_zero();
+
+			_l1_control.navigate_waypoints(local_approach_entrance, virtual_waypoint, local_position, ground_speed);
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
 		}
 
-		_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
+		/* longitudinal guidance */
 
 		tecs_update_pitch_throttle(control_interval,
-					   altitude_desired,
+					   altitude_setpoint,
 					   target_airspeed,
 					   radians(_param_fw_p_lim_min.get()),
 					   radians(_param_fw_p_lim_max.get()),
@@ -1946,12 +1757,20 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 					   _param_fw_thr_max.get(),
 					   false,
 					   radians(_param_fw_p_lim_min.get()));
-		_att_sp.pitch_body = get_tecs_pitch();
-	}
 
-	/* Copy thrust and pitch values from tecs */
-	// when we are landed state we want the motor to spin at idle speed
-	_att_sp.thrust_body[0] = (_landed) ? min(_param_fw_thr_idle.get(), 1.f) : get_tecs_thrust();
+		/* set the attitude and throttle commands */
+
+		// TECS has authority (though constrained) over pitch during flare, throttle is killed
+		_att_sp.pitch_body = get_tecs_pitch();
+
+		// yaw is not controlled in nominal flight
+		_att_sp.yaw_body = _yaw;
+
+		// enable direct yaw control using rudder/wheel
+		_att_sp.fw_control_yaw = false;
+
+		_att_sp.thrust_body[0] = (_landed) ? 0.0f : get_tecs_thrust();
+	}
 
 	_att_sp.roll_body = constrainRollNearGround(_att_sp.roll_body, _current_altitude, terrain_alt);
 
@@ -1962,6 +1781,8 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 	if (!_vehicle_status.in_transition_to_fw) {
 		publishLocalPositionSetpoint(pos_sp_curr);
 	}
+
+	landing_status_publish();
 }
 
 void
@@ -2372,7 +2193,7 @@ FixedwingPositionControl::Run()
 			}
 
 		case FW_POSCTRL_MODE_AUTO_LANDING: {
-				control_auto_landing(_local_pos.timestamp, control_interval, curr_pos, ground_speed, _pos_sp_triplet.previous,
+				control_auto_landing(_local_pos.timestamp, control_interval, ground_speed, _pos_sp_triplet.previous,
 						     _pos_sp_triplet.current);
 				break;
 			}
@@ -2460,14 +2281,13 @@ FixedwingPositionControl::reset_landing_state()
 {
 	_time_started_landing = 0;
 
-	// reset terrain estimation relevant values
-	_last_time_terrain_alt_was_valid = 0;
+	_flaring = false;
+	_time_started_flaring = 0;
+	_heightrate_setpoint_at_flare_start = 0.0f;
 
-	_land_noreturn_horizontal = false;
-	_land_noreturn_vertical = false;
-	_land_stayonground = false;
-	_land_motor_lim = false;
-	_land_onslope = false;
+	_lateral_touchdown_position_offset = 0.0f;
+
+	_last_time_terrain_alt_was_valid = 0;
 
 	// reset abort land, unless loitering after an abort
 	if (_land_abort && (_pos_sp_triplet.current.type != position_setpoint_s::SETPOINT_TYPE_LOITER)) {
@@ -2656,6 +2476,146 @@ FixedwingPositionControl::calculateTakeoffBearingVector(const Vector2f &launch_p
 	}
 
 	return takeoff_bearing_vector;
+}
+
+void
+FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
+		const position_setpoint_s &pos_sp_curr, const Vector2f &local_position, const Vector2f &local_land_point)
+{
+	if (_time_started_landing == 0) {
+
+		float height_above_land_point;
+		Vector2f local_approach_entrance;
+
+		// set the landing approach entrance location when we have just started the landing and store it
+		// NOTE: the landing approach vector is relative to the land point. ekf resets may cause a local frame
+		// jump, so we reference to the land point, which is globally referenced and will update
+		if (pos_sp_prev.valid) {
+			height_above_land_point = pos_sp_prev.alt - pos_sp_curr.alt;
+			local_approach_entrance = _global_local_proj_ref.project(pos_sp_prev.lat, pos_sp_prev.lon);
+
+		} else {
+			// no valid previous waypoint, construct one from the glide slope and direction from current
+			// position to land point
+
+			// NOTE: this is not really a supported use case at the moment, this is just bandaiding any
+			// ill-advised usage of the current implementation
+
+			// TODO: proper handling of on-the-fly landing points would need to involve some more sophisticated
+			// landing pattern generation and corresponding logic
+
+			height_above_land_point = _current_altitude - pos_sp_curr.alt;
+			local_approach_entrance = local_position;
+		}
+
+		if (height_above_land_point < FLT_EPSILON) {
+			height_above_land_point = FLT_EPSILON;
+		}
+
+		_landing_approach_entrance_rel_alt = height_above_land_point;
+
+		const float landing_approach_distance = _landing_approach_entrance_rel_alt / tanf(math::radians(
+				_param_fw_lnd_ang.get()));
+
+		const Vector2f vector_aircraft_to_land_point = local_land_point - local_approach_entrance;
+
+		if (vector_aircraft_to_land_point.norm_squared() > FLT_EPSILON) {
+			_landing_approach_entrance_offset_vector = -vector_aircraft_to_land_point.unit_or_zero() * landing_approach_distance;
+
+		} else {
+			// land in direction of airframe
+			_landing_approach_entrance_offset_vector = Vector2f({cosf(_yaw), sinf(_yaw)}) * landing_approach_distance;
+		}
+
+		// save time at which we started landing and reset abort_landing
+		reset_landing_state();
+		_time_started_landing = now;
+	}
+}
+
+Vector2f
+FixedwingPositionControl::calculateTouchdownPosition(const float control_interval, const Vector2f &local_land_position)
+{
+	if (fabsf(_manual_control_setpoint.r) > MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE && _param_fw_lnd_nudge.get() > 0) {
+		// laterally nudge touchdown location with yaw stick
+		// positive is defined in the direction of a right hand turn starting from the approach vector direction
+		const float signed_deadzone_threshold = MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE * math::signNoZero(
+				_manual_control_setpoint.r);
+		_lateral_touchdown_position_offset += (_manual_control_setpoint.r - signed_deadzone_threshold) *
+						      MAX_TOUCHDOWN_POSITION_NUDGE_RATE * control_interval;
+		_lateral_touchdown_position_offset =  math::constrain(_lateral_touchdown_position_offset, -_param_fw_lnd_td_off.get(),
+						      _param_fw_lnd_td_off.get());
+	}
+
+	const Vector2f approach_unit_vector = -_landing_approach_entrance_offset_vector.unit_or_zero();
+	const Vector2f approach_unit_normal_vector{-approach_unit_vector(1), approach_unit_vector(0)};
+
+	return local_land_position + approach_unit_normal_vector * _lateral_touchdown_position_offset;
+}
+
+Vector2f
+FixedwingPositionControl::calculateLandingApproachVector() const
+{
+	Vector2f landing_approach_vector = -_landing_approach_entrance_offset_vector;
+	const Vector2f approach_unit_vector = landing_approach_vector.unit_or_zero();
+	const Vector2f approach_unit_normal_vector{-approach_unit_vector(1), approach_unit_vector(0)};
+
+	// if _param_fw_lnd_nudge.get() == 0, no nudging
+
+	if (_param_fw_lnd_nudge.get() == 1) {
+		// nudge the approach angle -- i.e. we adjust the approach vector to reach from the original approach
+		// entrance position to the newly nudged touchdown point
+		// NOTE: this lengthens the landing distance.. which will adjust the glideslope height slightly
+		landing_approach_vector += approach_unit_normal_vector * _lateral_touchdown_position_offset;
+	}
+
+	// if _param_fw_lnd_nudge.get() == 2, the full path (including approach entrance point) is nudged with the touchdown
+	// point, which does not require any additions to the approach vector
+
+	return landing_approach_vector;
+}
+
+float
+FixedwingPositionControl::getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude)
+{
+	float terrain_alt = land_point_altitude;
+
+	if (_param_fw_lnd_useter.get() == 1) {
+		if (_local_pos.dist_bottom_valid) {
+			// all good, have valid terrain altitude
+			float terrain_vpos = _local_pos.dist_bottom + _local_pos.z;
+			terrain_alt = (_local_pos.ref_alt - terrain_vpos);
+			_last_valid_terrain_alt_estimate = terrain_alt;
+			_last_time_terrain_alt_was_valid = now;
+
+		} else if (_last_time_terrain_alt_was_valid == 0) {
+			// we have started landing phase but don't have valid terrain
+			// wait for some time, maybe we will soon get a valid estimate
+			// until then just use the altitude of the landing waypoint
+			if ((now - _time_started_landing) < TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT) {
+				terrain_alt = land_point_altitude;
+
+			} else {
+				// still no valid terrain, abort landing
+				terrain_alt = land_point_altitude;
+				abort_landing(true);
+			}
+
+		} else if ((!_local_pos.dist_bottom_valid && (now - _last_time_terrain_alt_was_valid) < TERRAIN_ALT_TIMEOUT)
+			   || _flaring) {
+			// use previous terrain estimate for some time and hope to recover
+			// if we are already flaring (land_noreturn_vertical) then just
+			//  go with the old estimate
+			terrain_alt = _last_valid_terrain_alt_estimate;
+
+		} else {
+			// terrain alt was not valid for long time, abort landing
+			terrain_alt = _last_valid_terrain_alt_estimate;
+			abort_landing(true);
+		}
+	}
+
+	return terrain_alt;
 }
 
 void FixedwingPositionControl::publishLocalPositionSetpoint(const position_setpoint_s &current_waypoint)

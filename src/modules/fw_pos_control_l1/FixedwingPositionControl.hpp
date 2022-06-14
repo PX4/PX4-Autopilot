@@ -58,7 +58,6 @@
 #include <lib/l1/ECL_L1_Pos_Controller.hpp>
 #include <lib/npfg/npfg.hpp>
 #include <lib/tecs/TECS.hpp>
-#include <lib/landing_slope/Landingslope.hpp>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/slew_rate/SlewRate.hpp>
@@ -121,6 +120,9 @@ static constexpr float HDG_HOLD_MAN_INPUT_THRESH = 0.01f;
 // [us] time after which we abort landing if terrain estimate is not valid
 static constexpr hrt_abstime TERRAIN_ALT_TIMEOUT = 1_s;
 
+// [us] if no altimeter measurement is made within this timeout, the land waypoint altitude is used for terrain altitude
+static constexpr hrt_abstime TERRAIN_ALT_FIRST_MEASUREMENT_TIMEOUT = 10_s;
+
 // [.] max throttle from user which will not lead to motors spinning up in altitude controlled modes
 static constexpr float THROTTLE_THRESH = 0.05f;
 
@@ -151,6 +153,16 @@ static constexpr float MIN_PITCH_DURING_MANUAL_TAKEOFF = 0.0f;
 // [m] arbitrary buffer altitude added to clearance altitude setpoint during takeoff to ensure aircraft passes the clearance
 // altitude while waiting for navigator to flag it exceeded
 static constexpr float kClearanceAltitudeBuffer = 10.0f;
+
+// [m] a very large number to hopefully avoid the "fly back" case in L1 waypoint following logic once passed the second
+// waypoint in the segment. this is unecessary with NPFG.
+static constexpr float L1_VIRTUAL_TAKEOFF_WP_DIST = 1.0e6f;
+
+// [m/s] maximum rate at which the touchdown position can be nudged
+static constexpr float MAX_TOUCHDOWN_POSITION_NUDGE_RATE = 1.0f;
+
+// [.] normalized deadzone threshold for manual nudging input
+static constexpr float MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE = 0.15f;
 
 class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
 	public px4::WorkItem
@@ -304,33 +316,28 @@ private:
 
 	// AUTO LANDING
 
-	/* Landing */
-	bool _land_noreturn_horizontal{false};
-	bool _land_noreturn_vertical{false};
-	bool _land_stayonground{false};
-	bool _land_motor_lim{false};
-	bool _land_onslope{false};
+	hrt_abstime _time_started_landing{0}; // [us]
+
+	// [m] lateral touchdown position offset manually commanded during landing
+	float _lateral_touchdown_position_offset{0.0f};
+
+	// [m] relative vector from land point to approach entrance (NE)
+	Vector2f _landing_approach_entrance_offset_vector{};
+
+	// [m] relative height above land point
+	float _landing_approach_entrance_rel_alt{0.0f};
+
 	bool _land_abort{false};
 
-	Landingslope _landingslope;
-
-	// [us] time at which landing started
-	hrt_abstime _time_started_landing{0};
+	bool _flaring{false};
+	hrt_abstime _time_started_flaring{0}; // [us]
+	float _heightrate_setpoint_at_flare_start{0.0f}; // [m/s]
 
 	// [m] last terrain estimate which was valid
 	float _last_valid_terrain_alt_estimate{0.0f};
 
 	// [us] time at which we had last valid terrain alt
 	hrt_abstime _last_time_terrain_alt_was_valid{0};
-
-	// [m] estimated height to ground at which flare started
-	float _flare_height{0.0f};
-
-	// [m] current forced (i.e. not determined using TECS) flare pitch setpoint
-	float _flare_pitch_sp{0.0f};
-
-	// [m] estimated height to ground at which flare started
-	float _flare_curve_alt_rel_last{0.0f};
 
 	// AIRSPEED
 
@@ -557,14 +564,13 @@ private:
 	 *
 	 * @param now Current system time [us]
 	 * @param control_interval Time since last position control call [s]
-	 * @param curr_pos Current 2D local position vector of vehicle [m]
 	 * @param control_interval Time since the last position control update [s]
 	 * @param ground_speed Local 2D ground speed of vehicle [m/s]
 	 * @param pos_sp_prev previous position setpoint
 	 * @param pos_sp_curr current position setpoint
 	 */
-	void control_auto_landing(const hrt_abstime &now, const float control_interval, const Vector2d &curr_pos,
-				  const Vector2f &ground_speed, const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	void control_auto_landing(const hrt_abstime &now, const float control_interval, const Vector2f &ground_speed,
+				  const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
 
 	/* manual control methods */
 
@@ -684,6 +690,49 @@ private:
 	 */
 	Vector2f calculateTakeoffBearingVector(const Vector2f &launch_position, const Vector2f &takeoff_waypoint) const;
 
+	/**
+	 * @brief Calculates the touchdown position for landing with optional manual lateral adjustments.
+	 *
+	 * Manual inputs (from the remote) are used to command a rate at which the position moves and the integrated
+	 * position is bounded. This is useful for manually adjusting the landing point in real time when map or GNSS
+	 * errors cause an offset from the desired landing vector.
+	 *
+	 * @param control_interval Time since the last position control update [s]
+	 * @param local_land_position Originally commanded local land position (NE) [m]
+	 * @return (Nudged) Local touchdown position (NE) [m]
+	 */
+	Vector2f calculateTouchdownPosition(const float control_interval, const Vector2f &local_land_position);
+
+	/**
+	 * @brief Calculates the vector from landing approach entrance to touchdown point
+	 *
+	 * NOTE: calculateTouchdownPosition() MUST be called before this method
+	 *
+	 * @return Landing approach vector [m]
+	 */
+	Vector2f calculateLandingApproachVector() const;
+
+	/**
+	 * @brief Returns a terrain altitude estimate with consideration of altimeter measurements.
+	 *
+	 * @param now Current system time [us]
+	 * @param land_point_altitude Altitude (AMSL) of the land point [m]
+	 * @return Terrain altitude (AMSL) [m]
+	 */
+	float getLandingTerrainAltitudeEstimate(const hrt_abstime &now, const float land_point_altitude);
+
+	/**
+	 * @brief Initializes landing states
+	 *
+	 * @param now Current system time [us]
+	 * @param pos_sp_prev Previous position setpoint
+	 * @param pos_sp_curr Current position setpoint
+	 * @param local_position Local aircraft position (NE) [m]
+	 * @param local_land_point Local land point (NE) [m]
+	 */
+	void initializeAutoLanding(const hrt_abstime &now, const position_setpoint_s &pos_sp_prev,
+				   const position_setpoint_s &pos_sp_curr, const Vector2f &local_position, const Vector2f &local_land_point);
+
 	DEFINE_PARAMETERS(
 
 		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
@@ -718,10 +767,7 @@ private:
 		(ParamFloat<px4::params::FW_LND_FL_PMAX>) _param_fw_lnd_fl_pmax,
 		(ParamFloat<px4::params::FW_LND_FL_PMIN>) _param_fw_lnd_fl_pmin,
 		(ParamFloat<px4::params::FW_LND_FLALT>) _param_fw_lnd_flalt,
-		(ParamFloat<px4::params::FW_LND_HHDIST>) _param_fw_lnd_hhdist,
-		(ParamFloat<px4::params::FW_LND_HVIRT>) _param_fw_lnd_hvirt,
 		(ParamFloat<px4::params::FW_LND_THRTC_SC>) _param_fw_thrtc_sc,
-		(ParamFloat<px4::params::FW_LND_TLALT>) _param_fw_lnd_tlalt,
 		(ParamBool<px4::params::FW_LND_EARLYCFG>) _param_fw_lnd_earlycfg,
 		(ParamBool<px4::params::FW_LND_USETER>) _param_fw_lnd_useter,
 
@@ -750,7 +796,6 @@ private:
 
 		(ParamFloat<px4::params::FW_THR_TRIM>) _param_fw_thr_trim,
 		(ParamFloat<px4::params::FW_THR_IDLE>) _param_fw_thr_idle,
-		(ParamFloat<px4::params::FW_THR_LND_MAX>) _param_fw_thr_lnd_max,
 		(ParamFloat<px4::params::FW_THR_MAX>) _param_fw_thr_max,
 		(ParamFloat<px4::params::FW_THR_MIN>) _param_fw_thr_min,
 		(ParamFloat<px4::params::FW_THR_SLEW_MAX>) _param_fw_thr_slew_max,
@@ -780,7 +825,12 @@ private:
 		(ParamFloat<px4::params::FW_WING_HEIGHT>) _param_fw_wing_height,
 
 		(ParamFloat<px4::params::RWTO_L1_PERIOD>) _param_rwto_l1_period,
-		(ParamBool<px4::params::RWTO_NUDGE>) _param_rwto_nudge
+		(ParamBool<px4::params::RWTO_NUDGE>) _param_rwto_nudge,
+
+		(ParamFloat<px4::params::FW_LND_FL_TIME>) _param_fw_lnd_fl_time,
+		(ParamFloat<px4::params::FW_LND_FL_SINK>) _param_fw_lnd_fl_sink,
+		(ParamFloat<px4::params::FW_LND_TD_OFF>) _param_fw_lnd_td_off,
+		(ParamInt<px4::params::FW_LND_NUDGE>) _param_fw_lnd_nudge
 	)
 
 };
