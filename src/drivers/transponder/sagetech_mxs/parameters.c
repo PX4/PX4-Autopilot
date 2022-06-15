@@ -262,6 +262,8 @@ PARAM_DEFINE_INT32(MXS_EXT_CFG, 0);
  * @value 6 115200
  * @value 7 230400
  * @value 8 19200
+ * @value 9 460800
+ * @value 10 921600
  * @group Serial
  */
 PARAM_DEFINE_INT32(SER_MXS_BAUD, 5);

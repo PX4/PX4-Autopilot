@@ -1124,7 +1124,7 @@ unsigned SagetechMXS::convert_to_px4_baud(int baudType)
 
 	case 3: return B9600;
 
-	case 4: return B0;
+	// case 4: return B0;
 
 	case 5: return B57600;
 
@@ -1134,11 +1134,11 @@ unsigned SagetechMXS::convert_to_px4_baud(int baudType)
 
 	case 8: return B19200;
 
-	// case 9: return B460800;
+	case 9: return B460800;
 
-	// case 10: return B921600;
+	case 10: return B921600;
 
-	default: return B0;
+	default: return B57600;
 	}
 }
 
