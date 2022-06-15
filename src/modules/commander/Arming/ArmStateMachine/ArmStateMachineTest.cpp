@@ -250,8 +250,6 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 	for (size_t i = 0; i < cArmingTransitionTests; i++) {
 		const ArmingTransitionTest_t *test = &rgArmingTransitionTests[i];
 
-		PreFlightCheck::arm_requirements_t arm_req{};
-
 		// Setup initial machine state
 		arm_state_machine.forceArmState(test->current_state.arming_state);
 		status.hil_state = test->hil_state;
@@ -271,7 +269,6 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 						     true /* enable pre-arm checks */,
 						     nullptr /* no mavlink_log_pub */,
 						     status_flags,
-						     arm_req,
 						     2e6, /* 2 seconds after boot, everything should be checked */
 						     arm_disarm_reason_t::unit_test);
 
