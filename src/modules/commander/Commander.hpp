@@ -244,9 +244,6 @@ private:
 		// Engine failure
 		(ParamInt<px4::params::COM_ACT_FAIL_ACT>) _param_com_actuator_failure_act,
 
-		(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_arm_without_gps,
-		(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_arm_mission_required,
-		(ParamBool<px4::params::COM_ARM_AUTH_REQ>) _param_arm_auth_required,
 		(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_escs_checks_required,
 
 		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
@@ -295,7 +292,6 @@ private:
 	static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL{500_ms};
 
 	ArmStateMachine _arm_state_machine{};
-	PreFlightCheck::arm_requirements_t	_arm_requirements{};
 
 	hrt_abstime	_valid_distance_sensor_time_us{0}; /**< Last time that distance sensor data arrived (usec) */
 
