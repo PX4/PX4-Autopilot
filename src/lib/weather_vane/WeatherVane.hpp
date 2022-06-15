@@ -74,7 +74,6 @@ private:
 	bool _is_active{false};
 
 	// local copies of status such that we don't need to copy uORB messages all the time
-	bool _is_vtol{false};
 	bool _flag_control_manual_enabled{false};
 	bool _flag_control_position_enabled{false};
 	bool _navigator_force_disabled{false};
