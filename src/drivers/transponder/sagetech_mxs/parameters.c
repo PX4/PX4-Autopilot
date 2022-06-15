@@ -91,7 +91,7 @@ PARAM_DEFINE_INT32(ADSB_ICAO_ID, 1194684);
 /**
  * ADSB-Out Vehicle Size Configuration
  *
- * Configure the size of the vehicle.
+ * Report the length and width of the vehicle in meters. In most cases, use '1' for the smallest vehicle size.
  *
  * @reboot_required true
  * @min 0
