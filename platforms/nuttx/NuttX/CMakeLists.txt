@@ -192,7 +192,7 @@ add_nuttx_dir(crypto crypto y -D__KERNEL__ all)
 if (NOT CONFIG_BUILD_FLAT)
 	add_nuttx_dir(arch arch/${CONFIG_ARCH}/src n "" arch)
 	add_dependencies(nuttx_arch_build nuttx_karch_build) # can't build these in parallel
-	add_nuttx_dir(karch arch/arm/src y -D__KERNEL__ karch)
+	add_nuttx_dir(karch arch/${CONFIG_ARCH}/src y -D__KERNEL__ karch)
 	add_nuttx_dir(c libs/libc n "" c)
 	add_dependencies(nuttx_c_build nuttx_kc_build) # can't build these in parallel
 	add_nuttx_dir(kc libs/libc y -D__KERNEL__ kc)
