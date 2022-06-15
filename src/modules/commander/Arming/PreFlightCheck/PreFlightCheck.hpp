@@ -56,44 +56,17 @@ public:
 	PreFlightCheck() = default;
 	~PreFlightCheck() = default;
 
-	struct arm_requirements_t {
-		bool arm_authorization = false;
-		bool esc_check = false;
-		bool global_position = false;
-		bool mission = false;
-		bool geofence = false;
-	};
-
 	/**
-	* Runs a preflight check on all sensors to see if they are properly calibrated and healthy
-	*
-	* The function won't fail the test if optional sensors are not found, however,
-	* it will fail the test if optional sensors are found but not in working condition.
+	* Runs a preflight check to determine if the system is ready to be armed
 	*
 	* @param mavlink_log_pub
 	*   Mavlink output orb handle reference for feedback when a sensor fails
-	* @param checkMag
-	*   true if the magneteometer should be checked
-	* @param checkAcc
-	*   true if the accelerometers should be checked
-	* @param checkGyro
-	*   true if the gyroscopes should be checked
-	* @param checkBaro
-	*   true if the barometer should be checked
-	* @param checkAirspeed
-	*   true if the airspeed sensor should be checked
-	* @param checkRC
-	*   true if the Remote Controller should be checked
-	* @param checkGNSS
-	*   true if the GNSS receiver should be checked
-	* @param checkPower
-	*   true if the system power should be checked
 	**/
 	static bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 				   vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
-				   bool reportFailures, const bool prearm, const hrt_abstime &time_since_boot,
+				   bool reportFailures, const hrt_abstime &time_since_boot,
 				   const bool safety_button_available, const bool safety_off,
-				   const arm_requirements_t &arm_requirements);
+				   const bool is_arm_attempt = false);
 
 private:
 	static bool sensorAvailabilityCheck(const bool report_failure,
@@ -116,18 +89,14 @@ private:
 				  const bool is_mandatory, bool &report_fail);
 	static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status);
 	static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool optional,
-				  const bool report_fail, const bool prearm, const bool max_airspeed_check_en, const float arming_max_airspeed_allowed);
+				  const bool report_fail, const bool is_arm_attempt, const bool max_airspeed_check_en,
+				  const float arming_max_airspeed_allowed);
 	static int rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail);
-	static bool powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
-			       const bool prearm);
+	static bool powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail);
 	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
 			      const bool report_fail);
-
 	static bool ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bool report_fail);
-
-	static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
-					 const bool prearm);
-
+	static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail);
 	static bool manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
 	static bool modeCheck(orb_advert_t *mavlink_log_pub, const bool report_fail, const vehicle_status_s &status);
 	static bool airframeCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status);
@@ -137,6 +106,5 @@ private:
 				   const vehicle_status_flags_s &status_flags);
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
 				const vehicle_control_mode_s &control_mode, const bool safety_button_available, const bool safety_off,
-				const arm_requirements_t &arm_requirements, vehicle_status_s &status,
-				const bool report_fail);
+				vehicle_status_s &status, const bool report_fail, const bool is_arm_attempt);
 };
