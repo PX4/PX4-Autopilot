@@ -947,7 +947,8 @@ FixedwingPositionControl::control_auto_fixed_bank_alt_hold(const float control_i
 				   _param_fw_thr_min.get(),
 				   _param_fw_thr_max.get(),
 				   false,
-				   _param_fw_p_lim_min.get());
+				   _param_fw_p_lim_min.get(),
+				   _param_sinkrate_target.get());
 
 	_att_sp.roll_body = math::radians(_param_nav_gpsf_r.get()); // open loop loiter bank angle
 	_att_sp.yaw_body = 0.f;
@@ -981,6 +982,7 @@ FixedwingPositionControl::control_auto_descend(const float control_interval)
 				   _param_fw_thr_max.get(),
 				   false,
 				   _param_fw_p_lim_min.get(),
+				   _param_sinkrate_target.get(),
 				   false,
 				   descend_rate);
 
@@ -1165,7 +1167,8 @@ FixedwingPositionControl::control_auto_position(const float control_interval, co
 				   tecs_fw_thr_min,
 				   tecs_fw_thr_max,
 				   false,
-				   radians(_param_fw_p_lim_min.get()));
+				   radians(_param_fw_p_lim_min.get()),
+				   _param_sinkrate_target.get());
 }
 
 void
@@ -1222,6 +1225,7 @@ FixedwingPositionControl::control_auto_velocity(const float control_interval, co
 				   tecs_fw_thr_max,
 				   false,
 				   radians(_param_fw_p_lim_min.get()),
+				   _param_sinkrate_target.get(),
 				   tecs_status_s::TECS_MODE_NORMAL,
 				   pos_sp_curr.vz);
 }
@@ -1340,7 +1344,8 @@ FixedwingPositionControl::control_auto_loiter(const float control_interval, cons
 				   tecs_fw_thr_min,
 				   tecs_fw_thr_max,
 				   false,
-				   radians(_param_fw_p_lim_min.get()));
+				   radians(_param_fw_p_lim_min.get()),
+				   _param_sinkrate_target.get());
 }
 
 void
@@ -1463,7 +1468,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 					   _param_fw_thr_min.get(),
 					   _param_fw_thr_max.get(),
 					   _runway_takeoff.climbout(),
-					   radians(takeoff_pitch_min_climbout_deg));
+					   radians(takeoff_pitch_min_climbout_deg),
+					   _param_sinkrate_target.get());
 
 		_tecs.set_equivalent_airspeed_min(_param_fw_airspd_min.get()); // reset after TECS calculation
 
@@ -1558,7 +1564,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 							   _param_fw_thr_min.get(),
 							   takeoff_throttle,
 							   true,
-							   radians(_takeoff_pitch_min.get()));
+							   radians(_takeoff_pitch_min.get()),
+							   _param_sinkrate_target.get());
 
 			} else {
 				tecs_update_pitch_throttle(control_interval,
@@ -1569,7 +1576,8 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 							   _param_fw_thr_min.get(),
 							   takeoff_throttle,
 							   false,
-							   radians(_param_fw_p_lim_min.get()));
+							   radians(_param_fw_p_lim_min.get()),
+							   _param_sinkrate_target.get());
 			}
 
 			if (_launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS) {
@@ -1702,6 +1710,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 					   0.0f,
 					   false,
 					   pitch_min_rad,
+					   _param_sinkrate_target.get(),
 					   true,
 					   height_rate_setpoint);
 
@@ -1749,6 +1758,11 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 		/* longitudinal guidance */
 
+		// open the desired max sink rate to encompass the glide slope if within the aircraft's performance limits
+		const float glide_slope_sink_rate = airspeed_land * sinf(math::radians(_param_fw_lnd_ang.get()));
+		const float desired_max_sinkrate = math::min(math::max(glide_slope_sink_rate, _param_sinkrate_target.get()),
+						   _param_fw_t_sink_max.get());
+
 		tecs_update_pitch_throttle(control_interval,
 					   altitude_setpoint,
 					   target_airspeed,
@@ -1757,7 +1771,8 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 					   _param_fw_thr_min.get(),
 					   _param_fw_thr_max.get(),
 					   false,
-					   radians(_param_fw_p_lim_min.get()));
+					   radians(_param_fw_p_lim_min.get()),
+					   desired_max_sinkrate);
 
 		/* set the attitude and throttle commands */
 
@@ -1816,6 +1831,7 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 				   throttle_max,
 				   false,
 				   min_pitch,
+				   _param_sinkrate_target.get(),
 				   false,
 				   height_rate_sp);
 
@@ -1922,6 +1938,7 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 				   throttle_max,
 				   false,
 				   min_pitch,
+				   _param_sinkrate_target.get(),
 				   false,
 				   height_rate_sp);
 
@@ -2351,10 +2368,8 @@ float FixedwingPositionControl::compensateTrimThrottleForDensityAndWeight(float 
 
 void
 FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interval, float alt_sp, float airspeed_sp,
-		float pitch_min_rad, float pitch_max_rad,
-		float throttle_min, float throttle_max,
-		bool climbout_mode, float climbout_pitch_min_rad,
-		bool disable_underspeed_detection, float hgt_rate_sp)
+		float pitch_min_rad, float pitch_max_rad, float throttle_min, float throttle_max, bool climbout_mode,
+		float climbout_pitch_min_rad, const float desired_max_sinkrate, bool disable_underspeed_detection, float hgt_rate_sp)
 {
 	_tecs_is_running = true;
 
@@ -2435,7 +2450,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(const float control_interva
 				    pitch_min_rad - radians(_param_fw_psp_off.get()),
 				    pitch_max_rad - radians(_param_fw_psp_off.get()),
 				    _param_climbrate_target.get(),
-				    _param_sinkrate_target.get(),
+				    desired_max_sinkrate,
 				    hgt_rate_sp);
 
 	tecs_status_publish();
