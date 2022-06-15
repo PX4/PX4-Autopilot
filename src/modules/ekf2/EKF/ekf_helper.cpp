@@ -704,7 +704,7 @@ bool Ekf::setEkfGlobalOrigin(const double latitude, const double longitude, cons
 	// sanity check valid latitude/longitude and altitude anywhere between the Mariana Trench and edge of Space
 	if (PX4_ISFINITE(latitude) && (abs(latitude) <= 90)
 	&& PX4_ISFINITE(longitude) && (abs(longitude) <= 180)
-	&& PX4_ISFINITE(altitude) && altitude > -12000.f && altitude < 100'000.f
+	&& PX4_ISFINITE(altitude) && (altitude > -12'000.f) && (altitude < 100'000.f)
 	) {
 		bool current_pos_available = false;
 		double current_lat = static_cast<double>(NAN);
