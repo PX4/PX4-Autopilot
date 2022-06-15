@@ -47,12 +47,6 @@ WeatherVane::WeatherVane(ModuleParams *parent) :
 
 void WeatherVane::update()
 {
-	vehicle_status_s vehicle_status;
-
-	if (_vehicle_status_sub.update(&vehicle_status)) {
-		_is_vtol = vehicle_status.is_vtol;
-	}
-
 	vehicle_control_mode_s vehicle_control_mode;
 
 	if (_vehicle_control_mode_sub.update(&vehicle_control_mode)) {
@@ -60,10 +54,10 @@ void WeatherVane::update()
 		_flag_control_position_enabled = vehicle_control_mode.flag_control_position_enabled;
 	}
 
-	// Weathervane is only enabled for VTOLs if it's enabled by parameter
+	// Weathervane needs to be enabled by parameter
 	// in manual we use weathervane just if position is controlled as well
 	// in mission we use weathervane except for when navigator disables it
-	_is_active = _is_vtol && _param_wv_en.get()
+	_is_active = _param_wv_en.get()
 		     && ((_flag_control_manual_enabled && _flag_control_position_enabled)
 			 || (!_flag_control_manual_enabled && !_navigator_force_disabled));
 }
