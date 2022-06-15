@@ -35,7 +35,7 @@
 /* (Maximum) size of the signature */
 #define SIGNATURE_SIZE 64
 
-/* Boot image starts at _vectors and ends at
+/* Boot image starts at __start and ends at
  * the beginning of signature
 */
 

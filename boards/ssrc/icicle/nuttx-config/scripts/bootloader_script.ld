@@ -115,7 +115,7 @@ SECTIONS
 
     .text : {
         _stext = ABSOLUTE(.);
-        *mpfs_head.o
+        *(.start .start.*)
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)

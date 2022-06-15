@@ -35,8 +35,7 @@ SECTIONS
 {
     .text : {
         _stext = ABSOLUTE(.);
-        *mpfs_head.o
-
+        *(.start .start.*)
         /*
         This signature provides the bootloader with a way to delay booting
         */
@@ -45,8 +44,6 @@ SECTIONS
         FILL(0x01ecc2925d7d05c5)
         . += 8;
         *(.main_toc)
-        *riscv_vectors.o
-        *riscv_exception_common.o
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)
