@@ -121,6 +121,7 @@ private:
     uORB::Subscription _vehicle_angular_acceleration_sub{ORB_ID(vehicle_angular_acceleration)}; // vehicle body accel
 	uORB::Subscription _soaring_controller_status_sub{ORB_ID(soaring_controller_status)};			// vehicle status flags
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 	
     // Publishers
 	uORB::Publication<actuator_controls_s>							_actuators_0_pub;
@@ -205,7 +206,9 @@ private:
 		// loiter params
 		(ParamInt<px4::params::DS_LOITER>) _param_loiter,
 		// thrust params
-		(ParamFloat<px4::params::DS_THRUST>) _param_thrust
+		(ParamFloat<px4::params::DS_THRUST>) _param_thrust,
+		// RC feedthrough params
+		(ParamInt<px4::params::DS_SWITCH_MANUAL>) _param_switch_manual
 
 	)
 
@@ -343,6 +346,8 @@ private:
 	int _loiter;
 	// thrust
 	float _thrust;
+	// controller mode
+	bool _switch_manual;
 
 	bool _airspeed_valid{false};				///< flag if a valid airspeed estimate exists
 	hrt_abstime _airspeed_last_valid{0};			///< last time airspeed was received. Used to detect timeouts.

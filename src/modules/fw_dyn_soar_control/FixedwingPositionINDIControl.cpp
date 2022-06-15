@@ -173,6 +173,8 @@ FixedwingPositionINDIControl::parameters_update()
 
     _thrust = _param_thrust.get();
 
+    _switch_manual = _param_switch_manual.get();
+
 
 	// sanity check parameters
     // TODO: include sanity check
@@ -264,6 +266,14 @@ FixedwingPositionINDIControl::vehicle_status_poll()
 {
     if(_vehicle_status_sub.update(&_vehicle_status)){
         //print_message(_vehicle_status);
+    }
+}
+
+void
+FixedwingPositionINDIControl::manual_control_setpoint_poll()
+{
+    if(_switch_manual){
+        _manual_control_setpoint_sub.update(&_manual_control_setpoint);
     }
 }
 
@@ -396,8 +406,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -564,7 +574,7 @@ FixedwingPositionINDIControl::Run()
         airspeed_poll();
         airflow_aoa_poll();
         airflow_slip_poll();
-
+        manual_control_setpoint_poll();
         vehicle_local_position_poll();
         vehicle_attitude_poll();
         vehicle_angular_velocity_poll();
@@ -1101,6 +1111,42 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
     //PX4_INFO("FRD body frame rotation vec: \t%.2f\t%.2f\t%.2f", (double)w_err(0), (double)w_err(1), (double)w_err(2));
     if (sqrtf(w_err*w_err)>M_PI_F){
         PX4_ERR("rotation angle larger than pi: \t%.2f, \t%.2f, \t%.2f", (double)sqrtf(w_err*w_err), (double)q_err.angle(), (double)(q_err.axis()*q_err.axis()));
+    }
+
+    // ====================================
+    // manual attitude setpoint feedthrough
+    // ====================================
+    if (_switch_manual){
+        // get an attitude setpoint from the current manual inputs
+        float roll_ref = 1.f * _manual_control_setpoint.y * M_PI_4_F;
+        float pitch_ref = -1.f* _manual_control_setpoint.x * M_PI_4_F;
+        Eulerf E_current(Quatf(_attitude.q));
+        float yaw_ref = E_current.psi();
+        Dcmf R_ned_frd_ref(Eulerf(roll_ref, pitch_ref, yaw_ref));
+        Dcmf R_enu_frd_ref(_R_ned_to_enu*R_ned_frd_ref);
+        Quatf att_ref(R_enu_frd_ref);
+        R_ref = Dcmf(att_ref);
+
+        // get attitude error
+        R_ref_true = Dcmf(R_ref.transpose()*R_ib);
+        // get required rotation vector (in body frame)
+        q_err = AxisAnglef(R_ref_true);
+        // project rotation angle to [-pi,pi]
+        if (q_err.angle()*q_err.angle()<M_PI_F*M_PI_F){
+            w_err = -q_err.angle()*q_err.axis();
+        }
+        else{
+            if (q_err.angle()>0.f){
+                w_err = (2.f*M_PI_F-(float)fmod(q_err.angle(),2.f*M_PI_F))*q_err.axis();
+            }
+            else{
+                w_err = (-2.f*M_PI_F-(float)fmod(q_err.angle(),2.f*M_PI_F))*q_err.axis();
+            }
+        }
+
+        // compute rot acc command
+        rot_acc_command = _K_q*w_err + _K_w*(Vector3f{0.f,0.f,0.f}-omega_filtered);
+        
     }
 
     return rot_acc_command;

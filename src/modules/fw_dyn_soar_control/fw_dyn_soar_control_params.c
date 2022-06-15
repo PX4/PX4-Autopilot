@@ -542,7 +542,6 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.8101000f);
  */
 PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 537.0f);
 
-
 // ======================================================
 // ==============  loiter circle number =================
 // ======================================================
@@ -573,3 +572,19 @@ PARAM_DEFINE_INT32(DS_LOITER, 0);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(DS_THRUST, 0);
+
+// ======================================================
+// ================ Stick feedthorugh ===================
+// ======================================================
+
+/**
+ * integer in {0,1} defining if manual attitude setpoints are commanded by the pilot, 0=DS-controller, 1=manual feedthrough
+ * 
+ * @unit 
+ * @min 0
+ * @max 1
+ * @decimal 1
+ * @increment 1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_INT32(DS_SWITCH_MANUAL, 0);
