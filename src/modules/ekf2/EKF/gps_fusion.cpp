@@ -77,7 +77,7 @@ void Ekf::updateGpsPos(const gpsSample &gps_sample)
 	position(1) = gps_sample.pos(1);
 
 	// vertical position - gps measurement has opposite sign to earth z axis
-	position(2) = -(gps_sample.hgt - _gps_alt_ref - _gps_hgt_offset);
+	position(2) = -(gps_sample.hgt - getEkfGlobalOriginAltitude() - _gps_hgt_offset);
 
 	const float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 
