@@ -88,7 +88,7 @@ PARAM_DEFINE_FLOAT(FW_P_TC, 0.4f);
  * current body angular rate error.
  *
  * @unit %/rad/s
- * @min 0.005
+ * @min 0.0
  * @max 1.0
  * @decimal 3
  * @increment 0.005
@@ -103,7 +103,7 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * state error. It trims any constant error.
  *
  * @unit %/rad
- * @min 0.005
+ * @min 0.0
  * @max 0.5
  * @decimal 3
  * @increment 0.005
@@ -162,7 +162,7 @@ PARAM_DEFINE_FLOAT(FW_PR_IMAX, 0.4f);
  * current body angular rate error.
  *
  * @unit %/rad/s
- * @min 0.005
+ * @min 0.0
  * @max 1.0
  * @decimal 3
  * @increment 0.005
@@ -177,7 +177,7 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
  * state error. It trims any constant error.
  *
  * @unit %/rad
- * @min 0.005
+ * @min 0.0
  * @max 0.2
  * @decimal 3
  * @increment 0.005
@@ -220,7 +220,7 @@ PARAM_DEFINE_FLOAT(FW_R_RMAX, 70.0f);
  * current body angular rate error.
  *
  * @unit %/rad/s
- * @min 0.005
+ * @min 0.0
  * @max 1.0
  * @decimal 3
  * @increment 0.005
@@ -303,7 +303,7 @@ PARAM_DEFINE_INT32(FW_W_EN, 0);
  * current body angular rate error.
  *
  * @unit %/rad/s
- * @min 0.005
+ * @min 0.0
  * @max 1.0
  * @decimal 3
  * @increment 0.005
@@ -318,7 +318,7 @@ PARAM_DEFINE_FLOAT(FW_WR_P, 0.5f);
  * state error. It trims any constant error.
  *
  * @unit %/rad
- * @min 0.005
+ * @min 0.0
  * @max 0.5
  * @decimal 3
  * @increment 0.005
