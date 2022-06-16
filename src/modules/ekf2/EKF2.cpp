@@ -343,18 +343,20 @@ void EKF2::Run()
 
 		if (_vehicle_command_sub.update(&vehicle_command)) {
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
-				if (!_ekf.control_status_flags().in_air) {
+				double latitude = vehicle_command.param5;
+				double longitude = vehicle_command.param6;
+				float altitude = vehicle_command.param7;
 
-					uint64_t origin_time {};
-					double latitude = vehicle_command.param5;
-					double longitude = vehicle_command.param6;
-					float altitude = vehicle_command.param7;
-
-					_ekf.setEkfGlobalOrigin(latitude, longitude, altitude);
-
+				if (_ekf.setEkfGlobalOrigin(latitude, longitude, altitude)) {
 					// Validate the ekf origin status.
+					uint64_t origin_time {};
 					_ekf.getEkfGlobalOrigin(origin_time, latitude, longitude, altitude);
-					PX4_INFO("New NED origin (LLA): %3.10f, %3.10f, %4.3f\n", latitude, longitude, static_cast<double>(altitude));
+					PX4_INFO("%d - New NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
+						 _instance, latitude, longitude, static_cast<double>(altitude));
+
+				} else {
+					PX4_ERR("%d - Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
+						_instance, latitude, longitude, static_cast<double>(altitude));
 				}
 			}
 		}
