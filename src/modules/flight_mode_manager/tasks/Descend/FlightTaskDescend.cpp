@@ -51,9 +51,18 @@ bool FlightTaskDescend::update()
 	bool ret = FlightTask::update();
 
 	if (PX4_ISFINITE(_velocity(2))) {
-		// land with landspeed
+		// descend with maximum downspeed
 		_velocity_setpoint(2) = _param_mpc_z_vel_max_dn.get();
 		_acceleration_setpoint(2) = NAN;
+
+		// Slow down automatic descend close to ground
+		bool range_dist_available = PX4_ISFINITE(_dist_to_bottom);
+
+		if (range_dist_available) {
+			_velocity_setpoint(2) = math::gradual(_dist_to_bottom,
+							      _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+							      _param_mpc_land_speed.get(), _param_mpc_z_vel_max_dn.get());
+		}
 
 	} else {
 		// descend with constant acceleration (crash landing)
