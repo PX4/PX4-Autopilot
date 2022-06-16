@@ -52,7 +52,7 @@ bool FlightTaskDescend::update()
 
 	if (PX4_ISFINITE(_velocity(2))) {
 		// land with landspeed
-		_velocity_setpoint(2) = _param_mpc_land_speed.get();
+		_velocity_setpoint(2) = _param_mpc_z_vel_max_dn.get();
 		_acceleration_setpoint(2) = NAN;
 
 	} else {
