@@ -35,7 +35,7 @@
  * @file ext_state_est_main.h
  * Passtrough for external state to the controller
  *
- * @author Christian Brommer and Alessandro Fornasier
+ * @author Christian Brommer, Alessandro Fornasier and Giulio Delama
  */
 
 #pragma once
@@ -60,6 +60,64 @@
 #include <uORB/topics/vehicle_odometry.h>
 #include <uORB/topics/vehicle_status.h>
 
+
+// Circular buffer class
+template <class T>
+class circBuf_t {
+public:
+    typedef T           value_type;
+    typedef T*          pointer;
+    typedef const T*    const_pointer;
+    typedef T&          reference;
+    typedef const T&    const_reference;
+    typedef ptrdiff_t   difference_type;
+
+    enum {  default_win = 1000000, default_tol = 500000, default_size = 1000 };
+    explicit circBuf_t(value_type time_win = default_win, // default time window [us]
+                       value_type tol = default_tol,      // default tolerance for time window [us]
+                       size_t max_size = default_size)  // default capacity
+        : buf_(new value_type[max_size]),
+          delay_buf_(new value_type[max_size]),
+          max_size_(max_size),
+          time_win_(time_win),
+          tol_(tol) { }
+    ~circBuf_t()
+        { delete[] buf_; }
+
+    void put(value_type timest, value_type delay);
+    size_t size() const;
+
+    const_reference front() const { return buf_[(max_size_ + head_ - 1) % max_size_]; }
+    const_reference back() const { return buf_[tail_]; }
+    void reset() { head_ = tail_ = full_ = 0; }
+    bool isEmpty() const { return (!full_ && (head_ == tail_)); }
+    bool isFull() const { return full_; }
+    size_t capacity() const { return max_size_; }
+
+    double rate() const;
+    double mean_delay() const;
+    bool comm_lost() const;
+
+private:
+    pointer buf_;           // buffer for time stamps
+    pointer delay_buf_;     // buffer for delays
+    size_t max_size_;
+    size_t head_ = 0;
+    size_t tail_ = 0;
+    bool full_ = false;
+    value_type time_win_;               // time window [us]
+    value_type tol_;                    // time window tolerance [us]
+    size_t resize_increment_ = 100;     // size increment if buf is full and less than time_w
+
+    void increment_tail() { tail_ = (tail_ + 1) % max_size_; }
+    void increment_head() { head_ = (head_ + 1) % max_size_; }
+    value_type sum_delays() const;
+    void resize(size_t max_size_new);
+    void keep_in_win();
+};
+
+
+// ExtStateEst class header
 class ExtStateEst final : public ModuleBase<ExtStateEst>,
                           public ModuleParams,
                           public px4::ScheduledWorkItem {
@@ -99,6 +157,13 @@ private:
 
   bool _callback_registered{false};
   const matrix::Quatf _unitq;
+
+  // circular buffer to store timestamps
+  circBuf_t<uint64_t> _timestBuf_lite_5s;
+  circBuf_t<uint64_t> _timestBuf_lite_1s;
+
+  circBuf_t<uint64_t> _timestBuf_5s;
+  circBuf_t<uint64_t> _timestBuf_1s;
 };
 
 extern "C" __EXPORT int ext_state_est_main(int argc, char *argv[]) {

@@ -54,8 +54,184 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_odometry.h>
 
+
+// Circular buffer class implementation
+
+template <class T>
+void circBuf_t<T>::put(value_type timest, value_type delay) {
+    // add elements and increment head
+    buf_[head_] = timest;
+    delay_buf_[head_] = delay;
+    increment_head();
+    // only if it is full increment tail
+    if (full_) {
+        increment_tail();
+    }
+    // keep the buffers in the selected time window (+ tolerance)
+    keep_in_win();
+    full_ = ( head_ == tail_ );
+    // if full and less than time window - tolerance add space to buffers
+    if (full_ && ((front() - back()) < (time_win_ - tol_))) {
+        resize(max_size_ + resize_increment_);
+    }
+}
+
+template <class T>
+size_t circBuf_t<T>::size() const {
+    size_t size = max_size_;
+
+    if (!full_) {
+        if (head_ >= tail_) {
+            size = head_ - tail_;
+        }
+        else {
+            size = max_size_ + head_ - tail_;
+        }
+    }
+
+    return size;
+}
+
+template <class T>
+double circBuf_t<T>::rate() const {
+    double rate = 0.0;
+
+    // if buffer has less than 2 elements return 0
+    if (size() > 1) {
+        // rate [Hz] = 1000000 * N / time window [us]
+        rate = 1000000.0 * double(size() - 1) / double(front() - back());
+    }
+
+    return rate;
+}
+
+template <class T>
+double circBuf_t<T>::mean_delay() const {
+    double mean = 0.0;
+
+    if (full_) {
+        mean = double(sum_delays()) / double(max_size_);
+    }
+    else if (size() > 0){
+        mean = double(sum_delays()) / double(size());
+    }
+
+    return mean;
+}
+
+template<class T>
+bool circBuf_t<T>::comm_lost() const {
+    bool comm_lost = false;
+
+    if (!isEmpty() && ((hrt_absolute_time() - front()) > (time_win_ + tol_))) {
+        comm_lost = true;
+    }
+
+    return comm_lost;
+}
+
+template <class T>
+T circBuf_t<T>::sum_delays() const {
+    value_type sum = 0;
+
+    if (!full_) {
+        if (head_ >= tail_) {
+            for (size_t i = tail_; i < head_; i++) {
+                sum += delay_buf_[i];
+            }
+        }
+        else {
+            for (size_t i = tail_; i < max_size_+head_; i++) {
+                sum += delay_buf_[i % max_size_];
+            }
+        }
+    }
+    else {
+        for (size_t i = 0; i < max_size_; i++) {
+            sum += delay_buf_[i];
+        }
+    }
+
+    return sum;
+}
+
+template <class T>
+void circBuf_t<T>::resize(size_t max_size_new) {
+
+    if (max_size_new == max_size_) return;
+
+    if (max_size_new < 1) {
+        reset();
+        return;
+    }
+
+    size_t num_items = size();
+    size_t offset = 0;
+    if (num_items > max_size_new) {
+        offset = num_items - max_size_new;
+        num_items = max_size_new;
+    }
+
+    pointer buf_new = new T[max_size_new];
+    pointer delay_buf_new = new T[max_size_new];
+    for (size_t i = 0; i < num_items; i++) {
+        buf_new[i] = buf_[(tail_ + offset + i) % max_size_];
+        delay_buf_new[i] = delay_buf_[(tail_ + offset + i) % max_size_];
+    }
+
+    buf_ = buf_new;
+    delay_buf_ = delay_buf_new;
+    max_size_ = max_size_new;
+    head_ = (num_items % max_size_);
+    tail_ = 0;
+    full_ = (num_items == max_size_);
+}
+
+template<class T>
+void circBuf_t<T>::keep_in_win() {
+    if ((front() - back()) > (time_win_ + tol_)) {
+        increment_tail();
+        keep_in_win();
+    }
+    else {
+        return;
+    }
+}
+
+
+// ExtStateEst class implementation
+
 int ExtStateEst::print_status() {
   perf_print_counter(_ext_state_perf);
+
+  if (_timestBuf_lite_5s.comm_lost()) {
+      _timestBuf_lite_5s.reset();
+      _timestBuf_lite_1s.reset();
+      dprintf(1, "ext_state_lite: communication lost.\n");
+  }
+  else {
+      dprintf(1, "avg rate ext_state_lite (1s, 5s): %.2f [Hz], %.2f [Hz]\n",
+              _timestBuf_lite_1s.rate(),
+              _timestBuf_lite_5s.rate());
+      dprintf(1, "avg delay ext_state_lite (1s, 5s): %.2f [us], %.2f [us]\n",
+              _timestBuf_lite_1s.mean_delay(),
+              _timestBuf_lite_5s.mean_delay());
+  }
+
+  if (_timestBuf_5s.comm_lost()) {
+      _timestBuf_5s.reset();
+      _timestBuf_1s.reset();
+      dprintf(1, "ext_state: communication lost.\n");
+  }
+  else {
+      dprintf(1, "avg rate ext_state (1s, 5s): %.2f [Hz], %.2f [Hz]\n",
+              _timestBuf_1s.rate(),
+              _timestBuf_5s.rate());
+      dprintf(1, "avg delay ext_state (1s, 5s): %.2f [us], %.2f [us]\n",
+              _timestBuf_1s.mean_delay(),
+              _timestBuf_5s.mean_delay());
+  }
+
   return 0;
 }
 
@@ -117,7 +293,9 @@ ExtStateEst::ExtStateEst()
       _vehicle_global_position_pub{ORB_ID(vehicle_global_position)},
       _vehicle_local_position_pub{ORB_ID(vehicle_local_position)},
       _estimator_status_pub{ORB_ID(estimator_status)},
-      _vehicle_odometry_pub{ORB_ID(vehicle_odometry)}, _unitq(matrix::Quatf()) {
+      _vehicle_odometry_pub{ORB_ID(vehicle_odometry)}, _unitq(matrix::Quatf()),
+      _timestBuf_lite_5s(5000000), _timestBuf_lite_1s(),
+      _timestBuf_5s(5000000), _timestBuf_1s() {
 }
 
 ExtStateEst::~ExtStateEst() { 
@@ -146,9 +324,15 @@ void ExtStateEst::Run() {
 
   ext_core_state_lite_s ext_state_lite_in{};
 
-if (_ext_state_lite_sub.update(&ext_state_lite_in)) {
+  if (_ext_state_lite_sub.update(&ext_state_lite_in)) {
 
     uint64_t timestamp = ext_state_lite_in.timestamp;
+    uint64_t delay = uint64_t(labs(int64_t(hrt_absolute_time()) - int64_t(timestamp)));
+
+    // push timestamp and delay to buffers
+    _timestBuf_lite_5s.put(timestamp, delay);
+    _timestBuf_lite_1s.put(timestamp, delay);
+
     //    uint64_t timestamp_sample = ext_state_in.timestamp_sample;
 
     //    // Odometry for PX4 -> MAVLINK -> MAVROS -> ROS
@@ -265,6 +449,12 @@ if (_ext_state_lite_sub.update(&ext_state_lite_in)) {
   if (_ext_state_sub.update(&ext_state_in)) {
 
     uint64_t timestamp = ext_state_in.timestamp;
+    uint64_t delay = uint64_t(labs(int64_t(hrt_absolute_time()) - int64_t(timestamp)));
+
+    // push timestamp and delay to buffers
+    _timestBuf_5s.put(timestamp, delay);
+    _timestBuf_1s.put(timestamp, delay);
+
     //    uint64_t timestamp_sample = ext_state_in.timestamp_sample;
 
     //    // Odometry for PX4 -> MAVLINK -> MAVROS -> ROS
