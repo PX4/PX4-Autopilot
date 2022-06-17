@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,89 +33,89 @@
 
 /**
  * @file PMW3901.hpp
- * @author Daniele Pettenuzzo
  *
- * Driver for the pmw3901 optical flow sensor connected via SPI.
+ * Driver for the PMW3901MB-TXQT: Optical Motion Tracking Chip
  */
+
+#pragma once
+
+#include "PixArt_PMW3901_Registers.hpp"
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/getopt.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/i2c_spi_buses.h>
 #include <drivers/device/spi.h>
 #include <conversion/rotation.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_optical_flow.h>
-#include <px4_platform_common/i2c_spi_buses.h>
 
-/* Configuration Constants */
+using namespace time_literals;
+using namespace PixArt_PMW3901;
 
-#define PMW3901_SPI_BUS_SPEED (2000000L) // 2MHz
-
-#define DIR_WRITE(a) ((a) | (1 << 7))
-#define DIR_READ(a) ((a) & 0x7f)
-
-/* PMW3901 Registers addresses */
-#define PMW3901_US 1000 /*   1 ms */
-#define PMW3901_SAMPLE_INTERVAL 10000 /*  10 ms */
+#define DIR_WRITE(a) ((a) | Bit7)
+#define DIR_READ(a) ((a) & 0x7F)
 
 class PMW3901 : public device::SPI, public I2CSPIDriver<PMW3901>
 {
 public:
 	PMW3901(const I2CSPIDriverConfig &config);
-
 	virtual ~PMW3901();
 
 	static void print_usage();
 
-	virtual int init();
+	int init() override;
 
-	void print_status();
+	void print_status() override;
 
 	void RunImpl();
 
-protected:
-	virtual int probe();
-
 private:
+	void exit_and_cleanup() override;
 
-	const uint64_t _collect_time{15000}; // usecs, ensures flow data is published every second iteration of Run() (100Hz -> 50Hz)
+	int probe() override;
+
+	void Reset();
+
+	static int DataReadyInterruptCallback(int irq, void *context, void *arg);
+	void DataReady();
+	bool DataReadyInterruptConfigure();
+	bool DataReadyInterruptDisable();
+
+	uint8_t RegisterRead(uint8_t reg);
+	void RegisterWrite(uint8_t reg, uint8_t data);
+
+	void Configure();
+
+	void SetPerformanceOptimizationRegisters();
 
 	uORB::PublicationMulti<sensor_optical_flow_s> _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
-	perf_counter_t _sample_perf;
-	perf_counter_t _comms_errors;
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")};
+	perf_counter_t _interval_perf{perf_alloc(PC_INTERVAL, MODULE_NAME": interval")};
+	perf_counter_t _reset_perf{perf_alloc(PC_COUNT, MODULE_NAME": reset")};
+	perf_counter_t _false_motion_perf{perf_alloc(PC_COUNT, MODULE_NAME": false motion report")};
+	perf_counter_t _no_motion_interrupt_perf{nullptr};
 
-	uint64_t _previous_collect_timestamp{0};
+	const spi_drdy_gpio_t _drdy_gpio;
 
-	enum Rotation _yaw_rotation;
+	matrix::Dcmf _rotation;
 
-	int _flow_sum_x{0};
-	int _flow_sum_y{0};
-	uint64_t _flow_dt_sum_usec{0};
-	uint16_t _flow_quality_sum{0};
-	uint8_t _flow_sample_counter{0};
+	int _discard_reading{3};
 
-	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
-	void start();
+	uint32_t _scheduled_interval_us{SAMPLE_INTERVAL_MODE};
 
-	/**
-	* Stop the automatic measurement state machine.
-	*/
-	void stop();
+	px4::atomic<hrt_abstime> _drdy_timestamp_sample{0};
+	bool _data_ready_interrupt_enabled{false};
 
+	hrt_abstime _last_write_time{0};
+	hrt_abstime _last_read_time{0};
 
-	int readRegister(unsigned reg, uint8_t *data, unsigned count);
-	int writeRegister(unsigned reg, uint8_t data);
+	// force reset if there hasn't been valid data for an extended period (sensor could be in a bad state)
+	static constexpr hrt_abstime RESET_TIMEOUT_US = 5_s;
 
-	int sensorInit();
-	int readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &qual);
+	hrt_abstime _last_good_data{0};
+	hrt_abstime _last_reset{0};
 };

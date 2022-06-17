@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,31 +34,28 @@
 #include "PMW3901.hpp"
 #include <px4_platform_common/module.h>
 
-extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
-
-void
-PMW3901::print_usage()
+void PMW3901::print_usage()
 {
 	PRINT_MODULE_USAGE_NAME("pmw3901", "driver");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(false, true);
-	PRINT_MODULE_USAGE_PARAM_INT('R', 0, 0, 35, "Rotation", true);
+	PRINT_MODULE_USAGE_PARAM_INT('Y', 0, 0, 359, "custom yaw rotation (degrees)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
-int
-pmw3901_main(int argc, char *argv[])
+extern "C" __EXPORT int pmw3901_main(int argc, char *argv[])
 {
-	int ch;
+	int ch = 0;
 	using ThisDriver = PMW3901;
 	BusCLIArguments cli{false, true};
+	cli.custom1 = -1;
 	cli.spi_mode = SPIDEV_MODE0;
-	cli.default_spi_frequency = PMW3901_SPI_BUS_SPEED;
+	cli.default_spi_frequency = SPI_SPEED;
 
-	while ((ch = cli.getOpt(argc, argv, "R:")) != EOF) {
+	while ((ch = cli.getOpt(argc, argv, "Y:")) != EOF) {
 		switch (ch) {
-		case 'R':
-			cli.rotation = (enum Rotation)atoi(cli.optArg());
+		case 'Y':
+			cli.custom1 = atoi(cli.optArg());
 			break;
 		}
 	}
@@ -74,13 +71,11 @@ pmw3901_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "start")) {
 		return ThisDriver::module_start(cli, iterator);
-	}
 
-	if (!strcmp(verb, "stop")) {
+	} else if (!strcmp(verb, "stop")) {
 		return ThisDriver::module_stop(iterator);
-	}
 
-	if (!strcmp(verb, "status")) {
+	} else if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
 	}
 
