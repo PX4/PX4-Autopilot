@@ -336,22 +336,14 @@ void Tailsitter::fill_actuator_outputs()
 		// FW thrust is allocated on mc_thrust_sp[0] for tailsitter with dynamic control allocation
 		_thrust_setpoint_0->xyz[2] = -fw_in[actuator_controls_s::INDEX_THROTTLE];
 
-		/* allow differential thrust for yaw if enabled */
+		/* allow differential thrust for yaw, pitch, roll if enabled */
 		if (_param_vt_fw_difthr_en.get()) {
-			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
-			_torque_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_sc.get() ;
-		}
-
-		if (_param_vt_fw_difthr_r.get()) {
-			// enable differential thrust for fixed-wing roll control
-			mc_out[actuator_controls_s::INDEX_YAW] = -fw_in[actuator_controls_s::INDEX_ROLL];
-			_torque_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_ROLL];
-		}
-
-		if (_param_vt_fw_difthr_p.get()) {
-			// enable differential thrust for fixed-wing pitch control
-			mc_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH];
-			_torque_setpoint_0->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH];
+			mc_out[actuator_controls_s::INDEX_YAW] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_y_sc.get();
+			_torque_setpoint_0->xyz[0] = fw_in[actuator_controls_s::INDEX_YAW] * _param_vt_fw_difthr_y_sc.get();
+			mc_out[actuator_controls_s::INDEX_PITCH] = fw_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_p_sc.get();
+			_torque_setpoint_0->xyz[1] = fw_in[actuator_controls_s::INDEX_PITCH] * _param_vt_fw_difthr_p_sc.get();
+			mc_out[actuator_controls_s::INDEX_ROLL] = fw_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_r_sc.get();
+			_torque_setpoint_0->xyz[2] = fw_in[actuator_controls_s::INDEX_ROLL] * _param_vt_fw_difthr_r_sc.get();
 		}
 
 	} else {
