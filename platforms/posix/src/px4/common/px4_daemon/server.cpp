@@ -154,6 +154,7 @@ Server::_server_main()
 			if (errno != EINTR) {
 				PX4_ERR("poll() failed: %s", strerror(errno));
 			}
+
 			break;
 		}
 

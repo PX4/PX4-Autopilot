@@ -158,6 +158,7 @@ int MavlinkShell::start()
 	}
 
 #if !defined(__PX4_POSIX)
+
 	//restore fd's
 	for (int i = 0; i < 2; ++i) {
 		if (dup2(fd_backups[i], i) == -1) {
@@ -166,6 +167,7 @@ int MavlinkShell::start()
 
 		close(fd_backups[i]);
 	}
+
 #endif
 
 	//close unused pipe fd's
@@ -188,10 +190,12 @@ int MavlinkShell::shell_start_thread(int argc, char *argv[])
 #endif /* __PX4_NUTTX */
 
 #ifdef __PX4_POSIX
+
 	if (argc != 3) {
 		PX4_ERR("Mavlink shell bug");
 		return -1;
 	}
+
 	int remote_in_fd = atoi(argv[1]);
 	int remote_out_fd = atoi(argv[2]);
 

@@ -55,22 +55,20 @@ namespace px4_daemon
 {
 
 apps_map_type Pxh::_apps = {};
-std::vector<Pxh *> Pxh::_instances;
+Pxh *Pxh::_instance = nullptr;
 
 Pxh::Pxh()
 {
 	_history.try_to_add("commander takeoff"); // for convenience
 	_history.reset_to_end();
-	_instances.push_back(this);
 }
 
 Pxh::~Pxh()
 {
 	if (_local_terminal) {
 		tcsetattr(0, TCSANOW, &_orig_term);
+		_instance = nullptr;
 	}
-
-	_instances.erase(std::remove(_instances.begin(), _instances.end(), this), _instances.end());
 }
 
 int Pxh::process_line(const std::string &line, bool silently_fail)
@@ -139,6 +137,23 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 	}
 }
 
+void Pxh::_check_remote_uorb_command(std::string &line)
+{
+
+	if (line.empty()) {
+		return;
+	}
+
+	std::stringstream line_stream(line);
+	std::string word;
+
+	line_stream >> word;
+
+	if (word == "uorb") {
+		line += " -1";  // Run uorb command only once
+	}
+}
+
 void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 {
 	std::string mystr;
@@ -181,7 +196,7 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 	// Any data from remote_in_fd will be process as shell commands when an '\n' is received
 	while (!_should_exit) {
 
-		struct pollfd fds[3] {{pipe_stderr, POLLIN}, {pipe_stdout, POLLIN}, {remote_in_fd, POLLIN}};
+		struct pollfd fds[3] { {pipe_stderr, POLLIN}, {pipe_stdout, POLLIN}, {remote_in_fd, POLLIN}};
 
 		if (poll(fds, 3, -1) == -1) {
 			perror("Mavlink Shell Poll Error");
@@ -192,6 +207,7 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 
 			uint8_t buffer[512];
 			size_t len;
+
 			if ((len = read(pipe_stderr, buffer, sizeof(buffer))) <= 0) {
 				break; //EOF or ERROR
 			}
@@ -206,6 +222,7 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 				perror("Remote shell write");
 				break;
 			}
+
 			// Process all the stderr data first
 			continue;
 		}
@@ -214,6 +231,7 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 
 			uint8_t buffer[512];
 			size_t len;
+
 			if ((len = read(pipe_stdout, buffer, sizeof(buffer))) <= 0) {
 				break; //EOF or ERROR
 			}
@@ -233,14 +251,16 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 		if (fds[2].revents & POLLIN) {
 
 			char c;
+
 			if (read(remote_in_fd, &c, 1) <= 0) {
-				break; //EOF or ERROR
+				break; // EOF or ERROR
 			}
 
 			switch (c) {
 
 			case '\n':	// user hit enter
 				printf("\n");
+				_check_remote_uorb_command(mystr);
 				process_line(mystr, false);
 				// reset string
 				mystr = "";
@@ -275,6 +295,8 @@ void Pxh::run_remote_pxh(int remote_in_fd, int remote_out_fd)
 
 void Pxh::run_pxh()
 {
+	// Only the local_terminal needed for static calls
+	_instance = this;
 	_local_terminal = true;
 	_setup_term();
 
@@ -294,9 +316,9 @@ void Pxh::run_pxh()
 		case EOF:
 			break;
 
-        	case '\t':
-            		_tab_completion(mystr);
-            		break;
+		case '\t':
+			_tab_completion(mystr);
+			break;
 
 		case 127:	// backslash
 			if ((int)mystr.length() - cursor_position > 0) {
@@ -384,14 +406,12 @@ void Pxh::run_pxh()
 			}
 		}
 	}
-
-	_restore_term();
 }
 
 void Pxh::stop()
 {
-	for (Pxh *instance : _instances) {
-		instance->_should_exit = true;
+	if (_instance) {
+		_instance->_should_exit = true;
 	}
 }
 
@@ -412,10 +432,8 @@ void Pxh::_setup_term()
 
 void Pxh::_restore_term()
 {
-	for (Pxh *instance : _instances) {
-		if (instance->_local_terminal) {
-			tcsetattr(0, TCSANOW, &instance->_orig_term);
-		}
+	if (_instance) {
+		tcsetattr(0, TCSANOW, &_instance->_orig_term);
 	}
 }
 
@@ -437,59 +455,99 @@ void Pxh::_move_cursor(int position)
 
 void Pxh::_tab_completion(std::string &mystr)
 {
+	// parse line and get command
+	std::stringstream line(mystr);
+	std::string cmd;
+	line >> cmd;
 
-    if(mystr.size() > 0) {
+	// cmd is empty or white space send a list of available commands
+	if (cmd.size() == 0) {
 
-        //remove any white space before compare
-        std::stringstream line(mystr);
-        std::string cmd;
-        line >> cmd;
-        std::vector<std::string> matches;
+		printf("\n");
 
-        for (auto it = _apps.begin(); it != _apps.end();  ++it) {
-            if (it->first.compare(0, cmd.size(), cmd) == 0)
-	    	matches.push_back(it->first);
-        }
+		for (auto it = _apps.begin(); it != _apps.end();  ++it) {
+			printf("%s ", it->first.c_str());
+		}
 
-        if (matches.size() == 1 ) {
-            mystr = matches.front();
+		printf("\n");
+		mystr = "";
 
-        } else if (matches.size() > 1) {
-            printf("\n");
-            for (const auto &item: matches) {
-	    	printf("%s   ",item.c_str());
-	    }
-            printf("\n");
+	} else {
 
-            std::string longest_match;
-            //find minimum size element could use sort algorithm
-            size_t min_size = 0;
-            for (const auto &item: matches) {
-                if(min_size == 0)
-			min_size = item.size();
-                else if (item.size() < min_size)
-			min_size = item.size();
-            }
+		// find tab completion matches
+		std::vector<std::string> matches;
 
-            // parse through elements to find longest match
-            bool done = false;
-            for (int i = 0; i < (int)min_size ; ++i) {
-                bool first_time = true;
-                for (const auto &item: matches) {
-                    if (first_time) {
-                        longest_match += item[i];
-                        first_time = false;
-                    } else if (longest_match[i] != item[i] ) {
-                        done = true;
-                        longest_match.pop_back();
-                        break;
-                    }
-                }
-                if(done) break;
-            }
-            mystr = longest_match;
-        }
-    }
+		for (auto it = _apps.begin(); it != _apps.end();  ++it) {
+			if (it->first.compare(0, cmd.size(), cmd) == 0) {
+				matches.push_back(it->first);
+			}
+		}
+
+		if (matches.size() >= 1) {
+			// if more than one match print all matches
+			if (matches.size() != 1) {
+				printf("\n");
+
+				for (const auto &item : matches) {
+					printf("%s    ", item.c_str());
+				}
+
+				printf("\n");
+			}
+
+			// find minimum size match
+			size_t min_size = 0;
+
+			for (const auto &item : matches) {
+				if (min_size == 0) {
+					min_size = item.size();
+
+				} else if (item.size() < min_size) {
+					min_size = item.size();
+				}
+			}
+
+			// parse through elements to find longest match
+			std::string longest_match;
+			bool done = false;
+
+			for (int i = 0; i < (int)min_size ; ++i) {
+				bool first_time = true;
+
+				for (const auto &item : matches) {
+					if (first_time) {
+						longest_match += item[i];
+						first_time = false;
+
+					} else if (longest_match[i] != item[i]) {
+						done = true;
+						longest_match.pop_back();
+						break;
+					}
+				}
+
+				if (done) { break; }
+
+				mystr = longest_match;
+			}
+		}
+
+		std::string flags;
+
+		while (line >> cmd) {
+			flags += " " + cmd;
+		}
+
+		// add flags back in when there is a command match
+		if (matches.size() == 1) {
+			if (flags.empty()) {
+				mystr += " ";
+
+			} else {
+				mystr += flags;
+			}
+		}
+	}
 }
 
 } // namespace px4_daemon

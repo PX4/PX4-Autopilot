@@ -86,6 +86,7 @@ private:
 	void _move_cursor(int position);
 	void _clear_line();
 	void _tab_completion(std::string &prefix);
+	void _check_remote_uorb_command(std::string &line);
 
 	void _setup_term();
 	static void _restore_term();
@@ -96,7 +97,7 @@ private:
 	struct termios _orig_term {};
 
 	static apps_map_type _apps;
-	static std::vector<Pxh *> _instances;
+	static Pxh *_instance;
 };
 
 
