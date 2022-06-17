@@ -154,6 +154,8 @@ private:
 	static constexpr uint8_t BASE_HEX{16};
 	static constexpr uint8_t BASE_DEC{10};
 	static constexpr uint16_t INVALID_SQUAWK{7777};
+	static constexpr unsigned BAUD_460800{0010004};			// B460800 not defined in MacOS termios
+	static constexpr unsigned BAUD_921600{0010007};			// B921600 not defined in MacOS termios
 
 	// Stored variables
 	uint64_t _loop_count;
