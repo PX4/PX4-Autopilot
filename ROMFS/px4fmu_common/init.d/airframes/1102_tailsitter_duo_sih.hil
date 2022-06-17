@@ -21,10 +21,8 @@ param set UAVCAN_ENABLE 0
 param set-default VT_ELEV_MC_LOCK 0
 param set-default VT_MOT_COUNT 2
 param set-default VT_TYPE 0
-param set-default VT_FW_DFTHR_EN 1
-param set-default VT_FW_DFTHR_Y_SC 0.3
-param set-default VT_FW_DFTHR_P_SC 0.3
-param set-default VT_FW_DFTHR_R_SC 0.3
+param set-default VT_FW_DIFTHR_EN 1
+param set-default VT_FW_DIFTHR_SC 0.3
 param set-default MPC_MAN_Y_MAX 60
 param set-default MC_PITCH_P 5
 
