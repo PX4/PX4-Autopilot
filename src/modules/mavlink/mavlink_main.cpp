@@ -2427,6 +2427,8 @@ Mavlink::task_main(int argc, char *argv[])
 				msg.timeout = 0;
 				msg.device = SERIAL_CONTROL_DEV_SHELL;
 				msg.count = _mavlink_shell->read(msg.data, sizeof(msg.data));
+				msg.target_system = _mavlink_shell->targetSysid();
+				msg.target_component = _mavlink_shell->targetCompid();
 				mavlink_msg_serial_control_send_struct(get_channel(), &msg);
 			}
 		}
