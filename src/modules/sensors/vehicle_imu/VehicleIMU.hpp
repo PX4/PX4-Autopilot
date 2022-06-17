@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "Integrator.hpp"
+#include <Integrator.hpp>
 
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/mathlib/math/WelfordMean.hpp>
@@ -108,8 +108,8 @@ private:
 	calibration::Accelerometer _accel_calibration{};
 	calibration::Gyroscope _gyro_calibration{};
 
-	Integrator       _accel_integrator{};
-	IntegratorConing _gyro_integrator{};
+	sensors::Integrator       _accel_integrator{};
+	sensors::IntegratorConing _gyro_integrator{};
 
 	uint32_t _imu_integration_interval_us{5000};
 

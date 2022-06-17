@@ -40,7 +40,7 @@ rtps:
     receive: true
   - msg:     offboard_control_mode
     receive: true
-  - msg:     optical_flow
+  - msg:     sensor_optical_flow
     receive: true
   - msg:     position_setpoint
     receive: true
