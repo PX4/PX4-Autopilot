@@ -61,9 +61,9 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 
 	// optical flow in x, y axis
 	// TODO consider making flow scale a states of the kalman filter
-	float flow_x_rad = _sub_flow.get().pixel_flow_x_integral * _param_lpe_flw_scale.get();
-	float flow_y_rad = _sub_flow.get().pixel_flow_y_integral * _param_lpe_flw_scale.get();
-	float dt_flow = _sub_flow.get().integration_timespan / 1.0e6f;
+	float flow_x_rad = _sub_flow.get().pixel_flow[0] * _param_lpe_flw_scale.get();
+	float flow_y_rad = _sub_flow.get().pixel_flow[1] * _param_lpe_flw_scale.get();
+	float dt_flow = _sub_flow.get().integration_timespan_us / 1.0e6f;
 
 	if (dt_flow > 0.5f || dt_flow < 1.0e-6f) {
 		return -1;
@@ -74,10 +74,8 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	float gyro_y_rad = 0;
 
 	if (_param_lpe_fusion.get() & FUSE_FLOW_GYRO_COMP) {
-		gyro_x_rad = _flow_gyro_x_high_pass.update(
-				     _sub_flow.get().gyro_x_rate_integral);
-		gyro_y_rad = _flow_gyro_y_high_pass.update(
-				     _sub_flow.get().gyro_y_rate_integral);
+		gyro_x_rad = _flow_gyro_x_high_pass.update(_sub_flow.get().delta_angle[0]);
+		gyro_y_rad = _flow_gyro_y_high_pass.update(_sub_flow.get().delta_angle[1]);
 	}
 
 	//warnx("flow x: %10.4f y: %10.4f gyro_x: %10.4f gyro_y: %10.4f d: %10.4f",
