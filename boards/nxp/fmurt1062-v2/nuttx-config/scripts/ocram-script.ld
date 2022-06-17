@@ -207,6 +207,7 @@ SECTIONS
 		*(.text.*param_import*)
 		*(.text.*param_load*)
 		*(.text.*BusInstanceIterator*)
+		*(.text.*Ekf*)
 		*(.text.*PRINT_MODULE_USAGE*)
 		*(.text.*px4_getopt*)
 		*(.text.*main*)
@@ -217,7 +218,6 @@ SECTIONS
 		*(.text.*CameraCapture*)
 		*(.text.*i2cdetect*)
 		*(.text.*usage*)
-/*		*(.text.*Bosch*) 2% CPU .5% RAM */
 		*(.text.*Tunes*)
 		*(.text.*printStatistics*)
 		*(.text.*init*)
