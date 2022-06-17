@@ -34,8 +34,14 @@
 # NuttX CDCACM vendor and product strings
 set(vendorstr_underscore)
 set(productstr_underscore)
-string(REPLACE " " "_" vendorstr_underscore ${CONFIG_CDCACM_VENDORSTR})
-string(REPLACE " " "_" productstr_underscore ${CONFIG_CDCACM_PRODUCTSTR})
+
+if (CONFIG_COMPOSITE_VENDORSTR)
+	string(REPLACE " " "_" vendorstr_underscore ${CONFIG_COMPOSITE_VENDORSTR})
+	string(REPLACE " " "_" productstr_underscore ${CONFIG_COMPOSITE_PRODUCTSTR})
+else()
+	string(REPLACE " " "_" vendorstr_underscore ${CONFIG_CDCACM_VENDORSTR})
+	string(REPLACE " " "_" productstr_underscore ${CONFIG_CDCACM_PRODUCTSTR})
+endif()
 
 set(serial_ports)
 if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
