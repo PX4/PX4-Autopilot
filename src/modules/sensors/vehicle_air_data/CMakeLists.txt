@@ -37,6 +37,7 @@ px4_add_library(vehicle_air_data
 )
 target_link_libraries(vehicle_air_data
 	PRIVATE
+		data_validator
 		px4_work_queue
 		sensor_calibration
 )

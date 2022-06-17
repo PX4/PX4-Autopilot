@@ -12,6 +12,10 @@ menuconfig USER_SENSORS
 		Put sensors in userspace memory
 
 if MODULES_SENSORS
+    config SENSORS_VEHICLE_AIRSPEED
+        bool "Include vehicle airspeed"
+        default y
+
     config SENSORS_VEHICLE_AIR_DATA
         bool "Include vehicle air data"
         default y
