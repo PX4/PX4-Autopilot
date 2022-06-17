@@ -39,7 +39,6 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/landing_target_pose.h>
-#include <uORB/topics/optical_flow.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -47,6 +46,7 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/vehicle_optical_flow.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_odometry.h>
 
@@ -91,7 +91,7 @@ ReplayEkf2::onSubscriptionAdded(Subscription &sub, uint16_t msg_id)
 	} else if (sub.orb_meta == ORB_ID(distance_sensor)) {
 		_distance_sensor_msg_id = msg_id;
 
-	} else if (sub.orb_meta == ORB_ID(optical_flow)) {
+	} else if (sub.orb_meta == ORB_ID(vehicle_optical_flow)) {
 		_optical_flow_msg_id = msg_id;
 
 	} else if (sub.orb_meta == ORB_ID(vehicle_air_data)) {
@@ -204,7 +204,7 @@ ReplayEkf2::onExitMainLoop()
 
 	print_sensor_statistics(_airspeed_msg_id, "airspeed");
 	print_sensor_statistics(_distance_sensor_msg_id, "distance_sensor");
-	print_sensor_statistics(_optical_flow_msg_id, "optical_flow");
+	print_sensor_statistics(_optical_flow_msg_id, "vehicle_optical_flow");
 	print_sensor_statistics(_sensor_combined_msg_id, "sensor_combined");
 	print_sensor_statistics(_vehicle_air_data_msg_id, "vehicle_air_data");
 	print_sensor_statistics(_vehicle_magnetometer_msg_id, "vehicle_magnetometer");

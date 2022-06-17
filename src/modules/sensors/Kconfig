@@ -28,4 +28,8 @@ if MODULES_SENSORS
         bool "Include vehicle magnetometer"
         default y
 
+    config SENSORS_VEHICLE_OPTICAL_FLOW
+        bool "Include vehicle optical flow"
+        default y
+
 endif #MODULES_SENSORS

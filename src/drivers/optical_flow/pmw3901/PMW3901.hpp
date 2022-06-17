@@ -45,10 +45,9 @@
 #include <drivers/device/spi.h>
 #include <conversion/rotation.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/sensor_optical_flow.h>
 #include <px4_platform_common/i2c_spi_buses.h>
 
 /* Configuration Constants */
@@ -84,14 +83,14 @@ private:
 
 	const uint64_t _collect_time{15000}; // usecs, ensures flow data is published every second iteration of Run() (100Hz -> 50Hz)
 
-	uORB::PublicationMulti<optical_flow_s> _optical_flow_pub{ORB_ID(optical_flow)};
+	uORB::PublicationMulti<sensor_optical_flow_s> _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
 
 	uint64_t _previous_collect_timestamp{0};
 
-	enum Rotation _yaw_rotation;
+	enum Rotation _yaw_rotation {};
 
 	int _flow_sum_x{0};
 	int _flow_sum_y{0};
