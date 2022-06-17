@@ -41,10 +41,7 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_sensor.h>
-#include <lib/airspeed/airspeed.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
@@ -62,23 +59,27 @@
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensors_status_imu.h>
-#include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_imu.h>
 
 #include "voted_sensors_update.h"
 #include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
-
-
 #include "vehicle_imu/VehicleIMU.hpp"
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+# include <drivers/drv_sensor.h>
+# include <drivers/drv_adc.h>
+# include <lib/airspeed/airspeed.h>
+# include <uORB/topics/airspeed.h>
+# include <uORB/topics/differential_pressure.h>
+# include <uORB/topics/vehicle_air_data.h>
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
+
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
+# include <uORB/topics/sensor_baro.h>
 # include "vehicle_air_data/VehicleAirData.hpp"
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
@@ -140,15 +141,17 @@ private:
 	};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
-
-	uORB::Subscription _diff_pres_sub{ORB_ID(differential_pressure)};
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};
-	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
-	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
 	uORB::Publication<sensor_combined_s>      _sensor_pub{ORB_ID(sensor_combined)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
+
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+	uORB::Subscription _diff_pres_sub {ORB_ID(differential_pressure)};
+	uORB::Subscription _vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
+
+	uORB::Publication<airspeed_s>             _airspeed_pub{ORB_ID(airspeed)};
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
@@ -159,11 +162,10 @@ private:
 	float _baro_pressure_sum{0.f};
 	int _diff_pres_count{0};
 
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+# ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	uORB::Subscription _adc_report_sub {ORB_ID(adc_report)};
 	uORB::PublicationMulti<differential_pressure_s> _diff_pres_pub{ORB_ID(differential_pressure)};
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
+# endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 
 	struct Parameters {
 		float diff_pres_offset_pa;
@@ -186,6 +188,7 @@ private:
 		param_t air_tube_length;
 		param_t air_tube_diameter_mm;
 	} _parameter_handles{};		/**< handles for interesting parameters */
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 	VotedSensorsUpdate _voted_sensors_update;
 
@@ -217,6 +220,7 @@ private:
 	 */
 	int		parameters_update();
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	/**
 	 * Poll the differential pressure sensor for updated data.
 	 *
@@ -226,17 +230,13 @@ private:
 	void		diff_pres_poll();
 
 	/**
-	 * Check for changes in parameters.
-	 */
-	void 		parameter_update_poll(bool forced = false);
-
-	/**
 	 * Poll the ADC and update readings to suit.
 	 *
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
 	void		adc_poll();
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 	void		InitializeVehicleAirData();
 	void		InitializeVehicleGPSPosition();
@@ -244,9 +244,15 @@ private:
 	void		InitializeVehicleMagnetometer();
 
 	DEFINE_PARAMETERS(
+#if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 		(ParamBool<px4::params::SYS_HAS_BARO>) _param_sys_has_baro,
+#endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
+#if defined(CONFIG_SENSORS_VEHICLE_GPS_POSITION)
 		(ParamBool<px4::params::SYS_HAS_GPS>) _param_sys_has_gps,
+#endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
+#if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 		(ParamBool<px4::params::SYS_HAS_MAG>) _param_sys_has_mag,
+#endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 		(ParamBool<px4::params::SENS_IMU_MODE>) _param_sens_imu_mode
 	)
 };
@@ -263,6 +269,7 @@ Sensors::Sensors(bool hil_enabled) :
 	_vehicle_angular_velocity.Start();
 	_vehicle_acceleration.Start();
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	/* Differential pressure offset */
 	_parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
@@ -273,6 +280,10 @@ Sensors::Sensors(bool hil_enabled) :
 	_parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
 	_parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
 
+	_airspeed_validator.set_timeout(300000);
+	_airspeed_validator.set_equal_value_threshold(100);
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
+
 	param_find("SYS_FAC_CAL_MODE");
 
 	// Parameters controlling the on-board sensor thermal calibrator
@@ -281,9 +292,6 @@ Sensors::Sensors(bool hil_enabled) :
 	param_find("SYS_CAL_TMIN");
 
 	_sensor_combined.accelerometer_timestamp_relative = sensor_combined_s::RELATIVE_TIMESTAMP_INVALID;
-
-	_airspeed_validator.set_timeout(300000);
-	_airspeed_validator.set_equal_value_threshold(100);
 
 	parameters_update();
 
@@ -350,6 +358,7 @@ int Sensors::parameters_update()
 		return 0;
 	}
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	/* Airspeed offset */
 	param_get(_parameter_handles.diff_pres_offset_pa, &(_parameters.diff_pres_offset_pa));
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
@@ -359,6 +368,7 @@ int Sensors::parameters_update()
 	param_get(_parameter_handles.air_cmodel, &_parameters.air_cmodel);
 	param_get(_parameter_handles.air_tube_length, &_parameters.air_tube_length);
 	param_get(_parameter_handles.air_tube_diameter_mm, &_parameters.air_tube_diameter_mm);
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 	_voted_sensors_update.parametersUpdate();
 
@@ -438,6 +448,7 @@ int Sensors::parameters_update()
 	return PX4_OK;
 }
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 void Sensors::diff_pres_poll()
 {
 	differential_pressure_s diff_pres{};
@@ -545,21 +556,6 @@ void Sensors::diff_pres_poll()
 	}
 }
 
-void
-Sensors::parameter_update_poll(bool forced)
-{
-	// check for parameter updates
-	if (_parameter_update_sub.updated() || forced) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		parameters_update();
-		updateParams();
-	}
-}
-
 void Sensors::adc_poll()
 {
 	/* only read if not in HIL mode */
@@ -608,8 +604,9 @@ void Sensors::adc_poll()
 		}
 	}
 
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+#endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 }
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED)
 
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 void Sensors::InitializeVehicleAirData()
@@ -768,8 +765,16 @@ void Sensors::Run()
 		_last_config_update = hrt_absolute_time();
 
 	} else {
-		// check parameters for updates
-		parameter_update_poll();
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
+
+			// update parameters from storage
+			parameters_update();
+			updateParams();
+		}
 	}
 
 	_voted_sensors_update.sensorsPoll(_sensor_combined);
@@ -781,10 +786,11 @@ void Sensors::Run()
 		_sensor_combined_prev_timestamp = _sensor_combined.timestamp;
 	}
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	// check analog airspeed
 	adc_poll();
-
 	diff_pres_poll();
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 	// backup schedule as a watchdog timeout
 	ScheduleDelayed(10_ms);
@@ -865,9 +871,11 @@ int Sensors::print_status()
 
 #endif // CONFIG_SENSORS_VEHICLE_AIR_DATA
 
+#if defined(CONFIG_SENSORS_VEHICLE_AIRSPEED)
 	PX4_INFO_RAW("\n");
 	PX4_INFO_RAW("Airspeed status:\n");
 	_airspeed_validator.print();
+#endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
 
 	PX4_INFO_RAW("\n");
 	_vehicle_acceleration.PrintStatus();

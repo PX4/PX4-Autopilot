@@ -61,7 +61,6 @@ px4_add_module(
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS
-		airspeed
 		conversion
 		data_validator
 		mathlib
@@ -70,6 +69,10 @@ px4_add_module(
 		vehicle_angular_velocity
 		vehicle_imu
 	)
+
+if(CONFIG_SENSORS_VEHICLE_AIRSPEED)
+	target_link_libraries(modules__sensors PRIVATE airspeed)
+endif()
 
 if(CONFIG_SENSORS_VEHICLE_AIR_DATA)
 	target_link_libraries(modules__sensors PRIVATE vehicle_air_data)
