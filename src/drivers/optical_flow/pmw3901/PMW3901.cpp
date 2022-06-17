@@ -326,28 +326,24 @@ PMW3901::RunImpl()
 	delta_x = (float)_flow_sum_x / 385.0f;		// proportional factor + convert from pixels to radians
 	delta_y = (float)_flow_sum_y / 385.0f;		// proportional factor + convert from pixels to radians
 
-	optical_flow_s report{};
-	report.timestamp = timestamp;
+	sensor_optical_flow_s report{};
+	report.timestamp_sample = timestamp;
 
-	report.pixel_flow_x_integral = static_cast<float>(delta_x);
-	report.pixel_flow_y_integral = static_cast<float>(delta_y);
+	report.pixel_flow[0] = static_cast<float>(delta_x);
+	report.pixel_flow[1] = static_cast<float>(delta_y);
 
 	// rotate measurements in yaw from sensor frame to body frame according to parameter SENS_FLOW_ROT
 	float zeroval = 0.0f;
-	rotate_3f(_yaw_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
-	rotate_3f(_yaw_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
+	rotate_3f(_yaw_rotation, report.pixel_flow[0], report.pixel_flow[1], zeroval);
 
-	report.frame_count_since_last_readout = _flow_sample_counter;	// number of frames
-	report.integration_timespan = _flow_dt_sum_usec; 	// microseconds
+	report.integration_timespan_us = _flow_dt_sum_usec; 	// microseconds
 
-	report.sensor_id = 0;
 	report.quality = _flow_sample_counter > 0 ? _flow_quality_sum / _flow_sample_counter : 0;
 
-
 	/* No gyro on this board */
-	report.gyro_x_rate_integral = NAN;
-	report.gyro_y_rate_integral = NAN;
-	report.gyro_z_rate_integral = NAN;
+	report.delta_angle[0] = NAN;
+	report.delta_angle[1] = NAN;
+	report.delta_angle[2] = NAN;
 
 	// set (conservative) specs according to datasheet
 	report.max_flow_rate = 5.0f;       // Datasheet: 7.4 rad/s
@@ -360,7 +356,8 @@ PMW3901::RunImpl()
 	_flow_sample_counter = 0;
 	_flow_quality_sum = 0;
 
-	_optical_flow_pub.publish(report);
+	report.timestamp = hrt_absolute_time();
+	_sensor_optical_flow_pub.publish(report);
 
 	perf_end(_sample_perf);
 }

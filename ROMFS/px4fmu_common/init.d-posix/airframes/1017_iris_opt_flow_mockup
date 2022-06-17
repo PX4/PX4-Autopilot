@@ -9,7 +9,6 @@
 
 # EKF2
 param set-default EKF2_AID_MASK 2
-param set-default SENS_FLOW_ROT 0
 
 # LPE: Flow-only mode
 param set-default LPE_FUSION 242

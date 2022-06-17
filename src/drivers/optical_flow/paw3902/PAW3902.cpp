@@ -788,27 +788,26 @@ void PAW3902::RunImpl()
 		return;
 	}
 
-	optical_flow_s report{};
-	report.timestamp = timestamp_sample;
-	//report.device_id = get_device_id();
+	sensor_optical_flow_s report{};
+	report.timestamp_sample = timestamp_sample;
+	report.device_id = get_device_id();
 
 	float pixel_flow_x_integral = (float)_flow_sum_x / 500.0f;	// proportional factor + convert from pixels to radians
 	float pixel_flow_y_integral = (float)_flow_sum_y / 500.0f;	// proportional factor + convert from pixels to radians
 
 	// rotate measurements in yaw from sensor frame to body frame
 	const matrix::Vector3f pixel_flow_rotated = _rotation * matrix::Vector3f{pixel_flow_x_integral, pixel_flow_y_integral, 0.f};
-	report.pixel_flow_x_integral = pixel_flow_rotated(0);
-	report.pixel_flow_y_integral = pixel_flow_rotated(1);
+	report.pixel_flow[0] = pixel_flow_rotated(0);
+	report.pixel_flow[1] = pixel_flow_rotated(1);
 
-	report.frame_count_since_last_readout = _flow_sample_counter; // number of frames
-	report.integration_timespan = _flow_dt_sum_usec;              // microseconds
+	report.integration_timespan_us = _flow_dt_sum_usec;              // microseconds
 
 	report.quality = _flow_quality_sum / _flow_sample_counter;
 
 	// No gyro on this board
-	report.gyro_x_rate_integral = NAN;
-	report.gyro_y_rate_integral = NAN;
-	report.gyro_z_rate_integral = NAN;
+	report.delta_angle[0] = NAN;
+	report.delta_angle[1] = NAN;
+	report.delta_angle[2] = NAN;
 
 	// set (conservative) specs according to datasheet
 	report.max_flow_rate = 7.4f;        // Datasheet: 7.4 rad/s
@@ -818,20 +817,20 @@ void PAW3902::RunImpl()
 
 	switch (_mode) {
 	case Mode::Bright:
-		report.mode = optical_flow_s::MODE_BRIGHT;
+		report.mode = sensor_optical_flow_s::MODE_BRIGHT;
 		break;
 
 	case Mode::LowLight:
-		report.mode = optical_flow_s::MODE_LOWLIGHT;
+		report.mode = sensor_optical_flow_s::MODE_LOWLIGHT;
 		break;
 
 	case Mode::SuperLowLight:
-		report.mode = optical_flow_s::MODE_SUPER_LOWLIGHT;
+		report.mode = sensor_optical_flow_s::MODE_SUPER_LOWLIGHT;
 		break;
 	}
 
 	report.timestamp = hrt_absolute_time();
-	_optical_flow_pub.publish(report);
+	_sensor_optical_flow_pub.publish(report);
 
 	if (report.quality > 10) {
 		_last_good_publish = report.timestamp;

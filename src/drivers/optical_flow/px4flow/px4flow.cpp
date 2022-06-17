@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,8 +41,6 @@
 
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
-#include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
@@ -51,7 +49,7 @@
 #include <px4_platform_common/module.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/sensor_optical_flow.h>
 
 /* Configuration Constants */
 #define I2C_FLOW_ADDRESS_DEFAULT    0x42	///< 7-bit address. 8-bit address is 0x84, range 0x42 - 0x49
@@ -98,8 +96,8 @@ private:
 	bool				_sensor_ok{false};
 	bool				_collect_phase{false};
 
-	uORB::PublicationMulti<optical_flow_s>		_px4flow_topic{ORB_ID(optical_flow)};
-	uORB::PublicationMulti<distance_sensor_s>	_distance_sensor_topic{ORB_ID(distance_sensor)};
+	uORB::PublicationMulti<distance_sensor_s> _distance_sensor_topic{ORB_ID(distance_sensor)};
+	uORB::PublicationMulti<sensor_optical_flow_s> _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -165,44 +163,6 @@ PX4FLOW::init()
 	ret = OK;
 	/* sensor is ok, but we don't really know if it is within range */
 	_sensor_ok = true;
-
-	/* get yaw rotation from sensor frame to body frame */
-	param_t rot = param_find("SENS_FLOW_ROT");
-
-	if (rot != PARAM_INVALID) {
-		int32_t val = 6; // the recommended installation for the flow sensor is with the Y sensor axis forward
-		param_get(rot, &val);
-
-		_sensor_rotation = (enum Rotation)val;
-	}
-
-	/* get operational limits of the sensor */
-	param_t hmin = param_find("SENS_FLOW_MINHGT");
-
-	if (hmin != PARAM_INVALID) {
-		float val = 0.7;
-		param_get(hmin, &val);
-
-		_sensor_min_range = val;
-	}
-
-	param_t hmax = param_find("SENS_FLOW_MAXHGT");
-
-	if (hmax != PARAM_INVALID) {
-		float val = 3.0;
-		param_get(hmax, &val);
-
-		_sensor_max_range = val;
-	}
-
-	param_t ratemax = param_find("SENS_FLOW_MAXR");
-
-	if (ratemax != PARAM_INVALID) {
-		float val = 2.5;
-		param_get(ratemax, &val);
-
-		_sensor_max_flow_rate = val;
-	}
 
 	start();
 
@@ -279,49 +239,55 @@ PX4FLOW::collect()
 	}
 
 
-	optical_flow_s report{};
+	DeviceId device_id;
+	device_id.devid = get_device_id();
+	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_PX4FLOW;
+	device_id.devid_s.address = get_i2c_address();
 
-	report.timestamp = hrt_absolute_time();
-	report.pixel_flow_x_integral = static_cast<float>(_frame_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians
-	report.pixel_flow_y_integral = static_cast<float>(_frame_integral.pixel_flow_y_integral) / 10000.0f;//convert to radians
-	report.frame_count_since_last_readout = _frame_integral.frame_count_since_last_readout;
-	report.ground_distance_m = static_cast<float>(_frame_integral.ground_distance) / 1000.0f;//convert to meters
-	report.quality = _frame_integral.qual; //0:bad ; 255 max quality
-	report.gyro_x_rate_integral = static_cast<float>(_frame_integral.gyro_x_rate_integral) / 10000.0f; //convert to radians
-	report.gyro_y_rate_integral = static_cast<float>(_frame_integral.gyro_y_rate_integral) / 10000.0f; //convert to radians
-	report.gyro_z_rate_integral = static_cast<float>(_frame_integral.gyro_z_rate_integral) / 10000.0f; //convert to radians
-	report.integration_timespan = _frame_integral.integration_timespan; //microseconds
-	report.time_since_last_sonar_update = _frame_integral.sonar_timestamp;//microseconds
-	report.gyro_temperature = _frame_integral.gyro_temperature;//Temperature * 100 in centi-degrees Celsius
-	report.sensor_id = 0;
-	report.max_flow_rate = _sensor_max_flow_rate;
-	report.min_ground_distance = _sensor_min_range;
-	report.max_ground_distance = _sensor_max_range;
+	sensor_optical_flow_s report{};
+
+	report.timestamp_sample = hrt_absolute_time();
+	report.device_id = device_id.devid;
+
+	report.pixel_flow[0] = static_cast<float>(_frame_integral.pixel_flow_x_integral) / 10000.f; //convert to radians
+	report.pixel_flow[1] = static_cast<float>(_frame_integral.pixel_flow_y_integral) / 10000.f; //convert to radians
+
+	// report.ground_distance_m = static_cast<float>(_frame_integral.ground_distance) / 1000.f; //convert to meters
+
+	report.integration_timespan_us = _frame_integral.integration_timespan; // microseconds
+
+	report.quality = _frame_integral.qual; // 0:bad ; 255 max quality
+
+	report.delta_angle_available = true;
+	report.delta_angle[0] = static_cast<float>(_frame_integral.gyro_x_rate_integral) / 10000.0f; // convert to radians
+	report.delta_angle[1] = static_cast<float>(_frame_integral.gyro_y_rate_integral) / 10000.0f; // convert to radians
+	report.delta_angle[2] = static_cast<float>(_frame_integral.gyro_z_rate_integral) / 10000.0f; // convert to radians
 
 	/* rotate measurements in yaw from sensor frame to body frame according to parameter SENS_FLOW_ROT */
 	float zeroval = 0.0f;
 
-	rotate_3f(_sensor_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
-	rotate_3f(_sensor_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
+	rotate_3f(_sensor_rotation, report.pixel_flow[0], report.pixel_flow[1], zeroval);
+	rotate_3f(_sensor_rotation, report.delta_angle[0], report.delta_angle[1], report.delta_angle[2]);
 
-	_px4flow_topic.publish(report);
+	report.max_flow_rate = 2.5f;
+	report.min_ground_distance = 0.7f;
+	report.max_ground_distance = 3.f;
+
+	report.timestamp = hrt_absolute_time();
+	_sensor_optical_flow_pub.publish(report);
 
 	/* publish to the distance_sensor topic as well */
 	if (_distance_sensor_topic.get_instance() == 0) {
 		distance_sensor_s distance_report{};
-		DeviceId device_id;
-		device_id.devid = get_device_id();
-		device_id.devid_s.devtype = DRV_DIST_DEVTYPE_PX4FLOW;
-
-		distance_report.timestamp = report.timestamp;
+		distance_report.device_id = device_id.devid;
 		distance_report.min_distance = PX4FLOW_MIN_DISTANCE;
 		distance_report.max_distance = PX4FLOW_MAX_DISTANCE;
-		distance_report.current_distance = report.ground_distance_m;
+		distance_report.current_distance = static_cast<float>(_frame_integral.ground_distance) / 1000.f; // convert to meters
 		distance_report.variance = 0.0f;
 		distance_report.signal_quality = -1;
 		distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-		distance_report.device_id = device_id.devid;
 		distance_report.orientation = _sonar_rotation;
+		distance_report.timestamp = hrt_absolute_time();
 
 		_distance_sensor_topic.publish(distance_report);
 	}
@@ -415,13 +381,11 @@ px4flow_main(int argc, char *argv[])
 		}
 
 		return ThisDriver::module_start(cli, iterator);
-	}
 
-	if (!strcmp(verb, "stop")) {
+	} else if (!strcmp(verb, "stop")) {
 		return ThisDriver::module_stop(iterator);
-	}
 
-	if (!strcmp(verb, "status")) {
+	} else if (!strcmp(verb, "status")) {
 		return ThisDriver::module_status(iterator);
 	}
 

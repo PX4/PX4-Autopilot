@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2020 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,7 +31,8 @@
 #
 ############################################################################
 
-add_subdirectory(paw3902)
-add_subdirectory(pmw3901)
-add_subdirectory(px4flow)
-add_subdirectory(thoneflow)
+px4_add_library(vehicle_optical_flow
+	VehicleOpticalFlow.cpp
+	VehicleOpticalFlow.hpp
+)
+target_link_libraries(vehicle_optical_flow PRIVATE px4_work_queue)

@@ -104,9 +104,12 @@ public:
 
 	const Vector2f &getFlowVelBody() const { return _flow_vel_body; }
 	const Vector2f &getFlowVelNE() const { return _flow_vel_ne; }
+
 	const Vector2f &getFlowCompensated() const { return _flow_compensated_XY_rad; }
 	const Vector2f &getFlowUncompensated() const { return _flow_sample_delayed.flow_xy_rad; }
-	const Vector3f &getFlowGyro() const { return _flow_sample_delayed.gyro_xyz; }
+
+	const Vector3f getFlowGyro() const { return _flow_sample_delayed.gyro_xyz * (1.f / _flow_sample_delayed.dt); }
+	const Vector3f &getFlowGyroIntegral() const { return _flow_sample_delayed.gyro_xyz; }
 
 	void getHeadingInnov(float &heading_innov) const { heading_innov = _heading_innov; }
 	void getHeadingInnovVar(float &heading_innov_var) const { heading_innov_var = _heading_innov_var; }

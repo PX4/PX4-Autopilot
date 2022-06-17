@@ -93,6 +93,10 @@
 # include <uORB/topics/sensor_mag.h>
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+# include "vehicle_optical_flow/VehicleOpticalFlow.hpp"
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
+
 using namespace sensors;
 using namespace time_literals;
 
@@ -210,6 +214,11 @@ private:
 	uint8_t _n_gps{0};
 #endif // CONFIG_SENSORS_VEHICLE_GPS_POSITION
 
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+	VehicleOpticalFlow *_vehicle_optical_flow {nullptr};
+	uint8_t _n_optical_flow{0};
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
+
 	VehicleIMU *_vehicle_imu_list[MAX_SENSOR_COUNT] {};
 
 	uint8_t _n_accel{0};
@@ -242,6 +251,7 @@ private:
 	void		InitializeVehicleGPSPosition();
 	void		InitializeVehicleIMU();
 	void		InitializeVehicleMagnetometer();
+	void		InitializeVehicleOpticalFlow();
 
 	DEFINE_PARAMETERS(
 #if defined(CONFIG_SENSORS_VEHICLE_AIR_DATA)
@@ -334,6 +344,15 @@ Sensors::~Sensors()
 	}
 
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
+
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+
+	if (_vehicle_optical_flow) {
+		_vehicle_optical_flow->Stop();
+		delete _vehicle_optical_flow;
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 
 	for (auto &vehicle_imu : _vehicle_imu_list) {
 		if (vehicle_imu) {
@@ -444,6 +463,10 @@ int Sensors::parameters_update()
 #if defined(CONFIG_SENSORS_VEHICLE_MAGNETOMETER)
 	InitializeVehicleMagnetometer();
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
+
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+	InitializeVehicleOpticalFlow();
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 
 	return PX4_OK;
 }
@@ -688,6 +711,23 @@ void Sensors::InitializeVehicleMagnetometer()
 }
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
 
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+void Sensors::InitializeVehicleOpticalFlow()
+{
+	if (_vehicle_optical_flow == nullptr) {
+		uORB::Subscription sensor_optical_flow_sub{ORB_ID(sensor_optical_flow)};
+
+		if (sensor_optical_flow_sub.advertised()) {
+			_vehicle_optical_flow = new VehicleOpticalFlow();
+
+			if (_vehicle_optical_flow) {
+				_vehicle_optical_flow->Start();
+			}
+		}
+	}
+}
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
+
 void Sensors::Run()
 {
 	if (should_exit()) {
@@ -746,6 +786,16 @@ void Sensors::Run()
 		}
 
 #endif // CONFIG_SENSORS_VEHICLE_MAGNETOMETER
+
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+		const int n_optical_flow = orb_group_count(ORB_ID(sensor_optical_flow));
+
+		if (n_optical_flow != _n_optical_flow) {
+			_n_optical_flow = n_optical_flow;
+			updated = true;
+		}
+
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 
 
 		const int n_accel = orb_group_count(ORB_ID(sensor_accel));
@@ -876,6 +926,15 @@ int Sensors::print_status()
 	PX4_INFO_RAW("Airspeed status:\n");
 	_airspeed_validator.print();
 #endif // CONFIG_SENSORS_VEHICLE_AIRSPEED
+
+#if defined(CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW)
+
+	if (_vehicle_optical_flow) {
+		PX4_INFO_RAW("\n");
+		_vehicle_optical_flow->PrintStatus();
+	}
+
+#endif // CONFIG_SENSORS_VEHICLE_OPTICAL_FLOW
 
 	PX4_INFO_RAW("\n");
 	_vehicle_acceleration.PrintStatus();

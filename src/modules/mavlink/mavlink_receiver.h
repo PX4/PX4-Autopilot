@@ -86,13 +86,13 @@
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/onboard_computer_status.h>
-#include <uORB/topics/optical_flow.h>
 #include <uORB/topics/ping.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/sensor_baro.h>
 #include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/sensor_optical_flow.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
 #include <uORB/topics/trajectory_setpoint.h>
@@ -308,7 +308,6 @@ private:
 	uORB::Publication<offboard_control_mode_s>		_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<onboard_computer_status_s>		_onboard_computer_status_pub{ORB_ID(onboard_computer_status)};
 	uORB::Publication<generator_status_s>			_generator_status_pub{ORB_ID(generator_status)};
-	uORB::Publication<optical_flow_s>			_flow_pub{ORB_ID(optical_flow)};
 	uORB::Publication<vehicle_attitude_s>			_attitude_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 	uORB::Publication<vehicle_attitude_setpoint_s>		_mc_virtual_att_sp_pub{ORB_ID(mc_virtual_attitude_setpoint)};
@@ -338,6 +337,7 @@ private:
 	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status)};
 	uORB::PublicationMulti<sensor_baro_s>			_sensor_baro_pub{ORB_ID(sensor_baro)};
 	uORB::PublicationMulti<sensor_gps_s>			_sensor_gps_pub{ORB_ID(sensor_gps)};
+	uORB::PublicationMulti<sensor_optical_flow_s>         _sensor_optical_flow_pub{ORB_ID(sensor_optical_flow)};
 
 	// ORB publications (queue length > 1)
 	uORB::Publication<gps_inject_data_s>     _gps_inject_data_pub{ORB_ID(gps_inject_data)};
@@ -396,17 +396,9 @@ private:
 	hrt_abstime _heartbeat_component_udp_bridge{0};
 	hrt_abstime _heartbeat_component_uart_bridge{0};
 
-	param_t _handle_sens_flow_maxhgt{PARAM_INVALID};
-	param_t _handle_sens_flow_maxr{PARAM_INVALID};
-	param_t _handle_sens_flow_minhgt{PARAM_INVALID};
-	param_t _handle_sens_flow_rot{PARAM_INVALID};
 	param_t _handle_ekf2_min_rng{PARAM_INVALID};
 	param_t _handle_ekf2_rng_a_hmax{PARAM_INVALID};
 
-	float _param_sens_flow_maxhgt{-1.0f};
-	float _param_sens_flow_maxr{-1.0f};
-	float _param_sens_flow_minhgt{-1.0f};
-	int32_t _param_sens_flow_rot{0};
 	float _param_ekf2_min_rng{NAN};
 	float _param_ekf2_rng_a_hmax{NAN};
 

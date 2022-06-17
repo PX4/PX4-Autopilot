@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,9 @@
 
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
+
+namespace sensors
+{
 
 class Integrator
 {
@@ -94,6 +97,8 @@ public:
 	 */
 	inline bool integral_ready() const { return (_integrated_samples >= _reset_samples_min) || (_integral_dt >= _reset_interval_min); }
 
+	float integral_dt() const { return _integral_dt; }
+
 	void reset()
 	{
 		_alpha.zero();
@@ -137,7 +142,7 @@ protected:
 	matrix::Vector3f _last_val{0.f, 0.f, 0.f}; /**< previous input */
 	float _integral_dt{0};
 
-	float _reset_interval_min{0.005f}; /**< the interval after which the content will be published and the integrator reset */
+	float _reset_interval_min{0.001f}; /**< the interval after which the content will be published and the integrator reset */
 	uint8_t _reset_samples_min{1};
 
 	uint8_t _integrated_samples{0};
@@ -214,3 +219,5 @@ private:
 	matrix::Vector3f _last_alpha{0.f, 0.f, 0.f};       /**< previous value of _alpha */
 
 };
+
+}; // namespace sensors
