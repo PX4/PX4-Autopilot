@@ -5,6 +5,7 @@
 
 param set-default CBRK_IO_SAFETY 0
 param set-default CANNODE_GPS_RTCM 1
+param set-default MBE_ENABLE 1
 
 safety_button start
 tone_alarm start
