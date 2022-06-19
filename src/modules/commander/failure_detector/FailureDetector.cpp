@@ -221,8 +221,8 @@ void FailureDetector::updateAttitudeStatus()
 		const float max_roll(fabsf(math::radians(max_roll_deg)));
 		const float max_pitch(fabsf(math::radians(max_pitch_deg)));
 
-		const bool roll_status = (max_roll > 0.0f) && (fabsf(roll) > max_roll);
-		const bool pitch_status = (max_pitch > 0.0f) && (fabsf(pitch) > max_pitch);
+		const bool roll_status = (max_roll > FLT_EPSILON) && (fabsf(roll) > max_roll);
+		const bool pitch_status = (max_pitch > FLT_EPSILON) && (fabsf(pitch) > max_pitch);
 
 		hrt_abstime time_now = hrt_absolute_time();
 
@@ -384,7 +384,7 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 
 			// Check for telemetry timeout
 			const hrt_abstime telemetry_age = time_now - cur_esc_report.timestamp;
-			const bool esc_timed_out = telemetry_age > 100_ms;  // TODO: magic number
+			const bool esc_timed_out = telemetry_age > 300_ms;
 
 			const bool esc_was_valid = _motor_failure_esc_valid_current_mask & (1 << i_esc);
 			const bool esc_timeout_currently_flagged = _motor_failure_esc_timed_out_mask & (1 << i_esc);
@@ -399,35 +399,40 @@ void FailureDetector::updateMotorStatus(const vehicle_status_s &vehicle_status, 
 			}
 
 			// Check if ESC current is too low
-			float esc_throttle = 0.f;
-
-			if (PX4_ISFINITE(actuator_motors.control[i_esc])) {
-				esc_throttle = fabsf(actuator_motors.control[i_esc]);
+			if (cur_esc_report.esc_current > FLT_EPSILON) {
+				_motor_failure_escs_have_current = true;
 			}
 
-			const bool throttle_above_threshold = esc_throttle > _param_fd_motor_throttle_thres.get();
-			const bool current_too_low = cur_esc_report.esc_current < esc_throttle *
-						     _param_fd_motor_current2throttle_thres.get();
+			if (_motor_failure_escs_have_current) {
+				float esc_throttle = 0.f;
 
-			if (throttle_above_threshold && current_too_low && !esc_timed_out) {
-				if (_motor_failure_undercurrent_start_time[i_esc] == 0) {
-					_motor_failure_undercurrent_start_time[i_esc] = time_now;
+				if (PX4_ISFINITE(actuator_motors.control[i_esc])) {
+					esc_throttle = fabsf(actuator_motors.control[i_esc]);
 				}
 
-			} else {
-				if (_motor_failure_undercurrent_start_time[i_esc] != 0) {
-					_motor_failure_undercurrent_start_time[i_esc] = 0;
+				const bool throttle_above_threshold = esc_throttle > _param_fd_motor_throttle_thres.get();
+				const bool current_too_low = cur_esc_report.esc_current < esc_throttle *
+							     _param_fd_motor_current2throttle_thres.get();
+
+				if (throttle_above_threshold && current_too_low && !esc_timed_out) {
+					if (_motor_failure_undercurrent_start_time[i_esc] == 0) {
+						_motor_failure_undercurrent_start_time[i_esc] = time_now;
+					}
+
+				} else {
+					if (_motor_failure_undercurrent_start_time[i_esc] != 0) {
+						_motor_failure_undercurrent_start_time[i_esc] = 0;
+					}
 				}
+
+				if (_motor_failure_undercurrent_start_time[i_esc] != 0
+				    && (time_now - _motor_failure_undercurrent_start_time[i_esc]) > _param_fd_motor_time_thres.get() * 1_ms
+				    && (_motor_failure_esc_under_current_mask & (1 << i_esc)) == 0) {
+					// Set flag
+					_motor_failure_esc_under_current_mask |= (1 << i_esc);
+
+				} // else: this flag is never cleared, as the motor is stopped, so throttle < threshold
 			}
-
-			if (_motor_failure_undercurrent_start_time[i_esc] != 0
-			    && (time_now - _motor_failure_undercurrent_start_time[i_esc]) > _param_fd_motor_time_thres.get() * 1_ms
-			    && (_motor_failure_esc_under_current_mask & (1 << i_esc)) == 0) {
-				// Set flag
-				_motor_failure_esc_under_current_mask |= (1 << i_esc);
-
-			} // else: this flag is never cleared, as the motor is stopped, so throttle < threshold
-
 		}
 
 		bool critical_esc_failure = (_motor_failure_esc_timed_out_mask != 0 || _motor_failure_esc_under_current_mask != 0);

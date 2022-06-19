@@ -42,20 +42,18 @@ using namespace time_literals;
 
 Safety::Safety()
 {
-	/*
-	 * Safety can be turned off with the CBRK_IO_SAFETY parameter.
-	 */
+	// Safety can be turned off with the CBRK_IO_SAFETY parameter.
 	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+
+	if (_safety_disabled) {
+		_button_available = true;
+		_safety_off = true;
+	}
 }
 
 bool Safety::safetyButtonHandler()
 {
-	if (_safety_disabled) {
-		_button_available = true;
-		_safety_off = true;
-
-	} else {
-
+	if (!_safety_disabled) {
 		if (!_button_available && _safety_button_sub.advertised()) {
 			_button_available = true;
 		}
@@ -67,10 +65,8 @@ bool Safety::safetyButtonHandler()
 		}
 	}
 
-	bool safety_changed = _previous_safety_off != _safety_off;
-
+	const bool safety_changed = _previous_safety_off != _safety_off;
 	_previous_safety_off = _safety_off;
-
 	return safety_changed;
 }
 

@@ -88,103 +88,175 @@ struct ulog_key_header_s {
 	uint8_t	data[0];
 };
 
-#define ULOG_MSG_HEADER_LEN 3 //accounts for msg_size and msg_type
+
+/**
+ * @brief Message Header for the ULog
+ *
+ * This header components that is in the beginning of every ULog messages that gets written into
+ * Definitions section as well as the Data section of the ULog file.
+ */
 struct ulog_message_header_s {
-	uint16_t msg_size;
-	uint8_t msg_type;
+	uint16_t msg_size; ///< Size of the message excluding the header size
+	uint8_t msg_type; ///< Message type, which is one of the ASCII alphabet, defined in ULogMessageType
 };
 
+#define ULOG_MSG_HEADER_LEN 3 // Length of the header in bytes: accounts for msg_size (2 bytes) and msg_type (1 byte)
+
+/**
+ * @brief Format Message
+ *
+ * This message describes a single ULog topic's name and it's inner fields. The inner fields can have the type
+ * as defined in the uORB message file (e.g. msg/action_request.msg). Including other uORB topics, which is the
+ * nested type case.
+ *
+ * @param format Format of the uORB topic in the format: "message_name:field0;field1;"
+ * Example: "action_request:uint64_t timestamp;uint8_t action;uint8_t source;uint8_t mode;uint8_t[5] _padding0;"
+ */
 struct ulog_message_format_s {
-	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint16_t msg_size; ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::FORMAT);
 
 	char format[1500];
 };
 
+/**
+ * @brief Subscription Message
+ *
+ * This message describes which uORB topic the logger has subscribed to.
+ *
+ * Used for indicating which msg_id corresponds to which uORB topic name (message_name)
+ */
 struct ulog_message_add_logged_s {
-	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint16_t msg_size; ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::ADD_LOGGED_MSG);
 
-	uint8_t multi_id;
-	uint16_t msg_id;
-	char message_name[255];
+	uint8_t multi_id; ///< Multi instance id, if the topic is one of a multi instance uORB topic
+	uint16_t msg_id; ///< Message ID, an internally tracked id in the logger, which matches with the msg_id in ulog_message_data_s message
+	char message_name[255]; ///< Name of the uORB topic
 };
 
+/**
+ * @brief Unsubscription Message
+ *
+ * This message describes which uORB topic the logger has unsubscribed from.
+ */
 struct ulog_message_remove_logged_s {
-	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint16_t msg_size; ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::REMOVE_LOGGED_MSG);
 
 	uint16_t msg_id;
 };
 
+/**
+ * @brief Sync Message
+ */
 struct ulog_message_sync_s {
-	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint16_t msg_size; ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::SYNC);
 
 	uint8_t sync_magic[8];
 };
 
 struct ulog_message_dropout_s {
-	uint16_t msg_size = sizeof(uint16_t); //size of message - ULOG_MSG_HEADER_LEN
+	uint16_t msg_size = sizeof(uint16_t); ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::DROPOUT);
 
-	uint16_t duration; //in ms
+	uint16_t duration; ///< in ms
 };
 
-struct ulog_message_data_header_s {
-	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+/**
+ * @brief Logged Data Message
+ *
+ * Includes the binary data of the uORB topic with the corresponding logger's internal msg_id.
+ *
+ * The uint8_t data[] section follows after the msg_id part, but the message struct only defines up until the msg_id,
+ * since the data length varies per each uORB topic (the struct size of the uORB message).
+ */
+struct ulog_message_data_s {
+	uint16_t msg_size; ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::DATA);
 
 	uint16_t msg_id;
 };
 
-struct ulog_message_info_header_s {
-	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+/**
+ * @brief Information Message
+ *
+ * Writes the dictionary type key:value relationship of any kind of information.
+ *
+ * Example: key_value_str[] = "char[5] sys_toolchain_ver9.4.0"
+ */
+struct ulog_message_info_s {
+	uint16_t msg_size; ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::INFO);
 
-	uint8_t key_len;
-	char key[255];
+	uint8_t key_len; ///<  Length of the 'key'
+	char key_value_str[255]; ///<  String with the key and value information
 };
 
-struct ulog_message_info_multiple_header_s {
-	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+/**
+ * @brief Multiple Information Message
+ *
+ * Writes the dictionary type key:value relationship of any kind of information, but
+ * for the ones which has a long value that can't be contained in a single Information Message.
+ */
+struct ulog_message_info_multiple_s {
+	uint16_t msg_size; ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::INFO_MULTIPLE);
 
-	uint8_t is_continued; ///< can be used for arrays: set to 1, if this message is part of the previous with the same key
-	uint8_t key_len;
-	char key[255];
+	uint8_t is_continued; ///< Can be used for arrays: set to 1, if this message is part of the previous with the same key
+	uint8_t key_len;      ///< Length of the 'key'
+	char key_value_str[255]; ///< String with the key and value information
 };
 
+/**
+ * @brief Logged String Message
+ *
+ * Logged string, either from PX4_INFO() macro calls or MAVLink information messages, etc.
+ * Useful for Debugging.
+ */
 struct ulog_message_logging_s {
-	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint16_t msg_size; ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::LOGGING);
 
-	uint8_t log_level; //same levels as in the linux kernel
+	uint8_t log_level; ///< same levels as in the linux kernel
 	uint64_t timestamp;
-	char message[128]; //defines the maximum length of a logged message string
+	char message[128]; ///< defines the maximum length of a logged message string
 };
 
 struct ulog_message_logging_tagged_s {
-	uint16_t msg_size; //size of message - ULOG_MSG_HEADER_LEN
+	uint16_t msg_size; ///< size of message - ULOG_MSG_HEADER_LEN
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::LOGGING_TAGGED);
 
-	uint8_t log_level; //same levels as in the linux kernel
+	uint8_t log_level; ///< same levels as in the linux kernel
 	uint16_t tag;
 	uint64_t timestamp;
-	char message[128]; //defines the maximum length of a logged message string
+	char message[128]; ///< defines the maximum length of a logged message string
 };
 
-struct ulog_message_parameter_header_s {
+/**
+ * @brief Parameter Message
+ *
+ * Includes a parameter value information in the format "<TYPE> <PARAMETER_NAME> <VALUE>"
+ */
+struct ulog_message_parameter_s {
 	uint16_t msg_size;
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER);
 
 	uint8_t key_len;
-	char key[255];
+	char key_value_str[255]; ///<  String with the key and value information
 };
 
+/**
+ * @brief ULog default parameter type flags
+ *
+ * These flags indicate whether the default parameter defined in the ulog_message_parameter_default_s message
+ * is System's default or the User setup's default value. As user can set a custom default parameter for each
+ * vehicle setup that overrides the system's default value.
+ */
 enum class ulog_parameter_default_type_t : uint8_t {
-	system = (1 << 0),
-	current_setup = (1 << 1) //airframe default
+	system = (1 << 0), ///< System wide default parameter
+	current_setup = (1 << 1) ///<  Custom setup default parameter
 };
 
 inline ulog_parameter_default_type_t operator|(ulog_parameter_default_type_t a, ulog_parameter_default_type_t b)
@@ -192,13 +264,20 @@ inline ulog_parameter_default_type_t operator|(ulog_parameter_default_type_t a, 
 	return static_cast<ulog_parameter_default_type_t>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
 }
 
-struct ulog_message_parameter_default_header_s {
+/**
+ * @brief Default Parameter Message
+ *
+ * This message defines a parameter name and it's default value. Which is useful for figuring out in ULog analyzer
+ * which Parameters are non-default (User modified), which can give a quick insight into how the vehicle is configured,
+ * since the default parameter values are well known & understood (e.g. PID Tuning values)
+ */
+struct ulog_message_parameter_default_s {
 	uint16_t msg_size;
 	uint8_t msg_type = static_cast<uint8_t>(ULogMessageType::PARAMETER_DEFAULT);
 
 	ulog_parameter_default_type_t default_types;
 	uint8_t key_len;
-	char key[255];
+	char key_value_str[255]; ///<  String with the key and value information
 };
 
 

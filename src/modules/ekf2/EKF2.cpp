@@ -72,7 +72,7 @@ EKF2::EKF2(bool multi_mode, const px4::wq_config_t &config, bool replay_mode):
 	_param_ekf2_acc_b_noise(_params->accel_bias_p_noise),
 	_param_ekf2_mag_e_noise(_params->mage_p_noise),
 	_param_ekf2_mag_b_noise(_params->magb_p_noise),
-	_param_ekf2_wind_noise(_params->wind_vel_p_noise),
+	_param_ekf2_wind_nsd(_params->wind_vel_nsd),
 	_param_ekf2_terr_noise(_params->terrain_p_noise),
 	_param_ekf2_terr_grad(_params->terrain_gradient),
 	_param_ekf2_gps_v_noise(_params->gps_vel_noise),
@@ -343,18 +343,20 @@ void EKF2::Run()
 
 		if (_vehicle_command_sub.update(&vehicle_command)) {
 			if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_SET_GPS_GLOBAL_ORIGIN) {
-				if (!_ekf.control_status_flags().in_air) {
+				double latitude = vehicle_command.param5;
+				double longitude = vehicle_command.param6;
+				float altitude = vehicle_command.param7;
 
-					uint64_t origin_time {};
-					double latitude = vehicle_command.param5;
-					double longitude = vehicle_command.param6;
-					float altitude = vehicle_command.param7;
-
-					_ekf.setEkfGlobalOrigin(latitude, longitude, altitude);
-
+				if (_ekf.setEkfGlobalOrigin(latitude, longitude, altitude)) {
 					// Validate the ekf origin status.
+					uint64_t origin_time {};
 					_ekf.getEkfGlobalOrigin(origin_time, latitude, longitude, altitude);
-					PX4_INFO("New NED origin (LLA): %3.10f, %3.10f, %4.3f\n", latitude, longitude, static_cast<double>(altitude));
+					PX4_INFO("%d - New NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
+						 _instance, latitude, longitude, static_cast<double>(altitude));
+
+				} else {
+					PX4_ERR("%d - Failed to set new NED origin (LLA): %3.10f, %3.10f, %4.3f\n",
+						_instance, latitude, longitude, static_cast<double>(altitude));
 				}
 			}
 		}
@@ -876,6 +878,11 @@ void EKF2::PublishInnovations(const hrt_abstime &timestamp)
 		_preflt_checker.setUsingFlowAiding(_ekf.control_status_flags().opt_flow);
 		_preflt_checker.setUsingEvPosAiding(_ekf.control_status_flags().ev_pos);
 		_preflt_checker.setUsingEvVelAiding(_ekf.control_status_flags().ev_vel);
+
+		_preflt_checker.setUsingBaroHgtAiding(_ekf.control_status_flags().baro_hgt);
+		_preflt_checker.setUsingGpsHgtAiding(_ekf.control_status_flags().gps_hgt);
+		_preflt_checker.setUsingRngHgtAiding(_ekf.control_status_flags().rng_hgt);
+		_preflt_checker.setUsingEvHgtAiding(_ekf.control_status_flags().ev_hgt);
 
 		_preflt_checker.update(_ekf.get_imu_sample_delayed().delta_ang_dt, innovations);
 

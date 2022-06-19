@@ -139,6 +139,11 @@ public:
 	// Blocking call to get the drone's current position in NED frame
 	std::array<float, 3> get_current_position_ned();
 
+	void set_param_int(const std::string &param, int32_t value)
+	{
+		CHECK(_param->set_param_int(param, value) == Param::Result::Success);
+	}
+
 protected:
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}

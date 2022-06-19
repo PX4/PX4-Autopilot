@@ -53,7 +53,7 @@
  *
  * Setting this parameter to 0 disables the check
  *
- * @min 60
+ * @min 0
  * @max 180
  * @unit deg
  * @group Failure Detector
@@ -71,7 +71,7 @@ PARAM_DEFINE_INT32(FD_FAIL_R, 60);
  *
  * Setting this parameter to 0 disables the check
  *
- * @min 60
+ * @min 0
  * @max 180
  * @unit deg
  * @group Failure Detector

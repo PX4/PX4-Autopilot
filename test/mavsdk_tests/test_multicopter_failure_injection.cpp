@@ -41,6 +41,7 @@ TEST_CASE("Failure Injection - Reject mid-air when it is disabled", "[multicopte
 	AutopilotTesterFailure tester;
 	tester.connect(connection_url);
 	tester.wait_until_ready();
+	tester.set_param_int("SYS_FAILURE_EN", 0);
 	tester.arm();
 	tester.takeoff();
 	tester.wait_until_hovering();
@@ -51,11 +52,3 @@ TEST_CASE("Failure Injection - Reject mid-air when it is disabled", "[multicopte
 	tester.wait_until_disarmed(until_disarmed_timeout);
 }
 
-TEST_CASE("Failure Injection - Reject before arming", "[multicopter]")
-{
-	AutopilotTesterFailure tester;
-	tester.connect(connection_url);
-	tester.wait_until_ready();
-	tester.inject_failure(mavsdk::Failure::FailureUnit::SystemMotor, mavsdk::Failure::FailureType::Off, 1,
-			      mavsdk::Failure::Result::Disabled);
-}

@@ -169,9 +169,9 @@ public:
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
 	bool getEkfGlobalOrigin(uint64_t &origin_time, double &latitude, double &longitude, float &origin_alt) const;
-	void setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude);
+	bool setEkfGlobalOrigin(const double latitude, const double longitude, const float altitude);
 
-	float getEkfGlobalOriginAltitude() const { return _gps_alt_ref; }
+	float getEkfGlobalOriginAltitude() const { return PX4_ISFINITE(_gps_alt_ref) ? _gps_alt_ref : 0.f; }
 	bool setEkfGlobalOriginAltitude(const float altitude);
 
 
@@ -521,7 +521,7 @@ private:
 
 	// Variables used to publish the WGS-84 location of the EKF local NED origin
 	uint64_t _last_gps_origin_time_us{0};	///< time the origin was last set (uSec)
-	float _gps_alt_ref{0.0f};		///< WGS-84 height (m)
+	float _gps_alt_ref{NAN};		///< WGS-84 height (m)
 
 	// Variables used by the initial filter alignment
 	bool _is_first_imu_sample{true};

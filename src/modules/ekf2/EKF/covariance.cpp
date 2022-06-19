@@ -187,7 +187,7 @@ void Ekf::predictCovariance()
 		mag_B_sig = 0.0f;
 	}
 
-	float wind_vel_sig;
+	float wind_vel_nsd_scaled;
 
 	// Calculate low pass filtered height rate
 	float alpha_height_rate_lpf = 0.1f * dt; // 10 seconds time constant
@@ -195,10 +195,10 @@ void Ekf::predictCovariance()
 
 	// Don't continue to grow wind velocity state variances if they are becoming too large or we are not using wind velocity states as this can make the covariance matrix badly conditioned
 	if (_control_status.flags.wind && (P(22,22) + P(23,23)) < sq(_params.initial_wind_uncertainty)) {
-		wind_vel_sig = dt * math::constrain(_params.wind_vel_p_noise, 0.0f, 1.0f) * (1.0f + _params.wind_vel_p_noise_scaler * fabsf(_height_rate_lpf));
+		wind_vel_nsd_scaled = math::constrain(_params.wind_vel_nsd, 0.0f, 1.0f) * (1.0f + _params.wind_vel_nsd_scaler * fabsf(_height_rate_lpf));
 
 	} else {
-		wind_vel_sig = 0.0f;
+		wind_vel_nsd_scaled = 0.0f;
 	}
 
 	// compute noise variance for stationary processes
@@ -216,7 +216,7 @@ void Ekf::predictCovariance()
 	// body frame magnetic field states
 	process_noise.slice<3, 1>(19, 0) = sq(mag_B_sig);
 	// wind velocity states
-	process_noise.slice<2, 1>(22, 0) = sq(wind_vel_sig);
+	process_noise.slice<2, 1>(22, 0) = sq(wind_vel_nsd_scaled) * dt;
 
 	// assign IMU noise variances
 	// inputs to the system are 3 delta angles and 3 delta velocities

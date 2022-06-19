@@ -102,10 +102,29 @@ bool PreFlightChecker::preFlightCheckVertVelFailed(const estimator_innovations_s
 
 bool PreFlightChecker::preFlightCheckHeightFailed(const estimator_innovations_s &innov, const float alpha)
 {
-	const float hgt_innov = fmaxf(fabsf(innov.gps_vpos), fmaxf(fabs(innov.ev_vpos),
-				      fabs(innov.rng_vpos)));    // only temporary solution
-	const float hgt_innov_lpf = _filter_hgt_innov.update(hgt_innov, alpha, _hgt_innov_spike_lim);
-	return checkInnovFailed(hgt_innov_lpf, hgt_innov, _hgt_innov_test_lim, _hgt_innov_spike_lim);
+	bool has_failed = false;
+
+	if (_is_using_baro_hgt_aiding) {
+		const float baro_hgt_innov_lpf = _filter_baro_hgt_innov.update(innov.baro_vpos, alpha, _hgt_innov_spike_lim);
+		has_failed |= checkInnovFailed(baro_hgt_innov_lpf, innov.baro_vpos, _hgt_innov_test_lim, _hgt_innov_spike_lim);
+	}
+
+	if (_is_using_gps_hgt_aiding) {
+		const float gps_hgt_innov_lpf = _filter_gps_hgt_innov.update(innov.gps_vpos, alpha, _hgt_innov_spike_lim);
+		has_failed |= checkInnovFailed(gps_hgt_innov_lpf, innov.gps_vpos, _hgt_innov_test_lim, _hgt_innov_spike_lim);
+	}
+
+	if (_is_using_rng_hgt_aiding) {
+		const float rng_hgt_innov_lpf = _filter_rng_hgt_innov.update(innov.rng_vpos, alpha, _hgt_innov_spike_lim);
+		has_failed |= checkInnovFailed(rng_hgt_innov_lpf, innov.rng_vpos, _hgt_innov_test_lim, _hgt_innov_spike_lim);
+	}
+
+	if (_is_using_ev_hgt_aiding) {
+		const float ev_hgt_innov_lpf = _filter_ev_hgt_innov.update(innov.ev_vpos, alpha, _hgt_innov_spike_lim);
+		has_failed |= checkInnovFailed(ev_hgt_innov_lpf, innov.ev_vpos, _hgt_innov_test_lim, _hgt_innov_spike_lim);
+	}
+
+	return has_failed;
 }
 
 bool PreFlightChecker::checkInnovFailed(const float innov_lpf, const float innov, const float test_limit,
@@ -127,6 +146,10 @@ void PreFlightChecker::reset()
 	_is_using_flow_aiding = false;
 	_is_using_ev_pos_aiding = false;
 	_is_using_ev_vel_aiding = false;
+	_is_using_baro_hgt_aiding = false;
+	_is_using_gps_hgt_aiding = false;
+	_is_using_rng_hgt_aiding = false;
+	_is_using_ev_hgt_aiding = false;
 	_has_heading_failed = false;
 	_has_horiz_vel_failed = false;
 	_has_vert_vel_failed = false;
@@ -134,7 +157,10 @@ void PreFlightChecker::reset()
 	_filter_vel_n_innov.reset();
 	_filter_vel_e_innov.reset();
 	_filter_vel_d_innov.reset();
-	_filter_hgt_innov.reset();
+	_filter_baro_hgt_innov.reset();
+	_filter_gps_hgt_innov.reset();
+	_filter_rng_hgt_innov.reset();
+	_filter_ev_hgt_innov.reset();
 	_filter_heading_innov.reset();
 	_filter_flow_x_innov.reset();
 	_filter_flow_y_innov.reset();

@@ -154,6 +154,8 @@ param set-default SDLOG_DIRS_MAX 7
 
 param set-default TRIG_INTERFACE 3
 
+param set-default SYS_FAILURE_EN 1
+
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ -n "$PX4_SIM_SPEED_FACTOR" ]; then
 	COM_DL_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
@@ -202,8 +204,11 @@ param set IMU_INTEG_RATE 250
 . px4-rc.params
 
 dataman start
+# start sih in sih_sim mode, otherwise simulator module
+if [ "$SIM_MODE" = "sihsim" ]; then
+	sih start
 # only start the simulator if not in replay mode, as both control the lockstep time
-if ! replay tryapplyparams
+elif ! replay tryapplyparams
 then
   . px4-rc.simulator
 fi

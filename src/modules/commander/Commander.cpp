@@ -829,9 +829,6 @@ Commander::Commander() :
 	_vehicle_status.system_type = 0;
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNKNOWN;
 
-	// XXX for now just set sensors as initialized
-	_vehicle_status_flags.system_sensors_initialized = true;
-
 	// We want to accept RC inputs as default
 	_vehicle_status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	_vehicle_status.nav_state_timestamp = hrt_absolute_time();
@@ -2201,7 +2198,6 @@ Commander::run()
 		perf_begin(_loop_perf);
 
 		const actuator_armed_s actuator_armed_prev{_actuator_armed};
-		const vehicle_status_flags_s vehicle_status_flags_prev{_vehicle_status_flags};
 
 		/* update parameters */
 		const bool params_updated = _parameter_update_sub.updated();
@@ -2298,21 +2294,22 @@ Commander::run()
 		}
 
 		/* safety button */
-		bool safety_updated = _safety.safetyButtonHandler();
+		const bool safety_changed = _safety.safetyButtonHandler();
 		_vehicle_status.safety_button_available = _safety.isButtonAvailable();
 		_vehicle_status.safety_off = _safety.isSafetyOff();
 
-		if (safety_updated) {
-
+		if (safety_changed) {
 			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MOTORCONTROL, _safety.isButtonAvailable(), _safety.isSafetyOff(),
 					 _safety.isButtonAvailable(), _vehicle_status);
 
 			// Notify the user if the status of the safety button changes
-			if (_safety.isSafetyOff()) {
-				set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
+			if (!_safety.isSafetyDisabled()) {
+				if (_safety.isSafetyOff()) {
+					set_tune(tune_control_s::TUNE_ID_NOTIFY_POSITIVE);
 
-			} else {
-				tune_neutral(true);
+				} else {
+					tune_neutral(true);
+				}
 			}
 
 			_status_changed = true;
@@ -3006,9 +3003,6 @@ Commander::run()
 
 			// Evaluate current prearm status (skip during arm -> disarm transition)
 			if (!actuator_armed_prev.armed && !_arm_state_machine.isArmed() && !_vehicle_status_flags.calibration_enabled) {
-
-				_vehicle_status_flags.system_hotplug_timeout = (hrt_elapsed_time(&_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
-
 				perf_begin(_preflight_check_perf);
 				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _vehicle_status, _vehicle_status_flags,
 							   _vehicle_control_mode,
@@ -3022,8 +3016,9 @@ Commander::run()
 							_safety.isButtonAvailable(), _safety.isSafetyOff(),
 							arm_req, _vehicle_status, false);
 
-				const bool prearm_check_ok = preflight_check_res && prearm_check_res;
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, prearm_check_ok, _vehicle_status);
+				_vehicle_status_flags.pre_flight_checks_pass = preflight_check_res && prearm_check_res;
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true,
+						 _vehicle_status_flags.pre_flight_checks_pass, _vehicle_status);
 			}
 
 			// publish actuator_armed first (used by output modules)
@@ -3098,13 +3093,6 @@ Commander::run()
 			}
 
 			_arm_tune_played = false;
-		}
-
-		/* play sensor failure tunes if we already waited for hotplug sensors to come up and failed */
-		if (!_vehicle_status_flags.system_sensors_initialized &&
-		    !vehicle_status_flags_prev.system_hotplug_timeout && _vehicle_status_flags.system_hotplug_timeout) {
-
-			set_tune_override(tune_control_s::TUNE_ID_GPS_WARNING);
 		}
 
 		// check if the worker has finished
@@ -3228,15 +3216,11 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
-		} else if (!_vehicle_status_flags.system_sensors_initialized && _vehicle_status_flags.system_hotplug_timeout) {
+		} else if (!_vehicle_status_flags.pre_flight_checks_pass) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_RED;
 
 		} else if (_arm_state_machine.isStandby()) {
-			led_mode = led_control_s::MODE_BREATHE;
-			set_normal_color = true;
-
-		} else if (!_vehicle_status_flags.system_sensors_initialized && !_vehicle_status_flags.system_hotplug_timeout) {
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 
@@ -3805,7 +3789,7 @@ void Commander::avoidance_check()
 
 void Commander::battery_status_check()
 {
-	int battery_required_count{0};
+	size_t battery_required_count = 0;
 	bool battery_has_fault = false;
 	// There are possibly multiple batteries, and we can't know which ones serve which purpose. So the safest
 	// option is to check if ANY of them have a warning, and specifically find which one has the most
@@ -3830,7 +3814,7 @@ void Commander::battery_status_check()
 
 		if (_arm_state_machine.isArmed()) {
 
-			if ((_last_connected_batteries & (1 << index)) && !battery.connected) {
+			if (_last_connected_batteries[index] && !battery.connected) {
 				mavlink_log_critical(&_mavlink_log_pub, "Battery %d disconnected. Land now! \t", index + 1);
 				events::send<uint8_t>(events::ID("commander_battery_disconnected"), {events::Log::Emergency, events::LogInternal::Warning},
 						      "Battery {1} disconnected. Land now!", index + 1);
@@ -3847,13 +3831,7 @@ void Commander::battery_status_check()
 			}
 		}
 
-		if (battery.connected) {
-			_last_connected_batteries |= 1 << index;
-
-		} else {
-			_last_connected_batteries &= ~(1 << index);
-		}
-
+		_last_connected_batteries.set(index, battery.connected);
 		_last_battery_mode[index] = battery.mode;
 
 		if (battery.connected) {
@@ -3958,7 +3936,7 @@ void Commander::battery_status_check()
 		// All connected batteries are regularly being published
 		(hrt_elapsed_time(&oldest_update) < 5_s)
 		// There is at least one connected battery (in any slot)
-		&& (math::countSetBits(_last_connected_batteries) >= battery_required_count)
+		&& (_last_connected_batteries.count() >= battery_required_count)
 		// No currently-connected batteries have any warning
 		&& (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)
 		// No currently-connected batteries have any fault
