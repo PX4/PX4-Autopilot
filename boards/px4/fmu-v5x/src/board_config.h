@@ -200,6 +200,7 @@
 #define V5X000a0000   HW_VER_REV(0xa,0x0) // NO USB (Q),                     Rev 0
 #define V5X000a0001   HW_VER_REV(0xa,0x1) // NO USB (Q) I2C2 BMP388,         Rev 1
 #define V5X000a0002   HW_VER_REV(0xa,0x2) // NO USB (Q) I2C2 BMP388,         Rev 2
+#define V5X00100001   HW_VER_REV(0x10,0x1) // NO USB (Q) I2C2 BMP388,        Rev 1
 
 #define UAVCAN_NUM_IFACES_RUNTIME 1
 

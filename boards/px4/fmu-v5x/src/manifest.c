@@ -172,6 +172,7 @@ static px4_hw_mft_list_entry_t mft_lists[] = {
 	{V5X000a0000, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB (Q),             Rev 0
 	{V5X000a0001, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB (Q) I2C2 BMP388, Rev 1
 	{V5X000a0002, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB (Q) I2C2 BMP388, Rev 2
+	{V5X00100001, hw_mft_list_v0509, arraySize(hw_mft_list_v0509)}, // NO USB I2C2 BMP388,     Rev 1
 };
 
 /************************************************************************************
