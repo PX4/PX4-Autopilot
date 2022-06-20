@@ -157,13 +157,13 @@ static const px4_hw_mft_item_t hw_mft_list_v0600[] = {
 
 
 static px4_hw_mft_list_entry_t mft_lists[] = {
-	{V500, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},
-	{V515, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},  // Alias for CUAV V5 R:5 V:1
-	{V540, hw_mft_list_v0540,        arraySize(hw_mft_list_v0540)},  // HolyBro mini no can 2,3
-	{V550, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},  // Alias for CUAV V5+ R:0 V:5
-	{V552, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},  // Alias for CUAV V5+ R:2 V:5 ICM42688P
-	{V560, hw_mft_list_v0600,        arraySize(hw_mft_list_v0600)},  // CUAV V5nano R:0 V:6 with can 2
-	{V562, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},  // Alias for CUAV V5nano R:2 V:6 ICM42688P
+	{V500000000, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},
+	{V500010005, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},  // Alias for CUAV V5 R:5 V:1
+	{V500040000, hw_mft_list_v0540,        arraySize(hw_mft_list_v0540)},  // HolyBro mini no can 2,3
+	{V500050000, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},  // Alias for CUAV V5+ R:0 V:5
+	{V500050002, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},  // Alias for CUAV V5+ R:2 V:5 ICM42688P
+	{V500060000, hw_mft_list_v0600,        arraySize(hw_mft_list_v0600)},  // CUAV V5nano R:0 V:6 with can 2
+	{V500060002, hw_mft_list_v0500,        arraySize(hw_mft_list_v0500)},  // Alias for CUAV V5nano R:2 V:6 ICM42688P
 };
 
 /************************************************************************************
@@ -186,7 +186,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 	static px4_hw_mft_list_entry boards_manifest = px4_hw_mft_list_uninitialized;
 
 	if (boards_manifest == px4_hw_mft_list_uninitialized) {
-		uint32_t ver_rev = board_get_hw_version() << 8;
+		uint32_t ver_rev = board_get_hw_version() << 16;
 		ver_rev |= board_get_hw_revision();
 
 		for (unsigned i = 0; i < arraySize(mft_lists); i++) {
@@ -197,7 +197,7 @@ __EXPORT px4_hw_mft_item board_query_manifest(px4_hw_mft_item_id_t id)
 		}
 
 		if (boards_manifest == px4_hw_mft_list_uninitialized) {
-			syslog(LOG_ERR, "[boot] Board %4"  PRIx32 " is not supported!\n", ver_rev);
+			syslog(LOG_ERR, "[boot] Board %08"  PRIx32 " is not supported!\n", ver_rev);
 		}
 	}
 
