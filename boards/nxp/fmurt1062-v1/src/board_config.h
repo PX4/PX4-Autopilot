@@ -192,9 +192,8 @@
 #define GPIO_HW_VER_REV_DRIVE /* GPIO_AD_B0_01 GPIO1_IO01   */  (GPIO_PORT1 | GPIO_PIN1 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | HW_IOMUX)
 #define GPIO_HW_REV_SENSE     /* GPIO_AD_B1_08 GPIO1 Pin 24 */  ADC1_GPIO(13, 24)
 #define GPIO_HW_VER_SENSE     /* GPIO_AD_B1_04 GPIO1 Pin 20 */  ADC1_GPIO(9,  20)
-#define HW_INFO_INIT          {'V','5','x', 'x',0}
-#define HW_INFO_INIT_VER      2
-#define HW_INFO_INIT_REV      3
+#define HW_INFO_INIT          "V5%04x%04x"
+
 /* CAN Silence
  *
  * Silent mode control \ ESC Mux select

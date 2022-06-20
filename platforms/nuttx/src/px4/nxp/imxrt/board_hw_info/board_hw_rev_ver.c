@@ -52,12 +52,15 @@
 #    define GPIO_HW_REV_DRIVE GPIO_HW_VER_REV_DRIVE
 #    define GPIO_HW_VER_DRIVE GPIO_HW_VER_REV_DRIVE
 #  endif
+
+#define HW_INFO_SIZE 20 //<! Size to fit hw_info string
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 static int hw_version = 0;
 static int hw_revision = 0;
-static char hw_info[] = HW_INFO_INIT;
+static char hw_info[HW_INFO_SIZE] = {0};
 
 /****************************************************************************
  * Protected Functions
@@ -338,8 +341,16 @@ int board_determine_hw_info()
 	int rv = determine_hw_info(&hw_revision, &hw_version);
 
 	if (rv == OK) {
-		hw_info[HW_INFO_INIT_REV] = board_get_hw_revision() + '0';
-		hw_info[HW_INFO_INIT_VER] = board_get_hw_version() + '0';
+
+		if (rv == OK) {
+
+			int hw_info_size = snprintf(hw_info, HW_INFO_SIZE, HW_INFO_INIT, hw_version, hw_revision);
+
+			if ((hw_info_size < 0) || (hw_info_size >= HW_INFO_SIZE)) {
+				printf("[boot] Error, hw_info string hasn't been completely written\n");
+				rv = -1;
+			}
+		}
 	}
 
 	return rv;

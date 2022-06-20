@@ -83,9 +83,7 @@
 #define GPIO_HW_VER_REV_DRIVE /* PB1 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN1)
 #define GPIO_HW_REV_SENSE     /* PA0 */ ADC1_GPIO(0)
 #define GPIO_HW_VER_SENSE     /* PA1 */ ADC1_GPIO(1)
-#define HW_INFO_INIT         {'C','A','N','G','P','S','x', 'x',0}
-#define HW_INFO_INIT_VER     6
-#define HW_INFO_INIT_REV     7
+#define HW_INFO_INIT         "CANGPS%04x%04x"
 
 #define FLASH_BASED_PARAMS
 
