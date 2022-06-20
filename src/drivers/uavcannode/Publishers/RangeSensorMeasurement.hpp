@@ -81,19 +81,19 @@ public:
 
 			// sensor type
 			switch (dist.type) {
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_LASER:
+			case distance_sensor_s::TYPE_LASER:
 				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_LIDAR;
 				break;
 
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND:
+			case distance_sensor_s::TYPE_ULTRASOUND:
 				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_SONAR;
 				break;
 
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR:
+			case distance_sensor_s::TYPE_RADAR:
 				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_RADAR;
 				break;
 
-			case distance_sensor_s::MAV_DISTANCE_SENSOR_INFRARED:
+			case distance_sensor_s::TYPE_INFRARED:
 			default:
 				range_sensor.sensor_type = uavcan::equipment::range_sensor::Measurement::SENSOR_TYPE_UNDEFINED;
 				break;

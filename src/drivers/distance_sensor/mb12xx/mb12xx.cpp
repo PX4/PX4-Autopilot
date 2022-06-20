@@ -227,7 +227,7 @@ MB12XX::collect()
 	report.orientation      = _sensor_rotations[_sensor_index];
 	report.signal_quality   = -1;
 	report.timestamp        = hrt_absolute_time();
-	report.type             = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+	report.type             = distance_sensor_s::TYPE_ULTRASOUND;
 	report.variance         = 0.0f;
 
 	int instance_id;

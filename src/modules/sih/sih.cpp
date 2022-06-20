@@ -624,7 +624,7 @@ void Sih::send_airspeed()
 void Sih::send_dist_snsr()
 {
 	_distance_snsr.timestamp = _now;
-	_distance_snsr.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	_distance_snsr.type = distance_sensor_s::TYPE_LASER;
 	_distance_snsr.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	_distance_snsr.min_distance = _distance_snsr_min;
 	_distance_snsr.max_distance = _distance_snsr_max;

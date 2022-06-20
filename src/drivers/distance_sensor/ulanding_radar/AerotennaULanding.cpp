@@ -56,7 +56,7 @@ AerotennaULanding::AerotennaULanding(const char *port, uint8_t rotation) :
 
 	_px4_rangefinder.set_device_id(device_id.devid);
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_ULANDING);
-	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR);
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::TYPE_RADAR);
 
 	_px4_rangefinder.set_min_distance(ULANDING_MIN_DISTANCE);
 	_px4_rangefinder.set_max_distance(ULANDING_MAX_DISTANCE);

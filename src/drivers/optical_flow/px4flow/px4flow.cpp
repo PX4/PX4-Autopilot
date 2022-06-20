@@ -319,7 +319,7 @@ PX4FLOW::collect()
 		distance_report.current_distance = report.ground_distance_m;
 		distance_report.variance = 0.0f;
 		distance_report.signal_quality = -1;
-		distance_report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+		distance_report.type = distance_sensor_s::TYPE_ULTRASOUND;
 		distance_report.device_id = device_id.devid;
 		distance_report.orientation = _sonar_rotation;
 

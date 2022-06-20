@@ -220,7 +220,7 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 
 	message.variance = 0.1f;
 	message.signal_quality = 100;
-	message.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	message.type = distance_sensor_s::TYPE_LASER;
 	message.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
 	message.h_fov = math::radians(50.f);
 	message.v_fov = math::radians(30.f);

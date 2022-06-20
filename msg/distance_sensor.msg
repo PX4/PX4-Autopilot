@@ -11,10 +11,11 @@ float32 variance		# Measurement variance (in m^2), 0 for unknown / invalid readi
 int8 signal_quality		# Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
 
 uint8 type			# Type from MAV_DISTANCE_SENSOR enum
-uint8 MAV_DISTANCE_SENSOR_LASER = 0
-uint8 MAV_DISTANCE_SENSOR_ULTRASOUND = 1
-uint8 MAV_DISTANCE_SENSOR_INFRARED = 2
-uint8 MAV_DISTANCE_SENSOR_RADAR = 3
+uint8 TYPE_UNKNOWN    = 0
+uint8 TYPE_LASER      = 1
+uint8 TYPE_ULTRASOUND = 2
+uint8 TYPE_INFRARED   = 3
+uint8 TYPE_RADAR      = 4
 
 float32 h_fov # Sensor horizontal field of view (rad)
 float32 v_fov # Sensor vertical field of view (rad)

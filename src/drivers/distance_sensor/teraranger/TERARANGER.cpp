@@ -79,7 +79,7 @@ TERARANGER::TERARANGER(const I2CSPIDriverConfig &config) :
 	_px4_rangefinder(get_device_id(), config.rotation)
 {
 	_px4_rangefinder.set_device_type(DRV_DIST_DEVTYPE_TERARANGER);
-	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
+	_px4_rangefinder.set_rangefinder_type(distance_sensor_s::TYPE_LASER);
 }
 
 TERARANGER::~TERARANGER()

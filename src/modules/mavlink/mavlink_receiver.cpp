@@ -841,7 +841,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 		d.min_distance = _param_ekf2_min_rng;
 		d.max_distance = _param_ekf2_rng_a_hmax;
 		d.current_distance = flow.distance; /* both are in m */
-		d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+		d.type = distance_sensor_s::TYPE_ULTRASOUND;
 		d.device_id = device_id.devid;
 		d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 		d.variance = 0.01;
@@ -887,7 +887,7 @@ MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 	d.min_distance = 0.3f;
 	d.max_distance = 5.0f;
 	d.current_distance = flow.distance; /* both are in m */
-	d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	d.type = distance_sensor_s::TYPE_LASER;
 	d.device_id = device_id.devid;
 	d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
 	d.variance = 0.01;
@@ -939,24 +939,54 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	device_id.devid_s.address = dist_sensor.id;
 
 	ds.timestamp        = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
+	ds.device_id        = device_id.devid;
 	ds.min_distance     = static_cast<float>(dist_sensor.min_distance) * 1e-2f;     /* cm to m */
 	ds.max_distance     = static_cast<float>(dist_sensor.max_distance) * 1e-2f;     /* cm to m */
 	ds.current_distance = static_cast<float>(dist_sensor.current_distance) * 1e-2f; /* cm to m */
 	ds.variance         = dist_sensor.covariance * 1e-4f;                           /* cm^2 to m^2 */
+
+	if (dist_sensor.signal_quality <= 0) {
+		// Mavlink DISTANCE_SENSOR: 0 = unknown/unset signal quality
+		ds.signal_quality = -1;
+
+	} else if (dist_sensor.signal_quality == 1) {
+		// Mavlink DISTANCE_SENSOR: 1 = invalid signal
+		ds.signal_quality = 0;
+
+	} else {
+		ds.signal_quality = math::constrain(dist_sensor.signal_quality, (uint8_t)1, (uint8_t)100);
+	}
+
+	switch (dist_sensor.type) {
+	case MAV_DISTANCE_SENSOR_LASER:
+		ds.type = distance_sensor_s::TYPE_LASER;
+		break;
+
+	case MAV_DISTANCE_SENSOR_ULTRASOUND:
+		ds.type = distance_sensor_s::TYPE_ULTRASOUND;
+		break;
+
+	case MAV_DISTANCE_SENSOR_INFRARED:
+		ds.type = distance_sensor_s::TYPE_INFRARED;
+		break;
+
+	case MAV_DISTANCE_SENSOR_RADAR:
+		ds.type = distance_sensor_s::TYPE_RADAR;
+		break;
+
+	case MAV_DISTANCE_SENSOR_UNKNOWN:
+	default:
+		ds.type = distance_sensor_s::TYPE_UNKNOWN;
+		break;
+	}
+
 	ds.h_fov            = dist_sensor.horizontal_fov;
 	ds.v_fov            = dist_sensor.vertical_fov;
 	ds.q[0]             = dist_sensor.quaternion[0];
 	ds.q[1]             = dist_sensor.quaternion[1];
 	ds.q[2]             = dist_sensor.quaternion[2];
 	ds.q[3]             = dist_sensor.quaternion[3];
-	ds.type             = dist_sensor.type;
-	ds.device_id        = device_id.devid;
 	ds.orientation      = dist_sensor.orientation;
-
-	// MAVLink DISTANCE_SENSOR signal_quality value of 0 means unset/unknown
-	// quality value. Also it comes normalised between 1 and 100 while the uORB
-	// signal quality is normalised between 0 and 100.
-	ds.signal_quality = dist_sensor.signal_quality == 0 ? -1 : 100 * (dist_sensor.signal_quality - 1) / 99;
 
 	_distance_sensor_pub.publish(ds);
 }
