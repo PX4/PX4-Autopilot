@@ -33,3 +33,5 @@
 px4_add_library(platform_gpio_mcp23009
 		mcp23009.cpp
 	)
+target_link_libraries(platform_gpio_mcp23009 PRIVATE drivers__device) # device::I2C
+
