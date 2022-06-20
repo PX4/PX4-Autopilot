@@ -38,6 +38,8 @@
 
 #include <mpfs_gpio.h>
 
+#if defined(CONFIG_SPI)
+
 static inline constexpr px4_spi_bus_device_t initSPIDevice(uint32_t devid, SPI::CS cs_gpio, SPI::DRDY drdy_gpio = {})
 {
 	px4_spi_bus_device_t ret{};
@@ -128,3 +130,5 @@ static inline constexpr SPI::bus_device_external_cfg_t initSPIConfigExternal(SPI
 	ret.drdy_gpio = drdy_gpio;
 	return ret;
 }
+
+#endif // CONFIG_SPI

@@ -64,6 +64,7 @@
  *
  ****************************************************************************/
 
+#ifdef CONFIG_MTD_M25P
 int mpfs_board_spinor_init(struct spi_dev_s *spinor)
 {
 	struct mtd_dev_s *mtd, *mtd_p0, *mtd_p1;
@@ -127,3 +128,4 @@ int mpfs_board_spinor_init(struct spi_dev_s *spinor)
 
 	return ret;
 }
+#endif
