@@ -266,15 +266,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	ret = mpfs_board_spinor_init(mpfs_spibus_initialize(1));
 
 	if (ret < 0) {
-		return ret;
+		syslog(LOG_ERR, "ERROR: Failed to init SPI NOR\n");
+	} else {
+		/* Mount LFS on the block1 */
+		ret = nx_mount("/dev/mtdblock1", "/fs/lfs", "littlefs", 0, "autoformat");
 	}
-
-	/* Mount LFS on the block1 */
-	ret = nx_mount("/dev/mtdblock1", "/fs/lfs", "littlefs", 0, "autoformat");
 
 	if (ret < 0) {
 		syslog(LOG_ERR, "ERROR: Failed to mount LFS filesystem\n");
-		return ret;
 	}
 
 #endif
