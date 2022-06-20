@@ -77,13 +77,14 @@ FixedwingPositionINDIControl::init()
 		PX4_ERR("vehicle position callback registration failed!");
 		return false;
 	}
+    PX4_INFO("Starting FW_DYN_SOAR_CONTROLLER");
     //_read_trajectory_coeffs_csv("trajectory5.csv");
     //_read_trajectory_coeffs_csv("trajectory4.csv");
     //_read_trajectory_coeffs_csv("trajectory3.csv");
     //_read_trajectory_coeffs_csv("trajectory2.csv");
     //_read_trajectory_coeffs_csv("trajectory1.csv");
-    //char filename[] = "trajectory0.csv";
-    //_read_trajectory_coeffs_csv(filename);
+    char filename[] = "trajectory0.csv";
+    _read_trajectory_coeffs_csv(filename);
 
     // initialize transformations
     _R_ned_to_enu *= 0.f;
@@ -407,8 +408,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -1179,6 +1180,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
         //PX4_ERR("No valid airspeed message detected or airspeed to low");
     }
     
+    // not really a accel command, rather a FF-P command
     rot_acc_command(2) = _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2));
 
     return rot_acc_command;
