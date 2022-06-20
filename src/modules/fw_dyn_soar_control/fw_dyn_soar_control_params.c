@@ -436,8 +436,8 @@ PARAM_DEFINE_FLOAT(DS_K_W_YAW, 1.0f);
  * @unit 
  * @min 0
  * @max 100
- * @decimal 2
- * @increment 0.01
+ * @decimal 3
+ * @increment 0.001
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(DS_K_ACT_ROLL, 0.1f);
@@ -460,8 +460,8 @@ PARAM_DEFINE_FLOAT(DS_K_ACT_PITCH, 0.03f);
  * @unit 
  * @min 0
  * @max 100
- * @decimal 2
- * @increment 0.01
+ * @decimal 4
+ * @increment 0.0001
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(DS_K_ACT_YAW, 0.1f);
@@ -472,8 +472,8 @@ PARAM_DEFINE_FLOAT(DS_K_ACT_YAW, 0.1f);
  * @unit 
  * @min 0
  * @max 100
- * @decimal 2
- * @increment 0.01
+ * @decimal 3
+ * @increment 0.001
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(DS_K_DAMP_ROLL, 0.02f);
@@ -484,8 +484,8 @@ PARAM_DEFINE_FLOAT(DS_K_DAMP_ROLL, 0.02f);
  * @unit 
  * @min 0
  * @max 100
- * @decimal 2
- * @increment 0.01
+ * @decimal 3
+ * @increment 0.001
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(DS_K_DAMP_PITCH, 0.01f);
@@ -496,8 +496,8 @@ PARAM_DEFINE_FLOAT(DS_K_DAMP_PITCH, 0.01f);
  * @unit 
  * @min 0
  * @max 100
- * @decimal 2
- * @increment 0.01
+ * @decimal 4
+ * @increment 0.0001
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(DS_K_DAMP_YAW, 0.0f);

@@ -407,8 +407,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -458,8 +458,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
             }
             row++;
         }
+        fclose(fp);
     }
-    fclose(fp);
     // =======================================================================
 
 
@@ -610,8 +610,8 @@ FixedwingPositionINDIControl::Run()
         // =====================
         // compute control input
         // =====================
-        Vector3f ctrl = _compute_NDI_stage_1(pos_ref, vel_ref, acc_ref, omega_ref, alpha_ref);
-        Vector3f ctrl1 = _compute_NDI_stage_2(ctrl);
+        Vector3f ctrl = _compute_INDI_stage_1(pos_ref, vel_ref, acc_ref, omega_ref, alpha_ref);
+        Vector3f ctrl1 = _compute_INDI_stage_2(ctrl);
 
         // ============================
         // compute actuator deflections
@@ -724,6 +724,17 @@ FixedwingPositionINDIControl::Run()
         _soaring_controller_heartbeat.timestamp = hrt_absolute_time();
         _soaring_controller_heartbeat.heartbeat = hrt_absolute_time();
         _soaring_controller_heartbeat_pub.publish(_soaring_controller_heartbeat);
+
+        // ====================
+        // publish debug values
+        // ====================
+        Dcmf R_ib(_att);
+        Dcmf R_bi(R_ib.transpose());
+        Vector3f vel_body = R_bi*_vel;
+        _slip = atan2f(vel_body(1), vel_body(0));
+        _debug_value.timestamp = hrt_absolute_time();
+        _debug_value.value = _slip;
+        _debug_value_pub.publish(_debug_value);
 
         perf_end(_loop_perf);  
     }
@@ -1023,7 +1034,7 @@ FixedwingPositionINDIControl::_get_attitude(Vector3f vel, Vector3f f)
 }
 
 Vector3f
-FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref, Vector3f omega_ref, Vector3f alpha_ref)
+FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref, Vector3f omega_ref, Vector3f alpha_ref)
 {
     Dcmf R_ib(_att);
     Dcmf R_bi(R_ib.transpose());
@@ -1150,11 +1161,31 @@ FixedwingPositionINDIControl::_compute_NDI_stage_1(Vector3f pos_ref, Vector3f ve
         
     }
 
+    // ==============================================================
+    // overwrite rudder rot_acc_command with turn coordination values
+    // ==============================================================
+    Vector3f vel_air = _vel - _wind_estimate;
+    Vector3f vel_normalized = vel_air.normalized();
+    Vector3f f = _mass*_acc;
+    Vector3f f_normalized = f.normalized();
+    Vector3f omega_turn_ref_normalized = vel_normalized.cross(f_normalized);
+    Vector3f omega_turn_ref;
+    if (_airspeed_valid&&_airspeed>5.0f) {
+        omega_turn_ref = sqrtf(_acc*_acc) / (_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
+        //PX4_INFO("yaw rate ref, yaw rate: \t%.2f\t%.2f", (double)(omega_turn_ref(2)), (double)(omega_filtered(2)));
+    }
+    else {
+        omega_turn_ref = sqrtf(_acc*_acc) / (5.f) * R_bi * omega_turn_ref_normalized.normalized();
+        //PX4_ERR("No valid airspeed message detected or airspeed to low");
+    }
+    
+    rot_acc_command(2) = _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2));
+
     return rot_acc_command;
 }
 
 Vector3f 
-FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
+FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
 {
     // compute velocity in body frame
     Dcmf R_ib(_att);
@@ -1188,9 +1219,9 @@ FixedwingPositionINDIControl::_compute_NDI_stage_2(Vector3f ctrl)
     deflection(1) = (moment_command(1) + _k_d_pitch*q*omega_filtered(1))/fmaxf((_k_ele*q),0.0001f);
     deflection(2) = (moment_command(2) + _k_d_yaw*q*omega_filtered(2))/fmaxf((_k_rud*q),0.0001f);
 
-    // TODO: tune feedback turn coordination
-    float turn_coordination = 0.f*vel_body(1)/(powf(vel_body(0),2)+0.0001f);
-    deflection(2) += turn_coordination;
+    // overwrite rudder deflection with NDI turn coordination (no INDI)
+    Vector3f moment_ref = _inertia*ctrl + _omega.cross(_inertia*_omega);
+    deflection(2) = (moment_ref(2) + _k_d_yaw*q*_omega(2)) / fmaxf((_k_rud*q),0.0001f);
 
     return deflection;
 }

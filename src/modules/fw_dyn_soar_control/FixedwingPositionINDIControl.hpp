@@ -67,6 +67,7 @@
 #include <uORB/topics/soaring_controller_position.h>
 #include <uORB/topics/soaring_controller_status.h>
 #include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/debug_value.h>
 #include <uORB/topics/wind.h>
 #include <uORB/uORB.h>
 
@@ -133,6 +134,7 @@ private:
 	uORB::Publication<soaring_controller_position_setpoint_s>		_soaring_controller_position_setpoint_pub{ORB_ID(soaring_controller_position_setpoint)};
 	uORB::Publication<soaring_controller_position_s>				_soaring_controller_position_pub{ORB_ID(soaring_controller_position)};
 	uORB::Publication<offboard_control_mode_s>						_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
+	uORB::Publication<debug_value_s>								_debug_value_pub{ORB_ID(debug_value)};
 
     // Message structs
 	vehicle_angular_acceleration_setpoint_s _angular_accel_sp {};
@@ -153,6 +155,7 @@ private:
 	soaring_controller_heartbeat_s	_soaring_controller_heartbeat{};	///< soaring controller hrt
 	soaring_controller_position_setpoint_s	_soaring_controller_position_setpoint{};	///< soaring controller pos setpoint
 	soaring_controller_position_s	_soaring_controller_position{};	///< soaring controller pos 
+	debug_value_s				_debug_value{};			// slip angle
 
 	// parameter struct
 	DEFINE_PARAMETERS(
@@ -263,10 +266,13 @@ private:
 	Vector3f _get_angular_velocity_ref(float t=0, float T=1);	// get the reference angular velocity on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Vector3f _get_angular_acceleration_ref(float t=0, float T=1);	// get the reference angular acceleration on the current path, at normalized time t in [0,1], with an intended cycle time of T
 	Quatf _get_attitude(Vector3f vel, Vector3f f);	// get the attitude to produce force f while flying with velocity vel
-	Vector3f _compute_NDI_stage_1(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref, Vector3f omega_ref, Vector3f alpha_ref);
-	Vector3f _compute_NDI_stage_2(Vector3f ctrl);
+	Vector3f _compute_INDI_stage_1(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref, Vector3f omega_ref, Vector3f alpha_ref);
+	Vector3f _compute_INDI_stage_2(Vector3f ctrl);
 	Vector3f _apply_LP_filter(Vector3f new_input, Vector<Vector3f, 3>  &old_input, Vector<Vector3f, 2>  &old_output);
 	Vector3f _compute_actuator_deflections(Vector3f ctrl);
+
+	// yaw controller
+	ECL_YawController		_yaw_ctrl;
 
 	// control variables
 	Vector<float, _num_basis_funs> _basis_coeffs_x = {};				// coefficients of the current path
