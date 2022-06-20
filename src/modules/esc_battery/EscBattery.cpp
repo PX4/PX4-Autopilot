@@ -88,7 +88,7 @@ EscBattery::Run()
 			return;
 		}
 
-		const uint8_t onlineEscCount = math::countSetBits(esc_status.esc_online_flags);
+		const uint8_t online_esc_count = math::countSetBits(esc_status.esc_online_flags);
 		float average_voltage_v = 0.0f;
 		float total_current_a = 0.0f;
 
@@ -99,7 +99,7 @@ EscBattery::Run()
 			}
 		}
 
-		average_voltage_v /= onlineEscCount;
+		average_voltage_v /= online_esc_count;
 
 		_battery.setConnected(true);
 		_battery.updateVoltage(average_voltage_v);
