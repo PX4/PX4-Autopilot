@@ -838,43 +838,42 @@ hagl_max : Maximum height above ground (meters). NaN when limiting is not needed
 */
 void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max) const
 {
-	// Calculate range finder limits
-	const float rangefinder_hagl_min = _range_sensor.getValidMinVal();
-	// Allow use of 75% of rangefinder maximum range to allow for angular motion
-	const float rangefinder_hagl_max = 0.75f * _range_sensor.getValidMaxVal();
-
-	// Calculate optical flow limits
-	// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-	const float flow_vxy_max = fmaxf(0.5f * _flow_max_rate * (_terrain_vpos - _state.pos(2)), 0.0f);
-	const float flow_hagl_min = _flow_min_distance;
-	const float flow_hagl_max = _flow_max_distance;
-
-	// TODO : calculate visual odometry limits
-
-	const bool relying_on_rangefinder = _control_status.flags.rng_hgt && !_params.range_aid;
-
-	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
-
 	// Do not require limiting by default
 	*vxy_max = NAN;
 	*vz_max = NAN;
 	*hagl_min = NAN;
 	*hagl_max = NAN;
 
+	// Calculate range finder limits
+	const float rangefinder_hagl_min = _range_sensor.getValidMinVal();
+
+	// Allow use of 75% of rangefinder maximum range to allow for angular motion
+	const float rangefinder_hagl_max = 0.75f * _range_sensor.getValidMaxVal();
+
+	// TODO : calculate visual odometry limits
+	const bool relying_on_rangefinder = _control_status.flags.rng_hgt && !_params.range_aid;
+	const bool relying_on_optical_flow = isOnlyActiveSourceOfHorizontalAiding(_control_status.flags.opt_flow);
+
 	// Keep within range sensor limit when using rangefinder as primary height source
 	if (relying_on_rangefinder) {
-		*vxy_max = NAN;
-		*vz_max = NAN;
 		*hagl_min = rangefinder_hagl_min;
 		*hagl_max = rangefinder_hagl_max;
 	}
 
 	// Keep within flow AND range sensor limits when exclusively using optical flow
 	if (relying_on_optical_flow) {
+		// Calculate optical flow limits
+		const float flow_hagl_min = fmaxf(rangefinder_hagl_min, _flow_min_distance);
+		const float flow_hagl_max = fminf(rangefinder_hagl_max, _flow_max_distance);
+
+		const float flow_constrained_height = math::constrain(_terrain_vpos - _state.pos(2), flow_hagl_min, flow_hagl_max);
+
+		// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
+		const float flow_vxy_max = 0.5f * _flow_max_rate * flow_constrained_height;
+
 		*vxy_max = flow_vxy_max;
-		*vz_max = NAN;
-		*hagl_min = fmaxf(rangefinder_hagl_min, flow_hagl_min);
-		*hagl_max = fminf(rangefinder_hagl_max, flow_hagl_max);
+		*hagl_min = flow_hagl_min;
+		*hagl_max = flow_hagl_max;
 	}
 }
 
