@@ -95,7 +95,9 @@ static const px4_mft_entry_s mtd_mft = {
 
 static const px4_mft_s mft = {
 	.nmft = 1,
-	.mfts = &mtd_mft
+	.mfts = {
+		&mtd_mft
+	}
 };
 
 const px4_mft_s *board_get_manifest(void)
