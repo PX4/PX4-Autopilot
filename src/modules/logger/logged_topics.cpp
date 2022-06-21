@@ -174,7 +174,6 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("battery_status", 200, 2);
 	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic_multi("distance_sensor", 1000, 2);
-	add_topic_multi("optical_flow", 1000, 1);
 	add_optional_topic_multi("sensor_accel", 1000, 4);
 	add_optional_topic_multi("sensor_baro", 1000, 4);
 	add_topic_multi("sensor_gps", 1000, 2);
@@ -182,9 +181,13 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("pps_capture", 1000);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_optional_topic_multi("sensor_mag", 1000, 4);
+	add_optional_topic_multi("sensor_optical_flow", 1000, 2);
+
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
+	add_optional_topic("vehicle_optical_flow", 500);
+	//add_optional_topic("vehicle_optical_flow_vel", 100);
 
 	// SYS_CTRL_ALLOC: additional dynamic control allocation logging when enabled
 	int32_t sys_ctrl_alloc = 0;

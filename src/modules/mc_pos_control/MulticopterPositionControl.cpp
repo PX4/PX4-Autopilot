@@ -489,8 +489,14 @@ void MulticopterPositionControl::Run()
 
 			_control.setThrustLimits(minimum_thrust, _param_mpc_thr_max.get());
 
+			float max_speed_xy = _param_mpc_xy_vel_max.get();
+
+			if (PX4_ISFINITE(vehicle_local_position.vxy_max)) {
+				max_speed_xy = math::min(max_speed_xy, vehicle_local_position.vxy_max);
+			}
+
 			_control.setVelocityLimits(
-				_param_mpc_xy_vel_max.get(),
+				max_speed_xy,
 				math::min(speed_up, _param_mpc_z_vel_max_up.get()), // takeoff ramp starts with negative velocity limit
 				math::max(speed_down, 0.f));
 

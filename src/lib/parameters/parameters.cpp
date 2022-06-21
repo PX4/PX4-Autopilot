@@ -680,7 +680,6 @@ static void schedule_notify_changes()
 	// on SITL call notify_worker directly to avoid issues with lockstep and SITL tests
 	(void)notify_work;
 	notify_worker(nullptr);
-	return;
 #else
 
 	if (notify_delay_count.fetch_add(1) < 100) {
