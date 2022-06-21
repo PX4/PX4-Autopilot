@@ -108,7 +108,6 @@ private:
 	} _ekf_gsf[N_MODELS_EKFGSF] {};
 
 	bool _vel_data_updated{};	// true when velocity data has been updated
-	bool _run_ekf_gsf{};		// true when operating condition is suitable for to run the GSF and EKF models and fuse velocity data
 	Vector2f _vel_NE{};        // NE velocity observations (m/s)
 	float _vel_accuracy{};     // 1-sigma accuracy of velocity observations (m/s)
 	bool _ekf_gsf_vel_fuse_started{}; // true when the EKF's have started fusing velocity data and the prediction and update processing is active

@@ -48,31 +48,31 @@ void SensorSimulator::loadSensorDataFromFile(std::string file_name)
 		getline(file, sensor_type, ',');
 
 		if (!sensor_type.compare("imu")) {
-			sensor_sample.sensor_type = sensor_info::IMU;
+			sensor_sample.sensor_type = sensor_info::measurement_t::IMU;
 
 		} else if (!sensor_type.compare("mag")) {
-			sensor_sample.sensor_type = sensor_info::MAG;
+			sensor_sample.sensor_type = sensor_info::measurement_t::MAG;
 
 		} else if (!sensor_type.compare("baro")) {
-			sensor_sample.sensor_type = sensor_info::BARO;
+			sensor_sample.sensor_type = sensor_info::measurement_t::BARO;
 
 		} else if (!sensor_type.compare("gps")) {
-			sensor_sample.sensor_type = sensor_info::GPS;
+			sensor_sample.sensor_type = sensor_info::measurement_t::GPS;
 
 		} else if (!sensor_type.compare("airspeed")) {
-			sensor_sample.sensor_type = sensor_info::AIRSPEED;
+			sensor_sample.sensor_type = sensor_info::measurement_t::AIRSPEED;
 
 		} else if (!sensor_type.compare("range")) {
-			sensor_sample.sensor_type = sensor_info::RANGE;
+			sensor_sample.sensor_type = sensor_info::measurement_t::RANGE;
 
 		} else if (!sensor_type.compare("flow")) {
-			sensor_sample.sensor_type = sensor_info::FLOW;
+			sensor_sample.sensor_type = sensor_info::measurement_t::FLOW;
 
 		} else if (!sensor_type.compare("vio")) {
-			sensor_sample.sensor_type = sensor_info::VISION;
+			sensor_sample.sensor_type = sensor_info::measurement_t::VISION;
 
 		} else if (!sensor_type.compare("landed")) {
-			sensor_sample.sensor_type = sensor_info::LANDING_STATUS;
+			sensor_sample.sensor_type = sensor_info::measurement_t::LANDING_STATUS;
 
 		} else {
 			std::cout << "Sensor type in file unknown" << std::endl;
@@ -232,7 +232,7 @@ void SensorSimulator::setSensorDataFromReplayData()
 
 void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 {
-	if (sample.sensor_type == sensor_info::IMU) {
+	if (sample.sensor_type == sensor_info::measurement_t::IMU) {
 		Vector3f accel{(float) sample.sensor_data[0],
 			       (float) sample.sensor_data[1],
 			       (float) sample.sensor_data[2]};
@@ -241,16 +241,16 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 			      (float) sample.sensor_data[5]};
 		_imu.setData(accel, gyro);
 
-	} else if (sample.sensor_type == sensor_info::MAG) {
+	} else if (sample.sensor_type == sensor_info::measurement_t::MAG) {
 		Vector3f mag{(float) sample.sensor_data[0],
 			     (float) sample.sensor_data[1],
 			     (float) sample.sensor_data[2]};
 		_mag.setData(mag);
 
-	} else if (sample.sensor_type == sensor_info::BARO) {
+	} else if (sample.sensor_type == sensor_info::measurement_t::BARO) {
 		_baro.setData((float) sample.sensor_data[0]);
 
-	} else if (sample.sensor_type == sensor_info::GPS) {
+	} else if (sample.sensor_type == sensor_info::measurement_t::GPS) {
 		_gps.setAltitude((int32_t) sample.sensor_data[0]);
 		_gps.setLatitude((int32_t) sample.sensor_data[1]);
 		_gps.setLongitude((int32_t) sample.sensor_data[2]);
@@ -258,13 +258,13 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 					  (float) sample.sensor_data[4],
 					  (float) sample.sensor_data[5]));
 
-	} else if (sample.sensor_type == sensor_info::AIRSPEED) {
+	} else if (sample.sensor_type == sensor_info::measurement_t::AIRSPEED) {
 		_airspeed.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
 
-	} else if (sample.sensor_type == sensor_info::RANGE) {
+	} else if (sample.sensor_type == sensor_info::measurement_t::RANGE) {
 		_rng.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
 
-	} else if (sample.sensor_type == sensor_info::FLOW) {
+	} else if (sample.sensor_type == sensor_info::measurement_t::FLOW) {
 		flowSample flow_sample;
 		flow_sample.flow_xy_rad = Vector2f(sample.sensor_data[0],
 						   sample.sensor_data[1]);
@@ -274,7 +274,7 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 		flow_sample.quality = sample.sensor_data[5];
 		_flow.setData(flow_sample);
 
-	} else if (sample.sensor_type == sensor_info::VISION) {
+	} else if (sample.sensor_type == sensor_info::measurement_t::VISION) {
 		// sensor not yet implemented
 
 		// extVisionSample vision_sample;
@@ -283,7 +283,7 @@ void SensorSimulator::setSingleReplaySample(const sensor_info &sample)
 		// vision_sample.vel;
 		// _vio.setData((float) sample.sensor_data[0], (float) sample.sensor_data[1]);
 
-	} else if (sample.sensor_type == sensor_info::LANDING_STATUS) {
+	} else if (sample.sensor_type == sensor_info::measurement_t::LANDING_STATUS) {
 		bool landed = std::abs(sample.sensor_data[0]) <= 0;
 		_ekf->set_in_air_status(!landed);
 

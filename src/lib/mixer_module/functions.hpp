@@ -116,6 +116,8 @@ public:
 	static_assert(actuator_motors_s::NUM_CONTROLS == (int)OutputFunction::MotorMax - (int)OutputFunction::Motor1 + 1,
 		      "Unexpected num motors");
 
+	static_assert(actuator_motors_s::ACTUATOR_FUNCTION_MOTOR1 == (int)OutputFunction::Motor1, "Unexpected motor idx");
+
 	FunctionMotors(const Context &context);
 	static FunctionProviderBase *allocate(const Context &context) { return new FunctionMotors(context); }
 

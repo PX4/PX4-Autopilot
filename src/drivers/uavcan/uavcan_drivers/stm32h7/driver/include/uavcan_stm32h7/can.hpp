@@ -261,7 +261,7 @@ public:
 #else
 		, num_ifaces_(1)
 #endif
-		, enabledInterfaces_(0x7)
+		, enabledInterfaces_(0x3)
 	{
 		uavcan::StaticAssert < (RxQueueCapacity <= CanIface::MaxRxQueueCapacity) >::check();
 	}

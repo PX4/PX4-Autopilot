@@ -89,12 +89,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
 {
-	_handle_sens_flow_maxhgt = param_find("SENS_FLOW_MAXHGT");
-	_handle_sens_flow_maxr = param_find("SENS_FLOW_MAXR");
-	_handle_sens_flow_minhgt = param_find("SENS_FLOW_MINHGT");
-	_handle_sens_flow_rot = param_find("SENS_FLOW_ROT");
-	_handle_ekf2_min_rng = param_find("EKF2_MIN_RNG");
-	_handle_ekf2_rng_a_hmax = param_find("EKF2_RNG_A_HMAX");
 }
 
 void
@@ -739,105 +733,93 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 {
-	/* optical flow */
 	mavlink_optical_flow_rad_t flow;
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
 
-	optical_flow_s f{};
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.bus = _mavlink->get_instance_id();
+	device_id.devid_s.address = msg->sysid;
+	device_id.devid_s.devtype = DRV_FLOW_DEVTYPE_MAVLINK;
 
-	f.timestamp = hrt_absolute_time();
-	f.time_since_last_sonar_update = flow.time_delta_distance_us;
-	f.integration_timespan  = flow.integration_time_us;
-	f.pixel_flow_x_integral = flow.integrated_x;
-	f.pixel_flow_y_integral = flow.integrated_y;
-	f.gyro_x_rate_integral  = flow.integrated_xgyro;
-	f.gyro_y_rate_integral  = flow.integrated_ygyro;
-	f.gyro_z_rate_integral  = flow.integrated_zgyro;
-	f.gyro_temperature      = flow.temperature;
-	f.ground_distance_m     = flow.distance;
-	f.quality               = flow.quality;
-	f.sensor_id             = flow.sensor_id;
-	f.max_flow_rate         = _param_sens_flow_maxr;
-	f.min_ground_distance   = _param_sens_flow_minhgt;
-	f.max_ground_distance   = _param_sens_flow_maxhgt;
+	sensor_optical_flow_s sensor_optical_flow{};
 
-	/* read flow sensor parameters */
-	const Rotation flow_rot = (Rotation)_param_sens_flow_rot;
+	sensor_optical_flow.timestamp_sample = hrt_absolute_time();
+	sensor_optical_flow.device_id = device_id.devid;
 
-	/* rotate measurements according to parameter */
-	float zero_val = 0.0f;
-	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zero_val);
-	rotate_3f(flow_rot, f.gyro_x_rate_integral, f.gyro_y_rate_integral, f.gyro_z_rate_integral);
+	sensor_optical_flow.pixel_flow[0] = flow.integrated_x;
+	sensor_optical_flow.pixel_flow[1] = flow.integrated_y;
 
-	_flow_pub.publish(f);
+	sensor_optical_flow.integration_timespan_us = flow.integration_time_us;
+	sensor_optical_flow.quality = flow.quality;
 
-	/* Use distance value for distance sensor topic */
-	if (flow.distance > 0.0f) { // negative values signal invalid data
-
-		distance_sensor_s d{};
-
-		device::Device::DeviceId device_id;
-		device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
-		device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
-		device_id.devid_s.address = msg->sysid;
-
-		d.timestamp = f.timestamp;
-		d.min_distance = _param_ekf2_min_rng;
-		d.max_distance = _param_ekf2_rng_a_hmax;
-		d.current_distance = flow.distance; /* both are in m */
-		d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-		d.device_id = device_id.devid;
-		d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-		d.variance = 0.01;
-		d.signal_quality = -1;
-
-		_flow_distance_sensor_pub.publish(d);
+	if (PX4_ISFINITE(flow.integrated_xgyro) && PX4_ISFINITE(flow.integrated_ygyro) && PX4_ISFINITE(flow.integrated_zgyro)) {
+		sensor_optical_flow.delta_angle[0] = flow.integrated_xgyro;
+		sensor_optical_flow.delta_angle[1] = flow.integrated_ygyro;
+		sensor_optical_flow.delta_angle[2] = flow.integrated_zgyro;
+		sensor_optical_flow.delta_angle_available = true;
 	}
+
+	sensor_optical_flow.max_flow_rate       = NAN;
+	sensor_optical_flow.min_ground_distance = NAN;
+	sensor_optical_flow.max_ground_distance = NAN;
+
+	// Use distance value for distance sensor topic
+	if (PX4_ISFINITE(flow.distance) && (flow.distance >= 0.f)) {
+		// Positive value (including zero): distance known. Negative value: Unknown distance.
+		sensor_optical_flow.distance_m = flow.distance;
+		sensor_optical_flow.distance_available = true;
+	}
+
+	sensor_optical_flow.timestamp = hrt_absolute_time();
+
+	_sensor_optical_flow_pub.publish(sensor_optical_flow);
 }
 
 void
 MavlinkReceiver::handle_message_hil_optical_flow(mavlink_message_t *msg)
 {
-	/* optical flow */
 	mavlink_hil_optical_flow_t flow;
 	mavlink_msg_hil_optical_flow_decode(msg, &flow);
 
-	optical_flow_s f{};
-
-	f.timestamp = hrt_absolute_time(); // XXX we rely on the system time for now and not flow.time_usec;
-	f.integration_timespan = flow.integration_time_us;
-	f.pixel_flow_x_integral = flow.integrated_x;
-	f.pixel_flow_y_integral = flow.integrated_y;
-	f.gyro_x_rate_integral = flow.integrated_xgyro;
-	f.gyro_y_rate_integral = flow.integrated_ygyro;
-	f.gyro_z_rate_integral = flow.integrated_zgyro;
-	f.time_since_last_sonar_update = flow.time_delta_distance_us;
-	f.ground_distance_m = flow.distance;
-	f.quality = flow.quality;
-	f.sensor_id = flow.sensor_id;
-	f.gyro_temperature = flow.temperature;
-
-	_flow_pub.publish(f);
-
-	/* Use distance value for distance sensor topic */
-	distance_sensor_s d{};
-
 	device::Device::DeviceId device_id;
-	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
-	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.bus = _mavlink->get_instance_id();
 	device_id.devid_s.address = msg->sysid;
+	device_id.devid_s.devtype = DRV_FLOW_DEVTYPE_SIM;
 
-	d.timestamp = hrt_absolute_time();
-	d.min_distance = 0.3f;
-	d.max_distance = 5.0f;
-	d.current_distance = flow.distance; /* both are in m */
-	d.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	d.device_id = device_id.devid;
-	d.orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	d.variance = 0.01;
-	d.signal_quality = -1;
+	sensor_optical_flow_s sensor_optical_flow{};
 
-	_flow_distance_sensor_pub.publish(d);
+	sensor_optical_flow.timestamp_sample = hrt_absolute_time();
+	sensor_optical_flow.device_id = device_id.devid;
+
+	sensor_optical_flow.pixel_flow[0] = flow.integrated_x;
+	sensor_optical_flow.pixel_flow[1] = flow.integrated_y;
+
+	sensor_optical_flow.integration_timespan_us = flow.integration_time_us;
+	sensor_optical_flow.quality = flow.quality;
+
+	if (PX4_ISFINITE(flow.integrated_xgyro) && PX4_ISFINITE(flow.integrated_ygyro) && PX4_ISFINITE(flow.integrated_zgyro)) {
+		sensor_optical_flow.delta_angle[0] = flow.integrated_xgyro;
+		sensor_optical_flow.delta_angle[1] = flow.integrated_ygyro;
+		sensor_optical_flow.delta_angle[2] = flow.integrated_zgyro;
+		sensor_optical_flow.delta_angle_available = true;
+	}
+
+	sensor_optical_flow.max_flow_rate       = NAN;
+	sensor_optical_flow.min_ground_distance = NAN;
+	sensor_optical_flow.max_ground_distance = NAN;
+
+	// Use distance value for distance sensor topic
+	if (PX4_ISFINITE(flow.distance) && (flow.distance >= 0.f)) {
+		// Positive value (including zero): distance known. Negative value: Unknown distance.
+		sensor_optical_flow.distance_m = flow.distance;
+		sensor_optical_flow.distance_available = true;
+	}
+
+	sensor_optical_flow.timestamp = hrt_absolute_time();
+
+	_sensor_optical_flow_pub.publish(sensor_optical_flow);
 }
 
 void
@@ -878,9 +860,10 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	distance_sensor_s ds{};
 
 	device::Device::DeviceId device_id;
-	device_id.devid_s.bus = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.bus = _mavlink->get_instance_id();
+	device_id.devid_s.address = msg->sysid;
 	device_id.devid_s.devtype = DRV_DIST_DEVTYPE_MAVLINK;
-	device_id.devid_s.address = dist_sensor.id;
 
 	ds.timestamp        = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
 	ds.min_distance     = static_cast<float>(dist_sensor.min_distance) * 1e-2f;     /* cm to m */
@@ -955,18 +938,18 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 	    (mavlink_system.sysid == target_local_ned.target_system || target_local_ned.target_system == 0) &&
 	    (mavlink_system.compid == target_local_ned.target_component || target_local_ned.target_component == 0)) {
 
-		vehicle_local_position_setpoint_s setpoint{};
+		trajectory_setpoint_s setpoint{};
 
 		const uint16_t type_mask = target_local_ned.type_mask;
 
 		if (target_local_ned.coordinate_frame == MAV_FRAME_LOCAL_NED) {
-			setpoint.x = (type_mask & POSITION_TARGET_TYPEMASK_X_IGNORE) ? (float)NAN : target_local_ned.x;
-			setpoint.y = (type_mask & POSITION_TARGET_TYPEMASK_Y_IGNORE) ? (float)NAN : target_local_ned.y;
-			setpoint.z = (type_mask & POSITION_TARGET_TYPEMASK_Z_IGNORE) ? (float)NAN : target_local_ned.z;
+			setpoint.position[0] = (type_mask & POSITION_TARGET_TYPEMASK_X_IGNORE) ? (float)NAN : target_local_ned.x;
+			setpoint.position[1] = (type_mask & POSITION_TARGET_TYPEMASK_Y_IGNORE) ? (float)NAN : target_local_ned.y;
+			setpoint.position[2] = (type_mask & POSITION_TARGET_TYPEMASK_Z_IGNORE) ? (float)NAN : target_local_ned.z;
 
-			setpoint.vx = (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? (float)NAN : target_local_ned.vx;
-			setpoint.vy = (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? (float)NAN : target_local_ned.vy;
-			setpoint.vz = (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? (float)NAN : target_local_ned.vz;
+			setpoint.velocity[0] = (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? (float)NAN : target_local_ned.vx;
+			setpoint.velocity[1] = (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? (float)NAN : target_local_ned.vy;
+			setpoint.velocity[2] = (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? (float)NAN : target_local_ned.vz;
 
 			setpoint.acceleration[0] = (type_mask & POSITION_TARGET_TYPEMASK_AX_IGNORE) ? (float)NAN : target_local_ned.afx;
 			setpoint.acceleration[1] = (type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) ? (float)NAN : target_local_ned.afy;
@@ -991,14 +974,12 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 
 				const float yaw = matrix::Eulerf{R}(2);
 
-				setpoint.vx = cosf(yaw) * velocity_body_sp(0) - sinf(yaw) * velocity_body_sp(1);
-				setpoint.vy = sinf(yaw) * velocity_body_sp(0) + cosf(yaw) * velocity_body_sp(1);
-				setpoint.vz = velocity_body_sp(2);
+				setpoint.velocity[0] = cosf(yaw) * velocity_body_sp(0) - sinf(yaw) * velocity_body_sp(1);
+				setpoint.velocity[1] = sinf(yaw) * velocity_body_sp(0) + cosf(yaw) * velocity_body_sp(1);
+				setpoint.velocity[2] = velocity_body_sp(2);
 
 			} else {
-				setpoint.vx = NAN;
-				setpoint.vy = NAN;
-				setpoint.vz = NAN;
+				matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.velocity);
 			}
 
 			const bool ignore_acceleration = type_mask & (POSITION_TARGET_TYPEMASK_AX_IGNORE | POSITION_TARGET_TYPEMASK_AY_IGNORE |
@@ -1015,14 +996,10 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 				acceleration_setpoint.copyTo(setpoint.acceleration);
 
 			} else {
-				setpoint.acceleration[0] = NAN;
-				setpoint.acceleration[1] = NAN;
-				setpoint.acceleration[2] = NAN;
+				matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.acceleration);
 			}
 
-			setpoint.x = NAN;
-			setpoint.y = NAN;
-			setpoint.z = NAN;
+			matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.position);
 
 		} else {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED coordinate frame %" PRIu8 " unsupported\t",
@@ -1032,19 +1009,14 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			return;
 		}
 
-		setpoint.thrust[0] = NAN;
-		setpoint.thrust[1] = NAN;
-		setpoint.thrust[2] = NAN;
-
 		setpoint.yaw      = (type_mask & POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? (float)NAN : target_local_ned.yaw;
 		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_local_ned.yaw_rate;
 
 
 		offboard_control_mode_s ocm{};
-		ocm.position = PX4_ISFINITE(setpoint.x) || PX4_ISFINITE(setpoint.y) || PX4_ISFINITE(setpoint.z);
-		ocm.velocity = PX4_ISFINITE(setpoint.vx) || PX4_ISFINITE(setpoint.vy) || PX4_ISFINITE(setpoint.vz);
-		ocm.acceleration = PX4_ISFINITE(setpoint.acceleration[0]) || PX4_ISFINITE(setpoint.acceleration[1])
-				   || PX4_ISFINITE(setpoint.acceleration[2]);
+		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
+		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
+		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_LOCAL_NED force not supported\t");
@@ -1086,7 +1058,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 	    (mavlink_system.sysid == target_global_int.target_system || target_global_int.target_system == 0) &&
 	    (mavlink_system.compid == target_global_int.target_component || target_global_int.target_component == 0)) {
 
-		vehicle_local_position_setpoint_s setpoint{};
+		trajectory_setpoint_s setpoint{};
 
 		const uint16_t type_mask = target_global_int.type_mask;
 
@@ -1106,10 +1078,10 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			// global -> local
 			const double lat = target_global_int.lat_int / 1e7;
 			const double lon = target_global_int.lon_int / 1e7;
-			global_local_proj_ref.project(lat, lon, setpoint.x, setpoint.y);
+			global_local_proj_ref.project(lat, lon, setpoint.position[0], setpoint.position[1]);
 
 			if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_INT) {
-				setpoint.z = local_pos.ref_alt - target_global_int.alt;
+				setpoint.position[2] = local_pos.ref_alt - target_global_int.alt;
 
 			} else if (target_global_int.coordinate_frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT) {
 				home_position_s home_position{};
@@ -1117,7 +1089,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 
 				if (home_position.valid_alt) {
 					const float alt = home_position.alt - target_global_int.alt;
-					setpoint.z = alt - local_pos.ref_alt;
+					setpoint.position[2] = alt - local_pos.ref_alt;
 
 				} else {
 					// home altitude required
@@ -1130,7 +1102,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 
 				if (vehicle_global_position.terrain_alt_valid) {
 					const float alt = target_global_int.alt + vehicle_global_position.terrain_alt;
-					setpoint.z = local_pos.ref_alt - alt;
+					setpoint.position[2] = local_pos.ref_alt - alt;
 
 				} else {
 					// valid terrain alt required
@@ -1146,34 +1118,27 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 			}
 
 		} else {
-			setpoint.x = NAN;
-			setpoint.y = NAN;
-			setpoint.z = NAN;
+			matrix::Vector3f(NAN, NAN, NAN).copyTo(setpoint.position);
 		}
 
 		// velocity
-		setpoint.vx = (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? (float)NAN : target_global_int.vx;
-		setpoint.vy = (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? (float)NAN : target_global_int.vy;
-		setpoint.vz = (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? (float)NAN : target_global_int.vz;
+		setpoint.velocity[0] = (type_mask & POSITION_TARGET_TYPEMASK_VX_IGNORE) ? (float)NAN : target_global_int.vx;
+		setpoint.velocity[1] = (type_mask & POSITION_TARGET_TYPEMASK_VY_IGNORE) ? (float)NAN : target_global_int.vy;
+		setpoint.velocity[2] = (type_mask & POSITION_TARGET_TYPEMASK_VZ_IGNORE) ? (float)NAN : target_global_int.vz;
 
 		// acceleration
 		setpoint.acceleration[0] = (type_mask & POSITION_TARGET_TYPEMASK_AX_IGNORE) ? (float)NAN : target_global_int.afx;
 		setpoint.acceleration[1] = (type_mask & POSITION_TARGET_TYPEMASK_AY_IGNORE) ? (float)NAN : target_global_int.afy;
 		setpoint.acceleration[2] = (type_mask & POSITION_TARGET_TYPEMASK_AZ_IGNORE) ? (float)NAN : target_global_int.afz;
 
-		setpoint.thrust[0] = NAN;
-		setpoint.thrust[1] = NAN;
-		setpoint.thrust[2] = NAN;
-
 		setpoint.yaw      = (type_mask & POSITION_TARGET_TYPEMASK_YAW_IGNORE)      ? (float)NAN : target_global_int.yaw;
 		setpoint.yawspeed = (type_mask & POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE) ? (float)NAN : target_global_int.yaw_rate;
 
 
 		offboard_control_mode_s ocm{};
-		ocm.position = PX4_ISFINITE(setpoint.x) || PX4_ISFINITE(setpoint.y) || PX4_ISFINITE(setpoint.z);
-		ocm.velocity = PX4_ISFINITE(setpoint.vx) || PX4_ISFINITE(setpoint.vy) || PX4_ISFINITE(setpoint.vz);
-		ocm.acceleration = PX4_ISFINITE(setpoint.acceleration[0]) || PX4_ISFINITE(setpoint.acceleration[1])
-				   || PX4_ISFINITE(setpoint.acceleration[2]);
+		ocm.position = !matrix::Vector3f(setpoint.position).isAllNan();
+		ocm.velocity = !matrix::Vector3f(setpoint.velocity).isAllNan();
+		ocm.acceleration = !matrix::Vector3f(setpoint.acceleration).isAllNan();
 
 		if (ocm.acceleration && (type_mask & POSITION_TARGET_TYPEMASK_FORCE_SET)) {
 			mavlink_log_critical(&_mavlink_log_pub, "SET_POSITION_TARGET_GLOBAL_INT force not supported\t");
@@ -1736,6 +1701,7 @@ MavlinkReceiver::handle_message_serial_control(mavlink_message_t *msg)
 	if (shell) {
 		// we ignore the timeout, EXCLUSIVE & BLOCKING flags of the SERIAL_CONTROL message
 		if (serial_control_mavlink.count > 0) {
+			shell->setTargetID(msg->sysid, msg->compid);
 			shell->write(serial_control_mavlink.data, serial_control_mavlink.count);
 		}
 
@@ -2281,6 +2247,7 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 		hil_battery_status.discharged_mah = -1.0f;
 		hil_battery_status.connected = true;
 		hil_battery_status.remaining = 0.70;
+		hil_battery_status.time_remaining_s = NAN;
 
 		_battery_pub.publish(hil_battery_status);
 	}
@@ -2294,10 +2261,12 @@ MavlinkReceiver::handle_message_hil_gps(mavlink_message_t *msg)
 
 	sensor_gps_s gps{};
 
-	device::Device::DeviceId device_id{};
+	device::Device::DeviceId device_id;
 	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.bus = _mavlink->get_instance_id();
 	device_id.devid_s.address = msg->sysid;
 	device_id.devid_s.devtype = DRV_GPS_DEVTYPE_SIM;
+
 	gps.device_id = device_id.devid;
 
 	gps.lat = hil_gps.lat;
@@ -2710,6 +2679,7 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		hil_battery_status.current_a = 10.0f;
 		hil_battery_status.discharged_mah = -1.0f;
 		hil_battery_status.timestamp = hrt_absolute_time();
+		hil_battery_status.time_remaining_s = NAN;
 		_battery_pub.publish(hil_battery_status);
 	}
 }
@@ -3430,30 +3400,6 @@ MavlinkReceiver::updateParams()
 {
 	// update parameters from storage
 	ModuleParams::updateParams();
-
-	if (_handle_sens_flow_maxhgt != PARAM_INVALID) {
-		param_get(_handle_sens_flow_maxhgt, &_param_sens_flow_maxhgt);
-	}
-
-	if (_handle_sens_flow_maxr != PARAM_INVALID) {
-		param_get(_handle_sens_flow_maxr, &_param_sens_flow_maxr);
-	}
-
-	if (_handle_sens_flow_minhgt != PARAM_INVALID) {
-		param_get(_handle_sens_flow_minhgt, &_param_sens_flow_minhgt);
-	}
-
-	if (_handle_sens_flow_rot != PARAM_INVALID) {
-		param_get(_handle_sens_flow_rot, &_param_sens_flow_rot);
-	}
-
-	if (_handle_ekf2_min_rng != PARAM_INVALID) {
-		param_get(_handle_ekf2_min_rng, &_param_ekf2_min_rng);
-	}
-
-	if (_handle_ekf2_rng_a_hmax != PARAM_INVALID) {
-		param_get(_handle_ekf2_rng_a_hmax, &_param_ekf2_rng_a_hmax);
-	}
 }
 
 void *MavlinkReceiver::start_trampoline(void *context)

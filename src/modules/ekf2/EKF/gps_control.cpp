@@ -41,13 +41,21 @@
 
 void Ekf::controlGpsFusion()
 {
-	if (!(_params.fusion_mode & MASK_USE_GPS)) {
+	if (!(_params.fusion_mode & SensorFusionMask::USE_GPS)) {
 		stopGpsFusion();
 		return;
 	}
 
 	// Check for new GPS data that has fallen behind the fusion time horizon
 	if (_gps_data_ready) {
+
+		// reset flags
+		resetEstimatorAidStatusFlags(_aid_src_gnss_vel);
+		resetEstimatorAidStatusFlags(_aid_src_gnss_pos);
+
+		updateGpsVel(_gps_sample_delayed);
+		updateGpsPos(_gps_sample_delayed);
+
 		const bool gps_checks_passing = isTimedOut(_last_gps_fail_us, (uint64_t)5e6);
 		const bool gps_checks_failing = isTimedOut(_last_gps_pass_us, (uint64_t)5e6);
 
@@ -67,7 +75,8 @@ void Ekf::controlGpsFusion()
 				if (continuing_conditions_passing
 				    || !isOtherSourceOfHorizontalAidingThan(_control_status.flags.gps)) {
 
-					fuseGpsVelPos();
+					fuseGpsVel();
+					fuseGpsPos();
 
 					if (shouldResetGpsFusion()) {
 						const bool was_gps_signal_lost = isTimedOut(_time_prev_gps_us, 1000000);
@@ -109,7 +118,7 @@ void Ekf::controlGpsFusion()
 
 					// TODO: move this to EV control logic
 					// Reset position state to external vision if we are going to use absolute values
-					if (_control_status.flags.ev_pos && !(_params.fusion_mode & MASK_ROTATE_EV)) {
+					if (_control_status.flags.ev_pos && !(_params.fusion_mode & SensorFusionMask::ROTATE_EXT_VIS)) {
 						resetHorizontalPositionToVision();
 					}
 				}
@@ -136,7 +145,7 @@ void Ekf::controlGpsFusion()
 					startGpsFusion();
 				}
 
-			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MAG_FUSE_TYPE_NONE)) {
+			} else if (gps_checks_passing && !_control_status.flags.yaw_align && (_params.mag_fusion_type == MagFuseType::NONE)) {
 				// If no mag is used, align using the yaw estimator (if available)
 				if (resetYawToEKFGSF()) {
 					_information_events.flags.yaw_aligned_to_imu_gps = true;

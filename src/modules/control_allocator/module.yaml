@@ -436,6 +436,19 @@ parameters:
             max: 1
             default: [0.05, 0.15, 0.25, 0.35, 0.45]
 
+        # Others
+        CA_FAILURE_MODE:
+            description:
+                short: Motor failure handling mode
+                long: |
+                    This is used to specify how to handle motor failures
+                    reported by failure detector.
+            type: enum
+            values:
+                0: Ignore
+                1: Remove first failed motor from effectiveness
+            default: 0
+
 # Mixer
 mixer:
     actuator_types:
@@ -543,6 +556,18 @@ mixer:
                             label: 'Direction CCW'
                             function: 'spin-dir'
                             show_as: 'true-if-positive'
+                          - name: 'CA_ROTOR${i}_AX'
+                            label: 'Axis X'
+                            function: 'axisx'
+                            advanced: true
+                          - name: 'CA_ROTOR${i}_AY'
+                            label: 'Axis Y'
+                            function: 'axisy'
+                            advanced: true
+                          - name: 'CA_ROTOR${i}_AZ'
+                            label: 'Axis Z'
+                            function: 'axisz'
+                            advanced: true
 
             1: # Fixed Wing
                 title: 'Fixed Wing'

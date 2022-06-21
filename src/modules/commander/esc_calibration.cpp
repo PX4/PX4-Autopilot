@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,7 +52,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/actuator_test.h>
-#include <uORB/topics/safety.h>
 #include <parameters/param.h>
 
 using namespace time_literals;
@@ -94,17 +93,6 @@ static void set_motor_actuators(uORB::Publication<actuator_test_s> &publisher, f
 
 int do_esc_calibration(orb_advert_t *mavlink_log_pub)
 {
-	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "esc");
-
-	// check safety
-	uORB::SubscriptionData<safety_s> safety_sub{ORB_ID(safety)};
-	safety_sub.update();
-
-	if (safety_sub.get().safety_switch_available && !safety_sub.get().safety_off) {
-		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Disable safety first");
-		return PX4_ERROR;
-	}
-
 	int	return_code = PX4_OK;
 	uORB::Publication<actuator_test_s> actuator_test_pub{ORB_ID(actuator_test)};
 	// since we publish multiple at once, make sure the output driver subscribes before we publish

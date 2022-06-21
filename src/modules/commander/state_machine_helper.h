@@ -100,7 +100,6 @@ enum class position_nav_loss_actions_t {
 	LAND_TERMINATE = 1,	// Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
 };
 
-extern const char *const arming_state_names[];
 extern const char *const nav_state_names[];
 
 enum RCLossExceptionBits {

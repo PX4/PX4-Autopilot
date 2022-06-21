@@ -3,6 +3,8 @@
 # board sensors init
 #------------------------------------------------------------------------------
 
+param set-default IMU_GYRO_RATEMAX 1000
+
 # Internal SPI
 paw3902 -s start -Y 180
 

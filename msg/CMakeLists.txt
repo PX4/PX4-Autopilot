@@ -65,21 +65,25 @@ set(msg_files
 	differential_pressure.msg
 	distance_sensor.msg
 	ekf2_timestamps.msg
-	estimator_gps_status.msg
 	esc_report.msg
 	esc_status.msg
+	estimator_aid_source_1d.msg
+	estimator_aid_source_2d.msg
+	estimator_aid_source_3d.msg
 	estimator_baro_bias.msg
 	estimator_event_flags.msg
+	estimator_gps_status.msg
 	estimator_innovations.msg
-	estimator_optical_flow_vel.msg
 	estimator_selector_status.msg
 	estimator_sensor_bias.msg
 	estimator_states.msg
 	estimator_status.msg
 	estimator_status_flags.msg
 	event.msg
-	follow_target.msg
 	failure_detector_status.msg
+	follow_target.msg
+	follow_target_estimator.msg
+	follow_target_status.msg
 	generator_status.msg
 	geofence_result.msg
 	gimbal_device_attitude_status.msg
@@ -94,8 +98,8 @@ set(msg_files
 	heater_status.msg
 	home_position.msg
 	hover_thrust_estimate.msg
-	internal_combustion_engine_status.msg
 	input_rc.msg
+	internal_combustion_engine_status.msg
 	iridiumsbd_status.msg
 	irlock_report.msg
 	landing_gear.msg
@@ -118,17 +122,16 @@ set(msg_files
 	obstacle_distance.msg
 	offboard_control_mode.msg
 	onboard_computer_status.msg
-	optical_flow.msg
 	orbit_status.msg
 	parameter_update.msg
 	ping.msg
-	pps_capture.msg
 	position_controller_landing_status.msg
 	position_controller_status.msg
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg
 	power_monitor.msg
+	pps_capture.msg
 	pwm_input.msg
 	px4io_status.msg
 	radio_status.msg
@@ -137,24 +140,24 @@ set(msg_files
 	rc_parameter_map.msg
 	rpm.msg
 	rtl_time_estimate.msg
-	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
 	sensor_accel_fifo.msg
 	sensor_baro.msg
 	sensor_combined.msg
 	sensor_correction.msg
-	sensor_gps.msg
 	sensor_gnss_relative.msg
+	sensor_gps.msg
 	sensor_gyro.msg
 	sensor_gyro_fft.msg
 	sensor_gyro_fifo.msg
 	sensor_hygrometer.msg
 	sensor_mag.msg
+	sensor_optical_flow.msg
 	sensor_preflight_mag.msg
 	sensor_selection.msg
-	sensors_status_imu.msg
 	sensors_status.msg
+	sensors_status_imu.msg
 	system_power.msg
 	takeoff_status.msg
 	task_stack_info.msg
@@ -163,6 +166,7 @@ set(msg_files
 	timesync.msg
 	timesync_status.msg
 	trajectory_bezier.msg
+	trajectory_setpoint.msg
 	trajectory_waypoint.msg
 	transponder_report.msg
 	tune_control.msg
@@ -170,8 +174,8 @@ set(msg_files
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
-	uwb_grid.msg
 	uwb_distance.msg
+	uwb_grid.msg
 	vehicle_acceleration.msg
 	vehicle_air_data.msg
 	vehicle_angular_acceleration.msg
@@ -192,6 +196,8 @@ set(msg_files
 	vehicle_local_position_setpoint.msg
 	vehicle_magnetometer.msg
 	vehicle_odometry.msg
+	vehicle_optical_flow.msg
+	vehicle_optical_flow_vel.msg
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
 	vehicle_status.msg

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,17 +40,6 @@
  */
 
 /**
- * Permanent stabilization in fw mode
- *
- * If set to one this parameter will cause permanent attitude stabilization in fw mode.
- * This parameter has been introduced for pure convenience sake.
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
-
-/**
  * VTOL Type (Tailsitter=0, Tiltrotor=1, Standard=2)
  *
  * @value 0 Tailsitter
@@ -80,7 +69,7 @@ PARAM_DEFINE_INT32(VT_ELEV_MC_LOCK, 1);
  * Time in seconds used for a transition
  *
  * @unit s
- * @min 0.00
+ * @min 0.1
  * @max 20.00
  * @increment 1
  * @decimal 2
@@ -94,7 +83,7 @@ PARAM_DEFINE_FLOAT(VT_F_TRANS_DUR, 5.0f);
  * Time in seconds used for a back transition
  *
  * @unit s
- * @min 0.00
+ * @min 0.1
  * @max 20.00
  * @increment 1
  * @decimal 2
@@ -186,7 +175,7 @@ PARAM_DEFINE_FLOAT(VT_ARSP_TRANS, 10.0f);
  * Time in seconds after which transition will be cancelled. Disabled if set to 0.
  *
  * @unit s
- * @min 0.00
+ * @min 0.1
  * @max 30.00
  * @increment 1
  * @decimal 2
@@ -314,18 +303,6 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_FF, 0.f);
 PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
 
 /**
- * Enable the usage of AUX outputs for hover motors.
- *
- * Set this parameter to true if the vehicle's hover motors are connected to the FMU (AUX) port.
- * Not required for boards that only have a FMU, and no IO.
- * Only applies for standard VTOL and tiltrotor.
- *
- * @boolean
- * @group VTOL Attitude Control
- */
-PARAM_DEFINE_INT32(VT_MC_ON_FMU, 0);
-
-/**
  * Minimum pitch angle during hover.
  *
  * Minimum pitch angle during hover flight. If the desired pitch angle is is lower than this value
@@ -336,12 +313,12 @@ PARAM_DEFINE_INT32(VT_MC_ON_FMU, 0);
  * @max 45.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_PTCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_PITCH_MIN, -5.0f);
 
 /**
  * Minimum pitch angle during hover landing.
  *
- * Overrides  VT_PTCH_MIN when the vehicle is in LAND mode (hovering).
+ * Overrides  VT_PITCH_MIN when the vehicle is in LAND mode (hovering).
  * During landing it can be beneficial to allow lower minimum pitch angles as it can avoid the wings
  * generating too much lift and preventing the vehicle from sinking at the desired rate.
  *
@@ -349,7 +326,7 @@ PARAM_DEFINE_FLOAT(VT_PTCH_MIN, -5.0f);
  * @max 45.0
  * @group VTOL Attitude Control
  */
-PARAM_DEFINE_FLOAT(VT_LND_PTCH_MIN, -5.0f);
+PARAM_DEFINE_FLOAT(VT_LND_PITCH_MIN, -5.0f);
 
 /**
  * Spoiler setting while landing (hover)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,11 +32,10 @@
  ****************************************************************************/
 
 /**
- * PX4Flow board rotation
+ * Optical flow rotation
  *
- * This parameter defines the yaw rotation of the PX4FLOW board relative to the vehicle body frame.
+ * This parameter defines the yaw rotation of the optical flow relative to the vehicle body frame.
  * Zero rotation is defined as X on flow board pointing towards front of vehicle.
- * The recommneded installation default for the PX4FLOW board is with the Y axis forward (270 deg yaw).
  *
  * @value 0 No rotation
  * @value 1 Yaw 45°
@@ -47,11 +46,9 @@
  * @value 6 Yaw 270°
  * @value 7 Yaw 315°
  *
- * @reboot_required true
- *
  * @group Sensors
  */
-PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
+PARAM_DEFINE_INT32(SENS_FLOW_ROT, 0);
 
 /**
  * Minimum height above ground when reliant on optical flow.
@@ -66,7 +63,7 @@ PARAM_DEFINE_INT32(SENS_FLOW_ROT, 6);
  * @decimal 1
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(SENS_FLOW_MINHGT, 0.7f);
+PARAM_DEFINE_FLOAT(SENS_FLOW_MINHGT, 0.08f);
 
 /**
  * Maximum height above ground when reliant on optical flow.
@@ -78,12 +75,12 @@ PARAM_DEFINE_FLOAT(SENS_FLOW_MINHGT, 0.7f);
  *
  * @unit m
  * @min 1.0
- * @max 25.0
+ * @max 100.0
  * @increment 0.1
  * @decimal 1
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(SENS_FLOW_MAXHGT, 3.0f);
+PARAM_DEFINE_FLOAT(SENS_FLOW_MAXHGT, 100.f);
 
 /**
  * Magnitude of maximum angular flow rate reliably measurable by the optical flow sensor.
@@ -97,4 +94,20 @@ PARAM_DEFINE_FLOAT(SENS_FLOW_MAXHGT, 3.0f);
  * @decimal 2
  * @group Sensor Calibration
  */
-PARAM_DEFINE_FLOAT(SENS_FLOW_MAXR, 2.5f);
+PARAM_DEFINE_FLOAT(SENS_FLOW_MAXR, 8.f);
+
+/**
+ * Optical flow max rate.
+ *
+ * Optical flow data maximum publication rate. This is an upper bound,
+ * actual optical flow data rate is still dependant on the sensor.
+ *
+ * @min 1
+ * @max 200
+ * @group Sensors
+ * @unit Hz
+ *
+ * @reboot_required true
+ *
+ */
+PARAM_DEFINE_FLOAT(SENS_FLOW_RATE, 70.0f);

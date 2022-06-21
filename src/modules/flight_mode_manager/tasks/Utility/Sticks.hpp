@@ -67,6 +67,10 @@ public:
 	float getRoll() const { return _positions(1); }
 	float getThrottleZeroCentered() const { return -_positions(2); } // Convert Z-axis(down) command to Up-axis frame
 	float getYaw() const { return _positions(3); }
+	float getPitchExpo() const { return _positions_expo(0); }
+	float getRollExpo() const { return _positions_expo(1); }
+	float getThrottleZeroCenteredExpo() const { return -_positions_expo(2); } // Convert Z-axis(down) command to Up-axis frame
+	float getYawExpo() const { return _positions_expo(3); }
 
 	/**
 	 * Limit the the horizontal input from a square shaped joystick gimbal to a unit circle

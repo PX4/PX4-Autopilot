@@ -62,6 +62,9 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("esc_status", 250);
 	add_topic("failure_detector_status", 100);
 	add_optional_topic("follow_target", 500);
+	add_optional_topic("follow_target_estimator", 200);
+	add_optional_topic("follow_target_status", 400);
+	add_topic("gimbal_manager_set_attitude", 500);
 	add_optional_topic("generator_status");
 	add_optional_topic("gps_dump");
 	add_optional_topic("heater_status");
@@ -85,7 +88,6 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("px4io_status");
 	add_topic("radio_status");
 	add_topic("rtl_time_estimate", 1000);
-	add_topic("safety");
 	add_topic("sensor_combined");
 	add_optional_topic("sensor_correction");
 	add_optional_topic("sensor_gyro_fft", 50);
@@ -171,7 +173,6 @@ void LoggedTopics::add_default_topics()
 	add_topic_multi("battery_status", 200, 2);
 	add_topic_multi("differential_pressure", 1000, 2);
 	add_topic_multi("distance_sensor", 1000, 2);
-	add_topic_multi("optical_flow", 1000, 1);
 	add_optional_topic_multi("sensor_accel", 1000, 4);
 	add_optional_topic_multi("sensor_baro", 1000, 4);
 	add_topic_multi("sensor_gps", 1000, 2);
@@ -179,9 +180,13 @@ void LoggedTopics::add_default_topics()
 	add_optional_topic("pps_capture", 1000);
 	add_optional_topic_multi("sensor_gyro", 1000, 4);
 	add_optional_topic_multi("sensor_mag", 1000, 4);
+	add_optional_topic_multi("sensor_optical_flow", 1000, 2);
+
 	add_topic_multi("vehicle_imu", 500, 4);
 	add_topic_multi("vehicle_imu_status", 1000, 4);
 	add_optional_topic_multi("vehicle_magnetometer", 500, 4);
+	add_optional_topic("vehicle_optical_flow", 500);
+	//add_optional_topic("vehicle_optical_flow_vel", 100);
 
 
 	add_topic("actuator_motors", 100);

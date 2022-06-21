@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015, 2021 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,44 +43,15 @@
 #ifndef VTOL_TYPE_H
 #define VTOL_TYPE_H
 
-#include <lib/mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
+#include <lib/mathlib/mathlib.h>
 #include <lib/slew_rate/SlewRate.hpp>
+#include <px4_platform_common/module_params.h>
+
 
 static constexpr float kFlapSlewRateVtol = 1.f; // minimum time from none to full flap deflection [s]
 static constexpr float kSpoilerSlewRateVtol = 1.f; // minimum time from none to full spoiler deflection [s]
 
-struct Params {
-	int32_t vtol_type;
-	bool elevons_mc_lock;		// lock elevons in multicopter mode
-	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
-	float fw_alt_err;			// maximum negative altitude error for FW mode (Adaptive QuadChute)
-	float fw_qc_max_pitch;		// maximum pitch angle FW mode (QuadChute)
-	float fw_qc_max_roll;		// maximum roll angle FW mode (QuadChute)
-	float front_trans_time_openloop;
-	float front_trans_time_min;
-	float front_trans_duration;
-	float back_trans_duration;
-	float transition_airspeed;
-	float front_trans_throttle;
-	float back_trans_throttle;
-	float airspeed_blend;
-	bool airspeed_disabled;
-	float front_trans_timeout;
-	float mpc_xy_cruise;
-	int32_t diff_thrust;
-	float diff_thrust_scale;
-	float pitch_min_rad;
-	float land_pitch_min_rad;
-	float forward_thrust_scale;
-	float dec_to_pitch_ff;
-	float dec_to_pitch_i;
-	float back_trans_dec_sp;
-	int32_t vt_forward_thrust_enable_mode;
-	float mpc_land_alt1;
-	float mpc_land_alt2;
-	float vt_spoiler_mc_ld;
-};
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
 enum class mode {
@@ -106,17 +77,6 @@ enum VtolForwardActuationMode {
 	ENABLE_ABOVE_MPC_LAND_ALT2_WITHOUT_LAND
 };
 
-// these are states that can be applied to a selection of multirotor motors.
-// e.g. if we need to shut off some motors after transitioning to fixed wing mode
-// we can individually disable them while others might still need to be enabled to produce thrust.
-// we can select the target motors via VT_FW_MOT_OFFID
-enum class motor_state {
-	ENABLED = 0,		// motor max pwm will be set to the standard max pwm value
-	DISABLED,			// motor max pwm will be set to a value that shuts the motor off
-	IDLE,				// motor max pwm will be set to VT_IDLE_PWM_MC
-	VALUE 				// motor max pwm will be set to a specific value provided, see set_motor_state()
-};
-
 /**
  * @brief      Used to specify if min or max pwm values should be altered
  */
@@ -127,7 +87,7 @@ enum class pwm_limit_type {
 
 class VtolAttitudeControl;
 
-class VtolType
+class VtolType : public ModuleParams
 {
 public:
 
@@ -240,11 +200,8 @@ protected:
 	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_0;
 	struct vehicle_thrust_setpoint_s 		*_thrust_setpoint_1;
 
-	struct Params 					*_params;
-
 	bool _flag_idle_mc = false;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
 
-	bool _pusher_active = false;
 	float _mc_roll_weight = 1.0f;	// weight for multicopter attitude controller roll output
 	float _mc_pitch_weight = 1.0f;	// weight for multicopter attitude controller pitch output
 	float _mc_yaw_weight = 1.0f;	// weight for multicopter attitude controller yaw output
@@ -264,9 +221,6 @@ protected:
 	bool _tecs_running = false;
 	hrt_abstime _tecs_running_ts = 0;
 
-	motor_state _main_motor_state = motor_state::DISABLED;
-	motor_state _alternate_motor_state = motor_state::DISABLED;
-
 	hrt_abstime _last_loop_ts = 0;
 	float _transition_dt = 0;
 
@@ -281,21 +235,43 @@ protected:
 
 	float _dt{0.0025f}; // time step [s]
 
+	DEFINE_PARAMETERS_CUSTOM_PARENT(ModuleParams,
+					(ParamBool<px4::params::VT_ELEV_MC_LOCK>) _param_vt_elev_mc_lock,
+					(ParamFloat<px4::params::VT_FW_MIN_ALT>) _param_vt_fw_min_alt,
+					(ParamFloat<px4::params::VT_FW_ALT_ERR>) _param_vt_fw_alt_err,
+					(ParamInt<px4::params::VT_FW_QC_P>) _param_vt_fw_qc_p,
+					(ParamInt<px4::params::VT_FW_QC_R>) _param_vt_fw_qc_r,
+					(ParamFloat<px4::params::VT_F_TR_OL_TM>) _param_vt_f_tr_ol_tm,
+					(ParamFloat<px4::params::VT_TRANS_MIN_TM>) _param_vt_trans_min_tm,
+
+					(ParamFloat<px4::params::VT_F_TRANS_DUR>) _param_vt_f_trans_dur,
+					(ParamFloat<px4::params::VT_B_TRANS_DUR>) _param_vt_b_trans_dur,
+					(ParamFloat<px4::params::VT_ARSP_TRANS>) _param_vt_arsp_trans,
+					(ParamFloat<px4::params::VT_F_TRANS_THR>) _param_vt_f_trans_thr,
+					(ParamFloat<px4::params::VT_B_TRANS_THR>) _param_vt_b_trans_thr,
+					(ParamFloat<px4::params::VT_ARSP_BLEND>) _param_vt_arsp_blend,
+					(ParamBool<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
+					(ParamFloat<px4::params::VT_TRANS_TIMEOUT>) _param_vt_trans_timeout,
+					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
+					(ParamBool<px4::params::VT_FW_DIFTHR_EN>) _param_vt_fw_difthr_en,
+					(ParamFloat<px4::params::VT_FW_DIFTHR_SC>) _param_vt_fw_difthr_sc,
+					(ParamFloat<px4::params::VT_B_DEC_FF>) _param_vt_b_dec_ff,
+					(ParamFloat<px4::params::VT_B_DEC_I>) _param_vt_b_dec_i,
+					(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_vt_b_dec_mss,
+
+					(ParamFloat<px4::params::VT_PITCH_MIN>) _param_vt_pitch_min,
+					(ParamFloat<px4::params::VT_FWD_THRUST_SC>) _param_vt_fwd_thrust_sc,
+					(ParamInt<px4::params::VT_FWD_THRUST_EN>) _param_vt_fwd_thrust_en,
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1,
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2,
+					(ParamFloat<px4::params::VT_LND_PITCH_MIN>) _param_vt_lnd_pitch_min,
+
+					(ParamFloat<px4::params::VT_SPOILER_MC_LD>) _param_vt_spoiler_mc_ld
+
+				       )
+
 private:
 	hrt_abstime _throttle_blend_start_ts{0};	// time at which we start blending between transition throttle and fixed wing throttle
-
-	/**
-	 * @brief      Determines if channel is set in a bitmap.
-	 *
-	 * @param[in]  channel  The channel
-	 * @param[in]  bitmap  	The bitmap to check on.
-	 *
-	 * @return     True if set, false otherwise.
-	 */
-	bool is_channel_set(const int channel, const int bitmap);
-
-	// generates a bitmap from a number format, e.g. 1235 -> first, second, third and fifth bits should be set.
-	int generate_bitmap_from_channel_numbers(const int channels);
 
 	void resetAccelToPitchPitchIntegrator() { _accel_to_pitch_integ = 0.f; }
 	bool shouldBlendThrottleAfterFrontTransition() { return _throttle_blend_start_ts != 0; };

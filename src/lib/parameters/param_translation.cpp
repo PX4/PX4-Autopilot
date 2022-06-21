@@ -119,6 +119,25 @@ bool param_modify_on_import(bson_node_t node)
 		}
 	}
 
+	// 2022-04-11: translate VT_PTCH_MIN to VT_PITCH_MIN
+	{
+		if (strcmp("VT_PTCH_MIN", node->name) == 0) {
+			strcpy(node->name, "VT_PITCH_MIN");
+			PX4_INFO("copying %s -> %s", "VT_PTCH_MIN", "VT_PITCH_MIN");
+			return true;
+		}
+	}
+
+	// 2022-04-11: translate VT_LND_PTCH_MIN to VT_LND_PITCH_MIN
+	{
+		if (strcmp("VT_LND_PTCH_MIN", node->name) == 0) {
+			strcpy(node->name, "VT_LND_PITCH_MIN");
+			PX4_INFO("copying %s -> %s", "VT_LND_PTCH_MIN", "VT_LND_PITCH_MIN");
+			return true;
+		}
+	}
+
+
 	// 2021-10-21: translate NAV_GPSF_LT to FW_GPSF_LT and NAV_GPSF_R to FW_GPSF_R
 	{
 		if (strcmp("NAV_GPSF_LT", node->name) == 0) {
@@ -162,6 +181,31 @@ bool param_modify_on_import(bson_node_t node)
 		if (strcmp("SENS_EN_MS5525", node->name) == 0) {
 			strcpy(node->name, "SENS_EN_MS5525DS");
 			PX4_INFO("copying %s -> %s", "SENS_EN_MS5525", "SENS_EN_MS5525DS");
+			return true;
+		}
+	}
+
+	// 2022-06-09: migrate EKF2_WIND_NOISE->EKF2_WIND_NSD
+	{
+		if (strcmp("EKF2_WIND_NOISE", node->name) == 0) {
+			node->d /= 10.0; // at 100Hz (EKF2 rate), NSD is sqrt(100) times smaller than std_dev
+			strcpy(node->name, "EKF2_WIND_NSD");
+			PX4_INFO("param migrating EKF2_WIND_NOISE (removed) -> EKF2_WIND_NSD: value=%.3f", node->d);
+			return true;
+		}
+	}
+
+	// 2022-06-09: translate ASPD_SC_P_NOISE->ASPD_SCALE_NSD and ASPD_W_P_NOISE->ASPD_WIND_NSD
+	{
+		if (strcmp("ASPD_SC_P_NOISE", node->name) == 0) {
+			strcpy(node->name, "ASPD_SCALE_NSD");
+			PX4_INFO("copying %s -> %s", "ASPD_SC_P_NOISE", "ASPD_SCALE_NSD");
+			return true;
+		}
+
+		if (strcmp("ASPD_W_P_NOISE", node->name) == 0) {
+			strcpy(node->name, "ASPD_WIND_NSD");
+			PX4_INFO("copying %s -> %s", "ASPD_W_P_NOISE", "ASPD_WIND_NSD");
 			return true;
 		}
 	}

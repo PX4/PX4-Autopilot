@@ -214,10 +214,6 @@ void PWMOut::Run()
 		updateParams();
 	}
 
-	if (_pwm_initialized && (_current_update_rate == 0)) {
-		update_current_rate();
-	}
-
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
 	_mixing_output.updateSubscriptions(true, true);
 
@@ -251,6 +247,27 @@ int PWMOut::print_status()
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);
 	_mixing_output.printStatus();
+
+	if (_pwm_initialized) {
+		for (int timer = 0; timer < MAX_IO_TIMERS; ++timer) {
+			if (_timer_rates[timer] >= 0) {
+				PX4_INFO_RAW("Timer %i: rate: %3i", timer, _timer_rates[timer]);
+				uint32_t channels = _pwm_mask & up_pwm_servo_get_rate_group(timer);
+
+				if (channels > 0) {
+					PX4_INFO_RAW(" channels: ");
+
+					for (uint32_t channel = 0; channel < _num_outputs; ++channel) {
+						if ((1 << channel) & channels) {
+							PX4_INFO_RAW("%" PRIu32 " ", channel);
+						}
+					}
+				}
+
+				PX4_INFO_RAW("\n");
+			}
+		}
+	}
 
 	return 0;
 }

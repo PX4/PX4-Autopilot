@@ -1,29 +1,31 @@
 
 /**
- * Airspeed Selector: Wind estimator wind process noise
+ * Airspeed Selector: Wind estimator wind process noise noise spectral density
  *
  * Wind process noise of the internal wind estimator(s) of the airspeed selector.
+ * When unaided, the wind estimate uncertainty (1-sigma, in m/s) increases by this amount every second.
  *
  * @min 0
  * @max 1
- * @unit m/s^2
+ * @unit m/s^2/sqrt(Hz)
  * @decimal 2
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_W_P_NOISE, 0.1f);
+PARAM_DEFINE_FLOAT(ASPD_WIND_NSD, 1.e-2f);
 
 /**
- * Airspeed Selector: Wind estimator true airspeed scale process noise
+ * Airspeed Selector: Wind estimator true airspeed scale process noise spectral density
  *
  * Airspeed scale process noise of the internal wind estimator(s) of the airspeed selector.
+ * When unaided, the scale uncertainty (1-sigma, unitless) increases by this amount every second.
  *
  * @min 0
  * @max 0.1
- * @unit Hz
+ * @unit 1/s/sqrt(Hz)
  * @decimal 5
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ASPD_SC_P_NOISE, 0.0001f);
+PARAM_DEFINE_FLOAT(ASPD_SCALE_NSD, 0.0001f);
 
 /**
  * Airspeed Selector: Wind estimator true airspeed measurement noise
@@ -83,7 +85,7 @@ PARAM_DEFINE_INT32(ASPD_BETA_GATE, 1);
  * @value 2 Apply the estimated scale in air
  * @group Airspeed Validator
  */
-PARAM_DEFINE_INT32(ASPD_SCALE_APPLY, 1);
+PARAM_DEFINE_INT32(ASPD_SCALE_APPLY, 2);
 
 /**
  * Scale of airspeed sensor 1

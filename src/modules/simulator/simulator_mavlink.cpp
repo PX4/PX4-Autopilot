@@ -41,6 +41,7 @@
 #include <px4_platform_common/tasks.h>
 #include <lib/geo/geo.h>
 #include <drivers/device/Device.hpp>
+#include <drivers/drv_pwm_output.h>
 #include <conversion/rotation.h>
 #include <mathlib/mathlib.h>
 #include <lib/drivers/device/Device.hpp>
@@ -107,6 +108,29 @@ void Simulator::actuator_controls_from_outputs(mavlink_hil_actuator_controls_t *
 #endif
 }
 
+void Simulator::send_esc_telemetry(mavlink_hil_actuator_controls_t hil_act_control)
+{
+	esc_status_s esc_status{};
+	esc_status.timestamp = hrt_absolute_time();
+	esc_status.esc_count = math::min(actuator_outputs_s::NUM_ACTUATOR_OUTPUTS, esc_status_s::CONNECTED_ESC_MAX);
+
+	const bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
+	esc_status.esc_armed_flags = armed ? 255 : 0;  // ugly
+
+	for (int i = 0; i < esc_status.esc_count; i++) {
+		esc_status.esc[i].actuator_function = _output_functions[i]; // TODO: this should be in pwm_out_sim...
+		esc_status.esc[i].timestamp = esc_status.timestamp;
+		esc_status.esc[i].esc_errorcount = 0; // TODO
+		esc_status.esc[i].esc_voltage = _battery_status.voltage_v;
+		esc_status.esc[i].esc_current = armed ? 1.0 + math::abs_t(hil_act_control.controls[i]) * 15.0 :
+						0.0f; // TODO: magic number
+		esc_status.esc[i].esc_rpm = hil_act_control.controls[i] * 6000;  // TODO: magic number
+		esc_status.esc[i].esc_temperature = 20.0 + math::abs_t(hil_act_control.controls[i]) * 40.0;
+	}
+
+	_esc_status_pub.publish(esc_status);
+}
+
 void Simulator::send_controls()
 {
 	orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuator_outputs);
@@ -121,6 +145,8 @@ void Simulator::send_controls()
 		PX4_DEBUG("sending controls t=%ld (%ld)", _actuator_outputs.timestamp, hil_act_control.time_usec);
 
 		send_mavlink_message(message);
+
+		send_esc_telemetry(hil_act_control);
 	}
 }
 
@@ -547,7 +573,45 @@ void Simulator::handle_message_optical_flow(const mavlink_message_t *msg)
 {
 	mavlink_hil_optical_flow_t flow;
 	mavlink_msg_hil_optical_flow_decode(msg, &flow);
-	publish_flow_topic(&flow);
+
+	device::Device::DeviceId device_id;
+	device_id.devid_s.bus_type = device::Device::DeviceBusType::DeviceBusType_MAVLINK;
+	device_id.devid_s.bus = 0;
+	device_id.devid_s.address = msg->sysid;
+	device_id.devid_s.devtype = DRV_FLOW_DEVTYPE_SIM;
+
+	sensor_optical_flow_s sensor_optical_flow{};
+
+	sensor_optical_flow.timestamp_sample = hrt_absolute_time();
+	sensor_optical_flow.device_id = device_id.devid;
+
+	sensor_optical_flow.pixel_flow[0] = flow.integrated_x;
+	sensor_optical_flow.pixel_flow[1] = flow.integrated_y;
+
+	sensor_optical_flow.integration_timespan_us = flow.integration_time_us;
+	sensor_optical_flow.quality = flow.quality;
+
+	if (PX4_ISFINITE(flow.integrated_xgyro) && PX4_ISFINITE(flow.integrated_ygyro) && PX4_ISFINITE(flow.integrated_zgyro)) {
+		sensor_optical_flow.delta_angle[0] = flow.integrated_xgyro;
+		sensor_optical_flow.delta_angle[1] = flow.integrated_ygyro;
+		sensor_optical_flow.delta_angle[2] = flow.integrated_zgyro;
+		sensor_optical_flow.delta_angle_available = true;
+	}
+
+	sensor_optical_flow.max_flow_rate       = NAN;
+	sensor_optical_flow.min_ground_distance = NAN;
+	sensor_optical_flow.max_ground_distance = NAN;
+
+	// Use distance value for distance sensor topic
+	if (PX4_ISFINITE(flow.distance) && (flow.distance >= 0.f)) {
+		// Positive value (including zero): distance known. Negative value: Unknown distance.
+		sensor_optical_flow.distance_m = flow.distance;
+		sensor_optical_flow.distance_available = true;
+	}
+
+	sensor_optical_flow.timestamp = hrt_absolute_time();
+
+	_sensor_optical_flow_pub.publish(sensor_optical_flow);
 }
 
 void Simulator::handle_message_rc_channels(const mavlink_message_t *msg)
@@ -663,6 +727,7 @@ void Simulator::send()
 			parameters_update(false);
 			check_failure_injections();
 			_vehicle_status_sub.update(&_vehicle_status);
+			_battery_status_sub.update(&_battery_status);
 
 			// Wait for other modules, such as logger or ekf2
 			px4_lockstep_wait_for_components();
@@ -1188,50 +1253,6 @@ void Simulator::check_failure_injections()
 			_command_ack_pub.publish(ack);
 		}
 	}
-}
-
-int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink)
-{
-	optical_flow_s flow = {};
-	flow.sensor_id = flow_mavlink->sensor_id;
-	flow.timestamp = hrt_absolute_time();
-	flow.time_since_last_sonar_update = 0;
-	flow.frame_count_since_last_readout = 0; // ?
-	flow.integration_timespan = flow_mavlink->integration_time_us;
-
-	flow.ground_distance_m = flow_mavlink->distance;
-	flow.gyro_temperature = flow_mavlink->temperature;
-	flow.gyro_x_rate_integral = flow_mavlink->integrated_xgyro;
-	flow.gyro_y_rate_integral = flow_mavlink->integrated_ygyro;
-	flow.gyro_z_rate_integral = flow_mavlink->integrated_zgyro;
-	flow.pixel_flow_x_integral = flow_mavlink->integrated_x;
-	flow.pixel_flow_y_integral = flow_mavlink->integrated_y;
-	flow.quality = flow_mavlink->quality;
-
-	/* fill in sensor limits */
-	float flow_rate_max;
-	param_get(param_find("SENS_FLOW_MAXR"), &flow_rate_max);
-	float flow_min_hgt;
-	param_get(param_find("SENS_FLOW_MINHGT"), &flow_min_hgt);
-	float flow_max_hgt;
-	param_get(param_find("SENS_FLOW_MAXHGT"), &flow_max_hgt);
-
-	flow.max_flow_rate = flow_rate_max;
-	flow.min_ground_distance = flow_min_hgt;
-	flow.max_ground_distance = flow_max_hgt;
-
-	/* rotate measurements according to parameter */
-	int32_t flow_rot_int;
-	param_get(param_find("SENS_FLOW_ROT"), &flow_rot_int);
-	const enum Rotation flow_rot = (Rotation)flow_rot_int;
-
-	float zeroval = 0.0f;
-	rotate_3f(flow_rot, flow.pixel_flow_x_integral, flow.pixel_flow_y_integral, zeroval);
-	rotate_3f(flow_rot, flow.gyro_x_rate_integral, flow.gyro_y_rate_integral, flow.gyro_z_rate_integral);
-
-	_flow_pub.publish(flow);
-
-	return PX4_OK;
 }
 
 int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)

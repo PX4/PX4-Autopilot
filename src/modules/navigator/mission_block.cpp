@@ -73,6 +73,8 @@ MissionBlock::is_mission_item_reached()
 {
 	/* handle non-navigation or indefinite waypoints */
 
+	hrt_abstime now = hrt_absolute_time();
+
 	switch (_mission_item.nav_cmd) {
 	case NAV_CMD_DO_SET_SERVO:
 		return true;
@@ -107,6 +109,8 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_SET_CAMERA_MODE:
 	case NAV_CMD_SET_CAMERA_ZOOM:
 	case NAV_CMD_SET_CAMERA_FOCUS:
+	case NAV_CMD_DO_CHANGE_SPEED:
+	case NAV_CMD_DO_SET_HOME:
 		return true;
 
 	case NAV_CMD_DO_VTOL_TRANSITION:
@@ -124,16 +128,20 @@ MissionBlock::is_mission_item_reached()
 			return false;
 		}
 
-	case NAV_CMD_DO_CHANGE_SPEED:
-	case NAV_CMD_DO_SET_HOME:
-		return true;
+	case NAV_CMD_DELAY:
+		// Set reached flags directly such that only the delay time is considered
+		_waypoint_position_reached = true;
+		_waypoint_yaw_reached = true;
+
+		// Set timestamp when entering only (it's reset to 0 for every waypoint)
+		if (_time_wp_reached == 0) {
+			_time_wp_reached = now;
+		}
 
 	default:
 		/* do nothing, this is a 3D waypoint */
 		break;
 	}
-
-	hrt_abstime now = hrt_absolute_time();
 
 	if (!_navigator->get_land_detected()->landed && !_waypoint_position_reached) {
 
@@ -266,11 +274,6 @@ MissionBlock::is_mission_item_reached()
 					_time_wp_reached = now;
 				}
 			}
-
-		} else if (_mission_item.nav_cmd == NAV_CMD_DELAY) {
-			_waypoint_position_reached = true;
-			_waypoint_yaw_reached = true;
-			_time_wp_reached = now;
 
 		} else {
 
@@ -557,8 +560,7 @@ MissionBlock::item_contains_position(const mission_item_s &item)
 	       item.nav_cmd == NAV_CMD_TAKEOFF ||
 	       item.nav_cmd == NAV_CMD_LOITER_TO_ALT ||
 	       item.nav_cmd == NAV_CMD_VTOL_TAKEOFF ||
-	       item.nav_cmd == NAV_CMD_VTOL_LAND ||
-	       item.nav_cmd == NAV_CMD_DO_FOLLOW_REPOSITION;
+	       item.nav_cmd == NAV_CMD_VTOL_LAND;
 }
 
 bool
@@ -588,7 +590,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	sp->yaw_valid = PX4_ISFINITE(item.yaw);
 	sp->loiter_radius = (fabsf(item.loiter_radius) > NAV_EPSILON_POSITION) ? fabsf(item.loiter_radius) :
 			    _navigator->get_loiter_radius();
-	sp->loiter_direction = (item.loiter_radius > 0) ? 1 : -1;
+	sp->loiter_direction = math::signNoZero(item.loiter_radius);
 
 	if (item.acceptance_radius > 0.0f && PX4_ISFINITE(item.acceptance_radius)) {
 		// if the mission item has a specified acceptance radius, overwrite the default one from parameters

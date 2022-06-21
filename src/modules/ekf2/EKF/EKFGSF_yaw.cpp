@@ -23,7 +23,6 @@ void EKFGSF_yaw::update(const imuSample &imu_sample,
 	_delta_vel = imu_sample.delta_vel;
 	_delta_ang_dt = imu_sample.delta_ang_dt;
 	_delta_vel_dt = imu_sample.delta_vel_dt;
-	_run_ekf_gsf = run_EKF;
 	_true_airspeed = airspeed;
 
 	// to reduce effect of vibration, filter using an LPF whose time constant is 1/10 of the AHRS tilt correction time constant
@@ -60,7 +59,7 @@ void EKFGSF_yaw::update(const imuSample &imu_sample,
 	}
 
 	// The 3-state EKF models only run when flying to avoid corrupted estimates due to operator handling and GPS interference
-	if (_run_ekf_gsf && _vel_data_updated) {
+	if (run_EKF && _vel_data_updated) {
 		if (!_ekf_gsf_vel_fuse_started) {
 			initialiseEKFGSF();
 			ahrsAlignYaw();
@@ -111,7 +110,7 @@ void EKFGSF_yaw::update(const imuSample &imu_sample,
 			}
 		}
 
-	} else if (_ekf_gsf_vel_fuse_started && !_run_ekf_gsf) {
+	} else if (_ekf_gsf_vel_fuse_started && !run_EKF) {
 		// wait to fly again
 		_ekf_gsf_vel_fuse_started = false;
 	}

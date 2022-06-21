@@ -52,10 +52,11 @@ static constexpr unsigned max_mandatory_baro_count = 1;
 
 bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 				    vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
-				    bool report_failures, const bool prearm, const hrt_abstime &time_since_boot)
+				    bool report_failures, const hrt_abstime &time_since_boot,
+				    const bool safety_button_available, const bool safety_off,
+				    const bool is_arm_attempt)
 {
-	report_failures = (report_failures && status_flags.system_hotplug_timeout
-			   && !status_flags.calibration_enabled);
+	report_failures = (report_failures && !status_flags.calibration_enabled);
 
 	bool failed = false;
 
@@ -142,7 +143,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 		const float arming_max_airspeed_allowed = airspeed_trim / 2.0f; // set to half of trim airspeed
 
-		if (!airspeedCheck(mavlink_log_pub, status, optional, report_failures, prearm, (bool)max_airspeed_check_en,
+		if (!airspeedCheck(mavlink_log_pub, status, optional, report_failures, is_arm_attempt, (bool)max_airspeed_check_en,
 				   arming_max_airspeed_allowed)
 		    && !(bool)optional) {
 			failed = true;
@@ -174,7 +175,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 
 	/* ---- SYSTEM POWER ---- */
 	if (status_flags.power_input_valid && !status_flags.circuit_breaker_engaged_power_check) {
-		if (!powerCheck(mavlink_log_pub, status, report_failures, prearm)) {
+		if (!powerCheck(mavlink_log_pub, status, report_failures)) {
 			failed = true;
 		}
 	}
@@ -194,7 +195,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	if (estimator_type == 2) {
 
 		const bool in_grace_period = time_since_boot < 10_s;
-		const bool do_report_ekf2_failures = report_failures && (!in_grace_period || prearm);
+		const bool do_report_ekf2_failures = report_failures && (!in_grace_period);
 		const bool ekf_healthy = ekf2Check(mavlink_log_pub, status, false, do_report_ekf2_failures) &&
 					 ekf2CheckSensorBias(mavlink_log_pub, do_report_ekf2_failures);
 
@@ -219,7 +220,7 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	}
 
 	/* ---- Failure Detector ---- */
-	if (!failureDetectorCheck(mavlink_log_pub, status, report_failures, prearm)) {
+	if (!failureDetectorCheck(mavlink_log_pub, status, report_failures)) {
 		failed = true;
 	}
 
@@ -227,6 +228,8 @@ bool PreFlightCheck::preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_statu
 	failed = failed || !modeCheck(mavlink_log_pub, report_failures, status);
 	failed = failed || !cpuResourceCheck(mavlink_log_pub, report_failures);
 	failed = failed || !parachuteCheck(mavlink_log_pub, report_failures, status_flags);
+	failed = failed || !preArmCheck(mavlink_log_pub, status_flags, control_mode,
+					safety_button_available, safety_off, status, report_failures, is_arm_attempt);
 
 	/* Report status */
 	return !failed;

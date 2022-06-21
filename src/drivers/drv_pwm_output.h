@@ -67,6 +67,11 @@ __BEGIN_DECLS
 #define PWM_MOTOR_OFF	900
 
 /**
+ * Default value for a servo stop
+ */
+#define PWM_SERVO_STOP	1500
+
+/**
  * Default minimum PWM in us
  */
 #define PWM_DEFAULT_MIN 1000
