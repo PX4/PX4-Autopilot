@@ -35,7 +35,7 @@
  * @file batt_smbus.h
  *
  * Header for a battery monitor connected via SMBus (I2C).
- * Designed for BQ40Z50-R1/R2 and BQ40Z80
+ * Designed for BQ40Z50-R1/R2, BQ40Z80 and BQ78350
  *
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
@@ -61,6 +61,9 @@ BATT_SMBUS::BATT_SMBUS(const I2CSPIDriverConfig &config, SMBus *interface) :
 	//TODO: probe the device and autodetect its type
 	if ((SMBUS_DEVICE_TYPE)batt_device_type == SMBUS_DEVICE_TYPE::BQ40Z80) {
 		_device_type = SMBUS_DEVICE_TYPE::BQ40Z80;
+
+	} else if ((SMBUS_DEVICE_TYPE)batt_device_type == SMBUS_DEVICE_TYPE::BQ78350) {
+		_device_type = SMBUS_DEVICE_TYPE::BQ78350;
 
 	} else {
 		//default
@@ -164,6 +167,14 @@ void BATT_SMBUS::RunImpl()
 
 	// Only publish if no errors.
 	if (ret == PX4_OK) {
+
+		if (_conn_lost) {
+			PX4_INFO("Connection to BMS regained");
+			_conn_lost = false;
+		}
+
+		_failed_sends = 0;
+
 		new_report.capacity = _batt_capacity;
 		new_report.cycle_count = _cycle_count;
 		new_report.serial_number = _serial_number;
@@ -194,6 +205,16 @@ void BATT_SMBUS::RunImpl()
 		orb_publish_auto(ORB_ID(battery_status), &_batt_topic, &new_report, &instance);
 
 		_last_report = new_report;
+
+	} else if (!_conn_lost) {
+		if (_failed_sends >= BATT_SMBUS_CON_LOST_MSGS_THRESHOLD) {
+			PX4_ERR("Connection to BMS lost");
+			_conn_lost = true;
+
+		} else {
+			_failed_sends++;
+		}
+
 	}
 }
 
@@ -261,6 +282,18 @@ int BATT_SMBUS::get_cell_voltages()
 		_cell_voltages[5] = ((float)((DAstatus3[7] << 8) | DAstatus3[6]) / 1000.0f);
 		_cell_voltages[6] = ((float)((DAstatus3[13] << 8) | DAstatus3[12]) / 1000.0f);
 
+	} else if (_device_type == SMBUS_DEVICE_TYPE::BQ78350) {
+		int cell_1_addr = BATT_SMBUS_BQ78350_CELL_1_VOLTAGE_ADDR;
+
+		for (int i = 0; i < _cell_count; i++) {
+			//Get each cell voltage, adresses decrementing from first cell per definition of BQ78350 adress space
+			if (PX4_OK != _interface->read_word(cell_1_addr - i, result)) {
+				return PX4_ERROR;
+			}
+
+			// Convert millivolts to volts.
+			_cell_voltages[i] = ((float)result) / 1000.0f;
+		}
 	}
 
 	//Calculate max cell delta
@@ -392,12 +425,16 @@ int BATT_SMBUS::get_startup_info()
 	ret |= _interface->read_word(BATT_SMBUS_STATE_OF_HEALTH, state_of_health);
 
 	if (!ret) {
+		PX4_INFO("Got startup info");
 		_serial_number = serial_num;
 		_batt_startup_capacity = (uint16_t)((float)remaining_cap * _c_mult);
 		_cycle_count = cycle_count;
 		_batt_capacity = (uint16_t)((float)full_cap * _c_mult);
 		_manufacture_date = manufacture_date;
 		_state_of_health = state_of_health;
+
+	} else {
+		PX4_WARN("Could not get startup info");
 	}
 
 	if (lifetime_data_flush() == PX4_OK) {

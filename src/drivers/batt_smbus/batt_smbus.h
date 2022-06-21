@@ -35,7 +35,7 @@
  * @file batt_smbus.h
  *
  * Header for a battery monitor connected via SMBus (I2C).
- * Designed for BQ40Z50-R1/R2 or BQ40Z80
+ * Designed for BQ40Z50-R1/R2, BQ40Z80 and BQ78350
  *
  * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  * @author Alex Klimaj <alexklimaj@gmail.com>
@@ -59,6 +59,8 @@
 using namespace time_literals;
 
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100_ms         ///< time in microseconds, measure at 10Hz
+
+#define BATT_SMBUS_CON_LOST_MSGS_THRESHOLD		5	       ///< Number of lost msgs before connection considered lost
 
 #define MAC_DATA_BUFFER_SIZE                            32
 
@@ -99,6 +101,8 @@ using namespace time_literals;
 #define BATT_SMBUS_BQ40Z80_CELL_5_VOLTAGE               0x3E
 #define BATT_SMBUS_BQ40Z80_CELL_4_VOLTAGE               0x3F
 
+#define BATT_SMBUS_BQ78350_CELL_1_VOLTAGE_ADDR          0x3F
+
 #define BATT_SMBUS_STATE_OF_HEALTH                      0x4F            ///< State of Health. The SOH information of the battery in percentage of Design Capacity
 
 #define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
@@ -122,6 +126,7 @@ enum class SMBUS_DEVICE_TYPE {
 	UNDEFINED     = 0,
 	BQ40Z50       = 1,
 	BQ40Z80       = 2,
+	BQ78350       = 3,
 };
 
 class BATT_SMBUS : public I2CSPIDriver<BATT_SMBUS>
@@ -228,7 +233,7 @@ private:
 
 	perf_counter_t _cycle{perf_alloc(PC_ELAPSED, "batt_smbus_cycle")};
 
-	static const uint8_t MAX_NUM_OF_CELLS = 7;
+	static const uint8_t MAX_NUM_OF_CELLS = 16;
 	float _cell_voltages[MAX_NUM_OF_CELLS] {};
 
 	float _max_cell_voltage_delta{0};
@@ -240,6 +245,12 @@ private:
 
 	/** @param _last_report Last published report, used for test(). */
 	battery_status_s _last_report{};
+
+	/** @param _failed_sends Number of times in a row the batter_status msg could not be sent. */
+	uint8_t _failed_sends{0};
+
+	/** @param _conn_lost If connection is considered lost, battery_status msgs not sent until regained. */
+	bool _conn_lost{false};
 
 	/** @param _batt_topic uORB battery topic. */
 	orb_advert_t _batt_topic{nullptr};
