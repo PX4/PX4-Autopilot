@@ -74,6 +74,7 @@
 
 #define BOARD_RESET_REASON_COLD_BOOT 0x1ff
 #define BOARD_RESET_REASON_SYSTEMRESET_MASK 0x2
+#define BOARD_RESET_REASON_DEBUGGER_MASK 0x8
 
 static struct mtd_dev_s *mtd = 0;
 static struct mtd_geometry_s geo;
@@ -789,7 +790,8 @@ bootloader_main(void)
 	uint32_t reset_reason = board_get_reset_reason();
 
 	if (reset_reason != BOARD_RESET_REASON_COLD_BOOT &&
-	    (reset_reason & BOARD_RESET_REASON_SYSTEMRESET_MASK) != 0) {
+	    (reset_reason & BOARD_RESET_REASON_SYSTEMRESET_MASK) != 0 &&
+	    (reset_reason & BOARD_RESET_REASON_DEBUGGER_MASK) == 0) {
 
 		/*
 		 * Don't even try to boot before dropping to the bootloader.
