@@ -41,6 +41,8 @@
 using namespace matrix;
 using namespace time_literals;
 
+static constexpr float MAX_CLOSE_LOITER_POSITION_OFFSET = 5.0f;
+
 bool FlightTaskAuto::activate(const trajectory_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
@@ -116,12 +118,6 @@ bool FlightTaskAuto::update()
 		_acceleration_setpoint.setNaN();
 	}
 
-	// during mission and reposition, raise the landing gears but only
-	// if altitude is high enough
-	if (_highEnoughForLandingGear()) {
-		_gear.landing_gear = landing_gear_s::GEAR_UP;
-	}
-
 	switch (_type) {
 	case WaypointType::idle:
 		// Send zero thrust setpoint
@@ -135,6 +131,10 @@ bool FlightTaskAuto::update()
 		break;
 
 	case WaypointType::velocity:
+		if (_highEnoughForLandingGear()) {
+			_gear.landing_gear = landing_gear_s::GEAR_UP;
+		}
+
 		// XY Velocity waypoint
 		// TODO : Rewiew that. What is the expected behavior?
 		_position_setpoint = Vector3f(NAN, NAN, _position(2));
@@ -143,14 +143,26 @@ bool FlightTaskAuto::update()
 		break;
 
 	case WaypointType::loiter:
+		if (_highEnoughForLandingGear()) {
+			_gear.landing_gear = landing_gear_s::GEAR_UP;
+		}
+
 		if (_param_mpc_land_rc_help.get() && _sticks.checkAndUpdateStickInputs()) {
 			rcHelpModifyYaw(_yaw_setpoint);
 		}
+
+		_position_setpoint = _triplet_current;
+		_velocity_setpoint.setNaN();
+		break;
 
 	// FALLTHROUGH
 	case WaypointType::takeoff:
 	case WaypointType::position:
 	default:
+		if (_highEnoughForLandingGear()) {
+			_gear.landing_gear = landing_gear_s::GEAR_UP;
+		}
+
 		// Simple waypoint navigation: go to xyz target, with standard limitations
 		_position_setpoint = _triplet_current;
 		_velocity_setpoint.setNaN();

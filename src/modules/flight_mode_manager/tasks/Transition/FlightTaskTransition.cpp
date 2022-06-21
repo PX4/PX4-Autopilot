@@ -64,7 +64,7 @@ bool FlightTaskTransition::activate(const trajectory_setpoint_s &last_setpoint)
 		_gear.landing_gear = landing_gear_s::GEAR_UP;
 
 	} else {
-		_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+		_gear.landing_gear = landing_gear_s::GEAR_KEEP;
 	}
 
 	return ret;
