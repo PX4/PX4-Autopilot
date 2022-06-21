@@ -1205,19 +1205,13 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 			}
 
 			switch (actuator_target.group_mlx) {
+			default:
 			case 0:
 				_actuator_controls_pubs[0].publish(actuator_controls);
 				break;
 
 			case 1:
 				_actuator_controls_pubs[1].publish(actuator_controls);
-				break;
-
-			case 2:
-				_actuator_controls_pubs[2].publish(actuator_controls);
-				break;
-
-			default:
 				break;
 			}
 		}

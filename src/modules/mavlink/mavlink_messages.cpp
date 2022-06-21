@@ -384,7 +384,7 @@ static const StreamListItem streams_list[] = {
 #endif // GLOBAL_POSITION_INT_HPP
 #if defined(LANDING_TARGET_HPP)
 	create_stream_list_item<MavlinkStreamLandingTarget>(),
-#endif
+#endif // LANDING_TARGET_HPP
 #if defined(LOCAL_POSITION_NED_HPP)
 	create_stream_list_item<MavlinkStreamLocalPositionNED>(),
 #endif // LOCAL_POSITION_NED_HPP
@@ -453,8 +453,7 @@ static const StreamListItem streams_list[] = {
 	create_stream_list_item<MavlinkStreamOpticalFlowRad>(),
 #endif // OPTICAL_FLOW_RAD_HPP
 #if defined(ACTUATOR_CONTROL_TARGET_HPP)
-	create_stream_list_item<MavlinkStreamActuatorControlTarget<0> >(),
-	create_stream_list_item<MavlinkStreamActuatorControlTarget<1> >(),
+	create_stream_list_item<MavlinkStreamActuatorControlTarget>(),
 #endif // ACTUATOR_CONTROL_TARGET_HPP
 #if defined(NAMED_VALUE_FLOAT_HPP)
 	create_stream_list_item<MavlinkStreamNamedValueFloat>(),
