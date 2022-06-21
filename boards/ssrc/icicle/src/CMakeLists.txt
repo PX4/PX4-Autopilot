@@ -36,6 +36,7 @@ if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 		bootloader_main.c
 		mpfs_emmcsd.c
 		mpfs_domain.c
+		mpfs_composite.c
 	)
 	target_link_libraries(drivers_board
 		PRIVATE

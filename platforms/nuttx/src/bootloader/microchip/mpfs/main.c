@@ -72,6 +72,9 @@
 # define BOARD_INTERFACE_CONFIG_USB  INTERFACE_USB_CONFIG
 #endif
 
+#define BOARD_RESET_REASON_COLD_BOOT 0x1ff
+#define BOARD_RESET_REASON_SYSTEMRESET_MASK 0x2
+
 static struct mtd_dev_s *mtd = 0;
 static struct mtd_geometry_s geo;
 
@@ -106,24 +109,20 @@ struct boardinfo board_info = {
 
 static void board_init(void);
 
-// TODO
-#define BOOT_RTC_SIGNATURE          0xb007b007
-#define BOOT_RTC_REG                MMIO32(RTC_BASE + 0x50)
-
 /* LED_ACTIVITY == 1, LED_BOOTLOADER == 2 */
 static bool g_led_state[3];
 
 /* State of an inserted USB cable */
 static bool usb_connected = false;
 
-static uint32_t board_get_rtc_signature(void)
+static uint32_t board_get_reset_reason(void)
 {
-	return 0;
+	return getreg32(MPFS_SYSREG_BASE + MPFS_SYSREG_RESET_SR_OFFSET);
 }
 
-static void
-board_set_rtc_signature(uint32_t sig)
+static void board_set_reset_reason(uint32_t reason)
 {
+	putreg32(reason, MPFS_SYSREG_BASE + MPFS_SYSREG_RESET_SR_OFFSET);
 }
 
 static bool board_test_force_pin(void)
@@ -772,18 +771,6 @@ bootloader_main(void)
 	unsigned timeout = BOOTLOADER_DELAY;	 /* if nonzero, drop out of the bootloader after this time */
 	bool try_boot;
 
-#if defined(BOARD_POWER_PIN_OUT)
-
-	/* Here we check for the app setting the POWER_DOWN_RTC_SIGNATURE
-	 * in this case, we reset the signature and wait to die
-	 */
-	if (board_get_rtc_signature() == POWER_DOWN_RTC_SIGNATURE) {
-		board_set_rtc_signature(0);
-
-		while (1);
-	}
-
-#endif
 	/* do board-specific initialisation */
 	board_init();
 
@@ -794,10 +781,15 @@ bootloader_main(void)
 	try_boot = !board_test_force_pin();
 
 	/*
-	 * Check the force-bootloader register; if we find the signature there, don't
-	 * try booting.
+	 * Check the boot reason. In case we came here with SW system reset,
+	 * we stay in bootloader.
+	 * SW system reset is issued in PX4 with "reboot -b"
 	 */
-	if (board_get_rtc_signature() == BOOT_RTC_SIGNATURE) {
+
+	uint32_t reset_reason = board_get_reset_reason();
+
+	if (reset_reason != BOARD_RESET_REASON_COLD_BOOT &&
+	    (reset_reason & BOARD_RESET_REASON_SYSTEMRESET_MASK) != 0) {
 
 		/*
 		 * Don't even try to boot before dropping to the bootloader.
@@ -809,12 +801,10 @@ bootloader_main(void)
 		 */
 		timeout = 0;
 
-		/*
-		 * Clear the signature so that if someone resets us while we're
-		 * in the bootloader we'll try to boot next time.
-		 */
-		board_set_rtc_signature(0);
 	}
+
+	/* Clear the reset reason */
+	board_set_reset_reason(0);
 
 	start_image_loading();
 
@@ -834,11 +824,6 @@ bootloader_main(void)
 
 		/* run the bootloader, come back after an app is uploaded or we time out */
 		bootloader(timeout);
-
-		/* set the boot-to-bootloader flag so that if boot fails on reset we will stop here */
-#ifdef BOARD_BOOT_FAIL_DETECT
-		board_set_rtc_signature(BOOT_RTC_SIGNATURE);
-#endif
 
 		/* If device was just flashed, finalize flashing */
 
