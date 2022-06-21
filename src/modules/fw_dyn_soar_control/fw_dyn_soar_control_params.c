@@ -400,7 +400,7 @@ PARAM_DEFINE_FLOAT(DS_K_Q_PITCH, 10.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_Q_YAW, 2.0f);
+PARAM_DEFINE_FLOAT(DS_K_Q_YAW, 0.5f);
 
 /**
  * roll gain of K_W (angular velocity error gain)
@@ -528,7 +528,7 @@ PARAM_DEFINE_FLOAT(DS_K_DAMP_YAW, 0.0f);
  * @increment 0.0000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.3135000f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.4040182f);
 
 /**
  * longitude of trajectory start point (WGS84)
@@ -540,7 +540,7 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.3135000f);
  * @increment 0.0000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.8101000f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.5101919f);
 
 /**
  * altitude of trajectory start point (WGS84)
@@ -552,7 +552,7 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.8101000f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 537.0f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 540.0f);
 
 // ======================================================
 // ==============  loiter circle number =================

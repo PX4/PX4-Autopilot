@@ -1183,7 +1183,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     }
     
     // not really a accel command, rather a FF-P command
-    rot_acc_command(2) = _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2));
+    rot_acc_command(2) = _K_q(2,2)*omega_turn_ref(2) + _K_w(2,2)*(omega_turn_ref(2) - omega_filtered(2));
 
     return rot_acc_command;
 }
