@@ -267,6 +267,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret < 0) {
 		syslog(LOG_ERR, "ERROR: Failed to init SPI NOR\n");
+
 	} else {
 		/* Mount LFS on the block1 */
 		ret = nx_mount("/dev/mtdblock1", "/fs/lfs", "littlefs", 0, "autoformat");
