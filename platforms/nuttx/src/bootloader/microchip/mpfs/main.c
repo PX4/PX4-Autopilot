@@ -53,6 +53,7 @@
 
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/fs/partition.h>
+#include <nuttx/board.h>
 
 #include "image_toc.h"
 
@@ -182,12 +183,6 @@ board_init(void)
 #if INTERFACE_USART
 #endif
 
-#if defined(BOARD_FORCE_BL_PIN_IN) && defined(BOARD_FORCE_BL_PIN_OUT)
-	/* configure the force BL pins */
-	//	px4_arch_configgpio(BOARD_FORCE_BL_PIN_IN);
-	//	px4_arch_configgpio(BOARD_FORCE_BL_PIN_OUT);
-#endif
-
 #if defined(BOARD_FORCE_BL_PIN)
 	/* configure the force BL pins */
 	//	px4_arch_configgpio(BOARD_FORCE_BL_PIN);
@@ -200,10 +195,6 @@ board_init(void)
 #if defined(BOARD_PIN_LED_BOOTLOADER)
 	/* Initialize LEDs */
 	px4_arch_configgpio(BOARD_PIN_LED_BOOTLOADER);
-#endif
-
-#if defined(CONFIG_MMCSD)
-	mpfs_board_emmcsd_init();
 #endif
 
 #if defined(CONFIG_MTD_M25P)
@@ -220,6 +211,36 @@ board_init(void)
 	}
 
 #endif
+
+#if defined(CONFIG_USBDEV)
+	mpfs_usbinitialize();
+#  if defined(CONFIG_SYSTEM_CDCACM)
+	sercon_main(0, NULL);
+#  endif
+#endif
+
+#if defined(CONFIG_MMCSD)
+
+	if (mpfs_board_emmcsd_init() == OK) {
+#  if defined(CONFIG_USBMSC_COMPOSITE)
+
+		if (board_composite_initialize(0) == OK) {
+			if (board_composite_connect(0, 0) == NULL) {
+				_alert("Failed to connect composite\n");
+			}
+
+		} else {
+			_alert("Failed to initialize composite\n");
+		}
+
+#  endif
+
+	} else {
+		_alert("ERROR: Failed to initialize SD card");
+	}
+
+#endif
+
 }
 
 void
@@ -579,8 +600,6 @@ void partition_handler(FAR struct partition_s *part, FAR void *arg)
 	}
 }
 #endif
-
-
 
 static int load_sdcard_images(const char *name, uint64_t loadaddr)
 {
