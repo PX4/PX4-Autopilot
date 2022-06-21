@@ -603,8 +603,15 @@ void PAA3905::RunImpl()
 			// rotate measurements in yaw from sensor frame to body frame
 			const matrix::Vector3f pixel_flow_rotated = _rotation * matrix::Vector3f{(float)delta_x_raw, (float)delta_y_raw, 0.f};
 
-			report.pixel_flow[0] = pixel_flow_rotated(0) / 500.0f; // proportional factor + convert from pixels to radians
-			report.pixel_flow[1] = pixel_flow_rotated(1) / 500.0f; // proportional factor + convert from pixels to radians
+			// datasheet provides 11.914 CPI (count per inch) scaling per meter of height
+			static constexpr float PIXART_RESOLUTION = 11.914f; // counts per inch (CPI) per meter (from surface)
+			static constexpr float INCHES_PER_METER = 39.3701f;
+
+			// CPI/m -> radians
+			static constexpr float SCALE = 1.f / (PIXART_RESOLUTION * INCHES_PER_METER);
+
+			report.pixel_flow[0] = pixel_flow_rotated(0) * SCALE;
+			report.pixel_flow[1] = pixel_flow_rotated(1) * SCALE;
 		}
 
 		report.timestamp = hrt_absolute_time();
