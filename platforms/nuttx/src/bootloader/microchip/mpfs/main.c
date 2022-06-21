@@ -819,53 +819,6 @@ bootloader_main(void)
 
 	start_image_loading();
 
-#ifdef BOOT_DELAY_ADDRESS
-	{
-		/*
-		  if a boot delay signature is present then delay the boot
-		  by at least that amount of time in seconds. This allows
-		  for an opportunity for a companion computer to load a
-		  new firmware, while still booting fast by sending a BOOT
-		  command
-		 */
-		uint32_t sig1 = flash_func_read_word(BOOT_DELAY_ADDRESS);
-		uint32_t sig2 = flash_func_read_word(BOOT_DELAY_ADDRESS + 4);
-
-		if (sig2 == BOOT_DELAY_SIGNATURE2 &&
-		    (sig1 & 0xFFFFFF00) == (BOOT_DELAY_SIGNATURE1 & 0xFFFFFF00)) {
-			unsigned boot_delay = sig1 & 0xFF;
-
-			if (boot_delay <= BOOT_DELAY_MAX) {
-				try_boot = false;
-
-				if (timeout < boot_delay * 1000) {
-					timeout = boot_delay * 1000;
-				}
-			}
-		}
-	}
-#endif
-
-#if INTERFACE_USB
-
-	/*
-	 * Check for USB connection - if present, don't try to boot, but set a timeout after
-	 * which we will fall out of the bootloader.
-	 *
-	 * If the force-bootloader pins are tied, we will stay here until they are removed and
-	 * we then time out.
-	 */
-#if defined(BOARD_VBUS)
-
-	if (px4_arch_gpioread(BOARD_VBUS) != 0) {
-		usb_connected = true;
-		/* don't try booting before we set up the bootloader */
-		try_boot = false;
-	}
-
-#endif
-#endif
-
 	/* start the interface */
 #if INTERFACE_USART
 	cinit(BOARD_INTERFACE_CONFIG_USART, USART);
