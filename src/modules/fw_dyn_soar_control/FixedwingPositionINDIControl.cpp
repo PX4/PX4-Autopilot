@@ -137,6 +137,7 @@ FixedwingPositionINDIControl::parameters_update()
     _C_D1 = _param_fw_c_d1.get();
     _C_D2 = _param_fw_c_d2.get();
     _aoa_offset = _param_aoa_offset.get();
+    _stall_speed = _param_stall_speed.get();
 
     // filter parameters
     _a1 = _param_filter_a1.get();
@@ -408,8 +409,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -1169,14 +1170,15 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     Vector3f vel_normalized = vel_air.normalized();
     Vector3f f = _mass*_acc;
     Vector3f f_normalized = f.normalized();
+    // compute ideal angular velocity
     Vector3f omega_turn_ref_normalized = vel_normalized.cross(f_normalized);
     Vector3f omega_turn_ref;
-    if (_airspeed_valid&&_airspeed>5.0f) {
+    if (_airspeed_valid&&_airspeed>_stall_speed) {
         omega_turn_ref = sqrtf(_acc*_acc) / (_airspeed) * R_bi * omega_turn_ref_normalized.normalized();
         //PX4_INFO("yaw rate ref, yaw rate: \t%.2f\t%.2f", (double)(omega_turn_ref(2)), (double)(omega_filtered(2)));
     }
     else {
-        omega_turn_ref = sqrtf(_acc*_acc) / (5.f) * R_bi * omega_turn_ref_normalized.normalized();
+        omega_turn_ref = sqrtf(_acc*_acc) / (_stall_speed) * R_bi * omega_turn_ref_normalized.normalized();
         //PX4_ERR("No valid airspeed message detected or airspeed to low");
     }
     
@@ -1192,7 +1194,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     // compute velocity in body frame
     Dcmf R_ib(_att);
     Vector3f vel_body = R_ib.transpose()*_vel;
-    float q = fmaxf(0.5f*sqrtf(vel_body*vel_body)*vel_body(0), 0.5f*5.f*5.f);    // dynamic pressure, saturates at minimum 5m/s stall
+    float q = fmaxf(0.5f*sqrtf(vel_body*vel_body)*vel_body(0), 0.5f*_stall_speed*_stall_speed);    // dynamic pressure, saturates at stall speed
     //Vector3f vel_body_2 = Dcmf(Quatf(_attitude.q)).transpose()*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
     //PX4_INFO("ENU body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body_2(0), (double)vel_body_2(1), (double)vel_body_2(2));
     //PX4_INFO("FRD body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body(0), (double)vel_body(1), (double)vel_body(2));

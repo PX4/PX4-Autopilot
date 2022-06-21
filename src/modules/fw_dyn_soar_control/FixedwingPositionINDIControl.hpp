@@ -173,6 +173,7 @@ private:
 		(ParamFloat<px4::params::DS_C_D1>) _param_fw_c_d1,
 		(ParamFloat<px4::params::DS_C_D2>) _param_fw_c_d2,
 		(ParamFloat<px4::params::DS_AOA_OFFSET>) _param_aoa_offset,
+		(ParamFloat<px4::params::DS_STALL_SPEED>) _param_stall_speed,
 		// filter params
 		(ParamFloat<px4::params::DS_FILTER_A1>) _param_filter_a1,
 		(ParamFloat<px4::params::DS_FILTER_A2>) _param_filter_a2,
@@ -335,6 +336,7 @@ private:
 	float _C_D1;
 	float _C_D2;
 	float _aoa_offset;
+	float _stall_speed;
 	float _a1;
 	float _a2;
 	float _b1;

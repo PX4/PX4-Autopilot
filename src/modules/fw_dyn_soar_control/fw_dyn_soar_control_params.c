@@ -184,6 +184,18 @@ PARAM_DEFINE_FLOAT(DS_C_D2, 1.984f);
 PARAM_DEFINE_FLOAT(DS_AOA_OFFSET, 0.01f);
 
 /**
+ * stall speed of the aircraft
+ * 
+ * @unit rad
+ * @min 5
+ * @max 10
+ * @decimal 1
+ * @increment 0.1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_STALL_SPEED, 7.0f);
+
+/**
  * coefficients of the butterworth filter used for smoothing the IMU
  * 
  * @unit 
