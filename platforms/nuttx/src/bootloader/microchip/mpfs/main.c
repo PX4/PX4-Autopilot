@@ -128,6 +128,13 @@ board_set_rtc_signature(uint32_t sig)
 
 static bool board_test_force_pin(void)
 {
+#ifdef BOARD_FORCE_BL_PIN
+
+	if (px4_arch_gpioread(BOARD_FORCE_BL_PIN)) {
+		return true;
+	}
+
+#endif
 	return false;
 }
 
@@ -185,7 +192,7 @@ board_init(void)
 
 #if defined(BOARD_FORCE_BL_PIN)
 	/* configure the force BL pins */
-	//	px4_arch_configgpio(BOARD_FORCE_BL_PIN);
+	px4_arch_configgpio(BOARD_FORCE_BL_PIN);
 #endif
 
 #if defined(BOARD_PIN_LED_ACTIVITY)
@@ -266,15 +273,9 @@ board_deinit(void)
 	up_disable_irq(MPFS_IRQ_MMC_MAIN);
 #endif
 
-#if defined(BOARD_FORCE_BL_PIN_IN) && defined(BOARD_FORCE_BL_PIN_OUT)
-	/* deinitialise the force BL pins */
-	//	px4_arch_configgpio(MK_GPIO_INPUT(BOARD_FORCE_BL_PIN_IN));
-	//	px4_arch_configgpio(MK_GPIO_INPUT(BOARD_FORCE_BL_PIN_OUT));
-#endif
-
 #if defined(BOARD_FORCE_BL_PIN)
 	/* deinitialise the force BL pin */
-	//	px4_arch_configgpio(MK_GPIO_INPUT(BOARD_FORCE_BL_PIN));
+	px4_arch_configgpio(MK_GPIO_INPUT(BOARD_FORCE_BL_PIN));
 #endif
 
 #if defined(BOARD_POWER_PIN_OUT) && defined(BOARD_POWER_PIN_RELEASE)
@@ -769,8 +770,8 @@ int start_image_loading(void)
 int
 bootloader_main(void)
 {
-	bool try_boot = true;			/* try booting before we drop to the bootloader */
-	unsigned timeout = BOOTLOADER_DELAY;	/* if nonzero, drop out of the bootloader after this time */
+	unsigned timeout = BOOTLOADER_DELAY;	 /* if nonzero, drop out of the bootloader after this time */
+	bool try_boot;
 
 #if defined(BOARD_POWER_PIN_OUT)
 
@@ -789,6 +790,9 @@ bootloader_main(void)
 
 	/* configure the clock for bootloader activity */
 	clock_init();
+
+	/* try booting before entering bootloader, unless force pin is strapped */
+	try_boot = !board_test_force_pin();
 
 	/*
 	 * Check the force-bootloader register; if we find the signature there, don't
@@ -842,14 +846,6 @@ bootloader_main(void)
 	}
 #endif
 
-	/*
-	 * Check if the force-bootloader pins are strapped; if strapped,
-	 * don't try booting.
-	 */
-	if (board_test_force_pin()) {
-		try_boot = false;
-	}
-
 #if INTERFACE_USB
 
 	/*
@@ -866,9 +862,6 @@ bootloader_main(void)
 		/* don't try booting before we set up the bootloader */
 		try_boot = false;
 	}
-
-#else
-	try_boot = false;
 
 #endif
 #endif
@@ -887,17 +880,8 @@ bootloader_main(void)
 			jump_to_app();
 		}
 
-		if (!board_test_force_pin()) {
-			try_boot = true;
-		}
-
 		/* run the bootloader, come back after an app is uploaded or we time out */
 		bootloader(timeout);
-
-		/* if the force-bootloader pins are strapped, just loop back */
-		if (board_test_force_pin()) {
-			continue;
-		}
 
 		/* set the boot-to-bootloader flag so that if boot fails on reset we will stop here */
 #ifdef BOARD_BOOT_FAIL_DETECT
@@ -925,8 +909,11 @@ bootloader_main(void)
 			/* Write first page again to update first word */
 			flash_write_pages(0, 1, (uint8_t *)(APP_LOAD_ADDRESS));
 
-			/* Now the image is already in memory, allow booting */
+			/* Now the image is already in memory, allow booting
+			 * if force pin is not strapped
+			 */
 			loading_status = DONE;
+			try_boot = !board_test_force_pin();
 		}
 
 #endif
