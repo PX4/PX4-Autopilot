@@ -438,7 +438,10 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
             
             // loop over columns
             while (value) {
-
+                if (*value=='\0'||*value==' ') {
+                    // simply skip extra characters
+                    continue;
+                }
                 switch(row){
                     case 0:
                         _basis_coeffs_x(column) = (float)atof(value);
@@ -460,7 +463,10 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
             }
             row++;
         }
-        fclose(fp);
+        int failure = fclose(fp);
+        if (failure==-1) {
+            PX4_ERR("Can't close file");
+        }
     }
     // =======================================================================
 
