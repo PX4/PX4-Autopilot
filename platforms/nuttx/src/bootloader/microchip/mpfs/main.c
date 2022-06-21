@@ -413,8 +413,6 @@ flash_func_write_word(uintptr_t address, uint32_t word)
 
 		// write pages
 		flash_write_pages(write_page, pgs_per_block, (uint8_t *)block_start);
-		device_flashed = true;
-
 		first_unwritten = address + sizeof(uint32_t);
 	}
 
@@ -425,6 +423,7 @@ flash_func_write_word(uintptr_t address, uint32_t word)
 
 #endif
 
+	device_flashed = true;
 }
 
 uint32_t flash_func_read_word(uintptr_t address)
@@ -841,11 +840,10 @@ bootloader_main(void)
 		board_set_rtc_signature(BOOT_RTC_SIGNATURE);
 #endif
 
-#ifdef CONFIG_MTD_M25P
 		/* If device was just flashed, finalize flashing */
 
 		if (device_flashed) {
-
+#ifdef CONFIG_MTD_M25P
 			/* Write the residue */
 			unsigned bytes = end_address - first_unwritten;
 			unsigned n_pages = bytes / geo.blocksize;
@@ -861,6 +859,7 @@ bootloader_main(void)
 
 			/* Write first page again to update first word */
 			flash_write_pages(0, 1, (uint8_t *)(APP_LOAD_ADDRESS));
+#endif
 
 			/* Now the image is already in memory, allow booting
 			 * if force pin is not strapped
@@ -868,8 +867,5 @@ bootloader_main(void)
 			loading_status = DONE;
 			try_boot = !board_test_force_pin();
 		}
-
-#endif
-
 	}
 }
