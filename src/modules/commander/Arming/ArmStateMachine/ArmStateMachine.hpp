@@ -58,7 +58,7 @@ public:
 				const bool safety_button_available, const bool safety_off, const arming_state_t new_arming_state,
 				actuator_armed_s &armed, const bool fRunPreArmChecks, orb_advert_t *mavlink_log_pub,
 				vehicle_status_flags_s &status_flags,
-				const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason);
+				arm_disarm_reason_t calling_reason);
 
 	// Getters
 	uint8_t getArmState() const { return _arm_state; }
