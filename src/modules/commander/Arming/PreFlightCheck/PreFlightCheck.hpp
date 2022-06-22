@@ -64,7 +64,7 @@ public:
 	**/
 	static bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 				   vehicle_status_flags_s &status_flags, const vehicle_control_mode_s &control_mode,
-				   bool reportFailures, const hrt_abstime &time_since_boot,
+				   bool reportFailures,
 				   const bool safety_button_available, const bool safety_off,
 				   const bool is_arm_attempt = false);
 
@@ -93,8 +93,7 @@ private:
 				  const float arming_max_airspeed_allowed);
 	static int rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail);
 	static bool powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail);
-	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
-			      const bool report_fail);
+	static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool report_fail);
 	static bool ekf2CheckSensorBias(orb_advert_t *mavlink_log_pub, const bool report_fail);
 	static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail);
 	static bool manualControlCheck(orb_advert_t *mavlink_log_pub, const bool report_fail);
