@@ -110,7 +110,7 @@ struct boardinfo board_info = {
 	.board_type	= BOARD_TYPE,
 	.board_rev	= 0,
 	.fw_size	= 0,
-	.systick_mhz	= 480,
+	.systick_mhz	= 600,
 };
 
 static void board_init(void);
@@ -206,26 +206,6 @@ board_init(void)
 	/* fix up the max firmware size, we have to read memory to get this */
 	board_info.fw_size = APP_SIZE_MAX;
 
-#if defined(BOARD_POWER_PIN_OUT)
-	/* Configure the Power pins */
-	//	px4_arch_configgpio(BOARD_POWER_PIN_OUT);
-	//	px4_arch_gpiowrite(BOARD_POWER_PIN_OUT, BOARD_POWER_ON);
-#endif
-
-#if INTERFACE_USB
-#if !defined(BOARD_USB_VBUS_SENSE_DISABLED)
-	/* enable configured GPIO to sample VBUS */
-#  if defined(USE_VBUS_PULL_DOWN)
-	//	px4_arch_configgpio((GPIO_OTGFS_VBUS & GPIO_PUPD_MASK) | GPIO_PULLDOWN);
-#  else
-	//	px4_arch_configgpio((GPIO_OTGFS_VBUS & GPIO_PUPD_MASK) | GPIO_FLOAT);
-#  endif
-#endif
-#endif
-
-#if INTERFACE_USART
-#endif
-
 #if defined(BOARD_FORCE_BL_PIN)
 	/* configure the force BL pins */
 	px4_arch_configgpio(BOARD_FORCE_BL_PIN);
@@ -305,11 +285,6 @@ board_deinit(void)
 	up_disable_irq(MPFS_IRQ_MMUART1);
 #endif
 
-#if INTERFACE_USB
-	//	px4_arch_configgpio(MK_GPIO_INPUT(GPIO_OTGFS_VBUS));
-	//	putreg32(RCC_AHB1RSTR_OTGFSRST, STM32_RCC_AHB1RSTR);
-#endif
-
 #ifdef CONFIG_MMCSD
 
 	/* Umount the sdcard now if mounted */
@@ -331,14 +306,6 @@ board_deinit(void)
 #if defined(BOARD_FORCE_BL_PIN)
 	/* deinitialise the force BL pin */
 	px4_arch_configgpio(MK_GPIO_INPUT(BOARD_FORCE_BL_PIN));
-#endif
-
-#if defined(BOARD_POWER_PIN_OUT) && defined(BOARD_POWER_PIN_RELEASE)
-	/* deinitialize the POWER pin - with the assumption the hold up time of
-	 * the voltage being bleed off by an inupt pin impedance will allow
-	 * enough time to boot the app
-	 */
-	//	px4_arch_configgpio(MK_GPIO_INPUT(BOARD_POWER_PIN_OUT));
 #endif
 
 #if defined(BOARD_PIN_LED_ACTIVITY)
