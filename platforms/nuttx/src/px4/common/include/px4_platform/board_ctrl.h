@@ -36,6 +36,8 @@
 
 #include <px4_platform_common/defines.h>
 
+#include <stdbool.h>
+
 /* Encode the px4 boardctl ioctls in the following way:
  * the highest 4-bits identifies the boardctl's used by this if
  * the next 4-bits identifies the module which handles the ioctl
@@ -96,5 +98,10 @@ void kernel_ioctl_initialize(void);
 
 /* Function to register a px4 boardctl handler */
 int px4_register_boardct_ioctl(unsigned base, ioctl_ptr_t func);
+
+/* Define common boardctrl prototypes for user and kernel */
+int boardctrl_read_VBUS_state(void);
+void boardctrl_indicate_external_lockout_state(bool enable);
+bool boardctrl_get_external_lockout_state(void);
 
 __END_DECLS

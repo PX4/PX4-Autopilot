@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 Technology Innovation Institute. All rights reserved.
+ *   Copyright (C) 2022 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,46 +31,33 @@
  *
  ****************************************************************************/
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
 #include <nuttx/config.h>
 
-#include <stdbool.h>
+#include <px4_platform/board_ctrl.h>
 
-#include "board_config.h"
+#include <sys/boardctl.h>
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-#if defined(GPIO_OTGFS_VBUS)
 int board_read_VBUS_state(void)
 {
-	return (px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1);
+	return boardctrl_read_VBUS_state();
 }
-#endif
 
 int boardctrl_read_VBUS_state(void)
 {
-	return board_read_VBUS_state();
+	platformiocvbusstate_t state = {false};
+	boardctl(PLATFORMIOCVBUSSTATE, (uintptr_t)&state);
+	return state.ret;
 }
 
 void boardctrl_indicate_external_lockout_state(bool enable)
 {
-#if defined(GPIO_nARMED)
-	px4_arch_configgpio((enable) ? GPIO_nARMED : GPIO_nARMED_INIT);
-#else
-	UNUSED(enable);
-#endif
+	platformioclockoutstate_t state = {enable};
+	boardctl(PLATFORMIOCINDICATELOCKOUT, (uintptr_t)&state);
 }
 
 bool boardctrl_get_external_lockout_state(void)
 {
-#if defined(GPIO_nARMED)
-	return px4_arch_gpioread(GPIO_nARMED);
-#else
-	return false;
-#endif
+	platformioclockoutstate_t state = {false};
+	boardctl(PLATFORMIOCGETLOCKOUT, (uintptr_t)&state);
+	return state.enabled;
 }
