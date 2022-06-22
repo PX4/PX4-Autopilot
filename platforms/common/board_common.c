@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2020 Technology Innovation Institute. All rights reserved.
+ *   Copyright (C) 2022 Technology Innovation Institute. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,9 +35,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <stdbool.h>
+#include <px4_platform_common/micro_hal.h>
 
 #include "board_config.h"
 
@@ -45,32 +43,12 @@
  * Public Functions
  ****************************************************************************/
 
-#if defined(GPIO_OTGFS_VBUS)
+#if defined(GPIO_OTGFS_VBUS) && \
+    (defined(CONFIG_BUILD_FLAT) || !defined(__PX4_NUTTX))
+
+/* Default implementation for POSIX and flat NUTTX if the VBUS pin exists */
 int board_read_VBUS_state(void)
 {
 	return (px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1);
 }
 #endif
-
-int boardctrl_read_VBUS_state(void)
-{
-	return board_read_VBUS_state();
-}
-
-void boardctrl_indicate_external_lockout_state(bool enable)
-{
-#if defined(GPIO_nARMED)
-	px4_arch_configgpio((enable) ? GPIO_nARMED : GPIO_nARMED_INIT);
-#else
-	UNUSED(enable);
-#endif
-}
-
-bool boardctrl_get_external_lockout_state(void)
-{
-#if defined(GPIO_nARMED)
-	return px4_arch_gpioread(GPIO_nARMED);
-#else
-	return false;
-#endif
-}

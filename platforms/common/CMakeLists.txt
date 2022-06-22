@@ -40,6 +40,7 @@ if(NOT "${PX4_BOARD}" MATCHES "io-v2" AND NOT "${PX4_BOARD_LABEL}" MATCHES "boot
 endif()
 
 add_library(px4_platform
+	board_common.c
 	board_identity.c
 	events.cpp
 	external_reset_lockout.cpp

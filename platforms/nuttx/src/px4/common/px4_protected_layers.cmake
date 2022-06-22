@@ -6,13 +6,15 @@ add_library(px4_layer
 	board_fat_dma_alloc.c
 	tasks.cpp
 	console_buffer_usr.cpp
-	usr_mcu_version.cpp
 	cdc_acm_check.cpp
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/print_load.cpp
 	${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/cpuload.cpp
-	usr_hrt.cpp
 	px4_userspace_init.cpp
 	px4_usr_crypto.cpp
+	px4_mtd.cpp
+	usr_board_ctrl.c
+	usr_hrt.cpp
+	usr_mcu_version.cpp
 )
 
 target_link_libraries(px4_layer
@@ -25,10 +27,12 @@ target_link_libraries(px4_layer
 
 # Build the interface library between user and kernel side
 add_library(px4_board_ctrl
-		board_ctrl.c
+	board_ctrl.c
+	board_ioctl.c
 )
 
 add_dependencies(px4_board_ctrl nuttx_context px4_kernel_builtin_list_target)
+target_compile_options(px4_board_ctrl PRIVATE -D__KERNEL__)
 
 target_link_libraries(px4_layer
 	PUBLIC
@@ -38,7 +42,7 @@ target_link_libraries(px4_layer
 # Build the kernel side px4_kernel_layer
 
 add_library(px4_kernel_layer
-		${KERNEL_SRCS}
+	${KERNEL_SRCS}
 )
 
 target_link_libraries(px4_kernel_layer
@@ -59,6 +63,5 @@ if (DEFINED PX4_CRYPTO)
 	target_link_libraries(px4_layer PUBLIC crypto_backend_interface)
 endif()
 
-target_compile_options(px4_kernel_layer PRIVATE -D__KERNEL__)
-
 add_dependencies(px4_kernel_layer prebuild_targets)
+target_compile_options(px4_kernel_layer PRIVATE -D__KERNEL__)
