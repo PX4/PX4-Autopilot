@@ -44,8 +44,7 @@
 
 using namespace time_literals;
 
-bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
-			       const bool report_fail)
+bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool report_fail)
 {
 	bool success = true; // start with a pass and change to a fail if any test fails
 

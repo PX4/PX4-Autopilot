@@ -269,7 +269,6 @@ TEST(ArmStateMachineTest, ArmingStateTransitionTest)
 						     true /* enable pre-arm checks */,
 						     nullptr /* no mavlink_log_pub */,
 						     status_flags,
-						     2e6, /* 2 seconds after boot, everything should be checked */
 						     arm_disarm_reason_t::unit_test);
 
 		// Validate result of transition
