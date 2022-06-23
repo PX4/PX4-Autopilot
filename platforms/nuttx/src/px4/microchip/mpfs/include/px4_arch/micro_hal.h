@@ -99,9 +99,7 @@ __BEGIN_DECLS
 #define px4_arch_unconfiggpio(pinset)           mpfs_unconfiggpio(pinset)
 #define px4_arch_gpioread(pinset)               mpfs_gpioread(pinset)
 #define px4_arch_gpiowrite(pinset, value)       mpfs_gpiowrite(pinset, value)
-//#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  mpfs_gpiosetevent(pinset,r,f,e,fp,a)
-// TODO: remove this if/when mpfs_gpiosetevent is implemented
-#define px4_arch_gpiosetevent(...)		0
+#define px4_arch_gpiosetevent(pinset,r,f,e,fp,a)  mpfs_gpiosetevent(pinset,r,f,false,false,e,fp,a)
 
 #define PX4_MAKE_GPIO_INPUT(gpio) (((gpio) & (~GPIO_OUTPUT | GPIO_BANK_MASK | GPIO_PIN_MASK | GPIO_BUFFER_MASK)) | GPIO_INPUT)
 
