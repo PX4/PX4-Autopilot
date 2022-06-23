@@ -86,6 +86,7 @@ private:
   void Run() override;
 
   perf_counter_t _ext_state_perf;
+  int _lockstep_component{-1};
 
   uORB::SubscriptionCallbackWorkItem _ext_state_sub;
   uORB::SubscriptionCallbackWorkItem _ext_state_lite_sub;

@@ -875,7 +875,6 @@ void Ekf2::Run()
 		_ekf.setIMUData(imu_sample_new);
 
 		// publish attitude immediately (uses quaternion from output predictor)
-    PX4_WARN("EKF2 Run");
 		publish_attitude(now);
 
 		// read mag data

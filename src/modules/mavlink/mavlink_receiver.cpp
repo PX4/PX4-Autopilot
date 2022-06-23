@@ -271,9 +271,12 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_statustext(msg);
 		break;
 
-  case MAVLINK_MSG_ID_EXT_CORE_STATE:
-    handle_message_ext_core_state(msg);
-    break;
+        case MAVLINK_MSG_ID_EXT_CORE_STATE:
+                handle_message_ext_core_state(msg);
+                break;
+        case MAVLINK_MSG_ID_EXT_CORE_STATE_LITE:
+                handle_message_ext_core_state_lite(msg);
+                break;
 
 	default:
 		break;

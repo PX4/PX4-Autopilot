@@ -109,7 +109,7 @@ bool ExtStateEst::init() {
 ExtStateEst::ExtStateEst()
     : ModuleParams(nullptr),
       ScheduledWorkItem(MODULE_NAME,
-                        px4::wq_configurations::navigation_and_controllers),
+                        px4::wq_configurations::nav_and_controllers),
       _ext_state_perf(perf_alloc(PC_ELAPSED, MODULE_NAME ": update")),
       _ext_state_sub{this, ORB_ID(ext_core_state)},
       _ext_state_lite_sub{this, ORB_ID(ext_core_state_lite)},
@@ -120,7 +120,10 @@ ExtStateEst::ExtStateEst()
       _vehicle_odometry_pub{ORB_ID(vehicle_odometry)}, _unitq(matrix::Quatf()) {
 }
 
-ExtStateEst::~ExtStateEst() { perf_free(_ext_state_perf); }
+ExtStateEst::~ExtStateEst() { 
+px4_lockstep_unregister_component(_lockstep_component);
+perf_free(_ext_state_perf);
+}
 
 void ExtStateEst::Run() {
 
@@ -364,6 +367,13 @@ if (_ext_state_lite_sub.update(&ext_state_lite_in)) {
     _estimator_status_pub.publish(status);
 
     perf_end(_ext_state_perf);
+
+   if (_lockstep_component == -1)
+   {
+      _lockstep_component = px4_lockstep_register_component();
+   }
+
+   px4_lockstep_progress(_lockstep_component);
   }
 }
 
