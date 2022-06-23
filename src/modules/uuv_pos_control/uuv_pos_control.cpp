@@ -195,16 +195,6 @@ void UUVPOSControl::Run()
 		}
 	}
 
-	/* Manual Control mode (e.g. gamepad,...) - raw feedthrough no assistance */
-	if (_manual_control_setpoint_sub.update(&_manual_control_setpoint)) {
-		// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
-		// returning immediately and this loop will eat up resources.
-		if (_vcontrol_mode.flag_control_manual_enabled && !_vcontrol_mode.flag_control_rates_enabled) {
-			/* manual/direct control */
-		}
-
-	}
-
 	/* Only publish if any of the proper modes are enabled */
 	if (_vcontrol_mode.flag_control_manual_enabled ||
 	    _vcontrol_mode.flag_control_attitude_enabled) {
