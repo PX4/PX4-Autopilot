@@ -312,7 +312,7 @@ private:
 	Vector<Vector3f, 2> _a_lpf_list;
 	Vector<Vector3f, 2> _l_lpf_list;
 	// controller frequency
-	const float _sample_frequency = 100.f;
+	const float _sample_frequency = 200.f;
 	// Low-Pass filters stage 1
 	const float _cutoff_frequency_1 = 5.f;
 	math::LowPassFilter2p _lp_filter_accel[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// linear acceleration

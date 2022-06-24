@@ -117,8 +117,8 @@ void LoggedTopics::add_default_topics()
 	add_topic("wind", 1000);
 
 	// Control allocation topics
-	add_topic("vehicle_angular_acceleration_setpoint", 20);
-	add_topic("vehicle_angular_acceleration", 20);
+	add_topic("vehicle_angular_acceleration_setpoint", 10);
+	add_topic("vehicle_angular_acceleration", 10);
 	add_topic("vehicle_thrust_setpoint", 20);
 	add_topic("vehicle_torque_setpoint", 20);
 	add_topic("vehicle_actuator_setpoint", 20);
