@@ -578,7 +578,6 @@ FixedwingPositionINDIControl::Run()
         _alt_reset_counter = _local_pos.z_reset_counter;
 
         // run polls
-        _set_wind_estimate(Vector3f(0.f,0.f,0.f));
         vehicle_status_poll();
         airspeed_poll();
         airflow_aoa_poll();
@@ -589,6 +588,26 @@ FixedwingPositionINDIControl::Run()
         vehicle_angular_velocity_poll();
         vehicle_angular_acceleration_poll();
         soaring_controller_status_poll();
+
+        // ===============================
+        // compute wind pseudo-measurement
+        // ===============================
+        Dcmf R_ib(_att);
+        Dcmf R_bi(R_ib.transpose());
+        // compute expected AoA from g-forces:
+        Vector3f body_force = _mass*R_bi*(_acc + Vector3f{0.f,0.f,9.81f});
+        // approximate lift force, since implicit equation cannot be solved analytically:
+        float lift = -body_force(2);
+        float AoA_approx = ((2.f*lift)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1;
+        AoA_approx = constrain(AoA_approx,-0.2f,0.2f);
+        Vector3f vel_air = R_ib*(Vector3f{_airspeed,0.f,tanf(AoA_approx)*_airspeed});
+        Vector3f wind = _vel - vel_air;
+        wind(0) = _lp_filter_wind[0].apply(wind(0));
+        wind(1) = _lp_filter_wind[1].apply(wind(1));
+        wind(2) = _lp_filter_wind[2].apply(wind(2));
+        _set_wind_estimate(wind);
+        PX4_INFO("wind estimate:\t%.4f\t%.4f\t%.4f", (double)_wind_estimate(0),(double)_wind_estimate(1),(double)_wind_estimate(2));
+
 
         // only run actuators poll, when our module is not publishing:
         if (_vehicle_status.nav_state != vehicle_status_s::NAVIGATION_STATE_OFFBOARD) {
@@ -736,8 +755,6 @@ FixedwingPositionINDIControl::Run()
         // ====================
         // publish debug values
         // ====================
-        Dcmf R_ib(_att);
-        Dcmf R_bi(R_ib.transpose());
         Vector3f vel_body = R_bi*_vel;
         _slip = atan2f(vel_body(1), vel_body(0));
         _debug_value.timestamp = hrt_absolute_time();
@@ -1063,7 +1080,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_1(Vector3f pos_ref, Vector3f v
     // compute expected aerodynamic force
     // ==================================
     Vector3f f_current;
-    Vector3f vel_body = R_bi*_vel;
+    Vector3f vel_body = R_bi*(_vel - _wind_estimate); //TODO: correct to airspeed!!!
     float AoA = atan2f(vel_body(2), vel_body(0)) + _aoa_offset;
     float C_l = _C_L0 + _C_L1*AoA;
     float C_d = _C_D0 + _C_D1*AoA + _C_D2*powf(AoA,2);
@@ -1199,7 +1216,7 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
 {
     // compute velocity in body frame
     Dcmf R_ib(_att);
-    Vector3f vel_body = R_ib.transpose()*_vel;
+    Vector3f vel_body = R_ib.transpose()*(_vel-_wind_estimate);
     float q = fmaxf(0.5f*sqrtf(vel_body*vel_body)*vel_body(0), 0.5f*_stall_speed*_stall_speed);    // dynamic pressure, saturates at stall speed
     //Vector3f vel_body_2 = Dcmf(Quatf(_attitude.q)).transpose()*Vector3f{_local_pos.vx,_local_pos.vy,_local_pos.vz};
     //PX4_INFO("ENU body frame velocity: \t%.2f\t%.2f\t%.2f", (double)vel_body_2(0), (double)vel_body_2(1), (double)vel_body_2(2));
@@ -1220,7 +1237,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     moment_filtered(1) = _lp_filter_delay[1].apply(moment(1));
     moment_filtered(2) = _lp_filter_delay[2].apply(moment(2)); 
     // No filter for alpha, since it is already filtered...
-    //
     Vector3f alpha_filtered = _alpha;
     Vector3f moment_command = _inertia * (ctrl - alpha_filtered) + moment_filtered;
     // perform dynamic inversion
