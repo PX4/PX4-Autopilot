@@ -58,7 +58,7 @@ FixedwingPositionINDIControl::FixedwingPositionINDIControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	// limit to 100 Hz
-	_vehicle_angular_velocity_sub.set_interval_ms(1000/_sample_frequency);
+	_vehicle_angular_velocity_sub.set_interval_ms(1000.f/_sample_frequency);
 
 
 	/* fetch initial parameter values */
@@ -606,7 +606,7 @@ FixedwingPositionINDIControl::Run()
         wind(1) = _lp_filter_wind[1].apply(wind(1));
         wind(2) = _lp_filter_wind[2].apply(wind(2));
         _set_wind_estimate(wind);
-        PX4_INFO("wind estimate:\t%.4f\t%.4f\t%.4f", (double)_wind_estimate(0),(double)_wind_estimate(1),(double)_wind_estimate(2));
+        //PX4_INFO("wind estimate:\t%.4f\t%.4f\t%.4f", (double)_wind_estimate(0),(double)_wind_estimate(1),(double)_wind_estimate(2));
 
 
         // only run actuators poll, when our module is not publishing:

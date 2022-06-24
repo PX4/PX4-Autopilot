@@ -80,7 +80,7 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_NF_BW, 20.0f);
 * @reboot_required true
 * @group Sensors
 */
-PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
+PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 10.0f);
 
 /**
 * Gyro control data maximum publication rate
