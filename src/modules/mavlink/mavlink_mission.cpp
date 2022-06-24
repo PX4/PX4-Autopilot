@@ -1510,6 +1510,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			}
 			break;
 
+		case MAV_CMD_DO_WINCH:
 		case MAV_CMD_DO_CHANGE_SPEED:
 		case MAV_CMD_DO_SET_HOME:
 		case MAV_CMD_DO_SET_SERVO:
@@ -1607,6 +1608,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			mavlink_mission_item->param2 = mission_item->do_jump_repeat_count;
 			break;
 
+		case NAV_CMD_DO_WINCH:
 		case NAV_CMD_DO_CHANGE_SPEED:
 		case NAV_CMD_DO_SET_HOME:
 		case NAV_CMD_DO_SET_SERVO:

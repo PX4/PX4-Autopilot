@@ -1509,6 +1509,12 @@ void Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 		vcmd->target_component = 100; // MAV_COMP_ID_CAMERA
 		break;
 
+	case NAV_CMD_DO_WINCH:
+		// MAV_COMP_ID_USER18(42) is the chosen component for winches
+		// since no winch defaults exist yet in the MAVLink standard.
+		vcmd->target_component = 42;
+		break;
+
 	default:
 		vcmd->target_component = _vstatus.component_id;
 		break;

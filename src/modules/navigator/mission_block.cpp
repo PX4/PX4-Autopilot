@@ -79,6 +79,7 @@ MissionBlock::is_mission_item_reached()
 	case NAV_CMD_LOITER_UNLIMITED:
 		return false;
 
+	case NAV_CMD_DO_WINCH:
 	case NAV_CMD_DO_LAND_START:
 	case NAV_CMD_DO_TRIGGER_CONTROL:
 	case NAV_CMD_DO_DIGICAM_CONTROL:
