@@ -788,37 +788,6 @@ void PX4IO::update_params()
 		_pwm_max_configured = true;
 	}
 
-	// PWM_MAIN_FAILx
-	if (!_pwm_fail_configured) {
-		for (unsigned i = 0; i < _max_actuators; i++) {
-			sprintf(str, "%s_FAIL%u", prefix, i + 1);
-			int32_t pwm_fail = -1;
-
-			if (param_get(param_find(str), &pwm_fail) == PX4_OK) {
-				if (pwm_fail >= 0) {
-					_mixing_output.failsafeValue(i) = math::constrain(pwm_fail, static_cast<int32_t>(0),
-									  static_cast<int32_t>(PWM_HIGHEST_MAX));
-
-					if (pwm_fail != _mixing_output.failsafeValue(i)) {
-						int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
-						param_set(param_find(str), &pwm_fail_new);
-					}
-
-				} else {
-					if (pwm_default_channel_mask & 1 << i) {
-						_mixing_output.failsafeValue(i) = PWM_MOTOR_OFF;
-
-					} else {
-						_mixing_output.failsafeValue(i) = PWM_SERVO_STOP;
-					}
-				}
-			}
-		}
-
-		_pwm_fail_configured = true;
-		updateFailsafe();
-	}
-
 	// PWM_MAIN_DISx
 	if (!_pwm_dis_configured) {
 		for (unsigned i = 0; i < _max_actuators; i++) {
@@ -843,6 +812,33 @@ void PX4IO::update_params()
 
 		_pwm_dis_configured = true;
 		updateDisarmed();
+	}
+
+	// PWM_MAIN_FAILx
+	if (!_pwm_fail_configured) {
+		for (unsigned i = 0; i < _max_actuators; i++) {
+			sprintf(str, "%s_FAIL%u", prefix, i + 1);
+			int32_t pwm_fail = -1;
+
+			if (param_get(param_find(str), &pwm_fail) == PX4_OK) {
+				if (pwm_fail >= 0) {
+					_mixing_output.failsafeValue(i) = math::constrain(pwm_fail, static_cast<int32_t>(0),
+									  static_cast<int32_t>(PWM_HIGHEST_MAX));
+
+					if (pwm_fail != _mixing_output.failsafeValue(i)) {
+						int32_t pwm_fail_new = _mixing_output.failsafeValue(i);
+						param_set(param_find(str), &pwm_fail_new);
+					}
+
+				} else {
+					// if no channel specific failsafe value is configured, use the disarmed value
+					_mixing_output.failsafeValue(i) = _mixing_output.disarmedValue(i);
+				}
+			}
+		}
+
+		_pwm_fail_configured = true;
+		updateFailsafe();
 	}
 
 	// PWM_MAIN_REVx
