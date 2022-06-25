@@ -21,3 +21,4 @@
 #include "Dual.hpp"
 #include "PseudoInverse.hpp"
 #include "SparseVector.hpp"
+#include "MatrixSO3.hpp"

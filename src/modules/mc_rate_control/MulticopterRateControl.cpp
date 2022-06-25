@@ -83,6 +83,9 @@ MulticopterRateControl::parameters_updated()
 		rate_k.emult(Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(), _param_mc_yawrate_p.get())),
 		rate_k.emult(Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(), _param_mc_yawrate_i.get())),
 		rate_k.emult(Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get())));
+	_rate_control.setGeoPIDGains(_param_geopid_kp.get(),_param_geopid_ki.get(),_param_geopid_kd.get());
+	_rate_control.setIntegralSup(_param_geopid_ilimit.get());
+
 
 	_rate_control.setIntegratorLimit(
 		Vector3f(_param_mc_rr_int_lim.get(), _param_mc_pr_int_lim.get(), _param_mc_yr_int_lim.get()));
@@ -118,6 +121,26 @@ MulticopterRateControl::Run()
 		updateParams();
 		parameters_updated();
 	}
+
+	vehicle_attitude_s v_att;
+	vehicle_attitude_setpoint_s v_att_sp;
+	_vehicle_attitude_sub.update(&v_att);
+
+		// Check for new attitude setpoint
+	_vehicle_attitude_setpoint_sub.update(&v_att_sp);
+
+	Quatf q(v_att.q);
+	Quatf q_d(v_att_sp.q_d);
+
+	q.normalize();
+	q_d.normalize();
+
+	R_.quaternion2attitude(q);
+	R_dn.quaternion2attitude(q_d);
+
+	R_d = R_dn;
+
+
 
 	/* run controller on gyro changes */
 	vehicle_angular_velocity_s angular_velocity;
@@ -237,7 +260,7 @@ MulticopterRateControl::Run()
 			}
 
 			// run rate controller
-			const Vector3f att_control = _rate_control.update(rates, _rates_setpoint, angular_accel, dt, _maybe_landed || _landed);
+			const Vector3f att_control = _rate_control.update(rates, _rates_setpoint, angular_accel, R_, R_dn, dt, _maybe_landed || _landed);
 
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
@@ -370,6 +393,7 @@ int MulticopterRateControl::task_spawn(int argc, char *argv[])
 
 	return PX4_ERROR;
 }
+
 
 int MulticopterRateControl::custom_command(int argc, char *argv[])
 {

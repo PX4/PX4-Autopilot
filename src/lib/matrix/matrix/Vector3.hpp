@@ -152,6 +152,23 @@ public:
 		return A;//Hello World
 	}
 
+
+
+	SquareMatrix<Type, 3> skew() const {    // inverse to Dcm.vee() operation
+		const Vector3& v(*this);
+		SquareMatrix<Type, 3> A;
+		A(0, 0) = 0;
+		A(0, 1) = -v(2);
+		A(0, 2) = v(1);
+		A(1, 0) = v(2);
+		A(1, 1) = 0;
+		A(1, 2) = -v(0);
+		A(2, 0) = -v(1);
+		A(2, 1) = v(0);
+		A(2, 2) = 0;
+		return A;
+	}
+
 };
 
 using Vector3f = Vector3<float>;

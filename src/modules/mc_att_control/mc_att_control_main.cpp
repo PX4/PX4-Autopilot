@@ -323,9 +323,10 @@ MulticopterAttitudeControl::Run()
 				_man_x_input_filter.reset(0.f);
 				_man_y_input_filter.reset(0.f);
 			}
+			//Vector3f rates_sp = Vector3f(0,0,0);
 
 			Vector3f rates_sp = _attitude_control.update(q);
-
+/*
 			const hrt_abstime now = hrt_absolute_time();
 			autotune_attitude_control_status_s pid_autotune;
 
@@ -338,7 +339,7 @@ MulticopterAttitudeControl::Run()
 					rates_sp += Vector3f(pid_autotune.rate_sp);
 				}
 			}
-
+*/
 			// publish rate setpoint
 			vehicle_rates_setpoint_s rates_setpoint{};
 			rates_setpoint.roll = rates_sp(0);

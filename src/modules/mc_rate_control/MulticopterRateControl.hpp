@@ -55,6 +55,8 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_angular_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -109,6 +111,8 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	uORB::SubscriptionInterval _parameter_update_sub{ORB_ID(parameter_update), 1_s};
+	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_attitude_setpoint_sub{ORB_ID(vehicle_attitude_setpoint)};   /**< vehicle attitude setpoint subscription */
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
@@ -176,8 +180,21 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,		/**< superexpo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,		/**< superexpo stick curve shape (yaw) */
 
+		//AttitudeGeometricControl
+		(ParamFloat<px4::params::GEO_PID_KP>) _param_geopid_kp,
+		(ParamFloat<px4::params::GEO_PID_KI>) _param_geopid_ki,
+		(ParamFloat<px4::params::GEO_PID_KD>) _param_geopid_kd,
+		(ParamFloat<px4::params::GEO_PID_ILIMIT>) _param_geopid_ilimit,
+
+
+
 		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
 
 		(ParamInt<px4::params::CBRK_RATE_CTRL>) _param_cbrk_rate_ctrl
 	)
+	matrix::Matrix3fSO3 R_;
+	matrix::Matrix3fSO3 R_d;
+	matrix::Matrix3fSO3 R_dn;
+	float h;
+
 };

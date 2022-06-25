@@ -84,6 +84,7 @@ TEST(MatrixVector3Test, Vector3)
 
 	Vector3f m1(1, 2, 3);
 	Vector3f m2(3.1f, 4.1f, 5.1f);
+
 	EXPECT_EQ(m2, m1 + 2.1f);
 	EXPECT_EQ(m2 - 2.1f, m1);
 }
