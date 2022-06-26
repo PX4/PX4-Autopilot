@@ -69,6 +69,7 @@ private:
 
 	float _range_min_m{0.0f};
 	float _range_max_m{0.0f};
+	int32_t _range_rot{25};
 
 	bool _inited{false};
 

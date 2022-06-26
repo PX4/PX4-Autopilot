@@ -107,6 +107,25 @@ PARAM_DEFINE_FLOAT(UAVCAN_RNG_MIN, 0.3f);
 PARAM_DEFINE_FLOAT(UAVCAN_RNG_MAX, 200.0f);
 
 /**
+ * UAVCAN rangefinder  Rotation
+ *
+ * This parameter defines the rotation of the sensor relative to the platform.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 25
+ * @group Sensors
+ *
+ * @value 0 ROTATION_FORWARD_FACING
+ * @value 2 ROTATION_RIGHT_FACING
+ * @value 4 ROTATION_BACKWARD_FACING
+ * @value 6 ROTATION_LEFT_FACING
+ * @value 24 ROTATION_UPWARD_FACING
+ * @value 25 ROTATION_DOWNWARD_FACING
+ */
+PARAM_DEFINE_INT32(UAVCAN_RNG_ROT, 25);
+
+/**
  * UAVCAN ANTI_COLLISION light operating mode
  *
  * This parameter defines the minimum condition under which the system will command
