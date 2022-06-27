@@ -162,10 +162,10 @@ void ManualControl::Run()
 		const float dt_s = (now - _last_time) / 1e6f;
 		const float minimum_stick_change = 0.01f * _param_com_rc_stick_ov.get();
 
-		_selector.setpoint().sticks_moving = (fabsf(_x_diff.update(_selector.setpoint().x, dt_s)) > minimum_stick_change)
-						     || (fabsf(_y_diff.update(_selector.setpoint().y, dt_s)) > minimum_stick_change)
-						     || (fabsf(_z_diff.update(_selector.setpoint().z, dt_s)) > minimum_stick_change)
-						     || (fabsf(_r_diff.update(_selector.setpoint().r, dt_s)) > minimum_stick_change);
+		_selector.setpoint().sticks_moving = (fabsf(_roll_diff.update(_selector.setpoint().roll, dt_s)) > minimum_stick_change)
+						     || (fabsf(_pitch_diff.update(_selector.setpoint().pitch, dt_s)) > minimum_stick_change)
+						     || (fabsf(_yaw_diff.update(_selector.setpoint().yaw, dt_s)) > minimum_stick_change)
+						     || (fabsf(_throttle_diff.update(_selector.setpoint().throttle, dt_s)) > minimum_stick_change);
 
 		if (switches_updated) {
 			// Only use switches if current source is RC as well.
@@ -310,10 +310,10 @@ void ManualControl::Run()
 			_manual_control_setpoint_pub.publish(_selector.setpoint());
 		}
 
-		_x_diff.reset();
-		_y_diff.reset();
-		_z_diff.reset();
-		_r_diff.reset();
+		_roll_diff.reset();
+		_pitch_diff.reset();
+		_yaw_diff.reset();
+		_throttle_diff.reset();
 		_stick_arm_hysteresis.set_state_and_update(false, now);
 		_stick_disarm_hysteresis.set_state_and_update(false, now);
 		_button_hysteresis.set_state_and_update(false, now);
@@ -330,8 +330,8 @@ void ManualControl::Run()
 void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 {
 	// Arm gesture
-	const bool right_stick_centered = (fabsf(input.x) < 0.1f) && (fabsf(input.y) < 0.1f);
-	const bool left_stick_lower_right = (input.z < -0.8f) && (input.r > 0.9f);
+	const bool right_stick_centered = (fabsf(input.pitch) < 0.1f) && (fabsf(input.roll) < 0.1f);
+	const bool left_stick_lower_right = (input.throttle < -0.8f) && (input.yaw > 0.9f);
 
 	const bool previous_stick_arm_hysteresis = _stick_arm_hysteresis.get_state();
 	_stick_arm_hysteresis.set_state_and_update(left_stick_lower_right && right_stick_centered, input.timestamp);
@@ -341,7 +341,7 @@ void ManualControl::processStickArming(const manual_control_setpoint_s &input)
 	}
 
 	// Disarm gesture
-	const bool left_stick_lower_left = (input.z < -0.8f) && (input.r < -0.9f);
+	const bool left_stick_lower_left = (input.throttle < -0.8f) && (input.yaw < -0.9f);
 
 	const bool previous_stick_disarm_hysteresis = _stick_disarm_hysteresis.get_state();
 	_stick_disarm_hysteresis.set_state_and_update(left_stick_lower_left && right_stick_centered, input.timestamp);

@@ -316,15 +316,15 @@ FixedwingPositionControl::manual_control_setpoint_poll()
 {
 	_manual_control_setpoint_sub.update(&_manual_control_setpoint);
 
-	_manual_control_setpoint_for_height_rate = _manual_control_setpoint.x;
-	_manual_control_setpoint_for_airspeed = _manual_control_setpoint.z;
+	_manual_control_setpoint_for_height_rate = _manual_control_setpoint.pitch;
+	_manual_control_setpoint_for_airspeed = _manual_control_setpoint.throttle;
 
 	if (_param_fw_pos_stk_conf.get() & STICK_CONFIG_SWAP_STICKS_BIT) {
 		/* Alternate stick allocation (similar concept as for multirotor systems:
 		 * demanding up/down with the throttle stick, and move faster/break with the pitch one.
 		 */
-		_manual_control_setpoint_for_height_rate = -_manual_control_setpoint.z;
-		_manual_control_setpoint_for_airspeed = _manual_control_setpoint.x;
+		_manual_control_setpoint_for_height_rate = -_manual_control_setpoint.throttle;
+		_manual_control_setpoint_for_airspeed = _manual_control_setpoint.pitch;
 	}
 
 	// send neutral setpoints if no update for 1 s
@@ -820,7 +820,7 @@ FixedwingPositionControl::set_control_mode_current(const hrt_abstime &now)
 
 			/* reset setpoints from other modes (auto) otherwise we won't
 			 * level out without new manual input */
-			_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_r_lim.get());
+			_att_sp.roll_body = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
 			_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 		}
 
@@ -1426,7 +1426,7 @@ FixedwingPositionControl::control_auto_takeoff(const hrt_abstime &now, const flo
 
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_rwto_nudge.get()) {
-			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.r;
+			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
 		}
 
 		// tune up the lateral position control guidance when on the ground
@@ -1794,7 +1794,7 @@ FixedwingPositionControl::control_auto_landing(const hrt_abstime &now, const flo
 
 		// XXX: hacky way to pass through manual nose-wheel incrementing. need to clean this interface.
 		if (_param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled) {
-			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.r;
+			_att_sp.yaw_sp_move_rate = _manual_control_setpoint.yaw;
 		}
 
 		// blend the height rate controlled throttle setpoints with initial throttle setting over the flare
@@ -1919,7 +1919,7 @@ FixedwingPositionControl::control_manual_altitude(const float control_interval, 
 				   false,
 				   height_rate_sp);
 
-	_att_sp.roll_body = _manual_control_setpoint.y * radians(_param_fw_r_lim.get());
+	_att_sp.roll_body = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
 	_att_sp.yaw_body = _yaw; // yaw is not controlled, so set setpoint to current yaw
 
 	_att_sp.thrust_body[0] = min(get_tecs_thrust(), throttle_max);
@@ -1954,8 +1954,8 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 	}
 
 	/* heading control */
-	if (fabsf(_manual_control_setpoint.y) < HDG_HOLD_MAN_INPUT_THRESH &&
-	    fabsf(_manual_control_setpoint.r) < HDG_HOLD_MAN_INPUT_THRESH) {
+	if (fabsf(_manual_control_setpoint.roll) < HDG_HOLD_MAN_INPUT_THRESH &&
+	    fabsf(_manual_control_setpoint.yaw) < HDG_HOLD_MAN_INPUT_THRESH) {
 
 		/* heading / roll is zero, lock onto current heading */
 		if (fabsf(_yawrate) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
@@ -2028,14 +2028,14 @@ FixedwingPositionControl::control_manual_position(const float control_interval, 
 				   false,
 				   height_rate_sp);
 
-	if (!_yaw_lock_engaged || fabsf(_manual_control_setpoint.y) >= HDG_HOLD_MAN_INPUT_THRESH ||
-	    fabsf(_manual_control_setpoint.r) >= HDG_HOLD_MAN_INPUT_THRESH) {
+	if (!_yaw_lock_engaged || fabsf(_manual_control_setpoint.roll) >= HDG_HOLD_MAN_INPUT_THRESH ||
+	    fabsf(_manual_control_setpoint.yaw) >= HDG_HOLD_MAN_INPUT_THRESH) {
 
 		_hdg_hold_enabled = false;
 		_yaw_lock_engaged = false;
 
 		// do slew rate limiting on roll if enabled
-		float roll_sp_new = _manual_control_setpoint.y * radians(_param_fw_r_lim.get());
+		float roll_sp_new = _manual_control_setpoint.roll * radians(_param_fw_r_lim.get());
 		const float roll_rate_slew_rad = radians(_param_fw_l1_r_slew_max.get());
 
 		if (control_interval > 0.f && roll_rate_slew_rad > 0.f) {
@@ -2650,14 +2650,14 @@ FixedwingPositionControl::initializeAutoLanding(const hrt_abstime &now, const po
 Vector2f
 FixedwingPositionControl::calculateTouchdownPosition(const float control_interval, const Vector2f &local_land_position)
 {
-	if (fabsf(_manual_control_setpoint.r) > MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE
+	if (fabsf(_manual_control_setpoint.yaw) > MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE
 	    && _param_fw_lnd_nudge.get() > LandingNudgingOption::kNudgingDisabled
 	    && !_flare_states.flaring) {
 		// laterally nudge touchdown location with yaw stick
 		// positive is defined in the direction of a right hand turn starting from the approach vector direction
 		const float signed_deadzone_threshold = MANUAL_TOUCHDOWN_NUDGE_INPUT_DEADZONE * math::signNoZero(
-				_manual_control_setpoint.r);
-		_lateral_touchdown_position_offset += (_manual_control_setpoint.r - signed_deadzone_threshold) *
+				_manual_control_setpoint.yaw);
+		_lateral_touchdown_position_offset += (_manual_control_setpoint.yaw - signed_deadzone_threshold) *
 						      MAX_TOUCHDOWN_POSITION_NUDGE_RATE * control_interval;
 		_lateral_touchdown_position_offset =  math::constrain(_lateral_touchdown_position_offset, -_param_fw_lnd_td_off.get(),
 						      _param_fw_lnd_td_off.get());
