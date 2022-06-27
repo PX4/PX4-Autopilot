@@ -892,9 +892,9 @@ void ModalaiEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 	const float flip_pwr_mult = 1.0f - ((float)_parameters.turtle_motor_expo / 100.0f);
 
 	// Sitck deflection
-	const float stick_def_p_abs = fabsf(_manual_control_setpoint.x);
-	const float stick_def_r_abs  = fabsf(_manual_control_setpoint.y);
-	const float stick_def_y_abs   = fabsf(_manual_control_setpoint.r);
+	const float stick_def_r_abs = fabsf(_manual_control_setpoint.roll);
+	const float stick_def_p_abs = fabsf(_manual_control_setpoint.pitch);
+	const float stick_def_y_abs = fabsf(_manual_control_setpoint.yaw);
 
 	const float stick_def_p_expo = flip_pwr_mult * stick_def_p_abs + powf(stick_def_p_abs,
 				       3.0) * (1 - flip_pwr_mult);
@@ -903,9 +903,9 @@ void ModalaiEsc::mix_turtle_mode(uint16_t outputs[MAX_ACTUATORS])
 	const float stick_def_y_expo  = flip_pwr_mult * stick_def_y_abs + powf(stick_def_y_abs,
 					3.0) * (1 - flip_pwr_mult);
 
-	float sign_p = _manual_control_setpoint.x < 0 ? 1 : -1;
-	float sign_r = _manual_control_setpoint.y < 0 ? 1 : -1;
-	float sign_y = _manual_control_setpoint.r < 0 ? 1 : -1;
+	float sign_r = _manual_control_setpoint.roll < 0 ? 1 : -1;
+	float sign_p = _manual_control_setpoint.pitch < 0 ? 1 : -1;
+	float sign_y = _manual_control_setpoint.yaw < 0 ? 1 : -1;
 
 	float stick_def_len      = sqrtf(powf(stick_def_p_abs, 2.0) + powf(stick_def_r_abs, 2.0));
 	float stick_def_expo_len = sqrtf(powf(stick_def_p_expo, 2.0) + powf(stick_def_r_expo, 2.0));

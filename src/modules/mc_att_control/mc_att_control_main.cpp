@@ -116,11 +116,11 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	if (reset_yaw_sp) {
 		_man_yaw_sp = yaw;
 
-	} else if ((_manual_control_setpoint.z > -.9f)
+	} else if ((_manual_control_setpoint.throttle > -.9f)
 		   || (_param_mc_airmode.get() == 2)) {
 
 		const float yaw_rate = math::radians(_param_mpc_man_y_max.get());
-		attitude_setpoint.yaw_sp_move_rate = _manual_control_setpoint.r * yaw_rate;
+		attitude_setpoint.yaw_sp_move_rate = _manual_control_setpoint.yaw * yaw_rate;
 		_man_yaw_sp = wrap_pi(_man_yaw_sp + attitude_setpoint.yaw_sp_move_rate * dt);
 	}
 
@@ -128,21 +128,18 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	 * Input mapping for roll & pitch setpoints
 	 * ----------------------------------------
 	 * We control the following 2 angles:
-	 * - tilt angle, given by sqrt(x*x + y*y)
+	 * - tilt angle, given by sqrt(roll*roll + pitch*pitch)
 	 * - the direction of the maximum tilt in the XY-plane, which also defines the direction of the motion
 	 *
 	 * This allows a simple limitation of the tilt angle, the vehicle flies towards the direction that the stick
 	 * points to, and changes of the stick input are linear.
 	 */
-	_man_x_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
-	_man_y_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
-	_man_x_input_filter.update(_manual_control_setpoint.x * _man_tilt_max);
-	_man_y_input_filter.update(_manual_control_setpoint.y * _man_tilt_max);
-	const float x = _man_x_input_filter.getState();
-	const float y = _man_y_input_filter.getState();
+	_man_roll_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
+	_man_pitch_input_filter.setParameters(dt, _param_mc_man_tilt_tau.get());
 
-	// we want to fly towards the direction of (x, y), so we use a perpendicular axis angle vector in the XY-plane
-	Vector2f v = Vector2f(y, -x);
+	// we want to fly towards the direction of (roll, pitch)
+	Vector2f v = Vector2f(_man_roll_input_filter.update(_manual_control_setpoint.roll * _man_tilt_max),
+			      -_man_pitch_input_filter.update(_manual_control_setpoint.pitch * _man_tilt_max));
 	float v_norm = v.norm(); // the norm of v defines the tilt angle
 
 	if (v_norm > _man_tilt_max) { // limit to the configured maximum tilt angle
@@ -200,7 +197,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(const Quatf &q, float dt,
 	Quatf q_sp = Eulerf(attitude_setpoint.roll_body, attitude_setpoint.pitch_body, attitude_setpoint.yaw_body);
 	q_sp.copyTo(attitude_setpoint.q_d);
 
-	attitude_setpoint.thrust_body[2] = -throttle_curve((_manual_control_setpoint.z + 1.f) * .5f);
+	attitude_setpoint.thrust_body[2] = -throttle_curve((_manual_control_setpoint.throttle + 1.f) * .5f);
 	attitude_setpoint.timestamp = hrt_absolute_time();
 
 	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
@@ -316,8 +313,8 @@ MulticopterAttitudeControl::Run()
 				attitude_setpoint_generated = true;
 
 			} else {
-				_man_x_input_filter.reset(0.f);
-				_man_y_input_filter.reset(0.f);
+				_man_roll_input_filter.reset(0.f);
+				_man_pitch_input_filter.reset(0.f);
 			}
 
 			Vector3f rates_sp = _attitude_control.update(q);
