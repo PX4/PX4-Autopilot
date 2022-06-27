@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2022 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,7 +48,7 @@
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -83,7 +83,7 @@ static constexpr float kFlapSlewRate = 1.f; //minimum time from none to full fla
 static constexpr float kSpoilerSlewRate = 1.f; //minimum time from none to full spoiler deflection [s]
 
 class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public ModuleParams,
-	public px4::WorkItem
+	public px4::ScheduledWorkItem
 {
 public:
 	FixedwingAttitudeControl(bool vtol = false);
@@ -138,6 +138,8 @@ private:
 	vehicle_local_position_s		_local_pos{};
 	vehicle_rates_setpoint_s		_rates_sp{};
 	vehicle_status_s			_vehicle_status{};
+
+	matrix::Dcmf _R{matrix::eye<float, 3>()};
 
 	perf_counter_t _loop_perf;
 

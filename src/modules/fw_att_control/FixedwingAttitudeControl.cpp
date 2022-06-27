@@ -40,7 +40,7 @@ using math::radians;
 
 FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::nav_and_controllers),
 	_actuator_controls_0_pub(vtol ? ORB_ID(actuator_controls_virtual_fw) : ORB_ID(actuator_controls_0)),
 	_actuator_controls_status_pub(vtol ? ORB_ID(actuator_controls_status_1) : ORB_ID(actuator_controls_status_0)),
 	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
@@ -270,9 +270,7 @@ void FixedwingAttitudeControl::Run()
 	perf_begin(_loop_perf);
 
 	// only run controller if attitude changed
-	vehicle_attitude_s att;
-
-	if (_att_sub.update(&att)) {
+	if (_att_sub.updated() || (hrt_elapsed_time(&_last_run) > 20_ms)) {
 
 		// only update parameters if they changed
 		bool params_updated = _parameter_update_sub.updated();
@@ -288,11 +286,26 @@ void FixedwingAttitudeControl::Run()
 			parameters_update();
 		}
 
-		const float dt = math::constrain((att.timestamp - _last_run) * 1e-6f, 0.002f, 0.04f);
-		_last_run = att.timestamp;
+		float dt = 0.f;
 
-		/* get current rotation matrix and euler angles from control state quaternions */
-		matrix::Dcmf R = matrix::Quatf(att.q);
+		static constexpr float DT_MIN = 0.002f;
+		static constexpr float DT_MAX = 0.04f;
+
+		vehicle_attitude_s att{};
+
+		if (_att_sub.copy(&att)) {
+			dt = math::constrain((att.timestamp_sample - _last_run) * 1e-6f, DT_MIN, DT_MAX);
+			_last_run = att.timestamp_sample;
+
+			// get current rotation matrix and euler angles from control state quaternions
+			_R = matrix::Quatf(att.q);
+		}
+
+		if (dt < DT_MIN || dt > DT_MAX) {
+			const hrt_abstime time_now_us = hrt_absolute_time();
+			dt = math::constrain((time_now_us - _last_run) * 1e-6f, DT_MIN, DT_MAX);
+			_last_run = time_now_us;
+		}
 
 		vehicle_angular_velocity_s angular_velocity{};
 		_vehicle_rates_sub.copy(&angular_velocity);
@@ -317,17 +330,17 @@ void FixedwingAttitudeControl::Run()
 			 * Rxy	Ryy  Rzy		-Rzy  Ryy  Rxy
 			 * Rxz	Ryz  Rzz		-Rzz  Ryz  Rxz
 			 * */
-			matrix::Dcmf R_adapted = R;		//modified rotation matrix
+			matrix::Dcmf R_adapted = _R;		//modified rotation matrix
 
 			/* move z to x */
-			R_adapted(0, 0) = R(0, 2);
-			R_adapted(1, 0) = R(1, 2);
-			R_adapted(2, 0) = R(2, 2);
+			R_adapted(0, 0) = _R(0, 2);
+			R_adapted(1, 0) = _R(1, 2);
+			R_adapted(2, 0) = _R(2, 2);
 
 			/* move x to z */
-			R_adapted(0, 2) = R(0, 0);
-			R_adapted(1, 2) = R(1, 0);
-			R_adapted(2, 2) = R(2, 0);
+			R_adapted(0, 2) = _R(0, 0);
+			R_adapted(1, 2) = _R(1, 0);
+			R_adapted(2, 2) = _R(2, 0);
 
 			/* change direction of pitch (convert to right handed system) */
 			R_adapted(0, 0) = -R_adapted(0, 0);
@@ -335,7 +348,7 @@ void FixedwingAttitudeControl::Run()
 			R_adapted(2, 0) = -R_adapted(2, 0);
 
 			/* fill in new attitude data */
-			R = R_adapted;
+			_R = R_adapted;
 
 			/* lastly, roll- and yawspeed have to be swaped */
 			float helper = rollspeed;
@@ -343,7 +356,7 @@ void FixedwingAttitudeControl::Run()
 			yawspeed = helper;
 		}
 
-		const matrix::Eulerf euler_angles(R);
+		const matrix::Eulerf euler_angles(_R);
 
 		vehicle_attitude_setpoint_poll();
 
@@ -672,6 +685,9 @@ void FixedwingAttitudeControl::Run()
 
 		updateActuatorControlsStatus(dt);
 	}
+
+	// backup schedule
+	ScheduleDelayed(20_ms);
 
 	perf_end(_loop_perf);
 }
