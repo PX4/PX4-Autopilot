@@ -113,16 +113,12 @@ WindEstimator::update(uint64_t time_now)
 	}
 
 	float dt = (float)(time_now - _time_last_update) * 1e-6f;
-	float dt2 = dt * dt;
 	_time_last_update = time_now;
 
-	float q_w = _wind_p_var;
-	float q_k_tas = _tas_scale_p_var;
-
 	matrix::Matrix3f Qk;
-	Qk(0, 0) = q_w * dt2;
+	Qk(0, 0) = _wind_psd * dt;
 	Qk(1, 1) = Qk(0, 0);
-	Qk(2, 2) = q_k_tas * dt2;
+	Qk(2, 2) = _tas_scale_psd * dt;
 	_P += Qk;
 }
 

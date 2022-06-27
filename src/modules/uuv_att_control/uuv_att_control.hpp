@@ -117,13 +117,13 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
-	actuator_controls_s _actuators {}; /**< actuator control inputs */
-	manual_control_setpoint_s _manual_control_setpoint {}; /**< r/c channel data */
-	vehicle_attitude_setpoint_s _attitude_setpoint {}; /**< vehicle attitude setpoint */
-	vehicle_rates_setpoint_s _rates_setpoint {}; /**< vehicle bodyrates setpoint */
-	vehicle_control_mode_s _vcontrol_mode {}; /**< vehicle control mode */
+	actuator_controls_s _actuators{};
+	manual_control_setpoint_s _manual_control_setpoint{};
+	vehicle_attitude_setpoint_s _attitude_setpoint{};
+	vehicle_rates_setpoint_s _rates_setpoint{};
+	vehicle_control_mode_s _vcontrol_mode{};
 
-	perf_counter_t	_loop_perf; /**< loop performance counter */
+	perf_counter_t	_loop_perf;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::UUV_ROLL_P>) _param_roll_p,

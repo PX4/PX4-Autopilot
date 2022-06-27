@@ -205,12 +205,21 @@ void VehicleMagnetometer::UpdateMagBiasEstimate()
 					if (_param_sens_mag_autocal.get() && !_armed && mag_bias_est.stable[mag_index]
 					    && (_calibration[mag_index].device_id() != 0) && !_calibration[mag_index].calibrated()) {
 
+						const Vector3f old_offset = _calibration[mag_index].offset();
+
 						// set initial mag calibration
 						const Vector3f offset = _calibration[mag_index].BiasCorrectedSensorOffset(_calibration_estimator_bias[mag_index]);
 
 						if (_calibration[mag_index].set_offset(offset)) {
 							// save parameters with preferred calibration slot to current sensor index
 							_calibration[mag_index].ParametersSave(mag_index);
+
+							PX4_INFO("mag %d (%" PRIu32 ") setting offsets [%.3f, %.3f, %.3f]->[%.3f, %.3f, %.3f]",
+								 mag_index, _calibration[mag_index].device_id(),
+								 (double)old_offset(0), (double)old_offset(1), (double)old_offset(2),
+								 (double)_calibration[mag_index].offset()(0),
+								 (double)_calibration[mag_index].offset()(1),
+								 (double)_calibration[mag_index].offset()(2));
 
 							_calibration_estimator_bias[mag_index].zero();
 

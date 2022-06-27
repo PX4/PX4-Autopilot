@@ -42,7 +42,6 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 		const vehicle_control_mode_s &control_mode, const bool safety_button_available, const bool safety_off,
 		const arming_state_t new_arming_state, actuator_armed_s &armed, const bool fRunPreArmChecks,
 		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s &status_flags,
-		const PreFlightCheck::arm_requirements_t &arm_requirements,
 		const hrt_abstime &time_since_boot, arm_disarm_reason_t calling_reason)
 {
 	// Double check that our static arrays are still valid
@@ -53,83 +52,34 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 	transition_result_t ret = TRANSITION_DENIED;
 	bool feedback_provided = false;
 
-	const bool hil_enabled = (status.hil_state == vehicle_status_s::HIL_STATE_ON);
-
 	/* only check transition if the new state is actually different from the current one */
 	if (new_arming_state == _arm_state) {
 		ret = TRANSITION_NOT_CHANGED;
 
 	} else {
-
-		/*
-		 * Get sensing state if necessary
-		 */
-		bool preflight_check_ret = true;
-
-		/* only perform the pre-arm check if we have to */
-		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-		    && !hil_enabled) {
-
-			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, status, status_flags, control_mode,
-					      true, true, time_since_boot);
-
-			if (preflight_check_ret) {
-				status_flags.system_sensors_initialized = true;
-			}
-
-			feedback_provided = true;
-		}
-
-		/* re-run the pre-flight check as long as sensors are failing */
-		if (!status_flags.system_sensors_initialized
-		    && fRunPreArmChecks
-		    && ((new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
-			|| (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY))
-		    && !hil_enabled) {
-
-			if ((_last_preflight_check == 0) || (hrt_elapsed_time(&_last_preflight_check) > 1000 * 1000)) {
-
-				status_flags.system_sensors_initialized = PreFlightCheck::preflightCheck(mavlink_log_pub, status,
-						status_flags, control_mode, false, !isArmed(),
-						time_since_boot);
-
-				_last_preflight_check = hrt_absolute_time();
-			}
-		}
-
 		// Check that we have a valid state transition
 		bool valid_transition = arming_transitions[new_arming_state][_arm_state];
 
-		if (valid_transition) {
-			// We have a good transition. Now perform any secondary validation.
-			if (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
+		// Preflight check
+		if (valid_transition
+		    && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
+		    && fRunPreArmChecks
+		    && !(status.hil_state == vehicle_status_s::HIL_STATE_ON)
+		    && (_arm_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE)) {
 
-				//      Do not perform pre-arm checks if coming from in air restore
-				//      Allow if vehicle_status_s::HIL_STATE_ON
-				if (_arm_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE) {
-
-					bool prearm_check_ret = true;
-
-					if (fRunPreArmChecks && preflight_check_ret) {
-						// only bother running prearm if preflight was successful
-						prearm_check_ret = PreFlightCheck::preArmCheck(mavlink_log_pub, status_flags, control_mode,
-								   safety_button_available, safety_off,
-								   arm_requirements, status);
-					}
-
-					if (!preflight_check_ret || !prearm_check_ret) {
-						// the prearm and preflight checks already print the rejection reason
-						feedback_provided = true;
-						valid_transition = false;
-					}
-				}
+			if (!PreFlightCheck::preflightCheck(mavlink_log_pub, status, status_flags, control_mode,
+							    true, // report_failures
+							    time_since_boot,
+							    safety_button_available, safety_off,
+							    true)) { // is_arm_attempt
+				feedback_provided = true; // Preflight checks report error messages
+				valid_transition = false;
 			}
 		}
 
-		if (hil_enabled) {
+		if (status.hil_state == vehicle_status_s::HIL_STATE_ON) {
 			/* enforce lockdown in HIL */
 			armed.lockdown = true;
-			status_flags.system_sensors_initialized = true;
 
 			/* recover from a prearm fail */
 			if (_arm_state == vehicle_status_s::ARMING_STATE_STANDBY_ERROR) {
@@ -139,17 +89,6 @@ transition_result_t ArmStateMachine::arming_state_transition(vehicle_status_s &s
 			// HIL can always go to standby
 			if (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 				valid_transition = true;
-			}
-		}
-
-		if (!hil_enabled &&
-		    (new_arming_state == vehicle_status_s::ARMING_STATE_STANDBY) &&
-		    (_arm_state != vehicle_status_s::ARMING_STATE_STANDBY_ERROR)) {
-
-			// Sensors need to be initialized for STANDBY state, except for HIL
-			if (!status_flags.system_sensors_initialized) {
-				feedback_provided = true;
-				valid_transition = false;
 			}
 		}
 

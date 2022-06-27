@@ -185,12 +185,12 @@ private:
 	uORB::Publication<tecs_status_s> _tecs_status_pub{ORB_ID(tecs_status)};
 	uORB::PublicationMulti<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
-	manual_control_setpoint_s _manual_control_setpoint {}; // r/c channel data
-	position_setpoint_triplet_s _pos_sp_triplet {}; // triplet of mission items
-	vehicle_attitude_setpoint_s _att_sp {}; // vehicle attitude setpoint
-	vehicle_control_mode_s _control_mode {};
-	vehicle_local_position_s _local_pos {};	// vehicle local position
-	vehicle_status_s _vehicle_status {}; // vehicle status
+	manual_control_setpoint_s _manual_control_setpoint{};
+	position_setpoint_triplet_s _pos_sp_triplet{};
+	vehicle_attitude_setpoint_s _att_sp{};
+	vehicle_control_mode_s _control_mode{};
+	vehicle_local_position_s _local_pos{};
+	vehicle_status_s _vehicle_status{};
 
 	double _current_latitude{0};
 	double _current_longitude{0};
@@ -212,8 +212,8 @@ private:
 
 	float _min_current_sp_distance_xy{FLT_MAX};
 
-	position_setpoint_s _hdg_hold_prev_wp {}; // position where heading hold started
-	position_setpoint_s _hdg_hold_curr_wp {}; // position to which heading hold flies
+	position_setpoint_s _hdg_hold_prev_wp{}; // position where heading hold started
+	position_setpoint_s _hdg_hold_curr_wp{}; // position to which heading hold flies
 
 	// [us] Last absolute time position control has been called
 	hrt_abstime _last_time_position_control_called{0};

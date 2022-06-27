@@ -135,6 +135,7 @@ public:
 	void check_tracks_mission(float corridor_radius_m = 1.5f);
 	void start_checking_altitude(const float max_deviation_m);
 	void stop_checking_altitude();
+	void check_current_altitude(float target_rel_altitude_m, float max_distance_m = 1.5f);
 
 	// Blocking call to get the drone's current position in NED frame
 	std::array<float, 3> get_current_position_ned();
@@ -147,7 +148,41 @@ public:
 protected:
 	mavsdk::Param *getParams() const { return _param.get();}
 	mavsdk::Telemetry *getTelemetry() const { return _telemetry.get();}
+	mavsdk::ManualControl *getManualControl() const { return _manual_control.get();}
 	std::shared_ptr<System> get_system() { return _mavsdk.systems().at(0);}
+	Telemetry::GroundTruth getHome()
+	{
+		// Check if home was stored before it is accessed
+		CHECK(_home.absolute_altitude_m != NAN);
+		CHECK(_home.latitude_deg != NAN);
+		CHECK(_home.longitude_deg != NAN);
+		return _home;
+	}
+
+	template<typename Rep, typename Period>
+	void sleep_for(std::chrono::duration<Rep, Period> duration)
+	{
+		const std::chrono::microseconds duration_us(duration);
+
+		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
+
+			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
+
+			while (true) {
+				// Hopefully this is often enough not to have PX4 time out on us.
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
+
+				if (elapsed_time_us > duration_us.count()) {
+					return;
+				}
+			}
+
+		} else {
+			std::this_thread::sleep_for(duration);
+		}
+	}
 
 private:
 	mavsdk::geometry::CoordinateTransformation get_coordinate_transformation();
@@ -218,30 +253,7 @@ private:
 		return true;
 	}
 
-	template<typename Rep, typename Period>
-	void sleep_for(std::chrono::duration<Rep, Period> duration)
-	{
-		const std::chrono::microseconds duration_us(duration);
 
-		if (_telemetry && _telemetry->attitude_quaternion().timestamp_us != 0) {
-
-			const int64_t start_time_us = _telemetry->attitude_quaternion().timestamp_us;
-
-			while (true) {
-				// Hopefully this is often enough not to have PX4 time out on us.
-				std::this_thread::sleep_for(std::chrono::milliseconds(1));
-
-				const int64_t elapsed_time_us = _telemetry->attitude_quaternion().timestamp_us - start_time_us;
-
-				if (elapsed_time_us > duration_us.count()) {
-					return;
-				}
-			}
-
-		} else {
-			std::this_thread::sleep_for(duration);
-		}
-	}
 
 	mavsdk::Mavsdk _mavsdk{};
 	std::unique_ptr<mavsdk::Action> _action{};

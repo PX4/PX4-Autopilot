@@ -298,15 +298,11 @@ int Commander::custom_command(int argc, char *argv[])
 
 		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, vehicle_status, vehicle_status_flags,
 					   vehicle_control_mode,
-					   true, true, 30_s);
+					   true, // report_failures
+					   30_s,
+					   false, // safety_buttton_available not known
+					   false); // safety_off not known
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
-
-		bool dummy_safety_button{false};
-		bool dummy_safety_off{false};
-		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, vehicle_status_flags, vehicle_control_mode,
-					dummy_safety_button, dummy_safety_off,
-					PreFlightCheck::arm_requirements_t{}, vehicle_status);
-		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
 		print_health_flags(vehicle_status);
 
@@ -499,7 +495,7 @@ bool Commander::shutdown_if_allowed()
 	return TRANSITION_DENIED != _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
 			_safety.isButtonAvailable(), _safety.isSafetyOff(),
 			vehicle_status_s::ARMING_STATE_SHUTDOWN,
-			_actuator_armed, false /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags, _arm_requirements,
+			_actuator_armed, false /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags,
 			hrt_elapsed_time(&_boot_timestamp), arm_disarm_reason_t::shutdown);
 }
 
@@ -752,7 +748,7 @@ transition_result_t Commander::arm(arm_disarm_reason_t calling_reason, bool run_
 	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
 					 _safety.isButtonAvailable(), _safety.isSafetyOff(),
 					 vehicle_status_s::ARMING_STATE_ARMED, _actuator_armed, run_preflight_checks,
-					 &_mavlink_log_pub, _vehicle_status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+					 &_mavlink_log_pub, _vehicle_status_flags, hrt_elapsed_time(&_boot_timestamp),
 					 calling_reason);
 
 	if (arming_res == TRANSITION_CHANGED) {
@@ -796,7 +792,7 @@ transition_result_t Commander::disarm(arm_disarm_reason_t calling_reason, bool f
 	transition_result_t arming_res = _arm_state_machine.arming_state_transition(_vehicle_status, _vehicle_control_mode,
 					 _safety.isButtonAvailable(), _safety.isSafetyOff(),
 					 vehicle_status_s::ARMING_STATE_STANDBY, _actuator_armed, false,
-					 &_mavlink_log_pub, _vehicle_status_flags, _arm_requirements,
+					 &_mavlink_log_pub, _vehicle_status_flags,
 					 hrt_elapsed_time(&_boot_timestamp), calling_reason);
 
 	if (arming_res == TRANSITION_CHANGED) {
@@ -829,9 +825,6 @@ Commander::Commander() :
 	_vehicle_status.system_type = 0;
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNKNOWN;
 
-	// XXX for now just set sensors as initialized
-	_vehicle_status_flags.system_sensors_initialized = true;
-
 	// We want to accept RC inputs as default
 	_vehicle_status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	_vehicle_status.nav_state_timestamp = hrt_absolute_time();
@@ -856,6 +849,13 @@ Commander::Commander() :
 	_param_rc_map_fltmode = param_find("RC_MAP_FLTMODE");
 
 	updateParameters();
+
+	// run preflight immediately to find all relevant parameters, but don't report
+	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _vehicle_status, _vehicle_status_flags, _vehicle_control_mode,
+				       false, // report_failures
+				       hrt_elapsed_time(&_boot_timestamp),
+				       false, // safety_buttton_available not known
+				       false); // safety_off not known
 }
 
 Commander::~Commander()
@@ -1408,7 +1408,6 @@ Commander::handle_command(const vehicle_command_s &cmd)
 						_safety.isButtonAvailable(), _safety.isSafetyOff(),
 						vehicle_status_s::ARMING_STATE_INIT, _actuator_armed,
 						false /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags,
-						PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
 						30_s, // time since boot not relevant for switching to ARMING_STATE_INIT
 						(cmd.from_external ? arm_disarm_reason_t::command_external : arm_disarm_reason_t::command_internal))
 				   ) {
@@ -2106,11 +2105,6 @@ void Commander::updateParameters()
 
 	_vehicle_status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 
-	_arm_requirements.arm_authorization = _param_arm_auth_required.get();
-	_arm_requirements.esc_check = _param_escs_checks_required.get();
-	_arm_requirements.global_position = !_param_arm_without_gps.get();
-	_arm_requirements.mission = _param_arm_mission_required.get();
-
 	_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 	_offboard_available.set_hysteresis_time_from(true, _param_com_of_loss_t.get() * 1_s);
 
@@ -2192,16 +2186,11 @@ Commander::run()
 
 	arm_auth_init(&_mavlink_log_pub, &_vehicle_status.system_id);
 
-	// run preflight immediately to find all relevant parameters, but don't report
-	PreFlightCheck::preflightCheck(&_mavlink_log_pub, _vehicle_status, _vehicle_status_flags, _vehicle_control_mode,
-				       false, true, hrt_elapsed_time(&_boot_timestamp));
-
 	while (!should_exit()) {
 
 		perf_begin(_loop_perf);
 
 		const actuator_armed_s actuator_armed_prev{_actuator_armed};
-		const vehicle_status_flags_s vehicle_status_flags_prev{_vehicle_status_flags};
 
 		/* update parameters */
 		const bool params_updated = _parameter_update_sub.updated();
@@ -2470,7 +2459,7 @@ Commander::run()
 					_safety.isButtonAvailable(), _safety.isSafetyOff(),
 					vehicle_status_s::ARMING_STATE_STANDBY, _actuator_armed,
 					true /* fRunPreArmChecks */, &_mavlink_log_pub, _vehicle_status_flags,
-					_arm_requirements, hrt_elapsed_time(&_boot_timestamp),
+					hrt_elapsed_time(&_boot_timestamp),
 					arm_disarm_reason_t::transition_to_standby);
 		}
 
@@ -2539,7 +2528,6 @@ Commander::run()
 
 		/* start geofence result check */
 		if (_geofence_result_sub.update(&_geofence_result)) {
-			_arm_requirements.geofence = (_geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE);
 			_vehicle_status.geofence_violated = _geofence_result.geofence_violated;
 		}
 
@@ -2733,8 +2721,8 @@ Commander::run()
 
 			if (_arm_state_machine.isArmed()) {
 				if (fd_status_flags.arm_escs) {
-					// 500ms is the PWM spoolup time. Within this timeframe controllers are not affecting actuator_outputs
-					if (hrt_elapsed_time(&_vehicle_status.armed_time) < 500_ms) {
+					// Checks have to pass within the spool up time
+					if (hrt_elapsed_time(&_vehicle_status.armed_time) < _param_com_spoolup_time.get() * 1_s) {
 						disarm(arm_disarm_reason_t::failure_detector);
 						mavlink_log_critical(&_mavlink_log_pub, "ESCs did not respond to arm request\t");
 						events::send(events::ID("commander_fd_escs_not_arming"), events::Log::Critical, "ESCs did not respond to arm request");
@@ -3007,24 +2995,17 @@ Commander::run()
 
 			// Evaluate current prearm status (skip during arm -> disarm transition)
 			if (!actuator_armed_prev.armed && !_arm_state_machine.isArmed() && !_vehicle_status_flags.calibration_enabled) {
-
-				_vehicle_status_flags.system_hotplug_timeout = (hrt_elapsed_time(&_boot_timestamp) > HOTPLUG_SENS_TIMEOUT);
-
 				perf_begin(_preflight_check_perf);
-				bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, _vehicle_status, _vehicle_status_flags,
-							   _vehicle_control_mode,
-							   false, true, hrt_elapsed_time(&_boot_timestamp));
+				_vehicle_status_flags.pre_flight_checks_pass = PreFlightCheck::preflightCheck(nullptr, _vehicle_status,
+						_vehicle_status_flags,
+						_vehicle_control_mode,
+						false, // report_failures
+						hrt_elapsed_time(&_boot_timestamp),
+						_safety.isButtonAvailable(), _safety.isSafetyOff());
 				perf_end(_preflight_check_perf);
 
-				// skip arm authorization check until actual arming attempt
-				PreFlightCheck::arm_requirements_t arm_req = _arm_requirements;
-				arm_req.arm_authorization = false;
-				bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, _vehicle_status_flags, _vehicle_control_mode,
-							_safety.isButtonAvailable(), _safety.isSafetyOff(),
-							arm_req, _vehicle_status, false);
-
-				const bool prearm_check_ok = preflight_check_res && prearm_check_res;
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true, prearm_check_ok, _vehicle_status);
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_PREARM_CHECK, true, true,
+						 _vehicle_status_flags.pre_flight_checks_pass, _vehicle_status);
 			}
 
 			// publish actuator_armed first (used by output modules)
@@ -3099,13 +3080,6 @@ Commander::run()
 			}
 
 			_arm_tune_played = false;
-		}
-
-		/* play sensor failure tunes if we already waited for hotplug sensors to come up and failed */
-		if (!_vehicle_status_flags.system_sensors_initialized &&
-		    !vehicle_status_flags_prev.system_hotplug_timeout && _vehicle_status_flags.system_hotplug_timeout) {
-
-			set_tune_override(tune_control_s::TUNE_ID_GPS_WARNING);
 		}
 
 		// check if the worker has finished
@@ -3229,15 +3203,11 @@ void Commander::control_status_leds(bool changed, const uint8_t battery_warning)
 			led_mode = led_control_s::MODE_ON;
 			set_normal_color = true;
 
-		} else if (!_vehicle_status_flags.system_sensors_initialized && _vehicle_status_flags.system_hotplug_timeout) {
+		} else if (!_vehicle_status_flags.pre_flight_checks_pass) {
 			led_mode = led_control_s::MODE_BLINK_FAST;
 			led_color = led_control_s::COLOR_RED;
 
 		} else if (_arm_state_machine.isStandby()) {
-			led_mode = led_control_s::MODE_BREATHE;
-			set_normal_color = true;
-
-		} else if (!_vehicle_status_flags.system_sensors_initialized && !_vehicle_status_flags.system_hotplug_timeout) {
 			led_mode = led_control_s::MODE_BREATHE;
 			set_normal_color = true;
 
@@ -3406,7 +3376,6 @@ Commander::update_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_RTL:
-	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_LAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND:
 	case vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION:
@@ -3474,6 +3443,10 @@ Commander::update_control_mode()
 
 		break;
 
+	case vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET:
+
+	// Follow Target supports RC adjustment, so disable auto control mode to disable
+	// the Flight Task from exiting itself when RC stick movement is detected.
 	case vehicle_status_s::NAVIGATION_STATE_ORBIT:
 		_vehicle_control_mode.flag_control_manual_enabled = false;
 		_vehicle_control_mode.flag_control_auto_enabled = false;
@@ -3656,7 +3629,9 @@ void Commander::data_link_check()
 					if (!_arm_state_machine.isArmed() && !_vehicle_status_flags.calibration_enabled) {
 						// make sure to report preflight check failures to a connecting GCS
 						PreFlightCheck::preflightCheck(&_mavlink_log_pub, _vehicle_status, _vehicle_status_flags, _vehicle_control_mode,
-									       true, false, hrt_elapsed_time(&_boot_timestamp));
+									       true, // report_failures
+									       hrt_elapsed_time(&_boot_timestamp),
+									       _safety.isButtonAvailable(), _safety.isSafetyOff());
 					}
 				}
 

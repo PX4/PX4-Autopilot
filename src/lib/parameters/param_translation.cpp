@@ -42,6 +42,15 @@
 
 bool param_modify_on_import(bson_node_t node)
 {
+	// migrate MPC_SPOOLUP_TIME -> COM_SPOOLUP_TIME (2020-12-03). This can be removed after the next release (current release=1.11)
+	if (node->type == BSON_DOUBLE) {
+		if (strcmp("MPC_SPOOLUP_TIME", node->name) == 0) {
+			strcpy(node->name, "COM_SPOOLUP_TIME");
+			PX4_INFO("param migrating MPC_SPOOLUP_TIME (removed) -> COM_SPOOLUP_TIME: value=%.3f", node->d);
+			return true;
+		}
+	}
+
 	// migrate COM_ARM_AUTH -> COM_ARM_AUTH_ID, COM_ARM_AUTH_MET and COM_ARM_AUTH_TO (2020-11-06). This can be removed after the next release (current release=1.11)
 	if (node->type == BSON_INT32) {
 		if (strcmp("COM_ARM_AUTH", node->name) == 0) {
@@ -208,6 +217,31 @@ bool param_modify_on_import(bson_node_t node)
 		if (strcmp("SENS_EN_MS5525", node->name) == 0) {
 			strcpy(node->name, "SENS_EN_MS5525DS");
 			PX4_INFO("copying %s -> %s", "SENS_EN_MS5525", "SENS_EN_MS5525DS");
+			return true;
+		}
+	}
+
+	// 2022-06-09: migrate EKF2_WIND_NOISE->EKF2_WIND_NSD
+	{
+		if (strcmp("EKF2_WIND_NOISE", node->name) == 0) {
+			node->d /= 10.0; // at 100Hz (EKF2 rate), NSD is sqrt(100) times smaller than std_dev
+			strcpy(node->name, "EKF2_WIND_NSD");
+			PX4_INFO("param migrating EKF2_WIND_NOISE (removed) -> EKF2_WIND_NSD: value=%.3f", node->d);
+			return true;
+		}
+	}
+
+	// 2022-06-09: translate ASPD_SC_P_NOISE->ASPD_SCALE_NSD and ASPD_W_P_NOISE->ASPD_WIND_NSD
+	{
+		if (strcmp("ASPD_SC_P_NOISE", node->name) == 0) {
+			strcpy(node->name, "ASPD_SCALE_NSD");
+			PX4_INFO("copying %s -> %s", "ASPD_SC_P_NOISE", "ASPD_SCALE_NSD");
+			return true;
+		}
+
+		if (strcmp("ASPD_W_P_NOISE", node->name) == 0) {
+			strcpy(node->name, "ASPD_WIND_NSD");
+			PX4_INFO("copying %s -> %s", "ASPD_W_P_NOISE", "ASPD_WIND_NSD");
 			return true;
 		}
 	}

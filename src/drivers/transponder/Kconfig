@@ -1,0 +1,10 @@
+menu "Transponder"
+    menuconfig TRANSPONDER
+        bool "Transponder"
+        default n
+        select DRIVERS_TRANSPONDER_SAGETECH_MXS
+        ---help---
+            Enable default set of transponder drivers
+
+    rsource "*/Kconfig"
+endmenu #transponder

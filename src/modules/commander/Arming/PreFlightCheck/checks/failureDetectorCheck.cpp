@@ -36,13 +36,8 @@
 #include <systemlib/mavlink_log.h>
 
 bool PreFlightCheck::failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
-		const bool report_fail, const bool prearm)
+		const bool report_fail)
 {
-	// Ignore failure detector check after arming
-	if (!prearm) {
-		return true;
-	}
-
 	if (status.failure_detector_status != vehicle_status_s::FAILURE_NONE) {
 		if (report_fail) {
 			if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {

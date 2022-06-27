@@ -104,7 +104,6 @@ param set-default SDLOG_PROFILE 131
 param set-default SENS_CM8JL65_CFG 104
 param set-default SENS_FLOW_MAXHGT 25
 param set-default SENS_FLOW_MINHGT 0.5
-param set-default SENS_FLOW_ROT 0
 param set-default IMU_GYRO_CUTOFF 100
 param set-default SENS_EN_PMW3901 1
 
