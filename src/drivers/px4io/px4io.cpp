@@ -531,11 +531,6 @@ void PX4IO::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
 
-	// schedule minimal update rate if there are no actuator controls
-	if (!_mixing_output.useDynamicMixing()) {
-		ScheduleDelayed(20_ms);
-	}
-
 	/* if we have new control data from the ORB, handle it */
 	if (_param_sys_hitl.get() <= 0) {
 		_mixing_output.update();
@@ -653,6 +648,9 @@ void PX4IO::Run()
 	}
 
 	_mixing_output.updateSubscriptions(true, true);
+
+	// minimal backup scheduling
+	ScheduleDelayed(20_ms);
 
 	perf_end(_cycle_perf);
 }
