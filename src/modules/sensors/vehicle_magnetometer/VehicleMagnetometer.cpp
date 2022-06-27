@@ -437,13 +437,6 @@ void VehicleMagnetometer::Run()
 							}
 						}
 
-						// advertise outputs in order if publishing all
-						if (!_param_sens_mag_mode.get()) {
-							for (int instance = 0; instance < uorb_index; instance++) {
-								_vehicle_magnetometer_pub[instance].advertise();
-							}
-						}
-
 						if (_selected_sensor_sub_index < 0) {
 							_sensor_sub[uorb_index].registerCallback();
 						}
@@ -524,6 +517,16 @@ void VehicleMagnetometer::Run()
 						out.timestamp = hrt_absolute_time();
 
 						if (multi_mode) {
+
+							if (!_vehicle_magnetometer_pub[instance].advertised()) {
+								// prefer to maintain vehicle_magneometer instance numbering in sensor order
+								for (int mag_instance = 0; mag_instance < instance; mag_instance++) {
+									if (_calibration[instance].enabled()) {
+										_vehicle_magnetometer_pub[mag_instance].advertise();
+									}
+								}
+							}
+
 							_vehicle_magnetometer_pub[instance].publish(out);
 
 						} else {
