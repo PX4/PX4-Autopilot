@@ -31,8 +31,14 @@
 #
 ############################################################################
 
+if(CONFIG_ARCH_CHIP_STM32H7)
+	set(FLASHFS_SOURCE_FILE flashfs32.c)
+else()
+	set(FLASHFS_SOURCE_FILE flashfs.c)
+endif()
+
 add_library(flashparams
-	flashfs.c
+	${FLASHFS_SOURCE_FILE}
 	flashparams.cpp
 )
 
