@@ -57,10 +57,10 @@ public:
 		manual_control_setpoint_s manual_control_setpoint;
 
 		if (_topic.update(&manual_control_setpoint)) {
-			_data[0] = manual_control_setpoint.y; // roll
-			_data[1] = manual_control_setpoint.x; // pitch
-			_data[2] = manual_control_setpoint.z; // throttle
-			_data[3] = manual_control_setpoint.r; // yaw
+			_data[0] = manual_control_setpoint.roll;
+			_data[1] = manual_control_setpoint.pitch;
+			_data[2] = manual_control_setpoint.throttle;
+			_data[3] = manual_control_setpoint.yaw;
 			_data[4] = manual_control_setpoint.flaps;
 			_data[5] = manual_control_setpoint.aux1;
 			_data[6] = manual_control_setpoint.aux2;
