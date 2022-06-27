@@ -2097,17 +2097,29 @@ int EKF2::task_spawn(int argc, char *argv[])
 		}
 
 		int32_t sens_mag_mode = 1;
-		param_get(param_find("SENS_MAG_MODE"), &sens_mag_mode);
+		const param_t param_sens_mag_mode = param_find("SENS_MAG_MODE");
+		param_get(param_sens_mag_mode, &sens_mag_mode);
 
 		if (sens_mag_mode == 0) {
-			param_get(param_find("EKF2_MULTI_MAG"), &mag_instances);
+			const param_t param_ekf2_mult_mag = param_find("EKF2_MULTI_MAG");
+			param_get(param_ekf2_mult_mag, &mag_instances);
 
 			// Mags (1 - 4 supported)
-			if (mag_instances < 1 || mag_instances > 4) {
+			if (mag_instances > 4) {
 				const int32_t mag_instances_limited = math::constrain(mag_instances, static_cast<int32_t>(1), static_cast<int32_t>(4));
 				PX4_WARN("EKF2_MULTI_MAG limited %" PRId32 " -> %" PRId32, mag_instances, mag_instances_limited);
-				param_set_no_notification(param_find("EKF2_MULTI_MAG"), &mag_instances_limited);
+				param_set_no_notification(param_ekf2_mult_mag, &mag_instances_limited);
 				mag_instances = mag_instances_limited;
+
+			} else if (mag_instances <= 1) {
+				// properly disable multi-magnetometer at sensors hub level
+				PX4_WARN("EKF2_MULTI_MAG disabled, resetting SENS_MAG_MODE");
+
+				// re-enable at sensors level
+				sens_mag_mode = 1;
+				param_set(param_sens_mag_mode, &sens_mag_mode);
+
+				mag_instances = 1;
 			}
 
 		} else {
