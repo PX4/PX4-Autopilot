@@ -63,7 +63,7 @@ FlightTaskAutoFollowTarget::~FlightTaskAutoFollowTarget()
 	_target_estimator.Stop();
 }
 
-bool FlightTaskAutoFollowTarget::activate(const trajectory_setpoint_s &last_setpoint)
+bool FlightTaskAutoFollowTarget::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
 

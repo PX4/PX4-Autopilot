@@ -132,7 +132,7 @@ public:
 	FlightTaskAutoFollowTarget();
 	virtual ~FlightTaskAutoFollowTarget();
 
-	bool activate(const trajectory_setpoint_s &last_setpoint) override;
+	bool activate(const vehicle_local_position_setpoint_s &last_setpoint) override;
 	bool update() override;
 
 	// Override parameter update function to check when Follow Target properties are changed
