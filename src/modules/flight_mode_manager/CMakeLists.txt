@@ -53,7 +53,7 @@ endif()
 # add core flight tasks to list
 list(APPEND flight_tasks_all
 	Auto
-	AutoFollowMe
+	AutoFollowTarget
 	Descend
 	Failsafe
 	ManualAcceleration

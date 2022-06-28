@@ -47,6 +47,7 @@ param set-default COM_RC_LOSS_T 3
 
 # ekf2
 param set-default EKF2_AID_MASK 33
+param set-default EKF2_TERR_MASK 1
 param set-default EKF2_BARO_DELAY 0
 param set-default EKF2_BARO_NOISE 2.0
 
