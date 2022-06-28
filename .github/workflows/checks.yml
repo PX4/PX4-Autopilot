@@ -1,3 +1,4 @@
+# General Checks for building metadata, format, tests, coverage, etc.
 name: Checks
 
 on:
@@ -5,8 +6,7 @@ on:
     branches:
     - 'master'
   pull_request:
-    branches:
-    - '*'
+    # Trigger for PRs to any branch
 
 jobs:
   build:
