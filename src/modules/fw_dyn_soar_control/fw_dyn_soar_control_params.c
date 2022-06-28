@@ -52,8 +52,6 @@ PARAM_DEFINE_FLOAT(DS_INERTIA_PITCH, 0.1458929f);
  */
 PARAM_DEFINE_FLOAT(DS_INERTIA_YAW, 0.1477f);
 
-
-
 /**
  * total takeoff mass
  * 
@@ -181,7 +179,7 @@ PARAM_DEFINE_FLOAT(DS_C_D2, 1.984f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_AOA_OFFSET, 0.01f);
+PARAM_DEFINE_FLOAT(DS_AOA_OFFSET, 0.03f);
 
 /**
  * stall speed of the aircraft
@@ -193,67 +191,8 @@ PARAM_DEFINE_FLOAT(DS_AOA_OFFSET, 0.01f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_STALL_SPEED, 7.0f);
+PARAM_DEFINE_FLOAT(DS_STALL_SPEED, 9.0f);
 
-/**
- * coefficients of the butterworth filter used for smoothing the IMU
- * 
- * @unit 
- * @min -100
- * @max 100
- * @decimal 7
- * @increment 0.0000001
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_FILTER_A1, 1.16826067f);
-
-/**
- * coefficients of the butterworth filter used for smoothing the IMU
- * 
- * @unit 
- * @min -100
- * @max 100
- * @decimal 7
- * @increment 0.0000001
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_FILTER_A2, -0.42411821f);
-
-/**
- * coefficients of the butterworth filter used for smoothing the IMU
- * 
- * @unit 
- * @min -100
- * @max 100
- * @decimal 7
- * @increment 0.0000001
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_FILTER_B1, 0.06396438f);
-
-/**
- * coefficients of the butterworth filter used for smoothing the IMU
- * 
- * @unit 
- * @min -100
- * @max 100
- * @decimal 7
- * @increment 0.0000001
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_FILTER_B2, 0.12792877f);
-
-/**
- * coefficients of the butterworth filter used for smoothing the IMU
- * 
- * @unit 
- * @min -100
- * @max 100
- * @decimal 7
- * @increment 0.0000001
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_FILTER_B3, 0.06396438f);
 
 // ========================================================
 // =================== CONTROL GAINS ======================
@@ -412,7 +351,7 @@ PARAM_DEFINE_FLOAT(DS_K_Q_YAW, 0.5f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_W_ROLL, 5.0f);
+PARAM_DEFINE_FLOAT(DS_K_W_ROLL, 12.0f);
 
 /**
  * pitch gain of K_W (angular velocity error gain)
@@ -424,7 +363,7 @@ PARAM_DEFINE_FLOAT(DS_K_W_ROLL, 5.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_W_PITCH, 5.0f);
+PARAM_DEFINE_FLOAT(DS_K_W_PITCH, 12.0f);
 
 /**
  * yaw gain of K_W (angular velocity error gain)
@@ -452,7 +391,7 @@ PARAM_DEFINE_FLOAT(DS_K_W_YAW, 1.0f);
  * @increment 0.001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_ACT_ROLL, 0.1f);
+PARAM_DEFINE_FLOAT(DS_K_ACT_ROLL, 0.2f);
 
 /**
  * pitch gain of K_ACT (actuator deflection gain)
@@ -464,7 +403,7 @@ PARAM_DEFINE_FLOAT(DS_K_ACT_ROLL, 0.1f);
  * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_ACT_PITCH, 0.03f);
+PARAM_DEFINE_FLOAT(DS_K_ACT_PITCH, 0.05f);
 
 /**
  * yaw gain of K_ACT (actuator deflection gain)
@@ -488,7 +427,7 @@ PARAM_DEFINE_FLOAT(DS_K_ACT_YAW, 0.1f);
  * @increment 0.001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_DAMP_ROLL, 0.02f);
+PARAM_DEFINE_FLOAT(DS_K_DAMP_ROLL, 0.04f);
 
 /**
  * pitch gain of K_ACT_DAMPING (actuator damping gain)
@@ -500,7 +439,7 @@ PARAM_DEFINE_FLOAT(DS_K_DAMP_ROLL, 0.02f);
  * @increment 0.001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_DAMP_PITCH, 0.01f);
+PARAM_DEFINE_FLOAT(DS_K_DAMP_PITCH, 0.02f);
 
 /**
  * yaw gain of K_ACT_DAMPING (actuator damping gain)
@@ -528,7 +467,7 @@ PARAM_DEFINE_FLOAT(DS_K_DAMP_YAW, 0.0f);
  * @increment 0.0000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.4040182f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.3130000f);
 
 /**
  * longitude of trajectory start point (WGS84)
@@ -540,7 +479,7 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_LAT, 47.4040182f);
  * @increment 0.0000001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.5101919f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.8100000f);
 
 /**
  * altitude of trajectory start point (WGS84)
@@ -552,7 +491,7 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_LON, 8.5101919f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 540.0f);
+PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 537.0f);
 
 // ======================================================
 // ==============  loiter circle number =================

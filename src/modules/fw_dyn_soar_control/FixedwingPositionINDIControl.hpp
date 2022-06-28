@@ -174,12 +174,6 @@ private:
 		(ParamFloat<px4::params::DS_C_D2>) _param_fw_c_d2,
 		(ParamFloat<px4::params::DS_AOA_OFFSET>) _param_aoa_offset,
 		(ParamFloat<px4::params::DS_STALL_SPEED>) _param_stall_speed,
-		// filter params
-		(ParamFloat<px4::params::DS_FILTER_A1>) _param_filter_a1,
-		(ParamFloat<px4::params::DS_FILTER_A2>) _param_filter_a2,
-		(ParamFloat<px4::params::DS_FILTER_B1>) _param_filter_b1,
-		(ParamFloat<px4::params::DS_FILTER_B2>) _param_filter_b2,
-		(ParamFloat<px4::params::DS_FILTER_B3>) _param_filter_b3,
 		// controller params
 		(ParamFloat<px4::params::DS_K_X_ROLL>) _param_k_x_roll,
 		(ParamFloat<px4::params::DS_K_X_PITCH>) _param_k_x_pitch,
@@ -269,7 +263,6 @@ private:
 	Quatf _get_attitude(Vector3f vel, Vector3f f);	// get the attitude to produce force f while flying with velocity vel
 	Vector3f _compute_INDI_stage_1(Vector3f pos_ref, Vector3f vel_ref, Vector3f acc_ref, Vector3f omega_ref, Vector3f alpha_ref);
 	Vector3f _compute_INDI_stage_2(Vector3f ctrl);
-	Vector3f _apply_LP_filter(Vector3f new_input, Vector<Vector3f, 3>  &old_input, Vector<Vector3f, 2>  &old_output);
 	Vector3f _compute_actuator_deflections(Vector3f ctrl);
 
 	// yaw controller
@@ -300,17 +293,6 @@ private:
     float _k_d_yaw;
 	hrt_abstime _last_run{0};
 
-	// filter variables
-	Vector<Vector3f, 3> _f_list;	// force
-	Vector<Vector3f, 3> _m_list;	// moment
-	Vector<Vector3f, 3> _w_list;	// body rates
-	Vector<Vector3f, 3> _a_list;	// linear accel
-	Vector<Vector3f, 3> _l_list;	// angular accel
-	Vector<Vector3f, 2> _f_lpf_list;
-	Vector<Vector3f, 2> _m_lpf_list;
-	Vector<Vector3f, 2> _w_lpf_list;	// body rates	
-	Vector<Vector3f, 2> _a_lpf_list;
-	Vector<Vector3f, 2> _l_lpf_list;
 	// controller frequency
 	const float _sample_frequency = 200.f;
 	// Low-Pass filters stage 1
@@ -319,7 +301,7 @@ private:
 	math::LowPassFilter2p _lp_filter_force[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// force command
 	math::LowPassFilter2p _lp_filter_omega[3] {{_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}, {_sample_frequency, _cutoff_frequency_1}};	// body rates
 	// Low-Pass filters stage 2
-	const float _cutoff_frequency_2 = 5.f; // MUST MATCH PARAM "IMU_DGYRO_CUTOFF"
+	const float _cutoff_frequency_2 = 30.f; // MUST MATCH PARAM "IMU_DGYRO_CUTOFF"
 	math::LowPassFilter2p _lp_filter_delay[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// filter to match acceleration processing delay
 	math::LowPassFilter2p _lp_filter_omega_2[3] {{_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}, {_sample_frequency, _cutoff_frequency_2}};	// body rates
 	// Low-Pass filter for wind estimate
@@ -340,11 +322,6 @@ private:
 	float _C_D2;
 	float _aoa_offset;
 	float _stall_speed;
-	float _a1;
-	float _a2;
-	float _b1;
-	float _b2;
-	float _b3;
 	// trajecotry origin in WGS84
 	float _origin_lat;
 	float _origin_lon;

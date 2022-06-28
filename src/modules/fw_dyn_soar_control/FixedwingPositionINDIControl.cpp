@@ -139,12 +139,6 @@ FixedwingPositionINDIControl::parameters_update()
     _aoa_offset = _param_aoa_offset.get();
     _stall_speed = _param_stall_speed.get();
 
-    // filter parameters
-    _a1 = _param_filter_a1.get();
-    _a2 = _param_filter_a2.get();
-    _b1 = _param_filter_b1.get();
-    _b2 = _param_filter_b2.get();
-    _b3 = _param_filter_b3.get();
 
     // actuator gains
     _k_ail = _param_k_act_roll.get();
@@ -1252,30 +1246,6 @@ FixedwingPositionINDIControl::_compute_INDI_stage_2(Vector3f ctrl)
     return deflection;
 }
 
-/*
-Vector3f
-FixedwingPositionINDIControl::_apply_LP_filter(Vector3f new_input, Vector<Vector3f, 3>  &old_input, Vector<Vector3f, 2>  &old_output)
-{
-    // apply as: moment_filtered = _apply_LP_filter(moment, _m_list, _m_lpf_list);
-    old_input(0) = old_input(1);
-    old_input(1) = old_input(2);
-    old_input(2) = new_input;
-    //
-    Vector3f output = Vector3f{0.f,0.f,0.f};
-    //
-    output += _a1*old_output(1);
-    output += _a2*old_output(0);
-    //
-    output += _b1*old_input(2);
-    output += _b2*old_input(1);
-    output += _b3*old_input(0);
-    //
-    old_output(0) = old_output(1);
-    old_output(1) = output;
-    //
-    return output;
-}
-*/
 
 Vector3f
 FixedwingPositionINDIControl::_compute_actuator_deflections(Vector3f ctrl)
@@ -1293,8 +1263,8 @@ FixedwingPositionINDIControl::_compute_actuator_deflections(Vector3f ctrl)
     float current_ele = _actuators.control[actuator_controls_s::INDEX_PITCH];
     float current_rud = _actuators.control[actuator_controls_s::INDEX_YAW];
     //
-    float max_rate = M_PI_F/2.f;
-    float dt = 1.f/50.f;
+    float max_rate = 0.5f/0.18f;    //
+    float dt = 1.f/_sample_frequency;
     //
     deflection(0) = constrain(deflection(0),current_ail-dt*max_rate,current_ail+dt*max_rate);
     deflection(1) = constrain(deflection(1),current_ele-dt*max_rate,current_ele+dt*max_rate);
