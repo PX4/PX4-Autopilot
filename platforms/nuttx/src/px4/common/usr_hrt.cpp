@@ -80,9 +80,7 @@ hrt_absolute_time(void)
 void
 hrt_store_absolute_time(volatile hrt_abstime *t)
 {
-	irqstate_t flags = px4_enter_critical_section();
 	*t = hrt_absolute_time();
-	px4_leave_critical_section(flags);
 }
 
 /**
