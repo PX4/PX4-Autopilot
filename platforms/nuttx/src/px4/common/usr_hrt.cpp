@@ -122,7 +122,8 @@ void
 hrt_init(void)
 {
 	px4_register_shutdown_hook(hrt_request_stop);
-	g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, 1000, event_thread, NULL);
+	g_usr_hrt_task = px4_task_spawn_cmd("usr_hrt", SCHED_DEFAULT, SCHED_PRIORITY_MAX, PX4_STACK_ADJUSTED(1024),
+					    event_thread, NULL);
 }
 
 /**
