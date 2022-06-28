@@ -403,8 +403,8 @@ FixedwingPositionINDIControl::_read_trajectory_coeffs_csv(char *filename)
     // =======================================================================
     bool error = false;
 
-    //char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
-    char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
+    char home_dir[200] = "/home/marvin/Documents/master_thesis_ADS/PX4/Git/ethzasl_fw_px4/src/modules/fw_dyn_soar_control/trajectories/";
+    //char home_dir[200] = PX4_ROOTFSDIR"/fs/microsd/trajectories/";
     //PX4_ERR(home_dir);
     strcat(home_dir,filename);
     FILE* fp = fopen(home_dir, "r");
@@ -591,8 +591,12 @@ FixedwingPositionINDIControl::Run()
         // compute expected AoA from g-forces:
         Vector3f body_force = _mass*R_bi*(_acc + Vector3f{0.f,0.f,9.81f});
         // approximate lift force, since implicit equation cannot be solved analytically:
-        float lift = -body_force(2);
-        float AoA_approx = ((2.f*lift)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1;
+        // since alpha<<1, we approximate the lift force L = sin(alpha)*Fx - cos(alpha)*Fz
+        // as L = alpha*Fx - Fz
+        float Fx = body_force(0);
+        float Fz = -body_force(2);
+        float AoA_approx = (((2.f*Fz)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f) - _C_L0)/_C_L1) / 
+                            (1 - ((2.f*Fx)/(_rho*_area*(fmaxf(_airspeed*_airspeed,_stall_speed*_stall_speed))+0.001f)/_C_L1));
         AoA_approx = constrain(AoA_approx,-0.2f,0.2f);
         Vector3f vel_air = R_ib*(Vector3f{_airspeed,0.f,tanf(AoA_approx)*_airspeed});
         Vector3f wind = _vel - vel_air;
@@ -600,7 +604,7 @@ FixedwingPositionINDIControl::Run()
         wind(1) = _lp_filter_wind[1].apply(wind(1));
         wind(2) = _lp_filter_wind[2].apply(wind(2));
         _set_wind_estimate(wind);
-        //PX4_INFO("wind estimate:\t%.4f\t%.4f\t%.4f", (double)_wind_estimate(0),(double)_wind_estimate(1),(double)_wind_estimate(2));
+        PX4_INFO("wind estimate:\t%.4f\t%.4f\t%.4f", (double)_wind_estimate(0),(double)_wind_estimate(1),(double)_wind_estimate(2));
 
 
         // only run actuators poll, when our module is not publishing:
