@@ -75,15 +75,6 @@ hrt_absolute_time(void)
 }
 
 /**
- * Store the absolute time in an interrupt-safe fashion
- */
-void
-hrt_store_absolute_time(volatile hrt_abstime *t)
-{
-	*t = hrt_absolute_time();
-}
-
-/**
  * Event dispatcher thread
  */
 int
