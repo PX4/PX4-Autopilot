@@ -75,17 +75,6 @@ hrt_absolute_time(void)
 }
 
 /**
- * Store the absolute time in an interrupt-safe fashion
- */
-void
-hrt_store_absolute_time(volatile hrt_abstime *t)
-{
-	irqstate_t flags = px4_enter_critical_section();
-	*t = hrt_absolute_time();
-	px4_leave_critical_section(flags);
-}
-
-/**
  * Event dispatcher thread
  */
 int
