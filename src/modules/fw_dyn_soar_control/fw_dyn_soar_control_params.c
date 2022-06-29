@@ -201,8 +201,8 @@ PARAM_DEFINE_FLOAT(DS_STALL_SPEED, 9.0f);
  * control gain of position PD-controller (body x-direction)
  * 
  * @unit 
- * @min -10
- * @max 10
+ * @min 0
+ * @max 100
  * @decimal 1
  * @increment 0.1
  * @group FW DYN SOAR Control
@@ -213,8 +213,8 @@ PARAM_DEFINE_FLOAT(DS_LIN_K_X, 1.0f);
  * control gain of position PD-controller (body y-direction)
  * 
  * @unit 
- * @min -10
- * @max 10
+ * @min 0
+ * @max 100
  * @decimal 1
  * @increment 0.1
  * @group FW DYN SOAR Control
@@ -225,8 +225,8 @@ PARAM_DEFINE_FLOAT(DS_LIN_K_Y, 1.0f);
  * control gain of position PD-controller (body z-direction)
  * 
  * @unit 
- * @min -10
- * @max 10
+ * @min 0
+ * @max 100
  * @decimal 1
  * @increment 0.1
  * @group FW DYN SOAR Control
@@ -273,7 +273,7 @@ PARAM_DEFINE_FLOAT(DS_LIN_C_Z, 0.75f);
  * acceleration feedback gain of position PD-controller (body x-direction)
  * 
  * @unit 
- * @min -10
+ * @min 0
  * @max 10
  * @decimal 1
  * @increment 0.1
@@ -285,7 +285,7 @@ PARAM_DEFINE_FLOAT(DS_LIN_FF_X, 0.5f);
  * acceleration feedback gain of position PD-controller (body y-direction)
  * 
  * @unit 
- * @min -10
+ * @min 0
  * @max 10
  * @decimal 1
  * @increment 0.1
@@ -297,7 +297,7 @@ PARAM_DEFINE_FLOAT(DS_LIN_FF_Y, 0.5f);
  * acceleration feedback gain of position PD-controller (body z-direction)
  * 
  * @unit 
- * @min -10
+ * @min 0
  * @max 10
  * @decimal 1
  * @increment 0.1
@@ -476,7 +476,7 @@ PARAM_DEFINE_FLOAT(DS_ORIGIN_ALT, 537.0f);
 // ======================================================
 
 /**
- * integer in {0,1,2,3} defining the loiter trajectory
+ * integer in {0,1,2,3,4,5} defining the loiter trajectory
  * 
  * @unit 
  * @min 0

@@ -166,7 +166,7 @@ private:
 		(ParamFloat<px4::params::DS_MASS>) _param_fw_mass,
 		(ParamFloat<px4::params::DS_WING_AREA>) _param_fw_wing_area,
 		(ParamFloat<px4::params::DS_RHO>) _param_rho,
-		// aerodynamic params
+		// aerodynamic params (INDI)
 		(ParamFloat<px4::params::DS_C_L0>) _param_fw_c_l0,
 		(ParamFloat<px4::params::DS_C_L1>) _param_fw_c_l1,
 		(ParamFloat<px4::params::DS_C_D0>) _param_fw_c_d0,
@@ -174,7 +174,7 @@ private:
 		(ParamFloat<px4::params::DS_C_D2>) _param_fw_c_d2,
 		(ParamFloat<px4::params::DS_AOA_OFFSET>) _param_aoa_offset,
 		(ParamFloat<px4::params::DS_STALL_SPEED>) _param_stall_speed,
-		// position INDI control params
+		// position PD control params
 		(ParamFloat<px4::params::DS_LIN_K_X>) _param_lin_k_x,
 		(ParamFloat<px4::params::DS_LIN_K_Y>) _param_lin_k_y,
 		(ParamFloat<px4::params::DS_LIN_K_Z>) _param_lin_k_z,
@@ -184,12 +184,12 @@ private:
 		(ParamFloat<px4::params::DS_LIN_FF_X>) _param_lin_ff_x,
 		(ParamFloat<px4::params::DS_LIN_FF_Y>) _param_lin_ff_y,
 		(ParamFloat<px4::params::DS_LIN_FF_Z>) _param_lin_ff_z,
-		// attitude INDI control params
+		// attitude PD control params
 		(ParamFloat<px4::params::DS_ROT_K_ROLL>) _param_rot_k_roll,
 		(ParamFloat<px4::params::DS_ROT_K_PITCH>) _param_rot_k_pitch,
 		(ParamFloat<px4::params::DS_ROT_C_ROLL>) _param_rot_c_roll,
 		(ParamFloat<px4::params::DS_ROT_C_PITCH>) _param_rot_c_pitch,
-		// low-level controller params
+		// low-level controller params (INDI)
 		(ParamFloat<px4::params::DS_K_ACT_ROLL>) _param_k_act_roll,
 		(ParamFloat<px4::params::DS_K_ACT_PITCH>) _param_k_act_pitch,
 		(ParamFloat<px4::params::DS_K_ACT_YAW>) _param_k_act_yaw,
