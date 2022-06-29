@@ -43,6 +43,16 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/getopt.h>
 
+#if defined(__PX4_LINUX)
+
+#include <px4_platform_common/i2c.h>
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#endif
+
 namespace i2cdetect
 {
 
@@ -52,6 +62,52 @@ int detect(int bus)
 
 	int ret = PX4_ERROR;
 
+#if defined(__PX4_LINUX)
+
+	int fd;
+	char dev[32];
+
+	// Check for a valid bus for the current platform.
+	// Probing random buses can cause issues for some h/w platforms.
+	// Only allow i2c buses the board is configured to support in PX4
+	// (not all the i2c busses on the board).
+	bool valid_bus = false;
+
+	for (int i = 0; i < PX4_NUMBER_I2C_BUSES; i++) {
+		if (px4_i2c_buses[i].bus == bus) {
+			valid_bus = true;
+		}
+	}
+
+	if (!valid_bus) {
+		PX4_ERR("invalid bus %d", bus);
+		return PX4_ERROR;
+	}
+
+	snprintf(dev, sizeof(dev), "/dev/i2c/%d", bus);
+	fd = open(dev, O_RDWR);
+
+	if (fd < 0 && (errno == ENOENT || errno == ENOTDIR)) {
+		snprintf(dev, sizeof(dev), "/dev/i2c-%d", bus);
+		fd = open(dev, O_RDWR);
+	}
+
+	if (fd < 0) {
+		if (errno == ENOENT) {
+			fprintf(stderr, "Error: Could not open file "
+				"`/dev/i2c-%d' or `/dev/i2c/%d': %s\n",
+				bus, bus, strerror(ENOENT));
+
+		} else {
+			fprintf(stderr, "Error: Could not open file "
+				"`%s': %s\n", dev, strerror(errno));
+		}
+
+		PX4_ERR("invalid bus %d", bus);
+		return PX4_ERROR;
+	}
+
+#else
 	// attach to the i2c bus
 	struct i2c_master_s *i2c_dev = px4_i2cbus_initialize(bus);
 
@@ -60,6 +116,7 @@ int detect(int bus)
 		return PX4_ERROR;
 	}
 
+#endif
 	printf("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f\n");
 
 	for (int i = 0; i < 128; i += 16) {
@@ -75,8 +132,44 @@ int detect(int bus)
 			const unsigned retries = 5;
 
 			bool found = false;
+			bool busy = false;
 
 			do {
+#if defined(__PX4_LINUX)
+
+				if (ioctl(fd, I2C_SLAVE, addr) < 0) {
+					if (errno == EBUSY) {
+						busy = true;
+						break;
+
+					} else {
+						fprintf(stderr, "Error: Could not set i2c address to 0x%02x: %s\n", addr,
+							strerror(errno));
+						return PX4_ERROR;
+					}
+				}
+
+				struct i2c_smbus_ioctl_data args;
+
+				union i2c_smbus_data data;
+
+				args.read_write = I2C_SMBUS_READ;
+
+				args.command = 0;
+
+				args.size = I2C_SMBUS_BYTE;
+
+				args.data = &data;
+
+				ret = ioctl(fd, I2C_SMBUS, &args);
+
+				// success
+				if (ret == PX4_OK) {
+					found = true;
+					break;
+				}
+
+#else
 				uint8_t send_data = 0;
 				uint8_t recv_data = 0;
 				i2c_msg_s msgv[2] {};
@@ -110,10 +203,14 @@ int detect(int bus)
 #endif // CONFIG_I2C_RESET
 				}
 
+#endif //__PX4_LINUX
 			} while (retry_count++ < retries);
 
 			if (found) {
 				printf("%02x ", addr);
+
+			} else if (busy) {
+				printf("UU");
 
 			} else {
 				printf("-- ");
@@ -123,9 +220,10 @@ int detect(int bus)
 		printf("\n");
 	}
 
+#if !defined(__PX4_LINUX)
 	px4_i2cbus_uninitialize(i2c_dev);
-
-	return ret;
+#endif
+	return PX4_OK;
 }
 
 int usage(const char *reason = nullptr)
