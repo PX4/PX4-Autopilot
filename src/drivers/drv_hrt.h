@@ -235,6 +235,11 @@ __EXPORT extern void	hrt_call_delay(struct hrt_call *entry, hrt_abstime delay);
  */
 __EXPORT extern void	hrt_init(void);
 
+/*
+ * Initialise the HRT ioctl (user mode access to HRT).
+ */
+__EXPORT extern void	hrt_ioctl_init(void);
+
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 
 __EXPORT extern int px4_lockstep_register_component(void);
