@@ -160,6 +160,7 @@ private:
 			}
 
 			msg.reset_counter = odom.reset_counter;
+			msg.quality = odom.quality;
 
 			mavlink_msg_odometry_send_struct(_mavlink->get_channel(), &msg);
 

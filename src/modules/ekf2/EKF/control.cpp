@@ -201,7 +201,7 @@ void Ekf::controlFusionModes()
 void Ekf::controlExternalVisionFusion()
 {
 	// Check for new external vision data
-	if (_ev_data_ready) {
+	if (_ev_data_ready && _ev_sample_delayed.quality >= _params.ev_quality_minimum) {
 
 		bool reset = false;
 

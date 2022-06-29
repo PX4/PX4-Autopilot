@@ -1415,6 +1415,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	}
 
 	odometry.reset_counter = odom.reset_counter;
+	odometry.quality = odom.quality;
 
 	/**
 	 * Supported local frame of reference is MAV_FRAME_LOCAL_NED or MAV_FRAME_LOCAL_FRD

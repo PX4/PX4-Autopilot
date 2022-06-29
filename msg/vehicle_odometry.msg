@@ -64,5 +64,7 @@ float32[21] velocity_covariance
 
 uint8 reset_counter
 
+uint8 quality
+
 # TOPICS vehicle_odometry vehicle_mocap_odometry vehicle_visual_odometry
 # TOPICS estimator_odometry estimator_visual_odometry_aligned

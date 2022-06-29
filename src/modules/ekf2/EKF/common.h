@@ -208,6 +208,7 @@ struct extVisionSample {
 	float       angVar{};      ///< angular heading variance (rad**2)
 	VelocityFrame vel_frame = VelocityFrame::BODY_FRAME_FRD;
 	uint8_t     reset_counter{};
+	uint8_t     quality{};     ///< quality indicator between 0 and 100
 };
 
 struct dragSample {
@@ -329,13 +330,14 @@ struct parameters {
 	float range_kin_consistency_gate{1.0f}; ///< gate size used by the range finder kinematic consistency check
 
 	// vision position fusion
+	int32_t ev_quality_minimum{0};          ///< vision minimum acceptable quality integer
 	float ev_vel_innov_gate{3.0f};          ///< vision velocity fusion innovation consistency gate size (STD)
 	float ev_pos_innov_gate{5.0f};          ///< vision position fusion innovation consistency gate size (STD)
 
 	// optical flow fusion
 	float flow_noise{0.15f};                ///< observation noise for optical flow LOS rate measurements (rad/sec)
 	float flow_noise_qual_min{0.5f};        ///< observation noise for optical flow LOS rate measurements when flow sensor quality is at the minimum useable (rad/sec)
-	int32_t flow_qual_min{1};               ///< minimum acceptable quality integer from  the flow sensor
+	int32_t flow_qual_min{1};               ///< minimum acceptable quality integer from the flow sensor
 	float flow_innov_gate{3.0f};            ///< optical flow fusion innovation consistency gate size (STD)
 
 	// these parameters control the strictness of GPS quality checks used to determine if the GPS is
