@@ -722,6 +722,21 @@ FixedwingPositionINDIControl::Run()
             _actuators_0_pub.publish(_actuators);
             //print_message(_actuators);
 
+            // =====================
+            // publish wind estimate
+            // =====================
+            //_soaring_controller_wind = {};
+            _soaring_controller_wind.timestamp = hrt_absolute_time();
+            _soaring_controller_wind.wind_estimate[0] = wind(0);
+            _soaring_controller_wind.wind_estimate[1] = wind(1);
+            _soaring_controller_wind.wind_estimate[2] = wind(2);
+            _soaring_controller_wind.wind_estimate_filtered[0] = _wind_estimate(0);
+            _soaring_controller_wind.wind_estimate_filtered[1] = _wind_estimate(1);
+            _soaring_controller_wind.wind_estimate_filtered[2] = _wind_estimate(2);
+            _soaring_controller_wind_pub.publish(_soaring_controller_wind);
+
+
+
             if (_counter==100) {
                 _counter = 0;
                 //PX4_INFO("frequency: \t%.3f", (double)(1000000*100)/(hrt_absolute_time()-_last_time));

@@ -393,7 +393,7 @@ PARAM_DEFINE_FLOAT(DS_K_ACT_PITCH, 0.05f);
  * @increment 0.0001
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_ACT_YAW, 0.1f);
+PARAM_DEFINE_FLOAT(DS_K_ACT_YAW, 0.01f);
 
 /**
  * roll gain of K_ACT_DAMPING (actuator damping gain)

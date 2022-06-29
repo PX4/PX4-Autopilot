@@ -66,6 +66,7 @@
 #include <uORB/topics/soaring_controller_position_setpoint.h>
 #include <uORB/topics/soaring_controller_position.h>
 #include <uORB/topics/soaring_controller_status.h>
+#include <uORB/topics/soaring_controller_wind.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/debug_value.h>
 #include <uORB/topics/wind.h>
@@ -133,6 +134,7 @@ private:
 	uORB::Publication<soaring_controller_heartbeat_s>				_soaring_controller_heartbeat_pub{ORB_ID(soaring_controller_status)};
 	uORB::Publication<soaring_controller_position_setpoint_s>		_soaring_controller_position_setpoint_pub{ORB_ID(soaring_controller_position_setpoint)};
 	uORB::Publication<soaring_controller_position_s>				_soaring_controller_position_pub{ORB_ID(soaring_controller_position)};
+	uORB::Publication<soaring_controller_wind_s>					_soaring_controller_wind_pub{ORB_ID(soaring_controller_wind)};
 	uORB::Publication<offboard_control_mode_s>						_offboard_control_mode_pub{ORB_ID(offboard_control_mode)};
 	uORB::Publication<debug_value_s>								_debug_value_pub{ORB_ID(debug_value)};
 
@@ -155,6 +157,7 @@ private:
 	soaring_controller_heartbeat_s	_soaring_controller_heartbeat{};	///< soaring controller hrt
 	soaring_controller_position_setpoint_s	_soaring_controller_position_setpoint{};	///< soaring controller pos setpoint
 	soaring_controller_position_s	_soaring_controller_position{};	///< soaring controller pos 
+	soaring_controller_wind_s	_soaring_controller_wind{};	///< soaring controller wind
 	debug_value_s				_debug_value{};			// slip angle
 
 	// parameter struct

@@ -144,6 +144,7 @@ set(msg_files
 	soaring_controller_position_setpoint.msg
 	soaring_controller_position.msg
 	soaring_controller_status.msg
+	soaring_controller_wind.msg
 	system_power.msg
 	takeoff_status.msg
 	task_stack_info.msg
