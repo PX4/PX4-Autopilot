@@ -122,6 +122,10 @@ int px4_platform_init()
 
 	hrt_init();
 
+#if !defined(CONFIG_BUILD_FLAT)
+	hrt_ioctl_init();
+#endif
+
 	param_init();
 
 	/* configure CPU load estimation */
