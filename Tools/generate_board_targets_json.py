@@ -149,7 +149,6 @@ def process_target_firmware_prototype_file(manufacturer, board, file):
 
     with open(file.path, 'r') as f:
         data = json.load(f)
-        print(data)
         board_info_dict = dict()
         board_info_dict['board_name'] = data['summary']
         board_info_dict['target_name'] = target_name
@@ -175,7 +174,7 @@ In this following format:
 }
 '''
 def print_board_information(board_list: list):
-    global args
+    global args, verbose
     extra_args = dict()
     json_list = []
 
@@ -195,7 +194,7 @@ def print_board_information(board_list: list):
                 # firmware.prototype file that defines board information
                 board_info = target
 
-        if board_info is None:
+        if board_info is None and verbose:
             print('Board info is NONE!')
             print(board)
 
