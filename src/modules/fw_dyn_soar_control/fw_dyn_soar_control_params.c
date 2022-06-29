@@ -198,7 +198,7 @@ PARAM_DEFINE_FLOAT(DS_STALL_SPEED, 9.0f);
 // =================== CONTROL GAINS ======================
 // ========================================================
 /**
- * roll gain of K_x (position error gain)
+ * control gain of position PD-controller (body x-direction)
  * 
  * @unit 
  * @min -10
@@ -207,10 +207,10 @@ PARAM_DEFINE_FLOAT(DS_STALL_SPEED, 9.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_X_ROLL, 1.0f);
+PARAM_DEFINE_FLOAT(DS_LIN_K_X, 1.0f);
 
 /**
- * pitch gain of K_x (position error gain)
+ * control gain of position PD-controller (body y-direction)
  * 
  * @unit 
  * @min -10
@@ -219,10 +219,10 @@ PARAM_DEFINE_FLOAT(DS_K_X_ROLL, 1.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_X_PITCH, 1.0f);
+PARAM_DEFINE_FLOAT(DS_LIN_K_Y, 1.0f);
 
 /**
- * yaw gain of K_x (position error gain)
+ * control gain of position PD-controller (body z-direction)
  * 
  * @unit 
  * @min -10
@@ -231,10 +231,46 @@ PARAM_DEFINE_FLOAT(DS_K_X_PITCH, 1.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_X_YAW, 1.0f);
+PARAM_DEFINE_FLOAT(DS_LIN_K_Z, 1.0f);
 
 /**
- * roll gain of K_v (velocity error gain)
+ * normalized damping coefficient of position PD-controller (body x-direction)
+ * 
+ * @unit 
+ * @min 0
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_LIN_C_X, 0.75f);
+
+/**
+ * normalized damping coefficient of position PD-controller (body y-direction)
+ * 
+ * @unit 
+ * @min 0
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_LIN_C_Y, 0.75f);
+
+/**
+ * normalized damping coefficient of position PD-controller (body z-direction)
+ * 
+* @unit 
+ * @min 0
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_LIN_C_Z, 0.75f);
+
+/**
+ * acceleration feedback gain of position PD-controller (body x-direction)
  * 
  * @unit 
  * @min -10
@@ -243,10 +279,10 @@ PARAM_DEFINE_FLOAT(DS_K_X_YAW, 1.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_V_ROLL, 1.5f);
+PARAM_DEFINE_FLOAT(DS_LIN_FF_X, 0.5f);
 
 /**
- * pitch gain of K_v (velocity error gain)
+ * acceleration feedback gain of position PD-controller (body y-direction)
  * 
  * @unit 
  * @min -10
@@ -255,10 +291,10 @@ PARAM_DEFINE_FLOAT(DS_K_V_ROLL, 1.5f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_V_PITCH, 1.5f);
+PARAM_DEFINE_FLOAT(DS_LIN_FF_Y, 0.5f);
 
 /**
- * yaw gain of K_v (velocity error gain)
+ * acceleration feedback gain of position PD-controller (body z-direction)
  * 
  * @unit 
  * @min -10
@@ -267,46 +303,10 @@ PARAM_DEFINE_FLOAT(DS_K_V_PITCH, 1.5f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_V_YAW, 1.5f);
+PARAM_DEFINE_FLOAT(DS_LIN_FF_Z, 0.5f);
 
 /**
- * roll gain of K_A (acceleration error gain)
- * 
- * @unit 
- * @min -10
- * @max 10
- * @decimal 1
- * @increment 0.1
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_K_A_ROLL, 0.5f);
-
-/**
- * pitch gain of K_A (acceleration error gain)
- * 
- * @unit 
- * @min -10
- * @max 10
- * @decimal 1
- * @increment 0.1
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_K_A_PITCH, 0.5f);
-
-/**
- * yaw gain of K_A (acceleration error gain)
- * 
- * @unit 
- * @min -10
- * @max 10
- * @decimal 1
- * @increment 0.1
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_K_A_YAW, 0.5f);
-
-/**
- * roll gain of K_Q (attitude error gain)
+ * control gain of attitude PD-controller (body roll-direction)
  * 
  * @unit 
  * @min 0
@@ -315,10 +315,10 @@ PARAM_DEFINE_FLOAT(DS_K_A_YAW, 0.5f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_Q_ROLL, 10.0f);
+PARAM_DEFINE_FLOAT(DS_ROT_K_ROLL, 10.0f);
 
 /**
- * pitch gain of K_Q (attitude error gain)
+ * control gain of attitude PD-controller (body pitch-direction)
  * 
  * @unit 
  * @min 0
@@ -327,55 +327,33 @@ PARAM_DEFINE_FLOAT(DS_K_Q_ROLL, 10.0f);
  * @increment 0.1
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_Q_PITCH, 10.0f);
+PARAM_DEFINE_FLOAT(DS_ROT_K_PITCH, 10.0f);
+
 
 /**
- * yaw gain of K_Q (attitude error gain)
+ * normalized damping coefficient of attitude PD-controller (body roll-direction)
  * 
  * @unit 
  * @min 0
- * @max 20
- * @decimal 1
- * @increment 0.1
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_Q_YAW, 0.5f);
+PARAM_DEFINE_FLOAT(DS_ROT_C_ROLL, 0.75f);
 
 /**
- * roll gain of K_W (angular velocity error gain)
+ * normalized damping coefficient of attitude PD-controller (body pitch-direction)
  * 
  * @unit 
  * @min 0
- * @max 20
- * @decimal 1
- * @increment 0.1
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
  * @group FW DYN SOAR Control
  */
-PARAM_DEFINE_FLOAT(DS_K_W_ROLL, 12.0f);
+PARAM_DEFINE_FLOAT(DS_ROT_C_PITCH, 0.75f);
 
-/**
- * pitch gain of K_W (angular velocity error gain)
- * 
- * @unit 
- * @min 0
- * @max 20
- * @decimal 1
- * @increment 0.1
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_K_W_PITCH, 12.0f);
-
-/**
- * yaw gain of K_W (angular velocity error gain)
- * 
- * @unit 
- * @min 0
- * @max 20
- * @decimal 1
- * @increment 0.1
- * @group FW DYN SOAR Control
- */
-PARAM_DEFINE_FLOAT(DS_K_W_YAW, 1.0f);
 
 // =============================
 // low level INDI control params

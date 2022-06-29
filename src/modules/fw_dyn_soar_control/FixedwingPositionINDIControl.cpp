@@ -108,21 +108,21 @@ FixedwingPositionINDIControl::parameters_update()
     _K_a *= 0.f;
     _K_q *= 0.f;
     _K_w *= 0.f;
-    _K_x(0,0) = _param_k_x_roll.get();
-    _K_x(1,1) = _param_k_x_pitch.get();
-    _K_x(2,2) = _param_k_x_yaw.get();
-    _K_v(0,0) = _param_k_v_roll.get();
-    _K_v(1,1) = _param_k_v_pitch.get();
-    _K_v(2,2) = _param_k_v_yaw.get();
-    _K_a(0,0) = _param_k_a_roll.get();
-    _K_a(1,1) = _param_k_a_pitch.get();
-    _K_a(2,2) = _param_k_a_yaw.get();
-    _K_q(0,0) = _param_k_q_roll.get();
-    _K_q(1,1) = _param_k_q_pitch.get();
-    _K_q(2,2) = _param_k_q_yaw.get();
-    _K_w(0,0) = _param_k_w_roll.get();
-    _K_w(1,1) = _param_k_w_pitch.get();
-    _K_w(2,2) = _param_k_w_yaw.get();
+    _K_x(0,0) = _param_lin_k_x.get();
+    _K_x(1,1) = _param_lin_k_y.get();
+    _K_x(2,2) = _param_lin_k_z.get();
+    _K_v(0,0) = _param_lin_c_x.get()*2.f*sqrtf(_param_lin_k_x.get());
+    _K_v(1,1) = _param_lin_c_y.get()*2.f*sqrtf(_param_lin_k_y.get());
+    _K_v(2,2) = _param_lin_c_z.get()*2.f*sqrtf(_param_lin_k_z.get());
+    _K_a(0,0) = _param_lin_ff_x.get();
+    _K_a(1,1) = _param_lin_ff_y.get();
+    _K_a(2,2) = _param_lin_ff_z.get();
+    _K_q(0,0) = _param_rot_k_roll.get();
+    _K_q(1,1) = _param_rot_k_pitch.get();
+    _K_q(2,2) = 0.f; // rudder is controlled via turn coordination, not INDI
+    _K_w(0,0) = _param_rot_c_roll.get()*2.f*sqrtf(_param_rot_k_roll.get());
+    _K_w(1,1) = _param_rot_c_pitch.get()*2.f*sqrtf(_param_rot_k_pitch.get());
+    _K_w(2,2) = 0.f; // rudder is controlled via turn coordination, not INDI
 
     // aircraft parameters
     _inertia(0,0) = _param_fw_inertia_roll.get();
