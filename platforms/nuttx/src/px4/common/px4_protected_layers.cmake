@@ -29,6 +29,7 @@ target_link_libraries(px4_layer
 add_library(px4_board_ctrl
 	board_ctrl.c
 	board_ioctl.c
+	hrt_ioctl.c
 )
 
 add_dependencies(px4_board_ctrl nuttx_context px4_kernel_builtin_list_target)
@@ -65,3 +66,4 @@ endif()
 
 add_dependencies(px4_kernel_layer prebuild_targets)
 target_compile_options(px4_kernel_layer PRIVATE -D__KERNEL__)
+target_link_libraries(px4_kernel_layer PUBLIC px4_board_ctrl)
