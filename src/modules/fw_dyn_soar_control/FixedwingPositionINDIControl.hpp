@@ -190,8 +190,10 @@ private:
 		// attitude PD control params
 		(ParamFloat<px4::params::DS_ROT_K_ROLL>) _param_rot_k_roll,
 		(ParamFloat<px4::params::DS_ROT_K_PITCH>) _param_rot_k_pitch,
+		(ParamFloat<px4::params::DS_ROT_K_YAW>) _param_rot_k_yaw,
 		(ParamFloat<px4::params::DS_ROT_C_ROLL>) _param_rot_c_roll,
 		(ParamFloat<px4::params::DS_ROT_C_PITCH>) _param_rot_c_pitch,
+		(ParamFloat<px4::params::DS_ROT_C_YAW>) _param_rot_c_yaw,
 		// low-level controller params (INDI)
 		(ParamFloat<px4::params::DS_K_ACT_ROLL>) _param_k_act_roll,
 		(ParamFloat<px4::params::DS_K_ACT_PITCH>) _param_k_act_pitch,

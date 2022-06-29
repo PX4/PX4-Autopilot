@@ -329,6 +329,17 @@ PARAM_DEFINE_FLOAT(DS_ROT_K_ROLL, 10.0f);
  */
 PARAM_DEFINE_FLOAT(DS_ROT_K_PITCH, 10.0f);
 
+/**
+ * rudder turn coordination P-gain
+ * 
+ * @unit 
+ * @min 0
+ * @max 20
+ * @decimal 1
+ * @increment 0.1
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_ROT_K_YAW, 0.5f);
 
 /**
  * normalized damping coefficient of attitude PD-controller (body roll-direction)
@@ -353,6 +364,18 @@ PARAM_DEFINE_FLOAT(DS_ROT_C_ROLL, 0.75f);
  * @group FW DYN SOAR Control
  */
 PARAM_DEFINE_FLOAT(DS_ROT_C_PITCH, 0.75f);
+
+/**
+ * normalized damping coefficient of rudder (turn coordination)
+ * 
+ * @unit 
+ * @min 0
+ * @max 2
+ * @decimal 2
+ * @increment 0.01
+ * @group FW DYN SOAR Control
+ */
+PARAM_DEFINE_FLOAT(DS_ROT_C_YAW, 0.75f);
 
 
 // =============================
