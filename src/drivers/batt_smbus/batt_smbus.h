@@ -52,7 +52,10 @@
 #include <px4_platform_common/param.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/i2c_spi_buses.h>
+#include <systemlib/mavlink_log.h>
+
 #include <uORB/topics/battery_status.h>
+#include <uORB/topics/mavlink_log.h>
 
 #include <board_config.h>
 
@@ -60,7 +63,7 @@ using namespace time_literals;
 
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100_ms         ///< time in microseconds, measure at 10Hz
 
-#define BATT_SMBUS_CON_LOST_MSGS_THRESHOLD		5	       ///< Number of lost msgs before connection considered lost
+#define BATT_SMBUS_CON_LOST_MSGS_THRESHOLD              50             ///< Number of lost msgs before connection considered lost
 
 #define MAC_DATA_BUFFER_SIZE                            32
 
@@ -254,6 +257,8 @@ private:
 
 	/** @param _batt_topic uORB battery topic. */
 	orb_advert_t _batt_topic{nullptr};
+	/** @param _mavlink_log_pub mavlink log topic*/
+	orb_advert_t _mavlink_log_pub {nullptr};
 
 	/** @param _cell_count Number of series cell. */
 	uint8_t _cell_count{0};
