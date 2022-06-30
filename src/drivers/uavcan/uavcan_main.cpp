@@ -508,6 +508,18 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 
 	fill_node_info();
 
+	// log message subscription
+	int32_t uavcan_sub_log = 1;
+	param_get(param_find("UAVCAN_SUB_LOG"), &uavcan_sub_log);
+
+	if (uavcan_sub_log != 0) {
+		ret = _log_message_controller.init();
+
+		if (ret < 0) {
+			return ret;
+		}
+	}
+
 	ret = _beep_controller.init();
 
 	if (ret < 0) {
@@ -528,12 +540,6 @@ UavcanNode::init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events)
 	}
 
 	ret = _safety_state_controller.init();
-
-	if (ret < 0) {
-		return ret;
-	}
-
-	ret = _log_message_controller.init();
 
 	if (ret < 0) {
 		return ret;

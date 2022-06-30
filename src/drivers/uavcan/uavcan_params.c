@@ -308,6 +308,18 @@ PARAM_DEFINE_INT32(UAVCAN_SUB_ICE, 0);
 PARAM_DEFINE_INT32(UAVCAN_SUB_IMU, 0);
 
 /**
+ * subscription log message
+ *
+ * Enable UAVCAN log message subscription.
+ *  uavcan::protocol::debug::LogMessage
+ *
+ * @boolean
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_SUB_LOG, 1);
+
+/**
  * subscription magnetometer
  *
  * Enable UAVCAN mag subscription.
